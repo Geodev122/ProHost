@@ -898,6 +898,25 @@ class ProHostViewModel(
         repository.addAuditLog(actionType, details, severity)
     }
 
+    /**
+     * Uploads [uri] as the signed-in user's profile photo and saves it. Returns null on success,
+     * else a message to show (RequirementsSheet keeps the booking selection either way).
+     */
+    suspend fun updateProfilePhoto(context: Context, uri: android.net.Uri): String? {
+        val uid = currentUser.value?.id ?: return "Your session expired — please sign in again."
+        return try {
+            val url = com.example.data.storage.FirebaseStorageService.getInstance()
+                .uploadProfilePicture(uid, uri, context.applicationContext)
+                ?: return "The photo couldn't be uploaded. Check your connection and try again."
+            if (repository.updateProfilePicture(url)) null else "The photo couldn't be saved. Please try again."
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            reportFailure(context.applicationContext, e, "The photo couldn't be uploaded. Please try again.")
+            "The photo couldn't be uploaded. Please try again."
+        }
+    }
+
     suspend fun updateProfile(
         name: String,
         specialty: String,

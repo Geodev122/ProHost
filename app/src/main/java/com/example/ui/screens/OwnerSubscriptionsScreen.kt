@@ -642,6 +642,7 @@ fun OwnerSubscriptionsScreen(
             com.example.ui.components.KycVerificationDialog(
                 user = user,
                 onDismiss = { showKycDialog = false },
+                onResendVerificationEmail = { viewModel.resendEmailVerification(context) },
                 onKycCompleted = {
                     showKycDialog = false
                     pendingBasePlanId?.let { pid ->

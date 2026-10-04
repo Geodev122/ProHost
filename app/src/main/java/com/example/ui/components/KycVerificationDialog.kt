@@ -34,18 +34,19 @@ fun KycVerificationDialog(
     user: AppUser,
     onDismiss: () -> Unit,
     onKycCompleted: () -> Unit,
+    // Sends the real Firebase verification email (ProHostViewModel.resendEmailVerification).
+    onResendVerificationEmail: () -> Unit = {},
     authViewModel: AuthViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val context = LocalContext.current
     val activity = remember(context) { (context as? Activity) }
-    var phoneInput by remember { mutableStateOf(user.phone) }
-    var phoneOtpInput by remember { mutableStateOf("") }
-    var isPhoneOtpSent by remember { mutableStateOf(false) }
-    var isPhoneVerified by remember { mutableStateOf(user.phone.isNotBlank()) }
+    // A typed profile phone isn't proof: only a phone linked in Firebase Auth counts.
+    var isPhoneVerified by remember { mutableStateOf(user.hasVerifiedPhone(com.example.data.auth.PhoneLink.isLinked())) }
 
     var emailInput by remember { mutableStateOf(user.email) }
     var isEmailSent by remember { mutableStateOf(false) }
-    var isEmailVerified by remember { mutableStateOf(user.emailVerified) }
+    // Follows the live profile, so clicking the email link elsewhere ticks this off.
+    var isEmailVerified by remember(user.emailVerified) { mutableStateOf(user.emailVerified) }
 
     var countryInput by remember { mutableStateOf(user.country.ifBlank { "Lebanon" }) }
     var cityInput by remember { mutableStateOf(user.city.ifBlank { "Beirut" }) }
@@ -111,57 +112,15 @@ fun KycVerificationDialog(
                     subtitle = if (isPhoneVerified) "Verified (${user.phone})" else "SMS OTP verification required"
                 ) {
                     if (!isPhoneVerified) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedTextField(
-                                value = phoneInput,
-                                onValueChange = { phoneInput = it },
-                                label = { Text("Mobile Phone Number") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
-                            if (isPhoneOtpSent) {
-                                OutlinedTextField(
-                                    value = phoneOtpInput,
-                                    onValueChange = { phoneOtpInput = it },
-                                    label = { Text("6-Digit SMS Code") },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true
-                                )
-                                Button(
-                                    onClick = {
-                                        activity?.let { act ->
-                                            authViewModel.linkKycPhone(act, phoneInput, phoneOtpInput,
-                                                onSuccess = {
-                                                    isPhoneVerified = true
-                                                    Toast.makeText(context, "Phone verified!", Toast.LENGTH_SHORT).show()
-                                                },
-                                                onError = { message ->
-                                                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                                                }
-                                            )
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) { Text("Verify SMS Code") }
-                            } else {
-                                Button(
-                                    onClick = {
-                                        activity?.let { act ->
-                                            authViewModel.startPhoneVerification(
-                                                activity = act,
-                                                e164Phone = phoneInput,
-                                                onCodeSent = { isPhoneOtpSent = true },
-                                                onVerified = {
-                                                    isPhoneVerified = true
-                                                    Toast.makeText(context, "Phone verified!", Toast.LENGTH_SHORT).show()
-                                                }
-                                            )
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) { Text("Send SMS OTP") }
-                            }
-                        }
+                        // The shared phone flow (E.164 formatting, SMS code, linking to the
+                        // Firebase Auth account) — the same one the booking sheet uses.
+                        com.example.ui.screens.PhoneVerificationSection(
+                            onVerified = {
+                                isPhoneVerified = true
+                                Toast.makeText(context, "Phone verified!", Toast.LENGTH_SHORT).show()
+                            },
+                            authViewModel = authViewModel
+                        )
                     }
                 }
 
@@ -175,15 +134,17 @@ fun KycVerificationDialog(
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedTextField(
                                 value = emailInput,
-                                onValueChange = { emailInput = it },
+                                onValueChange = {},
+                                readOnly = true,
                                 label = { Text("Email Address") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
                             Button(
                                 onClick = {
+                                    // Used to only show a toast and never send anything.
                                     isEmailSent = true
-                                    Toast.makeText(context, "Verification email sent to $emailInput", Toast.LENGTH_SHORT).show()
+                                    onResendVerificationEmail()
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) { Text(if (isEmailSent) "Resend Verification Email" else "Send Verification Email") }

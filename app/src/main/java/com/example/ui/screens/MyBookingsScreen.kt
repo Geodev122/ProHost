@@ -42,7 +42,11 @@ import java.util.*
 fun MyBookingsScreen(
     viewModel: ProHostViewModel,
     onNavigateToDiscovery: () -> Unit,
-    onSelectSpace: (SpaceListing) -> Unit
+    onSelectSpace: (SpaceListing) -> Unit,
+    // Opens on this booking: its tab is selected and the list scrolls to it ("View request"
+    // after sending one, or a booking push). [onHighlightShown] clears it once done.
+    highlightBookingId: String? = null,
+    onHighlightShown: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -123,6 +127,35 @@ fun MyBookingsScreen(
         0 -> activeBookings
         1 -> pendingBookings
         else -> pastBookings
+    }
+
+    val bookingsListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    var flashBookingId by remember { mutableStateOf<String?>(null) }
+    val latestBookings by rememberUpdatedState(userBookings)
+    // Keyed on the id and on "bookings have loaded", not on every list change, so a live
+    // update doesn't restart (and cancel) the scroll.
+    LaunchedEffect(highlightBookingId, userBookings.isNotEmpty()) {
+        val id = highlightBookingId ?: return@LaunchedEffect
+        val target = latestBookings.firstOrNull { it.id == id } ?: return@LaunchedEffect
+        selectedMainTab = when (target.status) {
+            BookingRequestStatus.ACCEPTED -> 0
+            BookingRequestStatus.PENDING -> 1
+            else -> 2
+        }
+        flashBookingId = target.id
+        kotlinx.coroutines.delay(150) // let the selected tab's list compose
+        val list = latestBookings.filter {
+            when (selectedMainTab) {
+                0 -> it.status == BookingRequestStatus.ACCEPTED
+                1 -> it.status == BookingRequestStatus.PENDING
+                else -> it.status == BookingRequestStatus.REJECTED || it.status == BookingRequestStatus.CANCELLED
+            }
+        }
+        val index = list.indexOfFirst { it.id == target.id }
+        if (index >= 0) runCatching { bookingsListState.animateScrollToItem(index) }
+        kotlinx.coroutines.delay(2_500)
+        flashBookingId = null
+        onHighlightShown()
     }
 
     Column(
@@ -257,6 +290,7 @@ fun MyBookingsScreen(
             }
         } else {
             LazyColumn(
+                state = bookingsListState,
                 modifier = Modifier.fillMaxSize(),
                 // bottom = 24.dp (rather than Spacing.md) so the last card always
                 // clears the bottom nav bar with real breathing room.
@@ -273,6 +307,9 @@ fun MyBookingsScreen(
                             if (space != null) onSelectSpace(space)
                         },
                         canCreateBookings = currentUser?.role != UserRole.PRO_HOST,
+                        modifier = if (booking.id == flashBookingId) {
+                            Modifier.border(2.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.large)
+                        } else Modifier,
                         onRebook = {
                             rebookTargetSpaceId = (space ?: allSpaces.firstOrNull())?.id
                             rebookSourceBooking = booking

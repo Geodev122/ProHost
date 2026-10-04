@@ -87,7 +87,6 @@ fun DiscoveryScreen(
         onSelectStrategies = { discoveryViewModel.setFormulaFilter(it) },
         onPriceRangeChange = { discoveryViewModel.setPriceRange(it) },
         onToggleVerifiedOnly = { discoveryViewModel.toggleVerifiedOnly(it) },
-        onToggleSavedOnly = { discoveryViewModel.toggleSavedOnly(it) },
         onToggleSavedSpace = { discoveryViewModel.toggleSavedSpace(it) },
         onResetFilters = { discoveryViewModel.resetFilters() },
         onSelectSpace = { space, subId ->
@@ -106,7 +105,12 @@ fun DiscoveryScreen(
             discoveryViewModel.setMapCenterCountry(country)
         },
         hasMore = uiState.hasMore,
-        onLoadMore = { discoveryViewModel.loadMore() }
+        onLoadMore = { discoveryViewModel.loadMore() },
+        initialListIndex = discoveryViewModel.listScrollIndex,
+        initialListOffset = discoveryViewModel.listScrollOffset,
+        onListPositionSaved = { index, offset -> discoveryViewModel.saveListPosition(index, offset) },
+        initialMapCamera = discoveryViewModel.mapCamera,
+        onMapCameraSaved = { discoveryViewModel.saveMapCamera(it) }
     )
 }
 
@@ -139,7 +143,6 @@ fun DiscoveryScreenContent(
     onSelectStrategies: (Set<PricingFormulaFilter>) -> Unit,
     onPriceRangeChange: (ClosedFloatingPointRange<Float>?) -> Unit,
     onToggleVerifiedOnly: (Boolean) -> Unit,
-    onToggleSavedOnly: (Boolean) -> Unit,
     onToggleSavedSpace: (String) -> Unit,
     onResetFilters: () -> Unit,
     onSelectSpace: (SpaceListing, String?) -> Unit,
@@ -147,8 +150,18 @@ fun DiscoveryScreenContent(
     onMapCenterCountryDetected: (String) -> Unit = {},
     // Paging: more active listings may exist beyond the loaded page.
     hasMore: Boolean = false,
-    onLoadMore: () -> Unit = {}
+    onLoadMore: () -> Unit = {},
+    // Where Explore was before a listing was opened (restored on return).
+    initialListIndex: Int = 0,
+    initialListOffset: Int = 0,
+    onListPositionSaved: (index: Int, offset: Int) -> Unit = { _, _ -> },
+    initialMapCamera: com.google.android.gms.maps.model.CameraPosition? = null,
+    onMapCameraSaved: (com.google.android.gms.maps.model.CameraPosition) -> Unit = {}
 ) {
+    val exploreListState = androidx.compose.foundation.lazy.rememberLazyListState(initialListIndex, initialListOffset)
+    DisposableEffect(exploreListState) {
+        onDispose { onListPositionSaved(exploreListState.firstVisibleItemIndex, exploreListState.firstVisibleItemScrollOffset) }
+    }
     var searchExpanded by rememberSaveable { mutableStateOf(filterState.query.isNotEmpty()) }
     val searchQuery = filterState.query
 
@@ -168,6 +181,8 @@ fun DiscoveryScreenContent(
                 onDivisionSelected = { space, subdivisionId -> onSelectSpace(space, subdivisionId) },
                 onCenterCountryDetected = { country -> onMapCenterCountryDetected(country) },
                 onSearchArea = { if (hasMore) onLoadMore() },
+                initialCamera = initialMapCamera,
+                onCameraSaved = onMapCameraSaved,
                 modifier = Modifier.fillMaxSize().clipToBounds(),
                 spaceTypeSchema = spaceTypeSchema,
                 topControls = { searchAreaPill ->
@@ -230,6 +245,7 @@ fun DiscoveryScreenContent(
                     contentAlignment = Alignment.TopCenter
                 ) {
                     LazyColumn(
+                        state = exploreListState,
                         modifier = Modifier
                             .fillMaxWidth()
                             .widthIn(max = 840.dp),
@@ -315,7 +331,6 @@ fun DiscoveryScreenContent(
             onSelectStrategies = onSelectStrategies,
             onPriceRangeChange = onPriceRangeChange,
             onToggleVerifiedOnly = onToggleVerifiedOnly,
-            onToggleSavedOnly = onToggleSavedOnly,
             onResetFilters = onResetFilters
         )
     }
@@ -524,7 +539,6 @@ private fun DiscoveryFilterSheet(
     onSelectStrategies: (Set<PricingFormulaFilter>) -> Unit,
     onPriceRangeChange: (ClosedFloatingPointRange<Float>?) -> Unit,
     onToggleVerifiedOnly: (Boolean) -> Unit,
-    onToggleSavedOnly: (Boolean) -> Unit,
     onResetFilters: () -> Unit
 ) {
     ProHostBottomSheet(
@@ -631,14 +645,6 @@ private fun DiscoveryFilterSheet(
                         { Icon(Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(16.dp)) }
                     } else null,
                     label = { Text("Verified only", style = MaterialTheme.typography.labelSmall) }
-                )
-                FilterChip(
-                    selected = filterState.onlySaved,
-                    onClick = { onToggleSavedOnly(!filterState.onlySaved) },
-                    leadingIcon = if (filterState.onlySaved) {
-                        { Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                    } else null,
-                    label = { Text("Saved only", style = MaterialTheme.typography.labelSmall) }
                 )
             }
 

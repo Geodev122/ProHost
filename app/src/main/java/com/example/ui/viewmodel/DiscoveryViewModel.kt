@@ -81,9 +81,8 @@ class DiscoveryViewModel(
             val matchesType = filter.selectedCategoryIds.isEmpty() ||
                 filter.selectedCategoryIds.any { space.matchesCategory(it) }
             val matchesVerified = !filter.onlyVerified || space.isVerified
-            val matchesSaved = !filter.onlySaved || savedIds.contains(space.id)
             val matchesCountry = filter.selectedCountries.isEmpty() || effectiveCountry(space) in filter.selectedCountries
-            if (!(matchesQuery && matchesType && matchesVerified && matchesSaved && matchesCountry)) return@filter false
+            if (!(matchesQuery && matchesType && matchesVerified && matchesCountry)) return@filter false
 
             val matchingUnits = rentableUnits(space).filter { unit ->
                 (filter.selectedDivisionTypes.isEmpty() || unit.divisionType in filter.selectedDivisionTypes) &&
@@ -244,11 +243,6 @@ class DiscoveryViewModel(
         com.example.analytics.AnalyticsTracker.filterApply("verified_only", verifiedOnly.toString())
     }
 
-    fun toggleSavedOnly(savedOnly: Boolean) {
-        _filterState.update { it.copy(onlySaved = savedOnly) }
-        com.example.analytics.AnalyticsTracker.filterApply("saved_only", savedOnly.toString())
-    }
-
     fun setCountryFilter(countries: Set<String>) {
         _filterState.update { it.copy(selectedCountries = countries) }
         com.example.analytics.AnalyticsTracker.filterApply("country", countries.sorted().joinToString(",").ifEmpty { "any" })
@@ -274,6 +268,18 @@ class DiscoveryViewModel(
             }
         }
     }
+
+    // Explore's place, kept across opening a listing (the Explore screen leaves composition
+    // while details are open): list scroll position and the map camera.
+    var listScrollIndex: Int = 0
+        private set
+    var listScrollOffset: Int = 0
+        private set
+    var mapCamera: com.google.android.gms.maps.model.CameraPosition? = null
+        private set
+
+    fun saveListPosition(index: Int, offset: Int) { listScrollIndex = index; listScrollOffset = offset }
+    fun saveMapCamera(position: com.google.android.gms.maps.model.CameraPosition) { mapCamera = position }
 
     /** Explore paging: loads the next page of active listings when one may exist. */
     fun loadMore() = repository.loadMoreSpaces()

@@ -10,18 +10,19 @@ class TransactRulesTest {
     private val photo = "https://example.com/p.jpg"
 
     @Test
-    fun `booking needs both a photo and a verified phone`() {
-        assertFalse(base.canTransact())
-        assertFalse(base.copy(profilePictureUrl = photo).canTransact())
-        assertFalse(base.copy(phone = phone, isVerified = true).canTransact())
-        assertFalse(base.copy(phone = phone, isVerified = false, profilePictureUrl = photo).canTransact())
-        assertTrue(base.copy(phone = phone, isVerified = true, profilePictureUrl = photo).canTransact())
+    fun `booking needs both a photo and a phone linked in Firebase Auth`() {
+        assertFalse(base.canTransact(phoneLinkedInAuth = true))
+        assertFalse(base.copy(profilePictureUrl = photo).canTransact(phoneLinkedInAuth = true))
+        assertFalse(base.copy(phone = phone).canTransact(phoneLinkedInAuth = true))
+        // A typed profile phone that was never linked isn't verified.
+        assertFalse(base.copy(phone = phone, profilePictureUrl = photo).canTransact(phoneLinkedInAuth = false))
+        assertTrue(base.copy(phone = phone, profilePictureUrl = photo).canTransact(phoneLinkedInAuth = true))
     }
 
     @Test
-    fun `a verified phone needs both the number and the verified flag`() {
-        assertFalse(base.copy(phone = phone).hasVerifiedPhone)
-        assertFalse(base.copy(isVerified = true).hasVerifiedPhone)
-        assertTrue(base.copy(phone = phone, isVerified = true).hasVerifiedPhone)
+    fun `isVerified alone (email-verified accounts) is not a verified phone`() {
+        assertFalse(base.copy(isVerified = true).hasVerifiedPhone(phoneLinkedInAuth = false))
+        assertFalse(base.copy(phone = phone, isVerified = true).hasVerifiedPhone(phoneLinkedInAuth = false))
+        assertTrue(base.copy(phone = phone).hasVerifiedPhone(phoneLinkedInAuth = true))
     }
 }

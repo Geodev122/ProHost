@@ -113,6 +113,14 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
 - Verification rules: `AppUser.hasVerifiedPhone` gates only the Pro Host workspaces; `AppUser.canTransact()`
   (photo + verified phone) is checked in place when a specialist sends a booking request. My Rentals,
   browsing and Saved are never gated. `isKycComplete` is profile completeness (banner, Premium checkout).
+  "Verified phone" = `hasVerifiedPhone(PhoneLink.isLinked())` (phone linked in Firebase Auth) — never
+  `isVerified`, which email verification also sets. Missing steps are collected by the shared
+  `RequirementsSheet` (photo + `PhoneVerificationSection`, the same body `KycScreen` and
+  `KycVerificationDialog` use) over the booking page, keeping the selected slots.
+- Specialist routing: bottom tabs Explore · Saved · My Rentals · Profile (`SPECIALIST_BOTTOM_TABS`; there is
+  no "Saved only" filter and no drawer Billing dialog — Premium covers it). Tapping a room in Explore opens
+  its availability sheet; after a request the snackbar's "View request" opens My Rentals highlighting it.
+  `DiscoveryViewModel` keeps Explore's list position and map camera across a visit to a listing.
 - No secrets in code or scripts (GA4 secret comes from the caller or `GA4_API_SECRET`), and push tokens are
   never logged — NIGHTHAWK "Secrets & Token Hygiene".
 - Explore filters: country matching uses `effectiveCountry` (blank = Lebanon, legacy listings) and the

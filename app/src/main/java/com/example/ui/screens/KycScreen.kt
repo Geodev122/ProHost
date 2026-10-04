@@ -51,6 +51,45 @@ fun KycScreen(
     onDismiss: (() -> Unit)? = null,
     authViewModel: AuthViewModel = viewModel()
 ) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Phone Verification", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    if (onDismiss != null) {
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.Default.Close, contentDescription = "Dismiss")
+                        }
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            PhoneVerificationSection(onVerified = onKycComplete, authViewModel = authViewModel)
+        }
+    }
+}
+
+/**
+ * The one phone-verification flow (number → SMS code → linked to the Firebase Auth
+ * account). Used by the full-screen [KycScreen] gate and by the in-place
+ * RequirementsSheet, so verifying looks and behaves the same everywhere.
+ */
+@Composable
+fun PhoneVerificationSection(
+    onVerified: () -> Unit,
+    authViewModel: AuthViewModel = viewModel(),
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
     val activity: Activity? = remember(context) {
         var ctx = context
@@ -81,299 +120,276 @@ fun KycScreen(
     val authErrorMessage by authViewModel.authErrorMessage.collectAsState()
     val e164Phone = formatToE164(phoneCountry, phoneNumber)
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Phone Verification", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    if (onDismiss != null) {
-                        IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Dismiss")
-                        }
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+    Column(modifier = modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        // Step progress
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Step progress
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val steps = listOf("Phone" to Icons.Default.Phone, "Verify" to Icons.Default.Sms)
-                steps.forEachIndexed { index, (label, icon) ->
-                    val isCurrent = (index == 0 && step == KycStep.PHONE_ENTRY) ||
-                            (index == 1 && step == KycStep.OTP_ENTRY)
-                    val color = if (isCurrent) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outlineVariant
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Surface(color = color, shape = CircleShape, modifier = Modifier.size(28.dp)) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    icon,
-                                    contentDescription = null,
-                                    tint = if (isCurrent) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(15.dp)
-                                )
-                            }
+            val steps = listOf("Phone" to Icons.Default.Phone, "Verify" to Icons.Default.Sms)
+            steps.forEachIndexed { index, (label, icon) ->
+                val isCurrent = (index == 0 && step == KycStep.PHONE_ENTRY) ||
+                        (index == 1 && step == KycStep.OTP_ENTRY)
+                val color = if (isCurrent) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outlineVariant
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Surface(color = color, shape = CircleShape, modifier = Modifier.size(28.dp)) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                icon,
+                                contentDescription = null,
+                                tint = if (isCurrent) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(15.dp)
+                            )
                         }
-                        Spacer(modifier = Modifier.height(Spacing.xs))
-                        Text(
-                            label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isCurrent) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                     }
-                    if (index == 0) {
-                        HorizontalDivider(
-                            modifier = Modifier.width(32.dp).padding(horizontal = Spacing.xs).padding(bottom = 16.dp)
+                    Spacer(modifier = Modifier.height(Spacing.xs))
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isCurrent) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (index == 0) {
+                    HorizontalDivider(
+                        modifier = Modifier.width(32.dp).padding(horizontal = Spacing.xs).padding(bottom = 16.dp)
+                    )
+                }
+            }
+        }
+
+        val isLoading = isAuthenticating
+        if (isLoading) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+        }
+
+        // Error banner
+        val errorMessage = localErrorMessage ?: authErrorMessage
+        if (errorMessage != null) {
+            Surface(
+                color = MaterialTheme.colorScheme.errorContainer,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+            ) {
+                Row(modifier = Modifier.padding(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.ErrorOutline,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.sm))
+                    Text(
+                        errorMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+
+        when (step) {
+            KycStep.PHONE_ENTRY -> ModernCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                contentPadding = PaddingValues(20.dp),
+                elevation = 2.dp
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 16.dp)) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        shape = CircleShape,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.Phone, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text("Add Your Phone Number", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(
+                            "Required to access booking and listing features",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
-            }
 
-            val isLoading = isAuthenticating
-            if (isLoading) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
-            }
-
-            // Error banner
-            val errorMessage = localErrorMessage ?: authErrorMessage
-            if (errorMessage != null) {
                 Surface(
-                    color = MaterialTheme.colorScheme.errorContainer,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     shape = MaterialTheme.shapes.medium,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
                 ) {
                     Row(modifier = Modifier.padding(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            Icons.Default.ErrorOutline,
+                            Icons.Default.Info,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(18.dp)
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
                         )
-                        Spacer(modifier = Modifier.width(Spacing.sm))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            errorMessage,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            fontWeight = FontWeight.SemiBold
+                            "We verify your phone number once to prevent fraud and enable booking notifications.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
+
+                PhoneNumberField(
+                    country = phoneCountry,
+                    onCountryChange = { phoneCountry = it },
+                    number = phoneNumber,
+                    onNumberChange = { phoneNumber = it; localErrorMessage = null },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.lg))
+
+                ProPrimaryButton(
+                    text = if (isAuthenticating) "Sending Code..." else "Send Verification Code",
+                    onClick = {
+                        val currentActivity = activity
+                        if (currentActivity == null) {
+                            localErrorMessage = "Unable to start verification right now."
+                            return@ProPrimaryButton
+                        }
+                        if (phoneNumber.isBlank() || phoneNumber.filter { it.isDigit() }.length < 6) {
+                            localErrorMessage = "Please enter a valid phone number"
+                            return@ProPrimaryButton
+                        }
+                        authViewModel.startKycPhoneVerification(
+                            activity = currentActivity,
+                            e164Phone = e164Phone,
+                            onCodeSent = {
+                                otpCode = ""
+                                localErrorMessage = null
+                                resendCountdownSeconds = 30
+                                step = KycStep.OTP_ENTRY
+                            },
+                            onError = { msg -> localErrorMessage = msg }
+                        )
+                    },
+                    enabled = !isAuthenticating,
+                    icon = Icons.Default.Sms,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
 
-            when (step) {
-                KycStep.PHONE_ENTRY -> ModernCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.large,
-                    contentPadding = PaddingValues(20.dp),
-                    elevation = 2.dp
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 16.dp)) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            shape = CircleShape,
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.Phone, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text("Add Your Phone Number", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            Text(
-                                "Required to access booking and listing features",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
+            KycStep.OTP_ENTRY -> ModernCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                contentPadding = PaddingValues(20.dp),
+                elevation = 2.dp
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 16.dp)) {
                     Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        shape = CircleShape,
+                        modifier = Modifier.size(36.dp)
                     ) {
-                        Row(modifier = Modifier.padding(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.Info,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                "We verify your phone number once to prevent fraud and enable booking notifications.",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.Sms, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                         }
                     }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text("Enter Verification Code", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(
+                            "Code sent to ${phoneCountry.dialCode} $phoneNumber",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
 
-                    PhoneNumberField(
-                        country = phoneCountry,
-                        onCountryChange = { phoneCountry = it },
-                        number = phoneNumber,
-                        onNumberChange = { phoneNumber = it; localErrorMessage = null },
-                        modifier = Modifier.fillMaxWidth()
+                InputField(
+                    value = otpCode,
+                    onValueChange = { otpCode = it.filter { c -> c.isDigit() }.take(6) },
+                    label = "6-Digit Code",
+                    leadingIcon = Icons.Default.Sms,
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.lg))
+
+                ProPrimaryButton(
+                    text = if (isAuthenticating) "Verifying..." else "Verify & Link Phone",
+                    onClick = {
+                        val currentActivity = activity
+                        if (currentActivity == null) {
+                            localErrorMessage = "Unable to verify right now."
+                            return@ProPrimaryButton
+                        }
+                        if (otpCode.length < 6) {
+                            localErrorMessage = "Please enter the 6-digit code"
+                            return@ProPrimaryButton
+                        }
+                        authViewModel.linkKycPhone(
+                            activity = currentActivity,
+                            e164Phone = e164Phone,
+                            smsCode = otpCode,
+                            onSuccess = {
+                                authViewModel.clearAuthMessages()
+                                onVerified()
+                            },
+                            onError = { msg -> localErrorMessage = msg }
+                        )
+                    },
+                    enabled = !isAuthenticating,
+                    icon = Icons.Default.CheckCircle,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(Spacing.sm))
+
+                if (resendCountdownSeconds > 0) {
+                    Text(
+                        text = "Resend code in ${resendCountdownSeconds}s",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
                     )
-
-                    Spacer(modifier = Modifier.height(Spacing.lg))
-
-                    ProPrimaryButton(
-                        text = if (isAuthenticating) "Sending Code..." else "Send Verification Code",
+                } else {
+                    TextButton(
                         onClick = {
                             val currentActivity = activity
-                            if (currentActivity == null) {
-                                localErrorMessage = "Unable to start verification right now."
-                                return@ProPrimaryButton
-                            }
-                            if (phoneNumber.isBlank() || phoneNumber.filter { it.isDigit() }.length < 6) {
-                                localErrorMessage = "Please enter a valid phone number"
-                                return@ProPrimaryButton
-                            }
+                            if (currentActivity == null) return@TextButton
+                            localErrorMessage = null
                             authViewModel.startKycPhoneVerification(
                                 activity = currentActivity,
                                 e164Phone = e164Phone,
                                 onCodeSent = {
                                     otpCode = ""
-                                    localErrorMessage = null
                                     resendCountdownSeconds = 30
-                                    step = KycStep.OTP_ENTRY
                                 },
                                 onError = { msg -> localErrorMessage = msg }
                             )
                         },
                         enabled = !isAuthenticating,
-                        icon = Icons.Default.Sms,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                KycStep.OTP_ENTRY -> ModernCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.large,
-                    contentPadding = PaddingValues(20.dp),
-                    elevation = 2.dp
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 16.dp)) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            shape = CircleShape,
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.Sms, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text("Enter Verification Code", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            Text(
-                                "Code sent to ${phoneCountry.dialCode} $phoneNumber",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    InputField(
-                        value = otpCode,
-                        onValueChange = { otpCode = it.filter { c -> c.isDigit() }.take(6) },
-                        label = "6-Digit Code",
-                        leadingIcon = Icons.Default.Sms,
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                        singleLine = true
-                    )
-
-                    Spacer(modifier = Modifier.height(Spacing.lg))
-
-                    ProPrimaryButton(
-                        text = if (isAuthenticating) "Verifying..." else "Verify & Link Phone",
-                        onClick = {
-                            val currentActivity = activity
-                            if (currentActivity == null) {
-                                localErrorMessage = "Unable to verify right now."
-                                return@ProPrimaryButton
-                            }
-                            if (otpCode.length < 6) {
-                                localErrorMessage = "Please enter the 6-digit code"
-                                return@ProPrimaryButton
-                            }
-                            authViewModel.linkKycPhone(
-                                activity = currentActivity,
-                                e164Phone = e164Phone,
-                                smsCode = otpCode,
-                                onSuccess = {
-                                    authViewModel.clearAuthMessages()
-                                    onKycComplete()
-                                },
-                                onError = { msg -> localErrorMessage = msg }
-                            )
-                        },
-                        enabled = !isAuthenticating,
-                        icon = Icons.Default.CheckCircle,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(Spacing.sm))
-
-                    if (resendCountdownSeconds > 0) {
-                        Text(
-                            text = "Resend code in ${resendCountdownSeconds}s",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center
-                        )
-                    } else {
-                        TextButton(
-                            onClick = {
-                                val currentActivity = activity
-                                if (currentActivity == null) return@TextButton
-                                localErrorMessage = null
-                                authViewModel.startKycPhoneVerification(
-                                    activity = currentActivity,
-                                    e164Phone = e164Phone,
-                                    onCodeSent = {
-                                        otpCode = ""
-                                        resendCountdownSeconds = 30
-                                    },
-                                    onError = { msg -> localErrorMessage = msg }
-                                )
-                            },
-                            enabled = !isAuthenticating,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Resend Code", fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-
-                    TextButton(
-                        onClick = {
-                            step = KycStep.PHONE_ENTRY
-                            otpCode = ""
-                            localErrorMessage = null
-                            authViewModel.clearAuthMessages()
-                        },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text("Change phone number", fontWeight = FontWeight.SemiBold)
+                        Text("Resend Code", fontWeight = FontWeight.SemiBold)
                     }
+                }
+
+                TextButton(
+                    onClick = {
+                        step = KycStep.PHONE_ENTRY
+                        otpCode = ""
+                        localErrorMessage = null
+                        authViewModel.clearAuthMessages()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text("Change phone number", fontWeight = FontWeight.SemiBold)
                 }
             }
         }

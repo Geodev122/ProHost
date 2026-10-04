@@ -160,12 +160,16 @@ fun SpecialistDrawerContent(
                 selectedIconTint = MaterialTheme.proColors.success,
                 emphasized = true
             )
-            Spacer(modifier = Modifier.height(Spacing.xs))
+
+        } else {
+            // Specialists: Explore, Saved, My Rentals and Profile are in the bottom bar, so
+            // the drawer only adds the upgrade path, Legal and Support.
             ProHostDrawerItem(
-                label = "Billing",
-                icon = Icons.Default.Payments,
-                selected = false,
-                onClick = { onDrawerAction("owner_billing") },
+                label = "Become a Pro Host",
+                icon = Icons.Default.WorkspacePremium,
+                selected = activeProHostTabId == "owner_subscriptions",
+                onClick = { onTabSelected("owner_subscriptions") },
+                selectedIconTint = MaterialTheme.proColors.success,
                 emphasized = true
             )
         }
@@ -185,12 +189,15 @@ fun SpecialistDrawerContent(
         // that, and it's one tap away from the bottom nav at all times — a drawer
         // shortcut to it added nothing. Removed rather than kept as a redundant
         // second path to the same screen.
-        ProHostDrawerItem(
-            label = "My Favorites",
-            icon = Icons.Default.Favorite,
-            selected = activeProHostTabId == "my_favorites",
-            onClick = { onTabSelected("my_favorites") }
-        )
+        // Specialists have Saved in the bottom bar; Pro Hosts reach it here.
+        if (isProHost) {
+            ProHostDrawerItem(
+                label = "Saved",
+                icon = Icons.Default.Favorite,
+                selected = activeProHostTabId == "my_favorites",
+                onClick = { onTabSelected("my_favorites") }
+            )
+        }
 
         ProHostDrawerItem(
             label = "Legal (Privacy, Terms & Policies)",

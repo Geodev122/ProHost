@@ -38,6 +38,9 @@ import kotlinx.coroutines.launch
  */
 private val SPECIALIST_BOTTOM_TABS = listOf(
     AppNavTab.SearchMap,
+    // Saved is a bottom tab for specialists (one tap), not a drawer screen; Pro Hosts
+    // keep reaching it from the drawer.
+    AppNavTab.MyFavorites,
     AppNavTab.ProfessionalRentals,
     AppNavTab.ProfessionalProfile
 )
@@ -138,6 +141,10 @@ fun ProHostAppRoot(
     // that division and open its availability sheet immediately, instead of
     // landing on the generic whole-space view.
     var detailedSpaceSubdivisionId by remember { mutableStateOf<String?>(null) }
+    // A room card tapped on Explore opens that room's availability sheet straight away.
+    var detailedSpaceOpenAvailability by remember { mutableStateOf(false) }
+    // My Rentals scrolls to this booking (after "View request", or a booking push).
+    var rentalsHighlightBookingId by remember { mutableStateOf<String?>(null) }
     var managingSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var activeTabId by remember { mutableStateOf("search_map") }
     var activeDrawerTabDialog by remember { mutableStateOf<String?>(null) }
@@ -194,13 +201,18 @@ fun ProHostAppRoot(
     fun navigateTo(targetTabId: String) {
         val needsKyc = targetTabId in kycRequiredTabIds &&
             currentUser?.role != UserRole.ADMIN &&
-            currentUser?.hasVerifiedPhone != true
+            currentUser?.hasVerifiedPhone(com.example.data.auth.PhoneLink.isLinked()) != true
         if (needsKyc) {
             kycReturnTab = targetTabId
             showKycGate = true
             return
         }
-        if (targetTabId in FULLSCREEN_TAB_IDS) {
+        val isBottomTab = when (currentUser?.role) {
+            UserRole.SPECIALIST -> SPECIALIST_BOTTOM_TABS.any { it.id == targetTabId }
+            UserRole.PRO_HOST -> PRO_HOST_BOTTOM_TABS.any { it.id == targetTabId }
+            else -> false
+        }
+        if (targetTabId in FULLSCREEN_TAB_IDS && !isBottomTab) {
             fullScreenDrawerTab = targetTabId
         } else {
             fullScreenDrawerTab = null
@@ -326,7 +338,10 @@ fun ProHostAppRoot(
         // deep-link effect above) wins; this is only the fallback for a bare booking id.
         if (role != null && !deepLinkTab.isNullOrBlank() && deepLinkTab in allowedTabIdsForRole(role)) return@LaunchedEffect
         when (role) {
-            UserRole.SPECIALIST -> navigateTo("pro_rentals")
+            UserRole.SPECIALIST -> {
+                rentalsHighlightBookingId = deepLinkBookingId
+                navigateTo("pro_rentals")
+            }
             UserRole.PRO_HOST -> navigateTo("owner_requests")
             else -> {}
         }
@@ -600,10 +615,12 @@ fun ProHostAppRoot(
                                     space = detailedSpace!!,
                                     viewModel = viewModel,
                                     intendedSubdivisionId = detailedSpaceSubdivisionId,
-                                    onNavigateToProfile = {
+                                    openAvailability = detailedSpaceOpenAvailability,
+                                    onViewRequest = { bookingId ->
                                         detailedSpace = null
                                         detailedSpaceSubdivisionId = null
-                                        navigateTo(AppNavTab.ProfessionalProfile.id)
+                                        rentalsHighlightBookingId = bookingId
+                                        navigateTo(AppNavTab.ProfessionalRentals.id)
                                     },
                                     onBack = { detailedSpace = null; detailedSpaceSubdivisionId = null }
                                 )
@@ -611,7 +628,7 @@ fun ProHostAppRoot(
                                 when (safeFullScreenDrawerTab) {
                                     AppNavTab.MyFavorites.id -> MyFavoritesScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpace = it },
+                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpaceOpenAvailability = false; detailedSpace = it },
                                         onNavigateToExplore = { navigateTo(AppNavTab.SearchMap.id) }
                                     )
                                     AppNavTab.OwnerRentalRequests.id -> OwnerRentalRequestsScreen(
@@ -654,12 +671,13 @@ fun ProHostAppRoot(
                                             scope.launch { drawerState.close() }
                                             detailedSpace = space
                                             detailedSpaceSubdivisionId = subdivisionId
+                                            detailedSpaceOpenAvailability = subdivisionId != null
                                         },
                                         discoveryViewModel = discoveryViewModel
                                     )
                                     AppNavTab.ManageListings.id -> OwnerHubScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpace = it },
+                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpaceOpenAvailability = false; detailedSpace = it },
                                         onManageSpace = { managingSpace = it },
                                         onOpenSubscriptions = { navigateTo(AppNavTab.OwnerSubscriptions.id) }
                                     )
@@ -667,10 +685,17 @@ fun ProHostAppRoot(
                                         viewModel = viewModel,
                                         onOpenRequests = { navigateTo(AppNavTab.OwnerRentalRequests.id) }
                                     )
+                                    AppNavTab.MyFavorites.id -> MyFavoritesScreen(
+                                        viewModel = viewModel,
+                                        onSelectSpace = { detailedSpaceOpenAvailability = false; detailedSpace = it },
+                                        onNavigateToExplore = { navigateTo(AppNavTab.SearchMap.id) }
+                                    )
                                     AppNavTab.ProfessionalRentals.id -> MyBookingsScreen(
                                         viewModel = viewModel,
+                                        highlightBookingId = rentalsHighlightBookingId,
+                                        onHighlightShown = { rentalsHighlightBookingId = null },
                                         onNavigateToDiscovery = { activeTabId = AppNavTab.SearchMap.id },
-                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpace = it }
+                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpaceOpenAvailability = false; detailedSpace = it }
                                     )
                                     AppNavTab.ProfessionalProfile.id -> SpecialistProfileScreen(
                                         viewModel = viewModel,
@@ -683,6 +708,7 @@ fun ProHostAppRoot(
                                             scope.launch { drawerState.close() }
                                             detailedSpace = space
                                             detailedSpaceSubdivisionId = subdivisionId
+                                            detailedSpaceOpenAvailability = subdivisionId != null
                                         },
                                         discoveryViewModel = discoveryViewModel
                                     )

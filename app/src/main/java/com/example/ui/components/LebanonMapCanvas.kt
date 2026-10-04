@@ -246,6 +246,9 @@ fun LebanonMapCanvas(
     // "Search this area" tapped: lets Explore load another page of listings when the
     // loaded page may not cover the new area.
     onSearchArea: () -> Unit = {},
+    // Restores the camera after a round-trip to a listing; [onCameraSaved] reports it on leave.
+    initialCamera: CameraPosition? = null,
+    onCameraSaved: (CameraPosition) -> Unit = {},
     // Receives the "Search this area" pill to place under the controls.
     topControls: (@Composable BoxScope.(searchAreaPill: @Composable () -> Unit) -> Unit)? = null
 ) {
@@ -259,7 +262,11 @@ fun LebanonMapCanvas(
     
     val defaultCenter = LatLng(33.8886, 35.5184) // Beirut
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(defaultCenter, 10f)
+        position = initialCamera ?: CameraPosition.fromLatLngZoom(defaultCenter, 10f)
+    }
+    val latestOnCameraSaved by rememberUpdatedState(onCameraSaved)
+    DisposableEffect(cameraPositionState) {
+        onDispose { latestOnCameraSaved(cameraPositionState.position) }
     }
 
     val listState = rememberLazyListState()

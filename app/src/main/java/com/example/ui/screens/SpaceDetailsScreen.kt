@@ -53,7 +53,10 @@ fun SpaceDetailsScreen(
     // (list or map) — pre-selects that division and opens its availability sheet
     // immediately instead of landing on the generic whole-space view.
     intendedSubdivisionId: String? = null,
-    onNavigateToProfile: () -> Unit = {},
+    // Explore's "Check availability": arrive with that room's availability sheet open.
+    openAvailability: Boolean = false,
+    // After a request is sent: open My Rentals at that booking.
+    onViewRequest: (bookingId: String) -> Unit = {},
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -126,7 +129,8 @@ fun SpaceDetailsScreen(
         isSaved = currentUser?.savedSpaceIds?.contains(liveSpace.id) == true,
         onToggleSave = { viewModel.toggleSavedSpace(liveSpace.id) },
         intendedSubdivisionId = intendedSubdivisionId,
-        onNavigateToProfile = onNavigateToProfile,
+        openAvailability = openAvailability,
+        onViewRequest = onViewRequest,
         onBack = onBack
     )
 }
@@ -150,7 +154,8 @@ fun SpaceDetailsScreenContent(
     isSaved: Boolean = false,
     onToggleSave: () -> Unit = {},
     intendedSubdivisionId: String? = null,
-    onNavigateToProfile: () -> Unit = {},
+    openAvailability: Boolean = false,
+    onViewRequest: (bookingId: String) -> Unit = {},
     onBack: () -> Unit
 ) {
     val liveSpace = space
@@ -175,7 +180,13 @@ fun SpaceDetailsScreenContent(
     var selectedHoursPerDay by remember { mutableStateOf(mapOf<String, Set<String>>()) }
     var showSendConfirm by remember { mutableStateOf(false) }
     var isSendingSlotRequest by remember { mutableStateOf(false) }
-    var showProfilePicRequiredDialog by remember { mutableStateOf(false) }
+    // Photo + verified phone are checked in place (RequirementsSheet) when Request is tapped;
+    // the selected slots stay put and the confirm step opens once both are done.
+    var showRequirements by remember { mutableStateOf(false) }
+    fun requestWithRequirements() {
+        val user = currentUser ?: return
+        if (user.canTransact(com.example.data.auth.PhoneLink.isLinked())) showSendConfirm = true else showRequirements = true
+    }
     var selectedSubdivisionId by remember { mutableStateOf<String?>(null) }
     val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
 
@@ -226,13 +237,12 @@ fun SpaceDetailsScreenContent(
 
     val roomsRequester = remember { BringIntoViewRequester() }
 
-    // Arrived here via a division-card tap on Explore: that room's tab is selected,
-    // its card is scrolled into view. The availability sheet stays closed; the bottom bar
-    // (showing that room) opens it.
+    // Arrived here via a division-card tap on Explore: that room's tab is selected and its
+    // card scrolled into view. "Check availability" on the card also opens the sheet.
     LaunchedEffect(intendedSubdivisionId, liveSpace.id) {
         val sub = intendedSubdivisionId?.let { id -> liveSpace.subdivisions.firstOrNull { it.id == id } }
         if (sub != null) {
-            selectRoom(sub, "peek")
+            selectRoom(sub, if (openAvailability && isSpecialistViewer) "full" else "peek")
             kotlinx.coroutines.delay(150)
             roomsRequester.bringIntoView()
         }
@@ -994,8 +1004,8 @@ fun SpaceDetailsScreenContent(
     ) {
         val user = currentUser
         if (user == null) return
-        if (user.profilePictureUrl.isNullOrBlank()) {
-            showProfilePicRequiredDialog = true
+        if (!user.canTransact(com.example.data.auth.PhoneLink.isLinked())) {
+            showRequirements = true
             return
         }
         // Flatten HOURLY hourlySelections to RentableSlot list
@@ -1065,13 +1075,14 @@ fun SpaceDetailsScreenContent(
                 selectedHoursPerDay = emptyMap()
                 availabilitySheetState.hide()
                 availabilityPanelState = "hidden"
+                // "View request" opens it in My Rentals (WhatsApp to the host is on that card).
                 val result = snackbarHostState.showSnackbar(
                     message = "Request sent! The host has been notified.",
-                    actionLabel = "WhatsApp Host",
+                    actionLabel = "View request",
                     duration = SnackbarDuration.Long
                 )
                 if (result == SnackbarResult.ActionPerformed) {
-                    viewModel.launchWhatsAppInquiry(context, liveSpace, formula, request)
+                    onViewRequest(request.id)
                 }
             } else {
                 snackbarHostState.showSnackbar("Couldn't send your request — check your connection and try again.")
@@ -1515,7 +1526,7 @@ fun SpaceDetailsScreenContent(
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
-                                onClick = { showSendConfirm = true },
+                                onClick = { requestWithRequirements() },
                                 modifier = Modifier.weight(1f),
                                 shape = MaterialTheme.shapes.medium
                             ) {
@@ -1672,27 +1683,18 @@ fun SpaceDetailsScreenContent(
     }
 
     // Email Inquiry Dialog
-    if (showProfilePicRequiredDialog) {
-        ProHostDialog(
-            onDismissRequest = { showProfilePicRequiredDialog = false },
-            title = { Text("Profile Photo Required") },
-            text = {
-                Text(
-                    "Please add a profile photo before sending a booking request. Hosts use your photo to verify your identity.",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            },
-            confirmButton = {
-                Button(shape = MaterialTheme.shapes.medium, onClick = { showProfilePicRequiredDialog = false; onNavigateToProfile() }) {
-                    Text("Go to Profile")
+    if (showRequirements) {
+        currentUser?.let { user ->
+            RequirementsSheet(
+                user = user,
+                viewModel = viewModel,
+                onDismiss = { showRequirements = false },
+                onReady = {
+                    showRequirements = false
+                    showSendConfirm = true
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showProfilePicRequiredDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
+            )
+        }
     }
 
 }

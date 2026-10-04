@@ -93,7 +93,6 @@ fun DrawerDialogsHandler(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val title = when (dialogId) {
-                        "owner_billing" -> "Billing"
                         "admin_audit" -> "Central Security Audits"
                         "admin_gov" -> "Governorate Node Status"
                         // One title carrying the live unread count — this used to be a
@@ -133,50 +132,6 @@ fun DrawerDialogsHandler(
                         // "Send Payment Reminder" that was Toast-only fakery, a WhatsApp
                         // button with no cancellation option, etc.). All four now route
                         // straight to the real screen instead (see AppDrawerContent.kt).
-                        "owner_billing" -> {
-                            val purchases by viewModel.playActivePurchases.collectAsState()
-                            val playProducts by viewModel.playBillingProducts.collectAsState()
-                            val activity = androidx.activity.compose.LocalActivity.current
-                            val sdf = remember { SimpleDateFormat("MMM d, yyyy", Locale.US) }
-                            androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.refreshPlayPurchases(context) }
-
-                            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                if (purchases.isEmpty()) {
-                                    Text(
-                                        "No active Google Play subscription on this Google account.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                } else {
-                                    purchases.forEach { purchase ->
-                                        val productId = purchase.products.firstOrNull().orEmpty()
-                                        val name = playProducts.firstOrNull { it.productId == productId }?.name ?: productId
-                                        Card(modifier = Modifier.fillMaxWidth()) {
-                                            Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                                Text(name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                                Text(
-                                                    if (purchase.isAutoRenewing) "Auto-renewing" else "Canceled — active until the end of the paid period",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = if (purchase.isAutoRenewing) MaterialTheme.proColors.success else MaterialTheme.colorScheme.error
-                                                )
-                                                Text("Started ${sdf.format(Date(purchase.purchaseTime))}", style = MaterialTheme.typography.labelSmall)
-                                                purchase.orderId?.let { Text("Order $it", style = MaterialTheme.typography.labelSmall) }
-                                            }
-                                        }
-                                    }
-                                }
-                                if (activity != null) {
-                                    OutlinedButton(
-                                        onClick = { viewModel.openManageSubscriptions(activity, purchases.firstOrNull()?.products?.firstOrNull()) },
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) { Text("Manage subscription in Google Play") }
-                                    TextButton(
-                                        onClick = { viewModel.openPlayOrderHistory(activity) },
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) { Text("Payment history in Google Play") }
-                                }
-                            }
-                        }
                         "admin_audit" -> {
                             val sdfShort = remember { SimpleDateFormat("MMM d, yyyy", Locale.US) }
                             val filteredAuditLogs = remember(auditLogs, auditFromMillis, auditToMillis) {

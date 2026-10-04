@@ -31,7 +31,6 @@ data class DiscoveryFilterState(
     val selectedStrategies: Set<PricingFormulaFilter> = emptySet(),
     val priceRange: ClosedFloatingPointRange<Float>? = null,
     val onlyVerified: Boolean = false,
-    val onlySaved: Boolean = false,
     val selectedCountries: Set<String> = emptySet()
 ) {
     val activeFilterCount: Int
@@ -41,7 +40,6 @@ data class DiscoveryFilterState(
             selectedStrategies.isNotEmpty(),
             priceRange != null,
             onlyVerified,
-            onlySaved,
             selectedCountries.isNotEmpty()
         ).count { it }
 }

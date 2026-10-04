@@ -36,7 +36,7 @@ sealed class AppNavTab(
     // Specialist underneath and browses/saves spaces the same way. Drawer-only
     // (not a bottom-nav tab), rendered full-screen like the Pro Host destinations
     // above — see PRO_HOST_FULLSCREEN_TABS's own doc comment in ProHostNavGraph.kt.
-    object MyFavorites : AppNavTab("my_favorites", "My Favorites", Icons.Filled.Favorite, Icons.Outlined.FavoriteBorder)
+    object MyFavorites : AppNavTab("my_favorites", "Saved", Icons.Filled.Favorite, Icons.Outlined.FavoriteBorder)
 
     // Admin's own side-menu destinations — reachable only via the drawer (no bottom
     // nav for Admin at all), rendered full-screen the same way Pro Host's are.

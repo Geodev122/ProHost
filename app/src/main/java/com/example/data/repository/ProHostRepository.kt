@@ -2244,6 +2244,14 @@ class ProHostRepository(
     /** Registers this device's FCM token against [uid]'s profile — see FirestoreService.saveFcmToken. */
     suspend fun registerFcmToken(uid: String, token: String): Boolean = firestoreService.saveFcmToken(uid, token)
 
+    /** Sets only the signed-in user's photo (RequirementsSheet). A targeted, rules-safe write. */
+    suspend fun updateProfilePicture(profilePictureUrl: String): Boolean {
+        val current = _currentUser.value ?: return false
+        val success = firestoreService.updateUserProfileFields(current.id, mapOf("profilePictureUrl" to profilePictureUrl))
+        if (success) _currentUser.value = current.copy(profilePictureUrl = profilePictureUrl)
+        return success
+    }
+
     // --- Multi-Format Data Export Hub ---
     fun exportToJson(): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US)
