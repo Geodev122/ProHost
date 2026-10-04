@@ -121,7 +121,8 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   `KycVerificationDialog` use) over the booking page, keeping the selected slots.
 - Specialist routing: bottom tabs Explore · Saved · My Rentals · Profile (`SPECIALIST_BOTTOM_TABS`; there is
   no "Saved only" filter and no drawer Billing dialog — Premium covers it). Tapping a room in Explore opens
-  its availability sheet; after a request the snackbar's "View request" opens My Rentals highlighting it.
+  its availability sheet; after a request the "Request sent" sheet offers "View request" (opens My Rentals
+  highlighting it) and "Message host on WhatsApp".
   `DiscoveryViewModel` keeps Explore's list position and map camera across a visit to a listing.
 - Admin Console tabs live in `ui/screens/admin/` (one file per tab, package `com.example.ui.screens`);
   room cards / folder tabs of the details page in `ui/screens/RoomCards.kt`. NIGHTHAWK's screen checks count

@@ -183,6 +183,8 @@ fun SpaceDetailsScreenContent(
     // Photo + verified phone are checked in place (RequirementsSheet) when Request is tapped;
     // the selected slots stay put and the confirm step opens once both are done.
     var showRequirements by remember { mutableStateOf(false) }
+    // The request just sent: drives the "Request sent" sheet (View request / WhatsApp host).
+    var sentRequest by remember { mutableStateOf<RentalBookingRequest?>(null) }
     fun requestWithRequirements() {
         val user = currentUser ?: return
         if (user.canTransact(com.example.data.auth.PhoneLink.isLinked())) showSendConfirm = true else showRequirements = true
@@ -1056,15 +1058,7 @@ fun SpaceDetailsScreenContent(
                 selectedHoursPerDay = emptyMap()
                 availabilitySheetState.hide()
                 availabilityPanelState = "hidden"
-                // "View request" opens it in My Rentals (WhatsApp to the host is on that card).
-                val result = snackbarHostState.showSnackbar(
-                    message = "Request sent! The host has been notified.",
-                    actionLabel = "View request",
-                    duration = SnackbarDuration.Long
-                )
-                if (result == SnackbarResult.ActionPerformed) {
-                    onViewRequest(request.id)
-                }
+                sentRequest = request
             } else {
                 snackbarHostState.showSnackbar("Couldn't send your request — check your connection and try again.")
             }
@@ -1660,6 +1654,47 @@ fun SpaceDetailsScreenContent(
                     TextButton(onClick = { showSendConfirm = false }, enabled = !isSendingSlotRequest) { Text("Cancel") }
                 }
             )
+        }
+    }
+
+    // "Request sent": the two next steps a specialist takes — see it in My Rentals, or
+    // message the host right away (same WhatsApp text as the My Rentals card).
+    sentRequest?.let { request ->
+        ProHostBottomSheet(onDismissRequest = { sentRequest = null }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = Spacing.lg)
+                    .padding(bottom = Spacing.xl),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+            ) {
+                ProSectionHeader(
+                    title = "Request sent",
+                    subtitle = "The host has been notified. You'll get a push when they answer.",
+                    icon = Icons.Default.CheckCircle
+                )
+                ProPrimaryButton(
+                    text = "View request",
+                    onClick = {
+                        sentRequest = null
+                        onViewRequest(request.id)
+                    },
+                    icon = Icons.AutoMirrored.Filled.ListAlt,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (liveSpace.ownerPhone.isNotBlank()) {
+                    ProOutlinedButton(
+                        text = "Message host on WhatsApp",
+                        onClick = {
+                            sentRequest = null
+                            viewModel.launchWhatsAppInquiry(context, liveSpace, request.formula, request)
+                        },
+                        icon = Icons.AutoMirrored.Filled.Chat,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
         }
     }
 
