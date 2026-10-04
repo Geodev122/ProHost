@@ -243,6 +243,9 @@ fun LebanonMapCanvas(
     // onSpaceSelected's doc note above the LazyRow card below).
     onDivisionSelected: (SpaceListing, String) -> Unit = { _, _ -> },
     onCenterCountryDetected: (String) -> Unit = {},
+    // "Search this area" tapped: lets Explore load another page of listings when the
+    // loaded page may not cover the new area.
+    onSearchArea: () -> Unit = {},
     // Receives the "Search this area" pill to place under the controls.
     topControls: (@Composable BoxScope.(searchAreaPill: @Composable () -> Unit) -> Unit)? = null
 ) {
@@ -774,6 +777,7 @@ fun LebanonMapCanvas(
                 visible = showSearchArea,
                 onClick = {
                     searchedBounds = visibleBounds
+                    onSearchArea()
                     movedByGesture = false
                     activePinSpace = null
                     coroutineScope.launch { runCatching { listState.scrollToItem(0) } }

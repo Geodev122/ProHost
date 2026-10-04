@@ -32,14 +32,14 @@
 <body>
 <header>
   <h1>🦅 NIGHTHAWK — ProHost Enhanced Debug Report</h1>
-  <p>64 issues found · 29 checks passed</p>
+  <p>64 issues found · 30 checks passed</p>
 </header>
 <div class="stats">
   <div class="stat crit"><div class="num">0</div><div class="lbl">Critical</div></div>
   <div class="stat high"><div class="num">0</div><div class="lbl">High</div></div>
   <div class="stat med"><div class="num">9</div><div class="lbl">Medium</div></div>
   <div class="stat low"><div class="num">55</div><div class="lbl">Low</div></div>
-  <div class="stat pass"><div class="num">29</div><div class="lbl">Passing</div></div>
+  <div class="stat pass"><div class="num">30</div><div class="lbl">Passing</div></div>
 </div>
 <h2>Findings</h2>
 <table>
@@ -130,7 +130,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/data/model/DataModels.kt:1475</code></td>
+    <td><code>app/src/main/java/com/example/data/model/DataModels.kt:1488</code></td>
     <td>Line has 170 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -139,7 +139,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/service/ProHostMessagingService.kt:103</code></td>
+    <td><code>app/src/main/java/com/example/service/ProHostMessagingService.kt:93</code></td>
     <td>Line has 167 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -230,7 +230,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt:2145</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt:2163</code></td>
     <td>Line has 210 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -239,7 +239,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt:2168</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt:2186</code></td>
     <td>Line has 177 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -248,7 +248,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt:2238</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt:2256</code></td>
     <td>Line has 219 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -799,6 +799,12 @@
   <tr>
     <td><span class="badge" style="background:#388E3C">PASS</span></td>
     <td colspan="4">GA4 is opt-in, ad IDs off, all events go through AnalyticsTracker, Crashlytics stays anonymous.</td>
+    <td>—</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge" style="background:#388E3C">PASS</span></td>
+    <td colspan="4">No hard-coded secrets in functions/scripts; push tokens are never logged.</td>
     <td>—</td>
   </tr></tbody>
 </table>

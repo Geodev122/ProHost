@@ -3,8 +3,8 @@
  *
  * Saves the GA4 Measurement Protocol API Secret in Firestore at app_config/ga4.
  *
- * Usage:
- *   node scripts/seed-ga4-config.mjs
+ * Usage (the secret is never stored in this repo):
+ *   GA4_API_SECRET=<secret> node scripts/seed-ga4-config.mjs
  */
 
 import { initializeApp, getApps } from "firebase-admin/app";
@@ -19,7 +19,11 @@ if (!getApps().length) {
 const db = getFirestore();
 
 async function main() {
-  const apiSecret = "GLocAt_CTbGiQ3HRc4I2mQ";
+  const apiSecret = (process.env.GA4_API_SECRET ?? "").trim();
+  if (!apiSecret) {
+    console.error("Set GA4_API_SECRET (GA4 Admin › Data streams › Measurement Protocol API secrets).");
+    process.exit(2);
+  }
   const firebaseAppId = "1:646730915838:android:345a7e12d5994456c8eaaf";
 
   console.log("Seeding GA4 configuration into app_config/ga4…");

@@ -553,8 +553,10 @@ private fun AdminUsersDirectoryTab(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Live metrics row
+        // Live metrics row — counts over the loaded page; "+" means more rows exist.
         item {
+            val hasMoreRows by adminViewModel.hasMoreRows.collectAsState()
+            val more = if (hasMoreRows) "+" else ""
             val users = uiState.allUsers
             val now = System.currentTimeMillis()
             val thirtyDaysAgo = now - 30L * 24 * 60 * 60 * 1000
@@ -565,10 +567,18 @@ private fun AdminUsersDirectoryTab(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                AdminMetricTile("Total Users", "${users.size}", modifier = Modifier.weight(1f))
-                AdminMetricTile("Pro Hosts", "$proHosts", modifier = Modifier.weight(1f))
-                AdminMetricTile("Specialists", "$specialists", modifier = Modifier.weight(1f))
+                AdminMetricTile("Total Users", "${users.size}$more", modifier = Modifier.weight(1f))
+                AdminMetricTile("Pro Hosts", "$proHosts$more", modifier = Modifier.weight(1f))
+                AdminMetricTile("Specialists", "$specialists$more", modifier = Modifier.weight(1f))
                 AdminMetricTile("New (30d)", "+$newThisMonth", modifier = Modifier.weight(1f))
+            }
+            if (hasMoreRows) {
+                TextButton(onClick = { adminViewModel.loadMoreRows() }) {
+                    Text(
+                        "Showing the first ${users.size} users — load more (find anyone with Force Upgrade's search)",
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
             }
         }
 
@@ -867,6 +877,14 @@ private fun AdminListingsCatalogTab(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        item {
+            val hasMoreRows by adminViewModel.hasMoreRows.collectAsState()
+            if (hasMoreRows) {
+                TextButton(onClick = { adminViewModel.loadMoreRows() }) {
+                    Text("Showing the first ${uiState.allSpaces.size} listings — load more", style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
         item {
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

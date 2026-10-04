@@ -162,6 +162,30 @@ class ProHostRepository(
         }
     }
 
+    // Paged live lists (see FirestoreService.setPublicListingsLimit / setAdminPageLimit).
+    private var publicListingsLimit = FirestoreService.PUBLIC_LISTINGS_PAGE
+    private var adminPageLimit = FirestoreService.ADMIN_PAGE
+    private val _hasMoreSpaces = MutableStateFlow(false)
+    /** True when Explore's loaded page is full, so more active listings may exist. */
+    val hasMoreSpaces: StateFlow<Boolean> = _hasMoreSpaces.asStateFlow()
+    private val _hasMoreAdminRows = MutableStateFlow(false)
+    /** True when an admin list (listings, users, bookings) filled its page. */
+    val hasMoreAdminRows: StateFlow<Boolean> = _hasMoreAdminRows.asStateFlow()
+
+    /** Explore: grow the live listing page by one page. No-op when everything is loaded. */
+    fun loadMoreSpaces() {
+        if (!_hasMoreSpaces.value) return
+        publicListingsLimit += FirestoreService.PUBLIC_LISTINGS_PAGE
+        firestoreService.setPublicListingsLimit(publicListingsLimit)
+    }
+
+    /** Admin console: grow every admin list by one page. */
+    fun loadMoreAdminRows() {
+        if (!_hasMoreAdminRows.value) return
+        adminPageLimit += FirestoreService.ADMIN_PAGE
+        firestoreService.setAdminPageLimit(adminPageLimit)
+    }
+
     fun startRealtimeSync() {
         try {
             // Safe to call again (e.g. on manual retry, or a role/uid rescope) —
@@ -221,7 +245,11 @@ class ProHostRepository(
                     if (_spaces.value.isEmpty()) {
                         _spacesLoadError.value = error.toUserMessage("We couldn't load workspaces. Please try again.")
                     }
-                }
+                },
+                publicListingsLimit = publicListingsLimit,
+                adminPageLimit = adminPageLimit,
+                onPublicListingsPage = { _hasMoreSpaces.value = it },
+                onAdminPage = { _hasMoreAdminRows.value = it }
             )
 
             // Pricing: read-only from the client's side. If an admin has already

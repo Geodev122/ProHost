@@ -48,7 +48,8 @@ class DiscoveryViewModel(
         repository.currentUser,
         repository.hasLoadedSpacesOnce,
         debouncedQuery,
-        repository.spacesLoadError
+        repository.spacesLoadError,
+        repository.hasMoreSpaces
     ) { values ->
         val spaces = (values[0] as? List<*>)?.filterIsInstance<SpaceListing>() ?: emptyList()
         val filter = values[1] as DiscoveryFilterState
@@ -58,6 +59,7 @@ class DiscoveryViewModel(
         val hasLoadedOnce = values[5] as Boolean
         val query = values[6] as String
         val loadError = values[7] as String?
+        val hasMore = values[8] as Boolean
         val savedIds = user?.savedSpaceIds ?: emptyList()
 
         // isOwnerPackageLapsed hides a listing from a fresh Discovery browse (the
@@ -116,7 +118,9 @@ class DiscoveryViewModel(
             isMapViewActive = mapActive,
             isLoading = !hasLoadedOnce && loadError == null,
             loadError = loadError,
-            savedSpaceIds = savedIds
+            savedSpaceIds = savedIds,
+            hasMore = hasMore,
+            loadedListingCount = liveSpaces.size
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DiscoveryUiState())
 
@@ -270,6 +274,9 @@ class DiscoveryViewModel(
             }
         }
     }
+
+    /** Explore paging: loads the next page of active listings when one may exist. */
+    fun loadMore() = repository.loadMoreSpaces()
 
     fun retryLoad() {
         repository.startRealtimeSync()

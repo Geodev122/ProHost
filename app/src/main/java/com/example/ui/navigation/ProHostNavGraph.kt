@@ -150,9 +150,9 @@ fun ProHostAppRoot(
     var showKycGate by remember { mutableStateOf(false) }
     var kycReturnTab by remember { mutableStateOf<String?>(null) }
 
-    /** Tab ids that require a verified phone number. */
+    /** Pro Host workspaces that require a verified phone. My Rentals never does — viewing your
+     *  own bookings needs no verification; sending one is checked in place (canTransact). */
     val kycRequiredTabIds: Set<String> = setOf(
-        AppNavTab.ProfessionalRentals.id,
         AppNavTab.ManageListings.id,
         AppNavTab.OwnerRentingProgress.id,
         AppNavTab.OwnerRentalRequests.id
@@ -194,7 +194,7 @@ fun ProHostAppRoot(
     fun navigateTo(targetTabId: String) {
         val needsKyc = targetTabId in kycRequiredTabIds &&
             currentUser?.role != UserRole.ADMIN &&
-            currentUser?.phone.isNullOrBlank()
+            currentUser?.hasVerifiedPhone != true
         if (needsKyc) {
             kycReturnTab = targetTabId
             showKycGate = true

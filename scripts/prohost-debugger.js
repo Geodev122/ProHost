@@ -816,6 +816,39 @@ function checkAnalyticsHygiene() {
   if (issues === 0) pass('Analytics Hygiene', 'GA4 is opt-in, ad IDs off, all events go through AnalyticsTracker, Crashlytics stays anonymous.');
 }
 
+// ─── NEW CHECK 33: Secrets & token hygiene ────────────────────────────────────
+
+function checkSecretHygiene() {
+  let issues = 0;
+  const fnSrc = path.join(ROOT, 'functions/src');
+  const scriptsDir = path.join(ROOT, 'scripts');
+  const files = [
+    ...walkFiles(fnSrc, '.ts'),
+    ...walkFiles(scriptsDir, '.mjs'),
+    ...walkFiles(scriptsDir, '.js').filter((f) => !f.endsWith('prohost-debugger.js')),
+  ];
+  for (const f of files) {
+    const content = readSafe(f) || '';
+    // A secret/API key assigned (or used as a fallback) from a long string literal.
+    if (/(apiSecret|api_secret|secretKey|privateKey)\s*[:=][^\n;]*["'][A-Za-z0-9_\-]{16,}["']/.test(content)) {
+      issues++;
+      bug('HIGH', 'security', 'Hard-coded Secret', relPath(f), null,
+        'A secret is written as a string literal (it ends up in git history).',
+        'Read it from the request, an env var or a server-only Firestore doc; rotate the leaked value.');
+    }
+  }
+  for (const f of walkFiles(KT_ROOT, '.kt')) {
+    const content = readSafe(f) || '';
+    if (/(addAuditLog|Log\.[dwie])\([^\n]*token\.take\(/.test(content)) {
+      issues++;
+      bug('MEDIUM', 'security', 'Push Token Logged', relPath(f), null,
+        'Part of an FCM token is written to logs or the audit trail.',
+        'Store the token only on the user profile (registerFcmToken).');
+    }
+  }
+  if (issues === 0) pass('Secrets & Token Hygiene', 'No hard-coded secrets in functions/scripts; push tokens are never logged.');
+}
+
 // ─── RUN ALL CHECKS ───────────────────────────────────────────────────────────
 
 process.stdout.write('\n');
@@ -856,6 +889,7 @@ const checks = [
   ['Gradle Build Config Audit',     checkGradleConfigAudit],
   ['Code Style Enforcement',        checkCodeStyle],
   ['Analytics Hygiene',             checkAnalyticsHygiene],
+  ['Secrets & Token Hygiene',       checkSecretHygiene],
 ];
 
 for (const [label, fn] of checks) {

@@ -19,7 +19,12 @@ export const configureGa4ApiSecret = onCall(async (request) => {
     throw new HttpsError("permission-denied", "Only administrators can configure GA4 settings.");
   }
 
-  const apiSecret = (request.data?.apiSecret as string | undefined)?.trim() || "GLocAt_CTbGiQ3HRc4I2mQ";
+  // Never a fallback literal: the secret is supplied by the admin and stored only in
+  // app_config/ga4 (server-only). Rotate it in GA4 Admin if it was ever committed.
+  const apiSecret = (request.data?.apiSecret as string | undefined)?.trim();
+  if (!apiSecret) {
+    throw new HttpsError("invalid-argument", "apiSecret is required (GA4 Admin › Data streams › Measurement Protocol API secrets).");
+  }
   const firebaseAppId = (request.data?.firebaseAppId as string | undefined)?.trim() || DEFAULT_FIREBASE_APP_ID;
   const debug = Boolean(request.data?.debug ?? false);
 

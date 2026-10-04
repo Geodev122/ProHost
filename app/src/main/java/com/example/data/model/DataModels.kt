@@ -1389,8 +1389,21 @@ data class AppUser(
     // Server-assigned public code ("U-XXXXXX"); read-only on the client, never written back.
     val displayCode: String = ""
 ) {
+    // Profile completeness (Profile banner + Premium checkout): verified phone and email,
+    // country and city. Not a gate for browsing, My Rentals or booking.
     val isKycComplete: Boolean
         get() = isVerified && emailVerified && country.isNotBlank() && city.isNotBlank()
+
+    /** Phone verified through KYC (linked to Firebase Auth; isVerified mirrors the token). */
+    val hasVerifiedPhone: Boolean
+        get() = isVerified && phone.isNotBlank()
+
+    /**
+     * The one rule for sending a booking request: a profile photo (hosts verify who's coming)
+     * and a verified phone. Checked in place at Request time (RequirementsSheet), never as a
+     * navigation gate.
+     */
+    fun canTransact(): Boolean = hasVerifiedPhone && !profilePictureUrl.isNullOrBlank()
     // Full map — only for admin/server-side contexts (e.g. bootstrapping a new profile
     // from an admin console write). NEVER use for client-initiated profile updates;
     // firestore.rules blocks writes to protected fields (role, isVerified, ownerPackageId,

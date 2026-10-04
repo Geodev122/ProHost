@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-04T18:17:22.961Z",
+  "generatedAt": "2026-10-04T19:05:46.083Z",
   "trigger": "NIGHTHAWK",
   "summary": {
     "total": 64,
@@ -8,7 +8,7 @@
     "medium": 9,
     "low": 55,
     "info": 0,
-    "passes": 29
+    "passes": 30
   },
   "findings": [
     {
@@ -97,7 +97,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/data/model/DataModels.kt",
-      "line": 1475,
+      "line": 1488,
       "message": "Line has 170 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -106,7 +106,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/service/ProHostMessagingService.kt",
-      "line": 103,
+      "line": 93,
       "message": "Line has 167 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -196,7 +196,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
-      "line": 2145,
+      "line": 2163,
       "message": "Line has 210 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -205,7 +205,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
-      "line": 2168,
+      "line": 2186,
       "message": "Line has 177 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -214,7 +214,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
-      "line": 2238,
+      "line": 2256,
       "message": "Line has 219 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -704,6 +704,10 @@
     {
       "check": "Analytics Hygiene",
       "message": "GA4 is opt-in, ad IDs off, all events go through AnalyticsTracker, Crashlytics stays anonymous."
+    },
+    {
+      "check": "Secrets & Token Hygiene",
+      "message": "No hard-coded secrets in functions/scripts; push tokens are never logged."
     }
   ]
 }

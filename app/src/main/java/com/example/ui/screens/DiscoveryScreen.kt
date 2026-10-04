@@ -104,7 +104,9 @@ fun DiscoveryScreen(
         },
         onMapCenterCountryDetected = { country ->
             discoveryViewModel.setMapCenterCountry(country)
-        }
+        },
+        hasMore = uiState.hasMore,
+        onLoadMore = { discoveryViewModel.loadMore() }
     )
 }
 
@@ -142,7 +144,10 @@ fun DiscoveryScreenContent(
     onResetFilters: () -> Unit,
     onSelectSpace: (SpaceListing, String?) -> Unit,
     onQuickWhatsApp: (SpaceListing, Subdivision?) -> Unit,
-    onMapCenterCountryDetected: (String) -> Unit = {}
+    onMapCenterCountryDetected: (String) -> Unit = {},
+    // Paging: more active listings may exist beyond the loaded page.
+    hasMore: Boolean = false,
+    onLoadMore: () -> Unit = {}
 ) {
     var searchExpanded by rememberSaveable { mutableStateOf(filterState.query.isNotEmpty()) }
     val searchQuery = filterState.query
@@ -162,6 +167,7 @@ fun DiscoveryScreenContent(
                 onNavigateToDetails = { onSelectSpace(it, null) },
                 onDivisionSelected = { space, subdivisionId -> onSelectSpace(space, subdivisionId) },
                 onCenterCountryDetected = { country -> onMapCenterCountryDetected(country) },
+                onSearchArea = { if (hasMore) onLoadMore() },
                 modifier = Modifier.fillMaxSize().clipToBounds(),
                 spaceTypeSchema = spaceTypeSchema,
                 topControls = { searchAreaPill ->
@@ -205,10 +211,16 @@ fun DiscoveryScreenContent(
                             "Try a different space type, division type or pricing formula."
                         },
                         icon = Icons.Default.SearchOff,
-                        actionButtonText = "Reset All Filters",
+                        // Search and filters run over the loaded page: offer the next one
+                        // before suggesting the person change their search.
+                        actionButtonText = if (hasMore) "Search More Listings" else "Reset All Filters",
                         onActionClick = {
-                            onResetFilters()
-                            onSearchQueryChange("")
+                            if (hasMore) {
+                                onLoadMore()
+                            } else {
+                                onResetFilters()
+                                onSearchQueryChange("")
+                            }
                         }
                     )
                 }
@@ -254,6 +266,18 @@ fun DiscoveryScreenContent(
                                 onQuickWhatsApp = { onQuickWhatsApp(space, null) },
                                 onToggleSave = { onToggleSavedSpace(space.id) }
                             )
+                        }
+                    }
+                    // Paging footer: composing it (scrolled near the end) loads the next
+                    // page automatically; the button covers a failed or slow load.
+                    if (hasMore) {
+                        item(key = "load_more_footer") {
+                            LaunchedEffect(listCards.size) { onLoadMore() }
+                            Box(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
+                                TextButton(onClick = onLoadMore) {
+                                    Text("Load more workspaces", style = MaterialTheme.typography.labelLarge)
+                                }
+                            }
                         }
                     }
                     }

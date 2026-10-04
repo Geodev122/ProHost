@@ -98,6 +98,10 @@ Follow these step-by-step instructions in the Firebase, GA4, and Google Cloud co
    - *(Optional)*: Field: `firebaseAppId` (string) = `1:646730915838:android:345a7e12d5994456c8eaaf`
    - *(Optional)*: Field: `debug` (boolean) = `true` (enables GA4 validation logging)
    > **Note:** Firestore security rules deny all client access to `app_config`. Until this document exists in Firestore, server events are safely skipped without breaking any Cloud Function or app feature.
+   > **Alternatives:** call the admin callable `configureGa4ApiSecret({ apiSecret })`, or run
+   > `GA4_API_SECRET=<secret> node scripts/seed-ga4-config.mjs`. The secret is never stored in the repo
+   > (NIGHTHAWK "Secrets & Token Hygiene" flags literals). A secret that was ever committed must be
+   > deleted in GA4 Admin and replaced with a new one.
 
 ### Step 3: Register Custom Dimensions & Metrics
 In [GA4 Admin](https://analytics.google.com/) → **Custom Definitions**:

@@ -30,25 +30,16 @@ class ProHostMessagingService : FirebaseMessagingService() {
         serviceScope.cancel()
     }
 
-    @Suppress("DEPRECATION")
-    @Deprecated("Overrides FirebaseMessagingService.onNewToken, itself deprecated by the Firebase SDK; no in-app replacement to migrate to yet")
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        Log.d("ProHostMessaging", "New FCM token registered: ${token.take(16)}...")
-
-        // Log to our system audit trails for full admin traceability
-        val repository = ProHostRepository.getInstance()
-        repository.addAuditLog(
-            actionType = "FCM_TOKEN_REGISTERED",
-            details = "New Firebase Cloud Messaging device registration signature generated successfully: ${token.take(16)}...",
-            severity = "SECURE"
-        )
-
+        // The token is a credential for pushing to this device: it is stored only on the
+        // user's own profile, never logged or written to the audit trail.
         // Persist the token to this user's profile so a Cloud Function can actually
         // reach this device with a real push later (see notifications/*.ts). A no-op
         // if nobody's signed in yet — the post-login/registration path in
         // ProHostViewModel backfills the token once a session exists.
         val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val repository = ProHostRepository.getInstance()
         serviceScope.launch {
             repository.registerFcmToken(uid, token)
         }

@@ -64,5 +64,9 @@ data class DiscoveryUiState(
     val isMapViewActive: Boolean = false,
     val isLoading: Boolean = false,
     val loadError: String? = null,
-    val savedSpaceIds: List<String> = emptyList()
+    val savedSpaceIds: List<String> = emptyList(),
+    // Explore loads active listings a page at a time; true when another page may exist.
+    val hasMore: Boolean = false,
+    // Live listings loaded so far (search and filters run over these).
+    val loadedListingCount: Int = 0
 )

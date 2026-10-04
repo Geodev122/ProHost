@@ -106,6 +106,15 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   room choice — tab (page or availability sheet), Explore deep link, card buttons — goes through
   `selectRoom()` in `SpaceDetailsScreenContent`, so page, bottom strip and sheet share one active
   room and the sheet is never a mixed view of all rooms. A space with rooms always has one selected.
+- Paged live lists: Explore's public listings load `FirestoreService.PUBLIC_LISTINGS_PAGE` (100) at a time
+  and admin lists `ADMIN_PAGE` (300); "load more" grows the same snapshot listener's limit
+  (`setPublicListingsLimit` / `setAdminPageLimit`, document-id order, no index needed). Never re-add a fixed
+  `.limit(200)` cap or unbounded admin collection listeners.
+- Verification rules: `AppUser.hasVerifiedPhone` gates only the Pro Host workspaces; `AppUser.canTransact()`
+  (photo + verified phone) is checked in place when a specialist sends a booking request. My Rentals,
+  browsing and Saved are never gated. `isKycComplete` is profile completeness (banner, Premium checkout).
+- No secrets in code or scripts (GA4 secret comes from the caller or `GA4_API_SECRET`), and push tokens are
+  never logged — NIGHTHAWK "Secrets & Token Hygiene".
 - Explore filters: country matching uses `effectiveCountry` (blank = Lebanon, legacy listings) and the
   Country dropdown is always shown. "Pricing formula" options are `PricingFormulaFilter` (four strategies
   + PER_ATTENDEE, priced per person from the cheapest tier); never list `RentalStrategyType.entries` there.

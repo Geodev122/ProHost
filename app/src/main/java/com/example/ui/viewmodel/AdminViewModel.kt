@@ -23,6 +23,10 @@ class AdminViewModel(
 
     private val functionsClient = FirebaseFunctionsClient()
 
+    /** Admin lists load a page at a time (see FirestoreService.ADMIN_PAGE). */
+    val hasMoreRows: StateFlow<Boolean> = repository.hasMoreAdminRows
+    fun loadMoreRows() = repository.loadMoreAdminRows()
+
     private val _uiState = MutableStateFlow(AdminUiState())
     val uiState: StateFlow<AdminUiState> = _uiState.asStateFlow()
 

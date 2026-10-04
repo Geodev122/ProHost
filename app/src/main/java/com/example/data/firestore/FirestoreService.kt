@@ -34,6 +34,11 @@ class FirestoreService(
     companion object {
         private const val TAG = "FirestoreService"
 
+        /** Explore loads active listings a page at a time (see setPublicListingsLimit). */
+        const val PUBLIC_LISTINGS_PAGE = 100
+        /** Admin console lists load this many rows per page (see setAdminPageLimit). */
+        const val ADMIN_PAGE = 300
+
         /** Hermetic instance for unit tests: never touches Firebase; writes succeed locally. */
         fun localOnly(): FirestoreService = FirestoreService(firestore = null, localOnly = true)
 
@@ -48,6 +53,21 @@ class FirestoreService(
     }
 
     private val activeListeners = mutableListOf<ListenerRegistration>()
+
+    // Paged live lists. Each is ONE snapshot listener whose limit grows by a page on
+    // "load more" (documents come in document-id order, so a bigger limit only adds rows
+    // and needs no composite index); only that listener is re-attached, never the rest.
+    // Explore used to stop silently at 200 listings and admin loaded whole collections.
+    private var publicListingsRegistration: ListenerRegistration? = null
+    private var reattachPublicListings: ((Int) -> Unit)? = null
+    private val adminPagedRegistrations = mutableListOf<ListenerRegistration>()
+    private var reattachAdminLists: ((Int) -> Unit)? = null
+
+    /** Grows Explore's live listing page to [limit] (non-admin callers). */
+    fun setPublicListingsLimit(limit: Int) { reattachPublicListings?.invoke(limit) }
+
+    /** Grows the admin console's live users/bookings/listings pages to [limit]. */
+    fun setAdminPageLimit(limit: Int) { reattachAdminLists?.invoke(limit) }
 
     /**
      * Attaches real-time snapshot listeners for the collections that need live cross-device
@@ -90,31 +110,79 @@ class FirestoreService(
         onBookingsUpdated: (List<RentalBookingRequest>) -> Unit,
         onSchemaUpdated: (SpaceArchitectureSchema) -> Unit = {},
         onAuditLogsUpdated: (List<AuditSecurityLog>) -> Unit = {},
-        onWorkspacesError: (Exception) -> Unit = {}
+        onWorkspacesError: (Exception) -> Unit = {},
+        publicListingsLimit: Int = PUBLIC_LISTINGS_PAGE,
+        adminPageLimit: Int = ADMIN_PAGE,
+        // true when a paged list filled its limit, so another page may exist.
+        onPublicListingsPage: (hasMore: Boolean) -> Unit = {},
+        onAdminPage: (hasMore: Boolean) -> Unit = {}
     ) {
         val db = firestore ?: return
 
         try {
             // --- workspace_listings ---
             if (isAdminCaller) {
-                val spaceListener = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
-                    .limit(500)
-                    .addSnapshotListener { snapshot, error ->
-                        if (error != null) {
-                            Log.w(TAG, "Workspaces sync note: ${error.message}")
-                            onWorkspacesError(error)
-                            return@addSnapshotListener
-                        }
-                        if (snapshot != null) {
-                            val spaces = snapshot.documents.mapNotNull { doc ->
-                                // Skip ownerless ghost docs (see favoritesSync.ts history).
-                                doc.data?.takeIf { it["ownerId"] != null }
-                                    ?.let { data -> SpaceListing.fromFirestoreMap(doc.id, data) }
+                // Admin lists (listings, users, bookings) share one page size; see setAdminPageLimit.
+                var adminSpaces: List<SpaceListing> = emptyList()
+                var adminUsersFull = false
+                var adminBookingsFull = false
+                var adminSpacesFull = false
+                fun reportAdminPage() = onAdminPage(adminUsersFull || adminBookingsFull || adminSpacesFull)
+                fun attachAdminLists(limit: Int) {
+                    adminPagedRegistrations.forEach { it.remove() }
+                    adminPagedRegistrations.clear()
+                    adminPagedRegistrations += db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
+                        .limit(limit.toLong())
+                        .addSnapshotListener { snapshot, error ->
+                            if (error != null) {
+                                Log.w(TAG, "Workspaces sync note: ${error.message}")
+                                onWorkspacesError(error)
+                                return@addSnapshotListener
                             }
-                            onWorkspacesUpdated(spaces)
+                            if (snapshot != null) {
+                                adminSpaces = snapshot.documents.mapNotNull { doc ->
+                                    // Skip ownerless ghost docs (see favoritesSync.ts history).
+                                    doc.data?.takeIf { it["ownerId"] != null }
+                                        ?.let { data -> SpaceListing.fromFirestoreMap(doc.id, data) }
+                                }
+                                adminSpacesFull = snapshot.size() >= limit
+                                reportAdminPage()
+                                onWorkspacesUpdated(adminSpaces)
+                            }
                         }
-                    }
-                activeListeners.add(spaceListener)
+                    adminPagedRegistrations += db.collection(FirestoreSchema.Collections.USER_PROFILES)
+                        .limit(limit.toLong())
+                        .addSnapshotListener { snapshot, error ->
+                            if (error != null) {
+                                Log.w(TAG, "Users sync note: ${error.message}")
+                                return@addSnapshotListener
+                            }
+                            if (snapshot != null) {
+                                adminUsersFull = snapshot.size() >= limit
+                                reportAdminPage()
+                                onUsersUpdated(snapshot.documents.mapNotNull { doc ->
+                                    doc.data?.let { data -> AppUser.fromFirestoreMap(doc.id, data) }
+                                })
+                            }
+                        }
+                    adminPagedRegistrations += db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS)
+                        .limit(limit.toLong())
+                        .addSnapshotListener { snapshot, error ->
+                            if (error != null) {
+                                Log.w(TAG, "Bookings sync note: ${error.message}")
+                                return@addSnapshotListener
+                            }
+                            if (snapshot != null) {
+                                adminBookingsFull = snapshot.size() >= limit
+                                reportAdminPage()
+                                onBookingsUpdated(snapshot.documents.mapNotNull { doc ->
+                                    doc.data?.let { data -> BookingRequest.fromFirestoreMap(doc.id, data) }
+                                })
+                            }
+                        }
+                }
+                attachAdminLists(adminPageLimit)
+                reattachAdminLists = ::attachAdminLists
             } else if (currentUid != null) {
                 val publicById = mutableMapOf<String, SpaceListing>()
                 val ownById = mutableMapOf<String, SpaceListing>()
@@ -128,26 +196,31 @@ class FirestoreService(
                     ownById.values.forEach { merged[it.id] = it }
                     onWorkspacesUpdated(merged.values.toList())
                 }
-                val publicListener = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
-                    .whereEqualTo("status", "ACTIVE")
-                    .whereEqualTo("isOwnerSuspended", false)
-                    .whereEqualTo("isOwnerPackageLapsed", false)
-                    .limit(200)
-                    .addSnapshotListener { snapshot, error ->
-                        if (error != null) {
-                            Log.w(TAG, "Public workspaces sync note: ${error.message}")
-                            onWorkspacesError(error)
-                            return@addSnapshotListener
-                        }
-                        if (snapshot != null) {
-                            publicById.clear()
-                            snapshot.documents.forEach { doc ->
-                                doc.data?.let { SpaceListing.fromFirestoreMap(doc.id, it) }?.let { publicById[it.id] = it }
+                fun attachPublic(limit: Int) {
+                    publicListingsRegistration?.remove()
+                    publicListingsRegistration = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
+                        .whereEqualTo("status", "ACTIVE")
+                        .whereEqualTo("isOwnerSuspended", false)
+                        .whereEqualTo("isOwnerPackageLapsed", false)
+                        .limit(limit.toLong())
+                        .addSnapshotListener { snapshot, error ->
+                            if (error != null) {
+                                Log.w(TAG, "Public workspaces sync note: ${error.message}")
+                                onWorkspacesError(error)
+                                return@addSnapshotListener
                             }
-                            publishSpaces()
+                            if (snapshot != null) {
+                                publicById.clear()
+                                snapshot.documents.forEach { doc ->
+                                    doc.data?.let { SpaceListing.fromFirestoreMap(doc.id, it) }?.let { publicById[it.id] = it }
+                                }
+                                onPublicListingsPage(snapshot.size() >= limit)
+                                publishSpaces()
+                            }
                         }
-                    }
-                activeListeners.add(publicListener)
+                }
+                attachPublic(publicListingsLimit)
+                reattachPublicListings = ::attachPublic
                 val ownListener = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
                     .whereEqualTo("ownerId", currentUid)
                     .addSnapshotListener { snapshot, error ->
@@ -169,20 +242,7 @@ class FirestoreService(
 
             // --- user_profiles ---
             if (isAdminCaller) {
-                val userListener = db.collection(FirestoreSchema.Collections.USER_PROFILES)
-                    .addSnapshotListener { snapshot, error ->
-                        if (error != null) {
-                            Log.w(TAG, "Users sync note: ${error.message}")
-                            return@addSnapshotListener
-                        }
-                        if (snapshot != null) {
-                            val users = snapshot.documents.mapNotNull { doc ->
-                                doc.data?.let { data -> AppUser.fromFirestoreMap(doc.id, data) }
-                            }
-                            onUsersUpdated(users)
-                        }
-                    }
-                activeListeners.add(userListener)
+                // Paged with the admin listings above (attachAdminLists).
             } else if (currentUid != null) {
                 // Non-admin read rule only ever allows the caller's own document — a
                 // collection-wide listener can't be scoped any other way here, so this
@@ -204,20 +264,7 @@ class FirestoreService(
             // --- booking_requests --- the single collection ("booking_requests") that both
             // reads and writes must agree on. See ProHostRepository for the write side.
             if (isAdminCaller) {
-                val bookingListener = db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS)
-                    .addSnapshotListener { snapshot, error ->
-                        if (error != null) {
-                            Log.w(TAG, "Bookings sync note: ${error.message}")
-                            return@addSnapshotListener
-                        }
-                        if (snapshot != null) {
-                            val bookings = snapshot.documents.mapNotNull { doc ->
-                                doc.data?.let { data -> BookingRequest.fromFirestoreMap(doc.id, data) }
-                            }
-                            onBookingsUpdated(bookings)
-                        }
-                    }
-                activeListeners.add(bookingListener)
+                // Paged with the admin listings above (attachAdminLists).
             } else if (currentUid != null) {
                 val asOwner = mutableMapOf<String, RentalBookingRequest>()
                 val asPractitioner = mutableMapOf<String, RentalBookingRequest>()
@@ -313,6 +360,12 @@ class FirestoreService(
     fun clearListeners() {
         activeListeners.forEach { runCatching { it.remove() } }
         activeListeners.clear()
+        publicListingsRegistration?.let { runCatching { it.remove() } }
+        publicListingsRegistration = null
+        reattachPublicListings = null
+        adminPagedRegistrations.forEach { runCatching { it.remove() } }
+        adminPagedRegistrations.clear()
+        reattachAdminLists = null
     }
 
     // ==========================================
