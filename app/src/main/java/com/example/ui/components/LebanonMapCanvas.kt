@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
@@ -242,7 +243,8 @@ fun LebanonMapCanvas(
     // onSpaceSelected's doc note above the LazyRow card below).
     onDivisionSelected: (SpaceListing, String) -> Unit = { _, _ -> },
     onCenterCountryDetected: (String) -> Unit = {},
-    topControls: (@Composable BoxScope.() -> Unit)? = null
+    // Receives the "Search this area" pill to place under the controls.
+    topControls: (@Composable BoxScope.(searchAreaPill: @Composable () -> Unit) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -326,12 +328,22 @@ fun LebanonMapCanvas(
     // Keying this on cameraPositionState.position re-ran filtering, sorting and the
     // carousel list on every animation frame while panning.
     var visibleBounds by remember { mutableStateOf<LatLngBounds?>(null) }
+    // The area the pins and carousel show. It follows the camera only when the person taps
+    // "Search this area" (after panning or zooming by hand), so swiping the carousel or a
+    // small nudge never reshuffles the results.
+    var searchedBounds by remember { mutableStateOf<LatLngBounds?>(null) }
+    var movedByGesture by remember { mutableStateOf(false) }
     var detectedCenterCountry by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(cameraPositionState.isMoving) {
-        if (!cameraPositionState.isMoving) {
+        if (cameraPositionState.isMoving) {
+            if (cameraPositionState.cameraMoveStartedReason == CameraMoveStartedReason.GESTURE) movedByGesture = true
+        } else {
             val center = cameraPositionState.position.target
-            cameraPositionState.projection?.visibleRegion?.latLngBounds?.let { visibleBounds = it }
+            cameraPositionState.projection?.visibleRegion?.latLngBounds?.let {
+                visibleBounds = it
+                if (searchedBounds == null) searchedBounds = it
+            }
             val country = PhoneCountryDetector.detectCountryAtCoordinates(context, center.latitude, center.longitude)
             if (!country.isNullOrBlank() && country != detectedCenterCountry) {
                 detectedCenterCountry = country
@@ -339,8 +351,11 @@ fun LebanonMapCanvas(
             }
         }
     }
-    val visibleSpaces = remember(spaces, visibleBounds) {
-        val bounds = visibleBounds
+    val showSearchArea = movedByGesture && visibleBounds.let { current ->
+        current != null && searchedBounds.let { it == null || boundsDiffer(it, current) }
+    }
+    val visibleSpaces = remember(spaces, searchedBounds) {
+        val bounds = searchedBounds
         // contains() handles viewports that cross the antimeridian.
         val inView = if (bounds != null) spaces.filter { bounds.contains(LatLng(it.lat, it.lng)) } else emptyList()
         inView.ifEmpty { spaces }.take(MAX_MAP_PINS)
@@ -420,7 +435,10 @@ fun LebanonMapCanvas(
                 mapToolbarEnabled = false
             ),
             onMapLoaded = {
-                cameraPositionState.projection?.visibleRegion?.latLngBounds?.let { visibleBounds = it }
+                cameraPositionState.projection?.visibleRegion?.latLngBounds?.let {
+                    visibleBounds = it
+                    if (searchedBounds == null) searchedBounds = it
+                }
             },
             onMapClick = {
                 activePinSpace = null
@@ -751,6 +769,56 @@ fun LebanonMapCanvas(
         }
 
         // Overlay slot for controls that must render above the AndroidView GoogleMap layer.
-        topControls?.invoke(this)
+        topControls?.invoke(this) {
+            SearchThisAreaPill(
+                visible = showSearchArea,
+                onClick = {
+                    searchedBounds = visibleBounds
+                    movedByGesture = false
+                    activePinSpace = null
+                    coroutineScope.launch { runCatching { listState.scrollToItem(0) } }
+                    com.example.analytics.AnalyticsTracker.filterApply("search_area", "map")
+                }
+            )
+        }
+    }
+}
+
+/** True when the camera moved or zoomed enough that the shown results no longer fit it. */
+private fun boundsDiffer(a: LatLngBounds, b: LatLngBounds): Boolean {
+    val latSpan = (a.northeast.latitude - a.southwest.latitude).coerceAtLeast(1e-6)
+    val lngSpanA = ((a.northeast.longitude - a.southwest.longitude + 360.0) % 360.0).coerceAtLeast(1e-6)
+    val lngSpanB = ((b.northeast.longitude - b.southwest.longitude + 360.0) % 360.0).coerceAtLeast(1e-6)
+    val dLat = kotlin.math.abs(a.center.latitude - b.center.latitude)
+    val dLng = kotlin.math.abs(a.center.longitude - b.center.longitude).let { if (it > 180.0) 360.0 - it else it }
+    val zoomRatio = lngSpanB / lngSpanA
+    return dLat > latSpan * 0.2 || dLng > lngSpanA * 0.2 || zoomRatio > 1.6 || zoomRatio < 0.6
+}
+
+/** Warm "Search this area" pill under the Explore controls (map mode). */
+@Composable
+private fun SearchThisAreaPill(visible: Boolean, onClick: () -> Unit) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(220)) + slideInVertically(tween(260)) { -it / 2 },
+        exit = fadeOut(tween(180)) + slideOutVertically(tween(200)) { -it / 2 }
+    ) {
+        Surface(
+            onClick = onClick,
+            shape = RoundedCornerShape(50),
+            color = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            shadowElevation = 6.dp,
+            tonalElevation = 2.dp
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp)
+            ) {
+                Icon(Icons.Default.TravelExplore, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text("Search this area", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            }
+        }
     }
 }

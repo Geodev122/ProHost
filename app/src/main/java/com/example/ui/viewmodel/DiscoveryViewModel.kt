@@ -7,6 +7,7 @@ import com.example.data.model.*
 import com.example.data.repository.ProHostRepository
 import com.example.ui.state.DiscoveryFilterState
 import com.example.ui.state.DiscoveryUiState
+import com.example.ui.state.PricingFormulaFilter
 import com.example.ui.util.SpaceCalculationUtils
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -79,12 +80,12 @@ class DiscoveryViewModel(
                 filter.selectedCategoryIds.any { space.matchesCategory(it) }
             val matchesVerified = !filter.onlyVerified || space.isVerified
             val matchesSaved = !filter.onlySaved || savedIds.contains(space.id)
-            val matchesCountry = filter.selectedCountries.isEmpty() || space.country in filter.selectedCountries
+            val matchesCountry = filter.selectedCountries.isEmpty() || effectiveCountry(space) in filter.selectedCountries
             if (!(matchesQuery && matchesType && matchesVerified && matchesSaved && matchesCountry)) return@filter false
 
             val matchingUnits = rentableUnits(space).filter { unit ->
                 (filter.selectedDivisionTypes.isEmpty() || unit.divisionType in filter.selectedDivisionTypes) &&
-                    (filter.selectedStrategies.isEmpty() || unit.strategy in filter.selectedStrategies) &&
+                    (filter.selectedStrategies.isEmpty() || unit.formula in filter.selectedStrategies) &&
                     (priceRange == null || (unit.price != null && unit.price.toFloat() in priceRange))
             }
             if (divisionLevelFilterActive && space.subdivisions.isNotEmpty()) {
@@ -95,7 +96,7 @@ class DiscoveryViewModel(
 
         val priceBounds = singleStrategy?.let { strategy ->
             val prices = liveSpaces.flatMap { rentableUnits(it) }
-                .filter { it.strategy == strategy }
+                .filter { it.formula == strategy }
                 .mapNotNull { it.price?.toFloat() }
             if (prices.isEmpty()) null else {
                 val min = kotlin.math.floor(prices.min())
@@ -108,7 +109,7 @@ class DiscoveryViewModel(
             filteredSpaces = filtered,
             matchingSubdivisionIds = matchingSubdivisionIds,
             availableDivisionTypes = Level2Type.entries.toList(),
-            availableCountries = liveSpaces.mapNotNull { it.country.ifBlank { null } }.distinct().sorted(),
+            availableCountries = liveSpaces.map { effectiveCountry(it) }.distinct().sorted(),
             priceBounds = priceBounds,
             filterState = filter,
             isFilterSheetVisible = sheetVisible,
@@ -152,30 +153,43 @@ class DiscoveryViewModel(
     private data class RentableUnit(
         val subdivisionId: String?,
         val divisionType: Level2Type?,
-        val strategy: RentalStrategyType,
+        val formula: PricingFormulaFilter,
+        // In the formula's own unit: per person for PER_ATTENDEE.
         val price: Double?
     )
 
     private fun rentableUnits(space: SpaceListing): List<RentableUnit> =
         if (space.subdivisions.isNotEmpty()) {
             space.subdivisions.map { sub ->
-                // A per-attendee room's price is per person, not in the strategy's unit,
-                // so it never takes part in the per-strategy price-range filter.
-                val unitPrice = if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) null
-                    else SpaceCalculationUtils.lowestPriceFor(sub.pricing)?.amount
-                RentableUnit(sub.id, sub.type, sub.pricing.strategyType, unitPrice)
+                // A per-attendee room's slot prices are availability markers; its real price
+                // is per person, so it is its own formula with its cheapest tier as the price.
+                if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) {
+                    RentableUnit(
+                        sub.id, sub.type, PricingFormulaFilter.PER_ATTENDEE,
+                        com.example.ui.util.AttendeePricing.tiersFor(sub).minOfOrNull { it.pricePerAttendeeUsd }
+                    )
+                } else {
+                    RentableUnit(
+                        sub.id, sub.type, PricingFormulaFilter.of(sub.pricing.strategyType),
+                        SpaceCalculationUtils.lowestPriceFor(sub.pricing)?.amount
+                    )
+                }
             }
         } else {
             listOf(
                 RentableUnit(
                     subdivisionId = null,
                     divisionType = null,
-                    strategy = space.pricing.strategyType,
+                    formula = PricingFormulaFilter.of(space.pricing.strategyType),
                     price = SpaceCalculationUtils.lowestPriceFor(space.pricing)?.amount
                         ?: space.baseMonthlyRateUsd.takeIf { it > 0.0 }
                 )
             )
         }
+
+    // Listings saved before the country field existed have it blank; they are all in
+    // Lebanon (governorate is the Lebanese enum), so they still match a country filter.
+    private fun effectiveCountry(space: SpaceListing): String = space.country.trim().ifBlank { DEFAULT_COUNTRY }
 
     /** Everything a search token may match, lower-cased once per space. */
     private fun searchText(space: SpaceListing): String = buildList {
@@ -188,6 +202,7 @@ class DiscoveryViewModel(
         space.subdivisions.forEach { sub ->
             add(sub.name); add(sub.type.displayName); addAll(sub.hashtags); addAll(sub.amenities)
             add(sub.pricing.strategyType.displayName)
+            if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) add("per attendee per person")
         }
         add(space.pricing.strategyType.displayName)
     }.joinToString(" ").lowercase()
@@ -206,7 +221,7 @@ class DiscoveryViewModel(
         com.example.analytics.AnalyticsTracker.filterApply("division_type", types.map { it.name }.sorted().joinToString(",").ifEmpty { "any" })
     }
 
-    fun setFormulaFilter(strategies: Set<RentalStrategyType>) {
+    fun setFormulaFilter(strategies: Set<PricingFormulaFilter>) {
         // A price range is only meaningful within one formula's unit — drop it when
         // the formula selection changes.
         _filterState.update {
@@ -273,5 +288,9 @@ class DiscoveryViewModel(
     fun toggleMapView() {
         _isMapViewActive.value = !_isMapViewActive.value
         com.example.analytics.AnalyticsTracker.mapToggle(_isMapViewActive.value)
+    }
+
+    companion object {
+        const val DEFAULT_COUNTRY = "Lebanon"
     }
 }

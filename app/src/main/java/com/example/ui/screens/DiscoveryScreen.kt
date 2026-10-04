@@ -38,6 +38,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.state.DiscoveryFilterState
+import com.example.ui.state.PricingFormulaFilter
 import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.viewmodel.DiscoveryViewModel
 import com.example.ui.viewmodel.ProHostViewModel
@@ -133,7 +134,7 @@ fun DiscoveryScreenContent(
     onSelectCategories: (Set<String>) -> Unit,
     onSelectDivisionTypes: (Set<Level2Type>) -> Unit,
     onSelectCountries: (Set<String>) -> Unit = {},
-    onSelectStrategies: (Set<RentalStrategyType>) -> Unit,
+    onSelectStrategies: (Set<PricingFormulaFilter>) -> Unit,
     onPriceRangeChange: (ClosedFloatingPointRange<Float>?) -> Unit,
     onToggleVerifiedOnly: (Boolean) -> Unit,
     onToggleSavedOnly: (Boolean) -> Unit,
@@ -143,13 +144,8 @@ fun DiscoveryScreenContent(
     onQuickWhatsApp: (SpaceListing, Subdivision?) -> Unit,
     onMapCenterCountryDetected: (String) -> Unit = {}
 ) {
-    val context = LocalContext.current
     var searchExpanded by rememberSaveable { mutableStateOf(filterState.query.isNotEmpty()) }
     val searchQuery = filterState.query
-    var detectedCountryName by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(Unit) {
-        detectedCountryName = com.example.util.PhoneCountryDetector.detectCountry(context).name
-    }
 
     Box(modifier = Modifier
         .fillMaxSize()
@@ -168,9 +164,10 @@ fun DiscoveryScreenContent(
                 onCenterCountryDetected = { country -> onMapCenterCountryDetected(country) },
                 modifier = Modifier.fillMaxSize().clipToBounds(),
                 spaceTypeSchema = spaceTypeSchema,
-                topControls = {
+                topControls = { searchAreaPill ->
                     ExploreTopControls(
                         isMapView = true,
+                        belowControls = searchAreaPill,
                         searchQuery = searchQuery,
                         searchExpanded = searchExpanded,
                         onSearchExpandedChange = { searchExpanded = it },
@@ -178,8 +175,6 @@ fun DiscoveryScreenContent(
                         onToggleMapView = onToggleMapView,
                         onSearchQueryChange = onSearchQueryChange,
                         onOpenFilters = { onSetFilterSheetVisible(true) },
-                        listingCount = spaces.size,
-                        countryName = detectedCountryName,
                         modifier = Modifier.align(Alignment.TopStart)
                     )
                 }
@@ -191,7 +186,7 @@ fun DiscoveryScreenContent(
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             } else if (loadError != null) {
-                Box(modifier = Modifier.fillMaxSize().padding(top = 72.dp)) {
+                Box(modifier = Modifier.fillMaxSize().padding(top = 66.dp)) {
                     ProEmptyState(
                         title = "Couldn't Load Workspaces",
                         description = loadError,
@@ -201,7 +196,7 @@ fun DiscoveryScreenContent(
                     )
                 }
             } else if (spaces.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize().padding(top = 72.dp)) {
+                Box(modifier = Modifier.fillMaxSize().padding(top = 66.dp)) {
                     ProEmptyState(
                         title = "No Workspaces Found",
                         description = if (searchQuery.isNotBlank()) {
@@ -226,7 +221,7 @@ fun DiscoveryScreenContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .widthIn(max = 840.dp),
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 72.dp, bottom = 16.dp),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 66.dp, bottom = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                     // Flatten: one card per (matching) subdivision, or one card for a
@@ -276,8 +271,6 @@ fun DiscoveryScreenContent(
                 onToggleMapView = onToggleMapView,
                 onSearchQueryChange = onSearchQueryChange,
                 onOpenFilters = { onSetFilterSheetVisible(true) },
-                listingCount = spaces.size,
-                countryName = detectedCountryName,
                 modifier = Modifier.align(Alignment.TopStart)
             )
         }
@@ -304,7 +297,17 @@ fun DiscoveryScreenContent(
     }
 }
 
-/** Unified explore strip: listing count chip + map/list toggle + search + filters. */
+private fun formulaLabel(formula: PricingFormulaFilter): String =
+    formula.strategy?.displayName ?: "Per attendee"
+
+/** The price unit a formula's range slider is in: per person for per-attendee rooms. */
+private fun formulaUnitLabel(formula: PricingFormulaFilter): String =
+    formula.strategy?.let { SpaceCalculationUtils.strategyUnitLabel(it) } ?: "/person"
+
+/**
+ * Explore controls (map/list toggle, search, filters), attached to the bottom edge of the
+ * app header. [belowControls] renders centred under it (the map's "Search this area").
+ */
 @Composable
 private fun ExploreTopControls(
     isMapView: Boolean,
@@ -315,61 +318,27 @@ private fun ExploreTopControls(
     onToggleMapView: () -> Unit,
     onSearchQueryChange: (String) -> Unit,
     onOpenFilters: () -> Unit,
-    listingCount: Int = 0,
-    countryName: String? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    belowControls: @Composable () -> Unit = {}
 ) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(start = 10.dp, end = 10.dp, top = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Listing count tag
-        if (!searchExpanded) {
-            val countLabel = buildString {
-                append("$listingCount workspace${if (listingCount == 1) "" else "s"}")
-                countryName?.let { append(" · $it") }
-            }
-            Surface(
-                shape = RoundedCornerShape(50),
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.92f),
-                shadowElevation = 2.dp,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-                ) {
-                    Icon(
-                        Icons.Default.LocationOn,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = countLabel,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-        }
-
-        // Controls strip
+        // Controls strip: same surface and tone as the header above it, flush against it,
+        // rounded only at the bottom so the two read as one piece.
         Surface(
-            shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-            shadowElevation = 6.dp,
+            shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 4.dp,
             tonalElevation = 2.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 6.dp, vertical = 6.dp),
+                    .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -453,6 +422,8 @@ private fun ExploreTopControls(
                 }
             }
         }
+
+        belowControls()
     }
 }
 
@@ -526,7 +497,7 @@ private fun DiscoveryFilterSheet(
     onSelectCategories: (Set<String>) -> Unit,
     onSelectDivisionTypes: (Set<Level2Type>) -> Unit,
     onSelectCountries: (Set<String>) -> Unit = {},
-    onSelectStrategies: (Set<RentalStrategyType>) -> Unit,
+    onSelectStrategies: (Set<PricingFormulaFilter>) -> Unit,
     onPriceRangeChange: (ClosedFloatingPointRange<Float>?) -> Unit,
     onToggleVerifiedOnly: (Boolean) -> Unit,
     onToggleSavedOnly: (Boolean) -> Unit,
@@ -572,22 +543,22 @@ private fun DiscoveryFilterSheet(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            if (availableCountries.size > 1) {
-                MultiSelectDropdownField(
-                    label = "Country",
-                    options = availableCountries,
-                    selected = filterState.selectedCountries,
-                    optionLabel = { it },
-                    onSelectionChange = onSelectCountries,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            // Always offered: it used to hide unless listings spanned 2+ countries, which
+            // (with legacy listings' blank country) meant it never appeared.
+            MultiSelectDropdownField(
+                label = "Country",
+                options = (availableCountries + filterState.selectedCountries).distinct().sorted(),
+                selected = filterState.selectedCountries,
+                optionLabel = { it },
+                onSelectionChange = onSelectCountries,
+                modifier = Modifier.fillMaxWidth()
+            )
 
             MultiSelectDropdownField(
                 label = "Pricing formula",
-                options = RentalStrategyType.entries.toList(),
+                options = PricingFormulaFilter.entries.toList(),
                 selected = filterState.selectedStrategies,
-                optionLabel = { "${it.displayName} (${SpaceCalculationUtils.strategyUnitLabel(it).removePrefix("/")})" },
+                optionLabel = { "${formulaLabel(it)} (${formulaUnitLabel(it).removePrefix("/")})" },
                 onSelectionChange = onSelectStrategies,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -596,7 +567,7 @@ private fun DiscoveryFilterSheet(
             // single formula is chosen.
             val singleStrategy = filterState.selectedStrategies.singleOrNull()
             if (singleStrategy != null && priceBounds != null) {
-                val unit = SpaceCalculationUtils.strategyUnitLabel(singleStrategy)
+                val unit = formulaUnitLabel(singleStrategy)
                 val current = (filterState.priceRange ?: priceBounds).let { range ->
                     range.start.coerceIn(priceBounds)..range.endInclusive.coerceIn(priceBounds)
                 }

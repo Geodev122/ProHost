@@ -1121,7 +1121,7 @@ fun SpaceDetailsScreenContent(
 
         val canSubmit = hasSelection && (!isAttendeeMode || sheetAttendeeQuote != null)
 
-        ProHostBottomSheet(
+        ResizableBottomSheet(
             onDismissRequest = {
                 availabilityPanelState = if (selectedSubdivisionId != null) "peek" else "hidden"
                 selectedSlots = emptySet()
@@ -1129,27 +1129,26 @@ fun SpaceDetailsScreenContent(
             },
             modifier = Modifier.shadow(16.dp, SheetShape),
             sheetState = availabilitySheetState,
-            contentWindowInsets = { WindowInsets(0) },
             // Blue wash (matches the "Press to see option availability" trigger bar)
             // so the trigger and the sheet it opens read as one consistent design.
-            accentTint = true
+            accentTint = true,
+            // Pinned and draggable: resize the sheet from its title; the rest scrolls.
+            header = {
+                ProSectionHeader(
+                    title = "Check Availability",
+                    subtitle = if (isAttendeeMode) "Enter attendee count, then tap days to select slots." else "Tap a day to expand and select open slots.",
+                    icon = Icons.Default.EventAvailable,
+                    modifier = Modifier.padding(horizontal = Spacing.lg).padding(bottom = Spacing.sm)
+                )
+            }
         ) {
-            val scrollState = rememberScrollState()
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .verticalScroll(scrollState)
-                    .navigationBarsPadding()
                     .padding(horizontal = Spacing.lg)
                     .padding(bottom = Spacing.xl),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                ProSectionHeader(
-                    title = "Check Availability",
-                    subtitle = if (isAttendeeMode) "Enter attendee count, then tap days to select slots." else "Tap a day to expand and select open slots.",
-                    icon = Icons.Default.EventAvailable
-                )
-
                 // Same folder tabs as the page: switching here switches the room the
                 // sheet shows (and drops slots picked for the previous room).
                 if (liveSpace.subdivisions.size > 1 && selectedSubdivisionId != null) {

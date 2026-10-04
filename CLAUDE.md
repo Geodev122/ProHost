@@ -78,6 +78,13 @@ requires v8.0.0+ for any app selling in-app products/subscriptions.
   room choice — tab (page or availability sheet), Explore deep link, card buttons — goes through
   `selectRoom()` in `SpaceDetailsScreenContent`, so page, bottom strip and sheet share one active
   room and the sheet is never a mixed view of all rooms. A space with rooms always has one selected.
+- Explore filters: country matching uses `effectiveCountry` (blank = Lebanon, legacy listings) and the
+  Country dropdown is always shown. "Pricing formula" options are `PricingFormulaFilter` (four strategies
+  + PER_ATTENDEE, priced per person from the cheapest tier); never list `RentalStrategyType.entries` there.
+- Explore controls are attached under the app header (bottom-rounded strip, no count chip). Map results
+  follow `searchedBounds`, updated only by the "Search this area" pill after a gesture pan/zoom.
+- The availability sheet is `ResizableBottomSheet` (`ui/components`): resize by dragging the handle or
+  header between stops; the body scrolls and its leftover scroll never drags the sheet.
 - Listing saves go through `SpaceListing.keepingServerOwnedFields(current)` in `ProHostRepository`
   (isVerified, subscription fields, isOwnerSuspended, isOwnerPackageLapsed, ownerId). Never echo
   those from a wizard-built listing: rules deny any save whose changed keys include them, which
