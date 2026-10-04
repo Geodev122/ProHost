@@ -13,6 +13,7 @@ import { setClaimsThenFirestore } from "../lib/roles";
 import { validateListingForPublish, WorkspaceListingDoc } from "../listings/publishValidation";
 import { UNLIMITED_GRANT_PLAN_ID } from "../lib/packagePlans";
 import "../lib/admin";
+import { classifyPlayError, fetchPlaySubscription, PlaySubscription } from "./playSubscription";
 
 export const PACKAGE_NAME = "app.geonajjar.prohost";
 
@@ -23,29 +24,29 @@ export async function getPlayPublisher() {
   return google.androidpublisher({ version: "v3", auth });
 }
 
-/** Fetches live subscription details from the Play Developer API. */
-export async function queryPlaySubscription(productId: string, token: string) {
-  const publisher = await getPlayPublisher();
-  const { data } = await publisher.purchases.subscriptions.get({
-    packageName: PACKAGE_NAME,
-    subscriptionId: productId,
-    token,
-  });
-  return data;
+/** Live subscription details (subscriptionsv2, v1 fallback). Throws PlayApiError only. */
+export async function queryPlaySubscription(token: string, productIdHint?: string): Promise<PlaySubscription> {
+  let publisher: Awaited<ReturnType<typeof getPlayPublisher>>;
+  try {
+    publisher = await getPlayPublisher();
+  } catch (e) {
+    throw classifyPlayError(e);
+  }
+  return fetchPlaySubscription(publisher, PACKAGE_NAME, token, productIdHint);
 }
 
 /**
- * Acknowledges a purchase server-side. Play auto-refunds purchases left
- * unacknowledged for 3 days; the app also acknowledges, but may be killed
- * right after purchase or never opened (e.g. resubscribing from Play Store).
+ * Acknowledges a subscription server-side, after it was granted. Play auto-refunds
+ * purchases left unacknowledged for 3 days. Returns false when the call failed, so the
+ * caller can park the purchase for the retry job instead of losing the acknowledgement.
  */
 export async function acknowledgeIfNeeded(
   productId: string,
   token: string,
-  acknowledgementState: number | null | undefined,
+  alreadyAcknowledged: boolean,
   logTag = "billing"
-) {
-  if (acknowledgementState !== 0) return;
+): Promise<boolean> {
+  if (alreadyAcknowledged) return true;
   try {
     const publisher = await getPlayPublisher();
     await publisher.purchases.subscriptions.acknowledge({
@@ -55,8 +56,12 @@ export async function acknowledgeIfNeeded(
       requestBody: {},
     });
     logger.info(`${logTag}: acknowledged product=${productId}`);
+    return true;
   } catch (e) {
-    logger.warn(`${logTag}: acknowledge failed for product=${productId}`, e);
+    const err = classifyPlayError(e);
+    // Already acknowledged (e.g. by a concurrent RTDN) comes back as a 400.
+    logger.error(`${logTag}: acknowledge failed for product=${productId} [${err.kind}] ${err.message}`);
+    return false;
   }
 }
 

@@ -1,25 +1,24 @@
 import { HttpsError } from "firebase-functions/v2/https";
 import { onCall } from "../lib/callable";
 import { logger } from "firebase-functions/v2";
-import {
-  queryPlaySubscription,
-  acknowledgeIfNeeded,
-  grantSubscription,
-} from "./billingHelpers";
-import { planIdForPlayProduct } from "../lib/packagePlans";
 import "../lib/admin";
 import { sendGa4Event } from "../lib/ga4";
-import { claimPurchaseToken } from "./purchaseLinks";
+import { activatePlayPurchase, parkPendingActivation, resolvePendingActivation } from "./activatePurchase";
+
+/** Shown whenever a paid purchase could not be confirmed yet: it is parked and retried. */
+const PAYMENT_SAFE_MESSAGE =
+  "Your payment is safe. We couldn't confirm it with Google Play just now — your Pro Host plan " +
+  "will activate automatically within a few minutes. You don't need to pay again.";
 
 /**
- * Called by the Android client when it detects an active Google Play subscription
- * that has no matching Firestore entitlement — for example because the original
- * RTDN Pub/Sub delivery was dropped, or because the app was reinstalled and the
- * user taps "Restore Purchases".
+ * Called by the Android client for every purchase from checkout, and for active Google Play
+ * subscriptions found on the device (Restore Purchases, app resume). Verifies the token
+ * against the Play Developer API (subscriptionsv2), checks it belongs to the caller, grants,
+ * then acknowledges (see activatePurchase.ts → acknowledgeIfNeeded).
  *
- * Verifies the token against the Play Developer API, checks it belongs to the
- * caller, and calls grantSubscription so the entitlement is restored exactly
- * as if the RTDN had fired normally.
+ * When Play can't be reached or denies access, the purchase is parked for
+ * retryPendingPlayActivations instead of being dropped, and the caller is told the payment
+ * is safe — never a generic "can't reach the server".
  */
 export const verifyAndRestorePurchase = onCall<{
   purchaseToken: string;
@@ -38,50 +37,52 @@ export const verifyAndRestorePurchase = onCall<{
 
   const cleanToken = purchaseToken.trim();
   const cleanProductId = productId.trim();
+  const outcome = await activatePlayPurchase(uid, cleanToken, cleanProductId, "verifyAndRestorePurchase");
 
-  let purchase: Awaited<ReturnType<typeof queryPlaySubscription>>;
-  try {
-    purchase = await queryPlaySubscription(cleanProductId, cleanToken);
-  } catch (e) {
-    logger.error(`verifyAndRestorePurchase: Play API failed uid=${uid} product=${cleanProductId}`, e);
-    throw new HttpsError("unavailable", "Could not reach Google Play. Try again in a moment.");
-  }
-
-  // Ownership: a purchase made in the app's sheet carries the buyer's uid as
-  // obfuscatedExternalAccountId. One started in the Play Store (promo-code redemption,
-  // resubscribe) carries none — the first account whose device holds the token claims it,
-  // and a token another account already claimed is never re-assigned.
-  if (purchase.obfuscatedExternalAccountId) {
-    if (purchase.obfuscatedExternalAccountId !== uid) {
-      logger.warn(`verifyAndRestorePurchase: uid mismatch uid=${uid} obfuscated=${purchase.obfuscatedExternalAccountId} product=${cleanProductId}`);
-      throw new HttpsError("permission-denied", "This purchase belongs to a different ProHost account.");
+  switch (outcome.status) {
+    case "granted": {
+      if (outcome.acknowledged) {
+        await resolvePendingActivation(cleanToken, "granted");
+      } else {
+        // Granted, but Play still needs the acknowledgement or it refunds in 3 days.
+        await parkPendingActivation(uid, cleanToken, outcome.productId, "acknowledge failed", "verifyAndRestorePurchase");
+      }
+      logger.info(
+        `verifyAndRestorePurchase: restored uid=${uid} product=${outcome.productId} ` +
+          `expiry=${new Date(outcome.expiryMillis).toISOString()} acknowledged=${outcome.acknowledged}`
+      );
+      await sendGa4Event(uid, "subscription_restored", { item_id: outcome.productId });
+      return { success: true, expiryMillis: outcome.expiryMillis, planId: outcome.planId };
     }
-  } else {
-    const claim = await claimPurchaseToken(uid, cleanToken, cleanProductId, purchase.linkedPurchaseToken);
-    if (claim === "owned_by_other") {
-      logger.warn(`verifyAndRestorePurchase: token already linked to another account uid=${uid} product=${cleanProductId}`);
-      throw new HttpsError("permission-denied", "This purchase is already linked to a different ProHost account.");
-    }
-    logger.info(`verifyAndRestorePurchase: linked unattributed purchase (${claim}) uid=${uid} product=${cleanProductId}`);
+    case "play_error":
+      if (outcome.error.kind === "invalid") {
+        throw new HttpsError(
+          "invalid-argument",
+          "Google Play doesn't recognise this purchase. If you were charged, contact admin@pro-host.tech with your Google Play order number."
+        );
+      }
+      await parkPendingActivation(
+        uid, cleanToken, cleanProductId, `${outcome.error.kind}: ${outcome.error.message}`, "verifyAndRestorePurchase"
+      );
+      throw new HttpsError(outcome.error.kind === "config" ? "failed-precondition" : "unavailable", PAYMENT_SAFE_MESSAGE);
+    case "pending_payment":
+      throw new HttpsError(
+        "failed-precondition",
+        "Your payment is still being processed by Google Play. Your plan activates as soon as it completes."
+      );
+    case "inactive":
+      throw new HttpsError(
+        "failed-precondition",
+        "This subscription is on hold or paused in Google Play. Fix the payment method or resume it in Google Play › Payments & subscriptions."
+      );
+    case "expired":
+      throw new HttpsError("failed-precondition", "This subscription has already expired.");
+    case "owned_by_other":
+      throw new HttpsError(
+        "permission-denied",
+        outcome.reason === "account"
+          ? "This purchase belongs to a different ProHost account."
+          : "This purchase is already linked to a different ProHost account."
+      );
   }
-
-  const expiryMs = parseInt(purchase.expiryTimeMillis ?? "0", 10);
-  if (expiryMs <= Date.now()) {
-    throw new HttpsError("failed-precondition", "This subscription has already expired.");
-  }
-
-  // paymentState: 0 = pending, 1 = received, 2 = free trial, 3 = pending deferred upgrade.
-  // Only grant for states where money has settled or a free trial is active.
-  const paymentState = purchase.paymentState ?? 1;
-  if (paymentState === 0) {
-    throw new HttpsError("failed-precondition", "Payment is still pending — please wait a moment and try again.");
-  }
-
-  // Play's order: verify (above) → grant → acknowledge.
-  await grantSubscription(uid, await planIdForPlayProduct(cleanProductId), expiryMs, purchase.orderId ?? cleanProductId);
-  await acknowledgeIfNeeded(cleanProductId, cleanToken, purchase.acknowledgementState, "verifyAndRestorePurchase");
-
-  logger.info(`verifyAndRestorePurchase: restored uid=${uid} product=${cleanProductId} expiry=${new Date(expiryMs).toISOString()}`);
-  await sendGa4Event(uid, "subscription_restored", { item_id: cleanProductId });
-  return { success: true, expiryMillis: expiryMs };
 });

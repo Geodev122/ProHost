@@ -483,6 +483,11 @@ service cloud.firestore {
     match /play_purchase_links/{key} {
       allow read, write: if false;
     }
+    // Paid purchases whose activation failed, retried by retryPendingPlayActivations
+    // (server-only; holds purchase tokens).
+    match /play_billing_pending/{key} {
+      allow read, write: if false;
+    }
 
     // Default deny for anything not explicitly matched above.
     match /{document=**} {

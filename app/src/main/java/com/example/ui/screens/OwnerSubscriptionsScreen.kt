@@ -67,6 +67,16 @@ fun OwnerSubscriptionsScreen(
     val ownerSpaces by viewModel.ownerSpaces.collectAsState()
     val pendingAutoPublishDraftId by viewModel.pendingAutoPublishDraftId.collectAsState()
     val billingActivationPending by viewModel.billingActivationPending.collectAsState()
+    // A plan that activated without the pre-purchase KYC step (promo redemption, restore)
+    // asks for the missing details right away; nothing is purchased after it.
+    val kycPromptAfterActivation by viewModel.kycPromptAfterActivation.collectAsState()
+    LaunchedEffect(kycPromptAfterActivation) {
+        if (kycPromptAfterActivation) {
+            viewModel.consumeKycPromptAfterActivation()
+            pendingProductId = null
+            showKycDialog = true
+        }
+    }
     val billingError by viewModel.billingError.collectAsState()
     val billingSuccess by viewModel.billingSuccess.collectAsState()
     val playBillingProducts by viewModel.playBillingProducts.collectAsState()

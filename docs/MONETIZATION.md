@@ -22,6 +22,30 @@ Last reviewed: 2026-10-04 (Play Billing Library 9.1.0).
 - Upgrades pass the old purchase token (`SubscriptionUpdateParams`). Play in-app messages (payment declined or grace period) are shown on Subscriptions.
 - Every outcome reaches the UI through `billingMessages` and is tracked in GA4: `begin_checkout`, `purchase`, `purchase_cancelled`, `purchase_error`, `restore_purchases`, `plans_load_failed`, plus server events.
 
+### Fixed 2026-10-04: paid, but "Can't reach the server"
+The server used the v1 `purchases.subscriptions.get` and turned **any** Play API failure into
+`unavailable`. That included a missing permission, which the app showed as "Can't reach the server". RTDN
+dropped the same failure without retrying, so the purchase was never acknowledged, and Play refunds those
+after 3 days. The "Activating" banner was also set as soon as the Play sheet opened, so it kept spinning
+after a cancel.
+
+What changed:
+- The server now uses `subscriptionsv2` and classifies Play errors.
+- Failed activations are parked in `play_billing_pending` and retried every 15 minutes.
+- RTDN retries.
+- The app shows the server's real message, and the banner appears only after Play confirms payment.
+
+**Required one-time setup (otherwise every activation fails with a `config` error in the logs):**
+1. **Play Console › Users and permissions › Invite new user:** add the service account that Cloud Functions
+   runs as. For 2nd-gen functions this is usually `<project-number>-compute@developer.gserviceaccount.com`.
+   It is printed in the `verifyAndRestorePurchase` error log. Grant **View financial data** and **Manage
+   orders and subscriptions** for this app.
+2. **Google Cloud console › APIs & Services:** enable the **Google Play Android Developer API** for the
+   Firebase project.
+3. **Check:** Cloud Logging, filter `retryPendingPlayActivations`. A parked purchase should log
+   `activated … after N attempt(s)`. In Firestore, `play_billing_pending` with `resolved == false` should
+   be empty.
+
 ### Still worth doing
 1. **Check the licence key.** `PlayBillingSecurity.MERCHANT_BASE64_PUBLIC_KEY` must equal Play Console › Monetization setup › Licensing. If it's wrong, every client-side check fails ("Purchase security check failed") and only the server path activates plans.
 2. **Upgrade proration.** Upgrades use `CHARGE_FULL_PRICE`. Consider `CHARGE_PRORATED_PRICE` for upgrades and `DEFERRED` for downgrades once you sell more than one tier.

@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-10-04T09:29:26.320Z",
+  "generatedAt": "2026-10-04T12:34:09.044Z",
   "trigger": "NIGHTHAWK",
   "summary": {
-    "total": 52,
+    "total": 54,
     "critical": 0,
     "high": 0,
-    "medium": 3,
+    "medium": 5,
     "low": 49,
     "info": 0,
     "passes": 29
@@ -15,9 +15,27 @@
       "severity": "MEDIUM",
       "category": "consistency",
       "check": "Orphaned Module",
+      "file": "functions/src/billing/activatePurchase.ts",
+      "line": null,
+      "message": "Module \"billing/activatePurchase\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
       "file": "functions/src/billing/billingHelpers.ts",
       "line": null,
       "message": "Module \"billing/billingHelpers\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/billing/playSubscription.ts",
+      "line": null,
+      "message": "Module \"billing/playSubscription\" has exports but is not imported from index.ts.",
       "suggestion": "Export or remove."
     },
     {
@@ -241,7 +259,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 238,
+      "line": 248,
       "message": "Line has 165 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -250,7 +268,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 337,
+      "line": 347,
       "message": "Line has 164 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -259,7 +277,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 366,
+      "line": 376,
       "message": "Line has 166 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -268,7 +286,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 377,
+      "line": 387,
       "message": "Line has 163 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -277,7 +295,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 388,
+      "line": 398,
       "message": "Line has 163 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -286,7 +304,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt",
-      "line": 443,
+      "line": 453,
       "message": "Line has 169 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },

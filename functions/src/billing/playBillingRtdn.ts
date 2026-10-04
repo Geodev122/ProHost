@@ -15,6 +15,8 @@ import {
 import { planIdForPlayProduct, getPackagePlan } from "../lib/packagePlans";
 import { sendGa4Event, transactionIdFor } from "../lib/ga4";
 import { resolvePurchaseUid } from "./purchaseLinks";
+import { classifyPlayError, PlaySubscription } from "./playSubscription";
+import { parkPendingActivation, resolvePendingActivation } from "./activatePurchase";
 import "../lib/admin";
 
 // Google Play subscription notification types (DeveloperNotification spec)
@@ -43,7 +45,9 @@ const SUBSCRIPTION_PENDING_PURCHASE_CANCELED = 20; // pending payment never comp
  * handler can find the right plan without an extra lookup.
  */
 export const playBillingRtdn = onMessagePublished(
-  { topic: "play-billing-rtdn", secrets: [hostingerSmtpSecret] },
+  // retry: a throw makes Pub/Sub redeliver (with backoff). Only Play API failures that can
+  // clear throw; a malformed or unknown-token message returns so it never loops.
+  { topic: "play-billing-rtdn", secrets: [hostingerSmtpSecret], retry: true },
   async (event) => {
     // 1. Decode the DeveloperNotification envelope
     let notification: Record<string, unknown>;
@@ -68,25 +72,33 @@ export const playBillingRtdn = onMessagePublished(
       return;
     }
 
-    const productId = subNote.subscriptionId as string;
+    const hintProductId = (subNote.subscriptionId as string | undefined) ?? "";
     const purchaseToken = subNote.purchaseToken as string;
     const notificationType = subNote.notificationType as number;
 
-    logger.info(`playBillingRtdn: type=${notificationType} product=${productId}`);
+    logger.info(`playBillingRtdn: type=${notificationType} product=${hintProductId}`);
 
-    // 2. Verify via Play Developer API and extract the user UID
-    let purchase: Awaited<ReturnType<typeof queryPlaySubscription>>;
+    // 2. Verify via Play Developer API (subscriptionsv2) and extract the user UID
+    let purchase: PlaySubscription;
     try {
-      purchase = await queryPlaySubscription(productId, purchaseToken);
+      purchase = await queryPlaySubscription(purchaseToken, hintProductId || undefined);
     } catch (e) {
-      logger.error(`playBillingRtdn: Play API call failed for product=${productId}`, e);
-      return;
+      const err = classifyPlayError(e);
+      if (err.kind === "invalid") {
+        logger.error(`playBillingRtdn: Play does not know this purchase product=${hintProductId}: ${err.message}`);
+        return;
+      }
+      // config (401/403) or transient: throw so Pub/Sub redelivers. Dropping it here is what
+      // left paid purchases unactivated and unacknowledged until Play refunded them.
+      logger.error(`playBillingRtdn: Play API call failed [${err.kind}] product=${hintProductId}: ${err.message}`);
+      throw err;
     }
+    const productId = purchase.productId || hintProductId;
 
     // Purchases made in the app's sheet carry the uid; ones started in the Play Store
     // (promo-code redemption, resubscribe) don't, and resolve via play_purchase_links.
     const uid = await resolvePurchaseUid(
-      purchase.obfuscatedExternalAccountId, purchaseToken, purchase.linkedPurchaseToken
+      purchase.obfuscatedAccountId, purchaseToken, purchase.linkedPurchaseToken
     );
     if (!uid && notificationType === SUBSCRIPTION_PENDING_PURCHASE_CANCELED) {
       logger.info(`playBillingRtdn: unlinked pending purchase canceled product=${productId}`);
@@ -100,9 +112,11 @@ export const playBillingRtdn = onMessagePublished(
         (notificationType === SUBSCRIPTION_PURCHASED ||
           notificationType === SUBSCRIPTION_RESTARTED ||
           notificationType === SUBSCRIPTION_RECOVERED) &&
-        purchase.paymentState !== 0
+        !purchase.isPending
       ) {
-        await acknowledgeIfNeeded(productId, purchaseToken, purchase.acknowledgementState, "playBillingRtdn");
+        const acked = await acknowledgeIfNeeded(productId, purchaseToken, purchase.acknowledged, "playBillingRtdn");
+        // Unacknowledged = refunded in 3 days, and no account to park it under: redeliver.
+        if (!acked) throw new Error(`playBillingRtdn: acknowledge failed for unlinked purchase product=${productId}`);
       }
       logger.warn(
         `playBillingRtdn: purchase not linked to an account yet product=${productId} type=${notificationType} — waiting for in-app restore`
@@ -120,7 +134,7 @@ export const playBillingRtdn = onMessagePublished(
     }
 
     const orderId = purchase.orderId ?? productId;
-    const expiryMs = parseInt(purchase.expiryTimeMillis ?? "0", 10);
+    const expiryMs = purchase.expiryMillis;
     // Play API calls keep using productId; Firestore entitlements use the catalog plan id.
     const planId = await planIdForPlayProduct(productId);
     const planName = (await getPackagePlan(planId))?.name ?? "Pro Host";
@@ -130,7 +144,7 @@ export const playBillingRtdn = onMessagePublished(
       case SUBSCRIPTION_PURCHASED:
         // paymentState 0 = still pending (e.g. cash at a store); Play sends RECOVERED/
         // RENEWED once it settles, so granting now would give access before payment.
-        if (purchase.paymentState === 0) {
+        if (purchase.isPending) {
           logger.info(`playBillingRtdn: purchase pending payment for uid=${uid}, not granting yet`);
           break;
         }
@@ -275,9 +289,13 @@ export const playBillingRtdn = onMessagePublished(
       (notificationType === SUBSCRIPTION_PURCHASED ||
         notificationType === SUBSCRIPTION_RESTARTED ||
         notificationType === SUBSCRIPTION_RECOVERED) &&
-      purchase.paymentState !== 0
+      !purchase.isPending
     ) {
-      await acknowledgeIfNeeded(productId, purchaseToken, purchase.acknowledgementState, "playBillingRtdn");
+      const acked = await acknowledgeIfNeeded(productId, purchaseToken, purchase.acknowledged, "playBillingRtdn");
+      // The grant already happened, so don't redeliver (that repeats pushes and emails):
+      // hand the acknowledgement to retryPendingPlayActivations instead.
+      if (acked) await resolvePendingActivation(purchaseToken, "granted_by_rtdn");
+      else await parkPendingActivation(uid, purchaseToken, productId, "acknowledge failed", "playBillingRtdn");
     }
 
     // 5. GA4 (consent-gated, never throws). PURCHASED/RENEWED are revenue → "purchase",
@@ -295,14 +313,14 @@ export const playBillingRtdn = onMessagePublished(
       [SUBSCRIPTION_IN_GRACE_PERIOD]: "subscription_grace_period",
     };
     const gaEvent = gaEvents[notificationType];
-    const pendingPayment = notificationType === SUBSCRIPTION_PURCHASED && purchase.paymentState === 0;
+    const pendingPayment = notificationType === SUBSCRIPTION_PURCHASED && purchase.isPending;
     if (gaEvent && !pendingPayment) {
-      const micros = Number(purchase.priceAmountMicros ?? 0);
+      const micros = purchase.priceMicros ?? 0;
       const isRevenue = gaEvent === "purchase";
       await sendGa4Event(uid, gaEvent, {
         item_id: productId,
         plan_id: planId,
-        currency: purchase.priceCurrencyCode ?? undefined,
+        currency: purchase.currency ?? undefined,
         value: isRevenue && micros > 0 ? micros / 1_000_000 : undefined,
         transaction_id: isRevenue ? transactionIdFor(orderId) : undefined,
         purchase_type: notificationType === SUBSCRIPTION_RENEWED ? "renewal" : isRevenue ? "new" : undefined,

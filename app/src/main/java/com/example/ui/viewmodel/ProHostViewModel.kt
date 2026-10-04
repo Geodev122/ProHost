@@ -246,10 +246,12 @@ class ProHostViewModel(
             viewModelScope.launch {
                 try {
                     manager.billingMessages.collect { message ->
+                        // Cancel, pending payment, already owned and errors all mean no paid
+                        // purchase is being activated: never leave the "Activating" banner up.
+                        dismissBillingActivationPending()
                         if (message.isError) {
                             _billingSuccess.value = null
                             _billingError.value = message.text
-                            dismissBillingActivationPending()
                         } else {
                             _billingError.value = null
                             _billingSuccess.value = message.text
@@ -291,6 +293,8 @@ class ProHostViewModel(
                         val purchase = event.purchase
                         val productId = purchase.products.firstOrNull() ?: return@collect
                         if (!processedPurchaseTokens.add(purchase.purchaseToken)) return@collect
+                        // Play confirmed payment: only now is there something to activate.
+                        if (event.fromCheckout) showBillingActivationPending()
                         val result = try {
                             repository.verifyAndRestorePlayPurchase(purchase.purchaseToken, productId)
                         } catch (e: kotlinx.coroutines.CancellationException) {
@@ -301,10 +305,12 @@ class ProHostViewModel(
                         result.onSuccess {
                             runCatching { repository.recordActivePurchaseToken(productId, purchase.purchaseToken) }
                             if (event.fromCheckout) manager.logPurchase(purchase)
-                            _billingError.value = null
-                            _billingSuccess.value = "Your Pro Host plan is active."
-                            refreshCurrentUserRoleAfterEntitlement()
+                            onPlanActivated("Your Pro Host plan is active.")
                         }.onFailure { e ->
+                            dismissBillingActivationPending()
+                            // The server parks a paid purchase it couldn't confirm and retries it;
+                            // the profile listener below finishes the upgrade when that lands.
+                            awaitingServerActivation = true
                             // Let a later resume retry it; RTDN also processes it server-side.
                             processedPurchaseTokens.remove(purchase.purchaseToken)
                             android.util.Log.w("ProHostVM", "Server activation failed: ${e.message}")
@@ -349,14 +355,10 @@ class ProHostViewModel(
                 currentUser.collectLatest { user ->
                     if (user?.ownerPackageExpiryMillis != null &&
                         user.ownerPackageExpiryMillis != _billingPriorExpiryMillis.value &&
-                        _billingActivationPending.value
+                        (_billingActivationPending.value || awaitingServerActivation)
                     ) {
-                        billingActivationTimeoutJob?.cancel()
-                        _billingActivationPending.value = false
-                        // Force-refresh the ID token so the new PRO_HOST claim takes effect
-                        // immediately — without this the user sees SPECIALIST navigation for
-                        // up to an hour until the token naturally expires.
-                        refreshCurrentUserRoleAfterEntitlement()
+                        // The grant arrived by RTDN or the server retry job.
+                        onPlanActivated("Your Pro Host plan is active.")
                     }
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -442,6 +444,37 @@ class ProHostViewModel(
         _billingActivationPending.value = false
     }
 
+    // Shown only between Play's PURCHASED result and the server's answer — never while the
+    // Play sheet is open, so backing out of checkout can't leave it spinning.
+    private fun showBillingActivationPending() {
+        _billingActivationPending.value = true
+        billingActivationTimeoutJob?.cancel()
+        billingActivationTimeoutJob = viewModelScope.launch {
+            runCatching { kotlinx.coroutines.delay(2 * 60 * 1000L) }
+                .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
+            _billingActivationPending.value = false
+        }
+    }
+
+    // A checkout whose server activation failed (it is parked and retried server-side):
+    // the profile listener completes the role upgrade when the grant arrives.
+    private var awaitingServerActivation = false
+
+    private val _kycPromptAfterActivation = MutableStateFlow(false)
+    /** True once a plan activates for someone whose KYC is incomplete (e.g. a promo redemption). */
+    val kycPromptAfterActivation: StateFlow<Boolean> = _kycPromptAfterActivation.asStateFlow()
+    fun consumeKycPromptAfterActivation() { _kycPromptAfterActivation.value = false }
+
+    private suspend fun onPlanActivated(message: String) {
+        awaitingServerActivation = false
+        dismissBillingActivationPending()
+        _billingError.value = null
+        _billingSuccess.value = message
+        // Force-refresh the ID token so the new PRO_HOST claim takes effect immediately.
+        refreshCurrentUserRoleAfterEntitlement()
+        if (currentUser.value?.isKycComplete == false) _kycPromptAfterActivation.value = true
+    }
+
     fun resendEmailVerification(context: android.content.Context) {
         val appContext = context.applicationContext
         viewModelScope.launch {
@@ -497,21 +530,9 @@ class ProHostViewModel(
                 manager.activePurchases.value.firstOrNull { it.products.any { id -> id == currentPlanId } }?.purchaseToken
             } else null
 
-            val launched = manager.launchSubscriptionPurchase(activity, product, userId = uid, oldPurchaseToken = oldPurchaseToken)
-            if (!launched) return
             _billingPriorExpiryMillis.value = currentUser.value?.ownerPackageExpiryMillis
-            _billingActivationPending.value = true
-            billingActivationTimeoutJob?.cancel()
-            billingActivationTimeoutJob = viewModelScope.launch {
-                try {
-                    kotlinx.coroutines.delay(5 * 60 * 1000L)
-                    _billingActivationPending.value = false
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    android.util.Log.e("ProHostVM", "Operation failed", e)
-                }
-            }
+            // The "Activating" banner waits for Play's PURCHASED result (purchaseEvents).
+            manager.launchSubscriptionPurchase(activity, product, userId = uid, oldPurchaseToken = oldPurchaseToken)
         } else {
             // Store the intent and retry automatically once products load from Play
             _pendingRetryProductId = productId
@@ -621,12 +642,11 @@ class ProHostViewModel(
                 repository.verifyAndRestorePlayPurchase(activePurchase.purchaseToken, productId)
                     .onSuccess {
                         com.example.analytics.AnalyticsTracker.restorePurchases("restored")
-                        _billingError.value = null
-                        _billingSuccess.value = "Purchase restored — your Pro Host plan is active."
-                        refreshCurrentUserRoleAfterEntitlement()
+                        onPlanActivated("Purchase restored — your Pro Host plan is active.")
                     }
                     .onFailure {
                         processedPurchaseTokens.remove(activePurchase.purchaseToken)
+                        awaitingServerActivation = true
                         android.util.Log.w("ProHostViewModel", "verifyAndRestorePurchase failed: ${it.message}")
                         com.example.analytics.AnalyticsTracker.restorePurchases("failed")
                         // The silent on-open check stays quiet; the Restore button reports why.

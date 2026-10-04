@@ -141,6 +141,17 @@ requires v8.0.0+ for any app selling in-app products/subscriptions.
   renewals resolve through that link. The app root auto-restores on resume for members without a plan.
   Promo links: `pro-host.tech/redeem?code=` (public/redeem.html), in-app `prohost://redeem?code=`.
   Monetization checks + campaign playbook: `docs/MONETIZATION.md`.
+- Server Play lookups use `purchases.subscriptionsv2.get` (`billing/playSubscription.ts`, v1 only as a
+  fallback for unknown legacy tokens) and classify failures: 401/403 = `config` (functions service
+  account not invited in Play Console › Users and permissions, or the Android Publisher API disabled),
+  400/404/410 = `invalid`, else `transient`. Never map every Play failure to `unavailable` again — that
+  showed paid users "Can't reach the server" (Oct 2026). Activation lives in `billing/activatePurchase.ts`;
+  failed or unacknowledged paid purchases are parked in `play_billing_pending` and retried every 15 min by
+  `retryPendingPlayActivations` (before Play's 3-day refund). RTDN runs with `retry: true` and throws on
+  config/transient Play errors.
+- The "Activating your subscription" banner shows only after Play returns PURCHASED and clears on any
+  billing message (cancel, pending, error) or server answer. `toUserMessage` passes a function's own
+  UNAVAILABLE message through; only transport failures get the generic connection text.
 - RTDN/restore map a Play product id to its catalog plan via `planIdForPlayProduct`
   (`googlePlayProductId`), and RTDN never grants while `paymentState` is 0 (pending).
 - NIGHTHAWK's "Orphaned Module: billingHelpers / purchaseLinks" and "compileSdk below 34" MEDIUMs are

@@ -475,7 +475,9 @@ function checkBillingFlow() {
   const client = readSafe(billingFile) || '';
   const fnDir = path.join(ROOT, 'functions/src/billing');
   const rtdn = readSafe(path.join(fnDir, 'playBillingRtdn.ts')) || '';
-  const restore = readSafe(path.join(fnDir, 'verifyAndRestorePurchase.ts')) || '';
+  // The callable and the retry job share activatePurchase.ts (verify → grant → acknowledge).
+  const restore = (readSafe(path.join(fnDir, 'verifyAndRestorePurchase.ts')) || '') +
+    (readSafe(path.join(fnDir, 'activatePurchase.ts')) || '');
   const serverAcks = rtdn.includes('acknowledgeIfNeeded') && restore.includes('acknowledgeIfNeeded');
   const clientRoutes = client.includes('purchaseEvents') && client.includes('queryPurchasesAsync');
   const clientAcks = client.includes('acknowledgePurchase');
@@ -484,7 +486,7 @@ function checkBillingFlow() {
       'Purchases are neither acknowledged by the backend (RTDN + verifyAndRestorePurchase) nor by the app. Play auto-refunds them after 3 days.',
       'Route purchases to verifyAndRestorePurchase (which acknowledges after granting), or call acknowledgePurchase().');
   } else if (/await acknowledgeIfNeeded\([\s\S]{0,400}await grantSubscription\(/.test(restore)) {
-    bug('HIGH','reliability','Acknowledged Before Grant', 'functions/src/billing/verifyAndRestorePurchase.ts', null,
+    bug('HIGH','reliability','Acknowledged Before Grant', 'functions/src/billing/activatePurchase.ts', null,
       'The purchase is acknowledged before the entitlement is granted.',
       'Grant first, then acknowledge (Play: verify → grant → acknowledge).');
   } else {
