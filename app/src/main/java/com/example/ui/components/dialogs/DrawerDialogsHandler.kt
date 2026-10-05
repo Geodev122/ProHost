@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -43,6 +44,8 @@ fun DrawerDialogsHandler(
     dialogId: String?,
     viewModel: ProHostViewModel,
     onNavigateToTab: ((String) -> Unit)? = null,
+    // A notification's "Open": its tab plus the booking it is about (role-checked by the caller).
+    onOpenNotification: ((FCMAlert, String) -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     if (dialogId == null) return
@@ -302,9 +305,21 @@ fun DrawerDialogsHandler(
                                         )
                                     }
                                 } else {
+                                    if (fcmAlerts.any { !it.isRead }) {
+                                        TextButton(
+                                            onClick = { viewModel.markAllAlertsRead() },
+                                            modifier = Modifier.align(Alignment.End)
+                                        ) { Text("Mark all read", fontWeight = FontWeight.Bold) }
+                                    }
+                                    Text(
+                                        "Notifications are kept for 48 hours.",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.outline
+                                    )
                                     LazyColumn(
                                         verticalArrangement = Arrangement.spacedBy(8.dp),
-                                        modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp)
+                                        modifier = Modifier.fillMaxWidth()
+                                            .heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.6f).dp)
                                     ) {
                                         items(fcmAlerts, key = { it.id }) { alert ->
                                             Card(
@@ -332,7 +347,7 @@ fun DrawerDialogsHandler(
                                                         ) {
                                                             Icon(
                                                                 imageVector = when (alert.category) {
-                                                                    "BOOKING_ACCEPTANCE" -> Icons.Default.CheckCircle
+                                                                    "ADMIN_SUBSCRIPTION" -> Icons.Default.AdminPanelSettings
                                                                     "BOOKING_REQUEST" -> Icons.Default.Inbox
                                                                     "BOOKING_UPDATE" -> Icons.AutoMirrored.Filled.EventNote
                                                                     "PACKAGE_ACTIVATED", "PACKAGE_RENEWED" -> Icons.Default.Verified
@@ -343,7 +358,6 @@ fun DrawerDialogsHandler(
                                                                 },
                                                                 contentDescription = null,
                                                                 tint = when (alert.category) {
-                                                                    "BOOKING_ACCEPTANCE" -> MaterialTheme.proColors.success
                                                                     "PACKAGE_ACTIVATED", "PACKAGE_RENEWED" -> MaterialTheme.colorScheme.primary
                                                                     "PACKAGE_EXPIRED" -> MaterialTheme.colorScheme.error
                                                                     "PAYMENT_REMINDER" -> MaterialTheme.colorScheme.tertiary
@@ -402,13 +416,13 @@ fun DrawerDialogsHandler(
                                                         verticalAlignment = Alignment.CenterVertically
                                                     ) {
                                                         Text(
-                                                            text = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(alert.timestamp)),
+                                                            text = relativeTime(alert.timestamp),
                                                             style = MaterialTheme.typography.labelSmall,
                                                             color = MaterialTheme.colorScheme.outline
                                                         )
 
                                                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                            if (onNavigateToTab != null) {
+                                                            if (onNavigateToTab != null || onOpenNotification != null) {
                                                                 FilledTonalButton(
                                                                     onClick = {
                                                                         viewModel.markAlertAsRead(alert.id)
@@ -416,10 +430,7 @@ fun DrawerDialogsHandler(
                                                                         // category-to-tab mapping for legacy notifications.
                                                                         val resolvedTab = alert.targetTab?.takeIf { it.isNotBlank() }
                                                                             ?: when (alert.category) {
-                                                                                "BOOKING_ACCEPTANCE" ->
-                                                                                    if (currentUser?.role == UserRole.SPECIALIST)
-                                                                                        "pro_rentals"
-                                                                                    else "owner_progress"
+                                                                                "ADMIN_SUBSCRIPTION" -> "admin_console"
                                                                                 "BOOKING_REQUEST" -> "owner_requests"
                                                                                 "PAYMENT_REMINDER", "PACKAGE_EXPIRED",
                                                                                 "PACKAGE_ACTIVATED", "PACKAGE_RENEWED" -> "owner_subscriptions"
@@ -429,7 +440,8 @@ fun DrawerDialogsHandler(
                                                                                         "pro_rentals"
                                                                                     else "owner_progress"
                                                                             }
-                                                                        onNavigateToTab(resolvedTab)
+                                                                        if (onOpenNotification != null) onOpenNotification(alert, resolvedTab)
+                                                                        else onNavigateToTab?.invoke(resolvedTab)
                                                                     },
                                                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                                                                     modifier = Modifier.height(28.dp)
@@ -440,7 +452,7 @@ fun DrawerDialogsHandler(
                                                                         modifier = Modifier.size(12.dp)
                                                                     )
                                                                     Spacer(modifier = Modifier.width(Spacing.xs))
-                                                                    Text("Open Screen", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                                                    Text("Open", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                                                 }
                                                             }
                                                             // A "WhatsApp" quick-reply button used to live here, but FCMAlert
@@ -466,4 +478,24 @@ fun DrawerDialogsHandler(
         }
     }
 
+}
+
+/** "Just now", "5 min ago", "3 h ago", "Yesterday 14:20", or a date for anything older. */
+private fun relativeTime(timestamp: Long, now: Long = System.currentTimeMillis()): String {
+    val minutes = (now - timestamp).coerceAtLeast(0) / 60_000
+    val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(timestamp))
+    val today = java.util.Calendar.getInstance().apply { timeInMillis = now }
+    val then = java.util.Calendar.getInstance().apply { timeInMillis = timestamp }
+    val sameDay = today.get(java.util.Calendar.YEAR) == then.get(java.util.Calendar.YEAR) &&
+        today.get(java.util.Calendar.DAY_OF_YEAR) == then.get(java.util.Calendar.DAY_OF_YEAR)
+    today.add(java.util.Calendar.DAY_OF_YEAR, -1)
+    val yesterday = today.get(java.util.Calendar.YEAR) == then.get(java.util.Calendar.YEAR) &&
+        today.get(java.util.Calendar.DAY_OF_YEAR) == then.get(java.util.Calendar.DAY_OF_YEAR)
+    return when {
+        minutes < 1 -> "Just now"
+        minutes < 60 -> "$minutes min ago"
+        sameDay -> "${minutes / 60} h ago"
+        yesterday -> "Yesterday $time"
+        else -> SimpleDateFormat("d MMM HH:mm", Locale.getDefault()).format(Date(timestamp))
+    }
 }

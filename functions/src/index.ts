@@ -34,6 +34,7 @@ export {
 export { recordClientAuditLog } from "./audit/recordClientAuditLog";
 
 export { onBookingRequestCreated, onBookingRequestStatusChanged, onBookingPaymentAcknowledged } from "./notifications/bookingNotifications";
+export { pruneExpiredNotifications } from "./notifications/pruneNotifications";
 export { sendPaymentReminder } from "./notifications/sendPaymentReminder";
 
 export { onWorkspaceListingCreated, onWorkspaceListingDeleted, onWorkspaceListingStatusChanged } from "./listings/listingCountTracker";

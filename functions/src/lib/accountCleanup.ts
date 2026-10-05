@@ -101,7 +101,8 @@ export async function cleanUpAccountData(uid: string, email: string): Promise<{ 
   if (typeof profile.displayCode === "string" && profile.displayCode) {
     await bestEffort("display code", () => db.collection(DISPLAY_CODES_COLLECTION).doc(profile.displayCode).delete());
   }
-  await db.collection("user_profiles").doc(uid).delete();
+  // recursiveDelete: the profile and its subcollections (the in-app notifications).
+  await db.recursiveDelete(db.collection("user_profiles").doc(uid));
   return { listings: ownedListings.size };
 }
 

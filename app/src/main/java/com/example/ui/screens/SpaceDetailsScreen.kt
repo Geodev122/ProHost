@@ -172,7 +172,7 @@ fun SpaceDetailsScreenContent(
     val showAvailabilityPanel = availabilityPanelState == "full"
     // Opens straight to full height: a half-expanded first stop made the long, scrollable
     // content drag the sheet instead of scrolling it.
-    val availabilitySheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val availabilitySheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     // Hosts and admins can look at availability but only specialists can request slots.
     val isSpecialistViewer = currentUserRole != UserRole.PRO_HOST && currentUserRole != UserRole.ADMIN
     // Multi-select: SHIFT_BASED, DAY_BASED, MONTHLY slots

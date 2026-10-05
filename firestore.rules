@@ -295,6 +295,16 @@ service cloud.firestore {
           request.resource.data.email == request.auth.token.get('email', ''));
 
       allow delete: if isAdmin();
+
+      // In-app notification centre: written only by Cloud Functions (sendPushToUser), kept
+      // 48 h. The owner reads their own and can only flip read / readAt.
+      match /notifications/{notificationId} {
+        allow read: if isOwner(userId);
+        allow update: if isOwner(userId) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']) &&
+          request.resource.data.read is bool;
+        allow create, delete: if false;
+      }
     }
 
     // ---------------------------------------------------------------

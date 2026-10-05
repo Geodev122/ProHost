@@ -92,6 +92,15 @@ object AttendeePricing {
         )
     }
 
+    /**
+     * Shift-Based per-attendee rooms decide offered shifts by the day distribution (there is
+     * no shift price field), so every shift carries the marker. Applied whenever a per-attendee
+     * room is built, so rooms saved before this fix (shifts at 0.0) become valid too.
+     */
+    fun markShifts(config: RentalPricingConfig): RentalPricingConfig = config.copy(
+        shiftBased = config.shiftBased?.let { s -> s.copy(shifts = s.shifts.map { it.copy(price = AVAILABILITY_MARKER_PRICE) }) }
+    )
+
     /** Clears markers when a room goes back to strategy pricing, so the host must enter real prices. */
     fun clearAvailabilityMarkers(config: RentalPricingConfig): RentalPricingConfig = config.copy(
         hourly = config.hourly?.let { h -> h.copy(cellPrices = h.cellPrices.mapValues { 0.0 }) },

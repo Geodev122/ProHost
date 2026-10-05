@@ -213,7 +213,7 @@ fun SpecialistProfileScreen(
                     }
 
                     val latestRelevantAlert = fcmAlertsForWelcome
-                        .filter { !it.isRead && (it.category == "BOOKING_ACCEPTANCE" || it.category == "PAYMENT_REMINDER") }
+                        .filter { !it.isRead && (it.category == "BOOKING_UPDATE" || it.category == "PAYMENT_REMINDER") }
                         .maxByOrNull { it.timestamp }
 
                     val nearestUpcomingBooking = bookingsForWelcome

@@ -161,7 +161,9 @@ fun SubdivisionEditorSection(
         imageUrls = subImageUrls,
         amenities = subAmenitiesSelected.toList(),
         hashtags = subHashtags,
-        pricing = subPricing,
+        pricing = if (subPricingMode == SubdivisionPricingMode.PER_ATTENDEE) {
+            com.example.ui.util.AttendeePricing.markShifts(subPricing)
+        } else subPricing,
         pricingMode = subPricingMode,
         capacity = subCapacity,
         minAttendees = subMinAttendees,
@@ -230,10 +232,21 @@ fun SubdivisionEditorSection(
         }
     }
     val isPerAttendee = subPricingMode == SubdivisionPricingMode.PER_ATTENDEE
+    // The one reason Save is disabled for a per-attendee room, shown under the tiers — never
+    // a silently greyed-out button.
+    val attendeeBlocker: String? = if (!isPerAttendee) null else {
+        val built = buildCurrentSubdivision()
+        when {
+            subAttendeeTiers.isEmpty() -> "Add at least one pricing tier."
+            com.example.ui.util.AttendeePricing.tiersFor(built).isEmpty() -> "Give at least one tier a price per person above $0."
+            subAttendeeTiers.any { t -> t.maxAttendees.let { it != null && it < t.minAttendees } } -> "A tier's “To” is below its “From”."
+            !built.pricing.hasRealPrice() -> "Pick at least one hour, shift or day this room is offered (Offered Times above)."
+            (subCapacity ?: Int.MAX_VALUE) < (subMinAttendees ?: 1) -> "Max attendees is below min attendees."
+            else -> null
+        }
+    }
     val isSubFormValid = subName.isNotBlank() && if (isPerAttendee) {
-        com.example.ui.util.AttendeePricing.isConfigured(buildCurrentSubdivision()) &&
-            subAttendeeTiers.all { t -> t.maxAttendees.let { it == null || it >= t.minAttendees } } &&
-            (subCapacity ?: Int.MAX_VALUE) >= (subMinAttendees ?: 1)
+        attendeeBlocker == null
     } else {
         subPricing.hasRealPrice()
     }
@@ -730,17 +743,17 @@ fun SubdivisionEditorSection(
                         templates = attendeeTemplates,
                         onTiersChange = { subAttendeeTiers = it }
                     )
-                    if (subAttendeeTiers.isEmpty()) {
+                    if (attendeeBlocker != null) {
                         Text(
-                            "Add at least one pricing tier to continue.",
+                            attendeeBlocker,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error
                         )
-                    } else if (!subPricing.hasRealPrice()) {
+                    } else {
                         Text(
-                            "Offer at least one hour, shift or day above.",
+                            "Tiers are saved with the room — tap Save below.",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error
+                            color = MaterialTheme.proColors.success
                         )
                     }
                 }
@@ -1153,7 +1166,11 @@ private fun AttendeeTierEditor(
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        tiers.forEachIndexed { index, tier ->
+        tiers.forEachIndexed { index, tier -> key(tier.id) {
+            var fromText by remember { mutableStateOf(tier.minAttendees.toString()) }
+            var priceText by remember {
+                mutableStateOf(if (tier.pricePerAttendeeUsd == 0.0) "" else com.example.ui.util.AttendeePricing.formatUsd(tier.pricePerAttendeeUsd))
+            }
             Surface(
                 shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
@@ -1175,8 +1192,13 @@ private fun AttendeeTierEditor(
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
                         OutlinedTextField(
-                            value = tier.minAttendees.toString(),
-                            onValueChange = { v -> update(index) { it.copy(minAttendees = v.filter(Char::isDigit).toIntOrNull()?.coerceAtLeast(1) ?: 1) } },
+                            value = fromText,
+                            onValueChange = { v ->
+                                // Empty is allowed while typing; the model keeps the last valid value.
+                                fromText = v.filter(Char::isDigit).take(5)
+                                fromText.toIntOrNull()?.takeIf { it >= 1 }?.let { n -> update(index) { it.copy(minAttendees = n) } }
+                            },
+                            isError = fromText.toIntOrNull()?.let { it < 1 } ?: true,
                             label = { Text("From") },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -1194,8 +1216,15 @@ private fun AttendeeTierEditor(
                             shape = MaterialTheme.shapes.medium
                         )
                         OutlinedTextField(
-                            value = if (tier.pricePerAttendeeUsd == 0.0) "" else tier.pricePerAttendeeUsd.toString().removeSuffix(".0"),
-                            onValueChange = { v -> update(index) { it.copy(pricePerAttendeeUsd = v.toDoubleOrNull() ?: 0.0) } },
+                            value = priceText,
+                            onValueChange = { v ->
+                                // Decimals allowed ("7.5"); at most one dot and two decimals.
+                                val cleaned = v.filter { it.isDigit() || it == '.' }
+                                if (cleaned.count { it == '.' } <= 1 && cleaned.substringAfter('.', "").length <= 2) {
+                                    priceText = cleaned
+                                    update(index) { it.copy(pricePerAttendeeUsd = cleaned.toDoubleOrNull() ?: 0.0) }
+                                }
+                            },
                             label = { Text("$ / person") },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -1207,9 +1236,16 @@ private fun AttendeeTierEditor(
                     if (max != null && max < tier.minAttendees) {
                         Text("“To” must be at least “From”.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                     }
+                    if (!tier.isEnabled) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("This tier is turned off.", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error, modifier = Modifier.weight(1f))
+                            TextButton(onClick = { update(index) { it.copy(isEnabled = true) } }) { Text("Turn on") }
+                        }
+                    }
                 }
             }
-        }
+        } }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             OutlinedButton(
                 onClick = {

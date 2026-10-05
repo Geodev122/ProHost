@@ -59,11 +59,16 @@ class ProHostMessagingService : FirebaseMessagingService() {
 
         // Store inside the active singleton repository to immediately push updates to standard Compose UI flow
         val repository = ProHostRepository.getInstance()
+        // Same id as the stored notification (push.ts), so the Firestore snapshot of the
+        // notification centre replaces this instant copy instead of duplicating it.
         val alert = FCMAlert(
+            id = remoteMessage.data["notificationId"] ?: java.util.UUID.randomUUID().toString(),
             title = title,
             body = body,
             category = categoryType,
-            targetTab = targetTab
+            targetTab = targetTab,
+            bookingId = bookingId,
+            spaceId = spaceId
         )
         repository.addFCMAlert(alert)
 

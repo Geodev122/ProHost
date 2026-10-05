@@ -35,6 +35,19 @@ fun RentalPricingConfigEditor(
     // offered, and offered slots carry the availability marker price.
     availabilityOnly: Boolean = false
 ) {
+    // Per-attendee: which shifts are offered is decided by the day distribution, and the
+    // shift editor has no price field — so every shift carries the availability marker.
+    // (Shifts used to stay at 0.0 when Shift-Based was picked after switching to per-attendee,
+    // so the room could never pass hasRealPrice() and its Save button stayed disabled.)
+    val emitConfig: (RentalPricingConfig) -> Unit = { c ->
+        onConfigChange(
+            if (!availabilityOnly) c else c.copy(
+                shiftBased = c.shiftBased?.let { sb ->
+                    sb.copy(shifts = sb.shifts.map { it.copy(price = com.example.ui.util.AttendeePricing.AVAILABILITY_MARKER_PRICE) })
+                }
+            )
+        )
+    }
     val strategyChoices = if (availabilityOnly) {
         RentalStrategyType.values().filter { it != RentalStrategyType.MONTHLY }
     } else {
@@ -52,7 +65,7 @@ fun RentalPricingConfigEditor(
                     selected = config.strategyType == type,
                     onClick = {
                         if (config.strategyType != type) {
-                            onConfigChange(
+                            emitConfig(
                                 RentalPricingConfig(
                                     strategyType = type,
                                     monthly = if (type == RentalStrategyType.MONTHLY) config.monthly ?: MonthlyConfig() else null,
@@ -71,20 +84,20 @@ fun RentalPricingConfigEditor(
         when (config.strategyType) {
             RentalStrategyType.MONTHLY -> MonthlyStrategyEditor(
                 config = config.monthly ?: MonthlyConfig(),
-                onConfigChange = { onConfigChange(config.copy(monthly = it)) }
+                onConfigChange = { emitConfig(config.copy(monthly = it)) }
             )
             RentalStrategyType.HOURLY -> HourlyStrategyEditor(
                 config = config.hourly ?: HourlyConfig(),
                 operatingDays = operatingDays,
                 openingHour = openingHour,
                 closingHour = closingHour,
-                onConfigChange = { onConfigChange(config.copy(hourly = it)) },
+                onConfigChange = { emitConfig(config.copy(hourly = it)) },
                 availabilityOnly = availabilityOnly
             )
             RentalStrategyType.SHIFT_BASED -> ShiftStrategyEditor(
                 config = config.shiftBased ?: ShiftBasedConfig(),
                 operatingDays = operatingDays,
-                onConfigChange = { onConfigChange(config.copy(shiftBased = it)) },
+                onConfigChange = { emitConfig(config.copy(shiftBased = it)) },
                 availabilityOnly = availabilityOnly
             )
             RentalStrategyType.DAY_BASED -> DayBasedStrategyEditor(
@@ -92,7 +105,7 @@ fun RentalPricingConfigEditor(
                 operatingDays = operatingDays,
                 openingHour = openingHour,
                 closingHour = closingHour,
-                onConfigChange = { onConfigChange(config.copy(dayBased = it)) },
+                onConfigChange = { emitConfig(config.copy(dayBased = it)) },
                 availabilityOnly = availabilityOnly
             )
         }

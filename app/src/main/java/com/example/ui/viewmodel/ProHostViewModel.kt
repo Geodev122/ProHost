@@ -140,6 +140,8 @@ class ProHostViewModel(
     val isOfflineMode: StateFlow<Boolean> = repository.isOfflineMode
     val syncStatusMessage: StateFlow<String?> = repository.syncStatusMessage
 
+    fun markAllAlertsRead() = repository.markAllAlertsRead()
+
     fun markAlertAsRead(alertId: String) {
         repository.markAlertAsRead(alertId)
     }

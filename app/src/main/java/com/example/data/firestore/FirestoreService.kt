@@ -37,6 +37,9 @@ class FirestoreService(
         /** Explore loads active listings a page at a time (see setPublicListingsLimit). */
         const val PUBLIC_LISTINGS_PAGE = 100
 
+        /** user_profiles/{uid}/notifications — the in-app notification centre. */
+        const val NOTIFICATIONS = "notifications"
+
         /** Hermetic instance for unit tests: never touches Firebase; writes succeed locally. */
         fun localOnly(): FirestoreService = FirestoreService(firestore = null, localOnly = true)
 
@@ -102,7 +105,9 @@ class FirestoreService(
         onPublicListingsPage: (hasMore: Boolean) -> Unit = {},
         // Admin only: listings waiting for verification review (a small live queue; the
         // console finds everything else through server search — see adminDirectory.ts).
-        onReviewQueueUpdated: (List<SpaceListing>) -> Unit = {}
+        onReviewQueueUpdated: (List<SpaceListing>) -> Unit = {},
+        // The signed-in user's in-app notification centre (last 48 h, newest first).
+        onNotificationsUpdated: (List<FCMAlert>) -> Unit = {}
     ) {
         val db = firestore ?: return
 
@@ -182,6 +187,27 @@ class FirestoreService(
                         onUsersUpdated(if (data != null) listOf(AppUser.fromFirestoreMap(snapshot.id, data)) else emptyList())
                     }
                 activeListeners.add(ownProfileListener)
+
+                // In-app notifications (functions/src/lib/push.ts keeps every push 48 h).
+                val notificationsListener = db.collection(FirestoreSchema.Collections.USER_PROFILES)
+                    .document(currentUid)
+                    .collection(NOTIFICATIONS)
+                    .whereGreaterThan("expireAt", System.currentTimeMillis())
+                    .orderBy("expireAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .limit(100)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.w(TAG, "Notifications sync note: ${error.message}")
+                            return@addSnapshotListener
+                        }
+                        if (snapshot != null) {
+                            onNotificationsUpdated(
+                                snapshot.documents.mapNotNull { doc -> doc.data?.let { FCMAlert.fromFirestoreMap(doc.id, it) } }
+                                    .sortedByDescending { it.timestamp }
+                            )
+                        }
+                    }
+                activeListeners.add(notificationsListener)
             }
 
 
@@ -409,6 +435,30 @@ class FirestoreService(
             true
         } catch (e: Exception) {
             Log.e(TAG, "Error recording hashtag usage: ${e.message}", e)
+            false
+        }
+    }
+
+    /** Marks in-app notifications read (the only fields the rules let the owner change). */
+    suspend fun markNotificationsRead(uid: String, ids: List<String>): Boolean {
+        val db = firestore ?: return localOnly
+        if (ids.isEmpty()) return true
+        return try {
+            val now = System.currentTimeMillis()
+            ids.chunked(400).forEach { chunk ->
+                val batch = db.batch()
+                chunk.forEach { id ->
+                    batch.update(
+                        db.collection(FirestoreSchema.Collections.USER_PROFILES).document(uid).collection(NOTIFICATIONS).document(id),
+                        mapOf("read" to true, "readAt" to now)
+                    )
+                }
+                batch.commit().await()
+            }
+            true
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Log.w(TAG, "markNotificationsRead failed: ${e.message}")
             false
         }
     }

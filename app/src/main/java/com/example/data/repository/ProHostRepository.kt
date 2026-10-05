@@ -75,14 +75,33 @@ class ProHostRepository(
     internal val _fcmAlerts = MutableStateFlow<List<FCMAlert>>(emptyList())
     val fcmAlerts: StateFlow<List<FCMAlert>> = _fcmAlerts.asStateFlow()
 
+    // Ids of alerts that exist in Firestore (only those can be marked read server-side).
+    private var storedAlertIds: Set<String> = emptySet()
+
+    /** A push that just arrived, shown at once; the Firestore snapshot replaces it (same id). */
     fun addFCMAlert(alert: FCMAlert) {
+        if (_fcmAlerts.value.any { it.id == alert.id }) return
         _fcmAlerts.value = listOf(alert) + _fcmAlerts.value
     }
 
-    fun markAlertAsRead(alertId: String) {
-        _fcmAlerts.value = _fcmAlerts.value.map {
-            if (it.id == alertId) it.copy(isRead = true) else it
-        }
+    internal fun onNotificationsSynced(stored: List<FCMAlert>) {
+        storedAlertIds = stored.map { it.id }.toSet()
+        val now = System.currentTimeMillis()
+        // Keep a just-received push the snapshot hasn't caught up with yet (a few seconds).
+        val pending = _fcmAlerts.value.filter { it.id !in storedAlertIds && now - it.timestamp < 60_000 }
+        _fcmAlerts.value = (pending + stored).filter { it.expireAt > now }.sortedByDescending { it.timestamp }
+    }
+
+    fun markAlertAsRead(alertId: String) = markAlertsRead(listOf(alertId))
+
+    fun markAllAlertsRead() = markAlertsRead(_fcmAlerts.value.filter { !it.isRead }.map { it.id })
+
+    private fun markAlertsRead(ids: List<String>) {
+        if (ids.isEmpty()) return
+        _fcmAlerts.value = _fcmAlerts.value.map { if (it.id in ids) it.copy(isRead = true) else it }
+        val uid = _currentUser.value?.id ?: return
+        val stored = ids.filter { it in storedAlertIds }
+        if (stored.isNotEmpty()) coroutineScope.launch { firestoreService.markNotificationsRead(uid, stored) }
     }
 
     internal val _pricingState = MutableStateFlow(AdminPricingState())
@@ -229,6 +248,7 @@ class ProHostRepository(
                 onAuditLogsUpdated = { updatedLogs ->
                     _auditLogs.value = updatedLogs
                 },
+                onNotificationsUpdated = { onNotificationsSynced(it) },
                 onWorkspacesError = { error ->
                     if (_spaces.value.isEmpty()) {
                         _spacesLoadError.value = error.toUserMessage("We couldn't load workspaces. Please try again.")

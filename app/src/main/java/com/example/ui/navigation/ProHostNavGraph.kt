@@ -834,6 +834,13 @@ fun ProHostAppRoot(
                 navigateTo(targetTab)
                 activeDrawerTabDialog = null
             },
+            // Same handling as tapping the push itself: role-checked tab (navigateTo ignores a
+            // tab this role can't open), and a booking push highlights that booking in My Rentals.
+            onOpenNotification = { alert, targetTab ->
+                navigateTo(targetTab)
+                if (targetTab == "pro_rentals" && alert.bookingId != null) rentalsHighlightBookingId = alert.bookingId
+                activeDrawerTabDialog = null
+            },
             onDismiss = { activeDrawerTabDialog = null }
         )
 

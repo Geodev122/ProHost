@@ -1548,18 +1548,45 @@ data class AdminPricingState(
     }
 }
 
+/**
+ * One entry of the in-app notification centre: user_profiles/{uid}/notifications/{id},
+ * written by functions/src/lib/push.ts for every push and kept 48 h (expireAt).
+ */
 data class FCMAlert(
     val id: String = java.util.UUID.randomUUID().toString(),
     val title: String,
     val body: String,
     val timestamp: Long = System.currentTimeMillis(),
     val isRead: Boolean = false,
-    // Server-sent categories: BOOKING_REQUEST, BOOKING_ACCEPTANCE, PAYMENT_REMINDER,
+    // Server-sent categories: BOOKING_REQUEST, BOOKING_UPDATE, PAYMENT_REMINDER,
     // PACKAGE_EXPIRED, PACKAGE_ACTIVATED, PACKAGE_RENEWED,
-    // LISTING_VERIFICATION, LISTING_VERIFICATION_REQUEST
+    // LISTING_VERIFICATION, LISTING_VERIFICATION_REQUEST, ADMIN_SUBSCRIPTION
     val category: String,
-    val targetTab: String? = null // mirrors the FCM data "targetTab" key
-)
+    val targetTab: String? = null, // mirrors the FCM data "targetTab" key
+    val bookingId: String? = null,
+    val spaceId: String? = null,
+    val expireAt: Long = timestamp + TTL_MS
+) {
+    companion object {
+        const val TTL_MS = 48L * 60 * 60 * 1000
+
+        fun fromFirestoreMap(id: String, data: Map<String, Any?>): FCMAlert {
+            val created = (data["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis()
+            return FCMAlert(
+                id = id,
+                title = data["title"] as? String ?: "ProHost",
+                body = data["body"] as? String ?: "",
+                timestamp = created,
+                isRead = data["read"] as? Boolean ?: false,
+                category = data["category"] as? String ?: "GENERAL",
+                targetTab = (data["targetTab"] as? String)?.takeIf { it.isNotBlank() },
+                bookingId = (data["bookingId"] as? String)?.takeIf { it.isNotBlank() },
+                spaceId = (data["spaceId"] as? String)?.takeIf { it.isNotBlank() },
+                expireAt = (data["expireAt"] as? Number)?.toLong() ?: (created + TTL_MS)
+            )
+        }
+    }
+}
 
 /**
  * Dynamic Space Architecture Schema Configuration Model

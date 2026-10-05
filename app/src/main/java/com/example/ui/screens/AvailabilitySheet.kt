@@ -24,7 +24,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
@@ -131,12 +130,11 @@ internal fun AvailabilitySheet(
             selectedSlots = emptySet()
             selectedHoursPerDay = emptyMap()
         },
-        modifier = Modifier.shadow(16.dp, SheetShape),
         sheetState = availabilitySheetState,
         // Blue wash (matches the "Press to see option availability" trigger bar)
         // so the trigger and the sheet it opens read as one consistent design.
         accentTint = true,
-        // Pinned and draggable: resize the sheet from its title; the rest scrolls.
+        // Pinned title; the rest scrolls. The standard sheet handle moves it half ↔ full.
         header = {
             ProSectionHeader(
                 title = "Check Availability",

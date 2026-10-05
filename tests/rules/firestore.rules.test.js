@@ -179,3 +179,20 @@ describe("workspace_listings", () => {
     await assertFails(setDoc(doc(specCtx(), "mail", "m1"), { to: "a@b.c" }));
   });
 });
+
+describe("in-app notifications", () => {
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore(), "user_profiles", SPEC, "notifications", "n1"),
+        { title: "Accepted", body: "See you", read: false, createdAt: 1, expireAt: 2 }));
+  });
+  test("the owner reads and marks read", async () => {
+    await assertSucceeds(getDoc(doc(specCtx(), "user_profiles", SPEC, "notifications", "n1")));
+    await assertSucceeds(updateDoc(doc(specCtx(), "user_profiles", SPEC, "notifications", "n1"), { read: true, readAt: 3 }));
+  });
+  test("nobody rewrites, creates or reads someone else's", async () => {
+    await assertFails(updateDoc(doc(specCtx(), "user_profiles", SPEC, "notifications", "n1"), { title: "Fake" }));
+    await assertFails(setDoc(doc(specCtx(), "user_profiles", SPEC, "notifications", "n2"), { title: "Fake", read: false }));
+    await assertFails(getDoc(doc(hostCtx(), "user_profiles", SPEC, "notifications", "n1")));
+  });
+});

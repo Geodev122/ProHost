@@ -167,8 +167,9 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   only by the "Search this area" pill after a gesture pan/zoom.
 - The listing page's bottom bar is `DetailsBookingBar` (`RoomCards.kt`): room chip + live availability, price,
   Availability + WhatsApp "Message" actions (Preview mode for hosts/admins).
-- The availability sheet is `ResizableBottomSheet` (`ui/components`): resize by dragging the handle or
-  header between stops; the body scrolls and its leftover scroll never drags the sheet.
+- The availability sheet is `ResizableBottomSheet` (`ui/components`): a standard Material `ModalBottomSheet` (via
+  `ProHostBottomSheet`, half + full stops, pinned header, scrolling body) like every other sheet. Never resize a sheet's
+  content height while it is open — that fought Material's positioning and slid the sheet's bottom away.
 - Retired fields: `SpaceListing.rentalFormulas` and `subscriptionExpiryMillis` (listing and profile) are gone
   from the models. Pricing lives only in `pricing` / `Subdivision.pricing`; a not-yet-migrated document is still
   read through `RentalPricingConfig.fromLegacyFormula` (app) / `pricingFromLegacyFormula` (functions,
@@ -199,6 +200,16 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   reaches users as a generic internal error). Throwing inside a Firestore transaction rolls its
   writes back — return an outcome and throw after commit. Server-only collections
   (`email_otps`, `email_send_limits`) need explicit deny rules.
+- In-app notification centre: `sendPushToUser` (`functions/src/lib/push.ts`) stores every push in
+  `user_profiles/{uid}/notifications/{id}` (48 h `expireAt`, `read`) before sending FCM (with `notificationId`), even
+  without a device token; `pruneExpiredNotifications` deletes expired ones hourly (collection-group index on
+  `expireAt`). The app lists them from a live listener (`FirestoreService` → `ProHostRepository.onNotificationsSynced`),
+  marks read in Firestore (owner may change only `read`/`readAt`), and "Open" routes like a push tap.
+- Manage page occupancy (`ManageListingScreen.kt`) is date-aware: weekly strategies show the next 7 dates via
+  `isCalendarDateLocked` limited to bookings whose term covers the date; monthly uses the booking's months. Cells are
+  filled soft green (free) / soft red (booked) with no status words.
+- Per-attendee Shift rooms: shifts carry `AVAILABILITY_MARKER_PRICE` (`RentalPricingConfigEditor` in availability mode
+  and `AttendeePricing.markShifts` when the room is built) — otherwise `hasRealPrice()` fails and Save never enables.
 - Payment reminders go to the user's own calendar via `PaymentCalendar` (insert intent, monthly
   RRULE) — no calendar permission, no Google Calendar API.
 
