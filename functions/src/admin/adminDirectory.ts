@@ -52,9 +52,14 @@ function plain(value: unknown): unknown {
   return value;
 }
 
+/** Server-only secrets that never leave the server, not even to admins (push and purchase tokens). */
+const NEVER_SENT = ["fcmToken", "fcmTokens", "lastPurchaseToken", "activePurchaseToken", "purchaseToken"];
+
 function docOut(snap: DocumentSnapshot): Data | null {
   if (!snap.exists) return null;
-  return { id: snap.id, ...(plain(snap.data()) as Data) };
+  const out = { id: snap.id, ...(plain(snap.data()) as Data) };
+  for (const key of NEVER_SENT) delete (out as Record<string, unknown>)[key];
+  return out;
 }
 
 async function countOf(query: Query): Promise<number> {

@@ -1,3 +1,4 @@
+import { logger } from "firebase-functions/v2";
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { getFirestore } from "firebase-admin/firestore";
 import { sendPushToUser } from "../lib/push";
@@ -62,13 +63,27 @@ export const onBookingRequestCreated = onDocumentCreated(
     const booking = event.data?.data();
     if (!booking) return;
 
-    const problem = await attendeeBookingProblem(booking).catch(() => null);
+    // Fail closed: a per-attendee booking whose price can't be checked never reaches the
+    // host (one retry for a transient read error first).
+    let problem: string | null;
+    try {
+      problem = await attendeeBookingProblem(booking)
+        .catch(() => attendeeBookingProblem(booking));
+    } catch (e) {
+      logger.error("onBookingRequestCreated: couldn't verify the attendee price", e);
+      problem = "We couldn't confirm the price for this request. Please send it again.";
+    }
     if (problem) {
       // Never reaches the host; the status change notifies the specialist with the reason.
-      await event.data?.ref.set(
-        { status: "REJECTED", rejectionReason: problem, rejectedBySystem: true, reviewedAt: Date.now() },
-        { merge: true }
-      );
+      // Only while still PENDING, and never recreating a booking deleted meanwhile.
+      const ref = event.data?.ref;
+      const rejected = ref ? await getFirestore().runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists || snap.data()?.status !== "PENDING") return false;
+        tx.update(ref, { status: "REJECTED", rejectionReason: problem, rejectedBySystem: true, reviewedAt: Date.now() });
+        return true;
+      }) : false;
+      if (!rejected) return;
       if (typeof booking.practitionerId === "string") {
         await sendGa4Event(booking.practitionerId, "booking_auto_rejected", { reason: "attendee_price_mismatch" });
       }

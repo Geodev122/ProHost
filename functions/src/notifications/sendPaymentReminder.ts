@@ -22,7 +22,7 @@ export const sendPaymentReminder = onCall<SendPaymentReminderData>(async (reques
   }
 
   const { bookingId } = request.data ?? {};
-  if (!bookingId) {
+  if (typeof bookingId !== "string" || bookingId.length === 0 || bookingId.length > 200) {
     throw new HttpsError("invalid-argument", "bookingId is required.");
   }
 

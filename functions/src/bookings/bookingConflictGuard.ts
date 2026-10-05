@@ -182,5 +182,18 @@ export const onBookingAcceptConflictGuard = onDocumentWritten(
         }
       );
     }
+    // onBookingRequestStatusChanged already told the specialist "Accepted" — correct it.
+    if (data.practitionerId) {
+      await sendPushToUser(
+        data.practitionerId,
+        "Booking back to pending",
+        `Sorry — "${data.spaceTitle ?? "your booking"}" overlapped another confirmed booking, so it isn't confirmed after all. The host will review it again.`,
+        {
+          category: "BOOKING_UPDATE",
+          targetTab: "pro_rentals",
+          bookingId: event.params.bookingId,
+        }
+      );
+    }
   }
 );

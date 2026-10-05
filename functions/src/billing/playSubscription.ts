@@ -79,6 +79,8 @@ export interface PlaySubscription {
   orderId: string | null;
   priceMicros: number | null;
   currency: string | null;
+  /** When the purchase was made — Play's 3-day acknowledgement window counts from here. */
+  startMillis?: number | null;
 }
 
 /** Maps a subscriptionsv2 resource to [PlaySubscription]. */
@@ -116,6 +118,7 @@ export function fromV2(data: androidpublisher_v3.Schema$SubscriptionPurchaseV2, 
     orderId: data.latestOrderId ?? extra?.latestSuccessfulOrderId ?? null,
     priceMicros: priceMicros && priceMicros > 0 ? priceMicros : null,
     currency: price?.currencyCode ?? null,
+    startMillis: Date.parse(data.startTime ?? "") || null,
   };
 }
 
@@ -137,6 +140,7 @@ export function fromV1(data: androidpublisher_v3.Schema$SubscriptionPurchase, pr
     orderId: data.orderId ?? null,
     priceMicros: data.priceAmountMicros ? Number(data.priceAmountMicros) : null,
     currency: data.priceCurrencyCode ?? null,
+    startMillis: parseInt(data.startTimeMillis ?? "0", 10) || null,
   };
 }
 

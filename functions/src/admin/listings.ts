@@ -26,7 +26,7 @@ export const setListingVerification = onCall<SetListingVerificationData>(async (
   }
 
   const { spaceId, verified } = request.data ?? {};
-  if (!spaceId || typeof verified !== "boolean") {
+  if (typeof spaceId !== "string" || spaceId.length === 0 || spaceId.length > 200 || typeof verified !== "boolean") {
     throw new HttpsError("invalid-argument", "spaceId and verified (boolean) are required.");
   }
 
@@ -86,7 +86,7 @@ export const setListingSubscriptionActive = onCall<SetListingSubscriptionActiveD
   }
 
   const { spaceId, active } = request.data ?? {};
-  if (!spaceId || typeof active !== "boolean") {
+  if (typeof spaceId !== "string" || spaceId.length === 0 || spaceId.length > 200 || typeof active !== "boolean") {
     throw new HttpsError("invalid-argument", "spaceId and active (boolean) are required.");
   }
 

@@ -111,6 +111,8 @@ export async function sendGa4Event(uid: string, name: string, params: Record<str
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(buildGa4Payload(target, name, params)),
+      // Never let analytics hold up a billing callable or an RTDN delivery.
+      signal: AbortSignal.timeout(5000),
     });
     if (config.debug) {
       logger.info(`ga4 debug ${name}: ${res.status} ${await res.text()}`);

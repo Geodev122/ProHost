@@ -6,6 +6,7 @@ import { sendPushToUser } from "../lib/push";
 import "../lib/admin";
 import { PENDING_COLLECTION, activatePlayPurchase } from "./activatePurchase";
 import { notifyAdminsOfSubscriptionChange } from "./adminBillingAlerts";
+import { logPurchaseOnce } from "./subscriptionService";
 
 const ALERT_AFTER_MS = 6 * 60 * 60 * 1000;
 // Play refunds unacknowledged purchases after 3 days; past 4 nothing is left to save.
@@ -57,10 +58,16 @@ export const retryPendingPlayActivations = onSchedule({ schedule: "*/15 * * * *"
       if (outcome.status === "granted" && outcome.acknowledged) {
         await doc.ref.update({ resolved: true, outcome: "granted", attempts, resolvedAt: now });
         logger.info(`retryPendingPlayActivations: activated uid=${uid} product=${outcome.productId} after ${attempts} attempt(s)`);
-        await sendPushToUser(uid, "Your Pro Host plan is active", "Your payment was confirmed — your Pro Host plan is now active.", {
-          category: "PACKAGE_ACTIVATED",
-          targetTab: "owner_subscriptions",
-        });
+        // GA4 purchase event, once per subscription (no-op if the app already logged it).
+        await logPurchaseOnce(uid, token, outcome.purchase);
+        // A row parked only because the acknowledgement failed was already granted (and
+        // announced) — don't tell the person their plan is "now active" a second time.
+        if (d.lastError !== "acknowledge failed") {
+          await sendPushToUser(uid, "Your Pro Host plan is active", "Your payment was confirmed — your Pro Host plan is now active.", {
+            category: "PACKAGE_ACTIVATED",
+            targetTab: "owner_subscriptions",
+          });
+        }
         await recordAuditLog({
           actionType: "PLAY_BILLING_ACTIVATION_RECOVERED",
           details: `Parked purchase activated for uid=${uid}, product=${outcome.productId}, after ${attempts} attempt(s).`,

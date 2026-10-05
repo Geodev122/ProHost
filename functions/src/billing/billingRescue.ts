@@ -88,10 +88,22 @@ export const adminBillingPending = onCall(async (request) => {
     db.collection(PENDING_COLLECTION).where("resolved", "==", false).limit(50).get(),
     db.collection("play_billing_unresolved").where("resolved", "==", false).limit(50).get(),
   ]);
+  // Play's 3-day refund clock runs from the purchase, and stops once it is acknowledged:
+  // read both from Play (best effort — fall back to when the row was parked).
+  const playClock = async (token: string | undefined, productId: string | undefined, fallback: number) => {
+    if (!token) return { since: fallback, acknowledged: false };
+    try {
+      const sub = await queryPlaySubscription(token, productId || undefined);
+      return { since: sub.startMillis ?? fallback, acknowledged: sub.acknowledged };
+    } catch {
+      return { since: fallback, acknowledged: false };
+    }
+  };
   const rows = [];
   for (const doc of pending.docs) {
     const d = doc.data();
     const createdAt = typeof d.createdAt === "number" ? d.createdAt : now;
+    const clock = await playClock(d.purchaseToken as string | undefined, d.productId as string | undefined, createdAt);
     rows.push({
       kind: "pending",
       id: doc.id,
@@ -101,13 +113,14 @@ export const adminBillingPending = onCall(async (request) => {
       attempts: d.attempts ?? 0,
       needsAdmin: d.needsAdmin === true,
       createdAt,
-      hoursLeft: hoursUntilRefund(createdAt, now),
+      hoursLeft: clock.acknowledged ? null : hoursUntilRefund(clock.since, now),
       hint: rescueHint(d.lastError as string | undefined, d.needsAdmin === true),
     });
   }
   for (const doc of unlinked.docs) {
     const d = doc.data();
     const createdAt = typeof d.timestamp === "number" ? d.timestamp : now;
+    const clock = await playClock(d.purchaseToken as string | undefined, d.productId as string | undefined, createdAt);
     rows.push({
       kind: "unlinked",
       id: doc.id,
@@ -118,7 +131,8 @@ export const adminBillingPending = onCall(async (request) => {
       attempts: 0,
       needsAdmin: true,
       createdAt,
-      hoursLeft: null, // RTDN already acknowledged it; no refund clock
+      // RTDN acknowledges supported unlinked purchases; retired plans keep the refund clock.
+      hoursLeft: clock.acknowledged ? null : hoursUntilRefund(clock.since, now),
       hint: "Ask the buyer which ProHost account it is for, then Activate for that account.",
     });
   }
@@ -177,7 +191,11 @@ export const adminActivatePurchase = onCall<{
       return { status: "granted_not_acknowledged" };
     }
     if (kind === "pending") await resolvePendingActivation(token, "granted_by_admin");
-    else await ref.update({ resolved: true, resolvedUid: targetUid, resolvedAt: Date.now() });
+    // RTDN adds one unresolved row per notification: close every row for this token.
+    const sameToken = await db.collection("play_billing_unresolved")
+      .where("purchaseToken", "==", token).where("resolved", "==", false).get();
+    await Promise.all([ref, ...sameToken.docs.map((d) => d.ref)].map((r) =>
+      r.update({ resolved: true, resolvedUid: targetUid, resolvedAt: Date.now() }).catch(() => undefined)));
     // Any parked copy under the same token is done too.
     await db.collection(PENDING_COLLECTION).doc(linkKey(token)).update({ resolved: true, outcome: "granted_by_admin", resolvedAt: Date.now() })
       .catch(() => undefined);

@@ -1,8 +1,7 @@
 import { HttpsError } from "firebase-functions/v2/https";
 import { onCall } from "../lib/callable";
 import { getAuth } from "firebase-admin/auth";
-import { FieldValue, getFirestore } from "firebase-admin/firestore";
-import { getStorage } from "firebase-admin/storage";
+import { cleanUpAccountData } from "../lib/accountCleanup";
 import { recordAuditLog } from "../lib/auditLog";
 import "../lib/admin";
 
@@ -29,98 +28,21 @@ export const deleteOwnAccount = onCall(async (request) => {
     throw new HttpsError("unauthenticated", "Sign in required.");
   }
   const uid = auth.uid;
-  const db = getFirestore();
-  const bucket = getStorage().bucket();
+  const targetUser = await getAuth().getUser(uid).catch(() => null);
+  const email = (targetUser?.email ?? "").toLowerCase();
+  const { listings } = await cleanUpAccountData(uid, email);
 
-  const deleteStoragePrefix = async (prefix: string) => {
-    try {
-      await bucket.deleteFiles({ prefix, force: true });
-    } catch (err) {
-      // Best-effort — nothing was necessarily ever uploaded under this
-      // prefix, and cleanup must not get stuck on a no-op failure.
-      console.warn(`deleteOwnAccount: storage cleanup failed for prefix ${prefix}`, err);
-    }
-  };
-
-  // 1. Remove every listing this account owns. Deleting each Firestore doc
-  // fires onWorkspaceListingDeleted (listingCountTracker.ts), which already
-  // keeps activeListingCount in sync — that bookkeeping isn't duplicated here.
-  const ownedListings = await db.collection("workspace_listings").where("ownerId", "==", uid).get();
-  for (const doc of ownedListings.docs) {
-    await deleteStoragePrefix(`listings/${doc.id}/`);
-    await deleteStoragePrefix(`listing_ownership_docs/${doc.id}/`);
-    await deleteStoragePrefix(`listing_verification_docs/${doc.id}/`);
-  }
-  if (!ownedListings.empty) {
-    const bulkWriter = db.bulkWriter();
-    ownedListings.docs.forEach((doc) => bulkWriter.delete(doc.ref));
-    await bulkWriter.close();
-  }
-
-  // Secondary cleanup is best-effort: none of it may stand between the user and
-  // the deletion they asked for, which is required to always work.
   const bestEffort = async (label: string, step: () => Promise<unknown>) => {
     try {
       await step();
     } catch (err) {
-      console.warn(`deleteOwnAccount: ${label} cleanup failed for ${uid}`, err);
+      console.warn(`deleteOwnAccount: ${label} failed for ${uid}`, err);
     }
   };
 
-  const profileSnap = await db.collection("user_profiles").doc(uid).get();
-  const profile = profileSnap.data() ?? {};
-  const targetUser = await getAuth().getUser(uid).catch(() => null);
-  const email = (targetUser?.email ?? (profile.email as string | undefined) ?? "").toLowerCase();
-
-  // 2. Withdraw this user's still-pending booking requests so hosts aren't left
-  // answering requests from an account that no longer exists.
-  await bestEffort("pending bookings", async () => {
-    const pending = await db.collection("booking_requests")
-      .where("practitionerId", "==", uid)
-      .where("status", "==", "PENDING")
-      .get();
-    if (pending.empty) return;
-    const batch = db.batch();
-    pending.docs.forEach((doc) => batch.update(doc.ref, {
-      status: "CANCELLED",
-      cancellationReasonCode: "ACCOUNT_DELETED",
-      cancelledByRole: "SPECIALIST",
-      updatedAt: Date.now(),
-    }));
-    await batch.commit();
-  });
-
-  // 3. Undo this user's favorites on other listings (favoritesSync only reacts to
-  // profile updates, not deletes).
-  await bestEffort("favorites", async () => {
-    const saved = (profile.savedSpaceIds as string[] | undefined) ?? [];
-    const ownedIds = new Set(ownedListings.docs.map((d) => d.id));
-    const targets = saved.filter((id) => !ownedIds.has(id));
-    if (targets.length === 0) return;
-    // update() so a deleted listing is skipped instead of being recreated as a ghost doc.
-    await Promise.all(targets.map((id) =>
-      db.collection("workspace_listings").doc(id)
-        .update({ favoriteCount: FieldValue.increment(-1) })
-        .catch((err: { code?: number | string }) => {
-          if (err?.code !== 5 && err?.code !== "not-found") throw err;
-        })
-    ));
-  });
-
-  // 4. Remove per-user auth/rate-limit records and the profile picture.
-  await bestEffort("rate limits", () => db.collection("inquiry_rate_limits").doc(uid).delete());
-  if (email) {
-    const otpKey = email.replace(/[^a-z0-9@._-]/g, "_").slice(0, 200);
-    await bestEffort("email otp", () => db.collection("email_otps").doc(otpKey).delete());
-  }
-  await deleteStoragePrefix(`profile_pictures/${uid}/`);
-
-  // 5. Remove the Firestore profile.
-  await db.collection("user_profiles").doc(uid).delete();
-
   await bestEffort("audit log", () => recordAuditLog({
     actionType: "ACCOUNT_SELF_DELETED",
-    details: `Account ${uid} (${email || targetUser?.phoneNumber || "unknown"}) deleted itself via in-app account deletion, including ${ownedListings.size} owned listing(s).`,
+    details: `Account ${uid} (${email || targetUser?.phoneNumber || "unknown"}) deleted itself via in-app account deletion, including ${listings} owned listing(s).`,
     actorEmail: auth.token.email ?? "system@prohost.app",
     severity: "SECURE",
   }));

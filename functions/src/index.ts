@@ -7,8 +7,8 @@ export { assignInitialRole } from "./roles/assignInitialRole";
 export { grantAdminRole } from "./roles/grantAdminRole";
 export { setAccountSuspended } from "./roles/setAccountSuspended";
 export { revokeProHostRole } from "./roles/revokeProHostRole";
-export { bootstrapSuperAdmin } from "./roles/bootstrapSuperAdmin";
 export { deleteOwnAccount } from "./roles/deleteOwnAccount";
+export { onAuthUserDeleted } from "./auth/onAuthUserDeleted";
 
 export { updatePricing } from "./admin/pricing";
 export { forceProHostUpgrade } from "./admin/forceProHostUpgrade";
