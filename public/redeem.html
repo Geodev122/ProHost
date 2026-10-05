@@ -7,43 +7,22 @@
   <meta name="description" content="Redeem your ProHost early-subscriber code on Google Play and start your Pro Host plan.">
   <meta name="robots" content="noindex">
   <link rel="icon" type="image/png" href="/logo.png">
-  <style>
-    :root {
-      --primary: #F25F4C;
-      --oxford-blue: #0F172A;
-      --vibrant-blue: #2563EB;
-      --bg-light: #F8FAFC;
-      --card-bg: #FFFFFF;
-      --text-dark: #1E293B;
-      --text-muted: #64748B;
-      --border-color: #E2E8F0;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { background: var(--bg-light); color: var(--text-dark); line-height: 1.6; padding: 24px 16px; }
-    main { max-width: 520px; margin: 0 auto; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 28px 22px; }
-    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
-    .brand img { width: 32px; height: 36px; object-fit: contain; }
-    .brand span { font-weight: 800; color: var(--oxford-blue); font-size: 1.2rem; }
-    h1 { font-size: 1.5rem; color: var(--oxford-blue); line-height: 1.25; text-wrap: balance; margin-bottom: 8px; }
-    p { color: var(--text-muted); }
-    .code { margin: 20px 0 8px; display: flex; gap: 8px; align-items: stretch; }
-    .code output { flex: 1; min-width: 0; font: 700 1.35rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.08em; text-align: center; padding: 14px 10px; border: 2px dashed var(--primary); border-radius: 10px; color: var(--oxford-blue); overflow-wrap: anywhere; user-select: all; }
-    .code button { border: 1px solid var(--border-color); background: var(--bg-light); border-radius: 10px; padding: 0 14px; font-weight: 600; cursor: pointer; }
-    .hint { font-size: 0.85rem; min-height: 1.2em; }
-    ol { margin: 18px 0 22px 20px; color: var(--text-dark); }
-    ol li { margin: 8px 0; }
-    .btn { display: block; text-align: center; text-decoration: none; font-weight: 700; padding: 14px; border-radius: 10px; margin-top: 10px; }
-    .btn-primary { background: var(--primary); color: #FFFFFF; }
-    .btn-secondary { background: var(--bg-light); color: var(--oxford-blue); border: 1px solid var(--border-color); }
-    .missing { display: none; }
-    .fine { font-size: 0.8rem; margin-top: 18px; }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/site.css">
+  <style>.missing { display: none; }</style>
 </head>
-<body>
+<body class="center-page">
+  <nav class="topbar">
+    <a class="home" href="/">
+      <img src="/logo.png" alt="ProHost">
+      <img class="wordmark" src="/logo-wordmark.png" alt="">
+    </a>
+  </nav>
   <main>
-    <div class="brand"><img src="/logo.png" alt=""><span>ProHost</span></div>
+   <div class="card">
     <h1>Your early-subscriber code</h1>
-    <p>Thanks for joining ProHost early. Redeem this code on Google Play to start your Pro Host plan.</p>
+    <p>Thanks for joining ProHost early. Redeem this code on Google Play to start ProHost Premium.</p>
 
     <div id="has-code">
       <div class="code">
@@ -57,13 +36,14 @@
     <ol>
       <li>Tap <strong>Redeem on Google Play</strong> and confirm with the Google account on your Android phone.</li>
       <li>Install or open <strong>ProHost</strong> and sign in.</li>
-      <li>Your Pro Host plan activates automatically — no extra steps.</li>
+      <li>Sign in with your ProHost account in the app — Premium activates automatically.</li>
     </ol>
 
     <a class="btn btn-primary" id="redeem" href="https://play.google.com/redeem">Redeem on Google Play</a>
     <a class="btn btn-secondary" href="https://play.google.com/store/apps/details?id=app.geonajjar.prohost">Get ProHost on Google Play</a>
 
-    <p class="fine">Codes are single-use and tied to the Google account that redeems them. Questions: admin@pro-host.tech. See our <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</p>
+    <p class="fine">Codes are single-use and tied to the Google account that redeems them. A code gives you ProHost Premium free for the period Google Play shows when you redeem it; after that the subscription renews automatically at the price shown there unless you cancel before the free period ends, in Google Play › Payments &amp; subscriptions. Questions: <a href="mailto:admin@pro-host.tech">admin@pro-host.tech</a>. See our <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</p>
+   </div>
   </main>
   <script>
     (function () {

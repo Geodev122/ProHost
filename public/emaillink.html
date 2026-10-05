@@ -2,74 +2,27 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>ProHost — Sign In</title>
-  <style>
-    body {
-      margin: 0;
-      background: #F5F5F5;
-      font-family: 'Helvetica Neue', Arial, sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-    }
-    .card {
-      background: #fff;
-      border-radius: 16px;
-      padding: 40px 32px;
-      max-width: 380px;
-      width: calc(100% - 32px);
-      text-align: center;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, .08);
-    }
-    .badge {
-      width: 52px;
-      height: 52px;
-      background: linear-gradient(135deg, #FF6B35, #FF8C42);
-      border-radius: 14px;
-      margin: 0 auto 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .badge svg {
-      width: 28px;
-      height: 28px;
-    }
-    h1 {
-      margin: 0 0 10px;
-      color: #1A1A1A;
-      font-size: 22px;
-      font-weight: 700;
-    }
-    p {
-      margin: 0;
-      color: #666;
-      font-size: 15px;
-      line-height: 1.6;
-    }
-    .note {
-      margin-top: 20px;
-      font-size: 13px;
-      color: #999;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Signing in — ProHost</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/site.css">
 </head>
-<body>
-  <div class="card">
-    <div class="badge">
-      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-        <polyline points="9 22 9 12 15 12 15 22"/>
-      </svg>
+<body class="center-page">
+  <main>
+    <div class="card narrow">
+      <div class="badge" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+      <h1>Opening ProHost…</h1>
+      <p>You're being signed in. The ProHost app should open automatically.</p>
+      <p class="fine">If the app doesn't open, tap the sign-in link in your email again directly from your phone.</p>
     </div>
-    <h1>Opening ProHost…</h1>
-    <p>You're being signed in. The ProHost app should open automatically.</p>
-    <p class="note">
-      If the app doesn't open, tap the sign-in link in your email again
-      directly from your phone.
-    </p>
-  </div>
+  </main>
 </body>
 </html>

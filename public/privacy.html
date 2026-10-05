@@ -61,7 +61,7 @@
   <div class="wrap">
     <div class="doc-head">
       <h1>Privacy Policy</h1>
-      <p class="meta">Effective date: 1 January 2025 · Last updated: 26 September 2026</p>
+      <p class="meta">Effective date: 1 January 2025 · Last updated: 5 October 2026</p>
     </div>
 
     <div class="callout">
@@ -75,6 +75,7 @@
     <h3>2.1 Account Data</h3>
     <ul>
       <li><strong>Phone number</strong> — used to verify your identity via one-time SMS code (Firebase Authentication). We do not store passwords.</li>
+      <li><strong>Email address</strong> — used for email or Google sign-in, sign-in codes and service emails (booking and subscription notices).</li>
       <li><strong>Display name and specialty/profession</strong> — provided during registration; shown to the other party in a booking transaction.</li>
       <li><strong>Profile photo</strong> — optional; stored in Google Cloud Storage if uploaded.</li>
       <li><strong>Government-issued ID document</strong> — collected only if and when you complete identity verification ("KYC") in order to become a Pro Host; never requested at registration, and never required of a Specialist. It is reviewed by a ProHost Administrator before your account is approved as a Pro Host.</li>
@@ -91,7 +92,11 @@
       <li>Crash logs via Google Firebase Crashlytics — anonymised and never linked to your account.</li>
       <li><strong>Usage analytics (only if you choose "Allow")</strong> via Google Analytics for Firebase: screens opened, searches and filters used, listings and rooms viewed, booking and subscription steps, and errors. These events are linked to your pseudonymous ProHost code (U-…), your role, country/governorate, plan status and account-age range — never to your name, email, phone number or the advertising ID. Some subscription and booking events (e.g. renewals, cancellations) are sent from our servers on your behalf, only while your choice is "Allow". Nothing is collected until you choose, and you can change your choice any time in Profile › Privacy. Analytics data is never used for advertising.</li>
     </ul>
-    <h3>2.4 Communications</h3>
+    <h3>2.4 Subscription and Purchase Data</h3>
+    <ul>
+      <li>If you subscribe to ProHost Premium, Google Play processes the payment; we never receive your card or bank details. We receive and store the Google Play purchase token, order ID, plan (monthly or yearly), subscription status and renewal/expiry dates, linked to your account, to verify the purchase, grant and remove Pro Host access and prevent fraud.</li>
+    </ul>
+    <h3>2.5 Communications</h3>
     <p>ProHost does not host or store chat messages. Direct communication happens on WhatsApp, which is governed by Meta's own privacy policy. We only store the event record (booking request/acceptance) within our platform.</p>
 
     <h2>3. How We Use Your Data</h2>
@@ -118,6 +123,7 @@
     <ul>
       <li><strong>Between users</strong> — a Specialist's name, specialty and phone number are shared with a Pro Host upon a confirmed booking, and vice versa.</li>
       <li><strong>Google / Firebase</strong> — Firebase Authentication, Firestore, Cloud Storage, Functions, Crashlytics and Analytics are operated by Google LLC / Google Ireland Limited as our service provider / processor under appropriate data processing terms. See <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Firebase Privacy</a>.</li>
+      <li><strong>Google Play</strong> — subscription purchases are processed by Google under the Google Play Terms of Service and Google's privacy policy; we exchange the purchase token with Google's Play Developer API to verify and manage your subscription.</li>
       <li><strong>Legal process</strong> — we may disclose data if required by a valid court order, legal obligation or to protect the rights and safety of users.</li>
       <li><strong>Business transfer</strong> — in the event of a merger, acquisition or asset sale, data may transfer subject to the same privacy commitments described here, and you will be notified of any change in controller.</li>
     </ul>
@@ -126,6 +132,7 @@
     <ul>
       <li>Active account data is retained while your account remains open.</li>
       <li>Booking records are retained for five (5) years for legal and dispute-resolution purposes, or longer where a longer statutory limitation period applies in the relevant jurisdiction.</li>
+      <li>Subscription and purchase records are kept while the subscription is active and for up to five (5) years after it ends, for tax, accounting and chargeback/fraud purposes.</li>
       <li>Upon account deletion, personal data is purged within thirty (30) calendar days except where retention is required by law.</li>
       <li>Pseudonymous analytics events are kept for 14 months in Google Analytics and for up to 26 months in our private BigQuery export; aggregated, non-identifiable reports may be retained indefinitely. Withdrawing consent stops collection and resets the analytics identifier on your device.</li>
     </ul>
@@ -136,7 +143,7 @@
     <ul>
       <li><strong>Access</strong> (Art. 15) a copy of personal data we hold about you.</li>
       <li><strong>Rectification</strong> (Art. 16) of inaccurate or incomplete data.</li>
-      <li><strong>Erasure</strong> (Art. 17) of your account and associated personal data — available directly in the app (Profile → Delete Account) or by written request to <a href="mailto:admin@pro-host.tech">admin@pro-host.tech</a> or via our <a href="/delete-account.html">web request form</a>. Processed within 30 days.</li>
+      <li><strong>Erasure</strong> (Art. 17) of your account and associated personal data — available directly in the app (Profile → Delete Account) or by written request to <a href="mailto:admin@pro-host.tech">admin@pro-host.tech</a> or via our <a href="/delete-account">web request form</a>. Processed within 30 days.</li>
       <li><strong>Restriction of processing</strong> (Art. 18) and <strong>objection</strong> (Art. 21) in certain circumstances.</li>
       <li><strong>Data portability</strong> (Art. 20) — a machine-readable export of data you provided.</li>
       <li><strong>Withdraw consent</strong> (Art. 7(3)) for optional analytics or communications at any time.</li>
@@ -186,7 +193,7 @@
       <p>For any privacy-related request, question or complaint:</p>
       <ul>
         <li>Email: <a href="mailto:admin@pro-host.tech">admin@pro-host.tech</a></li>
-        <li>Account deletion: <a href="/delete-account.html">pro-host.tech/delete-account</a></li>
+        <li>Account deletion: <a href="/delete-account">pro-host.tech/delete-account</a></li>
       </ul>
       <p style="margin-top:0.7rem; font-size:0.88rem; color:var(--muted);">We aim to respond within 30 calendar days (or sooner where required by applicable law).</p>
     </div>
