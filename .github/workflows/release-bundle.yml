@@ -54,7 +54,7 @@ jobs:
           mkdir -p app/build/outputs/native-debug-symbols/release
           if [ -d "app/build/intermediates/merged_native_libs/release/mergeReleaseNativeLibs/out/lib" ]; then
             cd app/build/intermediates/merged_native_libs/release/mergeReleaseNativeLibs/out/lib
-            zip -r ../../../../../../../outputs/native-debug-symbols/release/native-debug-symbols.zip .
+            zip -r "$GITHUB_WORKSPACE/app/build/outputs/native-debug-symbols/release/native-debug-symbols.zip" .
             cd -
           fi
 
