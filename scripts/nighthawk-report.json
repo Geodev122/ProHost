@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-10-05T05:02:09.750Z",
+  "generatedAt": "2026-10-05T05:04:40.629Z",
   "trigger": "NIGHTHAWK",
   "summary": {
-    "total": 77,
+    "total": 78,
     "critical": 0,
     "high": 0,
     "medium": 15,
-    "low": 62,
+    "low": 63,
     "info": 0,
     "passes": 29
   },
@@ -189,6 +189,15 @@
       "file": "app/src/main/java/com/example/data/repository/ProHostRepository.kt",
       "line": 1055,
       "message": "Line has 165 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/data/repository/ProHostRepository.kt",
+      "line": 1128,
+      "message": "Line has 203 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
     {
