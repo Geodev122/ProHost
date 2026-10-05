@@ -1,6 +1,7 @@
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { logger } from "firebase-functions/v2";
+import { DISPLAY_CODES_COLLECTION } from "./displayCode";
 import "./admin";
 
 /**
@@ -96,7 +97,10 @@ export async function cleanUpAccountData(uid: string, email: string): Promise<{ 
   }
   await deleteStoragePrefix(`profile_pictures/${uid}/`);
 
-  // 5. Remove the Firestore profile.
+  // 5. Free the person's display code, then remove the Firestore profile.
+  if (typeof profile.displayCode === "string" && profile.displayCode) {
+    await bestEffort("display code", () => db.collection(DISPLAY_CODES_COLLECTION).doc(profile.displayCode).delete());
+  }
   await db.collection("user_profiles").doc(uid).delete();
   return { listings: ownedListings.size };
 }

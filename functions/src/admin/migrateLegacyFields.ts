@@ -10,7 +10,8 @@ import "../lib/admin";
  *  - workspace_listings.rentalFormulas → a listing that has no structured `pricing` gets
  *    the pricing the app already read it as (legacyPricing.ts); the legacy list is deleted;
  *  - workspace_listings.subscriptionExpiryMillis and user_profiles.subscriptionExpiryMillis
- *    (never read; Play entitlements live on ownerPackageExpiryMillis) are deleted.
+ *    (never read; Play entitlements live on ownerPackageExpiryMillis) are deleted;
+ *  - workspace_listings.ownerEmail (no longer written; listings are public, emails aren't) is deleted.
  * update() only, skipping deleted docs, so nothing is ever recreated.
  */
 export const migrateLegacyListingFields = onCall({ timeoutSeconds: 540 }, async (request) => {
@@ -42,6 +43,7 @@ export const migrateLegacyListingFields = onCall({ timeoutSeconds: 540 }, async 
             }
             update.rentalFormulas = FieldValue.delete();
           }
+          if ("ownerEmail" in data) update.ownerEmail = FieldValue.delete();
         }
         if ("subscriptionExpiryMillis" in data) update.subscriptionExpiryMillis = FieldValue.delete();
         if (Object.keys(update).length === 0) continue;
