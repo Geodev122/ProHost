@@ -218,80 +218,32 @@ fun SpaceAvailabilityCalendarView(
                 }
             }
 
-            // Rented Slots List (Publicly Unavailable)
-            if (acceptedBookings.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurface)
-                            Text(
-                                text = "Booked Slots (Unavailable to Public):",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                        Text(
-                            text = "$totalRentedWeeklyHours hrs locked",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.proColors.info
-                        )
-                    }
-
-                    acceptedBookings.forEach { booking ->
-                        Surface(
-                            color = MaterialTheme.colorScheme.surface,
-                            shape = MaterialTheme.shapes.small,
-                            modifier = Modifier.fillMaxWidth(),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.proColors.info.copy(alpha = 0.3f))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "${booking.formula.scheduleDescription} (${booking.formula.daysOfWeek.joinToString()}" +
-                                            " • ${booking.formula.startHour} - ${booking.formula.endHour}" +
-                                            ")",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        text = "Resident Specialist: ${booking.practitionerName} (${booking.practitionerSpecialty})",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        text = "Slot: ${booking.selectedDateTimeRange.ifBlank { "${booking.startDate} (${booking.durationMonths} mo)" }}",
-                                        fontSize = 10.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-
-                                Surface(
-                                    color = MaterialTheme.proColors.infoContainer,
-                                    shape = MaterialTheme.shapes.small
-                                ) {
-                                    Text(
-                                        text = "UNAVAILABLE",
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = MaterialTheme.proColors.onInfoContainer,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
+            // This week's slots: rented vs still open (no names or booking details are public).
+            val (bookedSlots, totalSlots) = remember(space, acceptedBookings) {
+                com.example.ui.util.SpaceCalculationUtils.weekOccupancy(space, acceptedBookings)
+            }
+            if (totalSlots > 0) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    SlotCountTile(
+                        label = "Rented",
+                        count = bookedSlots,
+                        container = MaterialTheme.colorScheme.errorContainer,
+                        content = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.weight(1f)
+                    )
+                    SlotCountTile(
+                        label = "Remaining",
+                        count = totalSlots - bookedSlots,
+                        container = MaterialTheme.proColors.successContainer,
+                        content = MaterialTheme.proColors.onSuccessContainer,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
+                Text(
+                    "Slots over the next 7 days · $totalSlots in total",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             // Blackout / Non-Operating Slots (if any)
@@ -364,5 +316,15 @@ private fun LegendItem(color: Color, text: String) {
         )
         Spacer(modifier = Modifier.width(Spacing.xs))
         Text(text, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun SlotCountTile(label: String, count: Int, container: Color, content: Color, modifier: Modifier = Modifier) {
+    Surface(color = container, shape = MaterialTheme.shapes.medium, modifier = modifier) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Text("$count", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = content)
+            Text("$label slots", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = content)
+        }
     }
 }

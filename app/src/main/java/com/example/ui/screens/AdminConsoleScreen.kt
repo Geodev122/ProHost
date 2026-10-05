@@ -91,7 +91,7 @@ fun AdminConsoleScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(premiumBackgroundBrush())
+            .proHostScreenBackground()
     ) {
         // Admin Header Banner
         Surface(

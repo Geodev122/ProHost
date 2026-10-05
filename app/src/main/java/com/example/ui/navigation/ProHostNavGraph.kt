@@ -9,9 +9,11 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.example.ui.theme.proHostScreenBackground
 import androidx.compose.ui.platform.testTag
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.text.font.FontWeight
@@ -447,6 +449,9 @@ fun ProHostAppRoot(
         // nav, Profile › More) — no drawer and no menu button anywhere.
         val isSpecialistShell = currentRole == UserRole.SPECIALIST
         val navExpandedOnMap by discoveryViewModel.navExpandedOnMap.collectAsState()
+        // Every other page: the same collapse/expand handle, and the bar tucks away while the
+        // content scrolls down and comes back on scroll up (see bottomNavScrollConnection).
+        var navExpandedOffMap by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(true) }
         val onExploreMap = isMapViewActive && activeTabId == AppNavTab.SearchMap.id
         val shellUnreadAlerts = viewModel.fcmAlerts.collectAsState().value.count { !it.isRead }
 
@@ -514,7 +519,9 @@ fun ProHostAppRoot(
             }
 
             Scaffold(
-                modifier = Modifier.fillMaxSize(),
+                // White page with the light paper texture behind every tab (transparent scaffold).
+                modifier = Modifier.fillMaxSize().proHostScreenBackground(),
+                containerColor = Color.Transparent,
                 topBar = {
                     if (detailedSpace == null) {
                         if (safeFullScreenDrawerTab != null) {
@@ -618,7 +625,21 @@ fun ProHostAppRoot(
                 // screens leave LocalBottomNavInset free at their bottom instead.
                 val showBottomNav = detailedSpace == null && managingSpace == null &&
                     safeFullScreenDrawerTab == null && roleTabs.isNotEmpty()
-                val bottomNavCollapsed = onExploreMap && !navExpandedOnMap
+                val bottomNavCollapsed = if (onExploreMap) !navExpandedOnMap else !navExpandedOffMap
+                val bottomNavScrollConnection = remember(onExploreMap) {
+                    object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+                        override fun onPreScroll(
+                            available: androidx.compose.ui.geometry.Offset,
+                            source: androidx.compose.ui.input.nestedscroll.NestedScrollSource
+                        ): androidx.compose.ui.geometry.Offset {
+                            if (!onExploreMap) {
+                                if (available.y < -12f) navExpandedOffMap = false
+                                else if (available.y > 12f) navExpandedOffMap = true
+                            }
+                            return androidx.compose.ui.geometry.Offset.Zero
+                        }
+                    }
+                }
                 val bottomNavInset = when {
                     !showBottomNav -> 0.dp
                     bottomNavCollapsed -> BottomNavCollapsedInset
@@ -629,6 +650,11 @@ fun ProHostAppRoot(
                         .fillMaxSize()
                         .padding(innerPadding)
                         .consumeWindowInsets(innerPadding)
+                        .then(
+                            if (showBottomNav) {
+                                Modifier.nestedScroll(bottomNavScrollConnection)
+                            } else Modifier
+                        )
                 ) {
                   CompositionLocalProvider(LocalBottomNavInset provides bottomNavInset) {
                     Column(modifier = Modifier.fillMaxSize()) {
@@ -717,7 +743,7 @@ fun ProHostAppRoot(
                                             scope.launch { drawerState.close() }
                                             detailedSpace = space
                                             detailedSpaceSubdivisionId = subdivisionId
-                                            detailedSpaceOpenAvailability = subdivisionId != null
+                                            detailedSpaceOpenAvailability = false // a room tap lands on its card; the sheet opens only from Availability
                                         },
                                         discoveryViewModel = discoveryViewModel,
                                         // Specialists have no app bar on Explore: its floating
@@ -765,7 +791,7 @@ fun ProHostAppRoot(
                                             scope.launch { drawerState.close() }
                                             detailedSpace = space
                                             detailedSpaceSubdivisionId = subdivisionId
-                                            detailedSpaceOpenAvailability = subdivisionId != null
+                                            detailedSpaceOpenAvailability = false // a room tap lands on its card; the sheet opens only from Availability
                                         },
                                         discoveryViewModel = discoveryViewModel,
                                         // Specialists have no app bar on Explore: its floating
@@ -793,9 +819,10 @@ fun ProHostAppRoot(
                             },
                             highlightWithSecondary = currentRole == UserRole.PRO_HOST,
                             collapsed = bottomNavCollapsed,
-                            onExpandChange = if (onExploreMap) {
-                                { expanded -> discoveryViewModel.setNavExpandedOnMap(expanded) }
-                            } else null,
+                            onExpandChange = { expanded ->
+                                if (onExploreMap) discoveryViewModel.setNavExpandedOnMap(expanded)
+                                else navExpandedOffMap = expanded
+                            },
                             modifier = Modifier.align(Alignment.BottomCenter)
                         )
                     }

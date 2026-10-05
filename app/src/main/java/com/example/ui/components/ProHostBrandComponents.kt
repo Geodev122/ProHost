@@ -17,6 +17,9 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.semantics.Role
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -31,6 +34,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -290,7 +294,9 @@ fun ProHostCountBadge(count: Int, modifier: Modifier = Modifier) {
         Text(
             text = if (count > 99) "99+" else count.toString(),
             style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            softWrap = false
         )
     }
 }
@@ -397,9 +403,9 @@ fun ProHostBottomNavBar(
                                 accent = accent,
                                 onAccent = onAccent,
                                 onClick = { onTabSelected(tab.id) },
-                                // Shrinks (label ellipsized) instead of pushing the last tab or the
-                                // collapse arrow off a narrow screen.
-                                modifier = Modifier.weight(1f, fill = false)
+                                // The selected pill takes its full width (its one-word label is never
+                                // cut); the icon-only tabs share what's left.
+                                modifier = if (activeTabId == tab.id) Modifier else Modifier.weight(1f, fill = false)
                             )
                         }
                         if (onExpandChange != null) {
@@ -439,7 +445,7 @@ private fun BottomNavPillItem(
             .background(container)
             .animateContentSize()
             .heightIn(min = 48.dp)
-            .padding(horizontal = if (selected) 16.dp else 12.dp)
+            .padding(horizontal = if (selected) 14.dp else 10.dp)
             .testTag("nav_item_${tab.id}"),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -452,12 +458,12 @@ private fun BottomNavPillItem(
         )
         if (selected) {
             Text(
-                tab.title,
+                tab.shortLabel,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = content,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                softWrap = false
             )
         }
     }
@@ -478,8 +484,9 @@ fun ProHostDrawerSheet(
             .fillMaxWidth(0.86f)
             .widthIn(max = 320.dp),
         drawerShape = DrawerShape,
+        // Plain white (no tonal tint) so the drawer matches the white pages and header.
         drawerContainerColor = MaterialTheme.colorScheme.surface,
-        drawerTonalElevation = 2.dp,
+        drawerTonalElevation = 0.dp,
         content = content
     )
 }
@@ -537,9 +544,10 @@ fun ProHostDrawerHeader(
     }
 }
 
-/** Initials avatar for the drawer header (secondary accent, theme-aware on-color). */
+/** Drawer header avatar: the profile photo, or initials (secondary accent) when there is none. */
 @Composable
-fun ProHostDrawerAvatar(initials: String, modifier: Modifier = Modifier) {
+fun ProHostDrawerAvatar(initials: String, modifier: Modifier = Modifier, imageUrl: String? = null) {
+    var photoFailed by remember(imageUrl) { mutableStateOf(false) }
     Box(
         modifier = modifier
             .size(52.dp)
@@ -547,11 +555,22 @@ fun ProHostDrawerAvatar(initials: String, modifier: Modifier = Modifier) {
             .background(MaterialTheme.colorScheme.secondary),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = initials,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSecondary
-        )
+        if (!imageUrl.isNullOrBlank() && !photoFailed) {
+            coil.compose.AsyncImage(
+                model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                    .data(imageUrl).size(200).build(),
+                contentDescription = null,
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+                onError = { photoFailed = true }
+            )
+        } else {
+            Text(
+                text = initials,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSecondary
+            )
+        }
     }
 }
 

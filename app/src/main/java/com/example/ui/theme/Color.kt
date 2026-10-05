@@ -49,11 +49,13 @@ val LightGraySurface = Color(0xFFF8F9FA)
 // Secondary Text Helper (#384152 at 70% opacity)
 val ProHostSecondaryText = OxfordBlue.copy(alpha = 0.70f)
 
+// Light page background: white, shading to a whisper of Steel Blue at the bottom. The fine
+// texture on top comes from Modifier.proHostScreenBackground() (Theme.kt).
 val PremiumBackgroundGradient = Brush.verticalGradient(
     colors = listOf(
-        OxfordBlueContainer.copy(alpha = 0.35f),   // #ECEFF4 at 35% — subtle navy tint at top
-        LightGraySurface,                           // clean mid-surface
-        LightGray.copy(alpha = 0.55f)              // slightly deeper at bottom
+        Color(0xFFFFFFFF),
+        Color(0xFFFBFCFE),
+        Color(0xFFF2F5FA)
     )
 )
 
@@ -104,7 +106,7 @@ val NeutralGray800 = CoolGray
 val NeutralGray900 = CoolGrayDark
 
 // Surfaces & Outlines (Bright Mode)
-val BackgroundLight = Color(0xFFF6F8FA)
+val BackgroundLight = Color(0xFFFBFCFE)
 val SurfaceLight = PureWhite
 val SurfaceVariantLight = OxfordBlueContainer
 val CardBorderLight = LightGrayCardBorder

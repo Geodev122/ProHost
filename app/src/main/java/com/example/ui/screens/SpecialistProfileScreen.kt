@@ -102,7 +102,7 @@ fun SpecialistProfileScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(premiumBackgroundBrush())
+            .proHostScreenBackground()
             .testTag("specialist_profile_screen"),
         contentAlignment = Alignment.TopCenter
     ) {
@@ -935,35 +935,16 @@ fun SpecialistProfileScreen(
                 }
             }
             item {
-                ProSurfaceCard(
-                    modifier = Modifier.border(
-                        BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f)),
-                        MaterialTheme.shapes.large
-                    )
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        ProSectionHeader(
-                            title = "Delete Account",
-                            subtitle = if (user.role == UserRole.PRO_HOST)
-                                "Deletes your profile, documents, and listings — cannot be undone"
-                            else
-                                "Deletes your profile and documents — cannot be undone",
-                            icon = Icons.Default.DeleteForever
-                        )
-                        OutlinedButton(
-                            onClick = { showDeleteConfirmation = true },
-                            enabled = !isDeletingAccount,
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Default.DeleteForever, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(if (isDeletingAccount) "Deleting..." else "Delete My Account")
-                        }
+                // Deliberately small: one quiet text action at the very end of the profile.
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    TextButton(
+                        onClick = { showDeleteConfirmation = true },
+                        enabled = !isDeletingAccount,
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text(if (isDeletingAccount) "Deleting…" else "Delete Account", style = MaterialTheme.typography.labelLarge)
                     }
                 }
-
             }
         }
         if (showRequirementsSheet) {
@@ -980,27 +961,24 @@ fun SpecialistProfileScreen(
             ProHostDialog(
                 onDismissRequest = { if (!isDeletingAccount) showDeleteConfirmation = false },
                 icon = { Icon(Icons.Default.DeleteForever, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-                title = { Text("Delete your account?") },
+                title = { Text("Delete Account") },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            (if (user.role == UserRole.PRO_HOST)
-                                "This permanently deletes your profile, uploaded ID document, and every listing you own. "
-                            else
-                                "This permanently deletes your profile and uploaded ID document. ") +
-                                "Your booking history stays on file for the other party's records, but you won't be able to sign back in."
+                            if (user.role == UserRole.PRO_HOST) "Your profile and listings are deleted permanently."
+                            else "Your profile is deleted permanently.",
+                            style = MaterialTheme.typography.bodyMedium
                         )
                         if (user.ownerPackageId != null) {
                             val activity = androidx.activity.compose.LocalActivity.current
                             Text(
-                                "Deleting your account does not cancel your Google Play subscription. " +
-                                    "Cancel it in Google Play first to stop future charges.",
+                                "Cancel your Google Play subscription first — deleting doesn't stop charges.",
                                 color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodySmall
                             )
                             if (activity != null) {
                                 TextButton(onClick = { viewModel.billing.openManageSubscriptions(activity, user.ownerPackageId) }) {
-                                    Text("Manage subscription in Google Play")
+                                    Text("Manage subscription")
                                 }
                             }
                         }
@@ -1032,7 +1010,7 @@ fun SpecialistProfileScreen(
                             }
                         }
                     ) {
-                        Text("Delete Permanently", color = MaterialTheme.colorScheme.error)
+                        Text(if (isDeletingAccount) "Deleting…" else "Delete", color = MaterialTheme.colorScheme.error)
                     }
                 },
                 dismissButton = {

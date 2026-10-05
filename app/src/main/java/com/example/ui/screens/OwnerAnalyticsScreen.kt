@@ -158,7 +158,7 @@ fun OwnerAnalyticsScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(premiumBackgroundBrush())
+            .proHostScreenBackground()
             .testTag("owner_analytics_screen"),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)

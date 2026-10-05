@@ -9,6 +9,9 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -399,13 +402,16 @@ private fun AvatarCircle(
     imageUrl: String? = null,
     modifier: Modifier = Modifier
 ) {
+    // A blank URL or a photo that fails to load falls back to the initials.
+    var photoFailed by remember(imageUrl) { mutableStateOf(false) }
     Box(modifier = modifier.size(size)) {
-        if (imageUrl != null) {
+        if (!imageUrl.isNullOrBlank() && !photoFailed) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current).data(imageUrl).size(256).build(),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize().clip(CircleShape),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                onError = { photoFailed = true }
             )
         } else {
             Surface(
@@ -1365,7 +1371,7 @@ fun ProHostTopAppBar(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp,
+        tonalElevation = 0.dp,
         shadowElevation = 2.dp,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = modifier.fillMaxWidth()
@@ -1427,21 +1433,23 @@ fun ProHostTopAppBar(
             }
 
             // Right: Push Notification Bell
-            IconButton(
-                onClick = onAlertsClick,
-                modifier = Modifier.testTag("top_bar_notifications_button")
-            ) {
-                BadgedBox(
-                    badge = {
-                        if (unreadAlertCount > 0) {
-                            ProHostCountBadge(count = unreadAlertCount)
-                        }
-                    }
+            // The badge sits outside the IconButton (which clips to its circle), so two
+            // digits and "99+" are never cut.
+            Box {
+                IconButton(
+                    onClick = onAlertsClick,
+                    modifier = Modifier.testTag("top_bar_notifications_button")
                 ) {
                     Icon(
                         imageVector = Icons.Default.Notifications,
-                        contentDescription = "Real-time Push Alerts",
+                        contentDescription = if (unreadAlertCount > 0) "Notifications, $unreadAlertCount unread" else "Notifications",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (unreadAlertCount > 0) {
+                    ProHostCountBadge(
+                        count = unreadAlertCount,
+                        modifier = Modifier.align(Alignment.TopEnd).offset(x = 2.dp, y = 2.dp)
                     )
                 }
             }
@@ -1518,7 +1526,7 @@ fun ProHostFullScreenTopAppBar(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp,
+        tonalElevation = 0.dp,
         shadowElevation = 2.dp,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = modifier.fillMaxWidth()

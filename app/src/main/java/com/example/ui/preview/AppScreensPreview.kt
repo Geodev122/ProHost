@@ -426,7 +426,7 @@ fun Preview11_SignInScreen() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(premiumBackgroundBrush())
+                .proHostScreenBackground()
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {

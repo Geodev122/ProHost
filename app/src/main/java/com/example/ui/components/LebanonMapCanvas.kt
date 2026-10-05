@@ -533,15 +533,16 @@ fun LebanonMapCanvas(
             }
         }
 
-        // FLOATING CENTER COUNTRY BADGE (Top Center)
-        if (!detectedCenterCountry.isNullOrBlank()) {
+        // FLOATING CENTER COUNTRY BADGE — below Explore's header (which carries the centre
+        // logo), never on top of it; hidden while "Search this area" takes that spot.
+        if (!detectedCenterCountry.isNullOrBlank() && !(topControls != null && showSearchArea)) {
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
                 shadowElevation = 6.dp,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 12.dp)
+                    .padding(top = if (topControls != null) 124.dp else 12.dp)
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
@@ -705,9 +706,12 @@ fun LebanonMapCanvas(
                                         .clip(MaterialTheme.shapes.small)
                                         .background(MaterialTheme.colorScheme.surfaceVariant)
                                 ) {
-                                    if (space.imageUrls.isNotEmpty()) {
+                                    // A room card shows the room's own photo (the listing's when it has none).
+                                    val thumb = sub?.imageUrls?.firstOrNull { it.isNotBlank() }
+                                        ?: space.imageUrls.firstOrNull { it.isNotBlank() }
+                                    if (thumb != null) {
                                         coil.compose.AsyncImage(
-                                            model = coil.request.ImageRequest.Builder(context).data(space.imageUrls.first()).size(200).build(),
+                                            model = coil.request.ImageRequest.Builder(context).data(thumb).size(200).build(),
                                             contentDescription = displayName,
                                             modifier = Modifier.fillMaxSize(),
                                             contentScale = androidx.compose.ui.layout.ContentScale.Crop

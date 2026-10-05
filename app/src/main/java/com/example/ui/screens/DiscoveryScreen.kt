@@ -45,7 +45,7 @@ import com.example.ui.state.PricingFormulaFilter
 import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.viewmodel.DiscoveryViewModel
 import com.example.ui.viewmodel.ProHostViewModel
-import com.example.ui.theme.premiumBackgroundBrush
+import com.example.ui.theme.proHostScreenBackground
 import com.example.ui.theme.Spacing
 
 /**
@@ -185,7 +185,7 @@ fun DiscoveryScreenContent(
 
     Box(modifier = Modifier
         .fillMaxSize()
-        .background(premiumBackgroundBrush())) {
+        .proHostScreenBackground()) {
         if (isMapView) {
             LebanonMapCanvas(
                 spaces = spaces,
@@ -425,17 +425,30 @@ private fun ExploreOverlayHeader(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (isMapView) Modifier else Modifier.background(premiumBackgroundBrush()))
+            .then(if (isMapView) Modifier else Modifier.proHostScreenBackground())
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        // Row 1: search · logo · notifications
         Box(modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp)) {
-            MapListToggle(
-                isMapView = isMapView,
-                floating = isMapView,
-                onToggle = onToggleMapView,
+            BadgedControl(
+                badge = if (searchQuery.isNotEmpty()) "" else null,
                 modifier = Modifier.align(Alignment.CenterStart)
-            )
+            ) {
+                ExploreControlSurface(floating = isMapView, shape = CircleShape) {
+                    IconButton(onClick = { onSearchExpandedChange(!searchExpanded) }, modifier = Modifier.size(44.dp)) {
+                        Icon(
+                            if (searchExpanded) Icons.Default.Close else Icons.Default.Search,
+                            contentDescription = when {
+                                searchExpanded -> "Close search"
+                                searchQuery.isNotEmpty() -> "Search workspaces: $searchQuery"
+                                else -> "Search workspaces"
+                            },
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
             if (onAlertsClick != null) {
                 ExploreControlSurface(floating = isMapView, modifier = Modifier.align(Alignment.Center)) {
                     Row(
@@ -452,18 +465,11 @@ private fun ExploreOverlayHeader(
                         )
                     }
                 }
-                ExploreControlSurface(
-                    floating = isMapView,
-                    shape = CircleShape,
+                BadgedControl(
+                    badge = unreadAlertCount.takeIf { it > 0 }?.let { if (it > 99) "99+" else "$it" },
                     modifier = Modifier.align(Alignment.CenterEnd)
                 ) {
-                    BadgedBox(badge = {
-                        if (unreadAlertCount > 0) {
-                            Badge(containerColor = MaterialTheme.colorScheme.error) {
-                                Text(if (unreadAlertCount > 9) "9+" else "$unreadAlertCount")
-                            }
-                        }
-                    }) {
+                    ExploreControlSurface(floating = isMapView, shape = CircleShape) {
                         IconButton(
                             onClick = onAlertsClick,
                             modifier = Modifier.size(44.dp).testTag("top_bar_notifications_button")
@@ -479,53 +485,34 @@ private fun ExploreOverlayHeader(
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            AnimatedContent(
-                targetState = searchExpanded,
-                modifier = Modifier.weight(1f),
-                transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "ExploreSearchToggle"
-            ) { expanded ->
-                if (!expanded) {
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
-                        ExploreControlSurface(floating = isMapView, shape = CircleShape) {
-                            BadgedBox(badge = {
-                                if (searchQuery.isNotEmpty()) Badge(containerColor = MaterialTheme.colorScheme.error)
-                            }) {
-                                IconButton(onClick = { onSearchExpandedChange(true) }, modifier = Modifier.size(44.dp)) {
-                                    Icon(
-                                        Icons.Default.Search,
-                                        contentDescription = if (searchQuery.isNotEmpty()) "Search workspaces: $searchQuery" else "Search workspaces",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    ExploreSearchField(
-                        query = searchQuery,
-                        floating = isMapView,
-                        requestFocus = focusSearchOnOpen,
-                        onFocusConsumed = onSearchFocusConsumed,
-                        onSubmit = onSearchQueryChange,
-                        onClose = {
-                            onSearchQueryChange("")
-                            onSearchExpandedChange(false)
-                        }
-                    )
+        // The search field opens on its own full-width row under the search button.
+        androidx.compose.animation.AnimatedVisibility(visible = searchExpanded) {
+            ExploreSearchField(
+                query = searchQuery,
+                floating = isMapView,
+                requestFocus = focusSearchOnOpen,
+                onFocusConsumed = onSearchFocusConsumed,
+                onSubmit = onSearchQueryChange,
+                onClose = {
+                    onSearchQueryChange("")
+                    onSearchExpandedChange(false)
                 }
-            }
-            ExploreControlSurface(floating = isMapView, shape = CircleShape) {
-                BadgedBox(badge = {
-                    if (activeFilterCount > 0) {
-                        Badge(containerColor = MaterialTheme.colorScheme.error) { Text("$activeFilterCount") }
-                    }
-                }) {
+            )
+        }
+
+        // Row 2: Map | List · filters
+        Box(modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp)) {
+            MapListToggle(
+                isMapView = isMapView,
+                floating = isMapView,
+                onToggle = onToggleMapView,
+                modifier = Modifier.align(Alignment.CenterStart)
+            )
+            BadgedControl(
+                badge = activeFilterCount.takeIf { it > 0 }?.let { if (it > 99) "99+" else "$it" },
+                modifier = Modifier.align(Alignment.CenterEnd)
+            ) {
+                ExploreControlSurface(floating = isMapView, shape = CircleShape) {
                     IconButton(onClick = onOpenFilters, modifier = Modifier.size(44.dp)) {
                         Icon(
                             Icons.Default.Tune,
@@ -538,6 +525,25 @@ private fun ExploreOverlayHeader(
         }
 
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { belowControls() }
+    }
+}
+
+/**
+ * A control with a count (or dot, for "") badge drawn OUTSIDE its round surface, so two
+ * digits are never clipped by the circle (a BadgedBox inside a clipped Surface was).
+ */
+@Composable
+private fun BadgedControl(badge: String?, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Box(modifier = modifier) {
+        content()
+        if (badge != null) {
+            Badge(
+                containerColor = MaterialTheme.colorScheme.error,
+                modifier = Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-2).dp)
+            ) {
+                if (badge.isNotEmpty()) Text(badge, maxLines = 1, softWrap = false)
+            }
+        }
     }
 }
 
@@ -580,21 +586,16 @@ private fun MapListToggle(
                         .background(container)
                         .selectable(selected = selected, onClick = { if (!selected) onToggle() }, role = Role.Tab)
                         .heightIn(min = 36.dp)
-                        .padding(horizontal = 12.dp),
+                        .padding(horizontal = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
+                    // Icon only; the label stays for TalkBack.
                     Icon(
                         if (isMapOption) Icons.Default.Map else Icons.AutoMirrored.Filled.FormatListBulleted,
-                        contentDescription = null,
+                        contentDescription = "$label view",
                         tint = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Text(
-                        label,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }

@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -378,10 +379,11 @@ fun SpaceDetailsScreenContent(
                                 )
                             }
                         }
-                        Row(
+                        // Photo dots sit at the bottom (clear of the back / save / share row).
+                        if (liveSpace.imageUrls.size > 1) Row(
                             modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .padding(top = Spacing.md),
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             repeat(liveSpace.imageUrls.size) { index ->
@@ -422,50 +424,38 @@ fun SpaceDetailsScreenContent(
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(Color.Black.copy(alpha = 0.40f))
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBackIos,
-                            contentDescription = "Back",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
+                    HeroGlassButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.size(22.dp))
                     }
                     Spacer(modifier = Modifier.weight(1f))
-                    IconButton(
-                        onClick = onToggleSave,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(Color.Black.copy(alpha = 0.40f))
-                    ) {
-                        Icon(
-                            if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                            contentDescription = if (isSaved) "Unsave" else "Save",
-                            tint = if (isSaved) MaterialTheme.colorScheme.primary else Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(4.dp))
                     Box {
-                        IconButton(
-                            onClick = { showShareMenu = true },
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(Color.Black.copy(alpha = 0.40f))
+                        // Save + share as one frosted pill.
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                            contentColor = MaterialTheme.colorScheme.onSurface,
+                            shadowElevation = 4.dp,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         ) {
-                            Icon(
-                                Icons.Default.Share,
-                                contentDescription = "Share",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(onClick = onToggleSave, modifier = Modifier.size(42.dp)) {
+                                    Icon(
+                                        if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                        contentDescription = if (isSaved) "Remove from Saved" else "Save",
+                                        tint = if (isSaved) Color(0xFFE5484D) else MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(21.dp)
+                                    )
+                                }
+                                Box(
+                                    Modifier
+                                        .width(1.dp)
+                                        .height(20.dp)
+                                        .background(MaterialTheme.colorScheme.outlineVariant)
+                                )
+                                IconButton(onClick = { showShareMenu = true }, modifier = Modifier.size(42.dp)) {
+                                    Icon(Icons.Outlined.Share, contentDescription = "Share", modifier = Modifier.size(20.dp))
+                                }
+                            }
                         }
                         DropdownMenu(
                             expanded = showShareMenu,
@@ -1059,4 +1049,20 @@ fun SpaceDetailsScreenContent(
         }
     }
 
+}
+
+/** A frosted white circular button over the hero photo (readable on any image). */
+@Composable
+private fun HeroGlassButton(onClick: () -> Unit, content: @Composable () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shadowElevation = 4.dp,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+        modifier = Modifier.size(42.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) { content() }
+    }
 }

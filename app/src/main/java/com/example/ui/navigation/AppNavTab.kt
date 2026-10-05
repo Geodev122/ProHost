@@ -11,14 +11,16 @@ sealed class AppNavTab(
     val id: String,
     val title: String,
     val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector
+    val unselectedIcon: ImageVector,
+    // One word for the floating bottom nav's selected pill (never truncated).
+    val shortLabel: String = title
 ) {
     // Unified bottom-nav tabs — identical set for SPECIALIST and PRO_HOST (a Pro
     // Host is still a Specialist underneath; only the additional Pro Host section
     // in the drawer differs between the two roles). See allowedTabIdsForRole /
     // roleTabs in ProHostNavGraph.kt.
     object SearchMap : AppNavTab("search_map", "Explore", Icons.Filled.Search, Icons.Outlined.Search)
-    object ProfessionalRentals : AppNavTab("pro_rentals", "My Rentals", Icons.AutoMirrored.Filled.ReceiptLong, Icons.AutoMirrored.Outlined.ReceiptLong)
+    object ProfessionalRentals : AppNavTab("pro_rentals", "My Rentals", Icons.AutoMirrored.Filled.ReceiptLong, Icons.AutoMirrored.Outlined.ReceiptLong, "Rentals")
     object ProfessionalProfile : AppNavTab("pro_profile", "Profile", Icons.Filled.Person, Icons.Outlined.Person)
 
     // Pro Host destinations — reachable only from the drawer's "Pro Host" section,
@@ -26,9 +28,9 @@ sealed class AppNavTab(
     // ProHostAppRoot's fullScreenProHostTab) with no bottom bar. OwnerSubscriptions
     // doubles as the "Become a Pro Host" package-purchase destination for a
     // SPECIALIST who hasn't been promoted yet.
-    object ManageListings : AppNavTab("manage_listings", "My Listings", Icons.Filled.HomeWork, Icons.Outlined.HomeWork)
-    object OwnerRentalRequests : AppNavTab("owner_requests", "Renting Requests", Icons.Filled.Inbox, Icons.Outlined.Inbox)
-    object OwnerRentingProgress : AppNavTab("owner_progress", "Renting Progress", Icons.Filled.Schedule, Icons.Outlined.Schedule)
+    object ManageListings : AppNavTab("manage_listings", "My Listings", Icons.Filled.HomeWork, Icons.Outlined.HomeWork, "Listings")
+    object OwnerRentalRequests : AppNavTab("owner_requests", "Renting Requests", Icons.Filled.Inbox, Icons.Outlined.Inbox, "Requests")
+    object OwnerRentingProgress : AppNavTab("owner_progress", "Renting Progress", Icons.Filled.Schedule, Icons.Outlined.Schedule, "Progress")
     object Stats : AppNavTab("stats", "Financials", Icons.Filled.Analytics, Icons.Outlined.Analytics)
     object OwnerSubscriptions : AppNavTab("owner_subscriptions", "ProHost Premium", Icons.Filled.Layers, Icons.Outlined.Layers)
 

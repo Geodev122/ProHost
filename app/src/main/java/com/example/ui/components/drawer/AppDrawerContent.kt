@@ -110,7 +110,7 @@ fun SpecialistDrawerContent(
             title = currentUser?.fullName ?: "ProHost User",
             subtitle = if (planName != null) "Plan: $planName" else "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
             onClose = { onDrawerAction("close") },
-            leading = { ProHostDrawerAvatar(initials = initials) },
+            leading = { ProHostDrawerAvatar(initials = initials, imageUrl = currentUser?.profilePictureUrl) },
             pill = { ProHostRolePill(text = if (isProHost) "PRO HOST" else "SPECIALIST", emphasized = isProHost) }
         )
 

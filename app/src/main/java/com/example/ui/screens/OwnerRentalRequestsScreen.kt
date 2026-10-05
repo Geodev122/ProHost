@@ -14,7 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.model.*
 import com.example.ui.components.*
-import com.example.ui.theme.premiumBackgroundBrush
+import com.example.ui.theme.proHostScreenBackground
 import com.example.ui.theme.Spacing
 import com.example.ui.viewmodel.ProHostViewModel
 
@@ -73,7 +73,7 @@ fun OwnerRentalRequestsScreenContent(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(premiumBackgroundBrush()),
+            .proHostScreenBackground(),
         contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, top = Spacing.lg, bottom = Spacing.xl),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg)
     ) {

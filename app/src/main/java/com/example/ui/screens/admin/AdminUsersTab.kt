@@ -191,7 +191,8 @@ internal fun AdminUsersDirectoryTab(
                                 name = user.fullName,
                                 specialty = user.specialty,
                                 isVerified = user.isVerified,
-                                size = 44.dp
+                                size = 44.dp,
+                                imageUrl = user.profilePictureUrl
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {

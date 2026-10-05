@@ -1,6 +1,20 @@
 package com.example.ui.theme
 
 import android.app.Activity
+import androidx.compose.foundation.background
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.ImageShader
+import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.Brush
@@ -119,6 +133,33 @@ private val PremiumDarkBackgroundGradient = Brush.verticalGradient(
 fun premiumBackgroundBrush(): Brush =
     if (MaterialTheme.colorScheme.background.luminance() < 0.5f) PremiumDarkBackgroundGradient
     else PremiumBackgroundGradient
+
+/**
+ * Page background for every screen: the theme gradient plus, in light theme only, a faint
+ * staggered dot texture (Steel Blue at ~4%) so white pages read as paper rather than flat
+ * grey. The texture is one small tile drawn once and repeated by a shader, so scrolling
+ * content never redraws it dot by dot. Dark theme keeps its plain gradient.
+ */
+@Composable
+fun Modifier.proHostScreenBackground(): Modifier {
+    val brush = premiumBackgroundBrush()
+    val light = MaterialTheme.colorScheme.background.luminance() >= 0.5f
+    val dot = MaterialTheme.colorScheme.primary.copy(alpha = 0.045f)
+    val base = this.background(brush)
+    if (!light) return base
+    return base.drawWithCache {
+        val step = 12.dp.toPx().coerceAtLeast(8f)
+        val radius = 0.9.dp.toPx().coerceAtLeast(1f)
+        val tileSize = (step * 2).toInt().coerceAtLeast(2)
+        val tile = ImageBitmap(tileSize, tileSize)
+        CanvasDrawScope().draw(Density(density), LayoutDirection.Ltr, Canvas(tile), Size(tileSize.toFloat(), tileSize.toFloat())) {
+            drawCircle(dot, radius, Offset(step * 0.5f, step * 0.5f))
+            drawCircle(dot, radius, Offset(step * 1.5f, step * 1.5f))
+        }
+        val texture = ShaderBrush(ImageShader(tile, TileMode.Repeated, TileMode.Repeated))
+        onDrawBehind { drawRect(texture) }
+    }
+}
 
 /**
  * ProHost Brand Theme

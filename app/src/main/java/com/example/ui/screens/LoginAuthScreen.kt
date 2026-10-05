@@ -276,7 +276,7 @@ fun LoginAuthScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(premiumBackgroundBrush())
+            .proHostScreenBackground()
             .verticalScroll(scrollState)
             .padding(20.dp)
             .testTag("login_auth_screen"),

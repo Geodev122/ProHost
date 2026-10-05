@@ -242,6 +242,46 @@ object SpaceCalculationUtils {
                     hoursOverlap(req.formula.startHour, req.formula.endHour, slot.startTime, slot.endTime)))
     }
 
+    /** Whether [booking]'s term (its calendar dates, or startDate + durationMonths) covers [isoDate]. */
+    fun bookingCoversDate(booking: RentalBookingRequest, isoDate: String): Boolean {
+        if (booking.selectedCalendarDates.isNotEmpty()) return isoDate in booking.selectedCalendarDates
+        val start = booking.startDate.trim().take(10)
+        if (start.length < 7) return true // no term recorded: treat as ongoing
+        val startKey = if (start.length == 7) "$start-01" else start
+        val fmt = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+        val end = runCatching {
+            val cal = Calendar.getInstance().apply { time = fmt.parse(startKey)!! }
+            cal.add(Calendar.MONTH, booking.durationMonths.coerceAtLeast(1))
+            fmt.format(cal.time)
+        }.getOrNull() ?: return true
+        return isoDate >= startKey && isoDate < end
+    }
+
+    /**
+     * This week's occupancy of [space] (every room): each offered slot on each of the next 7
+     * dates, booked when an accepted booking covering that date locks it. Returns
+     * (booked, total). The same rule as the host's Manage page.
+     */
+    fun weekOccupancy(space: SpaceListing, acceptedBookings: List<RentalBookingRequest>): Pair<Int, Int> {
+        val slotsByDay = buildAllSlotsForSpace(space).groupBy { it.day }
+        val iso = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+        val dayName = java.text.SimpleDateFormat("EEE", java.util.Locale.US)
+        val cal = Calendar.getInstance()
+        var booked = 0
+        var total = 0
+        repeat(7) {
+            val date = cal.time
+            val isoDate = iso.format(date)
+            val covering = acceptedBookings.filter { bookingCoversDate(it, isoDate) }
+            slotsByDay[dayName.format(date)].orEmpty().forEach { slot ->
+                total++
+                if (isCalendarDateLocked(slot, isoDate, space.id, covering)) booked++
+            }
+            cal.add(Calendar.DAY_OF_YEAR, 1)
+        }
+        return booked to total
+    }
+
     /**
      * The per-date counterpart to [isSlotLocked] — whether [isoDate] (a real
      * calendar date matching [slot]'s weekday) is already locked by an ACCEPTED

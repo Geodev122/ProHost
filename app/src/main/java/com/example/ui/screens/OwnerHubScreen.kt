@@ -393,7 +393,7 @@ fun OwnerHubScreenContent(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(premiumBackgroundBrush()),
+            .proHostScreenBackground(),
         contentAlignment = Alignment.TopCenter
     ) {
         LazyColumn(

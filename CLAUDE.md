@@ -35,7 +35,11 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   `entitlementSource: admin_forced`). Undo = Users tab → Revoke Pro Host (`revokeProHostRole`).
 - Premium screen follows Play's subscription UX guidance: a `SubscriptionStatusBanner` per lifecycle state
   (grace period / on hold → "Fix payment", paused → "Resume", canceled → "Resubscribe", pending), all deep-
-  linking to the Play subscription center (`sku=package_pro_mrr`); current plan + recurring price + date;
+  linking to the Play subscription center (`sku=package_pro_mrr`); compact gradient hero (Play's product
+  `description` as the non-member subtitle) + one chip row (Manage · Redeem code · Orders · Restore); both base plans
+  as side-by-side `PlanTile`s (yearly selected by default) — a base plan Play didn't return shows
+  `UnavailablePlanTile` ("Not available"), never an invented price; one CTA for the selected tile with its terms
+  under it; current plan + recurring price + date;
   "Switch to …" with Play's replacement modes (to yearly `CHARGE_PRORATED_PRICE`, to monthly `DEFERRED`);
   trial disclosure; `SubscriptionTermsFooter` (renewal, cancel, "only publishing needs Premium", Terms &
   Privacy). Profile has a "Manage subscription" settings link. Play's transactional in-app messages show on
@@ -138,11 +142,23 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   back arrow (`ProHostFullScreenTopAppBar(isBackNavigation)`), other tabs a bar without ☰ (`showMenu = false`).
   Pro Host / Admin keep header + drawer. There is no "Saved only" filter and no drawer Billing dialog.
 - Bottom nav is a floating pill (`ProHostBottomNavBar`): active tab = filled pill in the role accent (Steel Blue
-  specialist, orange Pro Host). It overlays the content (not `Scaffold.bottomBar`); screens leave
-  `LocalBottomNavInset` free at their bottom (the shell pads non-Explore tabs; Explore/map read it). On Explore's
-  map it collapses to a handle (`DiscoveryViewModel.navExpandedOnMap`, re-collapses on map gesture / tab pick).
+  specialist, orange Pro Host) with its one-word `AppNavTab.shortLabel` (never truncated; the other tabs are icons).
+  It overlays the content (not `Scaffold.bottomBar`); screens leave `LocalBottomNavInset` free at their bottom (the
+  shell pads non-Explore tabs; Explore/map read it). It collapses to a handle on every page, both roles: on Explore's
+  map via `DiscoveryViewModel.navExpandedOnMap` (re-collapses on map gesture / tab pick), elsewhere via the shell's
+  `navExpandedOffMap` (tucks away on scroll down, returns on scroll up — nested-scroll connection on the shell).
+- Page backgrounds are white: `Modifier.proHostScreenBackground()` (`ui/theme/Theme.kt`) = the theme gradient plus a
+  faint dot texture in light theme only (one shader tile, not per-dot drawing). The shell Scaffold is transparent over it;
+  drawer and app bars use `surface` with tonal elevation 0 (no blue tint); cards keep their 1 dp outline. Never
+  `.background(premiumBackgroundBrush())` a screen directly.
+- Phone verification (`FirebaseAuthService`): never fake a "code sent"; failures map by type
+  (`verificationFailureMessage`); resend reuses the `ForceResendingToken`; re-verifying an account that already has a
+  phone uses `updatePhoneNumber`. Instant verification (`onVerificationCompleted`) links and finishes KYC.
+- Email sign-in layer 1 (`sendSignInLinkToEmail`) returns a `Result`; its Firebase error code is logged as
+  `auth_error(method=email_link_native)` before falling back. Diagnose delivery with the Maintenance workflow
+  task `emailauth` (Auth config, mail queue states, send limits).
 - Brand blue is Steel Blue `#2B5A8C` (dark `#93B8E0`, `SteelBlue` in `Color.kt`); never reintroduce `#246BEE`. Tapping a room in Explore opens
-  its availability sheet; after a request the "Request sent" sheet offers "View request" (opens My Rentals
+  the listing on that room's card (the sheet opens only from Availability / Check availability); after a request the "Request sent" sheet offers "View request" (opens My Rentals
   highlighting it) and "Message host on WhatsApp".
   `DiscoveryViewModel` keeps Explore's list position and map camera across a visit to a listing.
 - Admin Console tabs live in `ui/screens/admin/` (one file per tab, package `com.example.ui.screens`);
