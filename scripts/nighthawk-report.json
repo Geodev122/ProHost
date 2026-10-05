@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-10-05T04:21:18.916Z",
+  "generatedAt": "2026-10-05T04:43:23.449Z",
   "trigger": "NIGHTHAWK",
   "summary": {
-    "total": 68,
+    "total": 69,
     "critical": 0,
     "high": 0,
-    "medium": 14,
+    "medium": 15,
     "low": 54,
     "info": 0,
     "passes": 29
@@ -72,6 +72,15 @@
       "file": "functions/src/billing/billingHelpers.ts",
       "line": null,
       "message": "Module \"billing/billingHelpers\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/billing/billingRescueLogic.ts",
+      "line": null,
+      "message": "Module \"billing/billingRescueLogic\" has exports but is not imported from index.ts.",
       "suggestion": "Export or remove."
     },
     {
@@ -610,7 +619,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/admin/AdminPackagesTab.kt",
-      "line": 137,
+      "line": 140,
       "message": "Line has 163 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },

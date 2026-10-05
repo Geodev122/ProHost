@@ -55,6 +55,11 @@ export const playBillingRtdn = onMessagePublished(
       return;
     }
 
+    // Heartbeat for Admin › Packages' billing health check: proves RTDN is wired.
+    await getFirestore().doc("app_config/billing_health")
+      .set({ lastRtdnAt: Date.now(), lastRtdnPackage: String(notification.packageName ?? "") }, { merge: true })
+      .catch(() => undefined);
+
     // Test notifications (from Play Console's "Send test notification") have no
     // subscriptionNotification — just ignore them after a log line.
     const subNote = notification.subscriptionNotification as Record<string, unknown> | undefined;

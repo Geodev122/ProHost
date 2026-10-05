@@ -428,7 +428,8 @@ fun AdminConsoleScreen(
     }
 
     // Full profile of one account (opened from Users / Listings search results).
-    uiState.dossier?.let { dossier -> AdminDossierSheet(dossier = dossier, adminViewModel = adminViewModel) }
+    uiState.dossier?.let { dossier -> AdminDossierSheet(dossier = dossier, uiState = uiState, adminViewModel = adminViewModel) }
+    AdminBillingDialogs(uiState = uiState, adminViewModel = adminViewModel)
     if (uiState.isLoadingDossier && uiState.dossier == null) {
         Dialog(onDismissRequest = { adminViewModel.closeDossier() }) {
             CircularProgressIndicator()

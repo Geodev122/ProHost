@@ -2,6 +2,8 @@ package com.example.ui.state
 
 import com.example.data.auth.AdminCounts
 import com.example.data.auth.AdminUserDossier
+import com.example.data.auth.BillingHealth
+import com.example.data.auth.PendingPayment
 import com.example.data.model.*
 
 /**
@@ -22,6 +24,15 @@ data class AdminUiState(
     val dossier: AdminUserDossier? = null,
     val isLoadingDossier: Boolean = false,
     val isExportingUsers: Boolean = false,
+    // Billing rescue (Admin › Packages): Play API health, paid purchases not active yet,
+    // and the "Activate for this user" flow (account picker + reassignment confirmation).
+    val billingHealth: BillingHealth? = null,
+    val pendingPayments: List<PendingPayment> = emptyList(),
+    val isCheckingBilling: Boolean = false,
+    val assigningPayment: PendingPayment? = null,
+    val assignCandidates: List<AppUser> = emptyList(),
+    val reassignConfirm: ReassignConfirm? = null,
+    val activatingPaymentId: String? = null,
     val auditLogs: List<AuditSecurityLog> = emptyList(),
     val schema: SpaceArchitectureSchema = SpaceArchitectureSchema(),
     val hashtagAnalytics: List<HashtagUsageEntry> = emptyList(),
@@ -111,3 +122,10 @@ sealed interface AdminUiEvent {
     data class DataExportReady(val title: String, val content: String) : AdminUiEvent
 }
 
+/** "This purchase was made for [taggedForName] — activate it for [targetName] instead?" */
+data class ReassignConfirm(
+    val payment: PendingPayment,
+    val targetUid: String,
+    val targetName: String,
+    val taggedForName: String
+)

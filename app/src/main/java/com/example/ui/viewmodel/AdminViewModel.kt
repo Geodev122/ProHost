@@ -156,6 +156,8 @@ class AdminViewModel(
     fun openDossier(uid: String) {
         _uiState.update { it.copy(isLoadingDossier = true) }
         launchSafe { loadDossier(uid) }
+        // The dossier lists this account's paid-but-not-active purchases, if any.
+        refreshBilling()
     }
 
     private suspend fun loadDossier(uid: String) {
@@ -189,6 +191,107 @@ class AdminViewModel(
             return com.example.data.auth.AdminUsersCsv.build(rows)
         } finally {
             _uiState.update { it.copy(isExportingUsers = false) }
+        }
+    }
+
+    // --- Billing rescue (billingRescue.ts): health check + paid purchases not active yet ---
+
+    fun refreshBilling() {
+        _uiState.update { it.copy(isCheckingBilling = true) }
+        launchSafe {
+            val health = functionsClient.billingHealthCheck()
+            val pending = functionsClient.adminBillingPending()
+            _uiState.update {
+                it.copy(
+                    billingHealth = health.getOrNull() ?: it.billingHealth,
+                    pendingPayments = pending.getOrNull() ?: it.pendingPayments,
+                    isCheckingBilling = false
+                )
+            }
+            (health.exceptionOrNull() ?: pending.exceptionOrNull())?.let { e ->
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Couldn't load billing status.")))
+            }
+        }
+    }
+
+    /** Re-runs verify → grant → acknowledge for the account the purchase is parked under. */
+    fun retryPayment(payment: com.example.data.auth.PendingPayment) = activatePayment(payment, null, null, false)
+
+    fun startAssignPayment(payment: com.example.data.auth.PendingPayment) {
+        _uiState.update { it.copy(assigningPayment = payment, assignCandidates = emptyList()) }
+    }
+
+    fun cancelAssignPayment() {
+        _uiState.update { it.copy(assigningPayment = null, assignCandidates = emptyList(), reassignConfirm = null) }
+    }
+
+    fun searchAssignTarget(query: String) {
+        if (query.isBlank()) return
+        launchSafe {
+            functionsClient.adminSearch(query, "users")
+                .onSuccess { r -> _uiState.update { it.copy(assignCandidates = r.users) } }
+                .onFailure { e -> _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Search failed — try again."))) }
+        }
+    }
+
+    fun activatePaymentFor(payment: com.example.data.auth.PendingPayment, target: AppUser) =
+        activatePayment(payment, target.id, target.fullName.ifBlank { target.email }, false)
+
+    fun confirmReassign() {
+        val c = _uiState.value.reassignConfirm ?: return
+        _uiState.update { it.copy(reassignConfirm = null) }
+        activatePayment(c.payment, c.targetUid, c.targetName, true)
+    }
+
+    private fun activatePayment(
+        payment: com.example.data.auth.PendingPayment,
+        targetUid: String?,
+        targetName: String?,
+        confirmReassign: Boolean
+    ) {
+        _uiState.update { it.copy(activatingPaymentId = payment.id) }
+        launchSafe {
+            val result = functionsClient.adminActivatePurchase(payment.kind, payment.id, targetUid, confirmReassign)
+            _uiState.update { it.copy(activatingPaymentId = null) }
+            result.onFailure { e ->
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Activation failed — try again.")))
+                return@launchSafe
+            }
+            val answer = result.getOrNull().orEmpty()
+            when (answer["status"] as? String) {
+                "granted" -> {
+                    _uiState.update { it.copy(assigningPayment = null, assignCandidates = emptyList()) }
+                    _events.emit(AdminUiEvent.ShowToast("Activated and acknowledged — the user now has Pro Host."))
+                    refreshBilling()
+                    refreshResults()
+                }
+                "needs_confirm" -> {
+                    @Suppress("UNCHECKED_CAST")
+                    val owner = answer["taggedFor"] as? Map<String, Any?> ?: emptyMap()
+                    _uiState.update {
+                        it.copy(
+                            reassignConfirm = com.example.ui.state.ReassignConfirm(
+                                payment = payment,
+                                targetUid = targetUid ?: payment.userUid.orEmpty(),
+                                targetName = targetName ?: payment.userName,
+                                taggedForName = listOfNotNull(owner["name"] as? String, (owner["code"] as? String)?.takeIf { c -> c.isNotBlank() })
+                                    .joinToString(" · ").ifBlank { "another account" }
+                            )
+                        )
+                    }
+                }
+                "granted_not_acknowledged" -> {
+                    _events.emit(AdminUiEvent.ShowToast("Granted, but Google Play didn't confirm the acknowledgement — it will retry automatically."))
+                    refreshBilling()
+                }
+                "play_error" -> _events.emit(
+                    AdminUiEvent.ShowToast("Google Play: ${(answer["message"] as? String)?.take(160) ?: "error"}")
+                )
+                else -> {
+                    _events.emit(AdminUiEvent.ShowToast("Not activated: ${answer["status"] ?: "unknown"}"))
+                    refreshBilling()
+                }
+            }
         }
     }
 

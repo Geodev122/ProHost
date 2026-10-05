@@ -11,7 +11,7 @@
 import { getFirestore } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 import { acknowledgeIfNeeded, queryPlaySubscription } from "./billingHelpers";
-import { claimPurchaseToken, linkKey } from "./purchaseLinks";
+import { adminOverrideUid, claimPurchaseToken, linkKey } from "./purchaseLinks";
 import { PlayApiError, PlaySubscription, classifyPlayError } from "./playSubscription";
 import { syncSubscription } from "./subscriptionService";
 import "../lib/admin";
@@ -47,7 +47,14 @@ export async function activatePlayPurchase(
   // obfuscatedExternalAccountId. One started in the Play Store (promo-code redemption,
   // resubscribe) carries none — the first account whose device holds the token claims it,
   // and a token another account already claimed is never re-assigned.
-  if (purchase.obfuscatedAccountId) {
+  const override = await adminOverrideUid(purchaseToken);
+  if (override) {
+    // An admin assigned this purchase to an account: only that account may activate it.
+    if (override !== uid) {
+      logger.warn(`${logTag}: purchase assigned by an admin to another account uid=${uid} product=${productId}`);
+      return { status: "owned_by_other", reason: "link" };
+    }
+  } else if (purchase.obfuscatedAccountId) {
     if (purchase.obfuscatedAccountId !== uid) {
       logger.warn(`${logTag}: uid mismatch uid=${uid} obfuscated=${purchase.obfuscatedAccountId} product=${productId}`);
       return { status: "owned_by_other", reason: "account" };
@@ -91,14 +98,15 @@ export async function parkPendingActivation(
   purchaseToken: string,
   productId: string,
   reason: string,
-  source: string
+  source: string,
+  opts: { needsAdmin?: boolean } = {}
 ): Promise<void> {
   try {
     const ref = getFirestore().collection(PENDING_COLLECTION).doc(linkKey(purchaseToken));
     const now = Date.now();
     const existing = await ref.get();
     if (existing.exists && existing.data()?.resolved === false) {
-      await ref.update({ lastError: reason.slice(0, 500), updatedAt: now });
+      await ref.update({ lastError: reason.slice(0, 500), updatedAt: now, ...(opts.needsAdmin ? { needsAdmin: true } : {}) });
       return;
     }
     await ref.set({
@@ -112,6 +120,8 @@ export async function parkPendingActivation(
       updatedAt: now,
       resolved: false,
       alerted: false,
+      // Retrying can't fix it (e.g. the purchase is tagged for another account): an admin decides.
+      needsAdmin: opts.needsAdmin === true,
     });
     logger.warn(`${source}: parked purchase for retry uid=${uid} product=${productId}: ${reason}`);
     // Money may have been taken without access: admins should know right away.

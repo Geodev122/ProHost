@@ -162,3 +162,67 @@ object AdminUsersCsv {
         rows.forEach { row -> appendLine(COLUMNS.joinToString(",") { cell(row[it]) }) }
     }
 }
+
+/** billingHealthCheck: can the server use the Play Developer API, and is RTDN arriving? */
+data class BillingHealth(
+    val playApi: String,
+    val httpStatus: Int?,
+    val message: String,
+    val serviceAccount: String?,
+    val lastRtdnAt: Long?,
+    val pendingCount: Int,
+    val unlinkedCount: Int
+) {
+    val isHealthy: Boolean get() = playApi == "ok"
+
+    companion object {
+        fun fromMap(m: Map<String, Any?>) = BillingHealth(
+            playApi = m.str("playApi").ifBlank { "transient" },
+            httpStatus = (m["httpStatus"] as? Number)?.toInt(),
+            message = m.str("message"),
+            serviceAccount = m["serviceAccount"] as? String,
+            lastRtdnAt = m.long("lastRtdnAt"),
+            pendingCount = m.int("pendingCount"),
+            unlinkedCount = m.int("unlinkedCount")
+        )
+    }
+}
+
+/** A paid Play purchase that isn't active yet (adminBillingPending). Tokens stay on the server. */
+data class PendingPayment(
+    val kind: String,
+    val id: String,
+    val userUid: String?,
+    val userName: String,
+    val userCode: String,
+    val productId: String,
+    val orderId: String,
+    val lastError: String,
+    val attempts: Int,
+    val needsAdmin: Boolean,
+    val createdAt: Long,
+    val hoursLeft: Int?,
+    val hint: String
+) {
+    companion object {
+        @Suppress("UNCHECKED_CAST")
+        fun listFrom(m: Map<String, Any?>): List<PendingPayment> = m["rows"].mapList().map { r ->
+            val user = r["user"] as? Map<String, Any?> ?: emptyMap()
+            PendingPayment(
+                kind = r.str("kind"),
+                id = r.str("id"),
+                userUid = user["uid"] as? String,
+                userName = user.str("name"),
+                userCode = user.str("code"),
+                productId = r.str("productId"),
+                orderId = r.str("orderId"),
+                lastError = r.str("lastError"),
+                attempts = r.int("attempts"),
+                needsAdmin = r["needsAdmin"] as? Boolean ?: false,
+                createdAt = r.long("createdAt") ?: 0L,
+                hoursLeft = (r["hoursLeft"] as? Number)?.toInt(),
+                hint = r.str("hint")
+            )
+        }
+    }
+}

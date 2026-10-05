@@ -64,11 +64,14 @@ internal fun AdminPackagesTab(
     uiState: com.example.ui.state.AdminUiState,
     adminViewModel: AdminViewModel
 ) {
+    LaunchedEffect(Unit) { adminViewModel.refreshBilling() }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        item { AdminBillingRescueCard(uiState = uiState, adminViewModel = adminViewModel) }
+        item { AdminPendingPaymentsCard(payments = uiState.pendingPayments, uiState = uiState, adminViewModel = adminViewModel) }
         item {
             AdminGrantAccessCard(adminViewModel = adminViewModel)
         }

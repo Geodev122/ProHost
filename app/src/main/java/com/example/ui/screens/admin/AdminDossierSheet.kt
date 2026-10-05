@@ -44,7 +44,11 @@ private fun day(millis: Long?): String =
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun AdminDossierSheet(dossier: AdminUserDossier, adminViewModel: AdminViewModel) {
+internal fun AdminDossierSheet(
+    dossier: AdminUserDossier,
+    uiState: com.example.ui.state.AdminUiState,
+    adminViewModel: AdminViewModel
+) {
     val user = dossier.profile
     ProHostBottomSheet(
         onDismissRequest = { adminViewModel.closeDossier() },
@@ -109,6 +113,17 @@ internal fun AdminDossierSheet(dossier: AdminUserDossier, adminViewModel: AdminV
                         )
                     }
                 }
+            }
+
+            // Paid in Google Play but not active yet (parked or tagged for another account).
+            val stuck = uiState.pendingPayments.filter { it.userUid == user.id }
+            if (stuck.isNotEmpty()) {
+                AdminPendingPaymentsCard(
+                    payments = stuck,
+                    uiState = uiState,
+                    adminViewModel = adminViewModel,
+                    title = "Payments not active yet"
+                )
             }
 
             HorizontalDivider()

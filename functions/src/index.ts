@@ -18,6 +18,7 @@ export { setListingVerification, setListingSubscriptionActive, requestListingVer
 export { configureGa4ApiSecret } from "./admin/ga4Config";
 export { backfillEmailVerified } from "./admin/backfillEmailVerified";
 export { migrateLegacyListingFields } from "./admin/migrateLegacyFields";
+export { billingHealthCheck, adminBillingPending, adminActivatePurchase } from "./billing/billingRescue";
 export {
   adminCounts,
   adminSearch,

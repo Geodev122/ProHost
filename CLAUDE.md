@@ -228,6 +228,14 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   failed or unacknowledged paid purchases are parked in `play_billing_pending` and retried every 15 min by
   `retryPendingPlayActivations` (before Play's 3-day refund). RTDN runs with `retry: true` and throws on
   config/transient Play errors.
+- Billing rescue (`billing/billingRescue.ts`, Admin › Packages + the user dossier): `billingHealthCheck`
+  (probes subscriptionsv2 with a dummy token — 400/404 = credentials OK, 401/403 = Play Console access missing;
+  RTDN heartbeat in `app_config/billing_health`), `adminBillingPending` (parked + unlinked purchases, hours left
+  before Play's 3-day refund) and `adminActivatePurchase` (Retry / Activate for an account, with explicit
+  confirmation when the purchase is tagged for another account). A purchase tagged for another ProHost account is
+  parked with `needsAdmin` (never silently dropped) and admins get an `OWNERSHIP_MISMATCH` push. An admin
+  assignment is an `adminOverride` link in `play_purchase_links`, which `resolvePurchaseUid` and
+  `activatePlayPurchase` honour before Play's account id. Runbook: `docs/MONETIZATION.md`.
 - The "Activating your subscription" banner shows only after Play returns PURCHASED and clears on any
   billing message (cancel, pending, error) or server answer. `toUserMessage` passes a function's own
   UNAVAILABLE message through; only transport failures get the generic connection text.

@@ -22,6 +22,7 @@ const TITLES: Record<AdminBillingEvent, string> = {
   EXPIRED: "Pro Host access expired",
   UNLINKED_PURCHASE: "Play purchase awaiting its account",
   ACTIVATION_AT_RISK: "Paid subscription not activated",
+  OWNERSHIP_MISMATCH: "Paid purchase tagged for another account",
 };
 
 const STATUS_WORDS: Record<string, string> = {

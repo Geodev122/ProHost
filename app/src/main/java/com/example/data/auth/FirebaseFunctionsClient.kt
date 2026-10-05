@@ -279,6 +279,29 @@ open class FirebaseFunctionsClient {
         AdminExportPage.fromMap(callAdmin("adminExportUsers", mapOf("cursor" to cursor)))
     }.onFailure { Log.e(tag, "adminExportUsers failed: ${it.message}", it) }
 
+    // --- Billing rescue (functions/src/billing/billingRescue.ts) ---
+
+    suspend fun billingHealthCheck(): Result<BillingHealth> = runCatching {
+        BillingHealth.fromMap(callAdmin("billingHealthCheck"))
+    }.onFailure { Log.e(tag, "billingHealthCheck failed: ${it.message}", it) }
+
+    suspend fun adminBillingPending(): Result<List<PendingPayment>> = runCatching {
+        PendingPayment.listFrom(callAdmin("adminBillingPending"))
+    }.onFailure { Log.e(tag, "adminBillingPending failed: ${it.message}", it) }
+
+    /** Retry (no [targetUid]) or Activate for [targetUid]; [confirmReassign] after a needs_confirm answer. */
+    suspend fun adminActivatePurchase(
+        kind: String,
+        id: String,
+        targetUid: String?,
+        confirmReassign: Boolean
+    ): Result<Map<String, Any?>> = runCatching {
+        callAdmin(
+            "adminActivatePurchase",
+            mapOf("kind" to kind, "id" to id, "targetUid" to targetUid, "confirmReassign" to confirmReassign)
+        )
+    }.onFailure { Log.e(tag, "adminActivatePurchase failed: ${it.message}", it) }
+
     /** Admin maintenance: one-time backfills. Returns the server's summary map. */
     suspend fun runAdminMaintenance(callable: String): Result<Map<String, Any?>> = runCatching {
         callAdmin(callable)

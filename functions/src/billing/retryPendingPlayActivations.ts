@@ -30,6 +30,8 @@ export const retryPendingPlayActivations = onSchedule({ schedule: "*/15 * * * *"
     const productId = (d.productId as string | undefined) ?? "";
     const createdAt = (d.createdAt as number | undefined) ?? now;
     const attempts = ((d.attempts as number | undefined) ?? 0) + 1;
+    // Waiting on an admin (Admin › Packages › Payments needing attention).
+    if (d.needsAdmin === true) continue;
     if (!uid || !token) {
       await doc.ref.update({ resolved: true, outcome: "malformed", resolvedAt: now });
       continue;
@@ -52,7 +54,18 @@ export const retryPendingPlayActivations = onSchedule({ schedule: "*/15 * * * *"
         });
         continue;
       }
-      if (outcome.status === "expired" || outcome.status === "owned_by_other" ||
+      if (outcome.status === "owned_by_other") {
+        // Never drop a paid purchase silently: hand it to an admin to assign.
+        await doc.ref.update({
+          needsAdmin: true, attempts, updatedAt: now,
+          lastError: "owned_by_other: tagged for or linked to another ProHost account",
+        });
+        await notifyAdminsOfSubscriptionChange(uid, "OWNERSHIP_MISMATCH", {
+          note: "open Admin › Packages › Payments needing attention",
+        });
+        continue;
+      }
+      if (outcome.status === "expired" ||
         (outcome.status === "play_error" && outcome.error.kind === "invalid")) {
         await doc.ref.update({ resolved: true, outcome: outcome.status, attempts, resolvedAt: now });
         logger.warn(`retryPendingPlayActivations: dropped uid=${uid} product=${productId}: ${outcome.status}`);

@@ -92,7 +92,8 @@ export type AdminBillingEvent =
   | "ADMIN_REVOKED"
   | "EXPIRED"
   | "UNLINKED_PURCHASE"
-  | "ACTIVATION_AT_RISK";
+  | "ACTIVATION_AT_RISK"
+  | "OWNERSHIP_MISMATCH";
 
 /**
  * What changed between the stored subscriptions record ([prev]) and Google's current state,

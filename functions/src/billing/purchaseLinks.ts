@@ -18,12 +18,34 @@ export function linkKey(purchaseToken: string): string {
   return createHash("sha256").update(purchaseToken, "utf8").digest("hex");
 }
 
-/** The account a purchase belongs to: Play's account id first, else a stored link. */
+/**
+ * An admin's explicit assignment of a purchase to an account (Admin › Packages › Payments
+ * needing attention › Activate for this user). It wins over Play's account id, so
+ * renewals of a reassigned purchase keep reaching the account the admin chose.
+ */
+export async function adminOverrideUid(purchaseToken: string): Promise<string | null> {
+  const d = (await getFirestore().collection(COLLECTION).doc(linkKey(purchaseToken)).get()).data();
+  return d?.adminOverride === true && typeof d.uid === "string" && d.uid.length > 0 ? d.uid : null;
+}
+
+/** Records an admin's assignment of [purchaseToken] to [uid] (see adminOverrideUid). */
+export async function setAdminOverride(uid: string, purchaseToken: string, productId: string, byUid: string): Promise<void> {
+  await getFirestore().collection(COLLECTION).doc(linkKey(purchaseToken)).set({
+    uid, productId, linkedAt: Date.now(), adminOverride: true, assignedBy: byUid,
+  });
+}
+
+/** The account a purchase belongs to: an admin override, Play's account id, else a stored link. */
 export async function resolvePurchaseUid(
   obfuscatedExternalAccountId: string | null | undefined,
   purchaseToken: string,
   linkedPurchaseToken?: string | null
 ): Promise<string | null> {
+  for (const token of [purchaseToken, linkedPurchaseToken]) {
+    if (!token) continue;
+    const override = await adminOverrideUid(token);
+    if (override) return override;
+  }
   if (obfuscatedExternalAccountId) return obfuscatedExternalAccountId;
   const db = getFirestore();
   for (const token of [purchaseToken, linkedPurchaseToken]) {

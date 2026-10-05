@@ -1,4 +1,5 @@
 import { HttpsError } from "firebase-functions/v2/https";
+import { notifyAdminsOfSubscriptionChange } from "./adminBillingAlerts";
 import { onCall } from "../lib/callable";
 import { logger } from "firebase-functions/v2";
 import "../lib/admin";
@@ -91,11 +92,26 @@ export const verifyAndRestorePurchase = onCall<{
     case "expired":
       throw new HttpsError("failed-precondition", "This subscription has already expired.");
     case "owned_by_other":
+      // Paid but tagged for (or claimed by) another ProHost account: Play refunds it in 3 days
+      // unless someone acts, so park it where admins see it (Admin › Packages) and alert them.
+      await parkPendingActivation(
+        uid, cleanToken, cleanProductId,
+        outcome.reason === "account"
+          ? "owned_by_other: bought while another ProHost account was signed in on this device"
+          : "owned_by_other: already linked to another ProHost account",
+        "verifyAndRestorePurchase",
+        { needsAdmin: true }
+      );
+      await notifyAdminsOfSubscriptionChange(uid, "OWNERSHIP_MISMATCH", {
+        note: "the person signed in now says they paid — open Admin › Packages › Payments needing attention",
+      });
       throw new HttpsError(
         "permission-denied",
         outcome.reason === "account"
-          ? "This purchase belongs to a different ProHost account."
-          : "This purchase is already linked to a different ProHost account."
+          ? "This Google Play purchase was made while a different ProHost account was signed in on this device. " +
+            "We've alerted our team to move it to this account — no need to pay again."
+          : "This Google Play purchase is linked to a different ProHost account. " +
+            "We've alerted our team to review it — no need to pay again."
       );
   }
 });

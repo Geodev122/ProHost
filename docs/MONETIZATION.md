@@ -111,6 +111,25 @@ What changed:
 | Month-1 churn | Play dashboard | < 10% |
 | Unresolved purchases older than 7 days | Firestore | 0 |
 
+### Runbook: "I paid but I'm not Pro Host" (Play says "activate within 3 days")
+Google Play refunds a subscription the server hasn't **acknowledged** within 3 days and warns the buyer.
+The server acknowledges only after it has verified the purchase with Google and granted it, so this warning
+means verification is failing.
+
+1. **Admin › Packages › Billing health.**
+   - **Red "Google Play access is not set up"** (`config`): in Play Console › Users and permissions, invite the
+     service account shown, with *View financial data* and *Manage orders and subscriptions*. Then enable the
+     Google Play Android Developer API in Google Cloud and tap **Check again**. Nothing activates until this is green.
+   - **Amber "no Play notifications received yet"**: set the RTDN topic `play-billing-rtdn`
+     (Play Console › Monetize › Monetization setup).
+2. **Payments needing attention.** Every paid purchase that isn't active yet is listed with the hours left before the refund.
+   - **Retry now**: verify → grant → acknowledge for the account it is parked under.
+   - **Activate for…**: the purchase is tagged for another ProHost account. This happens when someone pays while signed in
+     to a different ProHost account on the same device; a different *Google Play* email is fine and is never the cause.
+     Confirm with the buyer, search their account, and confirm the move. Renewals then follow that account
+     (`play_purchase_links` admin override).
+3. The user's profile in Admin › Users shows the same rows under "Payments not active yet".
+
 ## 3. Promo-code campaign (50 early-subscriber codes)
 
 ### How a redemption flows
