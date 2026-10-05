@@ -146,7 +146,9 @@ fun ProHostAppRoot(
     // My Rentals scrolls to this booking (after "View request", or a booking push).
     var rentalsHighlightBookingId by remember { mutableStateOf<String?>(null) }
     var managingSpace by remember { mutableStateOf<SpaceListing?>(null) }
-    var activeTabId by remember { mutableStateOf("search_map") }
+    // Saveable: survives configuration changes the manifest doesn't handle (theme,
+    // locale, fold) and process death, so the person isn't thrown back to Explore.
+    var activeTabId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("search_map") }
     var activeDrawerTabDialog by remember { mutableStateOf<String?>(null) }
 
     // KYC gate: shown as a full-screen overlay when a user with no verified phone
@@ -169,7 +171,7 @@ fun ProHostAppRoot(
     // render full-screen (no bottom nav, just a top bar with the screen's title +
     // menu icon) since they live outside the unified Specialist/Pro Host bottom nav —
     // see FULLSCREEN_TAB_IDS.
-    var fullScreenDrawerTab by remember { mutableStateOf<String?>(null) }
+    var fullScreenDrawerTab by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
 
     // Becoming a Pro Host used to be completely silent — grantProHostRoleIfNeeded
     // (functions/src/lib/entitlements.ts) fires the moment a package/PAYG payment
@@ -199,6 +201,10 @@ fun ProHostAppRoot(
     // KYC gate: if the user has no verified phone and the target tab requires one,
     // show the KYC screen instead and remember where to route after completion.
     fun navigateTo(targetTabId: String) {
+        // Never route to a destination the current role can't use (e.g. a stale
+        // notification target after a role change).
+        val role = currentUser?.role
+        if (role != null && targetTabId !in allowedTabIdsForRole(role)) return
         val needsKyc = targetTabId in kycRequiredTabIds &&
             currentUser?.role != UserRole.ADMIN &&
             currentUser?.hasVerifiedPhone(com.example.data.auth.PhoneLink.isLinked()) != true
@@ -221,8 +227,11 @@ fun ProHostAppRoot(
     }
 
     // Synchronize initial tab based on user role or incoming deep link
+    var lastRoutedRole by remember { mutableStateOf<UserRole?>(null) }
     LaunchedEffect(currentUser?.role, deepLinkTab) {
         val role = currentUser?.role
+        val previousRole = lastRoutedRole
+        lastRoutedRole = role
         if (!deepLinkTab.isNullOrBlank() && role != null && deepLinkTab in allowedTabIdsForRole(role)) {
             // MainActivity is an exported activity (required for the launcher intent
             // and App Links) and reads "target_tab" straight from an
@@ -232,6 +241,11 @@ fun ProHostAppRoot(
             // Admin Console UI — only ever accept a deep-linked tab id that's actually
             // valid for this user's current role.
             navigateTo(deepLinkTab)
+        } else if (previousRole != null && role != null &&
+            (fullScreenDrawerTab ?: activeTabId) in allowedTabIdsForRole(role)
+        ) {
+            // A role change mid-session (e.g. a plan just activated on Premium): stay where
+            // the person is when the new role can still use it.
         } else {
             when (currentUser?.role) {
                 UserRole.ADMIN -> navigateTo("admin_console")
@@ -569,8 +583,12 @@ fun ProHostAppRoot(
                 // for Pro Host/Specialist sitting on their own root tab.
                 val isAdminAtRoot = currentRole == UserRole.ADMIN && safeFullScreenDrawerTab == AppNavTab.AdminConsole.id
                 val isAdminOnMainTab = currentRole == UserRole.ADMIN && safeFullScreenDrawerTab == null
+                // Specialists: back from Saved / My Rentals / Profile returns to Explore (the
+                // centre of their one-screen shell) instead of leaving the app.
+                val isSpecialistOffExplore = isSpecialistShell && safeFullScreenDrawerTab == null &&
+                    activeTabId != AppNavTab.SearchMap.id
                 BackHandler(enabled = managingSpace != null || detailedSpace != null || isAdminOnMainTab ||
-                    (safeFullScreenDrawerTab != null && !isAdminAtRoot)) {
+                    (safeFullScreenDrawerTab != null && !isAdminAtRoot) || isSpecialistOffExplore) {
                     if (managingSpace != null) {
                         managingSpace = null
                     } else if (detailedSpace != null) {
@@ -585,9 +603,12 @@ fun ProHostAppRoot(
                             fullScreenDrawerTab = null
                             activeTabId = when (currentRole) {
                                 UserRole.PRO_HOST -> AppNavTab.ManageListings.id
-                                else -> AppNavTab.SearchMap.id
+                                // Same place the top bar's back arrow goes (Premium is opened from Profile).
+                                else -> AppNavTab.ProfessionalProfile.id
                             }
                         }
+                    } else if (isSpecialistOffExplore) {
+                        activeTabId = AppNavTab.SearchMap.id
                     }
                 }
 
@@ -762,8 +783,10 @@ fun ProHostAppRoot(
                         ProHostBottomNavBar(
                             tabs = roleTabs,
                             activeTabId = activeTabId,
+                            // Through navigateTo so the phone-verification gate (kycRequiredTabIds)
+                            // applies to bottom-nav taps too.
                             onTabSelected = {
-                                activeTabId = it
+                                navigateTo(it)
                                 discoveryViewModel.setNavExpandedOnMap(false)
                             },
                             highlightWithSecondary = currentRole == UserRole.PRO_HOST,

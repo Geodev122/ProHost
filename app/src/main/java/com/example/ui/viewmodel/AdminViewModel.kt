@@ -43,7 +43,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
         // One-shot fetch (not a live listener) — hashtag popularity changes slowly
@@ -60,7 +60,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
         refreshCounts()
@@ -73,7 +73,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
         viewModelScope.launch {
@@ -84,7 +84,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -349,12 +349,12 @@ class AdminViewModel(
                 val result = functionsClient.lookupUserForGrant(trimmed)
                 _grantAccess.value = result.fold(
                     onSuccess = { GrantAccessUiState(target = it) },
-                    onFailure = { GrantAccessUiState(error = it.message ?: "Lookup failed") }
+                    onFailure = { GrantAccessUiState(error = it.toUserMessage("Lookup failed")) }
                 )
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _grantAccess.value = GrantAccessUiState(error = e.message ?: "Lookup failed")
+                _grantAccess.value = GrantAccessUiState(error = e.toUserMessage("Lookup failed"))
             }
         }
     }
@@ -391,7 +391,7 @@ class AdminViewModel(
           } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
           } catch (e: Exception) {
-            _grantAccess.update { it.copy(isGranting = false, error = e.message ?: "Upgrade failed") }
+            _grantAccess.update { it.copy(isGranting = false, error = e.toUserMessage("Upgrade failed")) }
           }
         }
     }
@@ -416,7 +416,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.message ?: "Billing sync failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Billing sync failed")))
             }
         }
     }
@@ -445,13 +445,13 @@ class AdminViewModel(
                 _analytics.update { state ->
                     result.fold(
                         onSuccess = { state.copy(isLoading = false, data = it) },
-                        onFailure = { state.copy(isLoading = false, error = it.message ?: "Couldn't load analytics") }
+                        onFailure = { state.copy(isLoading = false, error = it.toUserMessage("Couldn't load analytics")) }
                     )
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _analytics.update { it.copy(isLoading = false, error = e.message ?: "Couldn't load analytics") }
+                _analytics.update { it.copy(isLoading = false, error = e.toUserMessage("Couldn't load analytics")) }
             }
         }
     }
@@ -486,7 +486,7 @@ class AdminViewModel(
                     AdminUiEvent.ShowToast(
                         result.fold(
                             onSuccess = { (updated, missing) -> "Filled $updated upgrade date(s); $missing had no record" },
-                            onFailure = { it.message ?: "Backfill failed" }
+                            onFailure = { it.toUserMessage("Backfill failed") }
                         )
                     )
                 )
@@ -494,7 +494,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.message ?: "Backfill failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Backfill failed")))
             }
         }
     }
@@ -516,7 +516,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -558,7 +558,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -587,7 +587,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -620,7 +620,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -658,7 +658,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -692,7 +692,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -742,7 +742,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -761,7 +761,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -789,7 +789,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -817,7 +817,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -840,7 +840,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -858,7 +858,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -879,7 +879,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -895,7 +895,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -952,7 +952,7 @@ class AdminViewModel(
                 throw e
             } catch (e: Exception) {
                 _uiState.update { it.copy(isUploadingLegalDocument = null) }
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Upload failed — check your connection and try again"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Upload failed — check your connection and try again")))
             }
         }
     }
@@ -1032,7 +1032,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -1057,7 +1057,7 @@ class AdminViewModel(
                         "Permission denied. Please sign out and sign back in to refresh your admin session."
                     e.message?.contains("UNAVAILABLE", ignoreCase = true) == true ->
                         "No network connection — please try again."
-                    else -> e.localizedMessage ?: "Operation failed"
+                    else -> e.toUserMessage("Operation failed")
                 }
                 _events.emit(AdminUiEvent.ShowToast(msg))
             }
@@ -1082,7 +1082,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -1112,7 +1112,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -1125,7 +1125,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -1138,7 +1138,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -1150,7 +1150,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -1183,7 +1183,7 @@ class AdminViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -1201,7 +1201,7 @@ class AdminViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -1223,7 +1223,7 @@ class AdminViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -1244,7 +1244,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }
@@ -1265,7 +1265,7 @@ class AdminViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Operation failed")))
             }
         }
     }

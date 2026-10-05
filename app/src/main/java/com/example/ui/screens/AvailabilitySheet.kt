@@ -344,7 +344,7 @@ internal fun AvailabilitySheet(
                                                                     color = if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success
                                                                 )
                                                                 Text(
-                                                                    "$${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}/mo",
+                                                                    "$${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}${SpaceCalculationUtils.strategyUnitLabel(RentalStrategyType.MONTHLY)}",
                                                                     style = MaterialTheme.typography.labelSmall,
                                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                                 )

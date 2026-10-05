@@ -409,7 +409,7 @@ private fun MonthlyAvailabilityTable(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(cell.label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                Text("$${cell.priceUsd.toInt()}/mo", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.8f))
+                Text("$${cell.priceUsd.toInt()}${SpaceCalculationUtils.strategyUnitLabel(RentalStrategyType.MONTHLY)}", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.8f))
                 ProStatusBadge(
                     type = if (cell.isRented) ProBadgeType.ACCEPTED_LOCKED else ProBadgeType.CUSTOM_SUCCESS,
                     customText = if (cell.isRented) "Rented" else "Available"

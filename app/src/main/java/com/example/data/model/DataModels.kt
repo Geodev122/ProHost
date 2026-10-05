@@ -1290,7 +1290,7 @@ fun AppUser.isProfileComplete(): Boolean = role == UserRole.ADMIN || fullName.is
  * seconds before the server assigns one — a short uppercase form of the internal id.
  */
 fun publicCode(displayCode: String, internalId: String): String =
-    displayCode.ifBlank { internalId.takeLast(6).uppercase() }
+    displayCode.ifBlank { "…" }
 
 val AppUser.publicCode: String get() = publicCode(displayCode, id)
 val SpaceListing.publicCode: String get() = publicCode(displayCode, id)

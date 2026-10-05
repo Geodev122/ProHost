@@ -285,7 +285,7 @@ fun SpaceDetailsScreenContent(
                 DetailsBookingBar(
                     roomName = stripSub?.name,
                     showAvailability = isSpecialistViewer,
-                    hasSchedule = availableSlots.isNotEmpty(),
+                    hasSchedule = availableSlots.any { stripSub == null || it.sourceFormulaId == stripSub.id },
                     openSlotCount = openSlotCount,
                     priceUsd = stripPerPerson ?: selectedFormula?.rateUsd ?: fallbackPrice,
                     pricePrefix = if (stripAttendeeSub != null) "from " else "",
@@ -669,7 +669,7 @@ fun SpaceDetailsScreenContent(
                             val priceSummary = run {
                                 val st = strategyPreviewGroups.firstOrNull()?.first
                                 when (st) {
-                                    RentalStrategyType.MONTHLY -> "$${liveSpace.pricing.monthly?.rateUsd?.toInt() ?: liveSpace.baseMonthlyRateUsd.toInt()}/mo"
+                                    RentalStrategyType.MONTHLY -> "$${liveSpace.pricing.monthly?.rateUsd?.toInt() ?: liveSpace.baseMonthlyRateUsd.toInt()}${SpaceCalculationUtils.strategyUnitLabel(RentalStrategyType.MONTHLY)}"
                                     RentalStrategyType.HOURLY -> "from $${liveSpace.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0}/hr"
                                     RentalStrategyType.SHIFT_BASED -> {
                                         val minPrice = liveSpace.pricing.shiftBased?.shifts
@@ -680,7 +680,7 @@ fun SpaceDetailsScreenContent(
                                         val minPrice = liveSpace.pricing.dayBased?.distribution?.values?.minOfOrNull { it.price }?.toInt() ?: 0
                                         "from $$minPrice/day"
                                     }
-                                    null -> "$${liveSpace.baseMonthlyRateUsd.toInt()}/mo"
+                                    null -> SpaceCalculationUtils.lowestPriceSummary(liveSpace).let { (p, u) -> "$${p.toInt()}$u" }
                                 }
                             }
                             SubdivisionRentalCard(
@@ -720,7 +720,7 @@ fun SpaceDetailsScreenContent(
                                 val priceSummary = if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) {
                                     "from $${perAttendeeFrom?.toInt() ?: 0}/person"
                                 } else when (sub.pricing.strategyType) {
-                                    RentalStrategyType.MONTHLY -> "$${sub.pricing.monthly?.rateUsd?.toInt() ?: 0}/mo"
+                                    RentalStrategyType.MONTHLY -> "$${sub.pricing.monthly?.rateUsd?.toInt() ?: 0}${SpaceCalculationUtils.strategyUnitLabel(RentalStrategyType.MONTHLY)}"
                                     RentalStrategyType.HOURLY -> "from $${sub.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0}/hr"
                                     RentalStrategyType.SHIFT_BASED -> {
                                         val minPrice = sub.pricing.shiftBased?.shifts?.filter { !it.isUnavailable }?.minOfOrNull { it.price }?.toInt() ?: 0
@@ -914,7 +914,10 @@ fun SpaceDetailsScreenContent(
                     append(" | ${com.example.ui.util.AttendeePricing.describe(attendeeQuote!!)}")
                 }
             }
-            val (request, synced) = viewModel.repository.createBookingRequest(
+            // createBookingRequest throws (e.g. "already have a pending request for this
+            // space"); never let that reach the coroutine as an uncaught crash.
+            val sendResult = try {
+                viewModel.repository.createBookingRequest(
                 space = liveSpace,
                 formula = formula,
                 practitioner = user,
@@ -937,16 +940,38 @@ fun SpaceDetailsScreenContent(
                 selectedAttendeePackageId = if (isAttendeeMode) attendeeQuote?.tier?.id else null,
                 attendeePackageName = if (isAttendeeMode) attendeeQuote?.tier?.name else null,
                 attendeePackagePriceUsd = if (isAttendeeMode) attendeeQuote?.tier?.pricePerAttendeeUsd ?: 0.0 else 0.0
-            )
+                )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                isSendingSlotRequest = false
+                throw e
+            } catch (e: Exception) {
+                isSendingSlotRequest = false
+                com.example.analytics.AnalyticsTracker.bookingRequestFailed(com.example.analytics.AnalyticsTracker.errorCode(e))
+                snackbarHostState.showSnackbar(
+                    e.message?.takeIf { e is IllegalStateException && it.isNotBlank() }
+                        ?: "Couldn't send your request — check your connection and try again."
+                )
+                return@launch
+            }
+            val (request, synced) = sendResult
             isSendingSlotRequest = false
             showSendConfirm = false
             if (synced) {
+                com.example.analytics.AnalyticsTracker.bookingRequest(
+                    space = liveSpace,
+                    sub = subdivision,
+                    valueUsd = price,
+                    strategy = formula.type.name,
+                    attendeeCount = if (isAttendeeMode) attendeeQuote?.attendees else null,
+                    isRebook = false
+                )
                 selectedSlots = emptySet()
                 selectedHoursPerDay = emptyMap()
                 availabilitySheetState.hide()
                 availabilityPanelState = "hidden"
                 sentRequest = request
             } else {
+                com.example.analytics.AnalyticsTracker.bookingRequestFailed("offline")
                 snackbarHostState.showSnackbar("Couldn't send your request — check your connection and try again.")
             }
         }

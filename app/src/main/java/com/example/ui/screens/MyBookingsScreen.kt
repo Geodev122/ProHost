@@ -309,8 +309,18 @@ fun MyBookingsScreen(
                             Modifier.border(2.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.large)
                         } else Modifier,
                         onRebook = {
-                            rebookTargetSpaceId = (space ?: allSpaces.firstOrNull())?.id
-                            rebookSourceBooking = booking
+                            // Only the booking's own workspace — never another listing (which
+                            // would send the request to a different host).
+                            if (space == null) {
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "This workspace is no longer available to book.",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            } else {
+                                rebookTargetSpaceId = space.id
+                                rebookSourceBooking = booking
+                            }
                         },
                         onEditBooking = {
                             // Never fall back to firstOrNull: an edit request must reference
@@ -357,7 +367,7 @@ fun MyBookingsScreen(
     if (rebookTargetSpaceId != null) {
         // Re-derived from the live allSpaces list on every recomposition, not a
         // snapshot frozen at tap time — see the state declaration's comment above.
-        val targetSpace = allSpaces.find { it.id == rebookTargetSpaceId } ?: allSpaces.firstOrNull()
+        val targetSpace = allSpaces.find { it.id == rebookTargetSpaceId }
         val sourceBooking = rebookSourceBooking
 
         if (targetSpace != null) {

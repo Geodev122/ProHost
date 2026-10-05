@@ -255,6 +255,16 @@ class BillingController(
                 currentPlan in com.example.data.billing.PlayCatalog.BASE_PLANS) {
                 manager.activePurchases.value.firstOrNull { productId in it.products }?.purchaseToken
             } else null
+            // Switching plans without the current purchase token would sell a SECOND
+            // subscription (double charge). That happens when this device's Play account
+            // isn't the one that subscribed, or Play hasn't returned purchases yet.
+            if (currentPlan != null && currentPlan != basePlanId &&
+                currentPlan in com.example.data.billing.PlayCatalog.BASE_PLANS && oldPurchaseToken == null) {
+                scope.launch { runCatching { manager.fetchActivePurchases() } }
+                _billingError.value = "To switch plans, open the Play Store with the Google account that subscribed " +
+                    "(or use Manage subscription). We couldn't find your current subscription on this device."
+                return
+            }
 
             _billingPriorExpiryMillis.value = currentUser.value?.ownerPackageExpiryMillis
             // The "Activating" banner waits for Play's PURCHASED result (purchaseEvents).
@@ -366,6 +376,11 @@ class BillingController(
                 }
                 // Unprocessed purchases are already on their way through purchaseEvents;
                 // don't send the same token twice (the Restore button always retries).
+                // A purchase Play still holds as unacknowledged (e.g. a checkout that just
+                // finished) belongs to the purchaseEvents path, which carries fromCheckout and
+                // shows the "Activating" banner and its errors — the silent check must not
+                // claim it first.
+                if (!userInitiated && !forceServerSync && !activePurchase.isAcknowledged) return@runCatching
                 if (!processedPurchaseTokens.add(activePurchase.purchaseToken) && !userInitiated && !forceServerSync) return@runCatching
                 repository.verifyAndRestorePlayPurchase(activePurchase.purchaseToken, productId)
                     .onSuccess {
@@ -423,7 +438,9 @@ class BillingController(
     init {
         scope.launch {
             try {
-                currentUser.collectLatest { user ->
+                // collect, not collectLatest: a profile emission mid-activation must not cancel
+                // onPlanActivated (token refresh, role reload, KYC prompt) halfway.
+                currentUser.collect { user ->
                     if (user?.ownerPackageExpiryMillis != null &&
                         user.ownerPackageExpiryMillis != _billingPriorExpiryMillis.value &&
                         (_billingActivationPending.value || awaitingServerActivation)

@@ -178,6 +178,9 @@ fun DiscoveryScreenContent(
         onDispose { onListPositionSaved(exploreListState.firstVisibleItemIndex, exploreListState.firstVisibleItemScrollOffset) }
     }
     var searchExpanded by rememberSaveable { mutableStateOf(filterState.query.isNotEmpty()) }
+    // The keyboard opens only when the person taps search — not when Explore re-opens
+    // with a search already applied (e.g. returning from a listing).
+    var searchFocusRequested by remember { mutableStateOf(false) }
     val searchQuery = filterState.query
 
     Box(modifier = Modifier
@@ -208,7 +211,8 @@ fun DiscoveryScreenContent(
                         belowControls = searchAreaPill,
                         searchQuery = searchQuery,
                         searchExpanded = searchExpanded,
-                        onSearchExpandedChange = { searchExpanded = it },
+                        onSearchExpandedChange = { searchExpanded = it; searchFocusRequested = it },
+                        focusSearchOnOpen = searchFocusRequested,
                         activeFilterCount = filterState.activeFilterCount,
                         onToggleMapView = onToggleMapView,
                         onSearchQueryChange = onSearchQueryChange,
@@ -227,7 +231,8 @@ fun DiscoveryScreenContent(
                 isMapView = false,
                 searchQuery = searchQuery,
                 searchExpanded = searchExpanded,
-                onSearchExpandedChange = { searchExpanded = it },
+                onSearchExpandedChange = { searchExpanded = it; searchFocusRequested = it },
+                focusSearchOnOpen = searchFocusRequested,
                 activeFilterCount = filterState.activeFilterCount,
                 onToggleMapView = onToggleMapView,
                 onSearchQueryChange = onSearchQueryChange,
@@ -273,6 +278,7 @@ fun DiscoveryScreenContent(
                             } else {
                                 onResetFilters()
                                 onSearchQueryChange("")
+                                searchExpanded = false
                             }
                         }
                     )
@@ -410,6 +416,7 @@ private fun ExploreOverlayHeader(
     unreadAlertCount: Int,
     onAlertsClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    focusSearchOnOpen: Boolean = false,
     belowControls: @Composable () -> Unit = {}
 ) {
     Column(
@@ -500,6 +507,7 @@ private fun ExploreOverlayHeader(
                     ExploreSearchField(
                         query = searchQuery,
                         floating = isMapView,
+                        requestFocus = focusSearchOnOpen,
                         onSubmit = onSearchQueryChange,
                         onClose = {
                             onSearchQueryChange("")
@@ -598,6 +606,7 @@ private fun MapListToggle(
 private fun ExploreSearchField(
     query: String,
     floating: Boolean,
+    requestFocus: Boolean,
     onSubmit: (String) -> Unit,
     onClose: () -> Unit
 ) {
@@ -610,8 +619,8 @@ private fun ExploreSearchField(
         keyboard?.hide()
         focusManager.clearFocus()
     }
-    // Opening search should be ready to type, not need a second tap.
-    LaunchedEffect(Unit) { runCatching { focusRequester.requestFocus() } }
+    // Opened by a tap: ready to type, no second tap needed. Restored on return: no keyboard.
+    LaunchedEffect(Unit) { if (requestFocus) runCatching { focusRequester.requestFocus() } }
     ExploreControlSurface(floating = floating, shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp)) {
             Icon(

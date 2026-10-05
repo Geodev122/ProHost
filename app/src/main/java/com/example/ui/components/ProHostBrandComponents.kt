@@ -396,7 +396,10 @@ fun ProHostBottomNavBar(
                                 selected = activeTabId == tab.id,
                                 accent = accent,
                                 onAccent = onAccent,
-                                onClick = { onTabSelected(tab.id) }
+                                onClick = { onTabSelected(tab.id) },
+                                // Shrinks (label ellipsized) instead of pushing the last tab or the
+                                // collapse arrow off a narrow screen.
+                                modifier = Modifier.weight(1f, fill = false)
                             )
                         }
                         if (onExpandChange != null) {
@@ -421,7 +424,8 @@ private fun BottomNavPillItem(
     selected: Boolean,
     accent: Color,
     onAccent: Color,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val container by animateColorAsState(if (selected) accent else Color.Transparent, label = "navItemContainer")
     val content by animateColorAsState(
@@ -429,7 +433,7 @@ private fun BottomNavPillItem(
         label = "navItemContent"
     )
     Row(
-        modifier = Modifier
+        modifier = modifier
             .clip(CircleShape)
             .selectable(selected = selected, onClick = onClick, role = Role.Tab)
             .background(container)
@@ -452,7 +456,8 @@ private fun BottomNavPillItem(
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = content,
-                maxLines = 1
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

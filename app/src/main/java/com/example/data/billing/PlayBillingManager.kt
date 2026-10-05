@@ -157,9 +157,8 @@ class PlayBillingManager(
                     if (list.isEmpty()) {
                         com.example.analytics.AnalyticsTracker.premiumPlansLoadFailed(reasons.take(90))
                         emitMessage(
-                            "No subscription plans were returned by Google Play: $reasons. " +
-                                "Check these product IDs are active in Play Console and that this is a " +
-                                "Play Store–installed build."
+                            "Premium plans aren't available right now. Make sure the app was installed " +
+                                "from Google Play and you're signed in to the Play Store, then try again."
                         )
                     }
                 }

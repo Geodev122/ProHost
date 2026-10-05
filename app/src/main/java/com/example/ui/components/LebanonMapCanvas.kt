@@ -443,6 +443,12 @@ fun LebanonMapCanvas(
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
+            // Keeps the Google logo (attribution) and the compass clear of Explore's floating
+            // controls at the top and the listing strip + bottom navigation below.
+            contentPadding = PaddingValues(
+                top = if (topControls != null) 112.dp else 0.dp,
+                bottom = (if (!isStripCollapsed) 150.dp else 40.dp) + bottomInset
+            ),
             properties = MapProperties(
                 isMyLocationEnabled = hasLocationPermission,
                 mapType = MapType.NORMAL

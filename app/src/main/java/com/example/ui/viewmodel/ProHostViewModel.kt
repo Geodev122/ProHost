@@ -724,8 +724,13 @@ class ProHostViewModel(
             Toast.makeText(context, "Please log in to submit a rental request", Toast.LENGTH_SHORT).show()
             return
         }
-        if (user.profilePictureUrl.isNullOrBlank()) {
-            Toast.makeText(context, "Please add a profile picture before making booking requests.", Toast.LENGTH_LONG).show()
+        // The one transact rule (CLAUDE.md): profile photo + phone verified in Firebase Auth.
+        if (!user.canTransact(com.example.data.auth.PhoneLink.isLinked())) {
+            Toast.makeText(
+                context,
+                "Add a profile photo and verify your phone number in Profile before sending booking requests.",
+                Toast.LENGTH_LONG
+            ).show()
             return
         }
 
@@ -786,9 +791,13 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "submitBookingRequest error", e)
                 com.example.analytics.AnalyticsTracker.bookingRequestFailed(com.example.analytics.AnalyticsTracker.errorCode(e))
-                Toast.makeText(appContext, "Failed to send request — please check your connection and try again.", Toast.LENGTH_LONG).show()
+                // "You already have a pending booking request for this space." is meant for the user.
+                if (e is IllegalStateException && !e.message.isNullOrBlank()) {
+                    Toast.makeText(appContext, e.message, Toast.LENGTH_LONG).show()
+                } else {
+                    reportFailure(appContext, e, "Failed to send request — please check your connection and try again.")
+                }
             }
         }
     }
