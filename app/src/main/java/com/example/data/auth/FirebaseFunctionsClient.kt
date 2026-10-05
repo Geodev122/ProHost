@@ -251,6 +251,39 @@ open class FirebaseFunctionsClient {
         }
     }
 
+    // --- Admin directory (functions/src/admin/adminDirectory.ts): the console never loads
+    // whole collections; it asks the server for counts, search results and one dossier. ---
+
+    @Suppress("UNCHECKED_CAST")
+    private suspend fun callAdmin(name: String, payload: Map<String, Any?> = emptyMap()): Map<String, Any?> {
+        val result = functions.getHttpsCallable(name).call(payload).await()
+        return result.data as? Map<String, Any?> ?: emptyMap()
+    }
+
+    suspend fun adminCounts(): Result<AdminCounts> = runCatching {
+        AdminCounts.fromMap(callAdmin("adminCounts"))
+    }.onFailure { Log.e(tag, "adminCounts failed: ${it.message}", it) }
+
+    /** [kind]: "users", "listings", "bookings" or "all". */
+    suspend fun adminSearch(query: String, kind: String): Result<AdminSearchResult> = runCatching {
+        AdminSearchResult.fromMap(callAdmin("adminSearch", mapOf("query" to query.trim(), "kind" to kind)))
+    }.onFailure { Log.e(tag, "adminSearch failed: ${it.message}", it) }
+
+    suspend fun adminUserDossier(uid: String): Result<AdminUserDossier> = runCatching {
+        AdminUserDossier.fromMap(callAdmin("adminUserDossier", mapOf("uid" to uid)))
+            ?: throw IllegalStateException("Empty dossier response")
+    }.onFailure { Log.e(tag, "adminUserDossier failed: ${it.message}", it) }
+
+    /** One page (500 users) of the server-side user export; pass the returned cursor back. */
+    suspend fun adminExportUsers(cursor: String?): Result<AdminExportPage> = runCatching {
+        AdminExportPage.fromMap(callAdmin("adminExportUsers", mapOf("cursor" to cursor)))
+    }.onFailure { Log.e(tag, "adminExportUsers failed: ${it.message}", it) }
+
+    /** Admin maintenance: one-time backfills. Returns the server's summary map. */
+    suspend fun runAdminMaintenance(callable: String): Result<Map<String, Any?>> = runCatching {
+        callAdmin(callable)
+    }.onFailure { Log.e(tag, "$callable failed: ${it.message}", it) }
+
     /** functions/src/roles/revokeProHostRole.ts — Admin-only downgrade to SPECIALIST. */
     suspend fun revokeProHostRole(targetUid: String): Result<Unit> {
         return try {

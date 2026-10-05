@@ -216,7 +216,7 @@ fun AdminConsoleScreen(
                         onClick = { adminViewModel.setSelectedTab(1) },
                         text = {
                             Text(
-                                "Users Directory (${uiState.allUsers.size})",
+                                "Users" + (uiState.counts?.let { " (${it.totalUsers})" } ?: ""),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -227,7 +227,7 @@ fun AdminConsoleScreen(
                         onClick = { adminViewModel.setSelectedTab(2) },
                         text = {
                             Text(
-                                "Listings Catalog (${uiState.allSpaces.size})",
+                                "Listings & Bookings" + (uiState.counts?.let { " (${it.totalListings})" } ?: ""),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -425,6 +425,14 @@ fun AdminConsoleScreen(
                 adminViewModel.addSchemaItem(category, name, description, iconName, maxSubdivisions, markerColor = markerColor)
             }
         )
+    }
+
+    // Full profile of one account (opened from Users / Listings search results).
+    uiState.dossier?.let { dossier -> AdminDossierSheet(dossier = dossier, adminViewModel = adminViewModel) }
+    if (uiState.isLoadingDossier && uiState.dossier == null) {
+        Dialog(onDismissRequest = { adminViewModel.closeDossier() }) {
+            CircularProgressIndicator()
+        }
     }
 
     // 7. Reset Schema Confirmation Dialog

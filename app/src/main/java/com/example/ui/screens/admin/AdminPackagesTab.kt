@@ -25,6 +25,7 @@ import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.text.KeyboardOptions
@@ -115,39 +116,34 @@ internal fun AdminPackagesTab(
         // Quick Export Hub Shortcuts — writes a real file (Storage Access Framework
         // "Save As") instead of the old clipboard-copy/share-sheet-only dialog.
         item {
-            val exportTxtFile = rememberFileExportLauncher(mimeType = "text/plain")
-            val exportJsonFile = rememberFileExportLauncher(mimeType = "application/json")
+            val exportCsvFile = rememberFileExportLauncher(mimeType = "text/csv")
+            val exportScope = rememberCoroutineScope()
 
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     ProSectionHeader(
                         title = "One-Click System Exports",
-                        subtitle = "CSV & JSON snapshots",
+                        subtitle = "Every user, built on the server",
                         icon = Icons.Default.CloudDownload
                     )
 
-                    Row(
+                    // Server-side export of every user (adminExportUsers): UID, U- code, role,
+                    // package and listing codes. The console never holds the whole directory.
+                    CustomButton(
+                        text = if (uiState.isExportingUsers) "Exporting…" else "All users (CSV)",
+                        onClick = {
+                            exportScope.launch {
+                                adminViewModel.buildUsersExportCsv()?.let { csv ->
+                                    exportCsvFile("prohost_users_${java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(java.util.Date())}.csv", csv)
+                                }
+                            }
+                        },
+                        enabled = !uiState.isExportingUsers,
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        CustomButton(
-                            text = "Full Audit (TXT)",
-                            onClick = { exportTxtFile("prohost_full_audit.txt", adminViewModel.getFullAuditReport()) },
-                            modifier = Modifier.weight(1f),
-                            variant = CustomButtonVariant.PRIMARY,
-                            icon = Icons.Default.Summarize,
-                            compact = true
-                        )
-
-                        CustomButton(
-                            text = "Master (JSON)",
-                            onClick = { exportJsonFile("prohost_master_export.json", adminViewModel.getMasterJsonExport()) },
-                            modifier = Modifier.weight(1f),
-                            variant = CustomButtonVariant.SECONDARY,
-                            icon = Icons.Default.Code,
-                            compact = true
-                        )
-                    }
+                        variant = CustomButtonVariant.PRIMARY,
+                        icon = Icons.Default.Download,
+                        compact = true
+                    )
                 }
             }
         }

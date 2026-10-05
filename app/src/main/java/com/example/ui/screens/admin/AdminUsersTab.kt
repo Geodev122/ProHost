@@ -25,6 +25,7 @@ import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.text.KeyboardOptions
@@ -63,38 +64,24 @@ internal fun AdminUsersDirectoryTab(
     adminViewModel: AdminViewModel
 ) {
     val exportCsvFile = rememberFileExportLauncher(mimeType = "text/csv")
+    val exportScope = rememberCoroutineScope()
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Live metrics row — counts over the loaded page; "+" means more rows exist.
+        // Real totals (adminCounts): the console never loads the user collection.
         item {
-            val hasMoreRows by adminViewModel.hasMoreRows.collectAsState()
-            val more = if (hasMoreRows) "+" else ""
-            val users = uiState.allUsers
-            val now = System.currentTimeMillis()
-            val thirtyDaysAgo = now - 30L * 24 * 60 * 60 * 1000
-            val newThisMonth = users.count { (it.createdAtMillis ?: 0L) >= thirtyDaysAgo }
-            val proHosts = users.count { it.role == com.example.data.model.UserRole.PRO_HOST }
-            val specialists = users.count { it.role == com.example.data.model.UserRole.SPECIALIST }
+            val counts = uiState.counts
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                AdminMetricTile("Total Users", "${users.size}$more", modifier = Modifier.weight(1f))
-                AdminMetricTile("Pro Hosts", "$proHosts$more", modifier = Modifier.weight(1f))
-                AdminMetricTile("Specialists", "$specialists$more", modifier = Modifier.weight(1f))
-                AdminMetricTile("New (30d)", "+$newThisMonth", modifier = Modifier.weight(1f))
-            }
-            if (hasMoreRows) {
-                TextButton(onClick = { adminViewModel.loadMoreRows() }) {
-                    Text(
-                        "Showing the first ${users.size} users — load more (find anyone with Force Upgrade's search)",
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                }
+                AdminMetricTile("Total Users", counts?.totalUsers?.toString() ?: "…", modifier = Modifier.weight(1f))
+                AdminMetricTile("Pro Hosts", counts?.proHosts?.toString() ?: "…", modifier = Modifier.weight(1f))
+                AdminMetricTile("Specialists", counts?.specialists?.toString() ?: "…", modifier = Modifier.weight(1f))
+                AdminMetricTile("New (30d)", counts?.let { "+${it.newUsers30d}" } ?: "…", modifier = Modifier.weight(1f))
             }
         }
 
@@ -107,28 +94,32 @@ internal fun AdminUsersDirectoryTab(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         ProSectionHeader(
-                            title = "Contact Directory",
-                            subtitle = "Export includes spent, listings, tenants",
+                            title = "User Directory",
+                            subtitle = "Search anyone; export every user",
                             icon = Icons.Default.People
                         )
 
                         CustomButton(
-                            text = "Export Sheet",
+                            text = if (uiState.isExportingUsers) "Exporting…" else "Export all (CSV)",
                             onClick = {
-                                val csv = adminViewModel.getUsersContactSheetCsv()
-                                exportCsvFile("prohost_users_${java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(java.util.Date())}.csv", csv)
+                                exportScope.launch {
+                                    adminViewModel.buildUsersExportCsv()?.let { csv ->
+                                        exportCsvFile("prohost_users_${java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(java.util.Date())}.csv", csv)
+                                    }
+                                }
                             },
+                            enabled = !uiState.isExportingUsers,
                             variant = CustomButtonVariant.PRIMARY,
                             icon = Icons.Default.Download,
                             compact = true
                         )
                     }
 
-                    // Search Field
+                    // Smart search: name, email, U-/L-/D-/B- code or Firebase UID (server-side).
                     InputField(
                         value = uiState.userSearchQuery,
                         onValueChange = { adminViewModel.setUserSearchQuery(it) },
-                        label = "Search by Name, Email, Specialty, Phone, City...",
+                        label = "Name, email, U- code or UID",
                         leadingIcon = Icons.Default.Search,
                         trailingIcon = {
                             if (uiState.userSearchQuery.isNotBlank()) {
@@ -141,22 +132,20 @@ internal fun AdminUsersDirectoryTab(
                         singleLine = true
                     )
 
-                    // Role Filter Chips
-                    Text("Filter by Role:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    // Role chips narrow the results.
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         item {
                             FilterChip(
                                 selected = uiState.selectedUserRoleFilter == null,
                                 onClick = { adminViewModel.setUserRoleFilter(null) },
-                                label = { Text("All Roles (${uiState.allUsers.size})") }
+                                label = { Text("All roles") }
                             )
                         }
                         items(UserRole.entries) { role ->
-                            val count = uiState.allUsers.count { it.role == role }
                             FilterChip(
                                 selected = uiState.selectedUserRoleFilter == role,
                                 onClick = { adminViewModel.setUserRoleFilter(role) },
-                                label = { Text("${role.name.replace("_", " ")} ($count)") }
+                                label = { Text(role.name.replace("_", " ")) }
                             )
                         }
                     }
@@ -164,20 +153,22 @@ internal fun AdminUsersDirectoryTab(
             }
         }
 
-        // Users Count Summary
-        item {
-            Text(
-                text = "Showing ${uiState.filteredUsers.size} of ${uiState.allUsers.size} registered users",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        if (uiState.filteredUsers.isEmpty()) {
-            item {
+        when {
+            uiState.isSearchingUsers -> item { ShimmerLoadingList(count = 2, itemHeight = 110.dp) }
+            uiState.userSearchQuery.isBlank() -> item {
                 ProEmptyState(
-                    title = "No Users Found",
-                    description = "No user records match the specified query and filters.",
+                    title = "Find a user",
+                    description = "Type a name, email, U- code or UID. Nothing is loaded until you search.",
+                    icon = Icons.Default.PersonSearch
+                )
+            }
+            uiState.searchError != null -> item {
+                ProHostAlertBanner(message = uiState.searchError, severity = ProHostAlertSeverity.ERROR)
+            }
+            uiState.filteredUsers.isEmpty() -> item {
+                ProEmptyState(
+                    title = "No users found",
+                    description = "No account matches \"${uiState.userSearchQuery.trim()}\".",
                     icon = Icons.Default.PersonOff
                 )
             }
@@ -303,6 +294,15 @@ internal fun AdminUsersDirectoryTab(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        CustomButton(
+                            text = "Profile",
+                            onClick = { adminViewModel.openDossier(user.id) },
+                            modifier = Modifier.weight(1f),
+                            variant = CustomButtonVariant.PRIMARY,
+                            icon = Icons.Default.Badge,
+                            compact = true
+                        )
+
                         // Edit Button
                         CustomButton(
                             text = "Edit",

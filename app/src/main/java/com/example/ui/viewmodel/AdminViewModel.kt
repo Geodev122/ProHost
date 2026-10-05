@@ -3,6 +3,7 @@ package com.example.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.auth.FirebaseFunctionsClient
+import com.example.data.auth.toUserMessage
 import com.example.data.model.*
 import com.example.data.repository.ProHostRepository
 import com.example.ui.state.AdminUiEvent
@@ -23,9 +24,9 @@ class AdminViewModel(
 
     private val functionsClient = FirebaseFunctionsClient()
 
-    /** Admin lists load a page at a time (see FirestoreService.ADMIN_PAGE). */
-    val hasMoreRows: StateFlow<Boolean> = repository.hasMoreAdminRows
-    fun loadMoreRows() = repository.loadMoreAdminRows()
+    // Debounced search inputs; declared before init, which starts the pipelines.
+    private val userQuery = MutableStateFlow("")
+    private val listingQuery = MutableStateFlow("")
 
     private val _uiState = MutableStateFlow(AdminUiState())
     val uiState: StateFlow<AdminUiState> = _uiState.asStateFlow()
@@ -53,8 +54,8 @@ class AdminViewModel(
         refreshLegalDocuments()
         viewModelScope.launch {
             try {
-                repository.spaces.collect { spaces ->
-                    _uiState.update { it.copy(allSpaces = spaces) }
+                repository.reviewQueue.collect { queue ->
+                    _uiState.update { it.copy(reviewQueue = queue) }
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -62,38 +63,8 @@ class AdminViewModel(
                 _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
             }
         }
-        viewModelScope.launch {
-            try {
-                repository.users.collect { users ->
-                    val now = System.currentTimeMillis()
-                    _uiState.update {
-                        it.copy(
-                            allUsers = users,
-                            activeSubscriberCount = users.count { u ->
-                                u.ownerPackageId != null &&
-                                u.ownerPackageExpiryMillis != null &&
-                                u.ownerPackageExpiryMillis > now
-                            }
-                        )
-                    }
-                }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
-            }
-        }
-        viewModelScope.launch {
-            try {
-                repository.bookingRequests.collect { bookings ->
-                    _uiState.update { it.copy(allBookings = bookings) }
-                }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
-            }
-        }
+        refreshCounts()
+        startSearchPipelines()
         viewModelScope.launch {
             try {
                 repository.auditLogs.collect { logs ->
@@ -115,6 +86,118 @@ class AdminViewModel(
             } catch (e: Exception) {
                 _events.emit(AdminUiEvent.ShowToast(e.localizedMessage ?: "Operation failed"))
             }
+        }
+    }
+
+    // --- Server-side directory: counts, smart search, dossier, export (adminDirectory.ts) ---
+
+    /** Directory calls already return Result; this also surfaces anything unexpected. */
+    private fun launchSafe(block: suspend () -> Unit) = viewModelScope.launch {
+        try {
+            block()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Something went wrong — please try again.")))
+        }
+    }
+
+    fun refreshCounts() {
+        launchSafe {
+            functionsClient.adminCounts()
+                .onSuccess { counts -> _uiState.update { it.copy(counts = counts) } }
+                .onFailure { _events.emit(AdminUiEvent.ShowToast("Couldn't load totals: ${it.toUserMessage("please try again")}")) }
+        }
+    }
+
+    @OptIn(kotlinx.coroutines.FlowPreview::class)
+    private fun startSearchPipelines() {
+        launchSafe {
+            userQuery.debounce(350).map { it.trim() }.distinctUntilChanged().collectLatest { q -> searchUsers(q) }
+        }
+        launchSafe {
+            listingQuery.debounce(350).map { it.trim() }.distinctUntilChanged().collectLatest { q -> searchListings(q) }
+        }
+    }
+
+    private suspend fun searchUsers(q: String) {
+        if (q.isBlank()) {
+            _uiState.update { it.copy(userResults = emptyList(), isSearchingUsers = false, searchError = null) }
+            return
+        }
+        _uiState.update { it.copy(isSearchingUsers = true, searchError = null) }
+        functionsClient.adminSearch(q, "users")
+            .onSuccess { r -> _uiState.update { it.copy(userResults = r.users, isSearchingUsers = false) } }
+            .onFailure { e -> _uiState.update { it.copy(isSearchingUsers = false, searchError = e.toUserMessage("Search failed — try again.")) } }
+    }
+
+    /** Listings tab searches listings and bookings (L-/D-/B- codes, titles, owner or renter email). */
+    private suspend fun searchListings(q: String) {
+        if (q.isBlank()) {
+            _uiState.update { it.copy(listingResults = emptyList(), bookingResults = emptyList(), isSearchingListings = false, searchError = null) }
+            return
+        }
+        _uiState.update { it.copy(isSearchingListings = true, searchError = null) }
+        functionsClient.adminSearch(q, "all")
+            .onSuccess { r -> _uiState.update { it.copy(listingResults = r.listings, bookingResults = r.bookings, isSearchingListings = false) } }
+            .onFailure { e -> _uiState.update { it.copy(isSearchingListings = false, searchError = e.toUserMessage("Search failed — try again.")) } }
+    }
+
+    /** Re-runs the visible searches and totals after an admin action changed a record. */
+    private fun refreshResults() {
+        refreshCounts()
+        launchSafe {
+            searchUsers(_uiState.value.userSearchQuery.trim())
+            searchListings(_uiState.value.listingSearchQuery.trim())
+            _uiState.value.dossier?.profile?.id?.let { uid -> loadDossier(uid) }
+        }
+    }
+
+    fun openDossier(uid: String) {
+        _uiState.update { it.copy(isLoadingDossier = true) }
+        launchSafe { loadDossier(uid) }
+    }
+
+    private suspend fun loadDossier(uid: String) {
+        functionsClient.adminUserDossier(uid)
+            .onSuccess { d -> _uiState.update { it.copy(dossier = d, isLoadingDossier = false) } }
+            .onFailure { e ->
+                _uiState.update { it.copy(isLoadingDossier = false) }
+                _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Couldn't open that profile.")))
+            }
+    }
+
+    fun closeDossier() {
+        _uiState.update { it.copy(dossier = null, isLoadingDossier = false) }
+    }
+
+    /** Every user, paged server-side, as CSV text; null when the export failed. */
+    suspend fun buildUsersExportCsv(): String? {
+        _uiState.update { it.copy(isExportingUsers = true) }
+        try {
+            val rows = mutableListOf<Map<String, Any?>>()
+            var cursor: String? = null
+            do {
+                val page = functionsClient.adminExportUsers(cursor).getOrElse { e ->
+                    _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Export failed — try again.")))
+                    return null
+                }
+                rows += page.rows
+                cursor = page.nextCursor
+            } while (cursor != null)
+            com.example.analytics.AnalyticsTracker.adminAction("users_export", true)
+            return com.example.data.auth.AdminUsersCsv.build(rows)
+        } finally {
+            _uiState.update { it.copy(isExportingUsers = false) }
+        }
+    }
+
+    /** Admin maintenance backfills (backfillEmailVerified, backfillSearchNames). */
+    fun runMaintenance(callable: String, label: String) {
+        launchSafe {
+            functionsClient.runAdminMaintenance(callable)
+                .onSuccess { summary -> _events.emit(AdminUiEvent.ShowToast("$label done: $summary")) }
+                .onFailure { e -> _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("$label failed."))) }
         }
     }
 
@@ -311,6 +394,7 @@ class AdminViewModel(
     // --- User Filtering & Governance ---
     fun setUserSearchQuery(query: String) {
         _uiState.update { it.copy(userSearchQuery = query) }
+        userQuery.value = query
     }
 
     fun setSelectedUserRoleFilter(role: UserRole?) {
@@ -335,6 +419,7 @@ class AdminViewModel(
                 val success = repository.updateUser(user)
                 com.example.analytics.AnalyticsTracker.adminAction("user_edit", success)
                 closeEditUserDialog()
+                refreshResults()
                 _events.emit(
                     AdminUiEvent.ShowToast(
                         if (success) "User profile updated successfully" else "Failed to update user profile"
@@ -360,8 +445,10 @@ class AdminViewModel(
         viewModelScope.launch {
             try {
                 val success = repository.deleteUser(userId)
+                if (success && _uiState.value.dossier?.profile?.id == userId) closeDossier()
                 com.example.analytics.AnalyticsTracker.adminAction("user_delete", success)
                 closeDeleteUserDialog()
+                refreshResults()
                 _events.emit(
                     AdminUiEvent.ShowToast(
                         if (success) "User profile removed from platform" else "Failed to remove user — please try again"
@@ -394,6 +481,7 @@ class AdminViewModel(
                 val result = functionsClient.grantAdminRole(email)
                 com.example.analytics.AnalyticsTracker.adminAction("grant_admin", result.isSuccess)
                 closeGrantAdminDialog()
+                refreshResults()
                 _events.emit(
                     AdminUiEvent.ShowToast(
                         if (result.isSuccess) "Admin role granted to $email" else "Failed to grant Admin role"
@@ -427,6 +515,7 @@ class AdminViewModel(
                 val result = functionsClient.setAccountSuspended(user.id, newSuspended)
                 com.example.analytics.AnalyticsTracker.adminAction("suspend_toggle", result.isSuccess)
                 closeSuspendUserDialog()
+                refreshResults()
                 _events.emit(
                     AdminUiEvent.ShowToast(
                         if (result.isSuccess) {
@@ -463,6 +552,7 @@ class AdminViewModel(
                 val result = functionsClient.revokeProHostRole(user.id)
                 com.example.analytics.AnalyticsTracker.adminAction("revoke_pro_host", result.isSuccess)
                 closeRevokeProHostDialog()
+                refreshResults()
                 _events.emit(
                     AdminUiEvent.ShowToast(
                         if (result.isSuccess) "${user.fullName} downgraded to Specialist; their listings were deactivated"
@@ -480,6 +570,7 @@ class AdminViewModel(
     // --- Listings Filtering & Governance ---
     fun setListingSearchQuery(query: String) {
         _uiState.update { it.copy(listingSearchQuery = query) }
+        listingQuery.value = query
     }
 
     fun setSelectedListingTypeFilter(categoryId: String?) {
@@ -512,6 +603,7 @@ class AdminViewModel(
                 val success = repository.updateSpaceListing(listing)
                 com.example.analytics.AnalyticsTracker.adminAction("listing_edit", success)
                 closeEditListingDialog()
+                refreshResults()
                 _events.emit(
                     AdminUiEvent.ShowToast(
                         if (success) "Listing updated successfully" else "Failed to update listing"
@@ -530,6 +622,7 @@ class AdminViewModel(
             try {
                 val success = repository.toggleListingVerification(spaceId)
                 com.example.analytics.AnalyticsTracker.adminAction("listing_verify_toggle", success)
+                refreshResults()
                 _events.emit(
                     AdminUiEvent.ShowToast(
                         if (success) "Verification status toggled for space" else "Failed to toggle verification status"
@@ -557,6 +650,7 @@ class AdminViewModel(
             try {
                 val success = repository.toggleListingActive(spaceId)
                 com.example.analytics.AnalyticsTracker.adminAction("listing_active_toggle", success)
+                refreshResults()
                 _events.emit(
                     AdminUiEvent.ShowToast(
                         if (success) "Listing subscription active status toggled" else "Failed to toggle subscription status"
@@ -584,6 +678,7 @@ class AdminViewModel(
                 val success = repository.deleteSpaceListing(spaceId)
                 com.example.analytics.AnalyticsTracker.adminAction("listing_delete", success)
                 closeDeleteListingDialog()
+                refreshResults()
                 _events.emit(
                     AdminUiEvent.ShowToast(
                         if (success) "Listing permanently removed from catalog" else "Failed to remove listing — please try again"
@@ -990,6 +1085,7 @@ class AdminViewModel(
             try {
                 val success = repository.seedDemoContent()
                 if (success) {
+                    refreshCounts()
                     _events.emit(AdminUiEvent.ShowToast("Successfully generated legit demo listings, fake requests, and demo users!"))
                 } else {
                     _events.emit(AdminUiEvent.ShowToast("Failed to seed demo content"))
@@ -1006,6 +1102,7 @@ class AdminViewModel(
         viewModelScope.launch {
             try {
                 val purged = repository.purgeDemoContent()
+                refreshCounts()
                 _events.emit(AdminUiEvent.ShowToast("Successfully purged all demo content ($purged items removed)"))
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -1040,14 +1137,6 @@ class AdminViewModel(
         _uiState.update { it.copy(isExportDialogOpen = false, exportDataContent = "") }
     }
 
-    /** Returns the enriched CSV (with spending, listings, tenants) ready to share as a file. */
-    fun getUsersContactSheetCsv(): String = repository.exportUsersToCsv()
-
-    fun exportListingsCatalog(format: String = "CSV") {
-        val content = if (format == "JSON") repository.exportListingsToJson() else repository.exportListingsToCsv()
-        openExportDialog("ProHost Workspace Listings Catalog (${format})", content, format)
-    }
-
     /** Used by the Admin Console's own Security & Audit tab export button. The same
      * CSV generator was previously only reachable via the unrelated drawer "Central
      * Security Audits" dialog, which called straight into ProHostViewModel.repository —
@@ -1057,11 +1146,6 @@ class AdminViewModel(
         return repository.exportAuditLogsToCsv(startDateMillis, endDateMillis)
     }
 
-    /** "One-Click System Exports" content getters — the buttons write these to a real
-     * file (rememberFileExportLauncher) rather than opening the clipboard/share-only
-     * AdminExportDataDialog every other export button on this screen still uses. */
-    fun getFullAuditReport(): String = repository.exportToAuditText()
-    fun getMasterJsonExport(): String = repository.exportToJson()
 
 }
 

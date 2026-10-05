@@ -106,12 +106,18 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   room choice — tab (page or availability sheet), Explore deep link, card buttons — goes through
   `selectRoom()` in `SpaceDetailsScreenContent`, so page, bottom strip and sheet share one active
   room and the sheet is never a mixed view of all rooms. A space with rooms always has one selected.
-- Paged live lists: Explore's public listings load `FirestoreService.PUBLIC_LISTINGS_PAGE` (100) at a time
-  and admin lists `ADMIN_PAGE` (300); "load more" grows the same snapshot listener's limit
-  (`setPublicListingsLimit` / `setAdminPageLimit`, document-id order, no index needed). Never re-add a fixed
-  `.limit(200)` cap or unbounded admin collection listeners. While a search/filter is active and fewer than
-  20 listings match, `DiscoveryViewModel` auto-loads further pages (`shouldSearchMore`, cap 1,000) and shows
-  "Searching more listings…"; "No workspaces found" appears only once the catalog is exhausted.
+- Paged live lists: Explore's public listings load `FirestoreService.PUBLIC_LISTINGS_PAGE` (100) at a time;
+  "load more" grows the same snapshot listener's limit (`setPublicListingsLimit`, document-id order). Never
+  re-add a fixed `.limit(200)` cap. While a search/filter is active and fewer than 20 listings match,
+  `DiscoveryViewModel` auto-loads further pages (`shouldSearchMore`, cap 1,000) and shows "Searching more
+  listings…"; "No workspaces found" appears only once the catalog is exhausted.
+- Admin Console is search-first and loads no collections: admins get the same listeners as everyone (public +
+  own listings, own profile, own bookings) plus the audit log and a 50-row verification review queue. Totals,
+  search, the per-user dossier (U- code + UID, package, listings with D- room codes, Play subscription history
+  with order ids — no amounts, rentals) and the all-users CSV come from `functions/src/admin/adminDirectory.ts`
+  (`adminCounts` / `adminSearch` / `adminUserDossier` / `adminExportUsers`; query classifier `adminQuery.ts`,
+  unit-tested). Name/title prefix search uses the server-only `searchName` field kept by triggers
+  (`backfillSearchNames` fills old docs). Never re-add admin collection listeners or client-side admin lists.
 - Verification rules (the only two): `AppUser.canTransact(phoneLinked)` = photo + verified phone, checked
   in place when a specialist sends a booking request; `AppUser.canHost(phoneLinked)` = that + country and
   city, checked at Premium checkout and after a plan activates. `hasVerifiedPhone` alone gates the Pro Host

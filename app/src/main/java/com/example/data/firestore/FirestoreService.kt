@@ -36,8 +36,6 @@ class FirestoreService(
 
         /** Explore loads active listings a page at a time (see setPublicListingsLimit). */
         const val PUBLIC_LISTINGS_PAGE = 100
-        /** Admin console lists load this many rows per page (see setAdminPageLimit). */
-        const val ADMIN_PAGE = 300
 
         /** Hermetic instance for unit tests: never touches Firebase; writes succeed locally. */
         fun localOnly(): FirestoreService = FirestoreService(firestore = null, localOnly = true)
@@ -57,17 +55,13 @@ class FirestoreService(
     // Paged live lists. Each is ONE snapshot listener whose limit grows by a page on
     // "load more" (documents come in document-id order, so a bigger limit only adds rows
     // and needs no composite index); only that listener is re-attached, never the rest.
-    // Explore used to stop silently at 200 listings and admin loaded whole collections.
+    // Explore used to stop silently at 200 listings. Admins never load whole collections:
+    // the console searches server-side (functions/src/admin/adminDirectory.ts).
     private var publicListingsRegistration: ListenerRegistration? = null
     private var reattachPublicListings: ((Int) -> Unit)? = null
-    private val adminPagedRegistrations = mutableListOf<ListenerRegistration>()
-    private var reattachAdminLists: ((Int) -> Unit)? = null
 
-    /** Grows Explore's live listing page to [limit] (non-admin callers). */
+    /** Grows Explore's live listing page to [limit]. */
     fun setPublicListingsLimit(limit: Int) { reattachPublicListings?.invoke(limit) }
-
-    /** Grows the admin console's live users/bookings/listings pages to [limit]. */
-    fun setAdminPageLimit(limit: Int) { reattachAdminLists?.invoke(limit) }
 
     /**
      * Attaches real-time snapshot listeners for the collections that need live cross-device
@@ -78,24 +72,16 @@ class FirestoreService(
      * `isAdmin()`/`role()` must stay pure custom-claim checks with zero `resource.data`/
      * `get()` dependency (see the matching comment there). The moment that stops being true —
      * e.g. a future change makes an admin-revocation take effect instantly the way
-     * `isSuspended()`/`liveRole()` already do there — every unfiltered admin listener below
-     * (workspace_listings, user_profiles, booking_requests,
-     * audit_security_logs) will start failing PERMISSION_DENIED, and must be re-architected
+     * `isSuspended()`/`liveRole()` already do there — the admin-only listeners below
+     * (audit_security_logs, the listing review queue) will start failing PERMISSION_DENIED, and must be re-architected
      * into role-scoped queries in that same change, not discovered after the fact.
      *
-     * [currentUid]/[isAdminCaller] scope the three collections whose firestore.rules read
-     * rule is content-conditional (workspace_listings, user_profiles, booking_requests) — an unconstrained `.collection().addSnapshotListener()` with no
-     * `where()` filter can never satisfy those rules for a non-admin caller: Firestore only
-     * allows a LIST query when the query's own filters provably guarantee every possible
-     * result satisfies the rule, and "no filter at all" proves nothing except for the
-     * content-independent `isAdmin()` branch. The old unconstrained listeners here simply
-     * failed outright (PERMISSION_DENIED, silently logged and dropped) for every
-     * non-admin — this is the fix for that. ADMIN keeps the exact same unconstrained
-     * listeners as before (isAdmin() is trivially provable, independent of any document's
-     * content). A non-admin gets real, rule-satisfying queries instead: the public
-     * Discovery set plus their own docs for workspace_listings/booking_requests (merged
-     * client-side, since a single query can't match two different OR-branches), their own
-     * single document for user_profiles.
+     * [currentUid] scopes the three collections whose firestore.rules read rule is
+     * content-conditional (workspace_listings, user_profiles, booking_requests): every caller,
+     * admins included, gets rule-satisfying queries — the public Discovery set plus their own
+     * docs for workspace_listings/booking_requests (merged client-side), and their own single
+     * user_profiles document. [isAdminCaller] adds only the audit-log and review-queue
+     * listeners; the Admin Console reads everything else through server search.
      * [currentUid] null (signed out) attaches none of these — nothing to show.
      *
      * The old `if (list.isNotEmpty()) callback(list)` gating on every one of these is also
@@ -112,78 +98,17 @@ class FirestoreService(
         onAuditLogsUpdated: (List<AuditSecurityLog>) -> Unit = {},
         onWorkspacesError: (Exception) -> Unit = {},
         publicListingsLimit: Int = PUBLIC_LISTINGS_PAGE,
-        adminPageLimit: Int = ADMIN_PAGE,
         // true when a paged list filled its limit, so another page may exist.
         onPublicListingsPage: (hasMore: Boolean) -> Unit = {},
-        onAdminPage: (hasMore: Boolean) -> Unit = {}
+        // Admin only: listings waiting for verification review (a small live queue; the
+        // console finds everything else through server search — see adminDirectory.ts).
+        onReviewQueueUpdated: (List<SpaceListing>) -> Unit = {}
     ) {
         val db = firestore ?: return
 
         try {
             // --- workspace_listings ---
-            if (isAdminCaller) {
-                // Admin lists (listings, users, bookings) share one page size; see setAdminPageLimit.
-                var adminSpaces: List<SpaceListing> = emptyList()
-                var adminUsersFull = false
-                var adminBookingsFull = false
-                var adminSpacesFull = false
-                fun reportAdminPage() = onAdminPage(adminUsersFull || adminBookingsFull || adminSpacesFull)
-                fun attachAdminLists(limit: Int) {
-                    adminPagedRegistrations.forEach { it.remove() }
-                    adminPagedRegistrations.clear()
-                    adminPagedRegistrations += db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
-                        .limit(limit.toLong())
-                        .addSnapshotListener { snapshot, error ->
-                            if (error != null) {
-                                Log.w(TAG, "Workspaces sync note: ${error.message}")
-                                onWorkspacesError(error)
-                                return@addSnapshotListener
-                            }
-                            if (snapshot != null) {
-                                adminSpaces = snapshot.documents.mapNotNull { doc ->
-                                    // Skip ownerless ghost docs (see favoritesSync.ts history).
-                                    doc.data?.takeIf { it["ownerId"] != null }
-                                        ?.let { data -> SpaceListing.fromFirestoreMap(doc.id, data) }
-                                }
-                                adminSpacesFull = snapshot.size() >= limit
-                                reportAdminPage()
-                                onWorkspacesUpdated(adminSpaces)
-                            }
-                        }
-                    adminPagedRegistrations += db.collection(FirestoreSchema.Collections.USER_PROFILES)
-                        .limit(limit.toLong())
-                        .addSnapshotListener { snapshot, error ->
-                            if (error != null) {
-                                Log.w(TAG, "Users sync note: ${error.message}")
-                                return@addSnapshotListener
-                            }
-                            if (snapshot != null) {
-                                adminUsersFull = snapshot.size() >= limit
-                                reportAdminPage()
-                                onUsersUpdated(snapshot.documents.mapNotNull { doc ->
-                                    doc.data?.let { data -> AppUser.fromFirestoreMap(doc.id, data) }
-                                })
-                            }
-                        }
-                    adminPagedRegistrations += db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS)
-                        .limit(limit.toLong())
-                        .addSnapshotListener { snapshot, error ->
-                            if (error != null) {
-                                Log.w(TAG, "Bookings sync note: ${error.message}")
-                                return@addSnapshotListener
-                            }
-                            if (snapshot != null) {
-                                adminBookingsFull = snapshot.size() >= limit
-                                reportAdminPage()
-                                onBookingsUpdated(snapshot.documents.mapNotNull { doc ->
-                                    doc.data?.let { data -> BookingRequest.fromFirestoreMap(doc.id, data) }
-                                })
-                            }
-                        }
-                }
-                attachAdminLists(adminPageLimit)
-                reattachAdminLists = ::attachAdminLists
-            } else if (currentUid != null) {
+            if (currentUid != null) {
                 val publicById = mutableMapOf<String, SpaceListing>()
                 val ownById = mutableMapOf<String, SpaceListing>()
                 // ownById is published last (see below) so a host's own copy always wins
@@ -241,10 +166,9 @@ class FirestoreService(
             }
 
             // --- user_profiles ---
-            if (isAdminCaller) {
-                // Paged with the admin listings above (attachAdminLists).
-            } else if (currentUid != null) {
-                // Non-admin read rule only ever allows the caller's own document — a
+            if (currentUid != null) {
+                // Own profile only (admins too: the console reads other profiles through
+                // server search). The non-admin read rule only ever allows the caller's own document — a
                 // collection-wide listener can't be scoped any other way here, so this
                 // is a single-document listener, not a query.
                 val ownProfileListener = db.collection(FirestoreSchema.Collections.USER_PROFILES)
@@ -263,9 +187,7 @@ class FirestoreService(
 
             // --- booking_requests --- the single collection ("booking_requests") that both
             // reads and writes must agree on. See ProHostRepository for the write side.
-            if (isAdminCaller) {
-                // Paged with the admin listings above (attachAdminLists).
-            } else if (currentUid != null) {
+            if (currentUid != null) {
                 val asOwner = mutableMapOf<String, RentalBookingRequest>()
                 val asPractitioner = mutableMapOf<String, RentalBookingRequest>()
                 fun publishBookings() {
@@ -351,6 +273,24 @@ class FirestoreService(
                         }
                     }
                 activeListeners.add(auditLogListener)
+
+                val reviewQueueListener = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
+                    .whereEqualTo("isVerified", false)
+                    .whereGreaterThan("verificationRequestedAt", 0)
+                    .limit(50)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.w(TAG, "Review queue sync note: ${error.message}")
+                            return@addSnapshotListener
+                        }
+                        if (snapshot != null) {
+                            onReviewQueueUpdated(snapshot.documents.mapNotNull { doc ->
+                                doc.data?.takeIf { it["ownerId"] != null }
+                                    ?.let { data -> SpaceListing.fromFirestoreMap(doc.id, data) }
+                            })
+                        }
+                    }
+                activeListeners.add(reviewQueueListener)
             }
         } catch (e: Exception) {
             Log.w(TAG, "Live listeners attachment warning: ${e.message}")
@@ -363,9 +303,6 @@ class FirestoreService(
         publicListingsRegistration?.let { runCatching { it.remove() } }
         publicListingsRegistration = null
         reattachPublicListings = null
-        adminPagedRegistrations.forEach { runCatching { it.remove() } }
-        adminPagedRegistrations.clear()
-        reattachAdminLists = null
     }
 
     // ==========================================

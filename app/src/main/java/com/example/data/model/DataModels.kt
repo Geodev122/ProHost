@@ -1299,7 +1299,7 @@ enum class SubscriptionBillingInterval(val displayName: String, val monthsDurati
  * (see [SpaceListing.ownershipProofUrl]), not on the user profile.
  * [createdAtMillis]/[lastSignInAtMillis] are written only by assignInitialRole.ts —
  * the account-creation and last-sign-in audit trail Admin's Users Directory export
- * relies on (see ProHostRepository.exportUsersToCsv).
+ * relies on.
  */
 /**
  * The single rule for "has this account finished registration" — used by the cold-start

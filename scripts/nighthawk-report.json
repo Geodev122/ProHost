@@ -1,25 +1,16 @@
 {
-  "generatedAt": "2026-10-04T20:41:39.108Z",
+  "generatedAt": "2026-10-05T03:54:50.865Z",
   "trigger": "NIGHTHAWK",
   "summary": {
-    "total": 66,
+    "total": 69,
     "critical": 0,
     "high": 0,
     "medium": 12,
-    "low": 54,
+    "low": 57,
     "info": 0,
     "passes": 29
   },
   "findings": [
-    {
-      "severity": "MEDIUM",
-      "category": "ux",
-      "check": "Screen Loading State",
-      "file": "app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt",
-      "line": null,
-      "message": "Screen has no loading indicator.",
-      "suggestion": "Add an isLoading state and CircularProgressIndicator overlay."
-    },
     {
       "severity": "MEDIUM",
       "category": "ux",
@@ -28,6 +19,15 @@
       "line": null,
       "message": "Screen has list (LazyColumn/LazyRow) but no empty-state branch.",
       "suggestion": "Show empty state placeholder when list is empty."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/admin/adminQuery.ts",
+      "line": null,
+      "message": "Module \"admin/adminQuery\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
     },
     {
       "severity": "MEDIUM",
@@ -583,7 +583,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/admin/AdminDemoTab.kt",
-      "line": 97,
+      "line": 88,
       "message": "Line has 210 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -592,7 +592,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/admin/AdminDemoTab.kt",
-      "line": 120,
+      "line": 111,
       "message": "Line has 177 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -601,8 +601,35 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/admin/AdminDemoTab.kt",
-      "line": 190,
+      "line": 196,
       "message": "Line has 219 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/admin/AdminListingsTab.kt",
+      "line": 312,
+      "message": "Line has 169 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/admin/AdminPackagesTab.kt",
+      "line": 137,
+      "message": "Line has 163 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/admin/AdminUsersTab.kt",
+      "line": 107,
+      "message": "Line has 167 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     }
   ],
@@ -625,7 +652,7 @@
     },
     {
       "check": "Screen Loading State",
-      "message": "15/16 screens have a loading indicator."
+      "message": "16/16 screens have a loading indicator."
     },
     {
       "check": "Screen Error State",

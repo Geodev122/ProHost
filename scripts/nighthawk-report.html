@@ -32,13 +32,13 @@
 <body>
 <header>
   <h1>🦅 NIGHTHAWK — ProHost Enhanced Debug Report</h1>
-  <p>66 issues found · 29 checks passed</p>
+  <p>69 issues found · 29 checks passed</p>
 </header>
 <div class="stats">
   <div class="stat crit"><div class="num">0</div><div class="lbl">Critical</div></div>
   <div class="stat high"><div class="num">0</div><div class="lbl">High</div></div>
   <div class="stat med"><div class="num">12</div><div class="lbl">Medium</div></div>
-  <div class="stat low"><div class="num">54</div><div class="lbl">Low</div></div>
+  <div class="stat low"><div class="num">57</div><div class="lbl">Low</div></div>
   <div class="stat pass"><div class="num">29</div><div class="lbl">Passing</div></div>
 </div>
 <h2>Findings</h2>
@@ -48,19 +48,19 @@
   <tr style="background:#FFF3E0">
     <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
     <td><code class="tag">ux</code></td>
-    <td><strong>Screen Loading State</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt</code></td>
-    <td>Screen has no loading indicator.</td>
-    <td class="suggestion">Add an isLoading state and CircularProgressIndicator overlay.</td>
-  </tr>
-
-  <tr style="background:#FFF3E0">
-    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
-    <td><code class="tag">ux</code></td>
     <td><strong>Screen Empty State</strong></td>
     <td><code>app/src/main/java/com/example/ui/screens/AdminConsoleScreen.kt</code></td>
     <td>Screen has list (LazyColumn/LazyRow) but no empty-state branch.</td>
     <td class="suggestion">Show empty state placeholder when list is empty.</td>
+  </tr>
+
+  <tr style="background:#FFF3E0">
+    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
+    <td><code class="tag">consistency</code></td>
+    <td><strong>Orphaned Module</strong></td>
+    <td><code>functions/src/admin/adminQuery.ts</code></td>
+    <td>Module &quot;admin/adminQuery&quot; has exports but is not imported from index.ts.</td>
+    <td class="suggestion">Export or remove.</td>
   </tr>
 
   <tr style="background:#FFF3E0">
@@ -619,7 +619,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/admin/AdminDemoTab.kt:97</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/admin/AdminDemoTab.kt:88</code></td>
     <td>Line has 210 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -628,7 +628,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/admin/AdminDemoTab.kt:120</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/admin/AdminDemoTab.kt:111</code></td>
     <td>Line has 177 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -637,8 +637,35 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/admin/AdminDemoTab.kt:190</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/admin/AdminDemoTab.kt:196</code></td>
     <td>Line has 219 characters (&gt;160 limit).</td>
+    <td class="suggestion">Break line into multiple statements for readability.</td>
+  </tr>
+
+  <tr style="background:#E3F2FD">
+    <td><span class="badge" style="background:#1976D2">LOW</span></td>
+    <td><code class="tag">detekt</code></td>
+    <td><strong>Excessive Line Length</strong></td>
+    <td><code>app/src/main/java/com/example/ui/screens/admin/AdminListingsTab.kt:312</code></td>
+    <td>Line has 169 characters (&gt;160 limit).</td>
+    <td class="suggestion">Break line into multiple statements for readability.</td>
+  </tr>
+
+  <tr style="background:#E3F2FD">
+    <td><span class="badge" style="background:#1976D2">LOW</span></td>
+    <td><code class="tag">detekt</code></td>
+    <td><strong>Excessive Line Length</strong></td>
+    <td><code>app/src/main/java/com/example/ui/screens/admin/AdminPackagesTab.kt:137</code></td>
+    <td>Line has 163 characters (&gt;160 limit).</td>
+    <td class="suggestion">Break line into multiple statements for readability.</td>
+  </tr>
+
+  <tr style="background:#E3F2FD">
+    <td><span class="badge" style="background:#1976D2">LOW</span></td>
+    <td><code class="tag">detekt</code></td>
+    <td><strong>Excessive Line Length</strong></td>
+    <td><code>app/src/main/java/com/example/ui/screens/admin/AdminUsersTab.kt:107</code></td>
+    <td>Line has 167 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr></tbody>
 </table>
@@ -672,7 +699,7 @@
 
   <tr>
     <td><span class="badge" style="background:#388E3C">PASS</span></td>
-    <td colspan="4">15/16 screens have a loading indicator.</td>
+    <td colspan="4">16/16 screens have a loading indicator.</td>
     <td>—</td>
   </tr>
 

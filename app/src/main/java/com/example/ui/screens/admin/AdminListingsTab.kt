@@ -68,50 +68,29 @@ internal fun AdminListingsCatalogTab(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        // Real totals (adminCounts); rows come only from search or the live review queue.
         item {
-            val hasMoreRows by adminViewModel.hasMoreRows.collectAsState()
-            if (hasMoreRows) {
-                TextButton(onClick = { adminViewModel.loadMoreRows() }) {
-                    Text("Showing the first ${uiState.allSpaces.size} listings — load more", style = MaterialTheme.typography.labelMedium)
-                }
+            val counts = uiState.counts
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AdminMetricTile("Listings", counts?.totalListings?.toString() ?: "…", modifier = Modifier.weight(1f))
+                AdminMetricTile("Published", counts?.activeListings?.toString() ?: "…", modifier = Modifier.weight(1f))
+                AdminMetricTile("To review", counts?.pendingReview?.toString() ?: "…", modifier = Modifier.weight(1f))
+                AdminMetricTile("Bookings", counts?.totalBookings?.toString() ?: "…", modifier = Modifier.weight(1f))
             }
         }
         item {
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        ProSectionHeader(
-                            title = "Listings Catalog",
-                            icon = Icons.Default.Apartment
-                        )
+                    ProSectionHeader(
+                        title = "Listings & Bookings",
+                        subtitle = "Search by title, L-/D-/B- code, id or the host's / renter's email",
+                        icon = Icons.Default.Apartment
+                    )
 
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            CustomButton(
-                                text = "CSV",
-                                onClick = { adminViewModel.exportListingsCatalog("CSV") },
-                                variant = CustomButtonVariant.PRIMARY,
-                                icon = Icons.Default.Download,
-                                compact = true
-                            )
-                            CustomButton(
-                                text = "JSON",
-                                onClick = { adminViewModel.exportListingsCatalog("JSON") },
-                                variant = CustomButtonVariant.SECONDARY,
-                                icon = Icons.Default.Code,
-                                compact = true
-                            )
-                        }
-                    }
-
-                    // Search Field
                     InputField(
                         value = uiState.listingSearchQuery,
                         onValueChange = { adminViewModel.setListingSearchQuery(it) },
-                        label = "Search by Title, District, Address, Host...",
+                        label = "Title, L-/D-/B- code, id or email",
                         leadingIcon = Icons.Default.Search,
                         trailingIcon = {
                             if (uiState.listingSearchQuery.isNotBlank()) {
@@ -125,41 +104,36 @@ internal fun AdminListingsCatalogTab(
                     )
 
                     // Space Category Filter Chips — from the admin-defined catalog
-                    // (the same one the host's Create wizard publishes under), so an
-                    // admin-added category is filterable here the moment it exists.
+                    // (the same one the host's Create wizard publishes under).
                     val categoryFilterOptions = uiState.schema.spaceTypes.filter { it.isEnabled }.ifEmpty {
                         SpaceType.values().map { SchemaItem(id = it.name, name = it.displayName, category = "SPACE_TYPE") }
                     }
-                    Text("Filter by Space Category:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         item {
                             FilterChip(
                                 selected = uiState.selectedListingTypeFilter == null,
                                 onClick = { adminViewModel.setListingTypeFilter(null) },
-                                label = { Text("All Categories (${uiState.allSpaces.size})", style = MaterialTheme.typography.labelSmall) }
+                                label = { Text("All categories", style = MaterialTheme.typography.labelSmall) }
                             )
                         }
                         items(categoryFilterOptions) { category ->
-                            val count = uiState.allSpaces.count { it.matchesCategory(category.id) }
                             FilterChip(
                                 selected = uiState.selectedListingTypeFilter == category.id,
                                 onClick = { adminViewModel.setListingTypeFilter(category.id) },
-                                label = { Text("${category.name} ($count)", style = MaterialTheme.typography.labelSmall) }
+                                label = { Text(category.name, style = MaterialTheme.typography.labelSmall) }
                             )
                         }
                     }
-
-                    // Status Filter
-                    Text("Filter by Subscription / Verification:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                    val pendingVerificationCount = uiState.allSpaces.count { !it.verificationDocUrl.isNullOrBlank() && !it.isVerified }
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf(
-                            "ALL" to "All",
-                            "ACTIVE_30D" to "Active",
-                            "EXPIRED" to "Expired",
-                            "VERIFIED" to "Verified",
-                            "PENDING_VERIFICATION" to "Pending Review ($pendingVerificationCount)"
-                        ).forEach { (key, label) ->
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(
+                            listOf(
+                                "ALL" to "All",
+                                "ACTIVE_30D" to "Active",
+                                "EXPIRED" to "Expired",
+                                "VERIFIED" to "Verified",
+                                "PENDING_VERIFICATION" to "Pending review"
+                            )
+                        ) { (key, label) ->
                             FilterChip(
                                 selected = uiState.selectedListingStatusFilter == key,
                                 onClick = { adminViewModel.setListingStatusFilter(key) },
@@ -173,19 +147,37 @@ internal fun AdminListingsCatalogTab(
 
         item {
             Text(
-                text = "Showing ${uiState.filteredSpaces.size} of ${uiState.allSpaces.size} listings in Lebanon",
+                text = if (uiState.listingSearchQuery.isBlank()) {
+                    "Awaiting verification review (${uiState.reviewQueue.size}) — search to find any listing"
+                } else {
+                    "${uiState.filteredSpaces.size} listing(s), ${uiState.bookingResults.size} booking(s)"
+                },
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
-        if (uiState.filteredSpaces.isEmpty()) {
-            item {
+        when {
+            uiState.isSearchingListings -> item { ShimmerLoadingList(count = 2, itemHeight = 140.dp) }
+            uiState.searchError != null && uiState.listingSearchQuery.isNotBlank() -> item {
+                ProHostAlertBanner(message = uiState.searchError, severity = ProHostAlertSeverity.ERROR)
+            }
+            uiState.filteredSpaces.isEmpty() && uiState.bookingResults.isEmpty() -> item {
                 ProEmptyState(
-                    title = "No Listings Match Filters",
-                    description = "Try adjusting your search query or workspace type filter.",
+                    title = if (uiState.listingSearchQuery.isBlank()) "Nothing to review" else "No matches",
+                    description = if (uiState.listingSearchQuery.isBlank()) {
+                        "No listing is waiting for verification."
+                    } else {
+                        "Nothing matches \"${uiState.listingSearchQuery.trim()}\"."
+                    },
                     icon = Icons.Default.SearchOff
                 )
+            }
+        }
+
+        if (uiState.bookingResults.isNotEmpty()) {
+            items(uiState.bookingResults, key = { "booking_${it.id}" }) { booking ->
+                AdminBookingResultCard(booking = booking, onOpenPerson = { uid -> adminViewModel.openDossier(uid) })
             }
         }
 
@@ -310,6 +302,16 @@ internal fun AdminListingsCatalogTab(
                             icon = Icons.Default.Edit,
                             compact = true
                         )
+
+                        // Host's full profile (dossier)
+                        if (space.ownerId.isNotBlank()) {
+                            IconButton(
+                                onClick = { adminViewModel.openDossier(space.ownerId) },
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(Icons.Default.Badge, contentDescription = "Host profile", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                            }
+                        }
 
                         // Delete Button
                         IconButton(
@@ -474,4 +476,44 @@ internal fun AdminAttendeePackageDialog(
             CustomButton(text = "Cancel", onClick = onDismiss, variant = CustomButtonVariant.OUTLINED)
         }
     )
+}
+
+/** One booking found by the admin search (B- code, renter/host email or name). */
+@Composable
+private fun AdminBookingResultCard(booking: RentalBookingRequest, onOpenPerson: (String) -> Unit) {
+    ProSurfaceCard {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(booking.publicCode, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                Text(booking.status.displayName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            }
+            Text(booking.spaceTitle.ifBlank { "Listing" }, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(
+                "${booking.practitionerName.ifBlank { "Renter" }} → ${booking.ownerName.ifBlank { "Host" }} · " +
+                    "${booking.startDate} · $${"%.2f".format(java.util.Locale.US, booking.totalAmountUsd)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (booking.practitionerId.isNotBlank()) {
+                    CustomButton(
+                        text = "Renter profile",
+                        onClick = { onOpenPerson(booking.practitionerId) },
+                        variant = CustomButtonVariant.OUTLINED,
+                        icon = Icons.Default.Badge,
+                        compact = true
+                    )
+                }
+                if (booking.ownerId.isNotBlank()) {
+                    CustomButton(
+                        text = "Host profile",
+                        onClick = { onOpenPerson(booking.ownerId) },
+                        variant = CustomButtonVariant.OUTLINED,
+                        icon = Icons.Default.Badge,
+                        compact = true
+                    )
+                }
+            }
+        }
+    }
 }

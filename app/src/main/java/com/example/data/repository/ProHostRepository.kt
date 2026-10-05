@@ -162,28 +162,20 @@ class ProHostRepository(
         }
     }
 
-    // Paged live lists (see FirestoreService.setPublicListingsLimit / setAdminPageLimit).
+    // Explore's paged live list (see FirestoreService.setPublicListingsLimit).
     private var publicListingsLimit = FirestoreService.PUBLIC_LISTINGS_PAGE
-    private var adminPageLimit = FirestoreService.ADMIN_PAGE
     private val _hasMoreSpaces = MutableStateFlow(false)
     /** True when Explore's loaded page is full, so more active listings may exist. */
     val hasMoreSpaces: StateFlow<Boolean> = _hasMoreSpaces.asStateFlow()
-    private val _hasMoreAdminRows = MutableStateFlow(false)
-    /** True when an admin list (listings, users, bookings) filled its page. */
-    val hasMoreAdminRows: StateFlow<Boolean> = _hasMoreAdminRows.asStateFlow()
+    private val _reviewQueue = MutableStateFlow<List<SpaceListing>>(emptyList())
+    /** Admin only: listings waiting for verification review (small live queue). */
+    val reviewQueue: StateFlow<List<SpaceListing>> = _reviewQueue.asStateFlow()
 
     /** Explore: grow the live listing page by one page. No-op when everything is loaded. */
     fun loadMoreSpaces() {
         if (!_hasMoreSpaces.value) return
         publicListingsLimit += FirestoreService.PUBLIC_LISTINGS_PAGE
         firestoreService.setPublicListingsLimit(publicListingsLimit)
-    }
-
-    /** Admin console: grow every admin list by one page. */
-    fun loadMoreAdminRows() {
-        if (!_hasMoreAdminRows.value) return
-        adminPageLimit += FirestoreService.ADMIN_PAGE
-        firestoreService.setAdminPageLimit(adminPageLimit)
     }
 
     fun startRealtimeSync() {
@@ -247,9 +239,8 @@ class ProHostRepository(
                     }
                 },
                 publicListingsLimit = publicListingsLimit,
-                adminPageLimit = adminPageLimit,
                 onPublicListingsPage = { _hasMoreSpaces.value = it },
-                onAdminPage = { _hasMoreAdminRows.value = it }
+                onReviewQueueUpdated = { _reviewQueue.value = it }
             )
 
             // Pricing: read-only from the client's side. If an admin has already
@@ -2211,103 +2202,20 @@ class ProHostRepository(
         return success
     }
 
-    // --- Multi-Format Data Export Hub ---
-    fun exportToJson(): String {
-        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US)
-        fun esc(v: String) = v.replace("\\", "\\\\").replace("\"", "\\\"")
-        val sb = StringBuilder()
-        sb.appendLine("{")
-        sb.appendLine("  \"platform\": \"ProHost\",")
-        sb.appendLine("  \"exportedAt\": \"${sdf.format(Date())}\",")
-        sb.appendLine("  \"proHostCount\": ${_users.value.count { it.role == UserRole.PRO_HOST }},")
-        sb.appendLine("  \"totalSpacesCount\": ${_spaces.value.size},")
-        sb.appendLine("  \"spaces\": [")
-        _spaces.value.forEachIndexed { index, s ->
-            val comma = if (index < _spaces.value.size - 1) "," else ""
-            sb.appendLine("    {")
-            sb.appendLine("      \"id\": \"${esc(s.id)}\",")
-            sb.appendLine("      \"title\": \"${esc(s.title)}\",")
-            sb.appendLine("      \"type\": \"${s.spaceType.name}\",")
-            sb.appendLine("      \"country\": \"${esc(s.country)}\",")
-            sb.appendLine("      \"city\": \"${esc(s.city)}\",")
-            sb.appendLine("      \"status\": \"${s.status.name}\",")
-            sb.appendLine("      \"owner\": \"${esc(s.ownerName)}\"")
-            sb.appendLine("    }$comma")
-        }
-        sb.appendLine("  ]")
-        sb.appendLine("}")
-        return sb.toString()
-    }
-
-    fun exportToAuditText(): String {
+    fun exportOwnerRegistrationsToCsv(): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
-        val active = _spaces.value.count { it.status == ListingStatus.ACTIVE }
-        return buildString {
-            appendLine("PROHOST PLATFORM REPORT")
-            appendLine("Generated: ${sdf.format(Date())}")
-            appendLine()
-            appendLine("Users: ${_users.value.size} (Pro Hosts: ${_users.value.count { it.role == UserRole.PRO_HOST }})")
-            appendLine("Listings: ${_spaces.value.size} (published: $active)")
-            appendLine("Revenue: see Google Play Console (subscriptions are billed by Google Play).")
-            appendLine()
-            appendLine("LISTINGS")
-            _spaces.value.forEach { sp ->
-                val place = listOf(sp.city, sp.country).filter { it.isNotBlank() }.joinToString(", ")
-                appendLine("• [${sp.status.name}] ${sp.id}: ${sp.title} ($place) | Owner: ${sp.ownerName}")
-            }
-        }
-    }
-
-    /** Millis -> "yyyy-MM-dd HH:mm:ss", or "—" when the server hasn't stamped this account yet. */
-    private fun formatAuditTimestamp(sdf: SimpleDateFormat, millis: Long?): String =
-        millis?.let { sdf.format(Date(it)) } ?: "—"
-
-    /**
-     * The full audit-trail export Admin's Users Directory offers: every field a real
-     * platform operator needs to see per account, including the server-stamped
-     * creation/last-sign-in timestamps (assignInitialRole.ts — never client-set, see
-     * AppUser's doc comment) and direct links to the on-file profile picture and ID
-     * document. Nothing here is reviewed/approved — these are exactly the fields kept
-     * on file, exported as-is.
-     */
-    fun exportUsersToCsv(): String {
-        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+        val owners = _users.value.filter { it.role == UserRole.PRO_HOST }
         val sb = StringBuilder()
-
-        val bookings = _bookingRequests.value
-        // Total spent per user (as practitioner/tenant) on accepted bookings
-        val spentByUser = bookings
-            .filter { it.status == BookingRequestStatus.ACCEPTED }
-            .groupBy { it.practitionerId }
-            .mapValues { (_, bks) -> bks.sumOf { it.totalAmountUsd } }
-        // Distinct tenant count per host (distinct practitionerIds on accepted bookings)
-        val tenantsByOwner = bookings
-            .filter { it.status == BookingRequestStatus.ACCEPTED }
-            .groupBy { it.ownerId }
-            .mapValues { (_, bks) -> bks.map { it.practitionerId }.distinct().size }
-
-        sb.appendLine("=== PROHOST USERS DIRECTORY EXPORT (CSV) ===")
+        sb.appendLine("=== PROHOST OWNER REGISTRATIONS & WORKSPACES AUDIT ===")
         sb.appendLine("Export Date,${sdf.format(Date())}")
-        sb.appendLine("Total Users,${_users.value.size}")
+        sb.appendLine("Total Registered Hosts,${owners.size}")
         sb.appendLine()
-        sb.appendLine(
-            "User ID,Display Code,Full Name,Email,Role,Specialty,Phone,Country,Governorate,City," +
-                "Phone Verified,Account Created,Last Sign-In," +
-                "Active Listings,Package Plan,Package Expiry," +
-                "Total Spent USD,Tenant Count,Suspended"
-        )
-        _users.value.forEach { u ->
-            val q = { s: String -> "\"${s.replace("\"", "\"\"")}\"" }
-            val totalSpent = spentByUser[u.id] ?: 0.0
-            val tenantCount = tenantsByOwner[u.id] ?: 0
-            sb.appendLine(
-                "${q(u.id)},${q(u.publicCode)},${q(u.fullName)},${q(u.email)},${q(u.role.name)}," +
-                    "${q(u.specialty)},${q(u.phone)},${q(u.country)},${q(u.governorate)},${q(u.city)}," +
-                    "${u.isVerified},${q(formatAuditTimestamp(sdf, u.createdAtMillis))},${q(formatAuditTimestamp(sdf, u.lastSignInAtMillis))}," +
-                    "${u.activeListingCount},${q(u.ownerPackageId ?: "")}," +
-                    "${q(u.ownerPackageExpiryMillis?.let { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(it)) } ?: "")}," +
-                    "${"%.2f".format(totalSpent)},$tenantCount,${u.isSuspended}"
-            )
+        sb.appendLine("User ID,Full Name,Email,Phone,Country,Governorate,City,Properties Count,Active Subscribed Count,Is Verified")
+        owners.forEach { o ->
+            val ownedSpaces = _spaces.value.filter { it.ownerId == o.id }
+            val activeSpaces = ownedSpaces.count { it.isActiveSubscription }
+            sb.appendLine("\"${o.id}\",\"${o.fullName.replace("\"", "\"\"")}\",\"${o.email}\",\"${o.phone}\",\"${o.country}\",\"" +
+                "${o.governorate}\",\"${o.city}\",${ownedSpaces.size},$activeSpaces,${o.isVerified}")
         }
         return sb.toString()
     }
@@ -2326,53 +2234,6 @@ class ProHostRepository(
                 "\",\"${sp.district}\",\"${sp.streetAddress.replace("\"", "\"\"")}\",${sp.baseMonthlyRateUsd},${sp.isShared}" +
                 ",${sp.isVerified},${sp.isActiveSubscription},\"${sp.ownerName.replace("\"", "\"\"")}\",\"${sp.ownerPhone}" +
                 "\",\"${sp.ownerEmail}\"")
-        }
-        return sb.toString()
-    }
-
-    fun exportListingsToJson(): String {
-        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US)
-        val sb = StringBuilder()
-        sb.appendLine("{")
-        sb.appendLine("  \"exportType\": \"WORKSPACE_LISTINGS\",")
-        sb.appendLine("  \"exportedAt\": \"${sdf.format(Date())}\",")
-        sb.appendLine("  \"totalListings\": ${_spaces.value.size},")
-        sb.appendLine("  \"listings\": [")
-        _spaces.value.forEachIndexed { idx, sp ->
-            val comma = if (idx < _spaces.value.size - 1) "," else ""
-            sb.appendLine("    {")
-            sb.appendLine("      \"id\": \"${sp.id}\",")
-            sb.appendLine("      \"title\": \"${sp.title.replace("\"", "\\\"")}\",")
-            sb.appendLine("      \"spaceType\": \"${sp.spaceType.name}\",")
-            sb.appendLine("      \"governorate\": \"${sp.governorate.displayName}\",")
-            sb.appendLine("      \"district\": \"${sp.district}\",")
-            sb.appendLine("      \"monthlyRateUsd\": ${sp.baseMonthlyRateUsd},")
-            sb.appendLine("      \"isShared\": ${sp.isShared},")
-            sb.appendLine("      \"isVerified\": ${sp.isVerified},")
-            sb.appendLine("      \"isActiveSubscription\": ${sp.isActiveSubscription},")
-            sb.appendLine("      \"ownerName\": \"${sp.ownerName.replace("\"", "\\\"")}\",")
-            sb.appendLine("      \"ownerPhone\": \"${sp.ownerPhone}\"")
-            sb.appendLine("    }$comma")
-        }
-        sb.appendLine("  ]")
-        sb.appendLine("}")
-        return sb.toString()
-    }
-
-    fun exportOwnerRegistrationsToCsv(): String {
-        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
-        val owners = _users.value.filter { it.role == UserRole.PRO_HOST }
-        val sb = StringBuilder()
-        sb.appendLine("=== PROHOST OWNER REGISTRATIONS & WORKSPACES AUDIT ===")
-        sb.appendLine("Export Date,${sdf.format(Date())}")
-        sb.appendLine("Total Registered Hosts,${owners.size}")
-        sb.appendLine()
-        sb.appendLine("User ID,Full Name,Email,Phone,Country,Governorate,City,Properties Count,Active Subscribed Count,Is Verified")
-        owners.forEach { o ->
-            val ownedSpaces = _spaces.value.filter { it.ownerId == o.id }
-            val activeSpaces = ownedSpaces.count { it.isActiveSubscription }
-            sb.appendLine("\"${o.id}\",\"${o.fullName.replace("\"", "\"\"")}\",\"${o.email}\",\"${o.phone}\",\"${o.country}\",\"" +
-                "${o.governorate}\",\"${o.city}\",${ownedSpaces.size},$activeSpaces,${o.isVerified}")
         }
         return sb.toString()
     }

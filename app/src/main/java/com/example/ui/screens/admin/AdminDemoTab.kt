@@ -61,19 +61,10 @@ internal fun AdminDemoControlTab(
     viewModel: ProHostViewModel
 ) {
     var showPurgeConfirmDialog by remember { mutableStateOf(false) }
-    val allSpaces = uiState.allSpaces
-    val allUsers = uiState.allUsers
-    val allBookings by viewModel.bookingRequests.collectAsState()
-
-    val demoSpacesCount = remember(allSpaces) {
-        allSpaces.count { it.isDemo || it.id.startsWith("demo-") || it.id.startsWith("DEMO-") }
-    }
-    val demoUsersCount = remember(allUsers) {
-        allUsers.count { it.isDemo || it.id.startsWith("demo-") || it.id.startsWith("DEMO-") || it.email.startsWith("demo.") }
-    }
-    val demoBookingsCount = remember(allBookings) {
-        allBookings.count { it.isDemo || it.id.startsWith("demo-") || it.id.startsWith("DEMO-") }
-    }
+    // Server totals (adminCounts) — the console no longer loads every document.
+    val demoSpacesCount = uiState.counts?.demoListings ?: 0
+    val demoUsersCount = uiState.counts?.demoUsers ?: 0
+    val demoBookingsCount = uiState.counts?.demoBookings ?: 0
 
     LazyColumn(
         modifier = Modifier
@@ -175,6 +166,21 @@ internal fun AdminDemoControlTab(
                         modifier = Modifier.fillMaxWidth(),
                         variant = CustomButtonVariant.OUTLINED,
                         icon = Icons.Default.Tag
+                    )
+                    // One-time maintenance for the search-first console and the email rule.
+                    CustomButton(
+                        text = "Index Names for Admin Search",
+                        onClick = { adminViewModel.runMaintenance("backfillSearchNames", "Search index") },
+                        modifier = Modifier.fillMaxWidth(),
+                        variant = CustomButtonVariant.OUTLINED,
+                        icon = Icons.Default.Search
+                    )
+                    CustomButton(
+                        text = "Mark Email/Google Sign-ups Email-Verified",
+                        onClick = { adminViewModel.runMaintenance("backfillEmailVerified", "Email verification backfill") },
+                        modifier = Modifier.fillMaxWidth(),
+                        variant = CustomButtonVariant.OUTLINED,
+                        icon = Icons.Default.MarkEmailRead
                     )
                 }
             }
