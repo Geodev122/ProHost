@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-10-05T04:44:47.254Z",
+  "generatedAt": "2026-10-05T04:58:59.520Z",
   "trigger": "NIGHTHAWK",
   "summary": {
-    "total": 69,
+    "total": 73,
     "critical": 0,
     "high": 0,
     "medium": 15,
-    "low": 54,
+    "low": 58,
     "info": 0,
     "passes": 29
   },
@@ -153,6 +153,42 @@
       "file": "app/src/main/java/com/example/data/model/DataModels.kt",
       "line": 1449,
       "message": "Line has 170 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/data/repository/ProHostRepository.kt",
+      "line": 1029,
+      "message": "Line has 719 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/data/repository/ProHostRepository.kt",
+      "line": 1033,
+      "message": "Line has 182 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/data/repository/ProHostRepository.kt",
+      "line": 1045,
+      "message": "Line has 180 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/data/repository/ProHostRepository.kt",
+      "line": 1055,
+      "message": "Line has 165 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
     {
