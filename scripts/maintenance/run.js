@@ -5,6 +5,7 @@
 //   node scripts/maintenance/run.js audit            read-only integrity + billing health report
 //   node scripts/maintenance/run.js j8               production data hygiene (backup → cleanup)
 //   node scripts/maintenance/run.js activate <code>  honour a parked retired-plan purchase for U-XXXXXX
+//   node scripts/maintenance/run.js emailauth        read-only: why sign-in emails fail (Auth config, mail, limits)
 //
 // Results are printed as GitHub "::notice::" annotations (no PII: counts and display codes only).
 "use strict";
@@ -184,6 +185,59 @@ async function activate(db, code) {
   notice(`${code}: role=${after.role} plan=${after.ownerPackageId || "-"} source=${after.entitlementSource || "-"}`);
 }
 
+async function emailauth(db) {
+  // 1. Firebase Auth (Identity Toolkit) config: is email / email-link sign-in enabled?
+  await step("authConfig", async () => {
+    const { access_token: token } = await admin.app().options.credential.getAccessToken();
+    const project = process.env.GCLOUD_PROJECT;
+    const res = await fetch(`https://identitytoolkit.googleapis.com/admin/v2/projects/${project}/config`, {
+      headers: { Authorization: `Bearer ${token}`, "x-goog-user-project": project },
+    });
+    if (!res.ok) return `HTTP ${res.status} ${(await res.text()).slice(0, 200)}`;
+    const c = await res.json();
+    const email = c.signIn?.email || {};
+    return `emailEnabled=${!!email.enabled} passwordRequired=${email.passwordRequired !== false} ` +
+      `(email link needs enabled && passwordRequired=false) authorizedDomains=[${(c.authorizedDomains || []).join(" ")}] ` +
+      `emailPrivacy.enumerationProtection=${!!c.emailPrivacyConfig?.enableImprovedEmailPrivacy}`;
+  });
+
+  // 2. Mail queue (Trigger Email extension) over 72 h, newest error.
+  await step("mailQueue72h", async () => {
+    const since = admin.firestore.Timestamp.fromMillis(Date.now() - 72 * 3600 * 1000);
+    const mail = await db.collection("mail").where("createdAt", ">=", since).get();
+    const states = {};
+    let lastError = "";
+    let newest = 0;
+    mail.docs.forEach((d) => {
+      const st = d.data().delivery?.state ?? "NOT_PICKED_UP";
+      states[st] = (states[st] || 0) + 1;
+      const t = d.data().createdAt?.toMillis?.() ?? 0;
+      if (st === "ERROR" && t >= newest) { newest = t; lastError = String(d.data().delivery?.error || "").slice(0, 200); }
+    });
+    const total = (await db.collection("mail").count().get()).data().count;
+    return `allTime=${total} last72h=${mail.size} ${JSON.stringify(states).replace(/[{}]/g, "")}` +
+      (lastError ? ` lastError=${lastError}` : "");
+  });
+
+  // 3. Is the extension installed at all? It stamps delivery.* on docs it has seen.
+  await step("extensionSeenAnyMail", async () => {
+    const s = await db.collection("mail").orderBy("createdAt", "desc").limit(20).get();
+    const seen = s.docs.filter((d) => d.data().delivery).length;
+    return `${seen}/${s.size} recent mail docs have delivery status`;
+  });
+
+  // 4. Addresses currently at the send limit (counts only).
+  await step("sendLimits", async () => {
+    const s = await db.collection("email_send_limits").get();
+    const hour = 3600 * 1000;
+    const active = s.docs.filter((d) => Date.now() - (d.data().windowStart || 0) < hour);
+    const blocked = active.filter((d) => (d.data().count || 0) >= 5);
+    const kinds = {};
+    blocked.forEach((d) => { const k = d.id.split("_")[0]; kinds[k] = (kinds[k] || 0) + 1; });
+    return `activeWindows=${active.length} atLimit=${blocked.length} ${JSON.stringify(kinds).replace(/[{}]/g, "")}`;
+  });
+}
+
 (async () => {
   require(`${LIB}/lib/admin`);
   const db = admin.firestore();
@@ -192,5 +246,6 @@ async function activate(db, code) {
   if (task === "audit") await audit(db, auth);
   else if (task === "j8") { await j8(db, auth); await audit(db, auth); }
   else if (task === "activate") await activate(db, arg);
+  else if (task === "emailauth") await emailauth(db);
   else throw new Error(`unknown task ${task}`);
 })().catch((e) => { fail(`${e && e.message}`); process.exit(1); });

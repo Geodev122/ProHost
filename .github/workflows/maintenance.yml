@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
     inputs:
       task:
-        description: "audit (read-only) | j8 (data cleanup) | activate (honour a parked purchase)"
+        description: "audit (read-only) | j8 (data cleanup) | activate (honour a parked purchase) | emailauth (why sign-in emails fail)"
         required: true
         default: audit
         type: choice
-        options: [audit, j8, activate]
+        options: [audit, j8, activate, emailauth]
       code:
         description: "U- display code (activate only)"
         required: false
