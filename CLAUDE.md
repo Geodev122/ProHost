@@ -175,6 +175,15 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   `listings/legacyPricing.ts`, unit-tested — keep both identical). Admin › Demo tab › "Migrate Legacy Listing
   Fields" (`migrateLegacyListingFields`) writes `pricing` and deletes the old keys. `RentalFormula` itself stays:
   bookings record one (`representativeFormula`).
+- Security rules are unit-tested in the emulator (`tests/rules`, CI job "Security Rules Tests"); add a test with
+  every rules change. Bookings: create must be PENDING with no review/cancel state, on a bookable listing, and an
+  edit (`replacesBookingId`) may only replace the caller's own booking; per-side transitions only (host
+  PENDING→ACCEPTED/REJECTED, ACCEPTED→CANCELLED as PRO_HOST or superseded; practitioner →CANCELLED as SPECIALIST,
+  even for a Pro Host's old rentals). Listings never write back counters, `publishBlockedReasons`,
+  `verificationRequestedAt` or `ownerEmail`; the verification document is a private `gs://` reference opened via
+  `adminVerificationDocUrl` — never store a download URL on a listing. Token claims are read with
+  `token.get('x', default)` (a missing claim makes a direct read throw). Profile `phone` is the user's
+  self-declared WhatsApp number (editable); `email` must equal the Auth email.
 - Listing saves go through `SpaceListing.keepingServerOwnedFields(current)` in `ProHostRepository`
   (isVerified, subscription fields, isOwnerSuspended, isOwnerPackageLapsed, ownerId). Never echo
   those from a wizard-built listing: rules deny any save whose changed keys include them, which

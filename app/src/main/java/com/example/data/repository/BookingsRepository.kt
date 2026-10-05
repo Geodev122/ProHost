@@ -296,11 +296,17 @@ internal class BookingsRepository(private val repo: ProHostRepository) {
         return with(repo) {
             val request = _bookingRequests.value.find { it.id == requestId } ?: return false
 
-            val success = firestoreService.updateBookingStatus(requestId, BookingRequestStatus.CANCELLED)
+            // The requester withdraws it: firestore.rules pins the practitioner side to SPECIALIST
+            // (a Pro Host cancelling a rental made before upgrading is that side too).
+            val success = firestoreService.updateBookingStatus(
+                requestId,
+                BookingRequestStatus.CANCELLED,
+                extraFields = mapOf("cancelledByRole" to "SPECIALIST")
+            )
             if (!success) return false
 
             _bookingRequests.value = _bookingRequests.value.map {
-                if (it.id == requestId) it.copy(status = BookingRequestStatus.CANCELLED) else it
+                if (it.id == requestId) it.copy(status = BookingRequestStatus.CANCELLED, cancelledByRole = "SPECIALIST") else it
             }
 
             addAuditLog(
@@ -337,6 +343,15 @@ internal class BookingsRepository(private val repo: ProHostRepository) {
         return with(repo) {
             val request = _bookingRequests.value.find { it.id == requestId } ?: return false
             if (request.status != BookingRequestStatus.ACCEPTED) return false
+            // Which side ended it decides the role (firestore.rules pins it): the requester is
+            // always SPECIALIST — even a Pro Host cancelling a rental made before upgrading —
+            // the listing's owner is PRO_HOST, anyone else is an admin.
+            @Suppress("NAME_SHADOWING")
+            val cancelledByRole = when (cancelledByUid) {
+                request.practitionerId -> "SPECIALIST"
+                request.ownerId -> "PRO_HOST"
+                else -> "ADMIN"
+            }
 
             val success = firestoreService.updateBookingStatus(
                 requestId,

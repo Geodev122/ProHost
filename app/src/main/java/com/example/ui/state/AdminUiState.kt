@@ -120,6 +120,7 @@ sealed interface AdminUiEvent {
     data class ShowToast(val message: String) : AdminUiEvent
     data class PricingUpdated(val newFee: Double) : AdminUiEvent
     data class DataExportReady(val title: String, val content: String) : AdminUiEvent
+    data class OpenUrl(val url: String) : AdminUiEvent
 }
 
 /** "This purchase was made for [taggedForName] — activate it for [targetName] instead?" */

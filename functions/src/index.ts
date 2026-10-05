@@ -15,6 +15,7 @@ export { forceProHostUpgrade } from "./admin/forceProHostUpgrade";
 export { lookupUserForGrant } from "./admin/lookupUserForGrant";
 export { getAdminAnalytics, backfillProHostUpgradeDates } from "./admin/adminAnalytics";
 export { setListingVerification, setListingSubscriptionActive, requestListingVerification } from "./admin/listings";
+export { adminVerificationDocUrl } from "./admin/verificationDocs";
 export { configureGa4ApiSecret } from "./admin/ga4Config";
 export { backfillEmailVerified } from "./admin/backfillEmailVerified";
 export { migrateLegacyListingFields } from "./admin/migrateLegacyFields";

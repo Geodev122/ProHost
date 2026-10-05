@@ -1015,7 +1015,6 @@ data class SpaceListing(
             "ownerId" to ownerId,
             "ownerName" to ownerName,
             "ownerPhone" to ownerPhone,
-            "ownerEmail" to ownerEmail,
             "ownershipProofUrl" to ownershipProofUrl,
             "ownershipDocRole" to ownershipDocRole?.name,
             "verificationDocUrl" to verificationDocUrl,
@@ -1027,14 +1026,13 @@ data class SpaceListing(
             "imageUrls" to imageUrls,
             "videoTourDurationSec" to videoTourDurationSec,
             "baseMonthlyRateUsd" to baseMonthlyRateUsd,
-            "avatarEngagementViews" to avatarEngagementViews,
-            "avatarInquiryClicks" to avatarInquiryClicks,
+            // avatarEngagementViews / avatarInquiryClicks (increment-only counters) and
+            // publishBlockedReasons (publish validation output) are server-maintained and
+            // never written back from a host's save; isDemo only when true (demo seeding).
             "ownerProfilePictureUrl" to ownerProfilePictureUrl,
             "status" to status.name,
-            "publishBlockedReasons" to publishBlockedReasons,
-            "isDemo" to isDemo,
             "updatedAt" to System.currentTimeMillis()
-        )
+        ) + (if (isDemo) mapOf("isDemo" to true) else emptyMap())
     }
 
     companion object {

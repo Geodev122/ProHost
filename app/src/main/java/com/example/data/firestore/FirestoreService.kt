@@ -704,22 +704,4 @@ class FirestoreService(
         }
     }
 
-    // ==========================================
-    // AUDIT LOGS
-    // ==========================================
-
-    suspend fun recordAuditLog(log: AuditSecurityLog): Boolean {
-        return try {
-            val db = firestore ?: return localOnly
-            db.collection(FirestoreSchema.Collections.AUDIT_SECURITY_LOGS)
-                .document(log.id)
-                .set(log.toFirestoreMap(), SetOptions.merge())
-                .await()
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error recording audit log: ${e.message}", e)
-            false
-        }
-    }
-
 }

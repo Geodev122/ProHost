@@ -88,11 +88,13 @@ class FirebaseStorageService(
         fileUri: Uri,
         fileExtension: String,
         onProgress: (Float) -> Unit = {}
-    ): String? = uploadAndGetUrl(
-        ref = storage?.reference?.child("listing_verification_docs/$spaceId/verification_proof.$fileExtension"),
-        fileUri = fileUri,
-        onProgress = onProgress
-    )
+    ): String? {
+        // Returns a private gs:// reference, never a download URL: the value is stored on the
+        // listing, which every signed-in user can read, and download tokens bypass Storage
+        // rules. Admins open it through the adminVerificationDocUrl function.
+        val ref = storage?.reference?.child("listing_verification_docs/$spaceId/verification_proof.$fileExtension")
+        return if (uploadAndGetUrl(ref = ref, fileUri = fileUri, onProgress = onProgress) != null) ref?.toString() else null
+    }
 
     /**
      * Uploads the signed leasing agreement attached to a booking request.

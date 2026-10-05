@@ -19,6 +19,18 @@ service firebase.storage {
       return request.resource.size < 10 * 1024 * 1024;
     }
 
+    // Raster images only: SVG can carry script and these paths are publicly readable.
+    function isPhoto() {
+      return request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp'];
+    }
+
+    // Private documents (owner/admin-readable only): PDF or any raster image a phone
+    // camera produces (HEIC included) — never SVG.
+    function isDocument() {
+      return request.resource.contentType == 'application/pdf' ||
+        (request.resource.contentType.matches('image/.*') && request.resource.contentType != 'image/svg+xml');
+    }
+
     // Profile pictures. Publicly readable (shown wherever a member's identity is
     // displayed to someone else, e.g. a booking request) but writable only by the
     // account owner or an Admin.
@@ -28,24 +40,7 @@ service firebase.storage {
       // would make the "allow delete: if false" below dead.
       allow create, update: if isSignedIn() && (request.auth.uid == uid || isAdmin()) &&
         withinSizeLimit() &&
-        request.resource.contentType.matches('image/.*');
-      allow delete: if false;
-    }
-
-    // Pro Host proof of ownership / right to rent, one per listing.
-    match /listing_ownership_docs/{spaceId}/{fileName} {
-      allow read: if isSignedIn() &&
-        (isAdmin() ||
-         (firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) &&
-          firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid));
-      allow create, update: if isSignedIn() &&
-        (isAdmin() ||
-         (request.auth.token.suspended != true &&
-          (!firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) ||
-           firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid))) &&
-        withinSizeLimit() &&
-        (request.resource.contentType == 'application/pdf' ||
-         request.resource.contentType.matches('image/.*'));
+        isPhoto();
       allow delete: if false;
     }
 
@@ -57,12 +52,11 @@ service firebase.storage {
           firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid));
       allow create, update: if isSignedIn() &&
         (isAdmin() ||
-         (request.auth.token.suspended != true &&
+         (request.auth.token.get('suspended', false) != true &&
           (!firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) ||
            firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid))) &&
         withinSizeLimit() &&
-        (request.resource.contentType == 'application/pdf' ||
-         request.resource.contentType.matches('image/.*'));
+        isDocument();
       allow delete: if false;
     }
 
@@ -74,30 +68,34 @@ service firebase.storage {
          (firestore.exists(/databases/(default)/documents/booking_requests/$(bookingId)) &&
           (firestore.get(/databases/(default)/documents/booking_requests/$(bookingId)).data.ownerId == request.auth.uid ||
            firestore.get(/databases/(default)/documents/booking_requests/$(bookingId)).data.practitionerId == request.auth.uid)));
-      allow create, update: if isSignedIn() &&
+      // Create-only: a signed lease can't be swapped after acceptance.
+      allow create: if isSignedIn() &&
         (isAdmin() ||
          (firestore.exists(/databases/(default)/documents/booking_requests/$(bookingId)) &&
           firestore.get(/databases/(default)/documents/booking_requests/$(bookingId)).data.ownerId == request.auth.uid)) &&
         withinSizeLimit() &&
-        (request.resource.contentType == 'application/pdf' ||
-         request.resource.contentType.matches('image/.*'));
-      allow delete: if false;
+        isDocument();
+      allow update, delete: if false;
     }
 
     // Listing photos (whole space, cover, subdivisions). Publicly readable.
     // Recursive match allowing subfolders under /listings/{spaceId}/.
     match /listings/{spaceId}/{allPaths=**} {
       allow read: if true;
-      allow write: if isSignedIn() &&
+      // Only Pro Hosts upload photos for a listing that isn't saved yet (the wizard
+      // uploads before the first save); otherwise only the listing's owner.
+      allow create, update: if isSignedIn() &&
         (isAdmin() ||
-         (request.auth.token.suspended != true &&
-          (!firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) ||
-           firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid))) &&
+         (request.auth.token.get('suspended', false) != true &&
+          ((!firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) && role() == "PRO_HOST") ||
+           (firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) &&
+            firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid)))) &&
         withinSizeLimit() &&
-        request.resource.contentType.matches('image/.*');
+        isPhoto();
       allow delete: if isSignedIn() &&
         (isAdmin() ||
-         (!firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) ||
+         (!firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) && role() == "PRO_HOST") ||
+         (firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) &&
           firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid));
     }
 

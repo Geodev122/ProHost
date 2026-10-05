@@ -196,6 +196,15 @@ class AdminViewModel(
 
     // --- Billing rescue (billingRescue.ts): health check + paid purchases not active yet ---
 
+    /** Opens a listing's private verification document through a link the server issues. */
+    fun openVerificationDocument(spaceId: String) {
+        launchSafe {
+            functionsClient.adminVerificationDocUrl(spaceId)
+                .onSuccess { _events.emit(AdminUiEvent.OpenUrl(it)) }
+                .onFailure { _events.emit(AdminUiEvent.ShowToast(it.toUserMessage("Couldn't open the document."))) }
+        }
+    }
+
     /** Sends a server self-test through the RTDN topic, then re-checks billing health. */
     fun sendRtdnSelfTest() {
         _uiState.update { it.copy(isCheckingBilling = true) }

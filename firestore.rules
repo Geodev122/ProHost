@@ -17,10 +17,8 @@ service cloud.firestore {
     // INVARIANT — do not change without reading this: role()/isAdmin() must
     // stay pure custom-claim checks (request.auth.token.* only), with zero
     // resource.data/get() dependency. FirestoreService.attachLiveListeners()
-    // relies on exactly that: it runs 5 fully unfiltered
-    // .collection().addSnapshotListener() calls (workspace_listings,
-    // user_profiles, booking_requests,
-    // audit_security_logs) for ADMIN callers, with no .where(...) at all.
+    // keeps that true: admins run the audit-log listener and the verification review
+    // queue (FirestoreService) with no owner filter.
     // Firestore can only prove an unfiltered LIST query safe against a rule
     // like `isAdmin() || <content-dependent-branch>` when isAdmin() itself is
     // provable independent of any document's content — true today because it
@@ -71,6 +69,23 @@ service cloud.firestore {
     // only by its renewal date (set from Google Play by playBillingRtdn.ts, or by
     // an admin grant). A missing expiry is treated as not expired, matching the
     // previous behavior for legacy grants.
+    // A listing a specialist may send a booking request to: published (missing status =
+    // legacy ACTIVE), host not suspended, host's plan not lapsed.
+    function isBookableListing(spaceId) {
+      let listing = get(/databases/$(database)/documents/workspace_listings/$(spaceId)).data;
+      return listing.get('status', 'ACTIVE') == 'ACTIVE' &&
+        listing.get('isOwnerSuspended', false) == false &&
+        listing.get('isOwnerPackageLapsed', false) == false;
+    }
+
+    // An "edit" request may only replace the same person's booking for the same space;
+    // otherwise accepting it would cancel someone else's accepted booking.
+    function isOwnReplacement(data) {
+      return data.get('replacesBookingId', null) == null ||
+        (get(/databases/$(database)/documents/booking_requests/$(data.replacesBookingId)).data.practitionerId == request.auth.uid &&
+         get(/databases/$(database)/documents/booking_requests/$(data.replacesBookingId)).data.spaceId == data.spaceId);
+    }
+
     function hasActivePackage(uid) {
       let profile = get(/databases/$(database)/documents/user_profiles/$(uid)).data;
       let packageId = profile.get('ownerPackageId', null);
@@ -116,7 +131,14 @@ service cloud.firestore {
         (isAdmin() || request.resource.data.get('favoriteCount', 0) == 0) &&
         // displayCode is minted server-side only when absent; a client-chosen one
         // could impersonate another listing's public code.
-        !('displayCode' in request.resource.data);
+        !('displayCode' in request.resource.data) &&
+        (isAdmin() || (
+          request.resource.data.get('verificationRequestedAt', null) == null &&
+          request.resource.data.get('publishBlockedReasons', []).size() == 0 &&
+          request.resource.data.get('avatarEngagementViews', 0) == 0 &&
+          request.resource.data.get('avatarInquiryClicks', 0) == 0 &&
+          request.resource.data.get('isOwnerSuspended', false) == false &&
+          request.resource.data.get('isOwnerPackageLapsed', false) == false));
 
       // isVerified / isActiveSubscription / subscriptionExpiryMillis are
       // money- and verification-status fields — only setListingVerification /
@@ -134,9 +156,13 @@ service cloud.firestore {
       // it; a host could otherwise just un-hide their own lapsed listings.
       allow update: if isSignedIn() && (
         (
-          (isAdmin() || (role() == "PRO_HOST" && resource.data.ownerId == request.auth.uid)) &&
+          (isAdmin() || (role() == "PRO_HOST" && resource.data.ownerId == request.auth.uid && !isSuspended())) &&
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(
-            ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId", "isOwnerSuspended", "isOwnerPackageLapsed", "favoriteCount", "displayCode", "createdAtMillis", "searchName"]
+            ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId", "isOwnerSuspended", "isOwnerPackageLapsed", "favoriteCount", "displayCode", "createdAtMillis", "searchName",
+             // admin review-queue stamp, set only by requestListingVerification. (Counters,
+             // publishBlockedReasons and isDemo are still echoed by released app versions on
+             // every save, so they stay owner-writable; strangers may only +1 a counter.)
+             "verificationRequestedAt"]
           ) &&
           // Publishing a Draft or resuming a Paused listing (status -> ACTIVE)
           // requires an active package, same as a straight-to-ACTIVE create.
@@ -152,9 +178,11 @@ service cloud.firestore {
         // production (see the architecture audit, finding 4.6). Scoped
         // narrowly to just these two counters (plus updatedAt) so it can't be
         // used to touch anything else.
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-          ["avatarEngagementViews", "avatarInquiryClicks", "updatedAt"]
-        )
+        // Each write may only add exactly one to one counter.
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(["avatarEngagementViews", "updatedAt"]) &&
+          request.resource.data.avatarEngagementViews == resource.data.get('avatarEngagementViews', 0) + 1) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(["avatarInquiryClicks", "updatedAt"]) &&
+          request.resource.data.avatarInquiryClicks == resource.data.get('avatarInquiryClicks', 0) + 1)
       );
 
       allow delete: if isSignedIn() &&
@@ -196,7 +224,7 @@ service cloud.firestore {
         // does set this true at create time, but only because a real SMS-OTP
         // verification genuinely just completed — this check makes that the
         // ONLY way it can be true, not merely the app's current behavior.
-        request.resource.data.get('isVerified', false) == (request.auth.token.phone_number != null) &&
+        request.resource.data.get('isVerified', false) == (request.auth.token.get('phone_number', null) != null) &&
         // Every one of these is either absent from AppUser.toFirestoreMap()
         // entirely (isSuspended/createdAtMillis/lastSignInAtMillis/
         // tosAcceptedAtMillis/consentVersion) or null-by-default
@@ -215,7 +243,17 @@ service cloud.firestore {
         request.resource.data.get('createdAtMillis', null) == null &&
         request.resource.data.get('lastSignInAtMillis', null) == null &&
         request.resource.data.get('tosAcceptedAtMillis', null) == null &&
-        request.resource.data.get('consentVersion', null) == null;
+        request.resource.data.get('consentVersion', null) == null &&
+        // Same server-owned fields the update rule protects.
+        request.resource.data.get('emailVerified', false) == false &&
+        request.resource.data.get('emailVerifiedAt', null) == null &&
+        !('displayCode' in request.resource.data) &&
+        !('searchName' in request.resource.data) &&
+        request.resource.data.get('subscriptionExpiry', null) == null &&
+        request.resource.data.get('subscriptionPlatform', null) == null &&
+        !('emailVerificationResendCount' in request.resource.data) &&
+        !('emailVerificationLastResendAt' in request.resource.data) &&
+        !('expiryWarningSent' in request.resource.data);
 
       // Once the profile exists, role/isVerified/createdAtMillis/lastSignInAtMillis/
       // isSuspended can never change via a direct client write, self or Admin —
@@ -237,15 +275,23 @@ service cloud.firestore {
       // would make those numbers meaningless).
       // emailVerified/emailVerifiedAt: set by Firebase Auth natively via email link; a
       // client write would let anyone claim email-verified status without clicking the link.
-      allow update: if (isOwner(userId) || isAdmin()) &&
+      allow update: if (isAdmin() || (isOwner(userId) && !isSuspended())) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(
           ["role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
            "ownerPackageId", "ownerPackageExpiryMillis", "activeListingCount", "proHostUpgradedAtMillis",
            "tosAcceptedAtMillis", "consentVersion",
            "emailVerified", "emailVerifiedAt", "displayCode", "searchName",
            "entitlementSource", "billingStatus", "subscriptionExpiry", "subscriptionPlatform",
-           "subscriptionId", "lastPurchaseToken"]
-        );
+           "subscriptionId", "lastPurchaseToken",
+           // email-verification resend throttle and the expiry-warning latch (server-only)
+           "emailVerificationResendCount", "emailVerificationLastResendAt", "expiryWarningSent"]
+        ) &&
+        // email mirrors the Firebase Auth email the person signed in with. (phone is their
+        // self-declared WhatsApp contact number and stays editable; verification uses the
+        // phone linked in Firebase Auth, never this field.)
+        (isAdmin() ||
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(["email"]) ||
+          request.resource.data.email == request.auth.token.get('email', ''));
 
       allow delete: if isAdmin();
     }
@@ -331,6 +377,20 @@ service cloud.firestore {
            request.resource.data.attendeeCount >= 0 &&
            request.resource.data.attendeeCount <= 100000)) &&
         !('rejectedBySystem' in request.resource.data) &&
+        // A request always starts PENDING with none of the review/cancellation state;
+        // the listing must be bookable and an "edit" may only replace the caller's own
+        // booking for the same space.
+        request.resource.data.status == 'PENDING' &&
+        request.resource.data.get('agreementUrl', null) == null &&
+        request.resource.data.get('reviewedAt', null) == null &&
+        request.resource.data.get('rejectionReason', null) == null &&
+        request.resource.data.get('cancellationReasonCode', null) == null &&
+        request.resource.data.get('cancelledByRole', null) == null &&
+        request.resource.data.get('paymentAcknowledgedByHost', false) == false &&
+        request.resource.data.get('paymentAcknowledgedBySpecialist', false) == false &&
+        !('displayCode' in request.resource.data) &&
+        isBookableListing(request.resource.data.spaceId) &&
+        isOwnReplacement(request.resource.data) &&
         // A host cannot book their own listing — the practitioner must be
         // someone other than the listing's owner.
         request.resource.data.practitionerId !=
@@ -350,35 +410,38 @@ service cloud.firestore {
       // through either. There is no in-app payment settlement to protect otherwise
       // (both sides handle payment outside the app entirely — the old
       // isExternalPaymentSettled field is gone).
-      allow update: if isSignedIn() &&
-        (isAdmin() ||
-         resource.data.practitionerId == request.auth.uid ||
-         resource.data.ownerId == request.auth.uid) &&
-        (
-          isAdmin() ||
-          // Owner (host) may only write fields they legitimately manage:
-          // status transitions, signed lease URL, review timestamp, own
-          // payment ack, and cancellation metadata. Core identity fields
-          // (practitionerId, spaceId, ownerId, totalAmountUsd, createdAt)
-          // must never be writable after document creation.
-          (request.auth.uid == resource.data.ownerId &&
-           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-             "status", "agreementUrl", "reviewedAt", "paymentAcknowledgedByHost",
-             "rejectionReason", "cancellationReasonCode", "cancellationNote", "cancelledByRole"
-           ])) ||
-          (request.auth.uid == resource.data.practitionerId &&
-           request.resource.data.diff(resource.data).affectedKeys().hasOnly(["paymentAcknowledgedBySpecialist"])) ||
-          (request.resource.data.status == "CANCELLED" &&
-           request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-             ["status", "reviewedAt", "cancellationReasonCode", "cancellationNote", "cancelledByRole"]
-           ) &&
-           (
-             (request.auth.uid == resource.data.practitionerId &&
-              request.resource.data.get("cancelledByRole", "") in ["SPECIALIST", "ADMIN"]) ||
-             (request.auth.uid == resource.data.ownerId &&
-              request.resource.data.get("cancelledByRole", "") in ["PRO_HOST", "ADMIN"])
-           ))
-        );
+      // Only the legal moves, per side:
+      //   host:         PENDING → ACCEPTED | REJECTED; ACCEPTED → CANCELLED (cancelledByRole
+      //                 PRO_HOST, or an edit superseding it: no role + rejectionReason);
+      //                 acknowledge payment.
+      //   practitioner: PENDING | ACCEPTED → CANCELLED with cancelledByRole SPECIALIST;
+      //                 acknowledge payment.
+      //   admin:        anything.
+      // Core identity fields (practitionerId, spaceId, ownerId, totalAmountUsd, createdAt)
+      // never change after creation.
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        (request.auth.uid == resource.data.ownerId && !isSuspended() && (
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(["paymentAcknowledgedByHost"])) ||
+          (resource.data.status == 'PENDING' && request.resource.data.status == 'ACCEPTED' &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "reviewedAt", "agreementUrl"])) ||
+          (resource.data.status == 'PENDING' && request.resource.data.status == 'REJECTED' &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "reviewedAt", "rejectionReason"])) ||
+          (resource.data.status == 'ACCEPTED' && request.resource.data.status == 'CANCELLED' &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+              ["status", "reviewedAt", "rejectionReason", "cancellationReasonCode", "cancellationNote", "cancelledByRole"]) &&
+            (request.resource.data.get('cancelledByRole', null) == 'PRO_HOST' ||
+              (request.resource.data.get('cancelledByRole', null) == null &&
+               request.resource.data.get('rejectionReason', null) is string)))
+        )) ||
+        (request.auth.uid == resource.data.practitionerId && (
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(["paymentAcknowledgedBySpecialist"])) ||
+          (resource.data.status in ['PENDING', 'ACCEPTED'] && request.resource.data.status == 'CANCELLED' &&
+            request.resource.data.get('cancelledByRole', null) == 'SPECIALIST' &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+              ["status", "reviewedAt", "cancellationReasonCode", "cancellationNote", "cancelledByRole"]))
+        ))
+      );
 
       allow delete: if isAdmin();
     }
@@ -499,6 +562,15 @@ service cloud.firestore {
     // Paid purchases whose activation failed, retried by retryPendingPlayActivations
     // (server-only; holds purchase tokens).
     match /play_billing_pending/{key} {
+      allow read, write: if false;
+    }
+
+    // Display-code registry (functions/src/ids/displayCodes.ts): server-only.
+    match /display_codes/{code} {
+      allow read, write: if false;
+    }
+    // Retired Whish payments archive: server-only.
+    match /whish_transactions/{id} {
       allow read, write: if false;
     }
 

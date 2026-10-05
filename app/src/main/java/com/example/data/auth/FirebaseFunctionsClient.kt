@@ -285,6 +285,12 @@ open class FirebaseFunctionsClient {
         BillingHealth.fromMap(callAdmin("billingHealthCheck"))
     }.onFailure { Log.e(tag, "billingHealthCheck failed: ${it.message}", it) }
 
+    /** A short-lived link to a listing's private verification document (admin only). */
+    suspend fun adminVerificationDocUrl(spaceId: String): Result<String> = runCatching {
+        callAdmin("adminVerificationDocUrl", mapOf("spaceId" to spaceId))["url"] as? String
+            ?: error("No document link returned")
+    }.onFailure { Log.e(tag, "adminVerificationDocUrl failed: ${it.message}", it) }
+
     /** Publishes a synthetic Play test notification to the RTDN topic (proves topic → function). */
     suspend fun billingRtdnSelfTest(): Result<Unit> = runCatching {
         callAdmin("billingRtdnSelfTest")

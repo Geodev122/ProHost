@@ -80,6 +80,13 @@ fun AdminConsoleScreen(
                 is AdminUiEvent.DataExportReady -> {
                     Toast.makeText(context, "${event.title} ready for download", Toast.LENGTH_SHORT).show()
                 }
+                is AdminUiEvent.OpenUrl -> {
+                    try {
+                        context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(event.url)))
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "No app can open this document.", Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         }
     }

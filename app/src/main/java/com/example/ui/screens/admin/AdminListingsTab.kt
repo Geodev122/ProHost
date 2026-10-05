@@ -3,10 +3,7 @@ package com.example.ui.screens
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import android.provider.OpenableColumns
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -32,7 +29,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -62,7 +58,6 @@ internal fun AdminListingsCatalogTab(
     uiState: com.example.ui.state.AdminUiState,
     adminViewModel: AdminViewModel
 ) {
-    val context = LocalContext.current
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -243,13 +238,8 @@ internal fun AdminListingsCatalogTab(
                     if (!space.isVerified && !space.verificationDocUrl.isNullOrBlank()) {
                         CustomButton(
                             text = "View Verification Document (${space.verificationDocType?.name?.replace('_', ' ') ?: "on file"})",
-                            onClick = {
-                                try {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(space.verificationDocUrl)))
-                                } catch (e: Exception) {
-                                    Toast.makeText(context, "Could not open document URL", Toast.LENGTH_SHORT).show()
-                                }
-                            },
+                            // The listing holds a private gs:// reference; the server issues the link.
+                            onClick = { adminViewModel.openVerificationDocument(space.id) },
                             modifier = Modifier.fillMaxWidth(),
                             variant = CustomButtonVariant.OUTLINED,
                             icon = Icons.Default.Description,
