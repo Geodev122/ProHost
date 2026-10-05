@@ -33,6 +33,28 @@ jobs:
             echo "KEYSTORE_PATH=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
           fi
 
+      # Play re-signs the bundle with the app-signing key, so Google sign-in and phone-auth
+      # app verification only work when that certificate is registered in Firebase — which
+      # shows up as its SHA-1 in google-services.json. Values come from repo secrets only.
+      - name: Verify Play App-Signing Fingerprints
+        env:
+          PLAY_APP_SIGNING_SHA1: ${{ secrets.PLAY_APP_SIGNING_SHA1 }}
+          PLAY_APP_SIGNING_SHA256: ${{ secrets.PLAY_APP_SIGNING_SHA256 }}
+        run: |
+          if [ -z "$PLAY_APP_SIGNING_SHA1" ] || [ -z "$PLAY_APP_SIGNING_SHA256" ]; then
+            echo "::error::PLAY_APP_SIGNING_SHA1 / PLAY_APP_SIGNING_SHA256 repository secrets are missing."
+            exit 1
+          fi
+          sha1=$(printf '%s' "$PLAY_APP_SIGNING_SHA1" | tr -d ': \n' | tr 'A-F' 'a-f')
+          sha256=$(printf '%s' "$PLAY_APP_SIGNING_SHA256" | tr -d ': \n' | tr 'A-F' 'a-f')
+          [ ${#sha1} -eq 40 ] || { echo "::error::PLAY_APP_SIGNING_SHA1 is not a 40-hex SHA-1."; exit 1; }
+          [ ${#sha256} -eq 64 ] || { echo "::error::PLAY_APP_SIGNING_SHA256 is not a 64-hex SHA-256."; exit 1; }
+          if ! grep -qi "\"certificate_hash\": *\"$sha1\"" app/google-services.json; then
+            echo "::error::The Play app-signing SHA-1 is not in app/google-services.json. Add the SHA-1 and SHA-256 in Firebase › Project settings › Android app, download google-services.json again and commit it — otherwise Google sign-in and phone SMS fail in the Play build."
+            exit 1
+          fi
+          echo "Play app-signing SHA-1 is registered in google-services.json."
+
       - name: Build Official Release App Bundle & Crashlytics Symbols
         env:
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}

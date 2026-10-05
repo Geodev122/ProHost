@@ -85,6 +85,7 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
 - The email-code path creates the Auth user server-side, so `isNewUser` is false for brand-new
   people — decide registration from the stored profile, not `isNewUser`.
 - Session lock (biometric/PIN) was removed on purpose; `MainActivity` is a `ComponentActivity`.
+  Screenshots/screen recording are allowed on purpose (owner, Oct 2026): never re-add `FLAG_SECURE`.
 - People see server-assigned display codes, never Firebase UIDs/doc ids: `U-`/`L-`/`D-`/`B-` +
   6 Crockford chars (`functions/src/ids/displayCodes.ts`, registry `display_codes/{code}`).
   In Kotlin use the `publicCode` extensions. `displayCode` is server-only (rules protect it);
@@ -250,6 +251,9 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   (`app/src/test/.../TestFixtures.kt` → `FirestoreService.localOnly()` + `FakeFunctionsClient`), never
   `ProHostRepository()`, which talks to production Firestore and hung CI for 6 h per run. Gradle caps
   each test task at 15 min and the CI Android job at 45 min.
+- Play app-signing fingerprints live only in the repo secrets `PLAY_APP_SIGNING_SHA1` / `PLAY_APP_SIGNING_SHA256`.
+  The release workflow fails unless that SHA-1 is a `certificate_hash` in `app/google-services.json` (registered in
+  Firebase; Google sign-in and phone-auth app verification need it). Never write the values into code or docs.
 - Keep `ndk { debugSymbolLevel = "FULL" }` in the release build type, and upload the generated
   `native-debug-symbols.zip` to Play Console with every `.aab`.
 - **Always run `node scripts/prohost-debugger.js` (NIGHTHAWK) before tagging a release.** The
