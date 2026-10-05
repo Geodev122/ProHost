@@ -413,6 +413,11 @@ service cloud.firestore {
     match /email_send_limits/{key} {
       allow read, write: if false;
     }
+    // Outgoing mail queue for the Trigger Email extension (functions/src/lib/email.ts):
+    // written by functions, delivered by the extension — never by clients.
+    match /mail/{id} {
+      allow read, write: if false;
+    }
     // Server-only config (app_config/ga4 holds the GA4 Measurement Protocol API secret,
     // read by functions/src/lib/ga4.ts via the Admin SDK). Set in the Firebase console.
     match /app_config/{key} {

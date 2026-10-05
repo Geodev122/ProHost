@@ -3,7 +3,7 @@ import { onCall } from "../lib/callable";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
-import { sendEmail, hostingerSmtpSecret } from "../lib/email";
+import { maskEmail, sendEmail } from "../lib/email";
 import { signInLinkTemplate, emailVerificationTemplate, UserContext } from "../lib/emailTemplates";
 import { takeEmailSendSlot, isPlausibleEmail } from "../lib/emailRateLimit";
 import "../lib/admin";
@@ -16,14 +16,14 @@ const MAX_VERIFICATION_RESENDS_PER_DAY = 3;
  *
  * Generates a Firebase Auth sign-in link via the Admin SDK (server-side token
  * generation — more secure than client-side sendSignInLinkToEmail) and delivers
- * it via Hostinger SMTP with a fully branded ProHost template.
+ * it (Trigger Email extension, lib/email.ts) with a fully branded ProHost template.
  *
  * Replaces the sendEmailOtp / verifyEmailOtp / clickEmailOtpLink pipeline.
  * The client completes sign-in by calling auth.signInWithEmailLink(email, link)
  * after tapping the link and handling the deep link intent.
  */
 export const sendSignInEmailLink = onCall(
-  { secrets: [hostingerSmtpSecret] },
+  {},
   async (request) => {
     const email = (request.data?.email as string | undefined)?.toLowerCase().trim();
     if (!isPlausibleEmail(email)) {
@@ -43,7 +43,7 @@ export const sendSignInEmailLink = onCall(
         },
       });
     } catch (e) {
-      logger.error("generate_sign_in_link_failed", { email, error: String(e) });
+      logger.error("generate_sign_in_link_failed", { email: maskEmail(email), error: String(e) });
       throw new HttpsError("internal", "Failed to generate sign-in link. Please try again.");
     }
 
@@ -51,11 +51,11 @@ export const sendSignInEmailLink = onCall(
     const delivered = await sendEmail({ to: email, ...tpl });
 
     if (!delivered) {
-      logger.error("sign_in_link_email_failed", { email });
+      logger.error("sign_in_link_email_failed", { email: maskEmail(email) });
       return { ok: false, error: "Email delivery failed. Please try again or contact support." };
     }
 
-    logger.info("sign_in_link_sent", { email });
+    logger.info("sign_in_link_sent", { email: maskEmail(email) });
     return { ok: true };
   }
 );
@@ -71,7 +71,7 @@ export const sendSignInEmailLink = onCall(
  * currentUser.reload() + isEmailVerified to confirm.
  */
 export const sendVerificationEmailLink = onCall(
-  { secrets: [hostingerSmtpSecret] },
+  {},
   async (request) => {
     if (!request.auth?.uid) {
       throw new HttpsError("unauthenticated", "You must be signed in.");

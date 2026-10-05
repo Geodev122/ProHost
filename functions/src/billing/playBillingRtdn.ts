@@ -2,7 +2,7 @@ import { onMessagePublished } from "firebase-functions/v2/pubsub";
 import { getFirestore } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 import { sendPushToUser } from "../lib/push";
-import { sendEmail, hostingerSmtpSecret } from "../lib/email";
+import { sendEmail } from "../lib/email";
 import { subscriptionActivatedTemplate, subscriptionRenewedTemplate, UserContext } from "../lib/emailTemplates";
 import { recordAuditLog } from "../lib/auditLog";
 import { PACKAGE_NAME, queryPlaySubscription, acknowledgeIfNeeded } from "./billingHelpers";
@@ -43,7 +43,7 @@ const SUBSCRIPTION_PENDING_PURCHASE_CANCELED = 20; // pending payment never comp
 export const playBillingRtdn = onMessagePublished(
   // retry: a throw makes Pub/Sub redeliver (with backoff). Only Play API failures that can
   // clear throw; a malformed or unknown-token message returns so it never loops.
-  { topic: "play-billing-rtdn", secrets: [hostingerSmtpSecret], retry: true },
+  { topic: "play-billing-rtdn", retry: true },
   async (event) => {
     // 1. Decode the DeveloperNotification envelope
     let notification: Record<string, unknown>;

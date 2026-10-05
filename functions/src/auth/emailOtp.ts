@@ -3,7 +3,7 @@ import * as logger from "firebase-functions/logger";
 import { createHash, randomInt, timingSafeEqual } from "crypto";
 import { onRequest, HttpsError } from "firebase-functions/v2/https";
 import { onCall } from "../lib/callable";
-import { sendEmail, hostingerSmtpSecret } from "../lib/email";
+import { maskEmail, sendEmail } from "../lib/email";
 import { otpSignInTemplate } from "../lib/emailTemplates";
 import { takeEmailSendSlot, isPlausibleEmail } from "../lib/emailRateLimit";
 
@@ -28,12 +28,12 @@ function safeEqualHex(a: string, b: string): boolean {
 
 /**
  * Callable: sendEmailOtp({ email })
- * Generates a 6-digit OTP, stores only its hash in Firestore, and sends it via Hostinger SMTP.
+ * Generates a 6-digit OTP, stores only its hash in Firestore, and emails it (Trigger Email extension, lib/email.ts).
  * Rate-limited to 5 sends per email per hour (email_send_limits), and each code allows
  * 5 wrong guesses, so one address can't be brute-forced or inbox-flooded.
  */
 export const sendEmailOtp = onCall(
-  { secrets: [hostingerSmtpSecret] },
+  {},
   async (request) => {
     const email = (request.data?.email as string | undefined)?.toLowerCase().trim();
     if (!isPlausibleEmail(email)) {
@@ -64,7 +64,7 @@ export const sendEmailOtp = onCall(
       return { ok: false, error: "Email delivery failed. Please try again or contact support." };
     }
 
-    logger.info("email_otp_sent", { email });
+    logger.info("email_otp_sent", { email: maskEmail(email) });
     return { ok: true };
   }
 );
@@ -89,7 +89,7 @@ export const verifyEmailOtp = onCall(async (request) => {
  * One-click sign-in from email — validates OTP then redirects to the app deep link.
  */
 export const clickEmailOtpLink = onRequest(
-  { secrets: [hostingerSmtpSecret] },
+  {},
   async (req, res) => {
     const email = (req.query.email as string | undefined)?.toLowerCase().trim();
     const code = (req.query.code as string | undefined)?.trim();
@@ -104,7 +104,7 @@ export const clickEmailOtpLink = onRequest(
       const encodedToken = encodeURIComponent(customToken);
       res.redirect(`${APP_OTP_SCHEME}?token=${encodedToken}`);
     } catch (err) {
-      logger.warn("click_email_otp_failed", { email, error: String(err) });
+      logger.warn("click_email_otp_failed", { email: maskEmail(email), error: String(err) });
       res.status(400).send("This sign-in link has expired or already been used.");
     }
   }

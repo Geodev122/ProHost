@@ -1,7 +1,7 @@
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { getFirestore } from "firebase-admin/firestore";
 import { sendPushToUser } from "../lib/push";
-import { sendEmail, hostingerSmtpSecret } from "../lib/email";
+import { sendEmail } from "../lib/email";
 import {
   newBookingRequestTemplate,
   bookingAcceptedTemplate,
@@ -57,7 +57,7 @@ async function attendeeBookingProblem(booking: FirebaseFirestore.DocumentData): 
  * Firestore listener. This is the server side that was missing.
  */
 export const onBookingRequestCreated = onDocumentCreated(
-  { document: "booking_requests/{bookingId}", secrets: [hostingerSmtpSecret] },
+  { document: "booking_requests/{bookingId}" },
   async (event) => {
     const booking = event.data?.data();
     if (!booking) return;
@@ -118,7 +118,7 @@ export const onBookingRequestCreated = onDocumentCreated(
  * accept/reject in real time too, not just whenever they next open the app.
  */
 export const onBookingRequestStatusChanged = onDocumentUpdated(
-  { document: "booking_requests/{bookingId}", secrets: [hostingerSmtpSecret] },
+  { document: "booking_requests/{bookingId}" },
   async (event) => {
     const before = event.data?.before?.data();
     const after = event.data?.after?.data();

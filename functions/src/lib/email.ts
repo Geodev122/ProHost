@@ -1,25 +1,18 @@
 import * as logger from "firebase-functions/logger";
-import { defineSecret } from "firebase-functions/params";
-import * as nodemailer from "nodemailer";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
+import "./admin";
 
-// Stored in Google Cloud Secret Manager. IMPORTANT: Firebase does NOT
-// auto-uppercase or otherwise normalize secret names — whatever name you pass
-// to `firebase functions:secrets:set` becomes the literal Secret Manager
-// secret name, case-sensitive. Setting it as e.g. "hostinger_smtp_api_key"
-// (lowercase) creates a DIFFERENT secret than the "HOSTINGER_SMTP_API_KEY"
-// this code looks up below, so sendEmail() silently no-ops (see the
-// "no SMTP secret" warn log) with no exception ever thrown. Always set it
-// with the exact name below:
-// To set: echo '<key>' | npx firebase functions:secrets:set HOSTINGER_SMTP_API_KEY
-// After changing the secret's value, redeploy functions so they pick up the
-// latest version — an existing deployment keeps using the version it was
-// deployed with.
-export const hostingerSmtpSecret = defineSecret("HOSTINGER_SMTP_API_KEY");
-
-const FROM_ADDRESS = "ProHost <admin@pro-host.tech>";
-const SMTP_HOST = "smtp.hostinger.com";
-const SMTP_PORT = 465;
-const SMTP_USER = "admin@pro-host.tech";
+/**
+ * Outgoing email goes through the Firebase "Trigger Email" extension
+ * (firebase/firestore-send-email, see firebase.json › extensions): a document in
+ * `mail/{id}` is picked up and delivered by the extension with the provider configured
+ * in its SMTP_CONNECTION_URI secret param. There is no SMTP client in these functions
+ * any more (the Hostinger mailbox was retired). The extension writes the delivery
+ * outcome back onto the same document (`delivery.state`, `delivery.error`).
+ *
+ * `mail` is server-only (firestore.rules deny), so only functions queue mail.
+ */
+export const MAIL_COLLECTION = "mail";
 
 export interface EmailPayload {
   to: string;
@@ -29,39 +22,34 @@ export interface EmailPayload {
   replyTo?: string;
 }
 
+/** "a***@example.com" — never log full addresses. */
+export function maskEmail(email: string | null | undefined): string {
+  if (!email) return "";
+  const at = email.indexOf("@");
+  return at <= 0 ? "***" : `${email[0]}***${email.slice(at)}`;
+}
+
 /**
- * Sends an email via Hostinger SMTP using the stored API key as the SMTP password.
- * Returns true on success, false on any failure (missing secret, SMTP error).
- * Never throws.
+ * Queues an email for the Trigger Email extension. Returns true once queued, false if
+ * the queue write failed. Never throws.
  */
 export async function sendEmail(payload: EmailPayload): Promise<boolean> {
-  const smtpKey = hostingerSmtpSecret.value();
-  if (!smtpKey) {
-    logger.warn("email_send_skipped", { reason: "no SMTP secret", to: payload.to, subject: payload.subject });
-    return false;
-  }
-
-  const transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: SMTP_PORT,
-    secure: true, // port 465 = SSL
-    auth: { user: SMTP_USER, pass: smtpKey },
-  });
-
   try {
-    const info = await transporter.sendMail({
-      from: FROM_ADDRESS,
+    const ref = await getFirestore().collection(MAIL_COLLECTION).add({
       to: payload.to,
-      subject: payload.subject,
-      html: payload.html,
-      text: payload.text ?? stripHtml(payload.html),
-      replyTo: payload.replyTo,
+      ...(payload.replyTo ? { replyTo: payload.replyTo } : {}),
+      message: {
+        subject: payload.subject,
+        html: payload.html,
+        text: payload.text ?? stripHtml(payload.html),
+      },
+      createdAt: FieldValue.serverTimestamp(),
     });
-    logger.info("email_sent", { to: payload.to, subject: payload.subject, messageId: info.messageId });
+    logger.info("email_queued", { to: maskEmail(payload.to), subject: payload.subject, id: ref.id });
     return true;
   } catch (e) {
-    logger.error("email_send_failed", {
-      to: payload.to,
+    logger.error("email_queue_failed", {
+      to: maskEmail(payload.to),
       subject: payload.subject,
       error: e instanceof Error ? e.message : String(e),
     });

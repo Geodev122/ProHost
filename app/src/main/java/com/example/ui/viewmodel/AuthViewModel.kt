@@ -134,18 +134,20 @@ class AuthViewModel(
             _pendingEmail.value = email
             savePendingEmailLink(email)
             try {
-                // Layer 1: Try Cloud Function (Hostinger SMTP with custom template)
-                val link = functionsClient.sendSignInEmailLink(email)
-                if (link.isSuccess) {
-                    onDelivered(EmailDelivery.LINK)
-                    return@launch
-                }
-
-                // Layer 2: Native Firebase Auth sendSignInLinkToEmail (Google official mailer — 100% deliverability)
+                // Layer 1: Firebase Auth's own mailer (sendSignInLinkToEmail) — no mail server
+                // of ours involved.
                 val continueUrl = "https://prohost-f766f.web.app/emaillink"
                 val nativeSent = FirebaseAuthService(firebaseAppContext())
                     .sendSignInLinkToEmail(email, continueUrl)
                 if (nativeSent) {
+                    onDelivered(EmailDelivery.LINK)
+                    return@launch
+                }
+
+                // Layer 2: the branded link from the sendSignInEmailLink function
+                // (delivered by the Trigger Email extension).
+                val link = functionsClient.sendSignInEmailLink(email)
+                if (link.isSuccess) {
                     onDelivered(EmailDelivery.LINK)
                     return@launch
                 }
@@ -178,19 +180,19 @@ class AuthViewModel(
         viewModelScope.launch {
             try {
                 _isAuthenticating.value = true
-                val result = functionsClient.sendSignInEmailLink(email)
-                if (result.isSuccess) {
+                // Firebase Auth's mailer first; the function's branded link as fallback.
+                val continueUrl = "https://prohost-f766f.web.app/emaillink"
+                val nativeSent = FirebaseAuthService(firebaseAppContext())
+                    .sendSignInLinkToEmail(email, continueUrl)
+                if (nativeSent) {
                     _isAuthenticating.value = false
                     onSent(true)
                     return@launch
                 }
-                // Fallback to native Firebase Auth sendSignInLinkToEmail
-                val continueUrl = "https://prohost-f766f.web.app/emaillink"
-                val nativeSent = FirebaseAuthService(firebaseAppContext())
-                    .sendSignInLinkToEmail(email, continueUrl)
+                val result = functionsClient.sendSignInEmailLink(email)
                 _isAuthenticating.value = false
-                onSent(nativeSent)
-                if (!nativeSent) {
+                onSent(result.isSuccess)
+                if (result.isFailure) {
                     _authErrorMessage.value = result.exceptionOrNull()
                         ?.toUserMessage("Failed to send sign-in link. Try \"Use a code instead\".")
                         ?: "Failed to send sign-in link."
@@ -198,7 +200,7 @@ class AuthViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) { throw e }
             catch (e: Exception) {
                 _isAuthenticating.value = false
-                _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
+                _authErrorMessage.value = e.toUserMessage("Failed to send sign-in link. Please try again.")
                 onSent(false)
             }
         }
@@ -236,12 +238,12 @@ class AuthViewModel(
                 throw e
             } catch (e: Exception) {
                 _isAuthenticating.value = false
-                _authErrorMessage.value = e.localizedMessage ?: "Sign-in link verification failed. Try again."
+                _authErrorMessage.value = e.toUserMessage("Sign-in link verification failed. Try again.")
             }
         }
     }
 
-    /** Sends a 6-digit OTP to [email] via Cloud Function → Hostinger SMTP. */
+    /** Sends a 6-digit OTP to [email] via the sendEmailOtp function (Trigger Email extension). */
     fun sendEmailOtp(email: String, onSent: (Boolean) -> Unit) {
         viewModelScope.launch {
             try {
@@ -258,7 +260,7 @@ class AuthViewModel(
                 throw e
             } catch (e: Exception) {
                 _isAuthenticating.value = false
-                _authErrorMessage.value = e.localizedMessage ?: "Failed to send code. Please check your connection."
+                _authErrorMessage.value = e.toUserMessage("Failed to send code. Please check your connection.")
                 onSent(false)
             }
         }
@@ -300,7 +302,7 @@ class AuthViewModel(
                 throw e
             } catch (e: Exception) {
                 _isAuthenticating.value = false
-                _authErrorMessage.value = e.localizedMessage ?: "Code verification failed. Please try again."
+                _authErrorMessage.value = e.toUserMessage("Code verification failed. Please try again.")
             }
         }
     }
@@ -334,7 +336,7 @@ class AuthViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
+                _authErrorMessage.value = e.toUserMessage("An error occurred")
                 _isAuthenticating.value = false
             }
         }
@@ -361,7 +363,7 @@ class AuthViewModel(
                 throw e
             } catch (e: Exception) {
                 _isAuthenticating.value = false
-                _authErrorMessage.value = e.localizedMessage ?: "Google sign-in failed. Please try again."
+                _authErrorMessage.value = e.toUserMessage("Google sign-in failed. Please try again.")
             }
         }
     }
@@ -452,7 +454,7 @@ class AuthViewModel(
                     } catch (e: kotlinx.coroutines.CancellationException) {
                         throw e
                     } catch (e: Exception) {
-                        _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
+                        _authErrorMessage.value = e.toUserMessage("An error occurred")
                     }
                 }
             },
@@ -480,7 +482,7 @@ class AuthViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _authErrorMessage.value = e.localizedMessage ?: "An error occurred"
+                _authErrorMessage.value = e.toUserMessage("An error occurred")
             }
         }
     }
@@ -549,7 +551,7 @@ class AuthViewModel(
                         throw e
                     } catch (e: Exception) {
                         _isAuthenticating.value = false
-                        _authErrorMessage.value = e.localizedMessage ?: "Phone linking failed. Please try again."
+                        _authErrorMessage.value = e.toUserMessage("Phone linking failed. Please try again.")
                     }
                 }
             },
@@ -603,7 +605,7 @@ class AuthViewModel(
                 throw e
             } catch (e: Exception) {
                 _isAuthenticating.value = false
-                onError(e.localizedMessage ?: "Phone verification failed. Please try again.")
+                onError(e.toUserMessage("Phone verification failed. Please try again."))
             }
         }
     }

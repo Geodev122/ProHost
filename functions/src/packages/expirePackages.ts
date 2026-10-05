@@ -5,7 +5,7 @@ import { logger } from "firebase-functions/v2";
 import { recordAuditLog } from "../lib/auditLog";
 import { sendPushToUser } from "../lib/push";
 import { setClaimsThenFirestore } from "../lib/roles";
-import { sendEmail, hostingerSmtpSecret } from "../lib/email";
+import { sendEmail } from "../lib/email";
 import { subscriptionExpiringTemplate, subscriptionExpiredTemplate, UserContext } from "../lib/emailTemplates";
 import { planLabel } from "../billing/playCatalog";
 import { queryPlaySubscription } from "../billing/billingHelpers";
@@ -34,7 +34,7 @@ import { sendGa4Event } from "../lib/ga4";
  * hasActivePackage() also checks the live expiry timestamp itself, so a package
  * that's lapsed but not yet swept by this function already blocks publishing.
  */
-export const expirePackages = onSchedule({ schedule: "0 * * * *", secrets: [hostingerSmtpSecret] }, async () => {
+export const expirePackages = onSchedule({ schedule: "0 * * * *" }, async () => {
   const db = getFirestore();
   const now = Date.now();
 

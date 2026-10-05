@@ -182,6 +182,9 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
 - Never `set(..., merge: true)` / batch-set a counter or flag onto a document that might not exist
   (a deleted listing): it recreates a ghost doc. Use `update()` and skip not-found
   (see `favoritesSync.ts`). Analytics and the admin feed ignore ownerless listing docs.
+- Email: no mail server of ours (Hostinger retired). Firebase Auth's built-in mailer sends magic links (the app calls
+  `sendSignInLinkToEmail` first); everything else goes through `sendEmail()` → `mail/{id}` → the Trigger Email
+  extension (installed from the console, not in firebase.json). Never add an SMTP client back. `docs/EMAIL.md`.
 - Unauthenticated email callables (`sendEmailOtp`, `sendSignInEmailLink`) must call
   `takeEmailSendSlot` (5/hour per address) and throw `HttpsError` (never plain `Error`, which
   reaches users as a generic internal error). Throwing inside a Firestore transaction rolls its

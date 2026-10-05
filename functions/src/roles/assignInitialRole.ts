@@ -5,7 +5,6 @@ import { getFirestore } from "firebase-admin/firestore";
 import { DEFAULT_ROLE, isAppRole } from "../lib/roles";
 import { recordAuditLog } from "../lib/auditLog";
 import { enforcePlayIntegrity } from "../lib/playIntegrity";
-import { hostingerSmtpSecret } from "../lib/email";
 import { emailVerificationSecret, sendEmailVerificationInternal } from "../auth/emailVerification";
 import * as logger from "firebase-functions/logger";
 import { emailVerifiedByToken } from "../auth/emailVerifiedRule";
@@ -105,7 +104,7 @@ async function validateRegistrationDraft(draft: RegistrationDraft, callerUid: st
 }
 
 export const assignInitialRole = onCall(
-  { secrets: [hostingerSmtpSecret, emailVerificationSecret] },
+  { secrets: [emailVerificationSecret] },
   async (request) => {
     const auth = request.auth;
   if (!auth) {
