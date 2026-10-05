@@ -17,6 +17,7 @@ export { getAdminAnalytics, backfillProHostUpgradeDates } from "./admin/adminAna
 export { setListingVerification, setListingSubscriptionActive, requestListingVerification } from "./admin/listings";
 export { configureGa4ApiSecret } from "./admin/ga4Config";
 export { backfillEmailVerified } from "./admin/backfillEmailVerified";
+export { migrateLegacyListingFields } from "./admin/migrateLegacyFields";
 export {
   adminCounts,
   adminSearch,

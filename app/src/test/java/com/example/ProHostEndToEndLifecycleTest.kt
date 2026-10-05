@@ -42,8 +42,8 @@ class ProHostEndToEndLifecycleTest {
         // 2. Discover available space
         val spaces = repository.spaces.value
         assertTrue("Spaces should be populated", spaces.isNotEmpty())
-        val targetSpace = spaces.first { it.rentalFormulas.isNotEmpty() }
-        val selectedFormula = targetSpace.rentalFormulas.first()
+        val targetSpace = spaces.first()
+        val selectedFormula = TEST_FORMULA
 
         // 3. Submit Booking Application
         val (bookingRequest, _) = repository.createBookingRequest(
@@ -86,8 +86,8 @@ class ProHostEndToEndLifecycleTest {
     @Test
     fun `editing an accepted booking and having the host accept it releases the original`() = kotlinx.coroutines.runBlocking {
         val practitioner = repository.login(uid = "uid-dr-edit", email = "dr.edit@prospace.lb", verifiedRole = UserRole.SPECIALIST)
-        val space = repository.spaces.value.first { it.rentalFormulas.isNotEmpty() }
-        val formula = space.rentalFormulas.first()
+        val space = repository.spaces.value.first()
+        val formula = TEST_FORMULA
 
         val (original, _) = repository.createBookingRequest(
             space = space,
@@ -125,7 +125,7 @@ class ProHostEndToEndLifecycleTest {
     fun `test space owner rejection workflow and audit logging`() = kotlinx.coroutines.runBlocking {
         val practitioner = repository.login(uid = "uid-dr-maya", email = "dr.maya@prospace.lb", verifiedRole = UserRole.SPECIALIST)
         val space = repository.spaces.value.first()
-        val formula = space.rentalFormulas.first()
+        val formula = TEST_FORMULA
 
         val (request, _) = repository.createBookingRequest(
             space = space,

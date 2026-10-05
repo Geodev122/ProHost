@@ -1021,16 +1021,8 @@ fun CreateListingDialog(
                 // how a listing gets assembled.
                 fun buildListing(status: ListingStatus, fallbackLatLng: LatLng? = null): SpaceListing {
                     // The real source of truth for an undivided listing's pricing is
-                    // wholeSpacePricing (set via RentalPricingConfigEditor above) — no
-                    // longer a free-text "base monthly valuation" field. formulas below
-                    // is a synthesized legacy bridge, not a second source of truth: it
-                    // exists only so screens not yet migrated to RentalPricingConfig
-                    // (SpaceDetailsScreen's formula list, RentalBookingDialog's
-                    // non-subdivision branch — both deferred to a later phase) still
-                    // show something representative for a freshly-published listing,
-                    // rather than "no formulas" for a listing that genuinely has real
-                    // pricing configured.
-                    val formulas = mutableListOf<RentalFormula>()
+                    // wholeSpacePricing (set via RentalPricingConfigEditor above). `monthly`
+                    // is only the rough monthly-equivalent kept for baseMonthlyRateUsd.
                     var monthly = existingDraft?.baseMonthlyRateUsd ?: 500.0
                     if (!hasSubdivisions) {
                         val p = wholeSpacePricing
@@ -1038,53 +1030,21 @@ fun CreateListingDialog(
                             RentalStrategyType.MONTHLY -> {
                                 val m = p.monthly ?: MonthlyConfig()
                                 monthly = m.rateUsd
-                                formulas.add(
-                                    RentalFormula(
-                                        type = RentalFormulaType.FULL_MONTH, rateUsd = m.rateUsd,
-                                        scheduleDescription = "Dedicated Full Workspace Month (All operating days)",
-                                        daysOfWeek = operatingDays.toList(), startHour = openingHour, endHour = closingHour
-                                    )
-                                )
                             }
                             RentalStrategyType.HOURLY -> {
                                 val prices = p.hourly?.cellPrices ?: emptyMap()
                                 val avgRate = prices.values.average().takeIf { !it.isNaN() } ?: 25.0
                                 monthly = avgRate * 8 * 22 // rough monthly-equivalent for the legacy display field only
-                                formulas.add(
-                                    RentalFormula(
-                                        type = RentalFormulaType.HOURLY, rateUsd = avgRate,
-                                        scheduleDescription = "Hourly Rental", daysOfWeek = operatingDays.toList(),
-                                        startHour = openingHour, endHour = closingHour
-                                    )
-                                )
                             }
                             RentalStrategyType.SHIFT_BASED -> {
                                 val activeShift = p.shiftBased?.shifts?.firstOrNull { !it.isUnavailable }
                                 val rate = activeShift?.price ?: 60.0
                                 monthly = rate * 20
-                                formulas.add(
-                                    RentalFormula(
-                                        type = RentalFormulaType.SHIFT, rateUsd = rate,
-                                        scheduleDescription = "Shift Rental", daysOfWeek = operatingDays.toList(),
-                                        startHour = activeShift?.startHour?.let { "%02d:00".format(it) } ?: openingHour,
-                                        endHour = activeShift?.endHour?.let { "%02d:00".format(it) } ?: closingHour,
-                                        shiftName = activeShift?.name?.displayName ?: "Morning Shift"
-                                    )
-                                )
                             }
                             RentalStrategyType.DAY_BASED -> {
                                 val prices = p.dayBased?.distribution?.values?.map { it.price }?.filter { it > 0.0 } ?: emptyList()
                                 val rate = prices.average().takeIf { !it.isNaN() } ?: 120.0
                                 monthly = rate * (p.dayBased?.distribution?.size?.takeIf { it > 0 } ?: 4)
-                                formulas.add(
-                                    RentalFormula(
-                                        type = RentalFormulaType.DAY_PER_WEEK, rateUsd = rate,
-                                        scheduleDescription = "Day-Based Rental",
-                                        daysOfWeek = p.dayBased?.distribution?.keys?.toList() ?: operatingDays.toList(),
-                                        startHour = openingHour, endHour = closingHour,
-                                        daysCountRequired = (p.dayBased?.distribution?.size ?: 1).coerceAtLeast(1)
-                                    )
-                                )
                             }
                         }
                     }
@@ -1138,7 +1098,6 @@ fun CreateListingDialog(
                         essentialFacilities = selectedFacilities.toList(),
                         equipment = existingDraft?.equipment ?: emptyList(),
                         pricing = pricingConfig,
-                        rentalFormulas = formulas,
                         rules = PremisesRules(
                             smokingAllowed = smokingAllowed,
                             foodAllowed = foodAllowed,

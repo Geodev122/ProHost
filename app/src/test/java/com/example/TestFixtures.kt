@@ -31,19 +31,7 @@ fun demoSpaces(): List<SpaceListing> = listOf(
                 residentPractitioners = listOf("Dr. Sami Haddad"),
                 essentialFacilities = listOf("High-Speed Wi-Fi", "Receptionist", "Sterilization Suite"),
                 equipment = listOf(EquipmentItem("EQ-1", "Exam Table", EquipmentCategory.WORKSPACES, 1, "Hydraulic exam table")),
-                rentalFormulas = listOf(
-                    RentalFormula(
-                        id = "F1",
-                        type = RentalFormulaType.SHIFT,
-                        rateUsd = 350.0,
-                        scheduleDescription = "Morning Shift (08:00 - 14:00)",
-                        daysOfWeek = listOf("Mon", "Wed", "Fri"),
-                        startHour = "08:00",
-                        endHour = "14:00",
-                        totalWeeklyHours = 18,
-                        shiftName = "Morning Shift"
-                    )
-                ),
+                pricing = RentalPricingConfig.fromLegacyFormula(TEST_FORMULA),
                 rules = PremisesRules(),
                 ownerId = "USR-OWNER-01",
                 ownerName = "Achrafieh Commercial Properties",
@@ -52,3 +40,16 @@ fun demoSpaces(): List<SpaceListing> = listOf(
                 baseMonthlyRateUsd = 450.0
             )
         )
+
+/** The rental formula the fixture listing is priced from, and the one test bookings use. */
+val TEST_FORMULA = RentalFormula(
+    id = "F1",
+    type = RentalFormulaType.SHIFT,
+    rateUsd = 350.0,
+    scheduleDescription = "Morning Shift (08:00 - 14:00)",
+    daysOfWeek = listOf("Mon", "Wed", "Fri"),
+    startHour = "08:00",
+    endHour = "14:00",
+    totalWeeklyHours = 18,
+    shiftName = "Morning Shift"
+)

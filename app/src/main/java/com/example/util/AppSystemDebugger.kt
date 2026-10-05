@@ -268,7 +268,7 @@ object AppSystemDebugger {
             // diagnostics. A diagnostics tool should never mutate production state or
             // fabricate a privileged identity to do so — this now only inspects existing
             // state.
-            val hasBookableSpace = repository.spaces.value.any { it.rentalFormulas.isNotEmpty() }
+            val hasBookableSpace = repository.spaces.value.any { com.example.ui.util.SpaceCalculationUtils.buildAllSlotsForSpace(it).isNotEmpty() }
             val bookingRequestsReachable = runCatching { repository.bookingRequests.value }.isSuccess
             results.add(
                 DiagnosticItem(

@@ -258,7 +258,7 @@ internal fun AdminListingsCatalogTab(
                     }
 
                     Text(
-                        text = "Host: ${space.ownerName} • Phone: ${space.ownerPhone} • Formulas: ${space.rentalFormulas.size}",
+                        text = "Host: ${space.ownerName} • Phone: ${space.ownerPhone} • Pricing: ${space.pricing.strategyType.name.lowercase().replace('_', ' ')}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

@@ -398,7 +398,6 @@ class ProHostRepository(
             ownerId = current.ownerId,
             isVerified = current.isVerified,
             isActiveSubscription = current.isActiveSubscription,
-            subscriptionExpiryMillis = current.subscriptionExpiryMillis,
             isOwnerSuspended = current.isOwnerSuspended,
             isOwnerPackageLapsed = current.isOwnerPackageLapsed,
             ownerProfilePictureUrl = current.ownerProfilePictureUrl
@@ -580,8 +579,7 @@ class ProHostRepository(
                 "country" to safeUpdate.country,
                 "governorate" to safeUpdate.governorate,
                 "city" to safeUpdate.city,
-                "profilePictureUrl" to safeUpdate.profilePictureUrl,
-                "subscriptionExpiryMillis" to safeUpdate.subscriptionExpiryMillis
+                "profilePictureUrl" to safeUpdate.profilePictureUrl
             )
         )
         if (success) {

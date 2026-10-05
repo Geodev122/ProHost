@@ -147,6 +147,12 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   follow `searchedBounds`, updated only by the "Search this area" pill after a gesture pan/zoom.
 - The availability sheet is `ResizableBottomSheet` (`ui/components`): resize by dragging the handle or
   header between stops; the body scrolls and its leftover scroll never drags the sheet.
+- Retired fields: `SpaceListing.rentalFormulas` and `subscriptionExpiryMillis` (listing and profile) are gone
+  from the models. Pricing lives only in `pricing` / `Subdivision.pricing`; a not-yet-migrated document is still
+  read through `RentalPricingConfig.fromLegacyFormula` (app) / `pricingFromLegacyFormula` (functions,
+  `listings/legacyPricing.ts`, unit-tested — keep both identical). Admin › Demo tab › "Migrate Legacy Listing
+  Fields" (`migrateLegacyListingFields`) writes `pricing` and deletes the old keys. `RentalFormula` itself stays:
+  bookings record one (`representativeFormula`).
 - Listing saves go through `SpaceListing.keepingServerOwnedFields(current)` in `ProHostRepository`
   (isVerified, subscription fields, isOwnerSuspended, isOwnerPackageLapsed, ownerId). Never echo
   those from a wizard-built listing: rules deny any save whose changed keys include them, which

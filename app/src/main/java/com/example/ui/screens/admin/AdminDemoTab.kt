@@ -182,6 +182,13 @@ internal fun AdminDemoControlTab(
                         variant = CustomButtonVariant.OUTLINED,
                         icon = Icons.Default.MarkEmailRead
                     )
+                    CustomButton(
+                        text = "Migrate Legacy Listing Fields",
+                        onClick = { adminViewModel.runMaintenance("migrateLegacyListingFields", "Legacy field migration") },
+                        modifier = Modifier.fillMaxWidth(),
+                        variant = CustomButtonVariant.OUTLINED,
+                        icon = Icons.Default.Sync
+                    )
                 }
             }
         }

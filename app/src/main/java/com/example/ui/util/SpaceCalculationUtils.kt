@@ -10,7 +10,7 @@ import java.util.Calendar
  * ([SpaceCalculationUtils.buildAllSlotsForSpace]) instead of two different models
  * that could silently disagree (the specialist view used to be a fixed
  * Morning/Afternoon/Evening grid unrelated to what the host actually configured;
- * later, both screens read only [SpaceListing.rentalFormulas] directly, which meant
+ * later, both screens read only the legacy per-listing formula list, which meant
  * neither ever saw a subdivided listing's real availability at all).
  */
 /** One rental-recurrence a [RentableSlot] can be priced under. FLAT is the only
@@ -318,12 +318,8 @@ object SpaceCalculationUtils {
             candidates.add(PriceDisplay(space.baseMonthlyRateUsd, "/mo"))
         }
 
-        space.rentalFormulas.forEach { formula ->
-            if (formula.rateUsd > 0.0) {
-                val label = rateUnitLabel(formula.type)
-                candidates.add(PriceDisplay(formula.rateUsd, label))
-            }
-        }
+        // A whole-space listing (no rooms) prices from its own config.
+        if (space.subdivisions.isEmpty()) lowestPriceFor(space.pricing)?.let { candidates.add(it) }
 
         space.subdivisions.forEach { sub ->
             if (AttendeePricing.isPerAttendee(sub)) {

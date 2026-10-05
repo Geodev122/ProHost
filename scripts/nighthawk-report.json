@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-10-05T03:54:50.865Z",
+  "generatedAt": "2026-10-05T04:04:59.697Z",
   "trigger": "NIGHTHAWK",
   "summary": {
-    "total": 69,
+    "total": 71,
     "critical": 0,
     "high": 0,
-    "medium": 12,
-    "low": 57,
+    "medium": 13,
+    "low": 58,
     "info": 0,
     "passes": 29
   },
@@ -112,6 +112,15 @@
     },
     {
       "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/listings/legacyPricing.ts",
+      "line": null,
+      "message": "Module \"listings/legacyPricing\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
       "category": "gradle",
       "check": "Target SDK Compliance",
       "file": "app/build.gradle.kts",
@@ -124,7 +133,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/data/model/DataModels.kt",
-      "line": 1473,
+      "line": 1449,
       "message": "Line has 170 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -601,8 +610,17 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/admin/AdminDemoTab.kt",
-      "line": 196,
+      "line": 203,
       "message": "Line has 219 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/admin/AdminListingsTab.kt",
+      "line": 261,
+      "message": "Line has 163 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
     {

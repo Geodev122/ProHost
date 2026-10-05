@@ -852,10 +852,6 @@ data class SpaceListing(
     val essentialFacilities: List<String>,
     val equipment: List<EquipmentItem>,
     val pricing: RentalPricingConfig = RentalPricingConfig.default(),
-    // Legacy, read-only: populated only when deserializing a document saved before
-    // RentalPricingConfig existed and never re-saved since. New saves always leave
-    // this empty — pricing lives in [pricing] instead.
-    val rentalFormulas: List<RentalFormula> = emptyList(),
     val rules: PremisesRules,
     val schedule: SpaceOperatingSchedule = SpaceOperatingSchedule(),
     val ownerId: String,
@@ -914,7 +910,6 @@ data class SpaceListing(
     // restoreListingsAfterRenewal). Admin-SDK-only, same protected-field
     // pattern as isOwnerSuspended — see firestore.rules.
     val isOwnerPackageLapsed: Boolean = false,
-    val subscriptionExpiryMillis: Long = 0L,
     val imageUrls: List<String> = emptyList(),
     val videoTourDurationSec: Int = 10,
     val baseMonthlyRateUsd: Double = 450.0,
@@ -982,21 +977,6 @@ data class SpaceListing(
                 )
             },
             "pricing" to pricing.toFirestoreMap(),
-            "rentalFormulas" to rentalFormulas.map {
-                mapOf(
-                    "id" to it.id,
-                    "type" to it.type.name,
-                    "rateUsd" to it.rateUsd,
-                    "scheduleDescription" to it.scheduleDescription,
-                    "daysOfWeek" to it.daysOfWeek,
-                    "startHour" to it.startHour,
-                    "endHour" to it.endHour,
-                    "totalWeeklyHours" to it.totalWeeklyHours,
-                    "daysCountRequired" to it.daysCountRequired,
-                    "minHours" to it.minHours,
-                    "shiftName" to it.shiftName
-                )
-            },
             "subdivisions" to subdivisions.map { sub ->
                 mapOf(
                     "id" to sub.id,
@@ -1044,7 +1024,6 @@ data class SpaceListing(
             "isActiveSubscription" to isActiveSubscription,
             "isOwnerSuspended" to isOwnerSuspended,
             "isOwnerPackageLapsed" to isOwnerPackageLapsed,
-            "subscriptionExpiryMillis" to subscriptionExpiryMillis,
             "imageUrls" to imageUrls,
             "videoTourDurationSec" to videoTourDurationSec,
             "baseMonthlyRateUsd" to baseMonthlyRateUsd,
@@ -1082,6 +1061,8 @@ data class SpaceListing(
                 }
             } ?: emptyList()
 
+            // Legacy, read-only: a listing saved before RentalPricingConfig existed (and not yet
+            // migrated by migrateLegacyListingFields) still prices from its first formula.
             val formulasList = (data["rentalFormulas"] as? List<*>)?.mapNotNull { item ->
                 (item as? Map<*, *>)?.let { map ->
                     val typeStr = map["type"] as? String ?: RentalFormulaType.FULL_MONTH.name
@@ -1192,7 +1173,6 @@ data class SpaceListing(
                 equipment = equipList,
                 pricing = (data["pricing"] as? Map<*, *>)?.let { RentalPricingConfig.fromFirestoreMap(it) }
                     ?: RentalPricingConfig.fromLegacyFormula(formulasList.firstOrNull()),
-                rentalFormulas = formulasList,
                 rules = rules,
                 schedule = schedule,
                 ownerId = data["ownerId"] as? String ?: "",
@@ -1216,7 +1196,6 @@ data class SpaceListing(
                 isActiveSubscription = data["isActiveSubscription"] as? Boolean ?: true,
                 isOwnerSuspended = data["isOwnerSuspended"] as? Boolean ?: false,
                 isOwnerPackageLapsed = data["isOwnerPackageLapsed"] as? Boolean ?: false,
-                subscriptionExpiryMillis = (data["subscriptionExpiryMillis"] as? Number)?.toLong() ?: 0L,
                 imageUrls = (data["imageUrls"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                 videoTourDurationSec = (data["videoTourDurationSec"] as? Number)?.toInt() ?: 10,
                 baseMonthlyRateUsd = (data["baseMonthlyRateUsd"] as? Number)?.toDouble() ?: 450.0,
@@ -1332,7 +1311,6 @@ data class AppUser(
     val governorate: String = "",
     val city: String = "",
     val isVerified: Boolean = false,
-    val subscriptionExpiryMillis: Long? = null,
     // Server-only (functions/src/billing/entitlementManager.ts): the Google Play base plan
     // this account's Pro Host access comes from ("pro-montly" / "pro-yearly", see
     // data/billing/PlayCatalog.kt), "admin_forced" for an admin Force Upgrade, or null.
@@ -1426,7 +1404,6 @@ data class AppUser(
             "governorate" to governorate,
             "city" to city,
             "isVerified" to isVerified,
-            "subscriptionExpiryMillis" to subscriptionExpiryMillis,
             // ownerPackageId and ownerPackageExpiryMillis are written only by Cloud Functions
             // (billing/entitlementManager via Google Play or forceProHostUpgrade, expirePackages) — never by client writes.
             // Including them here would overwrite entitlement state on any admin-context full
@@ -1457,7 +1434,6 @@ data class AppUser(
                 governorate = data["governorate"] as? String ?: "",
                 city = data["city"] as? String ?: "",
                 isVerified = data["isVerified"] as? Boolean ?: false,
-                subscriptionExpiryMillis = (data["subscriptionExpiryMillis"] as? Number)?.toLong(),
                 ownerPackageId = data["ownerPackageId"] as? String,
                 ownerPackageExpiryMillis = (data["ownerPackageExpiryMillis"] as? Number)?.toLong(),
                 entitlementSource = data["entitlementSource"] as? String,

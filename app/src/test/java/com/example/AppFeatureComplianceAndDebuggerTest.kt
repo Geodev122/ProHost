@@ -91,7 +91,7 @@ class AppFeatureComplianceAndDebuggerTest {
         assertTrue("Repository must load seed workspaces", spaces.isNotEmpty())
 
         val space = spaces.first()
-        val formula = space.rentalFormulas.first()
+        val formula = TEST_FORMULA
 
         val practitioner = repository.login(uid = "uid-dr-sami", email = "dr.sami@prospace.lb", verifiedRole = UserRole.SPECIALIST)
         val (booking, created) = repository.createBookingRequest(
