@@ -6,6 +6,7 @@
 //   node scripts/maintenance/run.js j8               production data hygiene (backup → cleanup)
 //   node scripts/maintenance/run.js activate <code>  honour a parked retired-plan purchase for U-XXXXXX
 //   node scripts/maintenance/run.js emailauth        read-only: why sign-in emails fail (Auth config, mail, limits)
+//   node scripts/maintenance/run.js enableemaillink  turn on Firebase Auth "Email link (passwordless)" sign-in
 //
 // Results are printed as GitHub "::notice::" annotations (no PII: counts and display codes only).
 "use strict";
@@ -185,14 +186,35 @@ async function activate(db, code) {
   notice(`${code}: role=${after.role} plan=${after.ownerPackageId || "-"} source=${after.entitlementSource || "-"}`);
 }
 
+async function googleApi(url, init = {}) {
+  const { access_token: token } = await admin.app().options.credential.getAccessToken();
+  const project = process.env.GCLOUD_PROJECT;
+  return fetch(url, {
+    ...init,
+    headers: { Authorization: `Bearer ${token}`, "x-goog-user-project": project, "Content-Type": "application/json" },
+  });
+}
+
+async function enableemaillink() {
+  // Email/Password provider with "Email link (passwordless sign-in)" on: enabled + passwordRequired=false.
+  // Password sign-in is unaffected for existing accounts; the app only uses links and codes.
+  await step("enableEmailLink", async () => {
+    const project = process.env.GCLOUD_PROJECT;
+    const res = await googleApi(
+      `https://identitytoolkit.googleapis.com/admin/v2/projects/${project}/config?updateMask=signIn.email.enabled,signIn.email.passwordRequired`,
+      { method: "PATCH", body: JSON.stringify({ signIn: { email: { enabled: true, passwordRequired: false } } }) }
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
+    const c = await res.json();
+    return `emailEnabled=${!!c.signIn?.email?.enabled} passwordRequired=${c.signIn?.email?.passwordRequired !== false}`;
+  });
+}
+
 async function emailauth(db) {
   // 1. Firebase Auth (Identity Toolkit) config: is email / email-link sign-in enabled?
   await step("authConfig", async () => {
-    const { access_token: token } = await admin.app().options.credential.getAccessToken();
     const project = process.env.GCLOUD_PROJECT;
-    const res = await fetch(`https://identitytoolkit.googleapis.com/admin/v2/projects/${project}/config`, {
-      headers: { Authorization: `Bearer ${token}`, "x-goog-user-project": project },
-    });
+    const res = await googleApi(`https://identitytoolkit.googleapis.com/admin/v2/projects/${project}/config`);
     if (!res.ok) return `HTTP ${res.status} ${(await res.text()).slice(0, 200)}`;
     const c = await res.json();
     const email = c.signIn?.email || {};
@@ -226,6 +248,20 @@ async function emailauth(db) {
     return `${seen}/${s.size} recent mail docs have delivery status`;
   });
 
+  // 3b. Installed extensions (Trigger Email = firebase/firestore-send-email) and their state.
+  await step("extensions", async () => {
+    const project = process.env.GCLOUD_PROJECT;
+    const res = await googleApi(`https://firebaseextensions.googleapis.com/v1beta/projects/${project}/instances`);
+    if (!res.ok) return `HTTP ${res.status} (CI account can't list extensions)`;
+    const list = (await res.json()).instances || [];
+    return list.length === 0 ? "none installed" : list.map((i) =>
+      `${i.name.split("/").pop()}=${i.config?.extensionRef || "?"}:${i.state}` +
+      (i.config?.params?.MAIL_COLLECTION ? ` collection=${i.config.params.MAIL_COLLECTION}` : "")).join(" ");
+  });
+
+  // 3c. Did the email callables ever run? (They take a send slot before queueing mail.)
+  await step("sendLimitDocsAllTime", async () => `${(await db.collection("email_send_limits").count().get()).data().count}`);
+
   // 4. Addresses currently at the send limit (counts only).
   await step("sendLimits", async () => {
     const s = await db.collection("email_send_limits").get();
@@ -247,5 +283,6 @@ async function emailauth(db) {
   else if (task === "j8") { await j8(db, auth); await audit(db, auth); }
   else if (task === "activate") await activate(db, arg);
   else if (task === "emailauth") await emailauth(db);
+  else if (task === "enableemaillink") { await enableemaillink(); await emailauth(db); }
   else throw new Error(`unknown task ${task}`);
 })().catch((e) => { fail(`${e && e.message}`); process.exit(1); });
