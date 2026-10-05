@@ -1,16 +1,25 @@
 {
-  "generatedAt": "2026-10-05T04:07:18.248Z",
+  "generatedAt": "2026-10-05T04:21:18.916Z",
   "trigger": "NIGHTHAWK",
   "summary": {
-    "total": 71,
+    "total": 68,
     "critical": 0,
     "high": 0,
-    "medium": 13,
-    "low": 58,
+    "medium": 14,
+    "low": 54,
     "info": 0,
     "passes": 29
   },
   "findings": [
+    {
+      "severity": "MEDIUM",
+      "category": "ux",
+      "check": "Screen Loading State",
+      "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
+      "line": null,
+      "message": "Screen has no loading indicator.",
+      "suggestion": "Add an isLoading state and CircularProgressIndicator overlay."
+    },
     {
       "severity": "MEDIUM",
       "category": "ux",
@@ -230,6 +239,123 @@
     {
       "severity": "LOW",
       "category": "detekt",
+      "check": "Long Parameter List",
+      "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
+      "line": null,
+      "message": "Function signature has 16 parameters (>7): fun AvailabilitySheet(\n    liveSpace: SpaceListing...",
+      "suggestion": "Group parameters into a data class/state holder object to reduce complexity."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
+      "line": 326,
+      "message": "Line has 178 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
+      "line": 371,
+      "message": "Line has 182 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
+      "line": 386,
+      "message": "Line has 168 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
+      "line": 409,
+      "message": "Line has 171 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
+      "line": 412,
+      "message": "Line has 174 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
+      "line": 426,
+      "message": "Line has 169 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
+      "line": 439,
+      "message": "Line has 168 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
+      "line": 460,
+      "message": "Line has 171 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
+      "line": 463,
+      "message": "Line has 174 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
+      "line": 477,
+      "message": "Line has 169 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
+      "line": 486,
+      "message": "Line has 168 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
+      "line": 536,
+      "message": "Line has 171 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt",
       "line": 858,
@@ -403,7 +529,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 318,
+      "line": 322,
       "message": "Line has 161 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -412,161 +538,8 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 771,
+      "line": 775,
       "message": "Line has 174 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1244,
-      "message": "Line has 161 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1308,
-      "message": "Line has 182 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1326,
-      "message": "Line has 164 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1353,
-      "message": "Line has 186 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1365,
-      "message": "Line has 164 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1368,
-      "message": "Line has 172 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1391,
-      "message": "Line has 175 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1394,
-      "message": "Line has 178 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1408,
-      "message": "Line has 173 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1421,
-      "message": "Line has 172 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1430,
-      "message": "Line has 164 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1442,
-      "message": "Line has 175 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1445,
-      "message": "Line has 178 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1459,
-      "message": "Line has 173 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1468,
-      "message": "Line has 172 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1477,
-      "message": "Line has 164 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 1518,
-      "message": "Line has 175 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
     {
@@ -670,7 +643,7 @@
     },
     {
       "check": "Screen Loading State",
-      "message": "16/16 screens have a loading indicator."
+      "message": "15/16 screens have a loading indicator."
     },
     {
       "check": "Screen Error State",

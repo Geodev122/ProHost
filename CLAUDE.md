@@ -137,7 +137,10 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   highlighting it) and "Message host on WhatsApp".
   `DiscoveryViewModel` keeps Explore's list position and map camera across a visit to a listing.
 - Admin Console tabs live in `ui/screens/admin/` (one file per tab, package `com.example.ui.screens`);
-  room cards / folder tabs of the details page in `ui/screens/RoomCards.kt`. NIGHTHAWK's screen checks count
+  room cards / folder tabs of the details page in `ui/screens/RoomCards.kt`, its availability sheet in
+  `ui/screens/AvailabilitySheet.kt` (selection state stays in `SpaceDetailsScreenContent`, passed as
+  `MutableState` holders). Repository: built-in schema catalogue `data/repository/DefaultSchema.kt`, CSV
+  formatting `RepositoryCsv.kt`. NIGHTHAWK's screen checks count
   only files declaring a public `fun XxxScreen(`. First-load lists show `ShimmerLoadingList`, not a spinner.
 - No secrets in code or scripts (GA4 secret comes from the caller or `GA4_API_SECRET`), and push tokens are
   never logged — NIGHTHAWK "Secrets & Token Hygiene".
