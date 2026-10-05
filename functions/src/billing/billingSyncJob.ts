@@ -38,13 +38,27 @@ export async function runBillingSyncOnce(): Promise<BillingSyncReport> {
     checked: 0, changed: 0, failed: 0, migratedPlay: 0, migratedForced: 0, stoppedOnConfigError: false,
   };
 
-  // 1. Reconcile open subscriptions.
-  const open = await db.collection(SUBSCRIPTIONS).where("status", "in", OPEN_STATUSES).get();
-  for (const doc of open.docs) {
+  // 1. Reconcile open subscriptions (paged by document id).
+  const openDocs: FirebaseFirestore.QueryDocumentSnapshot[] = [];
+  let openCursor: FirebaseFirestore.QueryDocumentSnapshot | null = null;
+  for (let page = 0; page < 50; page++) {
+    let q = db.collection(SUBSCRIPTIONS).where("status", "in", OPEN_STATUSES).orderBy("__name__").limit(200);
+    if (openCursor) q = q.startAfter(openCursor);
+    const snap = await q.get();
+    openDocs.push(...snap.docs);
+    if (snap.size < 200) break;
+    openCursor = snap.docs[snap.docs.length - 1];
+  }
+  for (const doc of openDocs) {
     const d = doc.data();
     const uid = d.userId as string | undefined;
     const token = d.purchaseToken as string | undefined;
     if (!uid || !token) continue;
+    // A retired plan never grants on its own (an admin Activate records an override).
+    if (!isSupportedProduct(d.productId as string | undefined) && !(await adminOverrideUid(token))) {
+      logger.warn(`billingSync: ${doc.id} is a retired product without admin approval — skipped`);
+      continue;
+    }
     report.checked++;
     try {
       const sub = await queryPlaySubscription(token, d.productId as string | undefined);
@@ -131,7 +145,7 @@ export const billingSyncJob = onSchedule({ schedule: "every 24 hours", timeoutSe
 });
 
 /** Admin: run the sync (and migration) now, e.g. right after a deploy. */
-export const runBillingSync = onCall(async (request) => {
+export const runBillingSync = onCall({ timeoutSeconds: 540 }, async (request) => {
   if (request.auth?.token.role !== "ADMIN") {
     throw new HttpsError("permission-denied", "Only an Admin can run the billing sync.");
   }

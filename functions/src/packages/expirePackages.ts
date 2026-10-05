@@ -10,6 +10,8 @@ import { subscriptionExpiringTemplate, subscriptionExpiredTemplate, UserContext 
 import { planLabel } from "../billing/playCatalog";
 import { queryPlaySubscription } from "../billing/billingHelpers";
 import { syncSubscription } from "../billing/subscriptionService";
+import { classifyPlayError } from "../billing/playSubscription";
+import { PlayRecheck, expiryDecision } from "./expiryLogic";
 import { notifyAdminsOfSubscriptionChange } from "../billing/adminBillingAlerts";
 import "../lib/admin";
 import { sendGa4Event } from "../lib/ga4";
@@ -34,7 +36,7 @@ import { sendGa4Event } from "../lib/ga4";
  * hasActivePackage() also checks the live expiry timestamp itself, so a package
  * that's lapsed but not yet swept by this function already blocks publishing.
  */
-export const expirePackages = onSchedule({ schedule: "0 * * * *" }, async () => {
+export const expirePackages = onSchedule({ schedule: "0 * * * *", timeoutSeconds: 540 }, async () => {
   const db = getFirestore();
   const now = Date.now();
 
@@ -81,7 +83,7 @@ export const expirePackages = onSchedule({ schedule: "0 * * * *" }, async () => 
           await sendEmail({ to: data.email as string, ...tpl });
         }
       } catch (_) { /* email is best-effort */ }
-      await doc.ref.set({ expiryWarningSent: true }, { merge: true });
+      await doc.ref.update({ expiryWarningSent: true }).catch(() => undefined);
     }
     if (warningSnap.docs.length < 500) break;
     warningLastDoc = warningSnap.docs[warningSnap.docs.length - 1];
@@ -93,14 +95,20 @@ export const expirePackages = onSchedule({ schedule: "0 * * * *" }, async () => 
   let listingsHiddenCount = 0;
   let totalSwept = 0;
 
-  while (true) {
-    const expiredSnap = await db
+  let skippedCount = 0;
+  // Cursor-paginated (a doc that is skipped or fails keeps matching the query, so
+  // re-querying from the start would loop on it), with a hard page cap.
+  let expiredCursor: FirebaseFirestore.QueryDocumentSnapshot | null = null;
+  for (let page = 0; page < 20; page++) {
+    let expiredQuery = db
       .collection("user_profiles")
       .where("ownerPackageExpiryMillis", "<=", now)
-      .limit(500)
-      .get();
-
+      .orderBy("ownerPackageExpiryMillis")
+      .limit(200);
+    if (expiredCursor) expiredQuery = expiredQuery.startAfter(expiredCursor);
+    const expiredSnap = await expiredQuery.get();
     if (expiredSnap.empty) break;
+    expiredCursor = expiredSnap.docs[expiredSnap.docs.length - 1];
 
     for (const doc of expiredSnap.docs) {
       const uid = doc.id;
@@ -109,17 +117,36 @@ export const expirePackages = onSchedule({ schedule: "0 * * * *" }, async () => 
         // subscription — a renewal whose notification was missed extends it here, and an
         // ended one is removed through the same EntitlementManager path as RTDN.
         const token = doc.data()?.lastPurchaseToken as string | undefined;
+        let recheck: PlayRecheck = { kind: "not_play" };
         if (doc.data()?.entitlementSource === "google_play" && token) {
           try {
             const sub = await queryPlaySubscription(token);
-            await syncSubscription(uid, token, sub, { source: "expire_sweep" });
-            const after = (await doc.ref.get()).data()?.ownerPackageExpiryMillis as number | null | undefined;
-            if (typeof after !== "number" || after > now) { clearedCount++; continue; }
+            const result = await syncSubscription(uid, token, sub, { source: "expire_sweep" });
+            recheck = result.hasAccess ? { kind: "has_access" } : { kind: "no_access" };
           } catch (e) {
-            logger.warn(`expirePackages: Play re-check failed for ${uid}: ${(e as Error).message}`);
+            const err = classifyPlayError(e);
+            logger.warn(`expirePackages: Play re-check failed [${err.kind}]: ${err.message}`);
+            recheck = { kind: "error", errorKind: err.kind };
           }
         }
-        const authUser = await auth.getUser(uid);
+        const decision = expiryDecision(recheck);
+        if (decision === "keep") { clearedCount++; continue; }
+        if (decision === "skip") { skippedCount++; continue; }
+        // syncSubscription already removed Pro Host when Play said it ended.
+        if (recheck.kind === "no_access") { clearedCount++; continue; }
+
+        let authUser;
+        try {
+          authUser = await auth.getUser(uid);
+        } catch (e) {
+          if ((e as { code?: string }).code === "auth/user-not-found") {
+            // Account deleted outside the app: just stop it matching this sweep.
+            await doc.ref.update({ ownerPackageId: null, ownerPackageExpiryMillis: null }).catch(() => undefined);
+            clearedCount++;
+            continue;
+          }
+          throw e;
+        }
         const isProHost = authUser.customClaims?.role === "PRO_HOST";
 
         if (isProHost) {
@@ -129,16 +156,15 @@ export const expirePackages = onSchedule({ schedule: "0 * * * *" }, async () => 
             authUser.customClaims,
             { ...authUser.customClaims, role: "SPECIALIST" },
             async () => {
-              await doc.ref.set(
-                { role: "SPECIALIST", ownerPackageId: null, ownerPackageExpiryMillis: null, billingStatus: "EXPIRED", updatedAt: now },
-                { merge: true }
+              await doc.ref.update(
+                { role: "SPECIALIST", ownerPackageId: null, ownerPackageExpiryMillis: null, billingStatus: "EXPIRED", updatedAt: now }
               );
             }
           );
           try {
             await auth.revokeRefreshTokens(uid);
           } catch (e) {
-            logger.warn(`expirePackages: revokeRefreshTokens failed for ${uid}: ${(e as Error).message}`);
+            logger.warn(`expirePackages: revokeRefreshTokens failed: ${(e as Error).message}`);
           }
           demotedCount++;
           await notifyAdminsOfSubscriptionChange(uid, "EXPIRED", {
@@ -151,7 +177,7 @@ export const expirePackages = onSchedule({ schedule: "0 * * * *" }, async () => 
           if (!ownedListings.empty) {
             const bulkWriter = db.bulkWriter();
             ownedListings.docs.forEach((listingDoc) => {
-              bulkWriter.set(listingDoc.ref, { isOwnerPackageLapsed: true }, { merge: true });
+              bulkWriter.update(listingDoc.ref, { isOwnerPackageLapsed: true });
             });
             await bulkWriter.close();
             listingsHiddenCount += ownedListings.size;
@@ -178,22 +204,24 @@ export const expirePackages = onSchedule({ schedule: "0 * * * *" }, async () => 
         } else {
           // Not currently PRO_HOST (e.g. already SPECIALIST with a stray expiry
           // value on file) — just clear the baseline, nothing to demote or hide.
-          await doc.ref.set({ ownerPackageId: null, ownerPackageExpiryMillis: null }, { merge: true });
+          await doc.ref.update({ ownerPackageId: null, ownerPackageExpiryMillis: null });
         }
         clearedCount++;
       } catch (e) {
-        logger.error(`expirePackages: failed to process ${uid}: ${(e as Error).message}`);
+        logger.error(`expirePackages: failed to process a profile: ${(e as Error).message}`);
       }
     }
 
     totalSwept += expiredSnap.size;
+    if (expiredSnap.size < 200) break;
   }
 
   logger.info(`expirePackages: swept ${totalSwept} packages`);
 
   await recordAuditLog({
     actionType: "PACKAGES_EXPIRED_BATCH",
-    details: `Scheduled sweep processed ${clearedCount} expired owner package(s): ${demotedCount} Pro Host(s) demoted to Specialist, ${listingsHiddenCount} listing(s) hidden pending renewal.`,
+    details: `Scheduled sweep processed ${clearedCount} expired owner package(s): ${demotedCount} Pro Host(s) demoted to Specialist, ${listingsHiddenCount} listing(s) hidden pending renewal` +
+      (skippedCount > 0 ? `; ${skippedCount} Play subscriber(s) skipped because Google Play couldn't be read (retried next hour).` : "."),
     actorEmail: "system@prohost.app",
     severity: demotedCount > 0 ? "WARN" : "INFO",
   });

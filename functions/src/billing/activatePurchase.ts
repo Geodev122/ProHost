@@ -70,19 +70,22 @@ export async function activatePlayPurchase(
     logger.info(`${logTag}: linked unattributed purchase (${claim}) uid=${uid} product=${productId}`);
   }
 
+  // Only package_pro_mrr grants on its own. A retired plan (package_growth_mrr, …) bought
+  // with an old app version is neither recorded, granted nor acknowledged here — not even
+  // while its payment is pending, or the daily sync would grant it once it settles. An
+  // admin decides (activating records an adminOverride link, honoured above and for its
+  // renewals).
+  if (!isSupportedProduct(productId) && !override) {
+    if (purchase.isPending) return { status: "pending_payment" };
+    if (!grantsAccess(statusFor(purchase), purchase.expiryMillis)) return { status: "expired" };
+    logger.warn(`${logTag}: retired product product=${productId} — waiting for an admin`);
+    return { status: "unsupported_product", productId };
+  }
+
   // Never grant or acknowledge before the money has settled.
   if (purchase.isPending) {
     await syncSubscription(uid, purchaseToken, purchase, { source: logTag });
     return { status: "pending_payment" };
-  }
-
-  // Only package_pro_mrr grants on its own. A retired plan (package_growth_mrr, …) bought
-  // with an old app version is neither granted nor acknowledged here: an admin decides
-  // (activating it records an adminOverride link, honoured above and for its renewals).
-  if (!isSupportedProduct(productId) && !override) {
-    if (!grantsAccess(statusFor(purchase), purchase.expiryMillis)) return { status: "expired" };
-    logger.warn(`${logTag}: retired product uid=${uid} product=${productId} — waiting for an admin`);
-    return { status: "unsupported_product", productId };
   }
 
   // Play's order: verify (above) → grant (SubscriptionService → EntitlementManager) → acknowledge.
@@ -103,7 +106,10 @@ export async function activatePlayPurchase(
   };
 }
 
-/** Parks a purchase for the retry job (idempotent per token). */
+/**
+ * Parks a purchase for the retry job (idempotent per token). Returns "new" the first time
+ * a token is parked (callers send their admin push only then), "existing" afterwards.
+ */
 export async function parkPendingActivation(
   uid: string,
   purchaseToken: string,
@@ -111,14 +117,14 @@ export async function parkPendingActivation(
   reason: string,
   source: string,
   opts: { needsAdmin?: boolean } = {}
-): Promise<void> {
+): Promise<"new" | "existing" | "failed"> {
   try {
     const ref = getFirestore().collection(PENDING_COLLECTION).doc(linkKey(purchaseToken));
     const now = Date.now();
     const existing = await ref.get();
     if (existing.exists && existing.data()?.resolved === false) {
       await ref.update({ lastError: reason.slice(0, 500), updatedAt: now, ...(opts.needsAdmin ? { needsAdmin: true } : {}) });
-      return;
+      return "existing";
     }
     await ref.set({
       uid,
@@ -134,13 +140,18 @@ export async function parkPendingActivation(
       // Retrying can't fix it (e.g. the purchase is tagged for another account): an admin decides.
       needsAdmin: opts.needsAdmin === true,
     });
-    logger.warn(`${source}: parked purchase for retry uid=${uid} product=${productId}: ${reason}`);
-    // Money may have been taken without access: admins should know right away.
-    await notifyAdminsOfSubscriptionChange(uid, "ACTIVATION_AT_RISK", {
-      note: `parked for automatic retry — ${reason.slice(0, 80)}`,
-    });
+    logger.warn(`${source}: parked purchase for retry product=${productId}: ${reason}`);
+    // Money may have been taken without access: admins should know right away. Rows that
+    // need an admin get the caller's more specific push instead (one push, not two).
+    if (!opts.needsAdmin) {
+      await notifyAdminsOfSubscriptionChange(uid, "ACTIVATION_AT_RISK", {
+        note: `parked for automatic retry — ${reason.slice(0, 80)}`,
+      });
+    }
+    return "new";
   } catch (e) {
-    logger.error(`${source}: could not park purchase uid=${uid} product=${productId}`, e);
+    logger.error(`${source}: could not park purchase product=${productId}`, e);
+    return "failed";
   }
 }
 

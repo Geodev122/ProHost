@@ -130,7 +130,9 @@ export const playBillingRtdn = onMessagePublished(
       if (notificationType === SUBSCRIPTION_PURCHASED) {
         await notifyAdminsOfSubscriptionChange(null, "UNLINKED_PURCHASE", {
           planId: purchase.basePlanId || productId,
-          note: "started in the Play Store (e.g. promo code) — activates when its owner opens the app",
+          note: isSupportedProduct(productId)
+            ? "started in the Play Store (e.g. promo code) — activates when its owner opens the app"
+            : `retired plan ${productId} bought outside the app — not acknowledged; activate it from Admin › Packages or Google Play refunds it in 3 days`,
         });
       }
       await getFirestore().collection("play_billing_unresolved").add({
@@ -152,12 +154,18 @@ export const playBillingRtdn = onMessagePublished(
     if (!isSupportedProduct(productId) && !adminApproved) {
       logger.warn(`playBillingRtdn: retired product ${productId} (not ${PLAY_PRODUCT_ID}) uid=${uid} type=${notificationType} — not granted`);
       if (!purchase.isPending && grantsAccess(statusFor(purchase), purchase.expiryMillis)) {
-        await parkPendingActivation(
+        const parked = await parkPendingActivation(
           uid, purchaseToken, productId,
           `unsupported_product: ${productId} is a retired plan (only ${PLAY_PRODUCT_ID} grants Pro Host)`,
           "playBillingRtdn",
           { needsAdmin: true }
         );
+        if (parked === "new") {
+          await notifyAdminsOfSubscriptionChange(uid, "UNSUPPORTED_PRODUCT", {
+            planId: productId,
+            note: "open Admin › Packages › Payments needing attention to activate it, or let Google Play refund it",
+          });
+        }
       }
       return;
     }

@@ -20,7 +20,24 @@ const GIVE_UP_AFTER_MS = 4 * 24 * 60 * 60 * 1000;
 export const retryPendingPlayActivations = onSchedule({ schedule: "*/15 * * * *" }, async () => {
   const db = getFirestore();
   const now = Date.now();
-  const snap = await db.collection(PENDING_COLLECTION).where("resolved", "==", false).limit(50).get();
+  // Rows waiting for an admin can't be retried; close the ones Play has refunded by now
+  // (4+ days) so they never pile up.
+  const adminRows = await db.collection(PENDING_COLLECTION)
+    .where("resolved", "==", false).where("needsAdmin", "==", true).limit(100).get();
+  for (const doc of adminRows.docs) {
+    const createdAt = (doc.data().createdAt as number | undefined) ?? now;
+    if (now - createdAt > GIVE_UP_AFTER_MS) {
+      await doc.ref.update({ resolved: true, outcome: "expired_unclaimed", resolvedAt: now });
+    }
+  }
+
+  // Only retryable rows, oldest first (composite index in firestore.indexes.json).
+  const snap = await db.collection(PENDING_COLLECTION)
+    .where("resolved", "==", false)
+    .where("needsAdmin", "==", false)
+    .orderBy("createdAt")
+    .limit(50)
+    .get();
   if (snap.empty) return;
 
   for (const doc of snap.docs) {
@@ -30,8 +47,6 @@ export const retryPendingPlayActivations = onSchedule({ schedule: "*/15 * * * *"
     const productId = (d.productId as string | undefined) ?? "";
     const createdAt = (d.createdAt as number | undefined) ?? now;
     const attempts = ((d.attempts as number | undefined) ?? 0) + 1;
-    // Waiting on an admin (Admin › Packages › Payments needing attention).
-    if (d.needsAdmin === true) continue;
     if (!uid || !token) {
       await doc.ref.update({ resolved: true, outcome: "malformed", resolvedAt: now });
       continue;

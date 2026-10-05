@@ -258,6 +258,13 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   failed or unacknowledged paid purchases are parked in `play_billing_pending` and retried every 15 min by
   `retryPendingPlayActivations` (before Play's 3-day refund). RTDN runs with `retry: true` and throws on
   config/transient Play errors.
+- `expirePackages` decides per profile with `packages/expiryLogic.ts` (unit-tested): a Play subscriber is demoted
+  only when Play says the subscription ended (or doesn't know the token); config/transient Play errors are skipped and
+  retried next hour — never demote blindly. Cursor-paged, 540 s, deleted Auth users just get their expiry cleared.
+- `retryPendingPlayActivations` queries only `needsAdmin == false` rows (composite index) and closes `needsAdmin` rows
+  older than 4 days as `expired_unclaimed`. `parkPendingActivation` returns new/existing; admin pushes go out once.
+- `grantProHost`/`removeProHost` return early for deleted accounts (no ghost profile, no RTDN retry storm) and write
+  with `update()`; a PRO_HOST claim whose profile `role` mirror lagged is repaired on the next sync.
 - Only `package_pro_mrr` grants (`isSupportedProduct`, `playCatalog.ts`). Retired plans sold by old app versions
   (`package_growth_mrr`, `package_enterprise_mrr`) are never granted or acknowledged automatically, in any path:
   activation, RTDN (it doesn't acknowledge an unlinked one either), retry or migration. They are parked `needsAdmin`

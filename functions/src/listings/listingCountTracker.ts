@@ -9,6 +9,17 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore";
  * missing on documents written before this field existed, which reads as
  * ACTIVE (its own default) rather than as "not counted".
  */
+/**
+ * Counter/flag writes use update(), never set(merge) — a set on a profile or listing that
+ * was just deleted (account deletion removes listings, then the profile) would recreate a
+ * ghost document. Not-found is the expected outcome then, not an error.
+ */
+function ignoreNotFound(e: unknown): void {
+  const code = (e as { code?: number | string }).code;
+  if (code === 5 || code === "not-found") return;
+  throw e;
+}
+
 function isActiveStatus(status: unknown): boolean {
   return status === undefined || status === null || status === "ACTIVE";
 }
@@ -23,12 +34,10 @@ export const onWorkspaceListingCreated = onDocumentCreated(
     // field (DataModels.kt's SpaceListing.toFirestoreMap deliberately omits it,
     // same convention as isOwnerSuspended), so it can't be backdated/spoofed.
     // Feeds the Admin Console's "listings published by date" chart.
-    await event.data?.ref.set({ createdAtMillis: Date.now() }, { merge: true });
+    await event.data?.ref.update({ createdAtMillis: Date.now() }).catch(ignoreNotFound);
     if (!isActiveStatus(listing?.status)) return;
-    await getFirestore().collection("user_profiles").doc(ownerId).set(
-      { activeListingCount: FieldValue.increment(1) },
-      { merge: true }
-    );
+    await getFirestore().collection("user_profiles").doc(ownerId)
+      .update({ activeListingCount: FieldValue.increment(1) }).catch(ignoreNotFound);
   }
 );
 
@@ -50,8 +59,10 @@ export const onWorkspaceListingDeleted = onDocumentDeleted(
     const profileRef = db.collection("user_profiles").doc(ownerId);
     await db.runTransaction(async (tx) => {
       const snap = await tx.get(profileRef);
+      // A deleted account's listings are removed after its profile: never recreate it.
+      if (!snap.exists) return;
       const current = (snap.data()?.activeListingCount as number | undefined) ?? 0;
-      tx.set(profileRef, { activeListingCount: Math.max(0, current - 1) }, { merge: true });
+      tx.update(profileRef, { activeListingCount: Math.max(0, current - 1) });
     });
   }
 );
@@ -81,12 +92,14 @@ export const onWorkspaceListingStatusChanged = onDocumentUpdated(
     const db = getFirestore();
     const profileRef = db.collection("user_profiles").doc(ownerId);
     if (isActive) {
-      await profileRef.set({ activeListingCount: FieldValue.increment(1) }, { merge: true });
+      await profileRef.update({ activeListingCount: FieldValue.increment(1) }).catch(ignoreNotFound);
     } else {
       await db.runTransaction(async (tx) => {
         const snap = await tx.get(profileRef);
+        // A deleted account's listings are removed after its profile: never recreate it.
+        if (!snap.exists) return;
         const current = (snap.data()?.activeListingCount as number | undefined) ?? 0;
-        tx.set(profileRef, { activeListingCount: Math.max(0, current - 1) }, { merge: true });
+        tx.update(profileRef, { activeListingCount: Math.max(0, current - 1) });
       });
     }
   }

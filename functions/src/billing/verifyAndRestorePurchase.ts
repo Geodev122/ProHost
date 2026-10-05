@@ -94,16 +94,17 @@ export const verifyAndRestorePurchase = onCall<{
     case "unsupported_product":
       // A plan this app no longer sells (bought with an old version). Never granted
       // automatically: an admin activates it or Google Play refunds it after 3 days.
-      await parkPendingActivation(
+      if (await parkPendingActivation(
         uid, cleanToken, outcome.productId,
         `unsupported_product: ${outcome.productId} is a retired plan (only package_pro_mrr grants Pro Host)`,
         "verifyAndRestorePurchase",
         { needsAdmin: true }
-      );
-      await notifyAdminsOfSubscriptionChange(uid, "UNSUPPORTED_PRODUCT", {
-        planId: outcome.productId,
-        note: "open Admin › Packages › Payments needing attention to activate it, or let Google Play refund it",
-      });
+      ) === "new") {
+        await notifyAdminsOfSubscriptionChange(uid, "UNSUPPORTED_PRODUCT", {
+          planId: outcome.productId,
+          note: "open Admin › Packages › Payments needing attention to activate it, or let Google Play refund it",
+        });
+      }
       throw new HttpsError(
         "failed-precondition",
         "This Google Play purchase is for an older ProHost plan that is no longer offered. " +
@@ -113,17 +114,18 @@ export const verifyAndRestorePurchase = onCall<{
     case "owned_by_other":
       // Paid but tagged for (or claimed by) another ProHost account: Play refunds it in 3 days
       // unless someone acts, so park it where admins see it (Admin › Packages) and alert them.
-      await parkPendingActivation(
+      if (await parkPendingActivation(
         uid, cleanToken, cleanProductId,
         outcome.reason === "account"
           ? "owned_by_other: bought while another ProHost account was signed in on this device"
           : "owned_by_other: already linked to another ProHost account",
         "verifyAndRestorePurchase",
         { needsAdmin: true }
-      );
-      await notifyAdminsOfSubscriptionChange(uid, "OWNERSHIP_MISMATCH", {
-        note: "the person signed in now says they paid — open Admin › Packages › Payments needing attention",
-      });
+      ) === "new") {
+        await notifyAdminsOfSubscriptionChange(uid, "OWNERSHIP_MISMATCH", {
+          note: "the person signed in now says they paid — open Admin › Packages › Payments needing attention",
+        });
+      }
       throw new HttpsError(
         "permission-denied",
         outcome.reason === "account"

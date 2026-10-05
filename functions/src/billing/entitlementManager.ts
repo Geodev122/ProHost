@@ -40,6 +40,16 @@ export interface GrantParams {
   purchaseToken?: string | null;
 }
 
+async function authUserExists(auth: ReturnType<typeof getAuth>, uid: string): Promise<boolean> {
+  try {
+    await auth.getUser(uid);
+    return true;
+  } catch (e) {
+    if ((e as { code?: string }).code === "auth/user-not-found") return false;
+    throw e;
+  }
+}
+
 function isForced(data: FirebaseFirestore.DocumentData | undefined): boolean {
   return data?.entitlementSource === "admin_forced" ||
     data?.ownerPackageId === ADMIN_FORCED_PLAN_ID ||
@@ -56,7 +66,13 @@ export async function grantProHost(uid: string, p: GrantParams): Promise<void> {
   const auth = getAuth();
   const now = Date.now();
   const userRef = db.collection("user_profiles").doc(uid);
-  const userData = (await userRef.get()).data();
+  const userSnap = await userRef.get();
+  // A deleted account: nothing to grant, and set(merge) would recreate a ghost profile.
+  if (!userSnap.exists || !(await authUserExists(auth, uid))) {
+    logger.warn(`grantProHost: account no longer exists — skipped (${p.source})`);
+    return;
+  }
+  const userData = userSnap.data();
 
   const billingMirror = p.source === "admin_forced"
     ? { entitlementSource: "admin_forced", billingStatus: "ACTIVE", subscriptionPlatform: "admin", subscriptionExpiry: LIFETIME_EXPIRY_MILLIS }
@@ -72,26 +88,32 @@ export async function grantProHost(uid: string, p: GrantParams): Promise<void> {
   // A forced upgrade outranks a Play purchase: never shorten it to an expiring plan.
   if (p.source === "google_play" && isForced(userData)) {
     logger.info(`grantProHost: uid=${uid} holds a forced upgrade; recording Play state only`);
-    await userRef.set({ lastPurchaseToken: p.purchaseToken ?? null, updatedAt: now }, { merge: true });
+    await userRef.update({ lastPurchaseToken: p.purchaseToken ?? null, updatedAt: now });
     return;
   }
 
   const authUser = await auth.getUser(uid);
   const currentRole = authUser.customClaims?.role;
+  // The profile's role mirror is checked too: a failed role write is repaired on the next sync.
   const unchanged = currentRole === "PRO_HOST" &&
+    userData?.role === "PRO_HOST" &&
     userData?.ownerPackageId === p.planId &&
     userData?.ownerPackageExpiryMillis === p.expiryMillis &&
     userData?.entitlementSource === p.source;
-  await userRef.set(
+  await userRef.update(
     { ownerPackageId: p.planId, ownerPackageExpiryMillis: p.expiryMillis, ...billingMirror, updatedAt: now,
-      ...(unchanged ? {} : { expiryWarningSent: false }) },
-    { merge: true }
+      ...(unchanged ? {} : { expiryWarningSent: false }) }
   );
   if (unchanged) return;
 
+  if (currentRole === "PRO_HOST" && userData?.role !== "PRO_HOST") {
+    // Claim already granted but the profile mirror never caught up: repair it.
+    await userRef.update({ role: "PRO_HOST" });
+  }
   if (currentRole !== "ADMIN" && currentRole !== "PRO_HOST") {
+    // Claim first, then the profile mirror (the claim is what rules and the app trust).
     await auth.setCustomUserClaims(uid, { ...authUser.customClaims, role: "PRO_HOST" });
-    await userRef.set({ role: "PRO_HOST", proHostUpgradedAtMillis: now }, { merge: true });
+    await userRef.update({ role: "PRO_HOST", proHostUpgradedAtMillis: now });
     await recordAuditLog({
       actionType: "ROLE_PROMOTED_PRO_HOST",
       details: `uid=${uid} promoted to PRO_HOST via ${p.source === "admin_forced" ? "admin Force Upgrade" : `Google Play (order ${p.orderId})`}.`,
@@ -108,7 +130,7 @@ export async function grantProHost(uid: string, p: GrantParams): Promise<void> {
     allListings.docs.forEach((doc) => {
       if (doc.data().isOwnerPackageLapsed !== false) {
         restoredCount++;
-        bw.set(doc.ref, { isOwnerPackageLapsed: false }, { merge: true });
+        bw.update(doc.ref, { isOwnerPackageLapsed: false });
       }
     });
     await bw.close();
@@ -126,16 +148,15 @@ export async function grantProHost(uid: string, p: GrantParams): Promise<void> {
         if (draftData.ownerId === uid && draftData.status === "DRAFT") {
           const problems = validateListingForPublish(draftData as WorkspaceListingDoc);
           if (problems.length > 0) {
-            await draftRef.set({ publishBlockedReasons: problems, updatedAt: now }, { merge: true });
+            await draftRef.update({ publishBlockedReasons: problems, updatedAt: now });
             logger.warn(`grantProHost: draft ${pendingDraftId} NOT auto-published for uid=${uid} — missing: ${problems.join(", ")}`);
           } else {
-            await draftRef.set(
-              { status: "ACTIVE", isOwnerPackageLapsed: false, publishBlockedReasons: [], updatedAt: now },
-              { merge: true }
+            await draftRef.update(
+              { status: "ACTIVE", isOwnerPackageLapsed: false, publishBlockedReasons: [], updatedAt: now }
             );
             logger.info(`grantProHost: auto-published draft ${pendingDraftId} for uid=${uid}`);
           }
-          await userRef.set({ pendingPlayPublishDraftId: null }, { merge: true });
+          await userRef.update({ pendingPlayPublishDraftId: null });
         }
       }
     } catch (e) {
@@ -169,7 +190,14 @@ export async function removeProHost(uid: string, p: RemoveParams): Promise<boole
   const auth = getAuth();
   const now = Date.now();
   const userRef = db.collection("user_profiles").doc(uid);
-  const userData = (await userRef.get()).data();
+  const userSnap = await userRef.get();
+  // A deleted account (late renewal/expiry notification): nothing to remove. Returning,
+  // not throwing, so RTDN doesn't redeliver for days.
+  if (!userSnap.exists || !(await authUserExists(auth, uid))) {
+    logger.warn(`removeProHost: account no longer exists — skipped (${p.status})`);
+    return false;
+  }
+  const userData = userSnap.data();
 
   if (isForced(userData)) {
     logger.info(`removeProHost uid=${uid}: forced upgrade, ignoring ${p.status}`);
@@ -181,7 +209,7 @@ export async function removeProHost(uid: string, p: RemoveParams): Promise<boole
     return false;
   }
   if (!userData?.ownerPackageId) {
-    await userRef.set({ billingStatus: p.status, updatedAt: now }, { merge: true });
+    await userRef.update({ billingStatus: p.status, updatedAt: now });
     return false;
   }
 
@@ -199,7 +227,7 @@ export async function removeProHost(uid: string, p: RemoveParams): Promise<boole
       authUser.customClaims,
       { ...authUser.customClaims, role: "SPECIALIST" },
       async () => {
-        await userRef.set({ role: "SPECIALIST", ...cleared }, { merge: true });
+        await userRef.update({ role: "SPECIALIST", ...cleared });
       }
     );
     try {
@@ -210,7 +238,7 @@ export async function removeProHost(uid: string, p: RemoveParams): Promise<boole
     const ownedListings = await db.collection("workspace_listings").where("ownerId", "==", uid).get();
     if (!ownedListings.empty) {
       const bw = db.bulkWriter();
-      ownedListings.docs.forEach((doc) => bw.set(doc.ref, { isOwnerPackageLapsed: true }, { merge: true }));
+      ownedListings.docs.forEach((doc) => bw.update(doc.ref, { isOwnerPackageLapsed: true }));
       await bw.close();
     }
     const { sendPushToUser } = await import("../lib/push");
@@ -222,7 +250,7 @@ export async function removeProHost(uid: string, p: RemoveParams): Promise<boole
       targetTab: "owner_subscriptions",
     });
   } else {
-    await userRef.set(cleared, { merge: true });
+    await userRef.update(cleared);
   }
 
   await recordAuditLog({
