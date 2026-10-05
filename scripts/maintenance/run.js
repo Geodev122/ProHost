@@ -206,7 +206,7 @@ async function enableemaillink() {
     );
     if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
     const c = await res.json();
-    return `emailEnabled=${!!c.signIn?.email?.enabled} passwordRequired=${c.signIn?.email?.passwordRequired !== false}`;
+    return `raw signIn.email=${JSON.stringify(c.signIn?.email || {}).replace(/[{}]/g, "")}`;
   });
 }
 
@@ -218,7 +218,8 @@ async function emailauth(db) {
     if (!res.ok) return `HTTP ${res.status} ${(await res.text()).slice(0, 200)}`;
     const c = await res.json();
     const email = c.signIn?.email || {};
-    return `emailEnabled=${!!email.enabled} passwordRequired=${email.passwordRequired !== false} ` +
+    // Proto JSON omits false fields: a missing passwordRequired means false (email link allowed).
+    return `raw signIn.email=${JSON.stringify(email).replace(/[{}]/g, "")} emailLinkAllowed=${!!email.enabled && email.passwordRequired !== true} ` +
       `(email link needs enabled && passwordRequired=false) authorizedDomains=[${(c.authorizedDomains || []).join(" ")}] ` +
       `emailPrivacy.enumerationProtection=${!!c.emailPrivacyConfig?.enableImprovedEmailPrivacy}`;
   });
@@ -256,7 +257,38 @@ async function emailauth(db) {
     const list = (await res.json()).instances || [];
     return list.length === 0 ? "none installed" : list.map((i) =>
       `${i.name.split("/").pop()}=${i.config?.extensionRef || "?"}:${i.state}` +
-      (i.config?.params?.MAIL_COLLECTION ? ` collection=${i.config.params.MAIL_COLLECTION}` : "")).join(" ");
+      ` params=${Object.entries(i.config?.params || {})
+        .filter(([k]) => !/PASSWORD|SECRET|URI|API_KEY/i.test(k))
+        .map(([k, v]) => `${k}:${String(v).slice(0, 40)}`).join(",")}` +
+      (i.errorStatus ? ` error=${JSON.stringify(i.errorStatus).slice(0, 200)}` : "")).join(" ");
+  });
+
+  // 3b2. Function logs for the email path over 7 days (needs Logs Viewer on the CI account).
+  await step("functionLogs7d", async () => {
+    const project = process.env.GCLOUD_PROJECT;
+    const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+    const events = ["email_queued", "email_queue_failed", "generate_sign_in_link_failed", "sign_in_link_sent",
+      "sign_in_link_email_failed", "app_check_unverified"];
+    const filter = `timestamp>="${since}" AND (${events.map((e) => `jsonPayload.message="${e}"`).join(" OR ")} ` +
+      `OR (severity>=ERROR AND (resource.labels.service_name=("sendemailotp" OR "sendsigninemaillink") ` +
+      `OR resource.labels.function_name=("sendEmailOtp" OR "sendSignInEmailLink"))))`;
+    const res = await googleApi("https://logging.googleapis.com/v2/entries:list", {
+      method: "POST",
+      body: JSON.stringify({ resourceNames: [`projects/${project}`], filter, orderBy: "timestamp desc", pageSize: 200 }),
+    });
+    if (!res.ok) return `HTTP ${res.status} (CI account can't read logs)`;
+    const entries = (await res.json()).entries || [];
+    const counts = {};
+    let lastErr = "";
+    for (const e of entries) {
+      const m = e.jsonPayload?.message || "error";
+      counts[m] = (counts[m] || 0) + 1;
+      if (!lastErr && (m.includes("failed") || m === "error")) {
+        lastErr = `${e.timestamp} ${String(e.jsonPayload?.error || e.textPayload || JSON.stringify(e.jsonPayload || {}))
+          .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "<email>").slice(0, 220)}`;
+      }
+    }
+    return `${JSON.stringify(counts).replace(/[{}]/g, "")}${lastErr ? ` last=${lastErr}` : ""}`;
   });
 
   // 3c. Did the email callables ever run? (They take a send slot before queueing mail.)
