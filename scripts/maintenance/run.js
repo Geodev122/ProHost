@@ -69,7 +69,21 @@ async function audit(db, auth) {
   const noCodeB = bookings.docs.filter((d) => !d.data().displayCode).length;
   notice(`bookings=${bookings.size} withoutCode=${noCodeB}`);
 
-  for (const c of RETIRED_COLLECTIONS) notice(`${c}=${(await db.collection(c).count().get()).data().count}`);
+  const retiredCounts = [];
+  for (const c of RETIRED_COLLECTIONS) retiredCounts.push(`${c}=${(await db.collection(c).count().get()).data().count}`);
+  notice(`retired: ${retiredCounts.join(" ")}`);
+
+  // Email delivery through the Trigger Email extension (it writes delivery.state on each mail doc).
+  const since = Date.now() - 24 * 60 * 60 * 1000;
+  const mail = await db.collection("mail").where("createdAt", ">=", admin.firestore.Timestamp.fromMillis(since)).get();
+  const states = {};
+  let lastError = "";
+  mail.docs.forEach((d) => {
+    const st = d.data().delivery?.state ?? "NOT_PICKED_UP";
+    states[st] = (states[st] || 0) + 1;
+    if (st === "ERROR" && d.data().delivery?.error) lastError = String(d.data().delivery.error).slice(0, 160);
+  });
+  notice(`mail last 24h: ${JSON.stringify(states)}${lastError ? ` lastError=${lastError}` : ""}`);
 
   const pros = profiles.docs.filter((d) => d.data().role === "PRO_HOST")
     .map((d) => `${d.data().displayCode || "?"}:${d.data().ownerPackageId || "-"}/${d.data().entitlementSource || "-"}`);
