@@ -7,6 +7,7 @@
 //   node scripts/maintenance/run.js activate <code>  honour a parked retired-plan purchase for U-XXXXXX
 //   node scripts/maintenance/run.js emailauth        read-only: why sign-in emails fail (Auth config, mail, limits)
 //   node scripts/maintenance/run.js enableemaillink  turn on Firebase Auth "Email link (passwordless)" sign-in
+//   node scripts/maintenance/run.js mailtest         queue one test email to the extension's reply-to (owner) address
 //
 // Results are printed as GitHub "::notice::" annotations (no PII: counts and display codes only).
 "use strict";
@@ -210,6 +211,35 @@ async function enableemaillink() {
   });
 }
 
+async function mailtest(db) {
+  // One real email through the Trigger Email extension, to the owner's own reply-to address.
+  await step("mailtest", async () => {
+    const project = process.env.GCLOUD_PROJECT;
+    const res = await googleApi(`https://firebaseextensions.googleapis.com/v1beta/projects/${project}/instances`);
+    const inst = res.ok ? ((await res.json()).instances || []).find((i) => /firestore-send-email/.test(i.config?.extensionRef || "")) : null;
+    const to = inst?.config?.params?.DEFAULT_REPLY_TO;
+    if (!to) throw new Error("no DEFAULT_REPLY_TO on the Trigger Email extension");
+    const ref = await db.collection("mail").add({
+      to,
+      message: {
+        subject: "ProHost email delivery test",
+        text: "This is an automatic delivery test from the ProHost maintenance workflow. No action needed.",
+        html: "<p>This is an automatic delivery test from the ProHost maintenance workflow. No action needed.</p>",
+      },
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    for (let i = 0; i < 18; i++) {
+      await new Promise((r) => setTimeout(r, 5000));
+      const d = (await ref.get()).data()?.delivery;
+      if (d && ["SUCCESS", "ERROR"].includes(d.state)) {
+        return `state=${d.state}${d.error ? ` error=${String(d.error).slice(0, 220)}` : ""} attempts=${d.attempts ?? "?"}`;
+      }
+    }
+    const d = (await ref.get()).data()?.delivery;
+    return `state=${d?.state || "NOT_PICKED_UP"} after 90 s (extension never processed the document)`;
+  });
+}
+
 async function emailauth(db) {
   // 1. Firebase Auth (Identity Toolkit) config: is email / email-link sign-in enabled?
   await step("authConfig", async () => {
@@ -292,7 +322,13 @@ async function emailauth(db) {
   });
 
   // 3c. Did the email callables ever run? (They take a send slot before queueing mail.)
-  await step("sendLimitDocsAllTime", async () => `${(await db.collection("email_send_limits").count().get()).data().count}`);
+  await step("sendLimitDocsAllTime", async () => {
+    const s = await db.collection("email_send_limits").get();
+    const kinds = {};
+    s.docs.forEach((d) => { const k = d.id.replace(/_[0-9a-f]{40}$/, ""); kinds[k] = (kinds[k] || 0) + (d.data().count || 0); });
+    const otps = (await db.collection("email_otps").count().get()).data().count;
+    return `docs=${s.size} sendsByKind=${JSON.stringify(kinds).replace(/[{}]/g, "")} emailOtpDocs=${otps}`;
+  });
 
   // 4. Addresses currently at the send limit (counts only).
   await step("sendLimits", async () => {
@@ -316,5 +352,6 @@ async function emailauth(db) {
   else if (task === "activate") await activate(db, arg);
   else if (task === "emailauth") await emailauth(db);
   else if (task === "enableemaillink") { await enableemaillink(); await emailauth(db); }
+  else if (task === "mailtest") { await mailtest(db); await emailauth(db); }
   else throw new Error(`unknown task ${task}`);
 })().catch((e) => { fail(`${e && e.message}`); process.exit(1); });

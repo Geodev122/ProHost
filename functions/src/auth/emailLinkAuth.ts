@@ -52,7 +52,8 @@ export const sendSignInEmailLink = onCall(
 
     if (!delivered) {
       logger.error("sign_in_link_email_failed", { email: maskEmail(email) });
-      return { ok: false, error: "Email delivery failed. Please try again or contact support." };
+      // Throw (not return): the app treats any normal return as "sent".
+      throw new HttpsError("unavailable", "We couldn't send the email right now. Please try again in a minute.");
     }
 
     logger.info("sign_in_link_sent", { email: maskEmail(email) });

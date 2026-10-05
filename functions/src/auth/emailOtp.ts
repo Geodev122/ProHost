@@ -61,7 +61,8 @@ export const sendEmailOtp = onCall(
     const delivered = await sendEmail({ to: email, ...tpl });
 
     if (!delivered) {
-      return { ok: false, error: "Email delivery failed. Please try again or contact support." };
+      // Throw (not return): the app treats any normal return as "sent".
+      throw new HttpsError("unavailable", "We couldn't send the email right now. Please try again in a minute.");
     }
 
     logger.info("email_otp_sent", { email: maskEmail(email) });
