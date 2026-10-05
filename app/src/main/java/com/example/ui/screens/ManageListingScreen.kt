@@ -398,7 +398,7 @@ private fun monthlyCells(config: MonthlyConfig, divisionBookings: List<RentalBoo
             guard++
         }
     }
-    rows.map { (mm, yy) ->
+    return rows.map { (mm, yy) ->
         val isExcluded = config.excludedRanges.any { r ->
             (yy > r.fromYear || (yy == r.fromYear && mm >= r.fromMonth)) &&
                 (yy < r.toYear || (yy == r.toYear && mm <= r.toMonth))
