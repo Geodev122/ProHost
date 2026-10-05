@@ -12,7 +12,7 @@ import androidx.compose.ui.graphics.Brush
 // - Cool Gray (#283544): Primary Text, Titles, Secondary Surfaces
 // - Light Gray (#E2E4E8): Backgrounds, Cards, Subtle UI borders
 // - White (#FFFFFF): Clean surfaces, CTA Text
-// - Vibrant Blue (#246BEE): Icons, Brand Accent, Location Badges
+// - Steel Blue (#2B5A8C): Specialist brand / primary, icons, location badges
 // - Bright Orange (#F98B1D): Pending / Warning Badges
 // - Crimson Red (#D32F2F): Cancelled / Error Badges
 // ==========================================
@@ -24,7 +24,9 @@ val FreshGreen = Color(0xFF4CAF72)             // Success states, availability i
 val CoolGray = Color(0xFF283544)               // Neutral surfaces, dividers, primary text, titles (#283544)
 val LightGray = Color(0xFFE2E4E8)              // Backgrounds, cards, subtle UI (#E2E4E8)
 val PureWhite = Color(0xFFFFFFFF)              // Text on dark backgrounds, clean space (#FFFFFF)
-val VibrantBlue = Color(0xFF246BEE)            // Icons, illustrations, branding accents (#246BEE)
+val SteelBlue = Color(0xFF2B5A8C)              // Specialist brand / primary (#2B5A8C) — calmer next to the orange than the old #246BEE
+val SteelBlueLight = Color(0xFF4A78AB)         // Pressed states, gradient ends
+val SteelBlueContainer = Color(0xFFE5EDF6)     // Tonal fills behind Steel Blue content
 val BrightOrange = Color(0xFFF98B1D)           // Warning / pending reservation badge (#F98B1D)
 val CrimsonRed = Color(0xFFD32F2F)             // Error / cancelled badge (#D32F2F)
 
@@ -57,7 +59,7 @@ val PremiumBackgroundGradient = Brush.verticalGradient(
 
 val ProAIGradient = Brush.linearGradient(
     colors = listOf(
-        VibrantBlue,
+        SteelBlue,
         CarnationOrange
     )
 )
@@ -82,9 +84,9 @@ val StatusError = CrimsonRed
 val StatusErrorContainer = Color(0xFFFDE8E8)
 val StatusOnErrorContainer = Color(0xFF781212)
 
-val StatusInfo = VibrantBlue
-val StatusInfoContainer = Color(0xFFE8F0FD)
-val StatusOnInfoContainer = Color(0xFF123B82)
+val StatusInfo = SteelBlue
+val StatusInfoContainer = SteelBlueContainer
+val StatusOnInfoContainer = Color(0xFF173452)
 
 val StatusLocked = CoolGray
 val StatusLockedContainer = LightGray
@@ -116,15 +118,15 @@ val DarkSurfaceVariant = Color(0xFF28344A)    // Secondary elevated dark contain
 val DarkOnSurface = Color(0xFFF0F4FC)         // Primary text in dark mode (#F0F4FC)
 val DarkOnSurfaceVariant = Color(0xFFA0ACBE)  // Secondary text in dark mode (#A0ACBE)
 val DarkOutline = Color(0xFF3B485E)           // Card borders & dividers in dark mode (#3B485E)
-val DarkPrimary = Color(0xFF7A9EFC)          // Crisp, high-contrast primary blue in dark mode
+val DarkPrimary = Color(0xFF93B8E0)          // Steel Blue for dark mode
 val DarkPrimaryContainer = Color(0xFF223048)  // Primary container in dark mode
 val DarkSecondary = CarnationOrangeLight     // Warm accent orange in dark mode
 val DarkSecondaryContainer = Color(0xFF4A1D17)
 
 // Backward Compatibility Aliases
 val ProTealDark = OxfordBlue
-val ProTealPrimary = VibrantBlue
-val ProTealLight = VibrantBlue
+val ProTealPrimary = SteelBlue
+val ProTealLight = SteelBlue
 val ProTealContainer = Color(0xFFE8F0FD)
 val ProOnTealContainer = Color(0xFF123B82)
 val SandstonePrimary = CarnationOrange
@@ -135,7 +137,7 @@ val SandstoneContainer = CarnationOrangeContainer
 val ClinicalBluePrimary = OxfordBlue
 val ClinicalBlueDark = CoolGray
 val ClinicalBlueDarkNavy = CoolGrayDark
-val ClinicalBlueLight = VibrantBlue
+val ClinicalBlueLight = SteelBlue
 val ClinicalIceBlue = OxfordBlueContainer
 val ClinicalSoftBlueContainer = LightGray
 val ClinicalDeepBlue = CoolGray
@@ -163,7 +165,7 @@ val GoldTier = BrightOrange
 
 // ==========================================
 // Contrast-audited action / status tokens (WCAG 2.1 ratios, text on fill)
-// Light: white on CarnationOrangeAction 4.58:1, white on VibrantBlue 4.76:1,
+// Light: white on CarnationOrangeAction 4.58:1, white on SteelBlue 4.76:1,
 //        white on StatusSuccessStrong 5.05:1, white on StatusWarningStrong 4.61:1
 // Dark:  BlueDarkMode on DarkSurface 6.33:1, OrangeDarkMode on DarkSurface 6.58:1
 // CarnationOrange (#F25F4C) is only 3.22:1 against white, so it is reserved for
@@ -171,8 +173,8 @@ val GoldTier = BrightOrange
 // controls that carry text use CarnationOrangeAction.
 // ==========================================
 val CarnationOrangeAction = Color(0xFFD2432F)
-val BlueDarkMode = Color(0xFF7FA6FF)
-val BlueDarkModeContainer = Color(0xFF1B2D52)
+val BlueDarkMode = Color(0xFF93B8E0)
+val BlueDarkModeContainer = Color(0xFF1B3047)
 val OrangeDarkMode = Color(0xFFFF8A75)
 val OrangeDarkModeContainer = Color(0xFF4A1D17)
 val StatusSuccessStrong = Color(0xFF2E7D4F)
@@ -182,8 +184,8 @@ val StatusWarningDarkMode = Color(0xFFFFB866)
 val StatusInfoDarkMode = BlueDarkMode
 
 // Listing Type Brand Colors (ST-01 to ST-06)
-val MarkerBlueTop = Color(0xFF5B9BFF)
-val MarkerBlueBase = Color(0xFF246BEE) // Private Office (ST-01)
+val MarkerBlueTop = Color(0xFF6E97C4)
+val MarkerBlueBase = SteelBlue // Private Office (ST-01)
 
 val MarkerOrangeTop = Color(0xFFFF8F73)
 val MarkerOrangeBase = Color(0xFFF25F4C) // Center (ST-02)

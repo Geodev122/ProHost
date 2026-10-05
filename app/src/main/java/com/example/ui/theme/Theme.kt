@@ -16,14 +16,14 @@ import androidx.core.view.WindowCompat
 
 /**
  * Official ProHost Material 3 Light ColorScheme
- * Primary: Special (Vibrant) Blue (#246BEE) - navigation, focus, links, key actions
+ * Primary: Steel Blue (#2B5A8C) - navigation, focus, links, key actions (dark mode #93B8E0)
  * Secondary: Carnation Orange, action shade (#D2432F) - CTAs, highlights (white text 4.58:1)
  * Tertiary: Fresh Green (#4CAF72)
  * Surface: Pure White (#FFFFFF) / Light Gray (#E2E4E8)
  * OnSurface / Text: Cool Gray (#283544)
  */
 private val LightColorScheme = lightColorScheme(
-    primary = VibrantBlue,
+    primary = SteelBlue,
     onPrimary = PureWhite,
     primaryContainer = StatusInfoContainer,
     onPrimaryContainer = StatusOnInfoContainer,
@@ -46,7 +46,7 @@ private val LightColorScheme = lightColorScheme(
     onSurface = CoolGrayDark,
     surfaceVariant = SurfaceVariantLight,
     onSurfaceVariant = ProHostSecondaryText,
-    surfaceTint = VibrantBlue,
+    surfaceTint = SteelBlue,
     inverseSurface = DarkSurface,
     inverseOnSurface = DarkOnSurface,
 
@@ -66,10 +66,10 @@ private val LightColorScheme = lightColorScheme(
  */
 private val DarkColorScheme = darkColorScheme(
     primary = BlueDarkMode,
-    onPrimary = Color(0xFF0B1B3D),
+    onPrimary = Color(0xFF0E2236),
     primaryContainer = BlueDarkModeContainer,
-    onPrimaryContainer = Color(0xFFD6E3FF),
-    inversePrimary = VibrantBlue,
+    onPrimaryContainer = Color(0xFFD3E3F5),
+    inversePrimary = SteelBlue,
 
     secondary = OrangeDarkMode,
     onSecondary = Color(0xFF3A0D06),

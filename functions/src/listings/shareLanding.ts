@@ -52,7 +52,7 @@ function renderPage(opts: {
   :root {
     --primary: #F25F4C;
     --oxford-blue: #384152;
-    --vibrant-blue: #246BEE;
+    --vibrant-blue: #2B5A8C;
     --bg-light: #F8F9FA;
     --card-bg: #FFFFFF;
     --text-dark: #283544;

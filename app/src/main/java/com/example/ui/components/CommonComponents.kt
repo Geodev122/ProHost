@@ -1359,7 +1359,9 @@ fun ProHostTopAppBar(
     onAlertsClick: () -> Unit,
     pageTitle: String? = null,
     showBrand: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    // Specialists have no drawer: their bar is brand + title + notifications only.
+    showMenu: Boolean = true
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -1382,15 +1384,19 @@ fun ProHostTopAppBar(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.weight(1f)
             ) {
-                IconButton(
-                    onClick = onMenuClick,
-                    modifier = Modifier.testTag("hamburger_menu_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Open Side Navigation Drawer",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
+                if (showMenu) {
+                    IconButton(
+                        onClick = onMenuClick,
+                        modifier = Modifier.testTag("hamburger_menu_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "Open Side Navigation Drawer",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                } else {
+                    Spacer(modifier = Modifier.width(4.dp))
                 }
 
                 if (showBrand) {
@@ -1506,7 +1512,9 @@ fun ShimmerLoadingList(
 fun ProHostFullScreenTopAppBar(
     title: String,
     onMenuClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    // Specialists have no drawer: the leading icon goes back instead of opening it.
+    isBackNavigation: Boolean = false
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -1525,11 +1533,11 @@ fun ProHostFullScreenTopAppBar(
         ) {
             IconButton(
                 onClick = onMenuClick,
-                modifier = Modifier.testTag("hamburger_menu_button")
+                modifier = Modifier.testTag(if (isBackNavigation) "top_bar_back_button" else "hamburger_menu_button")
             ) {
                 Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = "Open Side Navigation Drawer",
+                    imageVector = if (isBackNavigation) Icons.AutoMirrored.Filled.ArrowBack else Icons.Default.Menu,
+                    contentDescription = if (isBackNavigation) "Back" else "Open Side Navigation Drawer",
                     tint = MaterialTheme.colorScheme.onSurface
                 )
             }

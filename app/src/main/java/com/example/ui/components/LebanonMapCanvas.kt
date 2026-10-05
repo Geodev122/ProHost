@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -82,7 +83,7 @@ private const val MAX_CLUSTER_LABEL = 99
 // color. The legacy SpaceType-keyed palette below is kept only as a fallback for
 // listings saved before spaceCategoryId existed (spaceCategoryId == null).
 private val SCHEMA_MARKER_PALETTES = listOf(
-    MarkerPalette(android.graphics.Color.parseColor("#5B9BFF"), android.graphics.Color.parseColor("#246BEE")), // Blue
+    MarkerPalette(android.graphics.Color.parseColor("#6E97C4"), android.graphics.Color.parseColor("#2B5A8C")), // Blue
     MarkerPalette(android.graphics.Color.parseColor("#FF8F73"), android.graphics.Color.parseColor("#F25F4C")), // Orange
     MarkerPalette(android.graphics.Color.parseColor("#7DD9A0"), android.graphics.Color.parseColor("#4CAF72")), // Green
     MarkerPalette(android.graphics.Color.parseColor("#B197FC"), android.graphics.Color.parseColor("#8B5CF6")), // Violet
@@ -204,7 +205,7 @@ private fun createClusterMarker(context: Context, count: Int, hasSelected: Boole
     val bgColor = if (hasSelected)
         android.graphics.Color.parseColor("#FFB300")
     else
-        android.graphics.Color.parseColor("#246BEE")
+        android.graphics.Color.parseColor("#2B5A8C")
     val borderColor = android.graphics.Color.WHITE
 
     val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -250,8 +251,13 @@ fun LebanonMapCanvas(
     initialCamera: CameraPosition? = null,
     onCameraSaved: (CameraPosition) -> Unit = {},
     // Receives the "Search this area" pill to place under the controls.
-    topControls: (@Composable BoxScope.(searchAreaPill: @Composable () -> Unit) -> Unit)? = null
+    topControls: (@Composable BoxScope.(searchAreaPill: @Composable () -> Unit) -> Unit)? = null,
+    // Space the app's floating bottom navigation takes; the carousel and locate button sit above it.
+    bottomInset: Dp = 0.dp,
+    // The person panned or zoomed by hand (Explore folds the bottom navigation away).
+    onUserGesture: () -> Unit = {}
 ) {
+    val currentOnUserGesture by rememberUpdatedState(onUserGesture)
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -347,7 +353,10 @@ fun LebanonMapCanvas(
 
     LaunchedEffect(cameraPositionState.isMoving) {
         if (cameraPositionState.isMoving) {
-            if (cameraPositionState.cameraMoveStartedReason == CameraMoveStartedReason.GESTURE) movedByGesture = true
+            if (cameraPositionState.cameraMoveStartedReason == CameraMoveStartedReason.GESTURE) {
+                movedByGesture = true
+                currentOnUserGesture()
+            }
         } else {
             val center = cameraPositionState.position.target
             cameraPositionState.projection?.visibleRegion?.latLngBounds?.let {
@@ -567,14 +576,14 @@ fun LebanonMapCanvas(
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 16.dp, bottom = if (!isStripCollapsed) 135.dp else 24.dp)
+                .padding(end = 16.dp, bottom = (if (!isStripCollapsed) 135.dp else 24.dp) + bottomInset)
                 .shadow(8.dp, CircleShape),
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             shape = CircleShape
         ) {
             if (isLocating) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = VibrantBlue)
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = SteelBlue)
             } else {
                 Icon(Icons.Default.MyLocation, contentDescription = "High-Accuracy GPS Locate")
             }
@@ -586,7 +595,7 @@ fun LebanonMapCanvas(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .background(Color.Black.copy(alpha = 0.10f))
-                .padding(bottom = Spacing.sm),
+                .padding(bottom = Spacing.sm + bottomInset),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Collapse / Expand Pill Toggle

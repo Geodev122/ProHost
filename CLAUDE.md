@@ -132,8 +132,16 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
 - Email verification is server-mirrored: `assignInitialRole` sets `emailVerified` on every sign-in when
   `emailVerifiedByToken` (email_verified claim or Google provider, `auth/emailVerifiedRule.ts`); the email
   code path marks the Auth user verified; `backfillEmailVerified` (admin) fixes existing profiles.
-- Specialist routing: bottom tabs Explore · Saved · My Rentals · Profile (`SPECIALIST_BOTTOM_TABS`; there is
-  no "Saved only" filter and no drawer Billing dialog — Premium covers it). Tapping a room in Explore opens
+- Specialist routing: specialists have no drawer and no menu button: one shell with bottom tabs Explore · Saved ·
+  My Rentals · Profile (`SPECIALIST_BOTTOM_TABS`), Explore as the centre. Legal, Contact Support
+  (`ui/util/SupportContact.kt`) and Sign out live in Profile › More; full-screen destinations (Premium) get a
+  back arrow (`ProHostFullScreenTopAppBar(isBackNavigation)`), other tabs a bar without ☰ (`showMenu = false`).
+  Pro Host / Admin keep header + drawer. There is no "Saved only" filter and no drawer Billing dialog.
+- Bottom nav is a floating pill (`ProHostBottomNavBar`): active tab = filled pill in the role accent (Steel Blue
+  specialist, orange Pro Host). It overlays the content (not `Scaffold.bottomBar`); screens leave
+  `LocalBottomNavInset` free at their bottom (the shell pads non-Explore tabs; Explore/map read it). On Explore's
+  map it collapses to a handle (`DiscoveryViewModel.navExpandedOnMap`, re-collapses on map gesture / tab pick).
+- Brand blue is Steel Blue `#2B5A8C` (dark `#93B8E0`, `SteelBlue` in `Color.kt`); never reintroduce `#246BEE`. Tapping a room in Explore opens
   its availability sheet; after a request the "Request sent" sheet offers "View request" (opens My Rentals
   highlighting it) and "Message host on WhatsApp".
   `DiscoveryViewModel` keeps Explore's list position and map camera across a visit to a listing.
@@ -152,8 +160,13 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
 - Explore filters: country matching uses `effectiveCountry` (blank = Lebanon, legacy listings) and the
   Country dropdown is always shown. "Pricing formula" options are `PricingFormulaFilter` (four strategies
   + PER_ATTENDEE, priced per person from the cheapest tier); never list `RentalStrategyType.entries` there.
-- Explore controls are attached under the app header (bottom-rounded strip, no count chip). Map results
-  follow `searchedBounds`, updated only by the "Search this area" pill after a gesture pan/zoom.
+- Explore draws its own header (`ExploreOverlayHeader`; no app bar for specialists): Map|List segmented toggle
+  top-left, logo + name centre, notifications top-right, search (draft applied only on ✓ / IME Search) under the
+  toggle and filters under the bell. Transparent with floating controls on the map; on the list it has the list
+  background and sits above it in the layout (never overlapping). Map results follow `searchedBounds`, updated
+  only by the "Search this area" pill after a gesture pan/zoom.
+- The listing page's bottom bar is `DetailsBookingBar` (`RoomCards.kt`): room chip + live availability, price,
+  Availability + WhatsApp "Message" actions (Preview mode for hosts/admins).
 - The availability sheet is `ResizableBottomSheet` (`ui/components`): resize by dragging the handle or
   header between stops; the body scrolls and its leftover scroll never drags the sheet.
 - Retired fields: `SpaceListing.rentalFormulas` and `subscriptionExpiryMillis` (listing and profile) are gone

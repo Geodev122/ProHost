@@ -1,8 +1,5 @@
 package com.example.ui.components.drawer
 
-import android.content.Intent
-import android.net.Uri
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -27,7 +24,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AppUser
-import com.example.data.model.publicCode
 import com.example.data.model.UserRole
 import com.example.ui.components.ProHostBrandLogo
 import com.example.ui.components.ProHostDialog
@@ -45,7 +41,6 @@ import com.example.ui.theme.*
 // privacy page (public/privacy.html) — single source of truth for the
 // drawer's "Contact Support" action, rather than a second hardcoded copy
 // that could drift from the published one.
-private const val SUPPORT_EMAIL = "admin@pro-host.tech"
 
 /**
  * The unified drawer for both SPECIALIST and PRO_HOST.
@@ -211,21 +206,7 @@ fun SpecialistDrawerContent(
             label = "Contact Support",
             icon = Icons.AutoMirrored.Filled.Help,
             selected = false,
-            onClick = {
-                val subject = Uri.encode("ProHost Support — ${currentRole.name} account")
-                val body = Uri.encode(
-                    "Account: ${currentUser?.fullName ?: ""} (${currentUser?.email ?: ""})\n" +
-                        "Account code: ${currentUser?.publicCode ?: ""}\n\nDescribe your question or issue below:\n"
-                )
-                val intent = Intent(Intent.ACTION_SENDTO).apply {
-                    data = Uri.parse("mailto:$SUPPORT_EMAIL?subject=$subject&body=$body")
-                }
-                try {
-                    context.startActivity(intent)
-                } catch (e: Exception) {
-                    Toast.makeText(context, "No email app found — you can also reach us at $SUPPORT_EMAIL", Toast.LENGTH_LONG).show()
-                }
-            }
+            onClick = { com.example.ui.util.launchSupportEmail(context, currentUser, currentRole.name) }
         )
 
         ProHostDrawerFooter()

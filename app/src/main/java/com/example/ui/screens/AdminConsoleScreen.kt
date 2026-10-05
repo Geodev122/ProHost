@@ -287,7 +287,7 @@ fun AdminConsoleScreen(
                 ) {
                     FloatingActionButton(
                         onClick = { showListingFilterMenu = true },
-                        containerColor = VibrantBlue,
+                        containerColor = SteelBlue,
                         contentColor = Color.White
                     ) {
                         Icon(Icons.Default.FilterList, contentDescription = "Listing Filters")

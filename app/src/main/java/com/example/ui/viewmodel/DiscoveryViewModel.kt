@@ -40,6 +40,12 @@ class DiscoveryViewModel(
     private val _isMapViewActive = MutableStateFlow(false)
     val isMapViewActive: StateFlow<Boolean> = _isMapViewActive.asStateFlow()
 
+    // On the map the bottom navigation folds into a small handle; this is whether the
+    // person expanded it. Kept here so it survives a visit to a listing.
+    private val _navExpandedOnMap = MutableStateFlow(false)
+    val navExpandedOnMap: StateFlow<Boolean> = _navExpandedOnMap.asStateFlow()
+    fun setNavExpandedOnMap(expanded: Boolean) { _navExpandedOnMap.value = expanded }
+
     // Typing updates filterState.query immediately (the text field stays responsive);
     // the list only re-filters once typing pauses.
     @OptIn(kotlinx.coroutines.FlowPreview::class)

@@ -427,6 +427,12 @@ fun ProHostAppRoot(
             UserRole.PRO_HOST -> PRO_HOST_BOTTOM_TABS
             UserRole.ADMIN -> emptyList()
         }
+        // Specialists have one screen with every route (Explore at the centre, bottom
+        // nav, Profile › More) — no drawer and no menu button anywhere.
+        val isSpecialistShell = currentRole == UserRole.SPECIALIST
+        val navExpandedOnMap by discoveryViewModel.navExpandedOnMap.collectAsState()
+        val onExploreMap = isMapViewActive && activeTabId == AppNavTab.SearchMap.id
+        val shellUnreadAlerts = viewModel.fcmAlerts.collectAsState().value.count { !it.isRead }
 
         ModalNavigationDrawer(
             drawerState = drawerState,
@@ -501,8 +507,20 @@ fun ProHostAppRoot(
                                 ?: "Pro Host"
                             ProHostFullScreenTopAppBar(
                                 title = title,
-                                onMenuClick = { scope.launch { drawerState.open() } }
+                                // Specialists have no drawer: back to the screen they came from.
+                                onMenuClick = {
+                                    if (isSpecialistShell) {
+                                        fullScreenDrawerTab = null
+                                        activeTabId = AppNavTab.ProfessionalProfile.id
+                                    } else {
+                                        scope.launch { drawerState.open() }
+                                    }
+                                },
+                                isBackNavigation = isSpecialistShell
                             )
+                        } else if (isSpecialistShell && activeTabId == AppNavTab.SearchMap.id) {
+                            // Explore draws its own floating header (logo, map/list, search,
+                            // notifications) — no app bar above it.
                         } else if (activeTabId == AppNavTab.SearchMap.id) {
                             // Explore tab — keep title for context but suppress brand/logo
                             val alertsList = viewModel.fcmAlerts.collectAsState().value
@@ -525,25 +543,12 @@ fun ProHostAppRoot(
                                 unreadAlertCount = unreadCount,
                                 onMenuClick = { scope.launch { drawerState.open() } },
                                 onAlertsClick = { activeDrawerTabDialog = "fcm_alerts" },
-                                pageTitle = currentPageTitle
+                                pageTitle = currentPageTitle,
+                                showMenu = !isSpecialistShell
                             )
                         }
                     }
                 },
-                bottomBar = {
-                    // No bottom nav while a full-screen drawer destination is open, and
-                    // none at all for Admin (roleTabs is empty for that role) — only the
-                    // top bar's menu icon (reopen the drawer) is offered either way.
-                    if (detailedSpace == null && safeFullScreenDrawerTab == null && roleTabs.isNotEmpty() &&
-                        !(isMapViewActive && activeTabId == AppNavTab.SearchMap.id)) {
-                        ProHostBottomNavBar(
-                            tabs = roleTabs,
-                            activeTabId = activeTabId,
-                            onTabSelected = { activeTabId = it },
-                            highlightWithSecondary = currentRole == UserRole.PRO_HOST
-                        )
-                    }
-                }
             ) { innerPadding ->
                 val updateState by (inAppUpdateManager?.updateState?.collectAsState() ?: remember { mutableStateOf(UpdateState.IDLE) })
                 val downloadProgress by (inAppUpdateManager?.downloadProgress?.collectAsState() ?: remember { mutableStateOf(0f) })
@@ -586,11 +591,23 @@ fun ProHostAppRoot(
                     }
                 }
 
+                // The floating bottom nav overlays the content (no opaque Scaffold slot);
+                // screens leave LocalBottomNavInset free at their bottom instead.
+                val showBottomNav = detailedSpace == null && managingSpace == null &&
+                    safeFullScreenDrawerTab == null && roleTabs.isNotEmpty()
+                val bottomNavCollapsed = onExploreMap && !navExpandedOnMap
+                val bottomNavInset = when {
+                    !showBottomNav -> 0.dp
+                    bottomNavCollapsed -> BottomNavCollapsedInset
+                    else -> BottomNavFloatingInset
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
+                        .consumeWindowInsets(innerPadding)
                 ) {
+                  CompositionLocalProvider(LocalBottomNavInset provides bottomNavInset) {
                     Column(modifier = Modifier.fillMaxSize()) {
                         // In-App Update persistent banner when downloading or downloaded
                         InAppUpdateBanner(
@@ -664,6 +681,12 @@ fun ProHostAppRoot(
                                 } else {
                                     roleTabs.firstOrNull()?.id ?: activeTabId
                                 }
+                                // Explore handles the inset itself (the map runs under the bar).
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(bottom = if (safeActiveTabId == AppNavTab.SearchMap.id) 0.dp else bottomNavInset)
+                                ) {
                                 when (safeActiveTabId) {
                                     AppNavTab.SearchMap.id -> DiscoveryScreen(
                                         viewModel = viewModel,
@@ -673,7 +696,13 @@ fun ProHostAppRoot(
                                             detailedSpaceSubdivisionId = subdivisionId
                                             detailedSpaceOpenAvailability = subdivisionId != null
                                         },
-                                        discoveryViewModel = discoveryViewModel
+                                        discoveryViewModel = discoveryViewModel,
+                                        // Specialists have no app bar on Explore: its floating
+                                        // header carries the logo and notifications.
+                                        unreadAlertCount = shellUnreadAlerts,
+                                        onAlertsClick = if (isSpecialistShell) {
+                                            { activeDrawerTabDialog = "fcm_alerts" }
+                                        } else null
                                     )
                                     AppNavTab.ManageListings.id -> OwnerHubScreen(
                                         viewModel = viewModel,
@@ -700,7 +729,12 @@ fun ProHostAppRoot(
                                     AppNavTab.ProfessionalProfile.id -> SpecialistProfileScreen(
                                         viewModel = viewModel,
                                         inAppUpdateManager = inAppUpdateManager,
-                                        onNavigateToTab = { tabId -> navigateTo(tabId) }
+                                        onNavigateToTab = { tabId -> navigateTo(tabId) },
+                                        onOpenLegal = { activeDrawerTabDialog = "legal_documents" },
+                                        onSignOut = {
+                                            viewModel.logout()
+                                            activeTabId = "auth"
+                                        }
                                     )
                                     else -> DiscoveryScreen(
                                         viewModel = viewModel,
@@ -710,11 +744,35 @@ fun ProHostAppRoot(
                                             detailedSpaceSubdivisionId = subdivisionId
                                             detailedSpaceOpenAvailability = subdivisionId != null
                                         },
-                                        discoveryViewModel = discoveryViewModel
+                                        discoveryViewModel = discoveryViewModel,
+                                        // Specialists have no app bar on Explore: its floating
+                                        // header carries the logo and notifications.
+                                        unreadAlertCount = shellUnreadAlerts,
+                                        onAlertsClick = if (isSpecialistShell) {
+                                            { activeDrawerTabDialog = "fcm_alerts" }
+                                        } else null
                                     )
+                                }
                                 }
                             }
                         }
+                    }
+                  }
+                    if (showBottomNav) {
+                        ProHostBottomNavBar(
+                            tabs = roleTabs,
+                            activeTabId = activeTabId,
+                            onTabSelected = {
+                                activeTabId = it
+                                discoveryViewModel.setNavExpandedOnMap(false)
+                            },
+                            highlightWithSecondary = currentRole == UserRole.PRO_HOST,
+                            collapsed = bottomNavCollapsed,
+                            onExpandChange = if (onExploreMap) {
+                                { expanded -> discoveryViewModel.setNavExpandedOnMap(expanded) }
+                            } else null,
+                            modifier = Modifier.align(Alignment.BottomCenter)
+                        )
                     }
                 }
             }

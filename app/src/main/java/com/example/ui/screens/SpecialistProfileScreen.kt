@@ -8,6 +8,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
@@ -47,7 +48,10 @@ import kotlinx.coroutines.launch
 fun SpecialistProfileScreen(
     viewModel: ProHostViewModel,
     inAppUpdateManager: InAppUpdateManager? = null,
-    onNavigateToTab: (String) -> Unit = {}
+    onNavigateToTab: (String) -> Unit = {},
+    // Profile › More: what the drawer used to offer specialists (they have no drawer).
+    onOpenLegal: (() -> Unit)? = null,
+    onSignOut: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -897,6 +901,39 @@ fun SpecialistProfileScreen(
                 }
 
             }
+            if (onOpenLegal != null || onSignOut != null) {
+                item {
+                    ProSurfaceCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            ProSectionHeader(
+                                title = "More",
+                                subtitle = "Help, legal and your session",
+                                icon = Icons.Default.MoreHoriz
+                            )
+                            if (onOpenLegal != null) {
+                                ProfileMoreRow(
+                                    icon = Icons.Default.Gavel,
+                                    label = "Legal (Privacy, Terms & Policies)",
+                                    onClick = onOpenLegal
+                                )
+                            }
+                            ProfileMoreRow(
+                                icon = Icons.AutoMirrored.Filled.Help,
+                                label = "Contact Support",
+                                onClick = { com.example.ui.util.launchSupportEmail(context, user, user.role.name) }
+                            )
+                            if (onSignOut != null) {
+                                ProfileMoreRow(
+                                    icon = Icons.AutoMirrored.Filled.Logout,
+                                    label = "Sign Out",
+                                    supporting = user.email.takeIf { it.isNotBlank() },
+                                    onClick = onSignOut
+                                )
+                            }
+                        }
+                    }
+                }
+            }
             item {
                 ProSurfaceCard(
                     modifier = Modifier.border(
@@ -1028,5 +1065,34 @@ fun SpecialistProfileScreen(
             )
         }
     
+    }
+}
+
+/** One tappable row of Profile › More. */
+@Composable
+private fun ProfileMoreRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    supporting: String? = null
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .clickable(onClick = onClick)
+            .heightIn(min = 48.dp)
+            .padding(horizontal = 4.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+            if (supporting != null) {
+                Text(supporting, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

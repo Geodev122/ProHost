@@ -441,3 +441,184 @@ internal fun RoomFolderPanel(firstTabSelected: Boolean, content: @Composable Col
         Column(modifier = Modifier.padding(8.dp), content = content)
     }
 }
+
+/**
+ * The listing page's bottom booking bar: one card with a drag-handle hint, the selected
+ * room and its live availability (specialists; tapping it opens the availability sheet),
+ * then the price and two equal actions — Check availability and Message on WhatsApp.
+ * Pro Host / Admin viewers see "Preview mode" instead of the actions.
+ */
+@Composable
+internal fun DetailsBookingBar(
+    roomName: String?,
+    showAvailability: Boolean,
+    hasSchedule: Boolean,
+    openSlotCount: Int,
+    priceUsd: Double,
+    pricePrefix: String,
+    priceUnit: String,
+    formulaName: String,
+    isPreview: Boolean,
+    onOpenAvailability: () -> Unit,
+    onMessage: () -> Unit
+) {
+    val pro = MaterialTheme.proColors
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        shadowElevation = 12.dp,
+        tonalElevation = 2.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+        ) {
+            // Drag-handle hint: the bar opens into the availability sheet.
+            Box(
+                modifier = Modifier
+                    .padding(top = Spacing.sm)
+                    .align(Alignment.CenterHorizontally)
+                    .size(width = 36.dp, height = 4.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.outlineVariant)
+            )
+
+            if (showAvailability) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.medium)
+                        .clickable(enabled = hasSchedule, onClick = onOpenAvailability)
+                        .padding(vertical = Spacing.xs),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.weight(1f, fill = false)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.MeetingRoom,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                roomName ?: "Whole space",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    val (dot, label) = when {
+                        !hasSchedule -> MaterialTheme.colorScheme.outline to "No schedule yet"
+                        openSlotCount > 0 -> pro.success to "$openSlotCount slot${if (openSlotCount == 1) "" else "s"} open"
+                        else -> MaterialTheme.colorScheme.error to "Fully booked"
+                    }
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End)
+                    ) {
+                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(dot))
+                        Text(
+                            label,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                        if (hasSchedule) {
+                            Icon(
+                                Icons.Default.KeyboardArrowUp,
+                                contentDescription = "Open availability",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            "$pricePrefix$${priceUsd.toInt()}",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            " USD$priceUnit",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 3.dp)
+                        )
+                    }
+                    Text(
+                        formulaName,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (isPreview) {
+                    Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer) {
+                        Text(
+                            "Preview mode",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                        )
+                    }
+                } else {
+                    if (showAvailability && hasSchedule) {
+                        OutlinedButton(
+                            onClick = onOpenAvailability,
+                            shape = MaterialTheme.shapes.medium,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                            contentPadding = PaddingValues(horizontal = 12.dp),
+                            modifier = Modifier.heightIn(min = 48.dp)
+                        ) {
+                            Icon(Icons.Default.EventAvailable, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Availability", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    Button(
+                        onClick = onMessage,
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.buttonColors(containerColor = WhatsAppDarkGreen, contentColor = Color.White),
+                        contentPadding = PaddingValues(horizontal = 14.dp),
+                        modifier = Modifier.heightIn(min = 48.dp)
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Message", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}

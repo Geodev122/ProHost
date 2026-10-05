@@ -34,6 +34,9 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.selectable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.*
 import com.example.ui.components.*
@@ -52,7 +55,10 @@ import com.example.ui.theme.Spacing
 fun DiscoveryScreen(
     viewModel: ProHostViewModel,
     onSelectSpace: (SpaceListing, String?) -> Unit,
-    discoveryViewModel: DiscoveryViewModel = viewModel()
+    discoveryViewModel: DiscoveryViewModel = viewModel(),
+    // Shown in Explore's own floating header when the shell has no app bar (specialists).
+    unreadAlertCount: Int = 0,
+    onAlertsClick: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val uiState by discoveryViewModel.uiState.collectAsState()
@@ -111,7 +117,10 @@ fun DiscoveryScreen(
         initialListOffset = discoveryViewModel.listScrollOffset,
         onListPositionSaved = { index, offset -> discoveryViewModel.saveListPosition(index, offset) },
         initialMapCamera = discoveryViewModel.mapCamera,
-        onMapCameraSaved = { discoveryViewModel.saveMapCamera(it) }
+        onMapCameraSaved = { discoveryViewModel.saveMapCamera(it) },
+        unreadAlertCount = unreadAlertCount,
+        onAlertsClick = onAlertsClick,
+        onMapGesture = { discoveryViewModel.setNavExpandedOnMap(false) }
     )
 }
 
@@ -158,8 +167,12 @@ fun DiscoveryScreenContent(
     initialListOffset: Int = 0,
     onListPositionSaved: (index: Int, offset: Int) -> Unit = { _, _ -> },
     initialMapCamera: com.google.android.gms.maps.model.CameraPosition? = null,
-    onMapCameraSaved: (com.google.android.gms.maps.model.CameraPosition) -> Unit = {}
+    onMapCameraSaved: (com.google.android.gms.maps.model.CameraPosition) -> Unit = {},
+    unreadAlertCount: Int = 0,
+    onAlertsClick: (() -> Unit)? = null,
+    onMapGesture: () -> Unit = {}
 ) {
+    val bottomNavInset = LocalBottomNavInset.current
     val exploreListState = androidx.compose.foundation.lazy.rememberLazyListState(initialListIndex, initialListOffset)
     DisposableEffect(exploreListState) {
         onDispose { onListPositionSaved(exploreListState.firstVisibleItemIndex, exploreListState.firstVisibleItemScrollOffset) }
@@ -187,8 +200,10 @@ fun DiscoveryScreenContent(
                 onCameraSaved = onMapCameraSaved,
                 modifier = Modifier.fillMaxSize().clipToBounds(),
                 spaceTypeSchema = spaceTypeSchema,
+                bottomInset = bottomNavInset,
+                onUserGesture = onMapGesture,
                 topControls = { searchAreaPill ->
-                    ExploreTopControls(
+                    ExploreOverlayHeader(
                         isMapView = true,
                         belowControls = searchAreaPill,
                         searchQuery = searchQuery,
@@ -198,16 +213,34 @@ fun DiscoveryScreenContent(
                         onToggleMapView = onToggleMapView,
                         onSearchQueryChange = onSearchQueryChange,
                         onOpenFilters = { onSetFilterSheetVisible(true) },
+                        unreadAlertCount = unreadAlertCount,
+                        onAlertsClick = onAlertsClick,
                         modifier = Modifier.align(Alignment.TopStart)
                     )
                 }
             )
         } else {
+          // List view: the header sits in the layout above the list (same background), so
+          // nothing scrolls underneath it.
+          Column(modifier = Modifier.fillMaxSize()) {
+            ExploreOverlayHeader(
+                isMapView = false,
+                searchQuery = searchQuery,
+                searchExpanded = searchExpanded,
+                onSearchExpandedChange = { searchExpanded = it },
+                activeFilterCount = filterState.activeFilterCount,
+                onToggleMapView = onToggleMapView,
+                onSearchQueryChange = onSearchQueryChange,
+                onOpenFilters = { onSetFilterSheetVisible(true) },
+                unreadAlertCount = unreadAlertCount,
+                onAlertsClick = onAlertsClick
+            )
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             // List View
             if (isLoading) {
-                ShimmerLoadingList(modifier = Modifier.padding(top = 66.dp), itemHeight = 220.dp)
+                ShimmerLoadingList(modifier = Modifier.padding(top = 4.dp), itemHeight = 220.dp)
             } else if (loadError != null) {
-                Box(modifier = Modifier.fillMaxSize().padding(top = 66.dp)) {
+                Box(modifier = Modifier.fillMaxSize().padding(top = 8.dp, bottom = bottomNavInset)) {
                     ProEmptyState(
                         title = "Couldn't Load Workspaces",
                         description = loadError,
@@ -218,11 +251,11 @@ fun DiscoveryScreenContent(
                 }
             } else if (spaces.isEmpty() && isSearchingMore) {
                 // The whole catalog hasn't been searched yet — not a "no results" state.
-                Box(modifier = Modifier.fillMaxWidth().padding(top = 66.dp)) {
+                Box(modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = bottomNavInset)) {
                     SearchingMoreRow()
                 }
             } else if (spaces.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize().padding(top = 66.dp)) {
+                Box(modifier = Modifier.fillMaxSize().padding(top = 8.dp, bottom = bottomNavInset)) {
                     ProEmptyState(
                         title = "No Workspaces Found",
                         description = if (searchQuery.isNotBlank()) {
@@ -254,7 +287,7 @@ fun DiscoveryScreenContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .widthIn(max = 840.dp),
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 66.dp, bottom = 16.dp),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp + bottomNavInset),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                     // Flatten: one card per (matching) subdivision, or one card for a
@@ -307,20 +340,8 @@ fun DiscoveryScreenContent(
                     }
                 }
             }
-        }
-        // Map view gets the same row through LebanonMapCanvas.topControls above.
-        if (!isMapView) {
-            ExploreTopControls(
-                isMapView = false,
-                searchQuery = searchQuery,
-                searchExpanded = searchExpanded,
-                onSearchExpandedChange = { searchExpanded = it },
-                activeFilterCount = filterState.activeFilterCount,
-                onToggleMapView = onToggleMapView,
-                onSearchQueryChange = onSearchQueryChange,
-                onOpenFilters = { onSetFilterSheetVisible(true) },
-                modifier = Modifier.align(Alignment.TopStart)
-            )
+            }
+          }
         }
     }
 
@@ -370,11 +391,14 @@ private fun formulaUnitLabel(formula: PricingFormulaFilter): String =
     formula.strategy?.let { SpaceCalculationUtils.strategyUnitLabel(it) } ?: "/person"
 
 /**
- * Explore controls (map/list toggle, search, filters), attached to the bottom edge of the
- * app header. [belowControls] renders centred under it (the map's "Search this area").
+ * Explore's own header (specialists have no app bar): map/list toggle top-left, the brand
+ * top-centre and notifications top-right ([onAlertsClick]; Pro Hosts, who keep the app bar,
+ * pass null), then search under the toggle and filters under the bell. On the map the row is
+ * transparent and each control floats on its own surface; on the list it has the list's
+ * background and sits above it in the layout. [belowControls] is the map's "Search this area".
  */
 @Composable
-private fun ExploreTopControls(
+private fun ExploreOverlayHeader(
     isMapView: Boolean,
     searchQuery: String,
     searchExpanded: Boolean,
@@ -383,133 +407,213 @@ private fun ExploreTopControls(
     onToggleMapView: () -> Unit,
     onSearchQueryChange: (String) -> Unit,
     onOpenFilters: () -> Unit,
+    unreadAlertCount: Int,
+    onAlertsClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
     belowControls: @Composable () -> Unit = {}
 ) {
     Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (isMapView) Modifier else Modifier.background(premiumBackgroundBrush()))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Controls strip: same surface and tone as the header above it, flush against it,
-        // rounded only at the bottom so the two read as one piece.
-        Surface(
-            shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 4.dp,
-            tonalElevation = 2.dp,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Map / list toggle
-                IconButton(
-                    onClick = onToggleMapView,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary)
-                ) {
-                    Icon(
-                        imageVector = if (isMapView) Icons.AutoMirrored.Filled.FormatListBulleted else Icons.Default.Map,
-                        contentDescription = if (isMapView) "Switch to List View" else "Switch to Map View",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(20.dp)
-                    )
+        Box(modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp)) {
+            MapListToggle(
+                isMapView = isMapView,
+                floating = isMapView,
+                onToggle = onToggleMapView,
+                modifier = Modifier.align(Alignment.CenterStart)
+            )
+            if (onAlertsClick != null) {
+                ExploreControlSurface(floating = isMapView, modifier = Modifier.align(Alignment.Center)) {
+                    Row(
+                        modifier = Modifier.padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        ProHostBrandLogo(size = 24.dp)
+                        Text(
+                            "ProHost",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
+                ExploreControlSurface(
+                    floating = isMapView,
+                    shape = CircleShape,
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                ) {
+                    BadgedBox(badge = {
+                        if (unreadAlertCount > 0) {
+                            Badge(containerColor = MaterialTheme.colorScheme.error) {
+                                Text(if (unreadAlertCount > 9) "9+" else "$unreadAlertCount")
+                            }
+                        }
+                    }) {
+                        IconButton(
+                            onClick = onAlertsClick,
+                            modifier = Modifier.size(44.dp).testTag("top_bar_notifications_button")
+                        ) {
+                            Icon(
+                                if (unreadAlertCount > 0) Icons.Default.NotificationsActive else Icons.Default.Notifications,
+                                contentDescription = if (unreadAlertCount > 0) "Notifications, $unreadAlertCount unread" else "Notifications",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+            }
+        }
 
-                // Search (expandable) — takes all remaining space
-                AnimatedContent(
-                    targetState = searchExpanded,
-                    modifier = Modifier.weight(1f),
-                    transitionSpec = { fadeIn() togetherWith fadeOut() },
-                    label = "ExploreSearchToggle"
-                ) { expanded ->
-                    if (!expanded) {
-                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AnimatedContent(
+                targetState = searchExpanded,
+                modifier = Modifier.weight(1f),
+                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                label = "ExploreSearchToggle"
+            ) { expanded ->
+                if (!expanded) {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+                        ExploreControlSurface(floating = isMapView, shape = CircleShape) {
                             BadgedBox(badge = {
                                 if (searchQuery.isNotEmpty()) Badge(containerColor = MaterialTheme.colorScheme.error)
                             }) {
-                                IconButton(
-                                    onClick = { onSearchExpandedChange(true) },
-                                    modifier = Modifier.size(40.dp)
-                                ) {
+                                IconButton(onClick = { onSearchExpandedChange(true) }, modifier = Modifier.size(44.dp)) {
                                     Icon(
                                         Icons.Default.Search,
-                                        contentDescription = "Search workspaces",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
+                                        contentDescription = if (searchQuery.isNotEmpty()) "Search workspaces: $searchQuery" else "Search workspaces",
+                                        tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }
                         }
-                    } else {
-                        ExploreSearchField(
-                            query = searchQuery,
-                            onQueryChange = onSearchQueryChange,
-                            onClose = {
-                                onSearchQueryChange("")
-                                onSearchExpandedChange(false)
-                            }
-                        )
                     }
+                } else {
+                    ExploreSearchField(
+                        query = searchQuery,
+                        floating = isMapView,
+                        onSubmit = onSearchQueryChange,
+                        onClose = {
+                            onSearchQueryChange("")
+                            onSearchExpandedChange(false)
+                        }
+                    )
                 }
-
-                // Filters button with badge
+            }
+            ExploreControlSurface(floating = isMapView, shape = CircleShape) {
                 BadgedBox(badge = {
                     if (activeFilterCount > 0) {
                         Badge(containerColor = MaterialTheme.colorScheme.error) { Text("$activeFilterCount") }
                     }
                 }) {
-                    IconButton(
-                        onClick = onOpenFilters,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (activeFilterCount > 0) MaterialTheme.colorScheme.secondary
-                                else MaterialTheme.colorScheme.surfaceVariant
-                            )
-                    ) {
+                    IconButton(onClick = onOpenFilters, modifier = Modifier.size(44.dp)) {
                         Icon(
-                            Icons.Default.FilterList,
-                            contentDescription = "Filters",
-                            tint = if (activeFilterCount > 0) MaterialTheme.colorScheme.onSecondary
-                                   else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
+                            Icons.Default.Tune,
+                            contentDescription = if (activeFilterCount > 0) "Filters, $activeFilterCount active" else "Filters",
+                            tint = if (activeFilterCount > 0) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
             }
         }
 
-        belowControls()
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { belowControls() }
     }
 }
 
+/** One Explore control: floats on its own surface over the map, flat on the list background. */
+@Composable
+private fun ExploreControlSurface(
+    floating: Boolean,
+    modifier: Modifier = Modifier,
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(22.dp),
+    content: @Composable () -> Unit
+) {
+    Surface(
+        shape = shape,
+        color = if (floating) MaterialTheme.colorScheme.surface.copy(alpha = 0.94f) else MaterialTheme.colorScheme.surface,
+        shadowElevation = if (floating) 6.dp else 1.dp,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+        modifier = modifier,
+        content = content
+    )
+}
+
+/** Segmented Map | List switch; the active half is filled with the brand colour. */
+@Composable
+private fun MapListToggle(
+    isMapView: Boolean,
+    floating: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    ExploreControlSurface(floating = floating, shape = CircleShape, modifier = modifier) {
+        Row(modifier = Modifier.padding(4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            listOf(true to "Map", false to "List").forEach { (isMapOption, label) ->
+                val selected = isMapOption == isMapView
+                val container by androidx.compose.animation.animateColorAsState(
+                    if (selected) MaterialTheme.colorScheme.primary else Color.Transparent, label = "mapListToggle"
+                )
+                Row(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(container)
+                        .selectable(selected = selected, onClick = { if (!selected) onToggle() }, role = Role.Tab)
+                        .heightIn(min = 36.dp)
+                        .padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        if (isMapOption) Icons.Default.Map else Icons.AutoMirrored.Filled.FormatListBulleted,
+                        contentDescription = null,
+                        tint = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Expanded search: the text is a draft until ✓ (or the keyboard's Search key) applies it;
+ * ✕ clears the search and closes the field.
+ */
 @Composable
 private fun ExploreSearchField(
     query: String,
-    onQueryChange: (String) -> Unit,
+    floating: Boolean,
+    onSubmit: (String) -> Unit,
     onClose: () -> Unit
 ) {
     val focusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
+    var draft by rememberSaveable(query) { mutableStateOf(query) }
+    val submit = {
+        onSubmit(draft.trim())
+        keyboard?.hide()
+        focusManager.clearFocus()
+    }
     // Opening search should be ready to type, not need a second tap.
     LaunchedEffect(Unit) { runCatching { focusRequester.requestFocus() } }
-    Surface(
-        shape = RoundedCornerShape(28.dp),
-        tonalElevation = 4.dp,
-        shadowElevation = 4.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+    ExploreControlSurface(floating = floating, shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp)) {
             Icon(
                 Icons.Default.Search,
                 contentDescription = null,
@@ -517,7 +621,7 @@ private fun ExploreSearchField(
                 modifier = Modifier.padding(start = 12.dp).size(18.dp)
             )
             Box(modifier = Modifier.weight(1f).padding(start = 8.dp, top = 10.dp, bottom = 10.dp)) {
-                if (query.isEmpty()) {
+                if (draft.isEmpty()) {
                     Text(
                         "Name, area, specialty, room type…",
                         style = MaterialTheme.typography.bodySmall,
@@ -525,25 +629,28 @@ private fun ExploreSearchField(
                     )
                 }
                 BasicTextField(
-                    value = query,
-                    onValueChange = onQueryChange,
+                    value = draft,
+                    onValueChange = { draft = it },
                     modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = {
-                        keyboard?.hide()
-                        focusManager.clearFocus()
-                    }),
-                    textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface)
+                    keyboardActions = KeyboardActions(onSearch = { submit() }),
+                    textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
+                    cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary)
                 )
             }
-            if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.AutoMirrored.Filled.Backspace, contentDescription = "Clear search", modifier = Modifier.size(16.dp))
-                }
+            IconButton(onClick = onClose, modifier = Modifier.size(40.dp)) {
+                Icon(Icons.Default.Close, contentDescription = "Clear and close search", modifier = Modifier.size(18.dp))
             }
-            IconButton(onClick = { keyboard?.hide(); onClose() }, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Close, contentDescription = "Close search", modifier = Modifier.size(16.dp))
+            FilledIconButton(
+                onClick = { submit() },
+                modifier = Modifier.padding(end = 4.dp).size(36.dp),
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Icon(Icons.Default.Check, contentDescription = "Search", modifier = Modifier.size(18.dp))
             }
         }
     }

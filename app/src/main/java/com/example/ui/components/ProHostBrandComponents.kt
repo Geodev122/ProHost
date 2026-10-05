@@ -1,6 +1,23 @@
 package com.example.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.semantics.Role
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -40,9 +57,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.SheetState
@@ -292,9 +306,23 @@ fun ProHostDotBadge(modifier: Modifier = Modifier) {
 // ---------------------------------------------------------------------------
 
 /**
- * Role bottom navigation bar. [highlightWithSecondary] switches the active-tab accent
- * from Special Blue (Specialist) to Orange (Pro Host); both come from the theme, so the
- * accent stays legible in dark mode.
+ * Space a screen leaves at its bottom so the floating [ProHostBottomNavBar] never covers
+ * its last item. 0 when no bar floats over the screen (provided by the app shell).
+ */
+val LocalBottomNavInset = compositionLocalOf { 0.dp }
+
+/** Height the expanded floating bar takes above the system navigation bar (pill + margins). */
+val BottomNavFloatingInset = 88.dp
+
+/** Height the collapsed handle takes above the system navigation bar. */
+val BottomNavCollapsedInset = 44.dp
+
+/**
+ * Role bottom navigation: a floating pill. The active tab is a filled pill in the role
+ * accent (Steel Blue for Specialist, orange for Pro Host — [highlightWithSecondary]) with
+ * its label; the others are icons. [collapsed] shrinks it to a small handle with an up
+ * arrow (Explore's map); tapping or swiping it up calls [onExpandChange] (true), and the
+ * expanded pill shows a down arrow to collapse again when [onExpandChange] is given.
  */
 @Composable
 fun ProHostBottomNavBar(
@@ -302,62 +330,130 @@ fun ProHostBottomNavBar(
     activeTabId: String,
     onTabSelected: (String) -> Unit,
     highlightWithSecondary: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    collapsed: Boolean = false,
+    onExpandChange: ((Boolean) -> Unit)? = null
 ) {
     val accent = if (highlightWithSecondary) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
-    Column(modifier = modifier) {
-        // Role-colored strip with a soft bloom below it.
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(2.dp)
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(Color.Transparent, accent.copy(alpha = 0.6f), accent, accent.copy(alpha = 0.6f), Color.Transparent)
-                    )
-                )
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(6.dp)
-                .background(Brush.verticalGradient(listOf(accent.copy(alpha = 0.14f), Color.Transparent)))
-        )
-        NavigationBar(
-            containerColor = MaterialTheme.colorScheme.surface,
-            tonalElevation = 0.dp,
-            // No fixed height: NavigationBar adds the system nav-bar inset inside its own bounds.
-            modifier = Modifier.testTag("bottom_navigation_bar")
-        ) {
-            tabs.forEach { tab ->
-                val isSelected = activeTabId == tab.id
-                NavigationBarItem(
-                    selected = isSelected,
-                    onClick = { onTabSelected(tab.id) },
-                    icon = {
+    val onAccent = if (highlightWithSecondary) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onPrimary
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        AnimatedContent(
+            targetState = collapsed && onExpandChange != null,
+            transitionSpec = {
+                (fadeIn() togetherWith fadeOut()).using(SizeTransform(clip = false))
+            },
+            label = "BottomNavCollapse"
+        ) { isCollapsed ->
+            if (isCollapsed) {
+                Surface(
+                    onClick = { onExpandChange?.invoke(true) },
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 10.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    modifier = Modifier
+                        .size(width = 56.dp, height = 32.dp)
+                        .draggable(
+                            orientation = Orientation.Vertical,
+                            state = rememberDraggableState { delta -> if (delta < -6f) onExpandChange?.invoke(true) }
+                        )
+                        .testTag("bottom_navigation_handle")
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
-                            contentDescription = tab.title
+                            Icons.Default.KeyboardArrowUp,
+                            contentDescription = "Show navigation",
+                            tint = accent
                         )
-                    },
-                    label = {
-                        Text(
-                            tab.title,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            maxLines = 1
-                        )
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = accent,
-                        selectedTextColor = accent,
-                        indicatorColor = accent.copy(alpha = 0.14f),
-                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    modifier = Modifier.testTag("nav_item_${tab.id}")
-                )
+                    }
+                }
+            } else {
+                Surface(
+                    shape = RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 10.dp,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    modifier = Modifier
+                        .widthIn(max = 480.dp)
+                        .fillMaxWidth()
+                        .height(64.dp)
+                        .testTag("bottom_navigation_bar")
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        tabs.forEach { tab ->
+                            BottomNavPillItem(
+                                tab = tab,
+                                selected = activeTabId == tab.id,
+                                accent = accent,
+                                onAccent = onAccent,
+                                onClick = { onTabSelected(tab.id) }
+                            )
+                        }
+                        if (onExpandChange != null) {
+                            IconButton(onClick = { onExpandChange(false) }, modifier = Modifier.size(40.dp)) {
+                                Icon(
+                                    Icons.Default.KeyboardArrowDown,
+                                    contentDescription = "Hide navigation",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun BottomNavPillItem(
+    tab: AppNavTab,
+    selected: Boolean,
+    accent: Color,
+    onAccent: Color,
+    onClick: () -> Unit
+) {
+    val container by animateColorAsState(if (selected) accent else Color.Transparent, label = "navItemContainer")
+    val content by animateColorAsState(
+        if (selected) onAccent else MaterialTheme.colorScheme.onSurfaceVariant,
+        label = "navItemContent"
+    )
+    Row(
+        modifier = Modifier
+            .clip(CircleShape)
+            .selectable(selected = selected, onClick = onClick, role = Role.Tab)
+            .background(container)
+            .animateContentSize()
+            .heightIn(min = 48.dp)
+            .padding(horizontal = if (selected) 16.dp else 12.dp)
+            .testTag("nav_item_${tab.id}"),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(
+            imageVector = if (selected) tab.selectedIcon else tab.unselectedIcon,
+            contentDescription = if (selected) null else tab.title,
+            tint = content,
+            modifier = Modifier.size(22.dp)
+        )
+        if (selected) {
+            Text(
+                tab.title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = content,
+                maxLines = 1
+            )
         }
     }
 }
