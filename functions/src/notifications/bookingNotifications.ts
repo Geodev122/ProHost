@@ -220,8 +220,18 @@ export const onBookingRequestStatusChanged = onDocumentUpdated(
       // which never sets cancelledByRole and isn't a real termination event
       // worth pushing about — the practitioner already knows, they just got
       // their edit accepted).
-      if (!after.cancelledByRole) return;
-      const cancelledByHost = after.cancelledByRole === "PRO_HOST" || after.cancelledByRole === "ADMIN";
+      if (!after.cancelledByRole) {
+        // The rules let only the host (or an admin) cancel an accepted booking without a role,
+        // meant for "superseded by an accepted edit". If no accepted edit actually replaces this
+        // booking, it was a plain host cancellation: the specialist must hear about it.
+        const replacement = await getFirestore().collection("booking_requests")
+          .where("replacesBookingId", "==", event.params.bookingId)
+          .where("status", "==", "ACCEPTED")
+          .limit(1)
+          .get();
+        if (!replacement.empty) return;
+      }
+      const cancelledByHost = !after.cancelledByRole || after.cancelledByRole === "PRO_HOST" || after.cancelledByRole === "ADMIN";
       const recipientId = cancelledByHost ? after.practitionerId : after.ownerId;
       const initiatorLabel = cancelledByHost ? (after.ownerName ?? "The host") : (after.practitionerName ?? "The specialist");
       const targetTab = cancelledByHost ? "pro_rentals" : "owner_progress";

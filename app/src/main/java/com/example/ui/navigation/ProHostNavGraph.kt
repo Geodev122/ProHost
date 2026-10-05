@@ -227,11 +227,13 @@ fun ProHostAppRoot(
     }
 
     // Synchronize initial tab based on user role or incoming deep link
-    var lastRoutedRole by remember { mutableStateOf<UserRole?>(null) }
+    // Saved (as the enum name) so recreation — theme/locale change, process death — keeps the
+    // restored tab instead of routing back to the role's home screen.
+    var lastRoutedRole by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
     LaunchedEffect(currentUser?.role, deepLinkTab) {
         val role = currentUser?.role
         val previousRole = lastRoutedRole
-        lastRoutedRole = role
+        lastRoutedRole = role?.name
         if (!deepLinkTab.isNullOrBlank() && role != null && deepLinkTab in allowedTabIdsForRole(role)) {
             // MainActivity is an exported activity (required for the launcher intent
             // and App Links) and reads "target_tab" straight from an

@@ -58,5 +58,7 @@ export async function sendEmail(payload: EmailPayload): Promise<boolean> {
 }
 
 function stripHtml(html: string): string {
-  return html.replace(/<[^>]+>/g, " ").replace(/\s{2,}/g, " ").trim();
+  return html.replace(/<[^>]+>/g, " ").replace(/\s{2,}/g, " ").trim()
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"").replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&");
 }

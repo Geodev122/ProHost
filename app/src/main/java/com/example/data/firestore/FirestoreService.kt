@@ -413,6 +413,20 @@ class FirestoreService(
         }
     }
 
+    /** One listing by id (e.g. a booking's space outside the loaded Explore page); null if gone or unreadable. */
+    suspend fun fetchListing(spaceId: String): SpaceListing? {
+        val db = firestore ?: return null
+        if (spaceId.isBlank()) return null
+        return try {
+            val doc = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS).document(spaceId).get().await()
+            doc.data?.takeIf { it["ownerId"] != null }?.let { SpaceListing.fromFirestoreMap(doc.id, it) }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Log.w(TAG, "fetchListing failed: ${e.message}")
+            null
+        }
+    }
+
     /** Top-used hashtags overall, for CreateListingDialog's autosuggest — a fixed
      *  top-N snapshot fetched once when the dialog opens, filtered client-side by
      *  prefix as the host types, not a per-keystroke query. */

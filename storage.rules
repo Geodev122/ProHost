@@ -8,7 +8,8 @@ service firebase.storage {
     }
 
     function role() {
-      return request.auth.token.role;
+      // get(): a token without the claim (first sign-in, before assignInitialRole) must not throw.
+      return request.auth.token.get('role', null);
     }
 
     function isAdmin() {
@@ -53,7 +54,7 @@ service firebase.storage {
       allow create, update: if isSignedIn() &&
         (isAdmin() ||
          (request.auth.token.get('suspended', false) != true &&
-          (!firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) ||
+          ((!firestore.exists(/databases/(default)/documents/workspace_listings/$(spaceId)) && role() == "PRO_HOST") ||
            firestore.get(/databases/(default)/documents/workspace_listings/$(spaceId)).data.ownerId == request.auth.uid))) &&
         withinSizeLimit() &&
         isDocument();

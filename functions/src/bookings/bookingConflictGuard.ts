@@ -140,6 +140,10 @@ export const onBookingAcceptConflictGuard = onDocumentWritten(
     // Firestore can retry a transaction's callback on contention, and neither
     // of those is safe to fire more than once for the same revert.
     const conflict = await db.runTransaction(async (tx) => {
+      // Reads first (transactions require it): this booking must still be ACCEPTED — a
+      // cancellation or deletion meanwhile must not be resurrected as PENDING.
+      const self = await tx.get(after.ref);
+      if (!self.exists || self.data()?.status !== "ACCEPTED") return undefined;
       const snap = await tx.get(conflictQuery);
       const others = snap.docs
         .filter((d) => d.id !== event.params.bookingId)
@@ -151,11 +155,7 @@ export const onBookingAcceptConflictGuard = onDocumentWritten(
       // Reverted to PENDING, not REJECTED — this wasn't a real decision the
       // host made about the request itself, just an accept that can't stand;
       // PENDING puts it back in the host's queue needing a real decision.
-      tx.set(
-        after.ref,
-        { status: "PENDING", rejectionReason: `Auto-reverted: overlaps accepted booking ${found.id}.` },
-        { merge: true }
-      );
+      tx.update(after.ref, { status: "PENDING", rejectionReason: `Auto-reverted: overlaps accepted booking ${found.id}.` });
       return found;
     });
     if (!conflict) return;

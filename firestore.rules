@@ -31,7 +31,8 @@ service cloud.firestore {
     // to change, re-architect all 5 admin listeners into role-scoped queries
     // in the same change, not after.
     function role() {
-      return request.auth.token.role;
+      // get(): a token without the claim (first sign-in, before assignInitialRole) must not throw.
+      return request.auth.token.get('role', null);
     }
 
     function isAdmin() {

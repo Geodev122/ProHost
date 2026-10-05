@@ -263,6 +263,11 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   retried next hour — never demote blindly. Cursor-paged, 540 s, deleted Auth users just get their expiry cleared.
 - `retryPendingPlayActivations` queries only `needsAdmin == false` rows (composite index) and closes `needsAdmin` rows
   older than 4 days as `expired_unclaimed`. `parkPendingActivation` returns new/existing; admin pushes go out once.
+- Admin Revoke Pro Host (`revokeProHostRole`) lapses the host's listings (`isOwnerPackageLapsed`) and marks the Play
+  subscription `adminRevoked` in `subscriptions/{id}`, so `syncSubscription` never re-grants it; an admin Activate in the
+  billing rescue panel clears the flag. An unchanged re-grant still finishes a half-done grant (lapsed listings, parked draft).
+- Email bodies escape every user-supplied value with `esc()` (`lib/emailTemplates.ts`). The email-code link
+  (`clickEmailOtpLink`) shows a confirm page on GET and consumes the code only on POST, because mail scanners open links.
 - `grantProHost`/`removeProHost` return early for deleted accounts (no ghost profile, no RTDN retry storm) and write
   with `update()`; a PRO_HOST claim whose profile `role` mirror lagged is repaired on the next sync.
 - Only `package_pro_mrr` grants (`isSupportedProduct`, `playCatalog.ts`). Retired plans sold by old app versions

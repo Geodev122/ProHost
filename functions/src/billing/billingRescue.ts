@@ -165,6 +165,11 @@ export const adminActivatePurchase = onCall<{
     throw new HttpsError("not-found", "That ProHost account doesn't exist.");
   }
 
+  // An explicit admin activation undoes an earlier admin revoke of this subscription.
+  await db.collection("subscriptions").doc(linkKey(token))
+    .update({ adminRevoked: false })
+    .catch(() => undefined);
+
   let purchase;
   try {
     purchase = await queryPlaySubscription(token, productId);

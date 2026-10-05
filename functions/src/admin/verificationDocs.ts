@@ -20,12 +20,14 @@ export const adminVerificationDocUrl = onCall<{ spaceId?: string }>(async (reque
   const listing = (await getFirestore().collection("workspace_listings").doc(spaceId).get()).data();
   const ref = listing?.verificationDocUrl as string | undefined;
   if (!ref) throw new HttpsError("not-found", "This listing has no verification document.");
-  if (!ref.startsWith("gs://")) return { url: ref }; // legacy value, migrated by migrateLegacyListingFields
-  const withoutScheme = ref.slice("gs://".length);
-  const slash = withoutScheme.indexOf("/");
-  const bucket = withoutScheme.slice(0, slash);
-  const path = withoutScheme.slice(slash + 1);
-  const file = getStorage().bucket(bucket).file(path);
+  // The owner writes this field, so only trust this listing's own folder in our bucket: never
+  // another listing's deed, another bucket, or an arbitrary link shown to an admin.
+  const defaultBucket = getStorage().bucket();
+  const prefix = `gs://${defaultBucket.name}/listing_verification_docs/${spaceId}/`;
+  if (!ref.startsWith(prefix) || ref.includes("..")) {
+    throw new HttpsError("failed-precondition", "This listing's verification document reference isn't valid. Ask the host to upload it again.");
+  }
+  const file = defaultBucket.file(ref.slice(`gs://${defaultBucket.name}/`.length));
   const [exists] = await file.exists();
   if (!exists) throw new HttpsError("not-found", "The verification document file is missing.");
   return { url: await getDownloadURL(file) };

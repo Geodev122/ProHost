@@ -24,7 +24,7 @@ internal fun SpaceListing.toAnalyticsItem(subdivision: Subdivision? = null, inde
         country.takeIf { it.isNotBlank() }?.let { put(Param.ITEM_CATEGORY4, it) }
         put(Param.ITEM_CATEGORY5, governorate.name)
         put(Param.ITEM_VARIANT, if (AttendeePricing.isPerAttendee(subdivision)) "per_attendee" else "per_booking")
-        subdivision?.let { put(Param.ROOM_ID, it.publicCode) }
+        subdivision?.displayCode?.takeIf { it.isNotBlank() }?.let { put(Param.ROOM_ID, it) }
         price?.takeIf { it > 0 }?.let { put(Param.PRICE, it) }
         put(Param.CURRENCY, "USD")
         index?.let { put(Param.INDEX, it.toLong()) }

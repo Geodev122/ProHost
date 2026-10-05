@@ -52,7 +52,17 @@ export async function acknowledgeIfNeeded(
     return true;
   } catch (e) {
     const err = classifyPlayError(e);
-    // Already acknowledged (e.g. by a concurrent RTDN) comes back as a 400.
+    // Already acknowledged (e.g. by a concurrent RTDN) comes back as a 400: re-read Play
+    // before reporting a failure, so a race never parks a healthy purchase.
+    if (err.kind === "invalid") {
+      try {
+        const fresh = await queryPlaySubscription(token, productId);
+        if (fresh.acknowledged) {
+          logger.info(`${logTag}: product=${productId} was already acknowledged`);
+          return true;
+        }
+      } catch { /* fall through to the failure below */ }
+    }
     logger.error(`${logTag}: acknowledge failed for product=${productId} [${err.kind}] ${err.message}`);
     return false;
   }

@@ -1,3 +1,4 @@
+import { getFirestore } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 import { getAuth } from "firebase-admin/auth";
 import { onCall } from "../lib/callable";
@@ -31,6 +32,10 @@ export const forceProHostUpgrade = onCall<{ targetUid?: string }>(async (request
   }
   if (target.customClaims?.role === "ADMIN") {
     throw new HttpsError("failed-precondition", "Admins already have full access.");
+  }
+  // grantProHost skips accounts without a profile; report that instead of a false success.
+  if (!(await getFirestore().collection("user_profiles").doc(targetUid).get()).exists) {
+    throw new HttpsError("failed-precondition", "This account hasn't finished signing up yet (no profile).");
   }
 
   await grantProHost(targetUid, {

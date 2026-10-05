@@ -478,6 +478,9 @@ class ProHostRepository(
         return success
     }
 
+    /** A listing by id, fetched when it isn't in the live lists (Explore loads 100 at a time). */
+    suspend fun fetchListing(spaceId: String): SpaceListing? = firestoreService.fetchListing(spaceId)
+
     /**
      * This used to only mutate local state — the confirmation dialog claimed a
      * "permanent" removal, but the Firestore document was never touched, so the

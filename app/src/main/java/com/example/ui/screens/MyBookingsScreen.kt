@@ -51,8 +51,18 @@ fun MyBookingsScreen(
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val currentUser by viewModel.currentUser.collectAsState()
-    val allSpaces by viewModel.spaces.collectAsState()
+    val liveSpaces by viewModel.spaces.collectAsState()
     val allBookingRequests by viewModel.bookingRequests.collectAsState()
+    // Explore loads public listings a page at a time: a booking's space may not be in that
+    // page, so fetch the missing ones by id (Re-book/Edit must never refuse a live listing).
+    val fetchedSpaces = remember { androidx.compose.runtime.mutableStateMapOf<String, SpaceListing>() }
+    val missingSpaceIds = allBookingRequests.filter { it.practitionerId == currentUser?.id }.map { it.spaceId }.filter { id -> id.isNotBlank() && liveSpaces.none { it.id == id } }.toSet()
+    LaunchedEffect(missingSpaceIds) {
+        missingSpaceIds.filter { it !in fetchedSpaces }.forEach { id ->
+            viewModel.repository.fetchListing(id)?.let { fetchedSpaces[id] = it }
+        }
+    }
+    val allSpaces = liveSpaces + fetchedSpaces.values.filter { f -> liveSpaces.none { it.id == f.id } }
     val hasLoadedBookingsOnce by viewModel.hasLoadedBookingsOnce.collectAsState()
     val isOffline by viewModel.isOfflineMode.collectAsState()
     val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()

@@ -5,7 +5,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { createHmac } from "crypto";
 import * as logger from "firebase-functions/logger";
 import { sendEmail } from "../lib/email";
-import { emailVerificationTemplate, UserContext } from "../lib/emailTemplates";
+import { emailVerificationTemplate, esc, UserContext } from "../lib/emailTemplates";
 import "../lib/admin";
 
 /**
@@ -89,7 +89,7 @@ const successPage = (name: string) => `<!DOCTYPE html>
 <body>
 <div class="card">
   <h1>✓ Email Verified</h1>
-  <p>Hi ${name}, your email address has been confirmed. You can close this page and return to ProHost.</p>
+  <p>Hi ${esc(name)}, your email address has been confirmed. You can close this page and return to ProHost.</p>
   <a href="${SUCCESS_DEEP_LINK}">Open ProHost</a>
 </div>
 </body>
@@ -100,7 +100,7 @@ const errorPage = (message: string) => `<!DOCTYPE html>
 <head><meta charset="UTF-8"/><title>Verification Failed — ProHost</title>
 <style>body{margin:0;background:#F5F5F5;font-family:'Helvetica Neue',Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh}.card{background:#fff;border-radius:16px;padding:40px 32px;max-width:420px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.08)}h1{margin:0 0 12px;color:#D32F2F;font-size:22px}p{margin:0;color:#555;font-size:15px}</style>
 </head>
-<body><div class="card"><h1>Verification Failed</h1><p>${message}</p></div></body>
+<body><div class="card"><h1>Verification Failed</h1><p>${esc(message)}</p></div></body>
 </html>`;
 
 export const verifyEmailLink = onRequest(

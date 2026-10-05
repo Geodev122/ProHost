@@ -37,6 +37,9 @@ class BillingController(
     // The base plan ("pro-montly"/"pro-yearly") the user tapped before products loaded.
     private var _pendingRetryBasePlanId: String? = null
     private var _pendingRetryActivity: java.lang.ref.WeakReference<android.app.Activity>? = null
+    // A deferred launch is only honoured shortly after the tap; a later products load (e.g. the
+    // next Premium visit after a failed connection) must never open Play's sheet by itself.
+    private var _pendingRetryAtMillis = 0L
 
     fun initPlayBilling(context: Context) {
         if (playBillingManager == null) {
@@ -60,7 +63,11 @@ class BillingController(
                         // Retry a deferred billing launch once the target product is available
                         val retryPlan = _pendingRetryBasePlanId
                         val retryActivity = _pendingRetryActivity?.get()
-                        if (retryPlan != null && retryActivity != null &&
+                        val retryFresh = System.currentTimeMillis() - _pendingRetryAtMillis < PENDING_RETRY_WINDOW_MS
+                        if (retryPlan != null && (retryActivity == null || !retryFresh)) {
+                            _pendingRetryBasePlanId = null
+                            _pendingRetryActivity = null
+                        } else if (retryPlan != null && retryActivity != null &&
                             products.any { it.productId == com.example.data.billing.PlayCatalog.PRODUCT_ID }) {
                             _pendingRetryBasePlanId = null
                             _pendingRetryActivity = null
@@ -206,8 +213,16 @@ class BillingController(
         dismissBillingActivationPending()
         _billingError.value = null
         _billingSuccess.value = message
-        // Force-refresh the ID token so the new PRO_HOST claim takes effect immediately.
-        refreshCurrentUserRoleAfterEntitlement()
+        // Force-refresh the ID token so the new PRO_HOST claim takes effect immediately. A
+        // failure here (offline) must not end the purchase/profile collectors that called us:
+        // the profile listener and the next foreground pick the role up anyway.
+        try {
+            refreshCurrentUserRoleAfterEntitlement()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            android.util.Log.w("BillingController", "Role refresh after activation failed; will catch up on the next sync", e)
+        }
         if (currentUser.value?.canHost(com.example.data.auth.PhoneLink.isLinked()) == false) {
             _kycPromptAfterActivation.value = true
         }
@@ -250,7 +265,7 @@ class BillingController(
         if (product != null) {
             // Monthly ↔ yearly is a replacement of the same subscription: pass the current
             // purchase token so Play switches plans instead of selling a second subscription.
-            val currentPlan = currentUser.value?.ownerPackageId
+            val currentPlan = currentUser.value?.activePlanId()
             val oldPurchaseToken = if (currentPlan != null && currentPlan != basePlanId &&
                 currentPlan in com.example.data.billing.PlayCatalog.BASE_PLANS) {
                 manager.activePurchases.value.firstOrNull { productId in it.products }?.purchaseToken
@@ -283,6 +298,7 @@ class BillingController(
             // Store the intent and retry automatically once products load from Play
             _pendingRetryBasePlanId = basePlanId
             _pendingRetryActivity = java.lang.ref.WeakReference(activity)
+            _pendingRetryAtMillis = System.currentTimeMillis()
             Toast.makeText(activity, "Connecting to Google Play Store…", Toast.LENGTH_SHORT).show()
             // Merges into productDetailsList, whose collector above retries this launch.
             manager?.queryProductDetailsForId(productId) { found ->
@@ -342,7 +358,7 @@ class BillingController(
         val manager = playBillingManager ?: run { initPlayBilling(context); playBillingManager } ?: return
         // If the user already has a Firestore entitlement, just refresh the local
         // purchases cache — no server call needed (unless Play just told us the status changed).
-        if (currentUser.value?.ownerPackageId != null && !forceServerSync) {
+        if (currentUser.value?.activePlanId() != null && !forceServerSync) {
             manager.queryActivePurchases()
             if (userInitiated) {
                 com.example.analytics.AnalyticsTracker.premiumRestoreResult("already_active")
@@ -460,4 +476,13 @@ class BillingController(
     fun endConnection() {
         playBillingManager?.endConnection()
     }
+}
+
+private const val PENDING_RETRY_WINDOW_MS = 30_000L
+
+/** The plan that still grants today: an expired one (before the hourly sweep clears it) is no plan. */
+private fun AppUser.activePlanId(): String? {
+    val plan = ownerPackageId ?: return null
+    val expiry = ownerPackageExpiryMillis
+    return plan.takeIf { expiry == null || expiry == 0L || expiry > System.currentTimeMillis() }
 }

@@ -164,6 +164,8 @@ class PlayBillingManager(
                 }
             } else {
                 Log.e(TAG, "Error querying product details: ${billingResult.debugMessage}")
+                com.example.analytics.AnalyticsTracker.premiumPlansLoadFailed("response_${billingResult.responseCode}")
+                emitMessage("Couldn't load Premium plans from Google Play. Check your connection and try again.")
             }
         }
     }

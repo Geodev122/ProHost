@@ -6,6 +6,7 @@
  * renewal, cancellation, refund or expiry always produces the same role.
  * Server-only collection (firestore.rules denies clients; it holds purchase tokens).
  */
+import { logger } from "firebase-functions/v2";
 import { getFirestore } from "firebase-admin/firestore";
 import { BillingStatus, adminEventFor, grantsAccess, planInterval, statusFor } from "./playCatalog";
 import { sendGa4Event, transactionIdFor } from "../lib/ga4";
@@ -69,6 +70,10 @@ export async function syncSubscription(
 
   let result: SyncResult;
   if (status === "PENDING") {
+    result = { status, subscriptionId, hasAccess: false, removed: false };
+  } else if (prev?.adminRevoked === true && grantsAccess(status, sub.expiryMillis, now)) {
+    // An admin revoked Pro Host for this subscription: Play still bills it, but it doesn't grant.
+    logger.info(`syncSubscription: ${subscriptionId} was revoked by an admin — not re-granted (${opts.source})`);
     result = { status, subscriptionId, hasAccess: false, removed: false };
   } else if (grantsAccess(status, sub.expiryMillis, now)) {
     await grantProHost(uid, {

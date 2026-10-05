@@ -118,7 +118,9 @@ export const expirePackages = onSchedule({ schedule: "0 * * * *", timeoutSeconds
         // ended one is removed through the same EntitlementManager path as RTDN.
         const token = doc.data()?.lastPurchaseToken as string | undefined;
         let recheck: PlayRecheck = { kind: "not_play" };
-        if (doc.data()?.entitlementSource === "google_play" && token) {
+        // Pre-refactor Play subscribers have a token but no entitlementSource yet: ask Play too.
+        const source = doc.data()?.entitlementSource as string | undefined;
+        if (token && (source === "google_play" || !source)) {
           try {
             const sub = await queryPlaySubscription(token);
             const result = await syncSubscription(uid, token, sub, { source: "expire_sweep" });
@@ -177,7 +179,7 @@ export const expirePackages = onSchedule({ schedule: "0 * * * *", timeoutSeconds
           if (!ownedListings.empty) {
             const bulkWriter = db.bulkWriter();
             ownedListings.docs.forEach((listingDoc) => {
-              bulkWriter.update(listingDoc.ref, { isOwnerPackageLapsed: true });
+              bulkWriter.update(listingDoc.ref, { isOwnerPackageLapsed: true }).catch(() => undefined);
             });
             await bulkWriter.close();
             listingsHiddenCount += ownedListings.size;

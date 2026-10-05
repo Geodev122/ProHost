@@ -213,6 +213,8 @@ fun DiscoveryScreenContent(
                         searchExpanded = searchExpanded,
                         onSearchExpandedChange = { searchExpanded = it; searchFocusRequested = it },
                         focusSearchOnOpen = searchFocusRequested,
+                onSearchFocusConsumed = { searchFocusRequested = false },
+                        onSearchFocusConsumed = { searchFocusRequested = false },
                         activeFilterCount = filterState.activeFilterCount,
                         onToggleMapView = onToggleMapView,
                         onSearchQueryChange = onSearchQueryChange,
@@ -233,6 +235,7 @@ fun DiscoveryScreenContent(
                 searchExpanded = searchExpanded,
                 onSearchExpandedChange = { searchExpanded = it; searchFocusRequested = it },
                 focusSearchOnOpen = searchFocusRequested,
+                onSearchFocusConsumed = { searchFocusRequested = false },
                 activeFilterCount = filterState.activeFilterCount,
                 onToggleMapView = onToggleMapView,
                 onSearchQueryChange = onSearchQueryChange,
@@ -417,6 +420,7 @@ private fun ExploreOverlayHeader(
     onAlertsClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
     focusSearchOnOpen: Boolean = false,
+    onSearchFocusConsumed: () -> Unit = {},
     belowControls: @Composable () -> Unit = {}
 ) {
     Column(
@@ -508,6 +512,7 @@ private fun ExploreOverlayHeader(
                         query = searchQuery,
                         floating = isMapView,
                         requestFocus = focusSearchOnOpen,
+                        onFocusConsumed = onSearchFocusConsumed,
                         onSubmit = onSearchQueryChange,
                         onClose = {
                             onSearchQueryChange("")
@@ -607,6 +612,7 @@ private fun ExploreSearchField(
     query: String,
     floating: Boolean,
     requestFocus: Boolean,
+    onFocusConsumed: () -> Unit,
     onSubmit: (String) -> Unit,
     onClose: () -> Unit
 ) {
@@ -620,7 +626,13 @@ private fun ExploreSearchField(
         focusManager.clearFocus()
     }
     // Opened by a tap: ready to type, no second tap needed. Restored on return: no keyboard.
-    LaunchedEffect(Unit) { if (requestFocus) runCatching { focusRequester.requestFocus() } }
+    // One-shot: switching Map/List rebuilds this field and must not reopen the keyboard.
+    LaunchedEffect(Unit) {
+        if (requestFocus) {
+            runCatching { focusRequester.requestFocus() }
+            onFocusConsumed()
+        }
+    }
     ExploreControlSurface(floating = floating, shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp)) {
             Icon(

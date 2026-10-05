@@ -104,7 +104,13 @@ export async function grantProHost(uid: string, p: GrantParams): Promise<void> {
     { ownerPackageId: p.planId, ownerPackageExpiryMillis: p.expiryMillis, ...billingMirror, updatedAt: now,
       ...(unchanged ? {} : { expiryWarningSent: false }) }
   );
-  if (unchanged) return;
+  if (unchanged) {
+    // A previous grant may have failed after the role landed (audit log, listing restore):
+    // only stop here when there's nothing left to restore or publish.
+    const lapsed = await db.collection("workspace_listings")
+      .where("ownerId", "==", uid).where("isOwnerPackageLapsed", "==", true).limit(1).get();
+    if (lapsed.empty && !userData?.pendingPlayPublishDraftId) return;
+  }
 
   if (currentRole === "PRO_HOST" && userData?.role !== "PRO_HOST") {
     // Claim already granted but the profile mirror never caught up: repair it.
@@ -130,7 +136,7 @@ export async function grantProHost(uid: string, p: GrantParams): Promise<void> {
     allListings.docs.forEach((doc) => {
       if (doc.data().isOwnerPackageLapsed !== false) {
         restoredCount++;
-        bw.update(doc.ref, { isOwnerPackageLapsed: false });
+        bw.update(doc.ref, { isOwnerPackageLapsed: false }).catch(() => undefined); // deleted meanwhile
       }
     });
     await bw.close();
@@ -238,7 +244,9 @@ export async function removeProHost(uid: string, p: RemoveParams): Promise<boole
     const ownedListings = await db.collection("workspace_listings").where("ownerId", "==", uid).get();
     if (!ownedListings.empty) {
       const bw = db.bulkWriter();
-      ownedListings.docs.forEach((doc) => bw.update(doc.ref, { isOwnerPackageLapsed: true }));
+      ownedListings.docs.forEach((doc) => {
+        bw.update(doc.ref, { isOwnerPackageLapsed: true }).catch(() => undefined); // deleted meanwhile
+      });
       await bw.close();
     }
     const { sendPushToUser } = await import("../lib/push");

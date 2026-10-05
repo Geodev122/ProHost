@@ -793,7 +793,7 @@ class ProHostViewModel(
             } catch (e: Exception) {
                 com.example.analytics.AnalyticsTracker.bookingRequestFailed(com.example.analytics.AnalyticsTracker.errorCode(e))
                 // "You already have a pending booking request for this space." is meant for the user.
-                if (e is IllegalStateException && !e.message.isNullOrBlank()) {
+                if ((e is IllegalStateException || e is IllegalArgumentException) && !e.message.isNullOrBlank()) {
                     Toast.makeText(appContext, e.message, Toast.LENGTH_LONG).show()
                 } else {
                     reportFailure(appContext, e, "Failed to send request — please check your connection and try again.")

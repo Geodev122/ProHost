@@ -948,7 +948,7 @@ fun SpaceDetailsScreenContent(
                 isSendingSlotRequest = false
                 com.example.analytics.AnalyticsTracker.bookingRequestFailed(com.example.analytics.AnalyticsTracker.errorCode(e))
                 snackbarHostState.showSnackbar(
-                    e.message?.takeIf { e is IllegalStateException && it.isNotBlank() }
+                    e.message?.takeIf { (e is IllegalStateException || e is IllegalArgumentException) && it.isNotBlank() }
                         ?: "Couldn't send your request — check your connection and try again."
                 )
                 return@launch

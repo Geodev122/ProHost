@@ -4,7 +4,7 @@ import { createHash, randomInt, timingSafeEqual } from "crypto";
 import { onRequest, HttpsError } from "firebase-functions/v2/https";
 import { onCall } from "../lib/callable";
 import { maskEmail, sendEmail } from "../lib/email";
-import { otpSignInTemplate } from "../lib/emailTemplates";
+import { esc, otpSignInTemplate } from "../lib/emailTemplates";
 import { takeEmailSendSlot, isPlausibleEmail } from "../lib/emailRateLimit";
 
 const db = admin.firestore();
@@ -91,11 +91,19 @@ export const verifyEmailOtp = onCall(async (request) => {
 export const clickEmailOtpLink = onRequest(
   {},
   async (req, res) => {
-    const email = (req.query.email as string | undefined)?.toLowerCase().trim();
-    const code = (req.query.code as string | undefined)?.trim();
+    const source = req.method === "POST" ? (req.body ?? {}) : req.query;
+    const email = (source.email as string | undefined)?.toLowerCase().trim();
+    const code = (source.code as string | undefined)?.trim();
 
     if (!email || !code) {
       res.status(400).send("Missing parameters.");
+      return;
+    }
+
+    // GET only shows a button: mail scanners (e.g. Outlook Safe Links) open every link,
+    // and consuming the code on GET made the person's own sign-in fail afterwards.
+    if (req.method !== "POST") {
+      res.set("Cache-Control", "no-store").status(200).send(confirmPage(email, code));
       return;
     }
 
@@ -155,11 +163,29 @@ async function validateAndConsumeOtp(email: string, code: string): Promise<strin
     const user = await admin.auth().getUserByEmail(email);
     uid = user.uid;
     if (!user.emailVerified) await admin.auth().updateUser(uid, { emailVerified: true });
-  } catch {
-    // New user — create a minimal Firebase Auth account
+  } catch (e) {
+    // Only a missing account means "new user"; anything else (a transient Auth error) is
+    // reported as retryable instead of failing createUser with email-already-exists.
+    if ((e as { code?: string })?.code !== "auth/user-not-found") {
+      logger.error("email_otp_user_lookup_failed", { email: maskEmail(email), error: String(e) });
+      throw new HttpsError("unavailable", "We couldn't finish signing you in. Please request a new code and try again.");
+    }
     const newUser = await admin.auth().createUser({ email, emailVerified: true });
     uid = newUser.uid;
   }
 
   return admin.auth().createCustomToken(uid);
+}
+
+function confirmPage(email: string, code: string): string {
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="robots" content="noindex"/>
+<title>Sign in to ProHost</title>
+<style>body{margin:0;background:#F5F5F5;font-family:'Helvetica Neue',Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh}
+.card{background:#fff;border-radius:16px;padding:36px 28px;max-width:420px;margin:16px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.08)}
+p{color:#555;font-size:15px;line-height:1.6}button{padding:12px 28px;background:#FF6B35;color:#fff;border:0;border-radius:8px;font-size:16px;font-weight:600}</style>
+</head><body><form class="card" method="POST">
+<p>Sign in to ProHost as <strong>${esc(email)}</strong>?</p>
+<input type="hidden" name="email" value="${esc(email)}"/><input type="hidden" name="code" value="${esc(code)}"/>
+<button type="submit">Sign in</button></form></body></html>`;
 }

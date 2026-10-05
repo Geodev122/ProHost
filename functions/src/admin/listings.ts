@@ -133,7 +133,7 @@ export const requestListingVerification = onCall<RequestListingVerificationData>
   }
 
   const { spaceId } = request.data ?? {};
-  if (!spaceId) {
+  if (typeof spaceId !== "string" || spaceId.length === 0 || spaceId.length > 200 || spaceId.includes("/")) {
     throw new HttpsError("invalid-argument", "spaceId is required.");
   }
 
