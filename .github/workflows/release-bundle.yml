@@ -41,7 +41,13 @@ jobs:
           MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
           APP_CHECK_DEBUG_TOKEN: ${{ secrets.APP_CHECK_DEBUG_TOKEN }}
         run: |
-          gradle :app:bundleRelease :app:extractReleaseNativeSymbolTables :app:uploadCrashlyticsSymbolFileRelease --no-daemon --stacktrace
+          if [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::Add the STORE_PASSWORD and KEY_PASSWORD repository secrets (Settings › Secrets and variables › Actions) — the upload key can't be used without them."
+            exit 1
+          fi
+          # The R8 mapping file uploads to Crashlytics during bundleRelease (mappingFileUploadEnabled);
+          # native symbols are zipped below for Play Console.
+          gradle :app:bundleRelease :app:extractReleaseNativeSymbolTables --no-daemon --stacktrace
 
       - name: Zip Native Debug Symbols
         run: |
