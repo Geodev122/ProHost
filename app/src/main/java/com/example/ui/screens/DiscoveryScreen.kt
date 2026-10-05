@@ -213,7 +213,6 @@ fun DiscoveryScreenContent(
                         searchExpanded = searchExpanded,
                         onSearchExpandedChange = { searchExpanded = it; searchFocusRequested = it },
                         focusSearchOnOpen = searchFocusRequested,
-                onSearchFocusConsumed = { searchFocusRequested = false },
                         onSearchFocusConsumed = { searchFocusRequested = false },
                         activeFilterCount = filterState.activeFilterCount,
                         onToggleMapView = onToggleMapView,
