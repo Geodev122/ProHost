@@ -36,7 +36,11 @@ android {
         localProperties.load(FileInputStream(localPropertiesFile))
     }
     
-    val mapsApiKey = System.getenv("MAPS_API_KEY") ?: localProperties.getProperty("MAPS_API_KEY") ?: ""
+    // A missing GitHub secret arrives as "" (not null): treat blank as missing too.
+    val mapsApiKey = System.getenv("MAPS_API_KEY")?.takeIf { it.isNotBlank() }
+        ?: localProperties.getProperty("MAPS_API_KEY")?.takeIf { it.isNotBlank() }
+        ?: ""
+    if (mapsApiKey.isBlank()) logger.warn("MAPS_API_KEY is not set: maps will render blank in this build.")
     manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
   }
 

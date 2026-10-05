@@ -18,11 +18,10 @@ import "../lib/admin";
  * account's own PII and listings while leaving the transaction ledger intact,
  * the same "PII goes, the ledger stays" split most marketplaces use.
  *
- * Idempotent and safe to retry: the Auth account is deleted last, so if an
- * earlier step throws, the caller is still signed in and can simply call
- * this again — every earlier step is a delete-if-exists operation.
+ * Idempotent and safe to retry. The Auth account is deleted last; a failed cleanup step is
+ * logged and does not stop it (onAuthUserDeleted repeats the cleanup).
  */
-export const deleteOwnAccount = onCall(async (request) => {
+export const deleteOwnAccount = onCall({ timeoutSeconds: 300, memory: "512MiB" }, async (request) => {
   const auth = request.auth;
   if (!auth) {
     throw new HttpsError("unauthenticated", "Sign in required.");
@@ -30,7 +29,14 @@ export const deleteOwnAccount = onCall(async (request) => {
   const uid = auth.uid;
   const targetUser = await getAuth().getUser(uid).catch(() => null);
   const email = (targetUser?.email ?? "").toLowerCase();
-  const { listings } = await cleanUpAccountData(uid, email);
+  // A cleanup failure must never block the deletion the person asked for: the Auth account
+  // is still deleted below, and onAuthUserDeleted runs the same (idempotent) cleanup again.
+  let listings = 0;
+  try {
+    listings = (await cleanUpAccountData(uid, email)).listings;
+  } catch (err) {
+    console.error(`deleteOwnAccount: cleanup failed for ${uid}; deleting the account anyway`, err);
+  }
 
   const bestEffort = async (label: string, step: () => Promise<unknown>) => {
     try {
@@ -50,8 +56,10 @@ export const deleteOwnAccount = onCall(async (request) => {
   // 6. Delete the Auth account last — every step above is safe to retry, so
   // this is the one irreversible action, done only once everything else
   // has actually succeeded. Already-deleted (a retried call) counts as done.
-  await getAuth().deleteUser(uid).catch((err: { code?: string }) => {
-    if (err?.code !== "auth/user-not-found") throw err;
+  await getAuth().deleteUser(uid).catch((err: { code?: string; message?: string }) => {
+    if (err?.code === "auth/user-not-found") return;
+    console.error(`deleteOwnAccount: deleteUser failed for ${uid}`, err);
+    throw new HttpsError("internal", "We couldn't delete your account right now. Please try again in a minute.");
   });
 
   return { ok: true };

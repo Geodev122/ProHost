@@ -137,10 +137,18 @@ class AuthViewModel(
                 // Layer 1: Firebase Auth's own mailer (sendSignInLinkToEmail) — no mail server
                 // of ours involved.
                 val continueUrl = "https://prohost-f766f.web.app/emaillink"
-                val nativeSent = FirebaseAuthService(firebaseAppContext())
+                val native = FirebaseAuthService(firebaseAppContext())
                     .sendSignInLinkToEmail(email, continueUrl)
-                if (nativeSent) {
+                if (native.isSuccess) {
                     onDelivered(EmailDelivery.LINK)
+                    return@launch
+                }
+                val nativeError = native.exceptionOrNull()
+                // Record why Firebase's mailer refused (e.g. ERROR_OPERATION_NOT_ALLOWED = email-link
+                // sign-in disabled in the console) — the fallbacks below hide it otherwise.
+                com.example.analytics.AnalyticsTracker.authError("email_link_native", nativeErrorCode(nativeError))
+                if (nativeError.isNetworkFailure()) {
+                    _authErrorMessage.value = "Network error. Please check your connection and try again."
                     return@launch
                 }
 
@@ -183,7 +191,7 @@ class AuthViewModel(
                 // Firebase Auth's mailer first; the function's branded link as fallback.
                 val continueUrl = "https://prohost-f766f.web.app/emaillink"
                 val nativeSent = FirebaseAuthService(firebaseAppContext())
-                    .sendSignInLinkToEmail(email, continueUrl)
+                    .sendSignInLinkToEmail(email, continueUrl).isSuccess
                 if (nativeSent) {
                     _isAuthenticating.value = false
                     onSent(true)
@@ -205,6 +213,12 @@ class AuthViewModel(
             }
         }
     }
+
+    private fun nativeErrorCode(e: Throwable?): String =
+        (e as? com.google.firebase.auth.FirebaseAuthException)?.errorCode
+            ?: e?.let { it::class.simpleName } ?: "unknown"
+
+    private fun Throwable?.isNetworkFailure(): Boolean = this is com.google.firebase.FirebaseNetworkException
 
     fun savePendingEmailLink(email: String) {
         firebaseAppContext().getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
@@ -522,7 +536,10 @@ class AuthViewModel(
         activity: Activity,
         e164Phone: String,
         onCodeSent: () -> Unit,
-        onError: (String) -> Unit
+        onError: (String) -> Unit,
+        // Android can verify the number without an SMS being typed (instant verification):
+        // the phone is linked and saved here and the flow is done — no code-entry step.
+        onVerified: () -> Unit = {}
     ) {
         com.example.analytics.AnalyticsTracker.kycStart("phone")
         _isAuthenticating.value = true
@@ -541,11 +558,19 @@ class AuthViewModel(
                 viewModelScope.launch {
                     try {
                         val linkResult = authService.linkPhoneCredentialToCurrentUser(credential)
-                        _isAuthenticating.value = false
                         when (linkResult) {
-                            is AuthResult.Success -> onCodeSent() // treat as success
-                            is AuthResult.Failure -> onError(linkResult.message)
-                            else -> {}
+                            is AuthResult.Success -> {
+                                _pendingVerificationId.value = null
+                                repository.updatePhoneAfterKycLink(e164Phone)
+                                com.example.analytics.AnalyticsTracker.kycComplete()
+                                _isAuthenticating.value = false
+                                onVerified()
+                            }
+                            is AuthResult.Failure -> {
+                                _isAuthenticating.value = false
+                                onError(linkResult.message)
+                            }
+                            else -> _isAuthenticating.value = false
                         }
                     } catch (e: kotlinx.coroutines.CancellationException) {
                         throw e

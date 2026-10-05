@@ -45,6 +45,10 @@ jobs:
             echo "::error::Add the STORE_PASSWORD and KEY_PASSWORD repository secrets (Settings › Secrets and variables › Actions) — the upload key can't be used without them."
             exit 1
           fi
+          if [ -z "$MAPS_API_KEY" ]; then
+            echo "::error::Add the MAPS_API_KEY repository secret — a release without it shows a blank map."
+            exit 1
+          fi
           # The R8 mapping file uploads to Crashlytics during bundleRelease (mappingFileUploadEnabled);
           # native symbols are zipped below for Play Console.
           gradle :app:bundleRelease :app:extractReleaseNativeSymbolTables --no-daemon --stacktrace

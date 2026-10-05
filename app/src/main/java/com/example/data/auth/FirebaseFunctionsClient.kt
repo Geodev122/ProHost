@@ -467,7 +467,11 @@ open class FirebaseFunctionsClient {
      */
     suspend fun deleteOwnAccount(): Result<Unit> {
         return try {
-            functions.getHttpsCallable("deleteOwnAccount").call().await()
+            // Cleanup of listings and files can take a while; the default 70 s callable timeout
+            // made large accounts fail on the client while the server was still working.
+            functions.getHttpsCallable("deleteOwnAccount")
+                .apply { setTimeout(180, java.util.concurrent.TimeUnit.SECONDS) }
+                .call().await()
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(tag, "deleteOwnAccount failed: ${e.message}", e)

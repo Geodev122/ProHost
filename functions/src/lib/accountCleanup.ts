@@ -30,10 +30,10 @@ export async function cleanUpAccountData(uid: string, email: string): Promise<{ 
   // fires onWorkspaceListingDeleted (listingCountTracker.ts), which already
   // keeps activeListingCount in sync — that bookkeeping isn't duplicated here.
   const ownedListings = await db.collection("workspace_listings").where("ownerId", "==", uid).get();
-  for (const doc of ownedListings.docs) {
-    await deleteStoragePrefix(`listings/${doc.id}/`);
-    await deleteStoragePrefix(`listing_verification_docs/${doc.id}/`);
-  }
+  await Promise.all(ownedListings.docs.flatMap((doc) => [
+    deleteStoragePrefix(`listings/${doc.id}/`),
+    deleteStoragePrefix(`listing_verification_docs/${doc.id}/`),
+  ]));
   if (!ownedListings.empty) {
     const bulkWriter = db.bulkWriter();
     ownedListings.docs.forEach((doc) => bulkWriter.delete(doc.ref));

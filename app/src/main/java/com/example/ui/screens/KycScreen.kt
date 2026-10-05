@@ -269,7 +269,11 @@ fun PhoneVerificationSection(
                                 resendCountdownSeconds = 30
                                 step = KycStep.OTP_ENTRY
                             },
-                            onError = { msg -> localErrorMessage = msg }
+                            onError = { msg -> localErrorMessage = msg },
+                            onVerified = {
+                                authViewModel.clearAuthMessages()
+                                onVerified()
+                            }
                         )
                     },
                     enabled = !isAuthenticating,
@@ -368,7 +372,11 @@ fun PhoneVerificationSection(
                                     otpCode = ""
                                     resendCountdownSeconds = 30
                                 },
-                                onError = { msg -> localErrorMessage = msg }
+                                onError = { msg -> localErrorMessage = msg },
+                                onVerified = {
+                                    authViewModel.clearAuthMessages()
+                                    onVerified()
+                                }
                             )
                         },
                         enabled = !isAuthenticating,
