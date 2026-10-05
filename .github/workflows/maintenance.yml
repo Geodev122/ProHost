@@ -1,0 +1,51 @@
+name: Maintenance (manual)
+
+# Production maintenance with the CI service account — never runs on its own.
+# Results appear as annotations on the run (counts and display codes only, no PII).
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "audit (read-only) | j8 (data cleanup) | activate (honour a parked purchase)"
+        required: true
+        default: audit
+        type: choice
+        options: [audit, j8, activate]
+      code:
+        description: "U- display code (activate only)"
+        required: false
+        default: ""
+
+concurrency: production-maintenance
+
+jobs:
+  maintenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Build functions
+        working-directory: functions
+        run: npm ci && npm run build
+
+      - name: Write Service Account Credentials
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+
+      - name: Run ${{ inputs.task }}
+        env:
+          GCLOUD_PROJECT: prohost-f766f
+          FIREBASE_CONFIG: '{"projectId":"prohost-f766f","storageBucket":"prohost-f766f.firebasestorage.app"}'
+          TASK: ${{ inputs.task }}
+          CODE: ${{ inputs.code }}
+        run: node scripts/maintenance/run.js "$TASK" "$CODE"
