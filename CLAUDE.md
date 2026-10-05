@@ -294,6 +294,9 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
 
 - Crashlytics is on in debug and release (testers get debug APKs via App Distribution). Don't
   call `setUserId` or log PII — `public/privacy.html` promises crash logs are anonymised.
+- App Check is UNENFORCED on every Firebase service (2026-10-05, below 98% verified). Tester builds share one
+  registered debug token (GitHub secret `APP_CHECK_DEBUG_TOKEN`). Re-enforce only at ≥ 99% verified —
+  `docs/APP_CHECK.md`.
 - Every callable must use `onCall` from `functions/src/lib/callable.ts`, not
   `firebase-functions/v2/https`. That wrapper applies `ENFORCE_APP_CHECK` and logs
   `app_check_unverified` for calls without a valid token. Only flip `ENFORCE_APP_CHECK` to `true`
