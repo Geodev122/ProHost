@@ -94,7 +94,8 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
 - Pro Hosts are landlord-only: firestore.rules blocks them from creating bookings. They keep
   the My Rentals tab (read-only, for bookings made before upgrading; Re-book/Edit hidden)
   and My Favorites.
-  Demo seeding is debug-build only. `sendInquiryEmail` ("Email the Host") was retired on purpose.
+  Demo seeding is debug-build only; the purge is server-side (`admin/purgeDemoContent.ts`: every isDemo /
+  `demo-` user, listing and booking, their display codes and demo Auth users). `sendInquiryEmail` ("Email the Host") was retired on purpose.
 - Per-attendee pricing: a room configures WHEN it's offered (Hourly/Shift/Day, never Monthly),
   then `Subdivision.attendeeTiers` price it: total = attendees × the matching tier's per-person
   price, once for the whole booking. Offered slots carry `AttendeePricing.AVAILABILITY_MARKER_PRICE`

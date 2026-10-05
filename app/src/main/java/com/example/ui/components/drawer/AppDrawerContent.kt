@@ -357,13 +357,6 @@ fun AdminDrawerContent(
             selected = false,
             onClick = { onDrawerAction("admin_audit") }
         )
-        Spacer(modifier = Modifier.height(Spacing.xs))
-        ProHostDrawerItem(
-            label = "Governorate Nodes Status",
-            icon = Icons.Default.Dns,
-            selected = false,
-            onClick = { onDrawerAction("admin_gov") }
-        )
 
         // System Debugger stays at the very bottom of the admin side menu, below
         // every other destination. Debug-build-only, on top of the admin-role gate

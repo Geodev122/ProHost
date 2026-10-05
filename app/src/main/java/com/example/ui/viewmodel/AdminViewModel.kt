@@ -1204,9 +1204,16 @@ class AdminViewModel(
     fun purgeDemoContent() {
         viewModelScope.launch {
             try {
-                val purged = repository.purgeDemoContent()
+                // Server-side purge covers every demo document (the console holds no lists);
+                // the repository then drops any demo items still in this device's state.
+                val server = functionsClient.runAdminMaintenance("purgeDemoContent").getOrElse { e ->
+                    _events.emit(AdminUiEvent.ShowToast(e.toUserMessage("Couldn't purge demo content.")))
+                    return@launch
+                }
+                repository.purgeDemoContent()
                 refreshCounts()
-                _events.emit(AdminUiEvent.ShowToast("Successfully purged all demo content ($purged items removed)"))
+                val total = (server["total"] as? Number)?.toInt() ?: 0
+                _events.emit(AdminUiEvent.ShowToast("Purged all demo content ($total items removed)"))
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
