@@ -142,7 +142,9 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   `ui/screens/AvailabilitySheet.kt` (selection state stays in `SpaceDetailsScreenContent`, passed as
   `MutableState` holders). Repository: built-in schema catalogue `data/repository/DefaultSchema.kt`, CSV
   formatting `RepositoryCsv.kt`. NIGHTHAWK's screen checks count
-  only files declaring a public `fun XxxScreen(`. First-load lists show `ShimmerLoadingList`, not a spinner.
+  only files declaring a public `fun XxxScreen(`. First-load lists show `ShimmerLoadingList`, not a spinner. Profile and Premium are `LazyColumn`s: screen-level
+  `val`/`var`/effects sit above the list, dialogs below it, and a section that may be absent is gated outside
+  its `item {}` (an empty item would still get the 16 dp gap).
 - No secrets in code or scripts (GA4 secret comes from the caller or `GA4_API_SECRET`), and push tokens are
   never logged — NIGHTHAWK "Secrets & Token Hygiene".
 - Explore filters: country matching uses `effectiveCountry` (blank = Lebanon, legacy listings) and the

@@ -5,6 +5,7 @@ import android.media.AudioAttributes
 import android.media.MediaPlayer
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -172,247 +173,392 @@ fun OwnerSubscriptionsScreen(
     }
     val isAutoRenewing = currentPlayPurchase?.isAutoRenewing ?: true
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         if (pendingAutoPublishDraftId != null) {
-            ProHostAlertBanner(
-                message = "You have a saved Draft waiting on a subscription. Subscribe below and it will publish automatically.",
-                severity = ProHostAlertSeverity.INFO
-            )
+            item {
+                ProHostAlertBanner(
+                    message = "You have a saved Draft waiting on a subscription. Subscribe below and it will publish automatically.",
+                    severity = ProHostAlertSeverity.INFO
+                )
+            }
         }
-
         if (billingActivationPending) {
-            ProHostAlertBanner(
-                title = "Activating your subscription",
-                message = "This usually takes a few seconds. Taking too long? Contact support via WhatsApp.",
-                severity = ProHostAlertSeverity.SUCCESS,
-                icon = Icons.Default.HourglassTop,
-                action = { BannerDismiss { viewModel.billing.dismissBillingActivationPending() } }
-            )
+            item {
+                ProHostAlertBanner(
+                    title = "Activating your subscription",
+                    message = "This usually takes a few seconds. Taking too long? Contact support via WhatsApp.",
+                    severity = ProHostAlertSeverity.SUCCESS,
+                    icon = Icons.Default.HourglassTop,
+                    action = { BannerDismiss { viewModel.billing.dismissBillingActivationPending() } }
+                )
+            }
         }
+        // Only the lifecycle states SubscriptionStatusBanner renders get a row (no empty gap).
+        if (currentUser?.billingStatus in setOf("GRACE_PERIOD", "ON_HOLD", "PAUSED", "CANCELED", "PENDING")) {
+            item {
+                // Play's lifecycle states (grace period, account hold, paused, canceled, pending),
+                // each with the action Google recommends — fixing payment or resubscribing happens in
+                // Google Play's subscription center, deep-linked to this subscription.
+                SubscriptionStatusBanner(
+                    billingStatus = currentUser?.billingStatus,
+                    expiryDate = expiryDateString,
+                    onOpenPlay = activity?.let { act -> { viewModel.billing.openManageSubscriptions(act, PlayCatalog.PRODUCT_ID) } }
+                )
 
-        // Play's lifecycle states (grace period, account hold, paused, canceled, pending),
-        // each with the action Google recommends — fixing payment or resubscribing happens in
-        // Google Play's subscription center, deep-linked to this subscription.
-        SubscriptionStatusBanner(
-            billingStatus = currentUser?.billingStatus,
-            expiryDate = expiryDateString,
-            onOpenPlay = activity?.let { act -> { viewModel.billing.openManageSubscriptions(act, PlayCatalog.PRODUCT_ID) } }
-        )
-
+            }
+        }
         billingSuccess?.let { msg ->
-            ProHostAlertBanner(
-                message = msg,
-                severity = ProHostAlertSeverity.SUCCESS,
-                action = { BannerDismiss { viewModel.billing.clearBillingMessages() } }
-            )
+            item {
+                ProHostAlertBanner(
+                    message = msg,
+                    severity = ProHostAlertSeverity.SUCCESS,
+                    action = { BannerDismiss { viewModel.billing.clearBillingMessages() } }
+                )
+            }
         }
-
         billingError?.let { err ->
-            ProHostAlertBanner(
-                message = err,
-                severity = ProHostAlertSeverity.ERROR,
-                action = { BannerDismiss { viewModel.billing.clearBillingMessages() } }
-            )
+            item {
+                ProHostAlertBanner(
+                    message = err,
+                    severity = ProHostAlertSeverity.ERROR,
+                    action = { BannerDismiss { viewModel.billing.clearBillingMessages() } }
+                )
+            }
         }
-
-        // Hero: the currently-active package, replacing what used to be a plain
-        // "Subscription & Packages Hub" title/subtitle banner with no real data in
-        // it, sitting above a separate status card repeating the same information.
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.proColors.brandHeaderStart,
-            shadowElevation = 4.dp
-        ) {
-            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(color = MaterialTheme.colorScheme.secondary, shape = MaterialTheme.shapes.small) {
-                        Text(
-                            text = if (currentPlanId != null) PlayCatalog.planBadge(currentPlanId) else "ProHost Premium",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSecondary,
-                            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
-                        )
+        item {
+            // Hero: the currently-active package, replacing what used to be a plain
+            // "Subscription & Packages Hub" title/subtitle banner with no real data in
+            // it, sitting above a separate status card repeating the same information.
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.proColors.brandHeaderStart,
+                shadowElevation = 4.dp
+            ) {
+                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(color = MaterialTheme.colorScheme.secondary, shape = MaterialTheme.shapes.small) {
+                            Text(
+                                text = if (currentPlanId != null) PlayCatalog.planBadge(currentPlanId) else "ProHost Premium",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSecondary,
+                                modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                            )
+                        }
+                        if (currentPlanId != null) {
+                            Icon(Icons.Default.Verified, contentDescription = null, tint = MaterialTheme.proColors.headerSuccess, modifier = Modifier.size(24.dp))
+                        }
                     }
+
+                    Text(
+                        if (currentPlanId != null) PlayCatalog.planLabel(currentPlanId) else "Become a Pro Host",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.proColors.onBrandHeader
+                    )
+                    val currentPrice = currentPlanId?.takeIf { it in PlayCatalog.BASE_PLANS }
+                        ?.let { PlayOfferText.describe(premiumProduct, it) }
+                    Text(
+                        when {
+                            currentPrice != null -> "$currentPrice · unlimited workspace listings"
+                            currentPlanId != null -> "Unlimited workspace listings and booking requests."
+                            else -> "Subscribe to ProHost Premium to publish unlimited workspace listings."
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f)
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.3f))
+
                     if (currentPlanId != null) {
-                        Icon(Icons.Default.Verified, contentDescription = null, tint = MaterialTheme.proColors.headerSuccess, modifier = Modifier.size(24.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column {
+                                Text(
+                                    when {
+                                        isLifetimeGrant -> "Expires"
+                                        !isAutoRenewing && remainingDays != null -> "Ends"
+                                        else -> "Renews"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f)
+                                )
+                                Text(
+                                    when {
+                                        isLifetimeGrant -> "Never"
+                                        remainingDays == null -> "Expired"
+                                        remainingDays == 0 -> "< 1 day"
+                                        expiryDateString != null -> expiryDateString
+                                        else -> "$remainingDays days"
+                                    },
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (remainingDays != null || isLifetimeGrant) MaterialTheme.proColors.onBrandHeader else MaterialTheme.proColors.headerError
+                                )
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text("Listings", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f))
+                                Text(
+                                    "${ownerSpaces.size} · Unlimited",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.proColors.onBrandHeader
+                                )
+                            }
+                        }
+                        when {
+                            isSubscriptionExpired -> Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.proColors.headerError, modifier = Modifier.size(14.dp))
+                                Text(
+                                    "Subscription expired — your listings are hidden until you renew",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.proColors.headerError
+                                )
+                            }
+                            isForcedUpgrade || isLifetimeGrant -> Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(Icons.Default.CardGiftcard, contentDescription = null, tint = MaterialTheme.proColors.headerSuccess, modifier = Modifier.size(14.dp))
+                                Text(
+                                    "Complimentary access granted by ProHost",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.proColors.headerSuccess
+                                )
+                            }
+                            !isAutoRenewing && remainingDays != null -> Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(Icons.Default.EventBusy, contentDescription = null, tint = MaterialTheme.proColors.headerWarning, modifier = Modifier.size(14.dp))
+                                Text(
+                                    "Cancelled — access continues until $expiryDateString",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.proColors.headerWarning
+                                )
+                            }
+                            remainingDays != null -> Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(Icons.Default.Autorenew, contentDescription = null, tint = MaterialTheme.proColors.headerSuccess, modifier = Modifier.size(14.dp))
+                                Text(
+                                    "Renews automatically via Google Play",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.proColors.headerSuccess
+                                )
+                            }
+                            else -> Unit
+                        }
+                    }
+
+                    val activity = androidx.activity.compose.LocalActivity.current
+
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        if ((currentPlayPurchase != null || currentPlanId in PlayCatalog.BASE_PLANS) && activity != null) {
+                            TextButton(
+                                onClick = { viewModel.billing.openManageSubscriptions(activity, PlayCatalog.PRODUCT_ID) },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.proColors.onBrandHeader)
+                            ) {
+                                Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Manage in Play Store", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+
+                        if (activity != null) {
+                            TextButton(
+                                onClick = { showRedeemDialog = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.proColors.onBrandHeader)
+                            ) {
+                                Icon(Icons.Default.CardGiftcard, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Redeem Code", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+
+                        if (activity != null) {
+                            TextButton(
+                                onClick = { viewModel.billing.openPlayOrderHistory(activity) },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.proColors.onBrandHeader)
+                            ) {
+                                Icon(Icons.Default.Receipt, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Order History", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
+
+                    TextButton(
+                        onClick = { viewModel.billing.refreshPlayPurchases(context, userInitiated = true) },
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    ) {
+                        Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Restore Purchases", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f))
+                    }
+
+                    // New members subscribe from the plan cards below (each shows its own price and
+                    // terms); this shortcut is only for renewing the plan that expired, with its
+                    // terms right under the button (Play policy: terms next to every purchase button).
+                    if (isSubscriptionExpired && enabledPlans.isNotEmpty()) {
+                        val upsellPlan = currentPlanId?.takeIf { it in enabledPlans } ?: enabledPlans.lastOrNull()
+                        CustomButton(
+                            text = "Renew Subscription",
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                upsellPlan?.let { plan ->
+                                    if (currentUser?.canHost(com.example.data.auth.PhoneLink.isLinked()) == false) {
+                                        pendingBasePlanId = plan
+                                        showKycDialog = true
+                                    } else if (activity != null) {
+                                        viewModel.billing.launchGooglePaySubscription(activity, plan)
+                                    } else {
+                                        Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            },
+                            variant = CustomButtonVariant.PRIMARY,
+                            icon = Icons.Default.AddCircle,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        upsellPlan?.let { plan ->
+                            PlayOfferText.describe(premiumProduct, plan)?.let { terms ->
+                                Text(
+                                    text = "$terms · renews automatically until you cancel",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
                     }
                 }
+            }
 
+        }
+        item {
+            // Section header
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 4.dp, top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Text(
-                    if (currentPlanId != null) PlayCatalog.planLabel(currentPlanId) else "Become a Pro Host",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.proColors.onBrandHeader
+                    text = "CHOOSE YOUR PLAN",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                val currentPrice = currentPlanId?.takeIf { it in PlayCatalog.BASE_PLANS }
-                    ?.let { PlayOfferText.describe(premiumProduct, it) }
-                Text(
-                    when {
-                        currentPrice != null -> "$currentPrice · unlimited workspace listings"
-                        currentPlanId != null -> "Unlimited workspace listings and booking requests."
-                        else -> "Subscribe to ProHost Premium to publish unlimited workspace listings."
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f)
-                )
-
-                HorizontalDivider(color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.3f))
-
-                if (currentPlanId != null) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column {
-                            Text(
-                                when {
-                                    isLifetimeGrant -> "Expires"
-                                    !isAutoRenewing && remainingDays != null -> "Ends"
-                                    else -> "Renews"
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f)
-                            )
-                            Text(
-                                when {
-                                    isLifetimeGrant -> "Never"
-                                    remainingDays == null -> "Expired"
-                                    remainingDays == 0 -> "< 1 day"
-                                    expiryDateString != null -> expiryDateString
-                                    else -> "$remainingDays days"
-                                },
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = if (remainingDays != null || isLifetimeGrant) MaterialTheme.proColors.onBrandHeader else MaterialTheme.proColors.headerError
-                            )
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text("Listings", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f))
-                            Text(
-                                "${ownerSpaces.size} · Unlimited",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.proColors.onBrandHeader
-                            )
-                        }
-                    }
-                    when {
-                        isSubscriptionExpired -> Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.proColors.headerError, modifier = Modifier.size(14.dp))
-                            Text(
-                                "Subscription expired — your listings are hidden until you renew",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.proColors.headerError
-                            )
-                        }
-                        isForcedUpgrade || isLifetimeGrant -> Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(Icons.Default.CardGiftcard, contentDescription = null, tint = MaterialTheme.proColors.headerSuccess, modifier = Modifier.size(14.dp))
-                            Text(
-                                "Complimentary access granted by ProHost",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.proColors.headerSuccess
-                            )
-                        }
-                        !isAutoRenewing && remainingDays != null -> Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(Icons.Default.EventBusy, contentDescription = null, tint = MaterialTheme.proColors.headerWarning, modifier = Modifier.size(14.dp))
-                            Text(
-                                "Cancelled — access continues until $expiryDateString",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.proColors.headerWarning
-                            )
-                        }
-                        remainingDays != null -> Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(Icons.Default.Autorenew, contentDescription = null, tint = MaterialTheme.proColors.headerSuccess, modifier = Modifier.size(14.dp))
-                            Text(
-                                "Renews automatically via Google Play",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.proColors.headerSuccess
-                            )
-                        }
-                        else -> Unit
-                    }
+                if (pricesLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.secondary)
                 }
+            }
 
-                val activity = androidx.activity.compose.LocalActivity.current
-
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    if ((currentPlayPurchase != null || currentPlanId in PlayCatalog.BASE_PLANS) && activity != null) {
-                        TextButton(
-                            onClick = { viewModel.billing.openManageSubscriptions(activity, PlayCatalog.PRODUCT_ID) },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.proColors.onBrandHeader)
-                        ) {
-                            Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Manage in Play Store", style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-
-                    if (activity != null) {
-                        TextButton(
-                            onClick = { showRedeemDialog = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.proColors.onBrandHeader)
-                        ) {
-                            Icon(Icons.Default.CardGiftcard, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Redeem Code", style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-
-                    if (activity != null) {
-                        TextButton(
-                            onClick = { viewModel.billing.openPlayOrderHistory(activity) },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.proColors.onBrandHeader)
-                        ) {
-                            Icon(Icons.Default.Receipt, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Order History", style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-                }
-
-                TextButton(
-                    onClick = { viewModel.billing.refreshPlayPurchases(context, userInitiated = true) },
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+        }
+        // Show a warning when billing is connected but returned zero products — lets the
+        // host distinguish "not yet loaded" from "connected but misconfigured in Play Console".
+        if (billingConnected && !pricesLoading && premiumProduct == null) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    shape = MaterialTheme.shapes.medium
                 ) {
-                    Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Restore Purchases", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f))
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(
+                                Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                "Plans couldn't be loaded from Google Play.",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                        Text(
+                            "Make sure you're using the Play Store version of the app, then tap Retry.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+                        )
+                        OutlinedButton(
+                            onClick = { viewModel.billing.retryBillingQuery(context) },
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.5f))
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Retry", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
                 }
-
-                // New members subscribe from the plan cards below (each shows its own price and
-                // terms); this shortcut is only for renewing the plan that expired, with its
-                // terms right under the button (Play policy: terms next to every purchase button).
-                if (isSubscriptionExpired && enabledPlans.isNotEmpty()) {
-                    val upsellPlan = currentPlanId?.takeIf { it in enabledPlans } ?: enabledPlans.lastOrNull()
-                    CustomButton(
-                        text = "Renew Subscription",
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            upsellPlan?.let { plan ->
+            }
+        }
+        item {
+            if (enabledPlans.isEmpty() && pricesLoading) {
+                // Plan-card skeletons while Google Play answers the product query.
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    repeat(2) { ShimmerLoadingCard(height = 96.dp) }
+                }
+            } else if (enabledPlans.isEmpty()) {
+                Text(
+                    if (pricesLoading) "Loading ProHost Premium from Google Play…" else "ProHost Premium plans will appear here once Google Play responds.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 4.dp)
+                )
+            } else {
+                // Vertical list — all plans visible without horizontal scroll.
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    val hasLivePlaySubscription = currentPlanId in PlayCatalog.BASE_PLANS && !isSubscriptionExpired
+                    enabledPlans.forEach { plan ->
+                        val isCurrent = currentPlanId == plan && !isSubscriptionExpired
+                        // Play: make the current plan and the options to change it obvious. Upgrades
+                        // (to yearly) apply now with credit for unused time; downgrades start at renewal.
+                        val isUpgrade = plan == PlayCatalog.BASE_PLAN_YEARLY
+                        val actionLabel = when {
+                            isForcedUpgrade -> "Included in your access"
+                            hasLivePlaySubscription && !isCurrent -> "Switch to ${PlayCatalog.planBadge(plan)}"
+                            else -> "Subscribe"
+                        }
+                        val switchNote = if (hasLivePlaySubscription && !isCurrent) {
+                            if (isUpgrade) "Starts now — Google Play credits the unused part of your current plan."
+                            else "Starts on your renewal date${expiryDateString?.let { " ($it)" }.orEmpty()}; your current plan runs until then."
+                        } else null
+                        CompactPlanCard(
+                            basePlanId = plan,
+                            isCurrent = isCurrent,
+                            playProduct = premiumProduct,
+                            savingsPercent = if (plan == PlayCatalog.BASE_PLAN_YEARLY) yearlySavings else null,
+                            actionLabel = actionLabel,
+                            actionEnabled = !isForcedUpgrade,
+                            footnote = switchNote,
+                            modifier = Modifier.fillMaxWidth(),
+                            onSelect = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                // Same KYC gate as the primary CTA above — this per-plan
+                                // "Select" button used to skip it entirely and let an
+                                // un-verified user reach Google Pay billing directly.
                                 if (currentUser?.canHost(com.example.data.auth.PhoneLink.isLinked()) == false) {
                                     pendingBasePlanId = plan
                                     showKycDialog = true
@@ -422,149 +568,22 @@ fun OwnerSubscriptionsScreen(
                                     Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
                                 }
                             }
-                        },
-                        variant = CustomButtonVariant.PRIMARY,
-                        icon = Icons.Default.AddCircle,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    upsellPlan?.let { plan ->
-                        PlayOfferText.describe(premiumProduct, plan)?.let { terms ->
-                            Text(
-                                text = "$terms · renews automatically until you cancel",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f),
-                                modifier = Modifier.fillMaxWidth(),
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Section header
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 4.dp, top = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "CHOOSE YOUR PLAN",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            if (pricesLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.secondary)
-            }
-        }
-
-        // Show a warning when billing is connected but returned zero products — lets the
-        // host distinguish "not yet loaded" from "connected but misconfigured in Play Console".
-        if (billingConnected && !pricesLoading && premiumProduct == null) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(
-                            Icons.Default.Warning,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            "Plans couldn't be loaded from Google Play.",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onErrorContainer
                         )
                     }
-                    Text(
-                        "Make sure you're using the Play Store version of the app, then tap Retry.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
-                    )
-                    OutlinedButton(
-                        onClick = { viewModel.billing.retryBillingQuery(context) },
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.5f))
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Retry", style = MaterialTheme.typography.labelSmall)
-                    }
                 }
+                // Play subscriptions policy: billing frequency, auto-renewal, how to cancel and
+                // whether a subscription is required — visible without any extra tap.
+                SubscriptionTermsFooter(
+                    onManage = activity?.let { act -> { viewModel.billing.openManageSubscriptions(act, PlayCatalog.PRODUCT_ID) } },
+                    onOpenLegal = { showLegalDocuments = true }
+                )
             }
-        }
 
-        if (enabledPlans.isEmpty() && pricesLoading) {
-            // Plan-card skeletons while Google Play answers the product query.
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                repeat(2) { ShimmerLoadingCard(height = 96.dp) }
-            }
-        } else if (enabledPlans.isEmpty()) {
-            Text(
-                if (pricesLoading) "Loading ProHost Premium from Google Play…" else "ProHost Premium plans will appear here once Google Play responds.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp)
-            )
-        } else {
-            // Vertical list — all plans visible without horizontal scroll.
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                val hasLivePlaySubscription = currentPlanId in PlayCatalog.BASE_PLANS && !isSubscriptionExpired
-                enabledPlans.forEach { plan ->
-                    val isCurrent = currentPlanId == plan && !isSubscriptionExpired
-                    // Play: make the current plan and the options to change it obvious. Upgrades
-                    // (to yearly) apply now with credit for unused time; downgrades start at renewal.
-                    val isUpgrade = plan == PlayCatalog.BASE_PLAN_YEARLY
-                    val actionLabel = when {
-                        isForcedUpgrade -> "Included in your access"
-                        hasLivePlaySubscription && !isCurrent -> "Switch to ${PlayCatalog.planBadge(plan)}"
-                        else -> "Subscribe"
-                    }
-                    val switchNote = if (hasLivePlaySubscription && !isCurrent) {
-                        if (isUpgrade) "Starts now — Google Play credits the unused part of your current plan."
-                        else "Starts on your renewal date${expiryDateString?.let { " ($it)" }.orEmpty()}; your current plan runs until then."
-                    } else null
-                    CompactPlanCard(
-                        basePlanId = plan,
-                        isCurrent = isCurrent,
-                        playProduct = premiumProduct,
-                        savingsPercent = if (plan == PlayCatalog.BASE_PLAN_YEARLY) yearlySavings else null,
-                        actionLabel = actionLabel,
-                        actionEnabled = !isForcedUpgrade,
-                        footnote = switchNote,
-                        modifier = Modifier.fillMaxWidth(),
-                        onSelect = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            // Same KYC gate as the primary CTA above — this per-plan
-                            // "Select" button used to skip it entirely and let an
-                            // un-verified user reach Google Pay billing directly.
-                            if (currentUser?.canHost(com.example.data.auth.PhoneLink.isLinked()) == false) {
-                                pendingBasePlanId = plan
-                                showKycDialog = true
-                            } else if (activity != null) {
-                                viewModel.billing.launchGooglePaySubscription(activity, plan)
-                            } else {
-                                Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    )
-                }
-            }
-            // Play subscriptions policy: billing frequency, auto-renewal, how to cancel and
-            // whether a subscription is required — visible without any extra tap.
-            SubscriptionTermsFooter(
-                onManage = activity?.let { act -> { viewModel.billing.openManageSubscriptions(act, PlayCatalog.PRODUCT_ID) } },
-                onOpenLegal = { showLegalDocuments = true }
-            )
         }
-
-        Spacer(modifier = Modifier.height(Spacing.sm))
+        item {
+            Spacer(modifier = Modifier.height(Spacing.sm))
+    
+        }
     }
 
     if (showKycDialog) {
