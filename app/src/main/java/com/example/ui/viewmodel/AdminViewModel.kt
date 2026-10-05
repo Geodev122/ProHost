@@ -196,6 +196,24 @@ class AdminViewModel(
 
     // --- Billing rescue (billingRescue.ts): health check + paid purchases not active yet ---
 
+    /** Sends a server self-test through the RTDN topic, then re-checks billing health. */
+    fun sendRtdnSelfTest() {
+        _uiState.update { it.copy(isCheckingBilling = true) }
+        launchSafe {
+            val sent = functionsClient.billingRtdnSelfTest()
+            if (sent.isFailure) {
+                _uiState.update { it.copy(isCheckingBilling = false) }
+                _events.emit(AdminUiEvent.ShowToast(
+                    sent.exceptionOrNull()?.toUserMessage("Couldn't send the test notification.")
+                        ?: "Couldn't send the test notification."
+                ))
+                return@launchSafe
+            }
+            kotlinx.coroutines.delay(8_000)
+            refreshBilling()
+        }
+    }
+
     fun refreshBilling() {
         _uiState.update { it.copy(isCheckingBilling = true) }
         launchSafe {

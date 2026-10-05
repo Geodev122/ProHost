@@ -55,10 +55,13 @@ export const playBillingRtdn = onMessagePublished(
       return;
     }
 
-    // Heartbeat for Admin › Packages' billing health check: proves RTDN is wired.
-    await getFirestore().doc("app_config/billing_health")
-      .set({ lastRtdnAt: Date.now(), lastRtdnPackage: String(notification.packageName ?? "") }, { merge: true })
-      .catch(() => undefined);
+    // Heartbeat for Admin › Packages' billing health check. A self-test (billingRtdnSelfTest,
+    // published by the server itself) only proves topic → function; lastRtdnAt is set only by
+    // messages Google Play published, so it proves Play Console → topic as well.
+    const heartbeat = notification.selfTest === true
+      ? { lastSelfTestAt: Date.now() }
+      : { lastRtdnAt: Date.now(), lastRtdnPackage: String(notification.packageName ?? "") };
+    await getFirestore().doc("app_config/billing_health").set(heartbeat, { merge: true }).catch(() => undefined);
 
     // Test notifications (from Play Console's "Send test notification") have no
     // subscriptionNotification — just ignore them after a log line.

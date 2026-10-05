@@ -74,6 +74,7 @@ export const billingHealthCheck = onCall(async (request) => {
     message: playApi === "ok" ? "The server can verify and acknowledge Google Play purchases." : message,
     serviceAccount,
     lastRtdnAt: typeof health.lastRtdnAt === "number" ? health.lastRtdnAt : null,
+    lastSelfTestAt: typeof health.lastSelfTestAt === "number" ? health.lastSelfTestAt : null,
     pendingCount: pendingSnap.data().count,
     unlinkedCount: unlinkedSnap.data().count,
   };
@@ -198,4 +199,33 @@ export const adminActivatePurchase = onCall<{
   }
   if (outcome.status === "play_error") return { status: "play_error", kind: outcome.error.kind, message: outcome.error.message };
   return { status: outcome.status };
+});
+
+/**
+ * Admin › Packages › Billing health › "Send test": publishes a synthetic Play test
+ * notification (selfTest: true) to the RTDN topic. playBillingRtdn records it as
+ * app_config/billing_health.lastSelfTestAt, proving topic → function independently of
+ * Play Console (which still has to publish to the same topic — lastRtdnAt).
+ */
+export const billingRtdnSelfTest = onCall(async (request) => {
+  requireAdmin(request);
+  const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || "prohost-f766f";
+  const auth = new google.auth.GoogleAuth({ scopes: ["https://www.googleapis.com/auth/pubsub"] });
+  const pubsub = google.pubsub({ version: "v1", auth });
+  const message = {
+    version: "1.0",
+    packageName: PACKAGE_NAME,
+    eventTimeMillis: String(Date.now()),
+    selfTest: true,
+    testNotification: { version: "1.0" },
+  };
+  try {
+    await pubsub.projects.topics.publish({
+      topic: `projects/${projectId}/topics/play-billing-rtdn`,
+      requestBody: { messages: [{ data: Buffer.from(JSON.stringify(message)).toString("base64") }] },
+    });
+  } catch (e) {
+    throw new HttpsError("unavailable", "Couldn't publish the test notification. Try again in a minute.");
+  }
+  return { published: true };
 });

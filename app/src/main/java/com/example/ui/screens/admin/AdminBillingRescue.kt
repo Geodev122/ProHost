@@ -85,16 +85,33 @@ internal fun AdminBillingRescueCard(uiState: AdminUiState, adminViewModel: Admin
                     }
                 }
             }
-            if (health?.lastRtdnAt == null && health != null) {
+            if (health != null) {
                 Text(
-                    "Real-time notifications: Play Console › Monetize › Monetization setup › Real-time developer " +
-                        "notifications → topic projects/<project>/topics/play-billing-rtdn.",
+                    "Server self-test (topic → server): ${stamp(health.lastSelfTestAt)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            TextButton(onClick = { adminViewModel.refreshBilling() }, enabled = !uiState.isCheckingBilling) {
-                Text(if (uiState.isCheckingBilling) "Checking…" else "Check again")
+            if (health?.lastRtdnAt == null && health != null) {
+                SelectionContainer {
+                    Text(
+                        "No notification from Google Play yet. 1) Play Console › Monetize with Play › Monetization setup › " +
+                            "Real-time developer notifications → topic projects/prohost-f766f/topics/play-billing-rtdn. " +
+                            "2) Google Cloud › Pub/Sub › play-billing-rtdn › Permissions › add " +
+                            "google-play-developer-notifications@system.gserviceaccount.com as Pub/Sub Publisher. " +
+                            "3) Send test notification in Play Console, then Check again.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = { adminViewModel.refreshBilling() }, enabled = !uiState.isCheckingBilling) {
+                    Text(if (uiState.isCheckingBilling) "Checking…" else "Check again")
+                }
+                TextButton(onClick = { adminViewModel.sendRtdnSelfTest() }, enabled = !uiState.isCheckingBilling) {
+                    Text("Send server self-test")
+                }
             }
         }
     }

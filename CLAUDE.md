@@ -256,7 +256,9 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   them and their renewals. Otherwise Play refunds them after 3 days.
 - Billing rescue (`billing/billingRescue.ts`, Admin › Packages + the user dossier): `billingHealthCheck`
   (probes subscriptionsv2 with a dummy token — 400/404 = credentials OK, 401/403 = Play Console access missing;
-  RTDN heartbeat in `app_config/billing_health`), `adminBillingPending` (parked + unlinked purchases, hours left
+  RTDN heartbeat in `app_config/billing_health`: `lastRtdnAt` only from Play-published messages, `lastSelfTestAt` from the
+  admin "Send server self-test" button → `billingRtdnSelfTest`, which proves topic → function. Play needs
+  `google-play-developer-notifications@system.gserviceaccount.com` as Pub/Sub Publisher on `play-billing-rtdn`), `adminBillingPending` (parked + unlinked purchases, hours left
   before Play's 3-day refund) and `adminActivatePurchase` (Retry / Activate for an account, with explicit
   confirmation when the purchase is tagged for another account). A purchase tagged for another ProHost account is
   parked with `needsAdmin` (never silently dropped) and admins get an `OWNERSHIP_MISMATCH` push. An admin

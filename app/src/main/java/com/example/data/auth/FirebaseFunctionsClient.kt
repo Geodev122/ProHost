@@ -285,6 +285,12 @@ open class FirebaseFunctionsClient {
         BillingHealth.fromMap(callAdmin("billingHealthCheck"))
     }.onFailure { Log.e(tag, "billingHealthCheck failed: ${it.message}", it) }
 
+    /** Publishes a synthetic Play test notification to the RTDN topic (proves topic → function). */
+    suspend fun billingRtdnSelfTest(): Result<Unit> = runCatching {
+        callAdmin("billingRtdnSelfTest")
+        Unit
+    }.onFailure { Log.e(tag, "billingRtdnSelfTest failed: ${it.message}", it) }
+
     suspend fun adminBillingPending(): Result<List<PendingPayment>> = runCatching {
         PendingPayment.listFrom(callAdmin("adminBillingPending"))
     }.onFailure { Log.e(tag, "adminBillingPending failed: ${it.message}", it) }

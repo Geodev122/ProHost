@@ -19,7 +19,7 @@ export { configureGa4ApiSecret } from "./admin/ga4Config";
 export { backfillEmailVerified } from "./admin/backfillEmailVerified";
 export { migrateLegacyListingFields } from "./admin/migrateLegacyFields";
 export { purgeDemoContent } from "./admin/purgeDemoContent";
-export { billingHealthCheck, adminBillingPending, adminActivatePurchase } from "./billing/billingRescue";
+export { billingHealthCheck, adminBillingPending, adminActivatePurchase, billingRtdnSelfTest } from "./billing/billingRescue";
 export {
   adminCounts,
   adminSearch,

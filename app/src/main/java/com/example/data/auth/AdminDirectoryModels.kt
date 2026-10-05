@@ -170,6 +170,8 @@ data class BillingHealth(
     val message: String,
     val serviceAccount: String?,
     val lastRtdnAt: Long?,
+    /** Last server self-test (billingRtdnSelfTest) that reached playBillingRtdn. */
+    val lastSelfTestAt: Long?,
     val pendingCount: Int,
     val unlinkedCount: Int
 ) {
@@ -182,6 +184,7 @@ data class BillingHealth(
             message = m.str("message"),
             serviceAccount = m["serviceAccount"] as? String,
             lastRtdnAt = m.long("lastRtdnAt"),
+            lastSelfTestAt = m.long("lastSelfTestAt"),
             pendingCount = m.int("pendingCount"),
             unlinkedCount = m.int("unlinkedCount")
         )
