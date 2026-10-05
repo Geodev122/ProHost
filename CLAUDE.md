@@ -47,7 +47,8 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   purchase, activation parked/stuck/given up. Billing pushes use the `prohost_billing` channel. The 3-day
   "ends soon" push goes only to subscriptions that won't renew (canceled) — never to auto-renewing ones.
 - Every billing outcome goes through `PlayBillingManager.billingMessages` (typed, buffered) and
-  `ProHostViewModel` routes it into `billingError`/`billingSuccess`. Never emit a billing result only to
+  `BillingController` (`ui/viewmodel/BillingController.kt`, owned by `ProHostViewModel` as `viewModel.billing`
+  — all app billing state and actions live there) routes it into `billingError`/`billingSuccess`. Never emit a billing result only to
   Logcat. `launchSubscriptionPurchase` returns whether Play's sheet opened.
 - Analytics: `premium_page_viewed`, `premium_plan_viewed`, `premium_checkout_started`,
   `premium_purchase_failed`, `premium_purchase_pending`, `premium_restore_result` (app);

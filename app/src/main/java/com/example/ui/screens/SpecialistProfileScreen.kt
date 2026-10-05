@@ -869,7 +869,7 @@ fun SpecialistProfileScreen(
                         TextButton(
                             onClick = {
                                 settingsActivity?.let {
-                                    viewModel.openManageSubscriptions(it, com.example.data.billing.PlayCatalog.PRODUCT_ID)
+                                    viewModel.billing.openManageSubscriptions(it, com.example.data.billing.PlayCatalog.PRODUCT_ID)
                                 }
                             },
                             enabled = settingsActivity != null
@@ -949,7 +949,7 @@ fun SpecialistProfileScreen(
                                     style = MaterialTheme.typography.bodySmall
                                 )
                                 if (activity != null) {
-                                    TextButton(onClick = { viewModel.openManageSubscriptions(activity, user.ownerPackageId) }) {
+                                    TextButton(onClick = { viewModel.billing.openManageSubscriptions(activity, user.ownerPackageId) }) {
                                         Text("Manage subscription in Google Play")
                                     }
                                 }

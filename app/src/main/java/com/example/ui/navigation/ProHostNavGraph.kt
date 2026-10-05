@@ -789,8 +789,8 @@ fun ProHostAppRoot(
     androidx.compose.runtime.DisposableEffect(lifecycleOwner, autoLinkUser?.id, hasPlaySubscription) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME && autoLinkUser != null) {
-                viewModel.refreshPlayPurchases(appContext)
-                if (hasPlaySubscription && rootActivity != null) viewModel.showBillingInAppMessages(rootActivity)
+                viewModel.billing.refreshPlayPurchases(appContext)
+                if (hasPlaySubscription && rootActivity != null) viewModel.billing.showBillingInAppMessages(rootActivity)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)

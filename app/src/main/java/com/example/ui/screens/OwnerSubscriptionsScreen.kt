@@ -70,31 +70,31 @@ fun OwnerSubscriptionsScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val ownerSpaces by viewModel.ownerSpaces.collectAsState()
     val pendingAutoPublishDraftId by viewModel.pendingAutoPublishDraftId.collectAsState()
-    val billingActivationPending by viewModel.billingActivationPending.collectAsState()
+    val billingActivationPending by viewModel.billing.billingActivationPending.collectAsState()
     // A plan that activated without the pre-purchase KYC step (promo redemption, restore)
     // asks for the missing details right away; nothing is purchased after it.
-    val kycPromptAfterActivation by viewModel.kycPromptAfterActivation.collectAsState()
+    val kycPromptAfterActivation by viewModel.billing.kycPromptAfterActivation.collectAsState()
     LaunchedEffect(kycPromptAfterActivation) {
         if (kycPromptAfterActivation) {
-            viewModel.consumeKycPromptAfterActivation()
+            viewModel.billing.consumeKycPromptAfterActivation()
             pendingBasePlanId = null
             showKycDialog = true
         }
     }
-    val billingError by viewModel.billingError.collectAsState()
-    val billingSuccess by viewModel.billingSuccess.collectAsState()
-    val playBillingProducts by viewModel.playBillingProducts.collectAsState()
-    val billingConnected by viewModel.playBillingConnected.collectAsState()
-    val playActivePurchases by viewModel.playActivePurchases.collectAsState()
+    val billingError by viewModel.billing.billingError.collectAsState()
+    val billingSuccess by viewModel.billing.billingSuccess.collectAsState()
+    val playBillingProducts by viewModel.billing.playBillingProducts.collectAsState()
+    val billingConnected by viewModel.billing.playBillingConnected.collectAsState()
+    val playActivePurchases by viewModel.billing.playActivePurchases.collectAsState()
 
     // Refresh purchases every time the screen resumes (e.g. returning from Play Store).
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.refreshPlayPurchases(context)
+                viewModel.billing.refreshPlayPurchases(context)
                 // Fresh ProductDetails each visit: stale ones can make launchBillingFlow fail.
-                viewModel.retryBillingQuery(context)
+                viewModel.billing.retryBillingQuery(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -103,7 +103,7 @@ fun OwnerSubscriptionsScreen(
 
     // Show Play's native in-app subscription messages on screen entry (grace period, hold, etc.).
     LaunchedEffect(Unit) {
-        activity?.let { viewModel.showBillingInAppMessages(it) }
+        activity?.let { viewModel.billing.showBillingInAppMessages(it) }
     }
 
     // SO3: Play branded chime when a purchase completes (billingSuccess transitions to non-null).
@@ -192,7 +192,7 @@ fun OwnerSubscriptionsScreen(
                 message = "This usually takes a few seconds. Taking too long? Contact support via WhatsApp.",
                 severity = ProHostAlertSeverity.SUCCESS,
                 icon = Icons.Default.HourglassTop,
-                action = { BannerDismiss { viewModel.dismissBillingActivationPending() } }
+                action = { BannerDismiss { viewModel.billing.dismissBillingActivationPending() } }
             )
         }
 
@@ -202,14 +202,14 @@ fun OwnerSubscriptionsScreen(
         SubscriptionStatusBanner(
             billingStatus = currentUser?.billingStatus,
             expiryDate = expiryDateString,
-            onOpenPlay = activity?.let { act -> { viewModel.openManageSubscriptions(act, PlayCatalog.PRODUCT_ID) } }
+            onOpenPlay = activity?.let { act -> { viewModel.billing.openManageSubscriptions(act, PlayCatalog.PRODUCT_ID) } }
         )
 
         billingSuccess?.let { msg ->
             ProHostAlertBanner(
                 message = msg,
                 severity = ProHostAlertSeverity.SUCCESS,
-                action = { BannerDismiss { viewModel.clearBillingMessages() } }
+                action = { BannerDismiss { viewModel.billing.clearBillingMessages() } }
             )
         }
 
@@ -217,7 +217,7 @@ fun OwnerSubscriptionsScreen(
             ProHostAlertBanner(
                 message = err,
                 severity = ProHostAlertSeverity.ERROR,
-                action = { BannerDismiss { viewModel.clearBillingMessages() } }
+                action = { BannerDismiss { viewModel.billing.clearBillingMessages() } }
             )
         }
 
@@ -359,7 +359,7 @@ fun OwnerSubscriptionsScreen(
                 Column(modifier = Modifier.fillMaxWidth()) {
                     if ((currentPlayPurchase != null || currentPlanId in PlayCatalog.BASE_PLANS) && activity != null) {
                         TextButton(
-                            onClick = { viewModel.openManageSubscriptions(activity, PlayCatalog.PRODUCT_ID) },
+                            onClick = { viewModel.billing.openManageSubscriptions(activity, PlayCatalog.PRODUCT_ID) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.proColors.onBrandHeader)
                         ) {
@@ -383,7 +383,7 @@ fun OwnerSubscriptionsScreen(
 
                     if (activity != null) {
                         TextButton(
-                            onClick = { viewModel.openPlayOrderHistory(activity) },
+                            onClick = { viewModel.billing.openPlayOrderHistory(activity) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.proColors.onBrandHeader)
                         ) {
@@ -395,7 +395,7 @@ fun OwnerSubscriptionsScreen(
                 }
 
                 TextButton(
-                    onClick = { viewModel.refreshPlayPurchases(context, userInitiated = true) },
+                    onClick = { viewModel.billing.refreshPlayPurchases(context, userInitiated = true) },
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 ) {
                     Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f))
@@ -417,7 +417,7 @@ fun OwnerSubscriptionsScreen(
                                     pendingBasePlanId = plan
                                     showKycDialog = true
                                 } else if (activity != null) {
-                                    viewModel.launchGooglePaySubscription(activity, plan)
+                                    viewModel.billing.launchGooglePaySubscription(activity, plan)
                                 } else {
                                     Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
                                 }
@@ -488,7 +488,7 @@ fun OwnerSubscriptionsScreen(
                         color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
                     )
                     OutlinedButton(
-                        onClick = { viewModel.retryBillingQuery(context) },
+                        onClick = { viewModel.billing.retryBillingQuery(context) },
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.5f))
                     ) {
@@ -548,7 +548,7 @@ fun OwnerSubscriptionsScreen(
                                 pendingBasePlanId = plan
                                 showKycDialog = true
                             } else if (activity != null) {
-                                viewModel.launchGooglePaySubscription(activity, plan)
+                                viewModel.billing.launchGooglePaySubscription(activity, plan)
                             } else {
                                 Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
                             }
@@ -559,7 +559,7 @@ fun OwnerSubscriptionsScreen(
             // Play subscriptions policy: billing frequency, auto-renewal, how to cancel and
             // whether a subscription is required — visible without any extra tap.
             SubscriptionTermsFooter(
-                onManage = activity?.let { act -> { viewModel.openManageSubscriptions(act, PlayCatalog.PRODUCT_ID) } },
+                onManage = activity?.let { act -> { viewModel.billing.openManageSubscriptions(act, PlayCatalog.PRODUCT_ID) } },
                 onOpenLegal = { showLegalDocuments = true }
             )
         }
@@ -579,7 +579,7 @@ fun OwnerSubscriptionsScreen(
                     showKycDialog = false
                     pendingBasePlanId?.let { pid ->
                         if (activity != null) {
-                            viewModel.launchGooglePaySubscription(activity, pid)
+                            viewModel.billing.launchGooglePaySubscription(activity, pid)
                         }
                     }
                 }
@@ -620,7 +620,7 @@ fun OwnerSubscriptionsScreen(
                         showRedeemDialog = false
                         redeemCodeInput = ""
                         if (activity != null) {
-                            viewModel.openRedeemPromoCode(activity, code.ifBlank { null })
+                            viewModel.billing.openRedeemPromoCode(activity, code.ifBlank { null })
                         }
                     }
                 ) { Text(if (redeemCodeInput.isBlank()) "Open Play Store" else "Redeem") }
