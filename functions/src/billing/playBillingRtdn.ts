@@ -6,11 +6,11 @@ import { sendEmail, hostingerSmtpSecret } from "../lib/email";
 import { subscriptionActivatedTemplate, subscriptionRenewedTemplate, UserContext } from "../lib/emailTemplates";
 import { recordAuditLog } from "../lib/auditLog";
 import { PACKAGE_NAME, queryPlaySubscription, acknowledgeIfNeeded } from "./billingHelpers";
-import { PLAY_PRODUCT_ID, planInterval, planLabel } from "./playCatalog";
+import { PLAY_PRODUCT_ID, grantsAccess, isSupportedProduct, planInterval, planLabel, statusFor } from "./playCatalog";
 import { logPurchaseOnce, syncSubscription } from "./subscriptionService";
 import { notifyAdminsOfSubscriptionChange } from "./adminBillingAlerts";
 import { sendGa4Event } from "../lib/ga4";
-import { resolvePurchaseUid } from "./purchaseLinks";
+import { adminOverrideUid, resolvePurchaseUid } from "./purchaseLinks";
 import { classifyPlayError, PlaySubscription } from "./playSubscription";
 import { parkPendingActivation, resolvePendingActivation } from "./activatePurchase";
 import "../lib/admin";
@@ -113,7 +113,9 @@ export const playBillingRtdn = onMessagePublished(
         (notificationType === SUBSCRIPTION_PURCHASED ||
           notificationType === SUBSCRIPTION_RESTARTED ||
           notificationType === SUBSCRIPTION_RECOVERED) &&
-        !purchase.isPending
+        !purchase.isPending &&
+        // A retired plan is never acknowledged automatically (Play refunds it unless an admin acts).
+        isSupportedProduct(productId)
       ) {
         const acked = await acknowledgeIfNeeded(productId, purchaseToken, purchase.acknowledged, "playBillingRtdn");
         // Unacknowledged = refunded in 3 days, and no account to park it under: redeliver.
@@ -140,8 +142,21 @@ export const playBillingRtdn = onMessagePublished(
       return;
     }
 
-    if (productId !== PLAY_PRODUCT_ID) {
-      logger.warn(`playBillingRtdn: product ${productId} is not ${PLAY_PRODUCT_ID}; syncing it anyway`);
+    // Only package_pro_mrr grants on its own; a retired plan counts only once an admin has
+    // activated it (adminOverride on this token or the one it replaced).
+    const adminApproved = !!(await adminOverrideUid(purchaseToken)) ||
+      (!!purchase.linkedPurchaseToken && !!(await adminOverrideUid(purchase.linkedPurchaseToken)));
+    if (!isSupportedProduct(productId) && !adminApproved) {
+      logger.warn(`playBillingRtdn: retired product ${productId} (not ${PLAY_PRODUCT_ID}) uid=${uid} type=${notificationType} — not granted`);
+      if (!purchase.isPending && grantsAccess(statusFor(purchase), purchase.expiryMillis)) {
+        await parkPendingActivation(
+          uid, purchaseToken, productId,
+          `unsupported_product: ${productId} is a retired plan (only ${PLAY_PRODUCT_ID} grants Pro Host)`,
+          "playBillingRtdn",
+          { needsAdmin: true }
+        );
+      }
+      return;
     }
     const orderId = purchase.orderId ?? productId;
     const planName = planLabel(purchase.basePlanId);

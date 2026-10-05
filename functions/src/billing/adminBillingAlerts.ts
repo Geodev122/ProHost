@@ -23,6 +23,7 @@ const TITLES: Record<AdminBillingEvent, string> = {
   UNLINKED_PURCHASE: "Play purchase awaiting its account",
   ACTIVATION_AT_RISK: "Paid subscription not activated",
   OWNERSHIP_MISMATCH: "Paid purchase tagged for another account",
+  UNSUPPORTED_PRODUCT: "Paid purchase of a retired plan",
 };
 
 const STATUS_WORDS: Record<string, string> = {

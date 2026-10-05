@@ -21,4 +21,5 @@ test("rescue hints follow the stored error", () => {
   assert.match(rescueHint("owned_by_other: bought while another account", true), /another ProHost account/);
   assert.match(rescueHint("transient: 503", false), /unreachable/);
   assert.match(rescueHint("acknowledge failed", false), /acknowledge/);
+  assert.match(rescueHint("unsupported_product: package_growth_mrr is a retired plan", true), /Retired plan/);
 });

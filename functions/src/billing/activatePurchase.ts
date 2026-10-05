@@ -14,6 +14,7 @@ import { acknowledgeIfNeeded, queryPlaySubscription } from "./billingHelpers";
 import { adminOverrideUid, claimPurchaseToken, linkKey } from "./purchaseLinks";
 import { PlayApiError, PlaySubscription, classifyPlayError } from "./playSubscription";
 import { syncSubscription } from "./subscriptionService";
+import { grantsAccess, isSupportedProduct, statusFor } from "./playCatalog";
 import "../lib/admin";
 import { notifyAdminsOfSubscriptionChange } from "./adminBillingAlerts";
 
@@ -25,6 +26,7 @@ export type ActivationOutcome =
   | { status: "inactive"; state: string }
   | { status: "expired" }
   | { status: "owned_by_other"; reason: "account" | "link" }
+  | { status: "unsupported_product"; productId: string }
   | { status: "play_error"; error: PlayApiError };
 
 export async function activatePlayPurchase(
@@ -72,6 +74,15 @@ export async function activatePlayPurchase(
   if (purchase.isPending) {
     await syncSubscription(uid, purchaseToken, purchase, { source: logTag });
     return { status: "pending_payment" };
+  }
+
+  // Only package_pro_mrr grants on its own. A retired plan (package_growth_mrr, …) bought
+  // with an old app version is neither granted nor acknowledged here: an admin decides
+  // (activating it records an adminOverride link, honoured above and for its renewals).
+  if (!isSupportedProduct(productId) && !override) {
+    if (!grantsAccess(statusFor(purchase), purchase.expiryMillis)) return { status: "expired" };
+    logger.warn(`${logTag}: retired product uid=${uid} product=${productId} — waiting for an admin`);
+    return { status: "unsupported_product", productId };
   }
 
   // Play's order: verify (above) → grant (SubscriptionService → EntitlementManager) → acknowledge.

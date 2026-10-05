@@ -11,6 +11,17 @@ export const PLAY_PRODUCT_ID = "package_pro_mrr";
 export const BASE_PLAN_MONTHLY = "pro-montly";
 export const BASE_PLAN_YEARLY = "pro-yearly";
 
+/**
+ * Only [PLAY_PRODUCT_ID] grants Pro Host on its own. Older app versions also sold
+ * package_growth_mrr / package_enterprise_mrr; such a purchase is never granted or
+ * acknowledged automatically — it is parked for an admin, who either activates it
+ * (an adminOverride link, which then also covers its renewals) or lets Google Play
+ * refund it 3 days after purchase.
+ */
+export function isSupportedProduct(productId: string | null | undefined): boolean {
+  return productId === PLAY_PRODUCT_ID;
+}
+
 /** ownerPackageId for an admin "Force Upgrade → ProHost": permanent until revoked. */
 export const ADMIN_FORCED_PLAN_ID = "admin_forced";
 /** Legacy admin lifetime grant id; migrated to [ADMIN_FORCED_PLAN_ID]. */
@@ -93,7 +104,8 @@ export type AdminBillingEvent =
   | "EXPIRED"
   | "UNLINKED_PURCHASE"
   | "ACTIVATION_AT_RISK"
-  | "OWNERSHIP_MISMATCH";
+  | "OWNERSHIP_MISMATCH"
+  | "UNSUPPORTED_PRODUCT";
 
 /**
  * What changed between the stored subscriptions record ([prev]) and Google's current state,

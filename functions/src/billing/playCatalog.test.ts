@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import * as assert from "node:assert/strict";
 import {
-  ADMIN_FORCED_PLAN_ID, BASE_PLAN_MONTHLY, BASE_PLAN_YEARLY, grantsAccess, planInterval, planLabel, statusFor,
+  ADMIN_FORCED_PLAN_ID, BASE_PLAN_MONTHLY, BASE_PLAN_YEARLY, grantsAccess, isSupportedProduct, planInterval, planLabel, statusFor,
 } from "./playCatalog";
 import { PlaySubscription, fromV2 } from "./playSubscription";
 
@@ -66,4 +66,12 @@ test("admins are alerted on real changes only", async () => {
   assert.equal(adminEventFor({ status: "ACTIVE", basePlanId: "pro-yearly", expiryDate: 1_000_000_000_000 }, "ACTIVE", sub), "RENEWED");
   assert.equal(adminEventFor({ status: "ACTIVE", basePlanId: "pro-montly", expiryDate: 2_000_000_000_000 }, "ACTIVE", sub), "PLAN_CHANGED");
   assert.equal(adminEventFor({ status: "ACTIVE", basePlanId: "pro-yearly", expiryDate: 2_000_000_000_000 }, "GRACE_PERIOD", sub), "STATUS_CHANGED");
+});
+
+test("only package_pro_mrr grants Pro Host on its own", () => {
+  assert.equal(isSupportedProduct("package_pro_mrr"), true);
+  assert.equal(isSupportedProduct("package_growth_mrr"), false);
+  assert.equal(isSupportedProduct("package_enterprise_mrr"), false);
+  assert.equal(isSupportedProduct(""), false);
+  assert.equal(isSupportedProduct(undefined), false);
 });

@@ -15,6 +15,16 @@ Play subscription package_pro_mrr ── base plans pro-montly / pro-yearly
   `package_plans` document is retired.
 - **Admin → Packages → Force Upgrade → ProHost** is the only admin billing action. It is permanent, and
   Users → Revoke Pro Host undoes it.
+- **Only `package_pro_mrr` grants Pro Host.** Until 2026-10-04 the app also sold `package_growth_mrr` and
+  `package_enterprise_mrr`, so old app versions can still sell them. Deactivate their base plans in Play
+  Console › Monetize › Subscriptions so nobody can buy them any more; existing subscribers keep renewing.
+  The server never grants or acknowledges a purchase of a retired plan on its own:
+  - it parks the purchase with `needsAdmin` and `lastError: unsupported_product: …`;
+  - admins get an `UNSUPPORTED_PRODUCT` push;
+  - the buyer is told the team will review it.
+
+  In Admin › Packages › Payments needing attention, **Activate** honours it. That writes an `adminOverride`
+  link, which also covers its renewals. If you leave it, Google Play refunds the buyer 3 days after purchase.
 - **Status to role:**
   - ACTIVE, GRACE_PERIOD, and CANCELED until its expiry: prohost.
   - ON_HOLD, PAUSED, EXPIRED, REVOKED, REFUNDED: specialist.

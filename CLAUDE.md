@@ -233,6 +233,11 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   failed or unacknowledged paid purchases are parked in `play_billing_pending` and retried every 15 min by
   `retryPendingPlayActivations` (before Play's 3-day refund). RTDN runs with `retry: true` and throws on
   config/transient Play errors.
+- Only `package_pro_mrr` grants (`isSupportedProduct`, `playCatalog.ts`). Retired plans sold by old app versions
+  (`package_growth_mrr`, `package_enterprise_mrr`) are never granted or acknowledged automatically, in any path:
+  activation, RTDN (it doesn't acknowledge an unlinked one either), retry or migration. They are parked `needsAdmin`
+  (`unsupported_product`) with an `UNSUPPORTED_PRODUCT` admin push; an admin Activate (adminOverride link) honours
+  them and their renewals. Otherwise Play refunds them after 3 days.
 - Billing rescue (`billing/billingRescue.ts`, Admin › Packages + the user dossier): `billingHealthCheck`
   (probes subscriptionsv2 with a dummy token — 400/404 = credentials OK, 401/403 = Play Console access missing;
   RTDN heartbeat in `app_config/billing_health`), `adminBillingPending` (parked + unlinked purchases, hours left

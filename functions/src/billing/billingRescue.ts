@@ -11,6 +11,7 @@ import { linkKey, setAdminOverride } from "./purchaseLinks";
 import { notifyAdminsOfSubscriptionChange } from "./adminBillingAlerts";
 import { healthFromProbe, hoursUntilRefund, rescueHint } from "./billingRescueLogic";
 import "../lib/admin";
+import { isSupportedProduct } from "./playCatalog";
 
 /**
  * Admin › Packages: billing health check and "Payments needing attention".
@@ -164,7 +165,9 @@ export const adminActivatePurchase = onCall<{
     const owner = await describeUser(taggedFor);
     return { status: "needs_confirm", taggedFor: owner };
   }
-  if (reassigning) await setAdminOverride(targetUid, token, purchase.productId || productId, adminUid);
+  // Activating a retired plan (package_growth_mrr, …) is the admin's explicit approval of it.
+  const retired = !isSupportedProduct(purchase.productId || productId);
+  if (reassigning || retired) await setAdminOverride(targetUid, token, purchase.productId || productId, adminUid);
 
   const outcome = await activatePlayPurchase(targetUid, token, purchase.productId || productId, "adminActivatePurchase");
   if (outcome.status === "granted") {

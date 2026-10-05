@@ -7,8 +7,10 @@ import { recordAuditLog } from "../lib/auditLog";
 import { queryPlaySubscription } from "./billingHelpers";
 import { PlayApiError, classifyPlayError } from "./playSubscription";
 import { SUBSCRIPTIONS, syncSubscription } from "./subscriptionService";
-import { ADMIN_FORCED_PLAN_ID, LEGACY_UNLIMITED_GRANT_PLAN_ID, LIFETIME_EXPIRY_MILLIS } from "./playCatalog";
+import { ADMIN_FORCED_PLAN_ID, LEGACY_UNLIMITED_GRANT_PLAN_ID, LIFETIME_EXPIRY_MILLIS, isSupportedProduct } from "./playCatalog";
 import "../lib/admin";
+import { adminOverrideUid } from "./purchaseLinks";
+import { parkPendingActivation } from "./activatePurchase";
 
 const OPEN_STATUSES = ["ACTIVE", "GRACE_PERIOD", "ON_HOLD", "PAUSED", "CANCELED", "PENDING"];
 
@@ -71,6 +73,16 @@ export async function runBillingSyncOnce(): Promise<BillingSyncReport> {
       try {
         const sub = await queryPlaySubscription(token);
         if (!sub.obfuscatedAccountId || sub.obfuscatedAccountId === doc.id) {
+          if (!isSupportedProduct(sub.productId) && !(await adminOverrideUid(token))) {
+            // A retired plan never grants on its own: hand it to an admin, leave the profile as is.
+            await parkPendingActivation(
+              doc.id, token, sub.productId,
+              `unsupported_product: ${sub.productId} is a retired plan (only package_pro_mrr grants Pro Host)`,
+              "billingSync migration",
+              { needsAdmin: true }
+            );
+            continue;
+          }
           await syncSubscription(doc.id, token, sub, { source: "migration" });
           report.migratedPlay++;
           continue;
