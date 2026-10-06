@@ -93,6 +93,12 @@ async function audit(db, auth) {
     .map((d) => `${d.data().displayCode || "?"}:${d.data().ownerPackageId || "-"}/${d.data().entitlementSource || "-"}`);
   notice(`proHosts=[${pros.join(", ")}]`);
 
+  // Base plan ids exactly as Google Play returned them (subscriptions/* is written from Play's API).
+  const subs = await db.collection("subscriptions").get();
+  const plans = {};
+  subs.docs.forEach((d) => { const k = `${d.data().productId || "?"}/${d.data().basePlanId || "null"}:${d.data().status || "?"}`; plans[k] = (plans[k] || 0) + 1; });
+  notice(`playSubscriptions=${subs.size} ${JSON.stringify(plans).replace(/[{}]/g, "")}`);
+
   const hb = (await db.doc("app_config/billing_health").get()).data() || {};
   const iso = (ms) => (ms ? new Date(ms).toISOString() : "never");
   notice(`RTDN lastRtdnAt=${iso(hb.lastRtdnAt)} lastSelfTestAt=${iso(hb.lastSelfTestAt)}`);
