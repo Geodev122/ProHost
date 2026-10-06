@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
     inputs:
       task:
-        description: "audit (read-only) | j8 (data cleanup) | activate (honour a parked purchase) | emailauth (why sign-in emails fail) | enableemaillink (turn on passwordless email sign-in) | mailtest (one test email to the owner)"
+        description: "audit (read-only) | j8 (data cleanup) | activate (honour a parked purchase) | emailauth (why sign-in emails fail) | enableemaillink (turn on passwordless email sign-in) | mailtest (one test email to the owner) | clearstalesecrets (unblock function deploys)"
         required: true
         default: audit
         type: choice
-        options: [audit, j8, activate, emailauth, enableemaillink, mailtest]
+        options: [audit, j8, activate, emailauth, enableemaillink, mailtest, clearstalesecrets]
       code:
         description: "U- display code (activate only)"
         required: false

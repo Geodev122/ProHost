@@ -269,6 +269,9 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
 - CI (`.github/workflows/*.yml`) installs Gradle itself: keep `gradle-version` equal to
   `gradle/wrapper/gradle-wrapper.properties` (AGP 9.4 needs Gradle 9.6.0). A mismatch broke every
   CI build from 2026-10-01; earlier pushes also failed. Functions run on Node 22.
+- A function whose Cloud Run service still binds a secret the code no longer declares (the retired
+  `HOSTINGER_SMTP_API_KEY`) fails every deploy with "Permission denied on secret" and keeps running old code — this
+  froze the email callables on Hostinger SMTP until Oct 2026. Maintenance task `clearstalesecrets` removes such bindings.
 - CI deploys functions + rules + hosting on every push to `main`. The deploy fails with
   `firebaseextensions.instances.list` 403 unless the CI service account
   (`FIREBASE_SERVICE_ACCOUNT` secret) has the **Firebase Extensions Viewer** role — firebase-tools

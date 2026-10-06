@@ -8,6 +8,7 @@
 //   node scripts/maintenance/run.js emailauth        read-only: why sign-in emails fail (Auth config, mail, limits)
 //   node scripts/maintenance/run.js enableemaillink  turn on Firebase Auth "Email link (passwordless)" sign-in
 //   node scripts/maintenance/run.js mailtest         queue one test email to the extension's reply-to (owner) address
+//   node scripts/maintenance/run.js clearstalesecrets drop retired HOSTINGER_* secret bindings that block deploys
 //
 // Results are printed as GitHub "::notice::" annotations (no PII: counts and display codes only).
 "use strict";
@@ -211,6 +212,43 @@ async function enableemaillink() {
   });
 }
 
+async function clearstalesecrets() {
+  // Old deploys bound HOSTINGER_SMTP_* secrets to some functions. The code no longer declares them, but the
+  // binding stays on the Cloud Run service and every redeploy fails with "Permission denied on secret".
+  // Remove only those bindings; the next CI deploy then ships the current code.
+  const project = process.env.GCLOUD_PROJECT;
+  const base = `https://cloudfunctions.googleapis.com/v2/projects/${project}/locations/europe-west1/functions`;
+  const fns = [];
+  let pageToken = "";
+  do {
+    const res = await googleApi(`${base}?pageSize=200${pageToken ? `&pageToken=${pageToken}` : ""}`);
+    if (!res.ok) throw new Error(`list HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
+    const j = await res.json();
+    fns.push(...(j.functions || []));
+    pageToken = j.nextPageToken || "";
+  } while (pageToken);
+  const isStale = (v) => /^HOSTINGER/i.test(v.secret || "");
+  const stale = fns.filter((f) => (f.serviceConfig?.secretEnvironmentVariables || []).some(isStale));
+  notice(`functions=${fns.length} withStaleSecret=${stale.length}: ${stale.map((f) => f.name.split("/").pop()).join(" ")}`);
+  for (const f of stale) {
+    await step(`clear ${f.name.split("/").pop()}`, async () => {
+      const keep = f.serviceConfig.secretEnvironmentVariables.filter((v) => !isStale(v));
+      const res = await googleApi(`https://cloudfunctions.googleapis.com/v2/${f.name}?updateMask=serviceConfig.secretEnvironmentVariables`, {
+        method: "PATCH",
+        body: JSON.stringify({ serviceConfig: { secretEnvironmentVariables: keep } }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
+      let op = await res.json();
+      for (let i = 0; i < 60 && !op.done; i++) {
+        await new Promise((r) => setTimeout(r, 5000));
+        op = await (await googleApi(`https://cloudfunctions.googleapis.com/v2/${op.name}`)).json();
+      }
+      if (!op.done) return "still updating after 5 min";
+      return op.error ? `error ${JSON.stringify(op.error).slice(0, 200)}` : `removed (kept ${keep.length} other secrets)`;
+    });
+  }
+}
+
 async function mailtest(db) {
   // One real email through the Trigger Email extension, to the owner's own reply-to address.
   await step("mailtest", async () => {
@@ -353,5 +391,6 @@ async function emailauth(db) {
   else if (task === "emailauth") await emailauth(db);
   else if (task === "enableemaillink") { await enableemaillink(); await emailauth(db); }
   else if (task === "mailtest") { await mailtest(db); await emailauth(db); }
+  else if (task === "clearstalesecrets") await clearstalesecrets();
   else throw new Error(`unknown task ${task}`);
 })().catch((e) => { fail(`${e && e.message}`); process.exit(1); });
