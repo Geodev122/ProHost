@@ -161,7 +161,12 @@ fun DocumentPickerField(
                     showSourceMenu = false
                     val uri = createCameraCaptureUri(context)
                     pendingCameraUri = uri
-                    cameraLauncher.launch(uri)
+                    try {
+                        cameraLauncher.launch(uri)
+                    } catch (e: android.content.ActivityNotFoundException) {
+                        pendingCameraUri = null
+                        android.widget.Toast.makeText(context, "No camera app found — choose a file instead.", android.widget.Toast.LENGTH_LONG).show()
+                    }
                 }
             )
             DropdownMenuItem(

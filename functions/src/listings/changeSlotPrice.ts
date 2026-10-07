@@ -4,6 +4,7 @@ import { onCall } from "../lib/callable";
 import { recordAuditLog } from "../lib/auditLog";
 import { sendPushToUser } from "../lib/push";
 import { isPerAttendee } from "../lib/attendeePricing";
+import { pricingFromLegacyFormula } from "./legacyPricing";
 import { hasEnded, todayIso } from "../bookings/bookingTerms";
 import {
   PriceBookingDoc, PriceMode, PricingDoc, SlotKind, SlotRef, TierDoc,
@@ -124,7 +125,10 @@ export const changeSlotPrice = onCall<ChangeSlotPriceData>(async (request) => {
     const isWholeSpace = ref.scopeId === spaceId && subs.length === 0;
     if (!isWholeSpace && subIndex < 0) throw new HttpsError("not-found", "That room no longer exists.");
     const sub = subIndex >= 0 ? subs[subIndex] : undefined;
-    const pricing: PricingDoc = (sub ? sub.pricing : listing.pricing) ?? {};
+    // A listing not yet migrated off rentalFormulas is read the way the app reads it.
+    const legacy = Array.isArray(listing.rentalFormulas) && listing.rentalFormulas.length > 0 ?
+      pricingFromLegacyFormula(listing.rentalFormulas[0]) as PricingDoc : {};
+    const pricing: PricingDoc = (sub ? sub.pricing : (listing.pricing ?? legacy)) ?? {};
     const tiers: TierDoc[] = sub?.attendeeTiers ?? [];
     const perAttendee = sub ? isPerAttendee(sub) : false;
     if (ref.kind === "TIER" ? !perAttendee : perAttendee) {

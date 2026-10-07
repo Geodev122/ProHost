@@ -599,7 +599,11 @@ fun OwnerHubScreenContent(
         } else {
             // Listings List
             items(ownerSpaces, key = { it.id }) { space ->
-                val spaceAcceptedBookings = allBookingRequests.filter { it.spaceId == space.id && it.status == BookingRequestStatus.ACCEPTED }
+                // Utilisation counts only bookings still running — a finished term frees its hours.
+                val spaceAcceptedBookings = allBookingRequests.filter {
+                    it.spaceId == space.id && it.status == BookingRequestStatus.ACCEPTED &&
+                        !com.example.ui.util.SpaceCalculationUtils.hasEnded(it)
+                }
                 val rentedH = spaceAcceptedBookings.sumOf { it.formula.totalWeeklyHours }
                 val blackoutH = space.schedule.blackoutSlots.sumOf { slot ->
                     val start = slot.startTime.substringBefore(":").toIntOrNull() ?: 18

@@ -10,13 +10,14 @@
     <uses-permission android:name="com.android.vending.BILLING" />
     <!-- firebase-analytics merges AD_ID in; the app never reads the advertising ID. -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
-    <uses-permission android:name="android.permission.CAMERA" />
-    <!-- API 33+: scoped media access replaces READ_EXTERNAL_STORAGE for images -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <!-- Pre-API 33: broad storage read; maxSdkVersion keeps it off API 33+ devices -->
-    <uses-permission
-        android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
+    <!-- No camera or media permissions: photos come from the system photo picker / GetContent and
+         "Take Photo" hands off to the camera app (ACTION_IMAGE_CAPTURE needs no permission when CAMERA
+         isn't declared). Play's Photo & Video Permissions policy rejects READ_MEDIA_IMAGES for
+         occasional picks; the removes also strip anything a library merges in. -->
+    <uses-permission android:name="android.permission.CAMERA" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <!-- Google Play Hardware Filtering Configuration (ensures compatibility across all devices) -->
