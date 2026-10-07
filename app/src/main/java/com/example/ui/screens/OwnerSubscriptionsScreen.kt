@@ -425,7 +425,8 @@ fun OwnerSubscriptionsScreen(
                     val notes = buildList {
                         if (enabled && terms != null) add("$terms · renews automatically until you cancel · via Google Play")
                         if (enabled && hasLivePlaySubscription) add(
-                            if (isUpgrade) "Starts now — Google Play credits the unused part of your current plan."
+                            if (isUpgrade) "You pay the yearly price now and your year starts today. The unused days of " +
+                                "your current month are added to it by Google Play, so it renews in about a year plus those days."
                             else "Starts on your renewal date${expiryDateString?.let { " ($it)" }.orEmpty()}; your current plan runs until then."
                         )
                         if (enabled && PlayOfferText.trialLabel(premiumProduct, selectedPlan) != null) add(

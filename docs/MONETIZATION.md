@@ -76,7 +76,9 @@ What changed:
 
 ### Still worth doing
 1. **Check the licence key.** `PlayBillingSecurity.MERCHANT_BASE64_PUBLIC_KEY` must equal Play Console › Monetization setup › Licensing. If it's wrong, every client-side check fails ("Purchase security check failed") and only the server path activates plans.
-2. **Upgrade proration.** Upgrades use `CHARGE_FULL_PRICE`. Consider `CHARGE_PRORATED_PRICE` for upgrades and `DEFERRED` for downgrades once you sell more than one tier.
+2. **Plan switches.** Monthly → yearly uses `CHARGE_FULL_PRICE`: the yearly price is charged now and Google Play turns the
+   unused part of the paid month into extra days on the year (renews ≈ 1 year + those days). Yearly → monthly uses
+   `DEFERRED` (takes effect at the yearly renewal date).
 3. **Remove the hard-coded GA4 secret** from `functions/src/admin/ga4Config.ts` and `scripts/seed-ga4-config.mjs` (it now lives in `app_config/ga4`).
 
 ## 2. How to check billing & monetization health

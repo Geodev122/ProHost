@@ -445,7 +445,7 @@ internal fun RoomFolderPanel(firstTabSelected: Boolean, content: @Composable Col
 /**
  * The listing page's bottom booking bar: one card with a drag-handle hint, the selected
  * room and its live availability (specialists; tapping it opens the availability sheet),
- * then the price and two equal actions — Check availability and Message on WhatsApp.
+ * then the price and the Availability action (WhatsApp lives on the host card above).
  * Pro Host / Admin viewers see "Preview mode" instead of the actions.
  */
 @Composable
@@ -459,8 +459,7 @@ internal fun DetailsBookingBar(
     priceUnit: String,
     formulaName: String,
     isPreview: Boolean,
-    onOpenAvailability: () -> Unit,
-    onMessage: () -> Unit
+    onOpenAvailability: () -> Unit
 ) {
     val pro = MaterialTheme.proColors
     Surface(
@@ -594,28 +593,16 @@ internal fun DetailsBookingBar(
                     }
                 } else {
                     if (showAvailability && hasSchedule) {
-                        OutlinedButton(
+                        Button(
                             onClick = onOpenAvailability,
                             shape = MaterialTheme.shapes.medium,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                            contentPadding = PaddingValues(horizontal = 12.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp),
                             modifier = Modifier.heightIn(min = 48.dp)
                         ) {
                             Icon(Icons.Default.EventAvailable, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Availability", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                         }
-                    }
-                    Button(
-                        onClick = onMessage,
-                        shape = MaterialTheme.shapes.medium,
-                        colors = ButtonDefaults.buttonColors(containerColor = WhatsAppDarkGreen, contentColor = Color.White),
-                        contentPadding = PaddingValues(horizontal = 14.dp),
-                        modifier = Modifier.heightIn(min = 48.dp)
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Message", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                     }
                 }
             }

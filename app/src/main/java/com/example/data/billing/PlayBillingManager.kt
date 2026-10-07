@@ -178,7 +178,7 @@ class PlayBillingManager(
         userId: String,
         basePlanId: String,
         oldPurchaseToken: String? = null,
-        replacementMode: Int = BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_PRORATED_PRICE
+        replacementMode: Int = BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_FULL_PRICE
     ): Boolean {
         val plan = PlayCatalog.planInterval(basePlanId) ?: basePlanId
         // The offer for the chosen base plan (monthly or yearly), never just the first one.
@@ -211,8 +211,8 @@ class PlayBillingManager(
         if (!oldPurchaseToken.isNullOrBlank()) {
             val subscriptionUpdateParams = BillingFlowParams.SubscriptionUpdateParams.newBuilder()
                 .setOldPurchaseToken(oldPurchaseToken)
-                // Play's recommendation: upgrade with CHARGE_PRORATED_PRICE (immediate, credit for
-                // unused time), downgrade with DEFERRED (current plan runs to its renewal date).
+                // Upgrade (to yearly): CHARGE_FULL_PRICE — full yearly price now, unused paid time
+                // added to the new plan. Downgrade (to monthly): DEFERRED — at the renewal date.
                 .setSubscriptionReplacementMode(replacementMode)
                 .build()
             billingFlowParamsBuilder.setSubscriptionUpdateParams(subscriptionUpdateParams)

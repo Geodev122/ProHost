@@ -110,7 +110,8 @@ fun SpaceDetailsScreen(
         currentUserRole = currentUser?.role,
         onSelectFormula = { selectedFormula = it },
         onWhatsAppClick = {
-            viewModel.launchWhatsAppInquiry(context, liveSpace, selectedFormula)
+            // General inquiry about the listing (not tied to one room or price).
+            viewModel.launchWhatsAppInquiry(context, liveSpace)
         },
         onShareClick = {
             val shareUrl = ShareLinks.forListing(liveSpace.id)
@@ -297,8 +298,7 @@ fun SpaceDetailsScreenContent(
                     },
                     formulaName = selectedFormula?.type?.displayName ?: "Full Month",
                     isPreview = currentUserRole == UserRole.PRO_HOST || currentUserRole == UserRole.ADMIN,
-                    onOpenAvailability = { availabilityPanelState = "full" },
-                    onMessage = onWhatsAppClick
+                    onOpenAvailability = { availabilityPanelState = "full" }
                 )
             }
         }
@@ -593,23 +593,41 @@ fun SpaceDetailsScreenContent(
                     }
                 }
 
-                // Owner & Verification Card
+                // Host card: who runs this space, and a WhatsApp button for general questions
+                // (the number itself is never printed; the button opens a ready-made inquiry).
                 ProSurfaceCard {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        ProMemberAvatar(
-                            name = liveSpace.ownerName,
-                            specialty = "Space Host • WhatsApp: ${liveSpace.ownerPhone}",
-                            isVerified = liveSpace.isVerified,
-                            imageUrl = liveSpace.ownerProfilePictureUrl,
-                            size = 40.dp,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        ProStatusBadge(ProBadgeType.ACTIVE_30D)
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            ProMemberAvatar(
+                                name = liveSpace.ownerName.ifBlank { "Space host" },
+                                specialty = if (liveSpace.isVerified) "Verified space host" else "Space host",
+                                isVerified = liveSpace.isVerified,
+                                imageUrl = liveSpace.ownerProfilePictureUrl,
+                                size = 44.dp,
+                                modifier = Modifier.weight(1f)
+                            )
+                            ProStatusBadge(ProBadgeType.ACTIVE_30D)
+                        }
+                        val isHostView = currentUserRole == UserRole.PRO_HOST || currentUserRole == UserRole.ADMIN
+                        if (!isHostView && liveSpace.ownerPhone.isNotBlank()) {
+                            Button(
+                                onClick = onWhatsAppClick,
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                                shape = MaterialTheme.shapes.medium,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = WhatsAppDarkGreen,
+                                    contentColor = androidx.compose.ui.graphics.Color.White
+                                )
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Ask the host on WhatsApp", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
                 }
 

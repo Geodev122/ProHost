@@ -288,11 +288,14 @@ class BillingController(
 
             _billingPriorExpiryMillis.value = currentUser.value?.ownerPackageExpiryMillis
             // The "Activating" banner waits for Play's PURCHASED result (purchaseEvents).
-            // Play's recommended replacement modes: an upgrade (to yearly) applies now with credit
-            // for unused time; a downgrade (to monthly) starts at the next renewal date.
+            // Monthly → yearly: CHARGE_FULL_PRICE — the yearly price is charged now and the yearly
+            // plan starts now; Google Play converts the unused part of the paid month into extra
+            // time on it (renews ≈ one year + the remaining days). CHARGE_PRORATED_PRICE would only
+            // charge a top-up and keep the MONTHLY renewal date, billing the full year there.
+            // Yearly → monthly: DEFERRED — the switch happens at the yearly renewal date.
             val replacementMode = if (com.example.data.billing.PlayOfferText.kindOf(product, basePlanId) ==
                 com.example.data.billing.PlayCatalog.PlanKind.YEARLY) {
-                com.android.billingclient.api.BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_PRORATED_PRICE
+                com.android.billingclient.api.BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_FULL_PRICE
             } else {
                 com.android.billingclient.api.BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.DEFERRED
             }

@@ -49,7 +49,8 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   `UnavailablePlanTile` ("Not available"), never an invented price; one CTA for the selected tile with its terms
   under it; always exactly two `PlanTile`s (Monthly · Yearly by kind, yearly with "≈ x / month" and SAVE %), current
 plan + recurring price + date;
-  "Switch to …" with Play's replacement modes (to yearly `CHARGE_PRORATED_PRICE`, to monthly `DEFERRED`);
+  "Switch to …" with Play's replacement modes (to yearly `CHARGE_FULL_PRICE`: full yearly price now + unused monthly
+  days credited as extra time, never `CHARGE_PRORATED_PRICE`, which keeps the monthly renewal date; to monthly `DEFERRED`);
   trial disclosure; `SubscriptionTermsFooter` (renewal, cancel, "only publishing needs Premium", Terms &
   Privacy). Profile has a "Manage subscription" settings link. Play's transactional in-app messages show on
   every app resume for Play subscribers (`showBillingInAppMessages`, re-syncs on SUBSCRIPTION_STATUS_UPDATED).
@@ -195,8 +196,10 @@ plan + recurring price + date;
   toggle and filters under the bell. Transparent with floating controls on the map; on the list it has the list
   background and sits above it in the layout (never overlapping). Map results follow `searchedBounds`, updated
   only by the "Search this area" pill after a gesture pan/zoom.
-- The listing page's bottom bar is `DetailsBookingBar` (`RoomCards.kt`): room chip + live availability, price,
-  Availability + WhatsApp "Message" actions (Preview mode for hosts/admins).
+- The listing page's bottom bar is `DetailsBookingBar` (`RoomCards.kt`): room chip + live availability, price and the
+  Availability action (Preview mode for hosts/admins) — no Message button. WhatsApp is the host card's "Ask the host on
+  WhatsApp" button under the photos (general inquiry via `launchWhatsAppInquiry(context, space)`; the number is never
+  printed; hidden for hosts/admins).
 - The availability sheet is `ResizableBottomSheet` (`ui/components`): a standard Material `ModalBottomSheet` (via
   `ProHostBottomSheet`, half + full stops, pinned header, scrolling body) like every other sheet. Never resize a sheet's
   content height while it is open — that fought Material's positioning and slid the sheet's bottom away.
