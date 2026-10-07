@@ -652,6 +652,11 @@ fun BookingReservationCard(
                 }
             }
 
+            // The host changed a slot price on this booking (changeSlotPrice): show what it means here.
+            if (booking.status == BookingRequestStatus.PENDING || booking.status == BookingRequestStatus.ACCEPTED) {
+                booking.lastPriceChange?.let { PriceChangeNote(it, Modifier.fillMaxWidth()) }
+            }
+
             // Total Commitment Row — payment itself is handled entirely outside the
             // app now (see the host's uploaded agreement, not an in-app payment flag,
             // for the record that a real deal was reached).
@@ -663,7 +668,7 @@ fun BookingReservationCard(
                 Column {
                     Text("Total Commitment", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        text = "$${String.format(Locale.US, "%.0f", booking.totalAmountUsd)} USD",
+                        text = "${formatUsd(booking.totalAmountUsd)} USD",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.primary

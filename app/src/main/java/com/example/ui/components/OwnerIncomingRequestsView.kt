@@ -49,6 +49,7 @@ fun OwnerIncomingRequestsView(
     var acceptingRequestId by remember { mutableStateOf<String?>(null) }
     var agreementDocState by remember { mutableStateOf(DocumentPickerState()) }
     var detailRequest by remember { mutableStateOf<BookingRequest?>(null) }
+    var changePriceFor by remember { mutableStateOf<BookingRequest?>(null) }
 
     val pendingCount = requests.count { it.status == BookingRequestStatus.PENDING }
     val acceptedCount = requests.count { it.status == BookingRequestStatus.ACCEPTED }
@@ -183,8 +184,15 @@ fun OwnerIncomingRequestsView(
                         },
                         onWhatsApp = {
                             viewModel.launchWhatsAppToPractitioner(context, req)
+                        },
+                        onChangePrice = {
+                            detailRequest = null
+                            changePriceFor = req
                         }
                     )
+                }
+                changePriceFor?.let { req ->
+                    ChangePriceSheet(viewModel = viewModel, onDismiss = { changePriceFor = null }, booking = req)
                 }
             }
         }
@@ -356,7 +364,8 @@ fun OwnerRequestDetailSheet(
     onDismiss: () -> Unit,
     onAccept: () -> Unit,
     onReject: () -> Unit,
-    onWhatsApp: () -> Unit
+    onWhatsApp: () -> Unit,
+    onChangePrice: (() -> Unit)? = null
 ) {
     val sdf = remember { SimpleDateFormat("MMM d, yyyy · HH:mm", Locale.US) }
     val formattedTime = remember(request.createdAt) { sdf.format(Date(request.createdAt)) }
@@ -426,7 +435,8 @@ fun OwnerRequestDetailSheet(
             request.subdivisionName?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.Default.MeetingRoom, "Room / Area", it) }
             DetailRow(Icons.Default.AccessTime, "Schedule", "${chosenDays.joinToString(", ")} · $chosenHours${if (request.selectedShift.isNotBlank()) " · ${request.selectedShift}" else ""}")
             DetailRow(Icons.Default.CalendarToday, "Start Date", "${request.startDate}${if (request.durationMonths > 0) " · ${request.durationMonths} month term" else ""}")
-            DetailRow(Icons.Default.AttachMoney, "Total", "\$${request.totalAmountUsd.toInt()} USD${if (attendeeLine != null) " · $attendeeLine" else ""}")
+            DetailRow(Icons.Default.AttachMoney, "Total", "${formatUsd(request.totalAmountUsd)} USD${if (attendeeLine != null) " · $attendeeLine" else ""}")
+            request.lastPriceChange?.let { PriceChangeNote(it, Modifier.fillMaxWidth()) }
             DetailRow(Icons.Default.Schedule, "Submitted", formattedTime)
             if (request.clinicalNotes.isNotBlank()) DetailRow(Icons.AutoMirrored.Filled.Notes, "Notes", request.clinicalNotes)
 
@@ -442,6 +452,16 @@ fun OwnerRequestDetailSheet(
             }
 
             HorizontalDivider()
+
+            if (onChangePrice != null && (request.status == BookingRequestStatus.PENDING || request.status == BookingRequestStatus.ACCEPTED)) {
+                ProOutlinedButton(
+                    text = "Change price",
+                    onClick = onChangePrice,
+                    icon = Icons.Default.LocalOffer,
+                    compact = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
             // Action buttons
             if (request.status == BookingRequestStatus.PENDING) {

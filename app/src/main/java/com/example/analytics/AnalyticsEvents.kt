@@ -53,6 +53,7 @@ object Event {
     const val LISTING_VERIFICATION_REQUEST = "listing_verification_request"
     const val SUBDIVISION_ADD = "subdivision_add"
     const val SUBDIVISION_REMOVE = "subdivision_remove"
+    const val LISTING_PRICE_CHANGE = "listing_price_change"
     const val BLACKOUT_ADD = "blackout_add"
 
     // ProHost Premium (Google Play is the billing authority). premium_purchase_success,
@@ -118,6 +119,11 @@ object Param {
     const val REASON = "reason"
     const val BY = "by"
     const val SUBDIVISION_COUNT = "subdivision_count"
+    const val DIRECTION = "direction"
+    const val AFFECTED_COUNT = "affected_count"
+    const val UPDATED_NOW_COUNT = "updated_now_count"
+    const val NEXT_TERM_COUNT = "next_term_count"
+    const val KEPT_COUNT = "kept_count"
     const val HAS_ATTENDEE_PRICING = "has_attendee_pricing"
     const val PLAN = "plan"
     const val PRODUCT_ID = "product_id"

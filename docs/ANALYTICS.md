@@ -64,6 +64,7 @@ How analytics is wired, what is tracked, and the console steps that only the pro
 | | `listing_publish_blocked` | `reason`=no_active_package |
 | | `listing_update`, `listing_delete`, `listing_status_change` (`from`,`to`), `listing_verification_request` | |
 | | `subdivision_add` (`subdivision_type`,`strategy`,`pricing_mode`), `subdivision_remove`, `blackout_add` | |
+| | `listing_price_change` (`item_id`, `strategy` = slot kind MONTHLY/HOURLY/SHIFT/DAY/TIER, `direction` up/down, `affected_count`, `updated_now_count`, `next_term_count`, `kept_count`) — Pro Host "Change price"; no amounts | |
 | ProHost Premium | `premium_page_viewed` | `source`, `plans_loaded` |
 | | `premium_plan_viewed` | `plan` (monthly / yearly) |
 | | `premium_plans_load_failed` | `reason` |

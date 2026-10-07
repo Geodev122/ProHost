@@ -53,6 +53,13 @@ object PaymentCalendar {
             } else {
                 appendLine("Payment due: $money")
             }
+            booking.lastPriceChange?.takeIf { it.changedTotal }?.let { change ->
+                val usd = NumberFormat.getCurrencyInstance(Locale.US)
+                appendLine(
+                    "Price updated by your host: total ${usd.format(change.oldTotal)} → ${usd.format(change.newTotal)}" +
+                        (if (change.effectiveFrom.isNotBlank()) " from ${change.effectiveFrom}" else "")
+                )
+            }
             append("Pay your host directly, then tap \"Mark as Paid\" in ProHost → My Bookings.")
         }
         // All-day events must start at UTC midnight (CalendarContract requirement).

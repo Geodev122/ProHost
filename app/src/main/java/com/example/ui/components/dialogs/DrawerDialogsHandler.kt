@@ -432,6 +432,7 @@ fun DrawerDialogsHandler(
                                                                             ?: when (alert.category) {
                                                                                 "ADMIN_SUBSCRIPTION" -> "admin_console"
                                                                                 "BOOKING_REQUEST" -> "owner_requests"
+                                                                                "PRICE_CHANGE" -> "pro_rentals"
                                                                                 "PAYMENT_REMINDER", "PACKAGE_EXPIRED",
                                                                                 "PACKAGE_ACTIVATED", "PACKAGE_RENEWED" -> "owner_subscriptions"
                                                                                 "LISTING_VERIFICATION", "LISTING_VERIFICATION_REQUEST" -> "manage_listings"

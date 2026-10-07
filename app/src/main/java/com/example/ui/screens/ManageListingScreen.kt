@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.model.*
+import com.example.ui.components.ChangePriceSheet
 import com.example.ui.components.ProSectionHeader
 import com.example.ui.components.ProSurfaceCard
 import com.example.ui.theme.*
@@ -78,6 +79,10 @@ fun ManageListingScreen(
 
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
+    var showChangePrice by remember { mutableStateOf(false) }
+    if (showChangePrice) {
+        ChangePriceSheet(viewModel = viewModel, onDismiss = { showChangePrice = false }, initialSpaceId = liveSpace.id)
+    }
     val jumpRequesters = remember(divisions) { divisions.associate { it.id to BringIntoViewRequester() } }
 
     Scaffold(
@@ -138,6 +143,22 @@ fun ManageListingScreen(
                 modifier = Modifier.padding(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xl)
             ) {
+                ProSurfaceCard(onClick = { showChangePrice = true }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.LocalOffer, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                        Spacer(modifier = Modifier.width(Spacing.md))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Change price", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text(
+                                "Update a slot's price — tenants and pending requests are asked about and notified",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+
                 ProSectionHeader(
                     title = "Availability",
                     subtitle = "Configured slots and their current booking state",

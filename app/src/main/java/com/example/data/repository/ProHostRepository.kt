@@ -483,6 +483,25 @@ class ProHostRepository(
      * Use setListingVerification / setListingSubscriptionActive for those.
      */
     /** Returns whether the write actually succeeded, so the caller can show a real result. */
+    /**
+     * Pro Host "Change price": the server (changeSlotPrice) sets the slot's price on the listing and
+     * applies [decisions] to the bookings using it — rules never let a client change a booking total.
+     * The live listing/booking listeners pick the result up.
+     */
+    suspend fun changeSlotPrice(
+        spaceId: String,
+        ref: com.example.ui.util.PriceChange.SlotRef,
+        newPrice: Double,
+        decisions: Map<String, PriceChangeMode>
+    ): Result<com.example.data.auth.SlotPriceChangeResult> = functionsClient.changeSlotPrice(
+        spaceId = spaceId,
+        scopeId = ref.scopeId,
+        kind = ref.kind.name,
+        key = ref.key,
+        newPrice = newPrice,
+        decisions = decisions.mapValues { it.value.name }
+    )
+
     suspend fun updateSpaceListing(updated: SpaceListing): Boolean {
         val current = _spaces.value.find { it.id == updated.id }
         val safeUpdate = updated.keepingServerOwnedFields(current)

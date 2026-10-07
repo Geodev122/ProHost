@@ -90,6 +90,12 @@ describe("booking create", () => {
     await assertSucceeds(setDoc(doc(specCtx(), "booking_requests", "new6"), booking({ replacesBookingId: "B_ACCEPTED" })));
     await assertFails(setDoc(doc(specCtx(), "booking_requests", "new7"), booking({ replacesBookingId: "B_OTHER" })));
   });
+  test("price-change history is server-only", async () => {
+    await assertFails(setDoc(doc(specCtx(), "booking_requests", "new9"), booking({ priceChanges: [] })));
+    await assertFails(setDoc(doc(specCtx(), "booking_requests", "new10"), booking({ lastPriceChange: { newTotal: 1 } })));
+    await assertFails(updateDoc(doc(hostCtx(), "booking_requests", "B_ACCEPTED"), { lastPriceChange: { newTotal: 1 } }));
+    await assertFails(updateDoc(doc(specCtx(), "booking_requests", "B_ACCEPTED"), { priceChanges: [] }));
+  });
   test("a Pro Host can't book", async () => {
     await assertFails(setDoc(doc(hostCtx(), "booking_requests", "new8"), booking({ practitionerId: HOST })));
   });
@@ -129,6 +135,7 @@ describe("booking transitions", () => {
   });
   test("host can't change the price or the practitioner", async () => {
     await assertFails(updateDoc(doc(hostCtx(), "booking_requests", "B_PENDING"), { totalAmountUsd: 1 }));
+    await assertFails(updateDoc(doc(hostCtx(), "booking_requests", "B_ACCEPTED"), { totalAmountUsd: 1 }));
     await assertFails(updateDoc(doc(hostCtx(), "booking_requests", "B_PENDING"), { practitionerId: SPEC2 }));
   });
   test("both sides can acknowledge payment", async () => {

@@ -399,6 +399,42 @@ class ProHostViewModel(
         }
     }
 
+    /**
+     * Pro Host "Change price" (ChangePriceSheet): one slot's new price plus, per affected booking,
+     * whether it keeps its price, updates now or from the next term. [onDone] gets true on success.
+     */
+    fun changeSlotPrice(
+        context: Context,
+        space: SpaceListing,
+        slot: com.example.ui.util.PriceChange.PriceSlot,
+        newPrice: Double,
+        decisions: Map<String, PriceChangeMode>,
+        onDone: (Boolean) -> Unit
+    ) {
+        val appContext = context.applicationContext
+        viewModelScope.launch {
+            try {
+                val result = repository.changeSlotPrice(space.id, slot.ref, newPrice, decisions).getOrThrow()
+                com.example.analytics.AnalyticsTracker.listingPriceChange(
+                    space, slot.ref.kind.name, newPrice > slot.price,
+                    result.affected, result.now, result.nextTerm, result.keep
+                )
+                val note = when {
+                    result.affected == 0 -> "Price updated."
+                    result.affected == 1 -> "Price updated. The tenant/requester was notified."
+                    else -> "Price updated. ${result.affected} tenants/requesters were notified."
+                }
+                Toast.makeText(appContext, note, Toast.LENGTH_LONG).show()
+                onDone(true)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                reportFailure(appContext, e, "Couldn't change the price — please try again.")
+                onDone(false)
+            }
+        }
+    }
+
     suspend fun deleteOwnerListing(spaceId: String): Boolean {
         _pendingDeletionIds.add(spaceId)
         val result = repository.deleteSpaceListing(spaceId)

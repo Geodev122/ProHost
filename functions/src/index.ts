@@ -41,6 +41,7 @@ export { onWorkspaceListingCreated, onWorkspaceListingDeleted, onWorkspaceListin
 export { onWorkspaceListingPublishValidation } from "./listings/publishValidation";
 export { onWorkspaceListingDeletedCleanup } from "./listings/listingDeleteCleanup";
 export { listingShareLanding } from "./listings/shareLanding";
+export { changeSlotPrice } from "./listings/changeSlotPrice";
 export { legalDocumentPage } from "./legal/legalDocumentPage";
 export { onBookingAcceptConflictGuard } from "./bookings/bookingConflictGuard";
 export { onBookingOccupancySync } from "./bookings/occupancyProjection";

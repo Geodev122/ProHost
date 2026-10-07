@@ -247,6 +247,14 @@ plan + recurring price + date;
   (`ProHostViewModel.watchOccupancy`). An accepted edit's original booking is released by the server in the conflict
   guard's transaction (`supersededBy`), never by a second client write. Auto-rejected requests (`rejectedBySystem`) never
   reach host lists/stats; withdrawn requests and admin cancels notify the host; edits read "Change request".
+- Pro Host **Change price** (`ui/components/ChangePriceSheet.kt`; Manage page card above Availability, request detail
+  sheet, Renting Progress card): listing → division → slots with prices → new price → per affected pending/accepted
+  booking Keep · Now (every remaining date/month from today) · Next term (1st of next month for monthly, next Monday for
+  dated bookings; undated hourly/tier units apply on renewal). Only the `changeSlotPrice` callable
+  (`listings/changeSlotPrice.ts`) writes it — listing price + booking `totalAmountUsd`, `lastPriceChange`, `priceChanges`
+  (rules deny clients) — and pushes each specialist `PRICE_CHANGE` → My Rentals. Slots are `SlotRef(scopeId, kind, key)`;
+  matching/re-pricing is `ui/util/PriceChange.kt` mirrored in `bookings/priceChange.ts` (shared test cases — keep identical).
+  Per-attendee rooms change their tiers, not slot markers.
 - Manage page occupancy (`ManageListingScreen.kt`) is date-aware: weekly strategies show the next 7 dates via
   `isCalendarDateLocked` limited to bookings whose term covers the date; monthly uses the booking's months. Cells are
   filled soft green (free) / soft red (booked) with no status words.
@@ -345,7 +353,7 @@ plan + recurring price + date;
 - The "Activating your subscription" banner shows only after Play returns PURCHASED and clears on any
   billing message (cancel, pending, error) or server answer. `toUserMessage` passes a function's own
   UNAVAILABLE message through; only transport failures get the generic connection text.
-- NIGHTHAWK's "Orphaned Module: billingHelpers / purchaseLinks / playCatalog" and "compileSdk below 34" MEDIUMs are
+- NIGHTHAWK's "Orphaned Module: billingHelpers / purchaseLinks / playCatalog / priceChange" and "compileSdk below 34" MEDIUMs are
   false positives (both are imported by other modules; compileSdk is 37).
 - `main` history shows NIGHTHAWK checks are sometimes extended directly on `main` (not always
   routed through a feature-branch PR) — before adding new checks or fixing findings on a

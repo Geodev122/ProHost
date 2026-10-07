@@ -388,6 +388,9 @@ service cloud.firestore {
            request.resource.data.attendeeCount >= 0 &&
            request.resource.data.attendeeCount <= 100000)) &&
         !('rejectedBySystem' in request.resource.data) &&
+        // Price-change history is written only by the changeSlotPrice callable.
+        !('priceChanges' in request.resource.data) &&
+        !('lastPriceChange' in request.resource.data) &&
         // A request always starts PENDING with none of the review/cancellation state;
         // the listing must be bookable and an "edit" may only replace the caller's own
         // booking for the same space.

@@ -1,6 +1,7 @@
 package com.example
 
 import com.example.data.auth.FirebaseFunctionsClient
+import com.example.data.auth.SlotPriceChangeResult
 import com.example.data.firestore.FirestoreService
 import com.example.data.model.*
 import com.example.data.repository.ProHostRepository
@@ -9,6 +10,24 @@ import com.example.data.repository.ProHostRepository
 class FakeFunctionsClient : FirebaseFunctionsClient() {
     override suspend fun setListingVerification(spaceId: String, verified: Boolean): Result<Unit> = Result.success(Unit)
     override suspend fun recordAuditLog(actionType: String, details: String, severity: String): Result<Unit> = Result.success(Unit)
+
+    /** Last changeSlotPrice payload; set [changeSlotPriceError] to make the call fail. */
+    var lastChangeSlotPrice: Map<String, Any?>? = null
+    var changeSlotPriceError: Exception? = null
+    override suspend fun changeSlotPrice(
+        spaceId: String, scopeId: String, kind: String, key: String, newPrice: Double, decisions: Map<String, String>
+    ): Result<SlotPriceChangeResult> {
+        lastChangeSlotPrice = mapOf(
+            "spaceId" to spaceId, "scopeId" to scopeId, "kind" to kind, "key" to key, "newPrice" to newPrice, "decisions" to decisions
+        )
+        changeSlotPriceError?.let { return Result.failure(it) }
+        return Result.success(SlotPriceChangeResult(
+            affected = decisions.size,
+            now = decisions.values.count { it == "NOW" },
+            nextTerm = decisions.values.count { it == "NEXT_TERM" },
+            keep = decisions.values.count { it == "KEEP" }
+        ))
+    }
 }
 
 /** Repository that never touches Firebase: in-memory state only, writes succeed locally. */

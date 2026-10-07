@@ -427,6 +427,38 @@ open class FirebaseFunctionsClient {
         }
     }
 
+    /**
+     * Pro Host "Change price" (functions/src/listings/changeSlotPrice.ts): sets one slot's price and
+     * applies [decisions] (bookingId → KEEP / NOW / NEXT_TERM) to the bookings that use it.
+     */
+    open suspend fun changeSlotPrice(
+        spaceId: String,
+        scopeId: String,
+        kind: String,
+        key: String,
+        newPrice: Double,
+        decisions: Map<String, String>
+    ): Result<SlotPriceChangeResult> {
+        return try {
+            val result = functions.getHttpsCallable("changeSlotPrice")
+                .call(
+                    mapOf(
+                        "spaceId" to spaceId,
+                        "ref" to mapOf("scopeId" to scopeId, "kind" to kind, "key" to key),
+                        "newPrice" to newPrice,
+                        "decisions" to decisions
+                    )
+                )
+                .await()
+            val data = result.data as? Map<*, *>
+            fun count(k: String) = (data?.get(k) as? Number)?.toInt() ?: 0
+            Result.success(SlotPriceChangeResult(count("affected"), count("now"), count("nextTerm"), count("keep")))
+        } catch (e: Exception) {
+            Log.e(tag, "changeSlotPrice failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     /** Admin-only: override a listing's subscription-active flag (functions/src/admin/listings.ts). */
     suspend fun setListingSubscriptionActive(spaceId: String, active: Boolean): Result<Unit> {
         return try {
@@ -612,3 +644,6 @@ data class AttendeeBookingStats(
     val acceptedAttendees: Int = 0,
     val avgGroupSize: Double = 0.0
 )
+
+/** What changeSlotPrice did: bookings affected and how each was handled. */
+data class SlotPriceChangeResult(val affected: Int, val now: Int, val nextTerm: Int, val keep: Int)

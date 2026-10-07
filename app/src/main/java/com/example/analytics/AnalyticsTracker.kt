@@ -366,6 +366,19 @@ object AnalyticsTracker {
             Param.SUBDIVISION_COUNT to space.subdivisions.size
         ))
     }
+    /** Pro Host "Change price": no amounts, just the direction and how the affected bookings were handled. */
+    fun listingPriceChange(space: SpaceListing, kind: String, increased: Boolean, affected: Int, now: Int, nextTerm: Int, kept: Int) {
+        if (!enabled) return
+        log(Event.LISTING_PRICE_CHANGE, mapOf(
+            Param.ITEM_ID to space.toAnalyticsItem()[Param.ITEM_ID],
+            Param.STRATEGY to kind,
+            Param.DIRECTION to if (increased) "up" else "down",
+            Param.AFFECTED_COUNT to affected,
+            Param.UPDATED_NOW_COUNT to now,
+            Param.NEXT_TERM_COUNT to nextTerm,
+            Param.KEPT_COUNT to kept
+        ))
+    }
     fun listingDelete() = log(Event.LISTING_DELETE)
     fun listingStatusChange(from: String?, to: String) = log(Event.LISTING_STATUS_CHANGE, mapOf(Param.FROM to from, Param.TO to to))
     fun listingVerificationRequest() = log(Event.LISTING_VERIFICATION_REQUEST)

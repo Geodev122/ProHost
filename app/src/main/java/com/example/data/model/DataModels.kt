@@ -623,7 +623,9 @@ data class BookingRequest(
     val attendeePackagePriceUsd: Double = 0.0,
     val isDemo: Boolean = false,
     // Server-assigned public code ("B-XXXXXX"); read-only on the client, never written back.
-    val displayCode: String = ""
+    val displayCode: String = "",
+    /** The host's latest "Change price" on a slot this booking uses — server-written, never sent back. */
+    val lastPriceChange: BookingPriceChange? = null
 ) {
     val isPending: Boolean get() = status == BookingRequestStatus.PENDING
     val isAccepted: Boolean get() = status == BookingRequestStatus.ACCEPTED
@@ -772,13 +774,49 @@ data class BookingRequest(
                 selectedAttendeePackageId = data["selectedAttendeePackageId"] as? String,
                 attendeePackageName = data["attendeePackageName"] as? String,
                 attendeePackagePriceUsd = (data["attendeePackagePriceUsd"] as? Number)?.toDouble() ?: 0.0,
-                isDemo = data["isDemo"] as? Boolean ?: (docId.startsWith("demo-") || docId.startsWith("DEMO-"))
+                isDemo = data["isDemo"] as? Boolean ?: (docId.startsWith("demo-") || docId.startsWith("DEMO-")),
+                lastPriceChange = (data["lastPriceChange"] as? Map<*, *>)?.let { BookingPriceChange.fromFirestoreMap(it) }
             )
         }
     }
 }
 
 typealias RentalBookingRequest = BookingRequest
+
+/** How a host's price change was applied to a booking (see functions/src/listings/changeSlotPrice.ts). */
+enum class PriceChangeMode(val label: String) {
+    KEEP("Keep old price"),
+    NOW("Update now"),
+    NEXT_TERM("Next term")
+}
+
+/** One entry of a booking's price-change history (`lastPriceChange` / `priceChanges`), written by the server only. */
+data class BookingPriceChange(
+    val at: Long = 0L,
+    val slotLabel: String = "",
+    val oldPrice: Double = 0.0,
+    val newPrice: Double = 0.0,
+    val mode: PriceChangeMode = PriceChangeMode.KEEP,
+    val oldTotal: Double = 0.0,
+    val newTotal: Double = 0.0,
+    /** ISO date the new price applies from; blank when this booking's current total didn't change. */
+    val effectiveFrom: String = ""
+) {
+    val changedTotal: Boolean get() = mode != PriceChangeMode.KEEP && newTotal != oldTotal
+
+    companion object {
+        fun fromFirestoreMap(data: Map<*, *>): BookingPriceChange = BookingPriceChange(
+            at = (data["at"] as? Number)?.toLong() ?: 0L,
+            slotLabel = data["slotLabel"] as? String ?: "",
+            oldPrice = (data["oldPrice"] as? Number)?.toDouble() ?: 0.0,
+            newPrice = (data["newPrice"] as? Number)?.toDouble() ?: 0.0,
+            mode = runCatching { PriceChangeMode.valueOf(data["mode"] as? String ?: "") }.getOrDefault(PriceChangeMode.KEEP),
+            oldTotal = (data["oldTotal"] as? Number)?.toDouble() ?: 0.0,
+            newTotal = (data["newTotal"] as? Number)?.toDouble() ?: 0.0,
+            effectiveFrom = data["effectiveFrom"] as? String ?: ""
+        )
+    }
+}
 
 data class PremisesRules(
     val smokingAllowed: Boolean = false,

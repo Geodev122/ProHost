@@ -59,6 +59,10 @@ fun OwnerRentingProgressScreen(
     }
 
     var cancelTargetBooking by remember { mutableStateOf<BookingRequest?>(null) }
+    var changePriceFor by remember { mutableStateOf<BookingRequest?>(null) }
+    changePriceFor?.let { bkg ->
+        ChangePriceSheet(viewModel = viewModel, onDismiss = { changePriceFor = null }, booking = bkg)
+    }
     cancelTargetBooking?.let { bkg ->
         com.example.ui.components.CancelAcceptedBookingDialog(
             spaceTitle = bkg.spaceTitle,
@@ -93,7 +97,8 @@ fun OwnerRentingProgressScreen(
         onMarkPaid = { booking ->
             viewModel.acknowledgePayment(booking.id, asHost = true, context)
         },
-        onOpenRequests = onOpenRequests
+        onOpenRequests = onOpenRequests,
+        onChangePrice = { booking -> changePriceFor = booking }
     )
 }
 
@@ -110,6 +115,7 @@ fun OwnerRentingProgressScreenContent(
     onCancelAcceptedBooking: (BookingRequest) -> Unit = {},
     onMarkPaid: (BookingRequest) -> Unit = {},
     onOpenRequests: () -> Unit = {},
+    onChangePrice: (BookingRequest) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // Generate Dynamic Reminders & Alerts
@@ -386,7 +392,7 @@ fun OwnerRentingProgressScreenContent(
                                 Text(
                                     text = (com.example.ui.util.AttendeePricing.bookingSummary(booking)
                                         ?: "Rate: $${booking.formula.rateUsd.toInt()} USD${com.example.ui.util.SpaceCalculationUtils.rateUnitLabel(booking.formula.type)}") +
-                                        " • Agreement: $${booking.totalAmountUsd.toInt()} USD",
+                                        " • Agreement: ${formatUsd(booking.totalAmountUsd)} USD",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -405,12 +411,18 @@ fun OwnerRentingProgressScreenContent(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (booking.paymentAcknowledgedByHost) MaterialTheme.proColors.success else MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            if (!booking.paymentAcknowledgedByHost) {
-                                TextButton(onClick = { onMarkPaid(booking) }) {
-                                    Text("Mark as Paid", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                TextButton(onClick = { onChangePrice(booking) }) {
+                                    Text("Change price", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                }
+                                if (!booking.paymentAcknowledgedByHost) {
+                                    TextButton(onClick = { onMarkPaid(booking) }) {
+                                        Text("Mark as Paid", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                    }
                                 }
                             }
                         }
+                        booking.lastPriceChange?.let { PriceChangeNote(it, Modifier.fillMaxWidth()) }
 
                         // Progress Bar & Percentage
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
