@@ -230,6 +230,7 @@ object SpaceCalculationUtils {
         req.status == BookingRequestStatus.ACCEPTED &&
             req.id != ignoreBookingId &&
             req.spaceId == spaceId &&
+            !hasEnded(req) &&
             bookingScope(req, spaceId) == slot.sourceFormulaId &&
             (req.formula.type == RentalFormulaType.FULL_MONTH ||
                 // A booking scoped to specific calendar dates (item 7b/Decision 2)
@@ -240,6 +241,42 @@ object SpaceCalculationUtils {
                 (req.selectedCalendarDates.isEmpty() &&
                     bookingDays(req).contains(slot.day) &&
                     hoursOverlap(req.formula.startHour, req.formula.endHour, slot.startTime, slot.endTime)))
+    }
+
+    /**
+     * A booking's term [start, end) as ISO dates: its calendar dates, else startDate + durationMonths;
+     * null when no term was recorded (legacy docs saved a label) — treated as ongoing.
+     * Mirrors functions/src/bookings/bookingTerms.ts.
+     */
+    fun bookingTerm(booking: RentalBookingRequest): Pair<String, String>? {
+        val fmt = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+        fun shift(iso: String, field: Int, amount: Int): String? = runCatching {
+            val cal = Calendar.getInstance().apply { time = fmt.parse(iso)!! }
+            cal.add(field, amount)
+            fmt.format(cal.time)
+        }.getOrNull()
+        val dates = booking.selectedCalendarDates.filter { Regex("\\d{4}-\\d{2}-\\d{2}").matches(it) }.sorted()
+        if (dates.isNotEmpty()) return shift(dates.last(), Calendar.DAY_OF_MONTH, 1)?.let { dates.first() to it }
+        val raw = booking.startDate.trim().take(10)
+        val start = when {
+            Regex("\\d{4}-\\d{2}-\\d{2}").matches(raw) -> raw
+            Regex("\\d{4}-\\d{2}").matches(raw) -> "$raw-01"
+            else -> return null
+        }
+        return shift(start, Calendar.MONTH, booking.durationMonths.coerceAtLeast(1))?.let { start to it }
+    }
+
+    private fun todayIso(): String = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+
+    /** True once the booking's whole term is over — it no longer locks anything. */
+    fun hasEnded(booking: RentalBookingRequest, today: String = todayIso()): Boolean =
+        bookingTerm(booking)?.let { it.second <= today } ?: false
+
+    /** Whether two bookings' terms share a day (an unknown term overlaps everything). */
+    fun termsOverlap(a: RentalBookingRequest, b: RentalBookingRequest): Boolean {
+        val ta = bookingTerm(a) ?: return true
+        val tb = bookingTerm(b) ?: return true
+        return ta.first < tb.second && tb.first < ta.second
     }
 
     /** Whether [booking]'s term (its calendar dates, or startDate + durationMonths) covers [isoDate]. */
@@ -303,6 +340,7 @@ object SpaceCalculationUtils {
             req.id != ignoreBookingId &&
             req.spaceId == spaceId &&
             bookingScope(req, spaceId) == slot.sourceFormulaId &&
+            bookingCoversDate(req, isoDate) &&
             (req.formula.type == RentalFormulaType.FULL_MONTH ||
                 (hoursOverlap(req.formula.startHour, req.formula.endHour, slot.startTime, slot.endTime) &&
                     if (req.selectedCalendarDates.isNotEmpty()) {
@@ -331,6 +369,8 @@ object SpaceCalculationUtils {
             other.id != candidate.replacesBookingId &&
             other.status == BookingRequestStatus.ACCEPTED &&
             other.spaceId == candidate.spaceId &&
+            !hasEnded(other) &&
+            termsOverlap(other, candidate) &&
             bookingScope(other, candidate.spaceId) == bookingScope(candidate, candidate.spaceId) &&
             (other.formula.type == RentalFormulaType.FULL_MONTH ||
                 candidate.formula.type == RentalFormulaType.FULL_MONTH ||

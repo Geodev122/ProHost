@@ -238,6 +238,15 @@ plan + recurring price + date;
   without a device token; `pruneExpiredNotifications` deletes expired ones hourly (collection-group index on
   `expireAt`). The app lists them from a live listener (`FirestoreService` → `ProHostRepository.onNotificationsSynced`),
   marks read in Firestore (owner may change only `read`/`readAt`), and "Open" routes like a push tap.
+- Bookings have a real term: `startDate` is always an ISO date (never a preset label like "Next Monday"), so
+  `SpaceCalculationUtils.bookingTerm/hasEnded/termsOverlap` (mirrored in `functions/src/bookings/bookingTerms.ts`,
+  unit-tested) stop ended bookings locking slots and bookings on different dates clashing. Legacy label start dates are
+  "unknown term" (ongoing). Specialists see slots other people hold through `booking_occupancy/{bookingId}` — a
+  person-free projection of ACCEPTED bookings kept by `onBookingOccupancySync` (readable by any signed-in user, server-
+  written; maintenance task `occupancy` rebuilds it); screens merge it with the viewer's own bookings
+  (`ProHostViewModel.watchOccupancy`). An accepted edit's original booking is released by the server in the conflict
+  guard's transaction (`supersededBy`), never by a second client write. Auto-rejected requests (`rejectedBySystem`) never
+  reach host lists/stats; withdrawn requests and admin cancels notify the host; edits read "Change request".
 - Manage page occupancy (`ManageListingScreen.kt`) is date-aware: weekly strategies show the next 7 dates via
   `isCalendarDateLocked` limited to bookings whose term covers the date; monthly uses the booking's months. Cells are
   filled soft green (free) / soft red (booked) with no status words.

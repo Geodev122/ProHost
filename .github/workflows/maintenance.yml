@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
     inputs:
       task:
-        description: "audit (read-only) | j8 (data cleanup) | retiregrowth (remove old growth/enterprise plans) | emailauth (why sign-in emails fail) | enableemaillink (turn on passwordless email sign-in) | mailtest (one test email to the owner) | clearstalesecrets (unblock function deploys)"
+        description: "audit (read-only) | j8 (data cleanup) | retiregrowth (remove old growth/enterprise plans) | occupancy (rebuild slot occupancy) | emailauth (why sign-in emails fail) | enableemaillink (turn on passwordless email sign-in) | mailtest (one test email to the owner) | clearstalesecrets (unblock function deploys)"
         required: true
         default: audit
         type: choice
-        options: [audit, j8, retiregrowth, emailauth, enableemaillink, mailtest, clearstalesecrets]
+        options: [audit, j8, retiregrowth, occupancy, emailauth, enableemaillink, mailtest, clearstalesecrets]
       code:
         description: "unused (kept for older runs)"
         required: false

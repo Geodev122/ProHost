@@ -324,8 +324,11 @@ object AnalyticsTracker {
     }
 
     fun bookingRequestFailed(reason: String) = log(Event.BOOKING_REQUEST_FAILED, mapOf(Param.REASON to reason))
-    fun bookingAccepted(valueUsd: Double?, strategy: String?) =
-        log(Event.BOOKING_ACCEPTED, mapOf(Param.CURRENCY to "USD", Param.VALUE to valueUsd, Param.STRATEGY to strategy))
+    /** [isEdit]: an accepted change to an existing booking (the old one is released, not new revenue). */
+    fun bookingAccepted(valueUsd: Double?, strategy: String?, isEdit: Boolean = false) =
+        log(Event.BOOKING_ACCEPTED, mapOf(
+            Param.CURRENCY to "USD", Param.VALUE to valueUsd, Param.STRATEGY to strategy, Param.IS_REBOOK to isEdit
+        ))
     fun bookingRejected(strategy: String?) = log(Event.BOOKING_REJECTED, mapOf(Param.STRATEGY to strategy))
     fun bookingCancelled(by: String, reasonCode: String?) =
         log(Event.BOOKING_CANCELLED, mapOf(Param.BY to by, Param.REASON to reasonCode))

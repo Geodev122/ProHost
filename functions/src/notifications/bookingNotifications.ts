@@ -91,10 +91,14 @@ export const onBookingRequestCreated = onDocumentCreated(
     }
 
     const attendeeSummary = describeBooking(booking);
+    // An edit of an existing booking reads as such, so the host knows accepting it replaces the old one.
+    const isEdit = typeof booking.replacesBookingId === "string" && booking.replacesBookingId.length > 0;
     await sendPushToUser(
       booking.ownerId,
-      "New Booking Request",
-      `${booking.practitionerName ?? "A specialist"} requested "${booking.spaceTitle ?? "your workspace"}" — ${booking.selectedDateTimeRange ?? ""}${attendeeSummary ? ` · ${attendeeSummary}` : ""}`.trim(),
+      isEdit ? "Booking Change Request" : "New Booking Request",
+      isEdit
+        ? `${booking.practitionerName ?? "A specialist"} wants to change their booking at "${booking.spaceTitle ?? "your workspace"}" to ${booking.selectedDateTimeRange ?? "new times"}. Accepting replaces the current booking.`
+        : `${booking.practitionerName ?? "A specialist"} requested "${booking.spaceTitle ?? "your workspace"}" — ${booking.selectedDateTimeRange ?? ""}${attendeeSummary ? ` · ${attendeeSummary}` : ""}`.trim(),
       {
         category: "BOOKING_REQUEST",
         targetTab: "owner_requests",
@@ -212,6 +216,30 @@ export const onBookingRequestStatusChanged = onDocumentUpdated(
           await sendEmail({ to: practData.email, ...tpl });
         }
       } catch (_) { /* email is best-effort */ }
+    } else if (after.status === "CANCELLED" && after.supersededBy) {
+      // Replaced by an accepted edit (bookingConflictGuard): the specialist just got the edit
+      // confirmed and the host accepted it — nothing to announce.
+      return;
+    } else if (after.status === "CANCELLED" && before.status === "PENDING") {
+      // A request withdrawn before the host answered: the host's queue changes, tell them.
+      // An admin withdrawal tells both sides.
+      const byAdmin = after.cancelledByRole === "ADMIN";
+      if (after.ownerId) {
+        await sendPushToUser(
+          after.ownerId,
+          "Request withdrawn",
+          `${byAdmin ? "An administrator" : (after.practitionerName ?? "The specialist")} withdrew the request for "${after.spaceTitle ?? "your workspace"}".`,
+          { category: "BOOKING_UPDATE", targetTab: "owner_requests", bookingId: event.params.bookingId }
+        );
+      }
+      if (byAdmin && after.practitionerId) {
+        await sendPushToUser(
+          after.practitionerId,
+          "Request withdrawn",
+          `An administrator withdrew your request for "${after.spaceTitle ?? "the workspace"}".`,
+          { category: "BOOKING_UPDATE", targetTab: "pro_rentals", bookingId: event.params.bookingId }
+        );
+      }
     } else if (after.status === "CANCELLED" && before.status === "ACCEPTED") {
       // Early termination (ProSpaceRepository.cancelAcceptedBooking) — notify
       // whichever side didn't initiate it. cancelledByRole is stamped by that
@@ -235,10 +263,23 @@ export const onBookingRequestStatusChanged = onDocumentUpdated(
       const recipientId = cancelledByHost ? after.practitionerId : after.ownerId;
       const initiatorLabel = cancelledByHost ? (after.ownerName ?? "The host") : (after.practitionerName ?? "The specialist");
       const targetTab = cancelledByHost ? "pro_rentals" : "owner_progress";
+      const reason = after.cancellationReasonCode ?
+        ` (${String(after.cancellationReasonCode).replace(/_/g, " ").toLowerCase()})` : "";
+      if (after.cancelledByRole === "ADMIN") {
+        // An admin ended it: both sides hear about it.
+        for (const [uid, tab] of [[after.practitionerId, "pro_rentals"], [after.ownerId, "owner_progress"]] as const) {
+          if (typeof uid === "string" && uid) {
+            await sendPushToUser(uid, "Booking Cancelled",
+              `An administrator ended the accepted booking for "${after.spaceTitle ?? "the workspace"}"${reason}.`,
+              { category: "BOOKING_UPDATE", targetTab: tab, bookingId: event.params.bookingId });
+          }
+        }
+        return;
+      }
       await sendPushToUser(
         recipientId,
         "Booking Cancelled",
-        `${initiatorLabel} ended the accepted booking for "${after.spaceTitle ?? "the workspace"}" early${after.cancellationReasonCode ? ` (${String(after.cancellationReasonCode).replace(/_/g, " ").toLowerCase()})` : ""}.`,
+        `${initiatorLabel} ended the accepted booking for "${after.spaceTitle ?? "the workspace"}" early${reason}.`,
         {
           category: "BOOKING_UPDATE",
           targetTab,

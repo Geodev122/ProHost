@@ -2,6 +2,7 @@ import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { getFirestore } from "firebase-admin/firestore";
 import { recordAuditLog } from "../lib/auditLog";
 import { sendPushToUser } from "../lib/push";
+import { hasEnded, termsOverlap, todayIso } from "./bookingTerms";
 
 /**
  * Mirrors SpaceCalculationUtils.hoursOverlap/bookingScope/bookingDays/
@@ -36,6 +37,9 @@ interface BookingDoc {
   // dates instead of weekday overlap, so two Shift-Based bookings on the same
   // weekday but disjoint dates are not a conflict. See findConflict below.
   selectedCalendarDates?: string[];
+  startDate?: string;
+  durationMonths?: number;
+  displayCode?: string;
   formula?: BookingFormula;
   ownerId?: string;
   ownerName?: string;
@@ -76,10 +80,11 @@ function bookingDays(booking: BookingDoc): string[] {
  * overlap; otherwise (legacy bookings, non-Shift strategies) falls back to
  * the original weekday check.
  */
-function findConflict(
+export function findConflict(
   candidateId: string,
   candidate: BookingDoc,
-  others: Array<{ id: string; data: BookingDoc }>
+  others: Array<{ id: string; data: BookingDoc }>,
+  today: string = todayIso()
 ): { id: string; data: BookingDoc } | undefined {
   return others.find(({ id, data: other }) => {
     if (id === candidateId) return false;
@@ -87,6 +92,9 @@ function findConflict(
     if (other.status !== "ACCEPTED") return false;
     if (other.spaceId !== candidate.spaceId) return false;
     if (bookingScope(other) !== bookingScope(candidate)) return false;
+    // Terms: a finished booking never blocks, and bookings on different dates never clash.
+    if (hasEnded(other, today)) return false;
+    if (!termsOverlap(other, candidate)) return false;
     if (other.formula?.type === "FULL_MONTH" || candidate.formula?.type === "FULL_MONTH") return true;
     if (!hoursOverlap(other.formula?.startHour, other.formula?.endHour, candidate.formula?.startHour, candidate.formula?.endHour)) {
       return false;
@@ -144,13 +152,29 @@ export const onBookingAcceptConflictGuard = onDocumentWritten(
       // cancellation or deletion meanwhile must not be resurrected as PENDING.
       const self = await tx.get(after.ref);
       if (!self.exists || self.data()?.status !== "ACCEPTED") return undefined;
+      // An accepted edit releases the booking it replaces in this same transaction, so there
+      // is never a moment with two accepted versions (or none, if the accept is reverted).
+      const replacedRef = data.replacesBookingId ?
+        db.collection("booking_requests").doc(data.replacesBookingId) : null;
+      const replaced = replacedRef ? await tx.get(replacedRef) : null;
       const snap = await tx.get(conflictQuery);
       const others = snap.docs
         .filter((d) => d.id !== event.params.bookingId)
         .map((d) => ({ id: d.id, data: d.data() as BookingDoc }));
 
       const found = findConflict(event.params.bookingId, data, others);
-      if (!found) return undefined;
+      if (!found) {
+        const old = replaced?.data() as BookingDoc | undefined;
+        if (replacedRef && old && old.practitionerId === data.practitionerId &&
+          (old.status === "ACCEPTED" || old.status === "PENDING")) {
+          tx.update(replacedRef, {
+            status: "CANCELLED",
+            rejectionReason: `Superseded by an accepted edit (${data.displayCode ?? event.params.bookingId})`,
+            supersededBy: event.params.bookingId,
+          });
+        }
+        return undefined;
+      }
 
       // Reverted to PENDING, not REJECTED — this wasn't a real decision the
       // host made about the request itself, just an accept that can't stand;

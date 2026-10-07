@@ -66,8 +66,16 @@ fun SpaceDetailsScreen(
     val liveSpace = allSpaces.find { it.id == space.id } ?: space
     val allBookingRequests by viewModel.bookingRequests.collectAsState()
 
-    val acceptedBookings = remember(allBookingRequests, liveSpace.id) {
-        allBookingRequests.filter { it.spaceId == liveSpace.id && it.status == BookingRequestStatus.ACCEPTED }
+    // Slots held by OTHER people come from the public occupancy projection (specialists can't read
+    // others' bookings); the viewer's own bookings come from their own list.
+    DisposableEffect(liveSpace.id) {
+        viewModel.watchOccupancy(liveSpace.id)
+        onDispose { viewModel.unwatchOccupancy(liveSpace.id) }
+    }
+    val occupancy by viewModel.occupancy.collectAsState()
+    val acceptedBookings = remember(allBookingRequests, occupancy, liveSpace.id) {
+        (allBookingRequests.filter { it.spaceId == liveSpace.id && it.status == BookingRequestStatus.ACCEPTED } +
+            occupancy[liveSpace.id].orEmpty()).distinctBy { it.id }
     }
 
     val myRequestsForThisSpace = remember(allBookingRequests, currentUser, liveSpace.id) {

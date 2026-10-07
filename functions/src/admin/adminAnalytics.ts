@@ -172,11 +172,16 @@ export const getAdminAnalytics = onCall<AnalyticsRequest>(async (request) => {
   let attendeeAccepted = 0;
   let attendeeAcceptedPeople = 0;
   const bookingsSnap = await db.collection("booking_requests")
-    .select("formula", "status", "totalAmountUsd", "attendeeCount", "createdAt", "spaceId", "isDemo")
+    .select("formula", "status", "totalAmountUsd", "attendeeCount", "createdAt", "spaceId", "isDemo",
+      "rejectedBySystem", "replacesBookingId")
     .get();
   bookingsSnap.forEach((doc) => {
     const b = doc.data();
     if (b.isDemo === true) return;
+    // Auto-rejected requests never reached a host, and an edit is the same booking changed:
+    // neither is a new request.
+    if (b.rejectedBySystem === true) return;
+    if (typeof b.replacesBookingId === "string" && b.replacesBookingId && b.status !== "ACCEPTED") return;
     const created = b.createdAt;
     if (typeof created === "number" ? !inRange(created) : (from != null || to != null)) return;
     if (countryFilter && listingCountry[String(b.spaceId)] !== countryFilter) return;

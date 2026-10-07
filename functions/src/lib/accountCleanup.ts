@@ -54,18 +54,19 @@ export async function cleanUpAccountData(uid: string, email: string): Promise<{ 
   const profile = profileSnap.data() ?? {};
   email = (email || (profile.email as string | undefined) || "").toLowerCase();
 
-  // 2. Withdraw this user's still-pending booking requests so hosts aren't left
-  // answering requests from an account that no longer exists.
-  await bestEffort("pending bookings", async () => {
-    const pending = await db.collection("booking_requests")
+  // 2. Withdraw this user's pending requests AND end their accepted bookings, so hosts aren't
+  // left answering requests — or holding slots locked — for an account that no longer exists.
+  await bestEffort("open bookings", async () => {
+    const open = await db.collection("booking_requests")
       .where("practitionerId", "==", uid)
-      .where("status", "==", "PENDING")
+      .where("status", "in", ["PENDING", "ACCEPTED"])
       .get();
-    if (pending.empty) return;
+    if (open.empty) return;
     const batch = db.batch();
-    pending.docs.forEach((doc) => batch.update(doc.ref, {
+    open.docs.forEach((doc) => batch.update(doc.ref, {
       status: "CANCELLED",
-      cancellationReasonCode: "ACCOUNT_DELETED",
+      cancellationReasonCode: "OTHER",
+      cancellationNote: "Account deleted",
       cancelledByRole: "SPECIALIST",
       updatedAt: Date.now(),
     }));

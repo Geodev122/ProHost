@@ -67,6 +67,30 @@ class FirestoreService(
     fun setPublicListingsLimit(limit: Int) { reattachPublicListings?.invoke(limit) }
 
     /**
+     * Live accepted-booking occupancy of one listing, from the server-maintained public projection
+     * `booking_occupancy` (no names, ids of people or prices — only what locks a slot). Specialists
+     * can read only their own booking_requests, so this is how they see slots other people hold.
+     * Returns null in local-only mode; the caller removes the registration when it leaves.
+     */
+    fun listenOccupancy(
+        spaceId: String,
+        onUpdate: (List<RentalBookingRequest>) -> Unit
+    ): com.google.firebase.firestore.ListenerRegistration? {
+        val db = firestore ?: return null
+        return db.collection("booking_occupancy")
+            .whereEqualTo("spaceId", spaceId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.w(TAG, "Occupancy sync note: ${error.message}")
+                    return@addSnapshotListener
+                }
+                onUpdate(snapshot?.documents.orEmpty().mapNotNull { doc ->
+                    doc.data?.let { BookingRequest.fromFirestoreMap(doc.id, it) }
+                })
+            }
+    }
+
+    /**
      * Attaches real-time snapshot listeners for the collections that need live cross-device
      * sync (workspaces, users, bookings, schema, plans, audit logs). Returns nothing; call
      * [clearListeners] to detach everything this has registered.
@@ -232,7 +256,10 @@ class FirestoreService(
                         if (snapshot != null) {
                             asOwner.clear()
                             snapshot.documents.forEach { doc ->
-                                doc.data?.let { BookingRequest.fromFirestoreMap(doc.id, it) }?.let { asOwner[it.id] = it }
+                                // Requests the server auto-rejected never reached the host: keep them out of
+                                // every host list, count and stat.
+                                doc.data?.let { BookingRequest.fromFirestoreMap(doc.id, it) }
+                                    ?.takeIf { !it.rejectedBySystem }?.let { asOwner[it.id] = it }
                             }
                             publishBookings()
                         }

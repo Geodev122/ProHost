@@ -221,8 +221,15 @@ private fun BookingSlotSelectorDialog(
     // specialist could see as taken there is bookable here. An edit of an accepted
     // booking (replacesBookingId) isn't blocked by the booking it's replacing.
     val allBookings by viewModel.bookingRequests.collectAsState()
-    val acceptedForSpace = remember(allBookings, space.id) {
-        allBookings.filter { it.spaceId == space.id && it.status == BookingRequestStatus.ACCEPTED }
+    // Other people's accepted bookings come from the public occupancy projection.
+    DisposableEffect(space.id) {
+        viewModel.watchOccupancy(space.id)
+        onDispose { viewModel.unwatchOccupancy(space.id) }
+    }
+    val occupancy by viewModel.occupancy.collectAsState()
+    val acceptedForSpace = remember(allBookings, occupancy, space.id) {
+        (allBookings.filter { it.spaceId == space.id && it.status == BookingRequestStatus.ACCEPTED } +
+            occupancy[space.id].orEmpty()).distinctBy { it.id }
     }
     val openSlots = remember(allSlots, acceptedForSpace, replacesBookingId) {
         allSlots.filterNot { SpaceCalculationUtils.isSlotLocked(it, space.id, acceptedForSpace, ignoreBookingId = replacesBookingId) }
@@ -339,7 +346,14 @@ private fun BookingSlotSelectorDialog(
     // weekly recurrence depends on where the term actually starts.
     val dateOptions = listOf("Immediate (Tomorrow)", "Next Monday", "1st of Next Month", "Custom Date")
     var selectedDateOption by remember { mutableStateOf(dateOptions[0]) }
-    var customStartDate by remember { mutableStateOf("2026-09-01") }
+    // Default custom date: one week ahead (never a date in the past).
+    var customStartDate by remember {
+        mutableStateOf(
+            java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(
+                java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_MONTH, 7) }.time
+            )
+        )
+    }
     val startDate = remember(selectedDateOption, customStartDate) {
         SpaceCalculationUtils.resolveStartDate(selectedDateOption, customStartDate)
     }
@@ -1176,8 +1190,9 @@ private fun BookingSlotSelectorDialog(
                     val computedDate = when {
                         selectedStrategyType == RentalStrategyType.SHIFT_BASED -> selectedCalendarDates.sorted().firstOrNull() ?: ""
                         selectedStrategyType == RentalStrategyType.DAY_BASED -> dayBasedCalendarDates.sorted().firstOrNull() ?: ""
-                        selectedDateOption == "Custom Date" -> customStartDate
-                        else -> selectedDateOption
+                        // Always a real ISO date (the term's start), never the preset's label:
+                        // a label can't be parsed, so the booking would lock its slots forever.
+                        else -> java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(startDate.time)
                     }
                     val canSubmit = selectedStrategyType != null && selectedSlotsForPricing.isNotEmpty() &&
                         (selectedStrategyType != RentalStrategyType.SHIFT_BASED || selectedCalendarDates.isNotEmpty()) &&

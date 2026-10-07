@@ -334,6 +334,10 @@ fun OwnerBookingRequestCard(
                     BookingRequestStatus.REJECTED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = "Declined")
                     BookingRequestStatus.CANCELLED -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = "Cancelled")
                 }
+                // A change to a booking this specialist already has: accepting replaces the old one.
+                if (!request.replacesBookingId.isNullOrBlank() && request.status == BookingRequestStatus.PENDING) {
+                    ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = "Change request")
+                }
                 Icon(
                     Icons.Default.ChevronRight,
                     contentDescription = null,
@@ -377,7 +381,7 @@ fun OwnerRequestDetailSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Booking Request",
+                    text = if (request.replacesBookingId.isNullOrBlank()) "Booking Request" else "Change Request",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -395,6 +399,14 @@ fun OwnerRequestDetailSheet(
                 isVerified = true,
                 size = 44.dp
             )
+            if (!request.replacesBookingId.isNullOrBlank() && request.status == BookingRequestStatus.PENDING) {
+                Text(
+                    "This specialist wants to change a booking they already have. Accepting confirms these new " +
+                        "details and releases the old booking.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
             HorizontalDivider()
 

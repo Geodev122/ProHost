@@ -55,8 +55,8 @@ How analytics is wired, what is tracked, and the console steps that only the pro
 | Bookings | ★`begin_checkout` | `content_type`=booking, `items`, `value`, `strategy` |
 | | `booking_slot_select` | `strategy`, `slot_count` |
 | | `booking_request` ⚑ | `value` (USD total), `strategy`, `attendee_count`, `pricing_mode`, `is_rebook`, `items` |
-| | `booking_request_failed` | `reason` |
-| | `booking_accepted` ⚑ | `value`, `strategy` (host side) |
+| | `booking_request_failed` | `reason` (`write_failed` = the request didn't save; or an error code) |
+| | `booking_accepted` ⚑ | `value`, `strategy`, `is_rebook` (true = an accepted change to an existing booking) (host side) |
 | | `booking_rejected`, `booking_cancelled` | `strategy` / `by`, `reason` |
 | | `payment_acknowledged`, `payment_reminder_sent`, `calendar_reminder_add` | `value` |
 | Host listings | `listing_create_start`, `listing_draft_saved` | `item_category`, `subdivision_count` |

@@ -186,8 +186,8 @@ internal class BookingsRepository(private val repo: ProHostRepository) {
      *
      * If [request.replacesBookingId] is set, this acceptance is really an edit
      * superseding a previously accepted booking (see MyBookingsScreen's "Edit
-     * Booking" action) — the superseded booking is released (marked CANCELLED) in
-     * the same operation, so exactly one of the two is ever ACCEPTED and
+     * Booking" action) — the server's conflict guard releases the superseded booking
+     * (CANCELLED, supersededBy) in the accept's own transaction, so exactly one of the two is ever ACCEPTED and
      * availability — always derived live from ACCEPTED bookings + the space's
      * schedule, never a separately stored count — recalculates immediately.
      *
@@ -225,20 +225,9 @@ internal class BookingsRepository(private val repo: ProHostRepository) {
                 } else space
             }
 
-            // Release the booking this edit replaces, if any — see the doc comment above.
-            request.replacesBookingId?.let { oldId ->
-                val oldRequest = _bookingRequests.value.find { it.id == oldId }
-                if (oldRequest != null && oldRequest.status == BookingRequestStatus.ACCEPTED) {
-                    val editCode = _bookingRequests.value.find { it.id == requestId }?.publicCode ?: publicCode("", requestId)
-                    val supersededReason = "Superseded by an accepted edit ($editCode)"
-                    val cancelledOld = firestoreService.updateBookingStatus(oldId, BookingRequestStatus.CANCELLED, rejectionReason = supersededReason)
-                    if (cancelledOld) {
-                        _bookingRequests.value = _bookingRequests.value.map {
-                            if (it.id == oldId) it.copy(status = BookingRequestStatus.CANCELLED, rejectionReason = supersededReason) else it
-                        }
-                    }
-                }
-            }
+            // The booking this edit replaces is released by the server (onBookingAcceptConflictGuard)
+            // in the same transaction that confirms the accept: never two accepted versions, and
+            // never none if the accept is reverted for a conflict. The snapshot listener shows it.
 
             addAuditLog(
                 actionType = "RENTAL_REQUEST_ACCEPTED",

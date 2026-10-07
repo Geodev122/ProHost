@@ -608,6 +608,8 @@ data class BookingRequest(
     val cancellationReasonCode: String? = null,
     val cancellationNote: String? = null,
     val cancelledByRole: String? = null,
+    /** Set by onBookingRequestCreated when it auto-rejects (e.g. attendee price mismatch): the host never saw it. */
+    val rejectedBySystem: Boolean = false,
     // Record-keeping only — rent settlement happens entirely outside the app
     // (cash/Whish-direct/wire transfer between host and specialist), so ProHost
     // has no way to know whether or when it actually happened. A simple mutual
@@ -763,6 +765,7 @@ data class BookingRequest(
                 cancellationReasonCode = data["cancellationReasonCode"] as? String,
                 cancellationNote = data["cancellationNote"] as? String,
                 cancelledByRole = data["cancelledByRole"] as? String,
+                rejectedBySystem = data["rejectedBySystem"] == true,
                 paymentAcknowledgedByHost = data["paymentAcknowledgedByHost"] as? Boolean ?: false,
                 paymentAcknowledgedBySpecialist = data["paymentAcknowledgedBySpecialist"] as? Boolean ?: false,
                 attendeeCount = (data["attendeeCount"] as? Number)?.toInt() ?: 0,

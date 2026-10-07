@@ -5,6 +5,7 @@
 //   node scripts/maintenance/run.js audit            read-only integrity + billing health report
 //   node scripts/maintenance/run.js j8               production data hygiene (backup → cleanup)
 //   node scripts/maintenance/run.js retiregrowth     retired plans (growth/enterprise): holders → permanent grant, rows closed
+//   node scripts/maintenance/run.js occupancy        rebuild booking_occupancy from ACCEPTED bookings
 //   node scripts/maintenance/run.js emailauth        read-only: why sign-in emails fail (Auth config, mail, limits)
 //   node scripts/maintenance/run.js enableemaillink  turn on Firebase Auth "Email link (passwordless)" sign-in
 //   node scripts/maintenance/run.js mailtest         queue one test email to the extension's reply-to (owner) address
@@ -235,6 +236,23 @@ async function retiregrowth(db) {
   }).then(() => "recorded"));
 }
 
+async function occupancy(db) {
+  // One-off backfill of the public occupancy projection (the trigger keeps it current after that).
+  const { OCCUPANCY_COLLECTION, occupancyFields } = require(`${LIB}/bookings/occupancyProjection`);
+  await step("occupancy", async () => {
+    const accepted = await db.collection("booking_requests").where("status", "==", "ACCEPTED").get();
+    const keep = new Set(accepted.docs.map((d) => d.id));
+    const w = db.bulkWriter();
+    accepted.docs.forEach((d) => { if (typeof d.data().spaceId === "string") w.set(db.collection(OCCUPANCY_COLLECTION).doc(d.id), occupancyFields(d.data())); });
+    let removed = 0;
+    for (const d of (await db.collection(OCCUPANCY_COLLECTION).get()).docs) {
+      if (!keep.has(d.id)) { w.delete(d.ref); removed++; }
+    }
+    await w.close();
+    return `written=${accepted.size} removedStale=${removed}`;
+  });
+}
+
 async function googleApi(url, init = {}) {
   const { access_token: token } = await admin.app().options.credential.getAccessToken();
   const project = process.env.GCLOUD_PROJECT;
@@ -434,6 +452,7 @@ async function emailauth(db) {
   const [task, arg] = process.argv.slice(2);
   if (task === "audit") await audit(db, auth);
   else if (task === "j8") { await j8(db, auth); await audit(db, auth); }
+  else if (task === "occupancy") await occupancy(db);
   else if (task === "retiregrowth") { await retiregrowth(db); await audit(db, auth); }
   else if (task === "emailauth") await emailauth(db);
   else if (task === "enableemaillink") { await enableemaillink(); await emailauth(db); }

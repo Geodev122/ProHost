@@ -43,6 +43,7 @@ export { onWorkspaceListingDeletedCleanup } from "./listings/listingDeleteCleanu
 export { listingShareLanding } from "./listings/shareLanding";
 export { legalDocumentPage } from "./legal/legalDocumentPage";
 export { onBookingAcceptConflictGuard } from "./bookings/bookingConflictGuard";
+export { onBookingOccupancySync } from "./bookings/occupancyProjection";
 export { onUserFavoritesChanged } from "./users/favoritesSync";
 
 export { expirePackages } from "./packages/expirePackages";

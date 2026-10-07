@@ -196,3 +196,18 @@ describe("in-app notifications", () => {
     await assertFails(getDoc(doc(hostCtx(), "user_profiles", SPEC, "notifications", "n1")));
   });
 });
+
+describe("booking occupancy projection", () => {
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore(), "booking_occupancy", "B_OTHER"),
+        { spaceId: "L1", status: "ACCEPTED", formula: { type: "FULL_MONTH" }, startDate: "2026-10-01", durationMonths: 1 }));
+  });
+  test("any signed-in user reads it (specialists see slots others hold)", async () => {
+    await assertSucceeds(getDoc(doc(specCtx(), "booking_occupancy", "B_OTHER")));
+  });
+  test("nobody writes it from a client", async () => {
+    await assertFails(setDoc(doc(specCtx(), "booking_occupancy", "fake"), { spaceId: "L1", status: "ACCEPTED" }));
+    await assertFails(updateDoc(doc(hostCtx(), "booking_occupancy", "B_OTHER"), { startDate: "2020-01-01" }));
+  });
+});

@@ -423,7 +423,32 @@ class ProHostViewModel(
     // to PRO_HOST the moment their Google Play subscription activates — never a free,
     // client-invocable "upgrade" call.
 
+    // Accepted-booking occupancy per listing (public projection), watched while a listing is open.
+    private val _occupancy = MutableStateFlow<Map<String, List<RentalBookingRequest>>>(emptyMap())
+    val occupancy: StateFlow<Map<String, List<RentalBookingRequest>>> = _occupancy.asStateFlow()
+    private val occupancyListeners = mutableMapOf<String, com.google.firebase.firestore.ListenerRegistration>()
+    private val occupancyWatchers = mutableMapOf<String, Int>()
+
+    /** Starts (or shares) the live occupancy feed for [spaceId]; pair with [unwatchOccupancy]. */
+    fun watchOccupancy(spaceId: String) {
+        occupancyWatchers[spaceId] = (occupancyWatchers[spaceId] ?: 0) + 1
+        if (spaceId in occupancyListeners) return
+        repository.firestoreService.listenOccupancy(spaceId) { list ->
+            _occupancy.update { it + (spaceId to list) }
+        }?.let { occupancyListeners[spaceId] = it }
+    }
+
+    fun unwatchOccupancy(spaceId: String) {
+        val left = (occupancyWatchers[spaceId] ?: 1) - 1
+        if (left > 0) { occupancyWatchers[spaceId] = left; return }
+        occupancyWatchers.remove(spaceId)
+        occupancyListeners.remove(spaceId)?.remove()
+        _occupancy.update { it - spaceId }
+    }
+
     override fun onCleared() {
+        occupancyListeners.values.forEach { it.remove() }
+        occupancyListeners.clear()
         super.onCleared()
         billing.endConnection()
     }
@@ -764,13 +789,16 @@ class ProHostViewModel(
                     com.example.analytics.AnalyticsTracker.bookingRequest(
                         space = space,
                         sub = space.subdivisions.firstOrNull { it.id == subdivisionId },
-                        valueUsd = calculatedTotalUsd,
+                        // The total actually stored on the request (the repository fills a 0 estimate).
+                        valueUsd = request.totalAmountUsd,
                         strategy = formula.type.name,
                         attendeeCount = attendeeCount.takeIf { it > 0 },
                         isRebook = replacesBookingId != null
                     )
                 } else {
-                    com.example.analytics.AnalyticsTracker.bookingRequestFailed("offline")
+                    // The write didn't reach Firestore: offline, or refused (e.g. the listing stopped
+                    // taking bookings). Not necessarily a connection problem.
+                    com.example.analytics.AnalyticsTracker.bookingRequestFailed("write_failed")
                 }
 
                 Toast.makeText(
@@ -843,7 +871,9 @@ class ProHostViewModel(
                 val success = repository.acceptBookingRequest(requestId, agreementUrl)
                 if (success) {
                     bookingRequests.value.firstOrNull { it.id == requestId }.let { b ->
-                        com.example.analytics.AnalyticsTracker.bookingAccepted(b?.totalAmountUsd, b?.formula?.type?.name)
+                        com.example.analytics.AnalyticsTracker.bookingAccepted(
+                            b?.totalAmountUsd, b?.formula?.type?.name, isEdit = !b?.replacesBookingId.isNullOrBlank()
+                        )
                     }
                     val msg = if (agreementUrl != null) "Booking accepted! Space rules shared." else "Booking accepted."
                     Toast.makeText(appContext, "$requestCode — $msg", Toast.LENGTH_LONG).show()
@@ -947,8 +977,14 @@ class ProHostViewModel(
                     cancelledByUid = user.id,
                     cancelledByRole = user.role.name
                 )
+                // Which side of THIS booking cancelled (a Pro Host can be the renter of an old booking).
+                val cancelled = bookingRequests.value.firstOrNull { it.id == requestId }
                 if (success) com.example.analytics.AnalyticsTracker.bookingCancelled(
-                    by = if (user.role == UserRole.SPECIALIST) "specialist" else "host",
+                    by = when {
+                        user.role == UserRole.ADMIN -> "admin"
+                        cancelled?.practitionerId == user.id -> "specialist"
+                        else -> "host"
+                    },
                     reasonCode = reasonCode.name
                 )
                 Toast.makeText(
