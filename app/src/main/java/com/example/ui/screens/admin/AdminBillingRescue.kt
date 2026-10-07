@@ -91,6 +91,27 @@ internal fun AdminBillingRescueCard(uiState: AdminUiState, adminViewModel: Admin
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                // The real base plans of package_pro_mrr in Google Play (ids, ACTIVE state, period).
+                Text(
+                    "Play catalog (${com.example.data.billing.PlayCatalog.PRODUCT_ID}):",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                )
+                if (health.catalog.isEmpty()) {
+                    Text(
+                        health.catalogError?.let { "Couldn't read it: $it" } ?: "No base plans returned.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                } else {
+                    health.catalog.forEach { line ->
+                        Text(
+                            "• $line",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if ("ACTIVE" in line) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
             }
             if (health?.lastRtdnAt == null && health != null) {
                 SelectionContainer {

@@ -14,7 +14,7 @@ import { acknowledgeIfNeeded, queryPlaySubscription } from "./billingHelpers";
 import { adminOverrideUid, claimPurchaseToken, linkKey } from "./purchaseLinks";
 import { PlayApiError, PlaySubscription, classifyPlayError } from "./playSubscription";
 import { syncSubscription } from "./subscriptionService";
-import { grantsAccess, isSupportedProduct, statusFor } from "./playCatalog";
+import { isSupportedProduct } from "./playCatalog";
 import "../lib/admin";
 import { notifyAdminsOfSubscriptionChange } from "./adminBillingAlerts";
 
@@ -35,6 +35,14 @@ export async function activatePlayPurchase(
   productIdHint: string,
   logTag: string
 ): Promise<ActivationOutcome> {
+  // Only package_pro_mrr exists. Retired plans (package_growth_mrr, package_enterprise_mrr)
+  // are ignored before anything else: no Play lookup, no ownership check, no claim, no
+  // parking and no admin push — a device holding someone else's old purchase must never
+  // raise an alert.
+  if (!isSupportedProduct(productIdHint)) {
+    logger.info(`${logTag}: ignored retired product product=${productIdHint} uid=${uid}`);
+    return { status: "unsupported_product", productId: productIdHint };
+  }
   let purchase: PlaySubscription;
   try {
     purchase = await queryPlaySubscription(purchaseToken, productIdHint);
@@ -44,6 +52,10 @@ export async function activatePlayPurchase(
     return { status: "play_error", error };
   }
   const productId = purchase.productId || productIdHint;
+  if (!isSupportedProduct(productId)) {
+    logger.info(`${logTag}: ignored retired product product=${productId} uid=${uid}`);
+    return { status: "unsupported_product", productId };
+  }
 
   // Ownership: a purchase made in the app's sheet carries the buyer's uid as
   // obfuscatedExternalAccountId. One started in the Play Store (promo-code redemption,
@@ -68,18 +80,6 @@ export async function activatePlayPurchase(
       return { status: "owned_by_other", reason: "link" };
     }
     logger.info(`${logTag}: linked unattributed purchase (${claim}) uid=${uid} product=${productId}`);
-  }
-
-  // Only package_pro_mrr grants on its own. A retired plan (package_growth_mrr, …) bought
-  // with an old app version is neither recorded, granted nor acknowledged here — not even
-  // while its payment is pending, or the daily sync would grant it once it settles. An
-  // admin decides (activating records an adminOverride link, honoured above and for its
-  // renewals).
-  if (!isSupportedProduct(productId) && !override) {
-    if (purchase.isPending) return { status: "pending_payment" };
-    if (!grantsAccess(statusFor(purchase), purchase.expiryMillis)) return { status: "expired" };
-    logger.warn(`${logTag}: retired product product=${productId} — waiting for an admin`);
-    return { status: "unsupported_product", productId };
   }
 
   // Never grant or acknowledge before the money has settled.

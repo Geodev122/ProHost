@@ -26,10 +26,39 @@ object PlayOfferText {
             ?: offers.first()
     }
 
-    /** Base plans Play returned for this product, in [PlayCatalog.BASE_PLANS] order first. */
-    fun basePlans(details: ProductDetails?): List<String> {
-        val ids = details?.subscriptionOfferDetails.orEmpty().map { it.basePlanId }.distinct()
-        return PlayCatalog.BASE_PLANS.filter { it in ids } + ids.filterNot { it in PlayCatalog.BASE_PLANS }
+    /** Base plan ids Play returned for this product. */
+    fun basePlans(details: ProductDetails?): List<String> =
+        details?.subscriptionOfferDetails.orEmpty().map { it.basePlanId }.distinct()
+
+    /**
+     * Monthly or yearly for a base plan, from its recurring billing period in Play (P1M / P1Y),
+     * so the screen never depends on how the id is spelled in Play Console. Falls back to the id.
+     */
+    fun kindOf(details: ProductDetails?, basePlanId: String): PlayCatalog.PlanKind? {
+        val offers = details?.subscriptionOfferDetails.orEmpty().filter { it.basePlanId == basePlanId }
+        val recurring = (offers.firstOrNull { it.offerId == null } ?: offers.firstOrNull())
+            ?.pricingPhases?.pricingPhaseList?.lastOrNull()?.billingPeriod
+        return recurring?.let(::kindForPeriod) ?: PlayCatalog.kindOf(basePlanId)
+    }
+
+    /** Pure: P1M (or any period ≤ 1 month) → monthly, ≥ 12 months → yearly, else null. */
+    fun kindForPeriod(iso: String): PlayCatalog.PlanKind? {
+        val months = monthsIn(iso) ?: return null
+        return when {
+            months <= 1.0 -> PlayCatalog.PlanKind.MONTHLY
+            months >= 12.0 -> PlayCatalog.PlanKind.YEARLY
+            else -> null
+        }
+    }
+
+    /** The base plan id Play returned for each kind (at most one monthly and one yearly). */
+    fun plansByKind(details: ProductDetails?): Map<PlayCatalog.PlanKind, String> {
+        val out = linkedMapOf<PlayCatalog.PlanKind, String>()
+        for (id in basePlans(details)) {
+            val kind = kindOf(details, id) ?: continue
+            out.putIfAbsent(kind, id)
+        }
+        return out
     }
 
     private fun phases(details: ProductDetails?, basePlanId: String?) =
@@ -81,10 +110,22 @@ object PlayOfferText {
         return phase.priceAmountMicros.toDouble() / months
     }
 
+    /** "≈ $8.33 / month" for a yearly plan, formatted in Play's own currency. */
+    fun perMonthLabel(details: ProductDetails?, basePlanId: String): String? {
+        val phase = phases(details, basePlanId)?.lastOrNull() ?: return null
+        val months = monthsIn(phase.billingPeriod)?.takeIf { it > 1.0 } ?: return null
+        return runCatching {
+            val fmt = java.text.NumberFormat.getCurrencyInstance()
+            fmt.currency = java.util.Currency.getInstance(phase.priceCurrencyCode)
+            "≈ ${fmt.format(phase.priceAmountMicros / 1_000_000.0 / months)} / month"
+        }.getOrNull()
+    }
+
     /** "Save XX%" for the yearly base plan against twelve monthly payments; null below 1%. */
     fun yearlySavingsPercent(details: ProductDetails?): Int? {
-        val monthly = recurringMicrosPerMonth(details, PlayCatalog.BASE_PLAN_MONTHLY) ?: return null
-        val yearly = recurringMicrosPerMonth(details, PlayCatalog.BASE_PLAN_YEARLY) ?: return null
+        val plans = plansByKind(details)
+        val monthly = plans[PlayCatalog.PlanKind.MONTHLY]?.let { recurringMicrosPerMonth(details, it) } ?: return null
+        val yearly = plans[PlayCatalog.PlanKind.YEARLY]?.let { recurringMicrosPerMonth(details, it) } ?: return null
         return savingsPercent(monthly, yearly)
     }
 

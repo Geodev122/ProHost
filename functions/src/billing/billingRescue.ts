@@ -11,7 +11,7 @@ import { linkKey, setAdminOverride } from "./purchaseLinks";
 import { notifyAdminsOfSubscriptionChange } from "./adminBillingAlerts";
 import { healthFromProbe, hoursUntilRefund, rescueHint } from "./billingRescueLogic";
 import "../lib/admin";
-import { isSupportedProduct } from "./playCatalog";
+import { PLAY_PRODUCT_ID, isSupportedProduct, planInterval } from "./playCatalog";
 
 /**
  * Admin › Packages: billing health check and "Payments needing attention".
@@ -62,6 +62,25 @@ export const billingHealthCheck = onCall(async (request) => {
     message = err.message;
   }
   const playApi = healthFromProbe(kind);
+  // The Play catalog as Google Play holds it: base plans of package_pro_mrr with their real
+  // ids, states and billing periods (the app tells monthly/yearly apart by period).
+  let catalog: { basePlanId: string; state: string; period: string | null; interval: string | null }[] = [];
+  let catalogError: string | null = null;
+  try {
+    const publisher = await getPlayPublisher();
+    const res = await publisher.monetization.subscriptions.get({ packageName: PACKAGE_NAME, productId: PLAY_PRODUCT_ID });
+    catalog = (res.data.basePlans ?? []).map((bp) => {
+      const period = bp.autoRenewingBasePlanType?.billingPeriodDuration ?? bp.prepaidBasePlanType?.billingPeriodDuration ?? null;
+      return {
+        basePlanId: bp.basePlanId ?? "",
+        state: bp.state ?? "UNKNOWN",
+        period,
+        interval: period === "P1M" ? "monthly" : period === "P1Y" ? "yearly" : planInterval(bp.basePlanId),
+      };
+    });
+  } catch (e) {
+    catalogError = classifyPlayError(e).message.slice(0, 200);
+  }
   const health = (await getFirestore().doc("app_config/billing_health").get()).data() ?? {};
   const db = getFirestore();
   const [pendingSnap, unlinkedSnap] = await Promise.all([
@@ -77,6 +96,8 @@ export const billingHealthCheck = onCall(async (request) => {
     lastSelfTestAt: typeof health.lastSelfTestAt === "number" ? health.lastSelfTestAt : null,
     pendingCount: pendingSnap.data().count,
     unlinkedCount: unlinkedSnap.data().count,
+    catalog,
+    catalogError,
   };
 });
 
@@ -102,6 +123,7 @@ export const adminBillingPending = onCall(async (request) => {
   const rows = [];
   for (const doc of pending.docs) {
     const d = doc.data();
+    if (!isSupportedProduct(d.productId as string | undefined)) continue; // retired plans: never listed
     const createdAt = typeof d.createdAt === "number" ? d.createdAt : now;
     const clock = await playClock(d.purchaseToken as string | undefined, d.productId as string | undefined, createdAt);
     rows.push({
@@ -119,6 +141,7 @@ export const adminBillingPending = onCall(async (request) => {
   }
   for (const doc of unlinked.docs) {
     const d = doc.data();
+    if (!isSupportedProduct(d.productId as string | undefined)) continue;
     const createdAt = typeof d.timestamp === "number" ? d.timestamp : now;
     const clock = await playClock(d.purchaseToken as string | undefined, d.productId as string | undefined, createdAt);
     rows.push({
@@ -185,9 +208,13 @@ export const adminActivatePurchase = onCall<{
     const owner = await describeUser(taggedFor);
     return { status: "needs_confirm", taggedFor: owner };
   }
-  // Activating a retired plan (package_growth_mrr, …) is the admin's explicit approval of it.
-  const retired = !isSupportedProduct(purchase.productId || productId);
-  if (reassigning || retired) await setAdminOverride(targetUid, token, purchase.productId || productId, adminUid);
+  // Retired plans (growth, enterprise) are not activatable any more.
+  if (!isSupportedProduct(purchase.productId || productId)) {
+    if (kind === "pending") await resolvePendingActivation(token, "retired_ignored");
+    else await ref.update({ resolved: true, resolvedAt: Date.now(), outcome: "retired_ignored" });
+    return { status: "retired_plan" };
+  }
+  if (reassigning) await setAdminOverride(targetUid, token, purchase.productId || productId, adminUid);
 
   const outcome = await activatePlayPurchase(targetUid, token, purchase.productId || productId, "adminActivatePurchase");
   if (outcome.status === "granted") {

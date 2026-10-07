@@ -68,6 +68,18 @@ test("admins are alerted on real changes only", async () => {
   assert.equal(adminEventFor({ status: "ACTIVE", basePlanId: "pro-yearly", expiryDate: 2_000_000_000_000 }, "GRACE_PERIOD", sub), "STATUS_CHANGED");
 });
 
+test("base plans are classified whatever the id spelling", async () => {
+  const { planInterval, planLabel } = await import("./playCatalog");
+  assert.equal(planInterval("pro-montly"), "monthly");
+  assert.equal(planInterval("pro-monthly"), "monthly");
+  assert.equal(planInterval("pro-yearly"), "yearly");
+  assert.equal(planInterval("premium-annual"), "yearly");
+  assert.equal(planInterval("admin_forced"), null);
+  assert.equal(planInterval(undefined), null);
+  assert.equal(planLabel("pro-monthly"), "Pro Host Monthly");
+  assert.equal(planLabel("admin_forced"), "Pro Host (granted)");
+});
+
 test("only package_pro_mrr grants Pro Host on its own", () => {
   assert.equal(isSupportedProduct("package_pro_mrr"), true);
   assert.equal(isSupportedProduct("package_growth_mrr"), false);

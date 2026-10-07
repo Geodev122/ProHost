@@ -9,9 +9,27 @@ import org.junit.Test
 class PlayCatalogTest {
 
     @Test
-    fun `base plan ids are exactly the ones in Play Console`() {
+    fun `only ProHost Premium is a supported product`() {
         assertEquals("package_pro_mrr", PlayCatalog.PRODUCT_ID)
-        assertEquals(listOf("pro-montly", "pro-yearly"), PlayCatalog.BASE_PLANS)
+        assertTrue(PlayCatalog.isSupportedProduct("package_pro_mrr"))
+        assertFalse(PlayCatalog.isSupportedProduct("package_growth_mrr"))
+        assertFalse(PlayCatalog.isSupportedProduct("package_enterprise_mrr"))
+        assertFalse(PlayCatalog.isSupportedProduct(null))
+    }
+
+    @Test
+    fun `plans are classified by kind whatever the id spelling`() {
+        assertEquals(PlayCatalog.PlanKind.MONTHLY, PlayCatalog.kindOf("pro-montly"))
+        assertEquals(PlayCatalog.PlanKind.MONTHLY, PlayCatalog.kindOf("pro-monthly"))
+        assertEquals(PlayCatalog.PlanKind.YEARLY, PlayCatalog.kindOf("pro-yearly"))
+        assertEquals(PlayCatalog.PlanKind.YEARLY, PlayCatalog.kindOf("premium-annual"))
+        assertNull(PlayCatalog.kindOf("admin_forced"))
+        assertNull(PlayCatalog.kindOf(null))
+        assertEquals("Monthly", PlayCatalog.planBadge("pro-monthly"))
+        assertEquals(PlayCatalog.PlanKind.MONTHLY, PlayOfferText.kindForPeriod("P1M"))
+        assertEquals(PlayCatalog.PlanKind.YEARLY, PlayOfferText.kindForPeriod("P1Y"))
+        assertEquals(PlayCatalog.PlanKind.YEARLY, PlayOfferText.kindForPeriod("P12M"))
+        assertNull(PlayOfferText.kindForPeriod("P3M"))
     }
 
     @Test

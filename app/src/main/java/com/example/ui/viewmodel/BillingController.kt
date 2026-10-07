@@ -120,7 +120,11 @@ class BillingController(
                     // and acknowledges it. One attempt per token per session.
                     manager.purchaseEvents.collect { event ->
                         val purchase = event.purchase
-                        val productId = purchase.products.firstOrNull() ?: return@collect
+                        val productId = purchase.products
+                            .firstOrNull(com.example.data.billing.PlayCatalog::isSupportedProduct) ?: return@collect
+                        // A purchase this device's Play account made for ANOTHER ProHost account is
+                        // never sent from here (it would only alert admins); its owner restores it.
+                        if (!event.fromCheckout && purchase.isTaggedForAnotherUser(currentUser.value?.id)) return@collect
                         if (!processedPurchaseTokens.add(purchase.purchaseToken)) return@collect
                         // Play confirmed payment: only now is there something to activate.
                         if (event.fromCheckout) showBillingActivationPending()
@@ -230,7 +234,7 @@ class BillingController(
 
     /**
      * Opens Google Play's purchase sheet for ProHost Premium's [basePlanId]
-     * ([PlayCatalog.BASE_PLAN_MONTHLY] / [PlayCatalog.BASE_PLAN_YEARLY]). The app never
+     * (its monthly or yearly base plan id as Play returned it). The app never
      * grants anything itself: the result goes to the server (purchaseEvents →
      * verifyAndRestorePurchase), which verifies with Google and assigns the role.
      */
@@ -266,15 +270,16 @@ class BillingController(
             // Monthly ↔ yearly is a replacement of the same subscription: pass the current
             // purchase token so Play switches plans instead of selling a second subscription.
             val currentPlan = currentUser.value?.activePlanId()
-            val oldPurchaseToken = if (currentPlan != null && currentPlan != basePlanId &&
-                currentPlan in com.example.data.billing.PlayCatalog.BASE_PLANS) {
+            // Any live Play subscription (whatever its base plan id is called in Play Console).
+            val switching = currentPlan != null && currentPlan != basePlanId &&
+                currentUser.value?.entitlementSource == "google_play"
+            val oldPurchaseToken = if (switching) {
                 manager.activePurchases.value.firstOrNull { productId in it.products }?.purchaseToken
             } else null
             // Switching plans without the current purchase token would sell a SECOND
             // subscription (double charge). That happens when this device's Play account
             // isn't the one that subscribed, or Play hasn't returned purchases yet.
-            if (currentPlan != null && currentPlan != basePlanId &&
-                currentPlan in com.example.data.billing.PlayCatalog.BASE_PLANS && oldPurchaseToken == null) {
+            if (switching && oldPurchaseToken == null) {
                 scope.launch { runCatching { manager.fetchActivePurchases() } }
                 _billingError.value = "To switch plans, open the Play Store with the Google account that subscribed " +
                     "(or use Manage subscription). We couldn't find your current subscription on this device."
@@ -285,7 +290,8 @@ class BillingController(
             // The "Activating" banner waits for Play's PURCHASED result (purchaseEvents).
             // Play's recommended replacement modes: an upgrade (to yearly) applies now with credit
             // for unused time; a downgrade (to monthly) starts at the next renewal date.
-            val replacementMode = if (basePlanId == com.example.data.billing.PlayCatalog.BASE_PLAN_YEARLY) {
+            val replacementMode = if (com.example.data.billing.PlayOfferText.kindOf(product, basePlanId) ==
+                com.example.data.billing.PlayCatalog.PlanKind.YEARLY) {
                 com.android.billingclient.api.BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_PRORATED_PRICE
             } else {
                 com.android.billingclient.api.BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.DEFERRED
@@ -379,10 +385,13 @@ class BillingController(
                     if (userInitiated) _billingError.value = "Couldn't reach Google Play. Please try again."
                     return@runCatching
                 }
+                val uid = currentUser.value?.id
                 val activePurchase = purchases.firstOrNull {
-                    it.purchaseState == com.android.billingclient.api.Purchase.PurchaseState.PURCHASED && !it.isSuspended
+                    it.purchaseState == com.android.billingclient.api.Purchase.PurchaseState.PURCHASED && !it.isSuspended &&
+                        it.products.any(com.example.data.billing.PlayCatalog::isSupportedProduct) &&
+                        !it.isTaggedForAnotherUser(uid)
                 }
-                val productId = activePurchase?.products?.firstOrNull()
+                val productId = activePurchase?.products?.firstOrNull(com.example.data.billing.PlayCatalog::isSupportedProduct)
                 if (activePurchase == null || productId == null) {
                     if (userInitiated) {
                         com.example.analytics.AnalyticsTracker.premiumRestoreResult("none_found")
@@ -479,6 +488,12 @@ class BillingController(
 }
 
 private const val PENDING_RETRY_WINDOW_MS = 30_000L
+
+/** Tagged at checkout (obfuscatedAccountId = uid) for a different ProHost account than [uid]. */
+private fun com.android.billingclient.api.Purchase.isTaggedForAnotherUser(uid: String?): Boolean {
+    val tagged = accountIdentifiers?.obfuscatedAccountId
+    return !tagged.isNullOrBlank() && uid != null && tagged != uid
+}
 
 /** The plan that still grants today: an expired one (before the hourly sweep clears it) is no plan. */
 private fun AppUser.activePlanId(): String? {

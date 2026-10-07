@@ -311,6 +311,10 @@ class AdminViewModel(
                     _events.emit(AdminUiEvent.ShowToast("Granted, but Google Play didn't confirm the acknowledgement — it will retry automatically."))
                     refreshBilling()
                 }
+                "retired_plan" -> {
+                    _events.emit(AdminUiEvent.ShowToast("Retired plan — no longer offered; the row was closed."))
+                    refreshBilling()
+                }
                 "play_error" -> _events.emit(
                     AdminUiEvent.ShowToast("Google Play: ${(answer["message"] as? String)?.take(160) ?: "error"}")
                 )

@@ -4,7 +4,7 @@
 //
 //   node scripts/maintenance/run.js audit            read-only integrity + billing health report
 //   node scripts/maintenance/run.js j8               production data hygiene (backup → cleanup)
-//   node scripts/maintenance/run.js activate <code>  honour a parked retired-plan purchase for U-XXXXXX
+//   node scripts/maintenance/run.js retiregrowth     retired plans (growth/enterprise): holders → permanent grant, rows closed
 //   node scripts/maintenance/run.js emailauth        read-only: why sign-in emails fail (Auth config, mail, limits)
 //   node scripts/maintenance/run.js enableemaillink  turn on Firebase Auth "Email link (passwordless)" sign-in
 //   node scripts/maintenance/run.js mailtest         queue one test email to the extension's reply-to (owner) address
@@ -178,20 +178,61 @@ async function j8(db, auth) {
   }).then(() => "recorded"));
 }
 
-async function activate(db, code) {
-  if (!/^U-[0-9A-Z]{6}$/.test(code || "")) throw new Error("activate needs a U- display code");
-  const users = await db.collection("user_profiles").where("displayCode", "==", code).limit(2).get();
-  if (users.size !== 1) throw new Error(`${code} matched ${users.size} accounts`);
-  const uid = users.docs[0].id;
-  const rows = await db.collection("play_billing_pending").where("uid", "==", uid).where("resolved", "==", false).get();
-  if (rows.empty) { notice(`${code}: no unresolved parked purchase (already handled)`); return; }
-  const { adminActivatePurchase } = require(`${LIB}/billing/billingRescue`);
-  for (const row of rows.docs) {
-    await step(`activate ${code} ${row.data().productId}`,
-      () => adminActivatePurchase.run(ADMIN_REQ({ kind: "pending", id: row.id, targetUid: uid })));
+async function retiregrowth(db) {
+  // Only package_pro_mrr exists now. Whoever still has Pro Host through a retired plan keeps it
+  // as a permanent admin grant (owner's decision, Oct 2026); every open billing row for a
+  // retired plan is closed and admin overrides on retired tokens are removed.
+  const SUPPORTED = "package_pro_mrr";
+  const { grantProHost } = require(`${LIB}/billing/entitlementManager`);
+  const { ADMIN_FORCED_PLAN_ID, LIFETIME_EXPIRY_MILLIS } = require(`${LIB}/billing/playCatalog`);
+  const { recordAuditLog } = require(`${LIB}/lib/auditLog`);
+
+  const retiredSubs = (await db.collection("subscriptions").get()).docs.filter((d) => d.data().productId !== SUPPORTED);
+  const holders = new Set(retiredSubs.map((d) => d.data().userId).filter(Boolean));
+  const converted = [];
+  for (const uid of holders) {
+    const p = (await db.collection("user_profiles").doc(uid).get()).data();
+    if (!p) continue;
+    const code = p.displayCode || "?";
+    if (p.role === "PRO_HOST" && p.entitlementSource !== "admin_forced") {
+      await step(`grant ${code}`, async () => {
+        await grantProHost(uid, {
+          source: "admin_forced", planId: ADMIN_FORCED_PLAN_ID, expiryMillis: LIFETIME_EXPIRY_MILLIS,
+          orderId: "admin:retire-growth",
+        });
+        const after = (await db.collection("user_profiles").doc(uid).get()).data() || {};
+        return `role=${after.role} plan=${after.ownerPackageId} source=${after.entitlementSource}`;
+      });
+      converted.push(code);
+    } else {
+      notice(`${code}: role=${p.role} source=${p.entitlementSource || "-"} — left as is`);
+    }
   }
-  const after = (await db.collection("user_profiles").doc(uid).get()).data() || {};
-  notice(`${code}: role=${after.role} plan=${after.ownerPackageId || "-"} source=${after.entitlementSource || "-"}`);
+  for (const d of retiredSubs) await d.ref.update({ retired: true }).catch(() => undefined);
+
+  await step("closeRetiredRows", async () => {
+    let pending = 0; let unlinked = 0;
+    for (const d of (await db.collection("play_billing_pending").where("resolved", "==", false).get()).docs) {
+      if (d.data().productId !== SUPPORTED) { await d.ref.update({ resolved: true, outcome: "retired_ignored", resolvedAt: Date.now() }); pending++; }
+    }
+    for (const d of (await db.collection("play_billing_unresolved").where("resolved", "==", false).get()).docs) {
+      if (d.data().productId !== SUPPORTED) { await d.ref.update({ resolved: true, outcome: "retired_ignored", resolvedAt: Date.now() }); unlinked++; }
+    }
+    return `pending=${pending} unlinked=${unlinked}`;
+  });
+  await step("removeRetiredOverrides", async () => {
+    let n = 0;
+    for (const d of (await db.collection("play_purchase_links").get()).docs) {
+      if (d.data().productId && d.data().productId !== SUPPORTED) { await d.ref.delete(); n++; }
+    }
+    return `deleted=${n}`;
+  });
+  await step("auditLog", () => recordAuditLog({
+    actionType: "RETIRED_PLANS_REMOVED",
+    details: `Retired Play plans removed (maintenance workflow). Permanent Pro Host grant for: ${converted.join(", ") || "nobody"}.`,
+    actorEmail: "maintenance@pro-host.tech",
+    severity: "SECURE",
+  }).then(() => "recorded"));
 }
 
 async function googleApi(url, init = {}) {
@@ -393,7 +434,7 @@ async function emailauth(db) {
   const [task, arg] = process.argv.slice(2);
   if (task === "audit") await audit(db, auth);
   else if (task === "j8") { await j8(db, auth); await audit(db, auth); }
-  else if (task === "activate") await activate(db, arg);
+  else if (task === "retiregrowth") { await retiregrowth(db); await audit(db, auth); }
   else if (task === "emailauth") await emailauth(db);
   else if (task === "enableemaillink") { await enableemaillink(); await emailauth(db); }
   else if (task === "mailtest") { await mailtest(db); await emailauth(db); }

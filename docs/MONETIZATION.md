@@ -5,7 +5,7 @@ Last reviewed: 2026-10-04 (Play Billing Library 9.1.0).
 ## 0. Architecture (refactor of 2026-10-04): Google Play is the only authority
 
 ```
-Play subscription package_pro_mrr ── base plans pro-montly / pro-yearly
+Play subscription package_pro_mrr ── a monthly and a yearly base plan (matched by billing period)
   → Billing SDK (prices, offers, Save %) → purchase token
   → verifyAndRestorePurchase / RTDN / billingSyncJob (daily) → Play Developer API (subscriptionsv2)
   → SubscriptionService (subscriptions/{sha256(token)}) → EntitlementManager → role specialist ↔ prohost
@@ -15,16 +15,12 @@ Play subscription package_pro_mrr ── base plans pro-montly / pro-yearly
   `package_plans` document is retired.
 - **Admin → Packages → Force Upgrade → ProHost** is the only admin billing action. It is permanent, and
   Users → Revoke Pro Host undoes it.
-- **Only `package_pro_mrr` grants Pro Host.** Until 2026-10-04 the app also sold `package_growth_mrr` and
-  `package_enterprise_mrr`, so old app versions can still sell them. Deactivate their base plans in Play
-  Console › Monetize › Subscriptions so nobody can buy them any more; existing subscribers keep renewing.
-  The server never grants or acknowledges a purchase of a retired plan on its own:
-  - it parks the purchase with `needsAdmin` and `lastError: unsupported_product: …`;
-  - admins get an `UNSUPPORTED_PRODUCT` push;
-  - the buyer is told the team will review it.
-
-  In Admin › Packages › Payments needing attention, **Activate** honours it. That writes an `adminOverride`
-  link, which also covers its renewals. If you leave it, Google Play refunds the buyer 3 days after purchase.
+- **Only `package_pro_mrr` exists.** `package_growth_mrr` and `package_enterprise_mrr` (sold until 2026-10-04) are
+  retired: the app never reads or sends them and every server path ignores them, with no parking and no admin
+  push. Their one holder was converted to a permanent admin grant (maintenance task `retiregrowth`). In Play
+  Console › Monetize › Subscriptions, deactivate their base plans and cancel any remaining subscriptions.
+- **Base plans are matched by billing period** (monthly / yearly), not by exact id. Admin › Packages › Billing
+  health lists the real ids, states and periods read from Google Play.
 - **Status to role:**
   - ACTIVE, GRACE_PERIOD, and CANCELED until its expiry: prohost.
   - ON_HOLD, PAUSED, EXPIRED, REVOKED, REFUNDED: specialist.

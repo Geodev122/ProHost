@@ -142,6 +142,8 @@ fun OwnerSubscriptionsScreen(
         playBillingProducts.firstOrNull { it.productId == PlayCatalog.PRODUCT_ID }
     }
     val enabledPlans = remember(premiumProduct) { PlayOfferText.basePlans(premiumProduct) }
+    // Monthly / yearly by billing period, whatever the ids are called in Play Console.
+    val plansByKind = remember(premiumProduct) { PlayOfferText.plansByKind(premiumProduct) }
     val yearlySavings = remember(premiumProduct) { PlayOfferText.yearlySavingsPercent(premiumProduct) }
     val currentPlanId = currentUser?.ownerPackageId
     val isForcedUpgrade = PlayCatalog.isForcedUpgrade(currentPlanId)
@@ -240,7 +242,7 @@ fun OwnerSubscriptionsScreen(
             PremiumHero(
                 currentPlanId = currentPlanId,
                 playDescription = premiumProduct?.description?.trim()?.takeIf { it.isNotEmpty() },
-                currentPrice = currentPlanId?.takeIf { it in PlayCatalog.BASE_PLANS }
+                currentPrice = currentPlanId?.takeIf { it in enabledPlans }
                     ?.let { PlayOfferText.describe(premiumProduct, it) },
                 renewLabel = when {
                     isLifetimeGrant -> "Expires"
@@ -331,30 +333,38 @@ fun OwnerSubscriptionsScreen(
                     modifier = Modifier.padding(start = 4.dp)
                 )
             } else {
-                val hasLivePlaySubscription = currentPlanId in PlayCatalog.BASE_PLANS && !isSubscriptionExpired
-                // Selected tile: the yearly plan by default (best value), else the first Play returned.
-                var selectedPlan by rememberSaveable(enabledPlans) {
+                val hasLivePlaySubscription = currentUser?.entitlementSource == "google_play" &&
+                    !isForcedUpgrade && !isSubscriptionExpired
+                val currentKind = currentPlanId?.let { PlayOfferText.kindOf(premiumProduct, it) }
+                fun isCurrentPlan(id: String) = hasLivePlaySubscription &&
+                    (id == currentPlanId || PlayOfferText.kindOf(premiumProduct, id) == currentKind)
+                // Selected tile: the yearly plan by default (best value) unless it is the current one.
+                var selectedPlan by rememberSaveable(plansByKind) {
                     mutableStateOf(
-                        enabledPlans.firstOrNull { it == PlayCatalog.BASE_PLAN_YEARLY && it != currentPlanId }
-                            ?: enabledPlans.firstOrNull { it != currentPlanId || isSubscriptionExpired }
+                        plansByKind[PlayCatalog.PlanKind.YEARLY]?.takeIf { !isCurrentPlan(it) }
+                            ?: plansByKind.values.firstOrNull { !isCurrentPlan(it) }
+                            ?: plansByKind.values.firstOrNull()
                             ?: enabledPlans.first()
                     )
                 }
-                // Tiles always show both base plans; one Play didn't return is a clear placeholder.
-                val tiles = (PlayCatalog.BASE_PLANS + enabledPlans).distinct()
+                val selectedKind = PlayOfferText.kindOf(premiumProduct, selectedPlan)
+                val selectedBadge = selectedKind?.let(PlayCatalog::badge) ?: "Premium"
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // Always exactly two tiles: Monthly and Yearly. A kind Play didn't return is a placeholder.
                     Row(
                         modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        tiles.forEach { plan ->
-                            if (plan in enabledPlans) {
+                        PlayCatalog.PlanKind.entries.forEach { kind ->
+                            val plan = plansByKind[kind]
+                            if (plan != null) {
                                 PlanTile(
+                                    kind = kind,
                                     basePlanId = plan,
                                     playProduct = premiumProduct,
                                     selected = plan == selectedPlan,
-                                    isCurrent = currentPlanId == plan && !isSubscriptionExpired,
-                                    savingsPercent = if (plan == PlayCatalog.BASE_PLAN_YEARLY) yearlySavings else null,
+                                    isCurrent = isCurrentPlan(plan),
+                                    savingsPercent = if (kind == PlayCatalog.PlanKind.YEARLY) yearlySavings else null,
                                     modifier = Modifier.weight(1f).fillMaxHeight(),
                                     onClick = {
                                         selectedPlan = plan
@@ -363,7 +373,7 @@ fun OwnerSubscriptionsScreen(
                                 )
                             } else {
                                 UnavailablePlanTile(
-                                    basePlanId = plan,
+                                    kind = kind,
                                     modifier = Modifier.weight(1f).fillMaxHeight()
                                 )
                             }
@@ -372,17 +382,17 @@ fun OwnerSubscriptionsScreen(
 
                     PremiumBenefits()
 
-                    val isCurrent = currentPlanId == selectedPlan && !isSubscriptionExpired
+                    val isCurrent = isCurrentPlan(selectedPlan)
                     // Play: make the current plan and the options to change it obvious. Upgrades
                     // (to yearly) apply now with credit for unused time; downgrades start at renewal.
-                    val isUpgrade = selectedPlan == PlayCatalog.BASE_PLAN_YEARLY
+                    val isUpgrade = selectedKind == PlayCatalog.PlanKind.YEARLY
                     val actionLabel = when {
                         isForcedUpgrade -> "Included in your access"
                         isCurrent -> "Your current plan"
-                        hasLivePlaySubscription -> "Switch to ${PlayCatalog.planBadge(selectedPlan)}"
-                        isSubscriptionExpired -> "Renew · ${PlayCatalog.planBadge(selectedPlan)}"
+                        hasLivePlaySubscription -> "Switch to $selectedBadge"
+                        isSubscriptionExpired -> "Renew · $selectedBadge"
                         PlayOfferText.trialLabel(premiumProduct, selectedPlan) != null -> "Start free trial"
-                        else -> "Subscribe · ${PlayCatalog.planBadge(selectedPlan)}"
+                        else -> "Subscribe · $selectedBadge"
                     }
                     val enabled = !isForcedUpgrade && !isCurrent
                     Button(
@@ -622,6 +632,7 @@ private fun PremiumActionChip(icon: androidx.compose.ui.graphics.vector.ImageVec
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PlanTile(
+    kind: PlayCatalog.PlanKind,
     basePlanId: String,
     playProduct: com.android.billingclient.api.ProductDetails?,
     selected: Boolean,
@@ -630,70 +641,106 @@ private fun PlanTile(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val accent = MaterialTheme.colorScheme.secondary
+    val scheme = MaterialTheme.colorScheme
+    val accent = scheme.secondary
+    val shape = RoundedCornerShape(20.dp)
     val trialLabel = PlayOfferText.trialLabel(playProduct, basePlanId) ?: PlayOfferText.introLabel(playProduct, basePlanId)
     val price = PlayOfferText.recurringPrice(playProduct, basePlanId) ?: "—"
-    val period = when (basePlanId) {
-        PlayCatalog.BASE_PLAN_YEARLY -> "per year"
-        PlayCatalog.BASE_PLAN_MONTHLY -> "per month"
-        else -> PlayOfferText.caption(playProduct, basePlanId).orEmpty()
+    val period = if (kind == PlayCatalog.PlanKind.YEARLY) "per year" else "per month"
+    val perMonth = PlayOfferText.perMonthLabel(playProduct, basePlanId)
+    val fill = if (selected) {
+        androidx.compose.ui.graphics.Brush.verticalGradient(listOf(accent.copy(alpha = 0.16f), scheme.surface))
+    } else {
+        androidx.compose.ui.graphics.Brush.verticalGradient(listOf(scheme.surface, scheme.surfaceVariant.copy(alpha = 0.55f)))
     }
     Surface(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(18.dp),
-        color = if (selected) accent.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) accent else MaterialTheme.colorScheme.outlineVariant),
-        shadowElevation = if (selected) 3.dp else 0.dp
+        shape = shape,
+        color = scheme.surface, // under the gradient; keeps the elevation shadow solid
+        border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) accent else scheme.outlineVariant),
+        shadowElevation = if (selected) 8.dp else 2.dp
     ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(fill)
+                .padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = CircleShape,
+                    color = if (selected) accent else scheme.surfaceVariant,
+                    modifier = Modifier.size(30.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            if (kind == PlayCatalog.PlanKind.YEARLY) Icons.Default.WorkspacePremium else Icons.Default.CalendarMonth,
+                            contentDescription = null,
+                            tint = if (selected) scheme.onSecondary else scheme.onSurfaceVariant,
+                            modifier = Modifier.size(17.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    PlayCatalog.planBadge(basePlanId),
-                    style = MaterialTheme.typography.labelLarge,
+                    PlayCatalog.badge(kind),
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = scheme.onSurface,
                     modifier = Modifier.weight(1f)
                 )
                 Icon(
                     if (selected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
                     contentDescription = if (selected) "Selected" else null,
-                    tint = if (selected) accent else MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(20.dp)
+                    tint = if (selected) accent else scheme.outline,
+                    modifier = Modifier.size(22.dp)
                 )
             }
-            Text(price, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
-            Text(period, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                price,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Black,
+                color = scheme.onSurface,
+                maxLines = 1
+            )
+            Text(period, style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
+            if (perMonth != null) {
+                Text(perMonth, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = accent)
+            }
             Spacer(modifier = Modifier.weight(1f))
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 when {
-                    isCurrent -> PlanChip("CURRENT", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
-                    savingsPercent != null -> PlanChip("SAVE $savingsPercent%", accent, MaterialTheme.colorScheme.onSecondary)
+                    isCurrent -> PlanChip("CURRENT", scheme.primaryContainer, scheme.onPrimaryContainer)
+                    savingsPercent != null -> PlanChip("SAVE $savingsPercent%", accent, scheme.onSecondary)
                 }
                 if (trialLabel != null && !isCurrent) {
-                    PlanChip(trialLabel.uppercase(), MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer)
+                    PlanChip(trialLabel.uppercase(), scheme.tertiaryContainer, scheme.onTertiaryContainer)
                 }
             }
         }
     }
 }
 
-/** A base plan Google Play didn't return (not active, or not offered in this country/store). */
+/** A plan kind Google Play didn't return (base plan not active, or not offered in this country/store). */
 @Composable
-private fun UnavailablePlanTile(basePlanId: String, modifier: Modifier = Modifier) {
+private fun UnavailablePlanTile(kind: PlayCatalog.PlanKind, modifier: Modifier = Modifier) {
+    val scheme = MaterialTheme.colorScheme
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        shape = RoundedCornerShape(20.dp),
+        color = scheme.surfaceVariant.copy(alpha = 0.35f),
+        border = BorderStroke(1.dp, scheme.outlineVariant)
     ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(PlayCatalog.planBadge(basePlanId), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Not available", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(PlayCatalog.badge(kind), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = scheme.onSurfaceVariant)
+            Text("Not available yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = scheme.onSurfaceVariant)
             Text(
                 "Google Play doesn't offer this plan in your country or store yet.",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = scheme.onSurfaceVariant
             )
         }
     }

@@ -173,7 +173,10 @@ data class BillingHealth(
     /** Last server self-test (billingRtdnSelfTest) that reached playBillingRtdn. */
     val lastSelfTestAt: Long?,
     val pendingCount: Int,
-    val unlinkedCount: Int
+    val unlinkedCount: Int,
+    /** package_pro_mrr base plans as Google Play holds them: "id · STATE · P1M (monthly)". */
+    val catalog: List<String> = emptyList(),
+    val catalogError: String? = null
 ) {
     val isHealthy: Boolean get() = playApi == "ok"
 
@@ -186,7 +189,16 @@ data class BillingHealth(
             lastRtdnAt = m.long("lastRtdnAt"),
             lastSelfTestAt = m.long("lastSelfTestAt"),
             pendingCount = m.int("pendingCount"),
-            unlinkedCount = m.int("unlinkedCount")
+            unlinkedCount = m.int("unlinkedCount"),
+            catalog = (m["catalog"] as? List<*>).orEmpty().mapNotNull { row ->
+                val r = row as? Map<*, *> ?: return@mapNotNull null
+                listOfNotNull(
+                    r["basePlanId"] as? String,
+                    r["state"] as? String,
+                    (r["period"] as? String)?.let { p -> (r["interval"] as? String)?.let { "$p ($it)" } ?: p }
+                ).joinToString(" · ")
+            },
+            catalogError = m["catalogError"] as? String
         )
     }
 }

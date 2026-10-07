@@ -2,9 +2,17 @@
 
 ## Google Play Billing
 
-**Google Play is the only billing authority.** One subscription, `package_pro_mrr`, with base plans
-`pro-montly` (spelled exactly so in Play Console) and `pro-yearly` — constants in
-`data/billing/PlayCatalog.kt` (app) and `functions/src/billing/playCatalog.ts` (server). There is no plan
+**Google Play is the only billing authority.** One subscription, `package_pro_mrr`, with a monthly and a yearly
+base plan (known ids `pro-montly`/`pro-monthly` and `pro-yearly`) — `data/billing/PlayCatalog.kt` (app) and
+`functions/src/billing/playCatalog.ts` (server). Plans are told apart by **kind** (`PlayCatalog.PlanKind`): the app
+classifies Play's ProductDetails by recurring billing period (`PlayOfferText.kindOf` / `plansByKind`, P1M/P1Y), stored ids
+by `kindOf`/`planInterval` (known ids, then "month"/"year" in the id). Never compare against an exact id list again —
+a Play id that differed from the constant produced a third "Premium" tile and lost the old purchase token on switching
+(double charge). Admin › Packages › Billing health lists the real base plans (id · state · period) from
+`monetization.subscriptions.get`. Retired plans (`package_growth_mrr`, `package_enterprise_mrr`) are gone: the client
+never reads, restores or sends them (`PlayCatalog.isSupportedProduct` in PlayBillingManager/BillingController), and every
+server path ignores them before any ownership check, claim, parking or admin push (`activatePlayPurchase` first lines,
+RTDN, retry, sync, rescue). Their one holder was converted to a permanent admin grant (maintenance task `retiregrowth`). There is no plan
 catalog, no stored price and no admin package management: `package_plans` is retired (read-only for old
 app versions), `grantPackageToUser` is gone. Never reintroduce local plans, prices or durations.
 
@@ -39,7 +47,8 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   `description` as the non-member subtitle) + one chip row (Manage · Redeem code · Orders · Restore); both base plans
   as side-by-side `PlanTile`s (yearly selected by default) — a base plan Play didn't return shows
   `UnavailablePlanTile` ("Not available"), never an invented price; one CTA for the selected tile with its terms
-  under it; current plan + recurring price + date;
+  under it; always exactly two `PlanTile`s (Monthly · Yearly by kind, yearly with "≈ x / month" and SAVE %), current
+plan + recurring price + date;
   "Switch to …" with Play's replacement modes (to yearly `CHARGE_PRORATED_PRICE`, to monthly `DEFERRED`);
   trial disclosure; `SubscriptionTermsFooter` (renewal, cancel, "only publishing needs Premium", Terms &
   Privacy). Profile has a "Manage subscription" settings link. Play's transactional in-app messages show on
@@ -155,6 +164,10 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
 - Phone verification (`FirebaseAuthService`): never fake a "code sent"; failures map by type
   (`verificationFailureMessage`); resend reuses the `ForceResendingToken`; re-verifying an account that already has a
   phone uses `updatePhoneNumber`. Instant verification (`onVerificationCompleted`) links and finishes KYC.
+- Email sign-in links are handled every time (`AuthViewModel.onEmailLinkArrived`; never a session-long "consumed" flag —
+  that blocked every returning user's link after the first sign-in). The saved address (`pending_email_link`) is read with
+  `peekPendingEmailLink` and cleared only after a successful sign-in; a link without one asks for the email
+  (`linkAwaitingEmail` dialog); `restorePendingEmail` refills the address after process death so resend/code never send "".
 - Email sign-in layer 1 (`sendSignInLinkToEmail`) returns a `Result`; its Firebase error code is logged as
   `auth_error(method=email_link_native)` before falling back. Diagnose delivery with the Maintenance workflow
   task `emailauth` (Auth config, mail queue states, send limits).
@@ -304,11 +317,9 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   (`clickEmailOtpLink`) shows a confirm page on GET and consumes the code only on POST, because mail scanners open links.
 - `grantProHost`/`removeProHost` return early for deleted accounts (no ghost profile, no RTDN retry storm) and write
   with `update()`; a PRO_HOST claim whose profile `role` mirror lagged is repaired on the next sync.
-- Only `package_pro_mrr` grants (`isSupportedProduct`, `playCatalog.ts`). Retired plans sold by old app versions
-  (`package_growth_mrr`, `package_enterprise_mrr`) are never granted or acknowledged automatically, in any path:
-  activation, RTDN (it doesn't acknowledge an unlinked one either), retry or migration. They are parked `needsAdmin`
-  (`unsupported_product`) with an `UNSUPPORTED_PRODUCT` admin push; an admin Activate (adminOverride link) honours
-  them and their renewals. Otherwise Play refunds them after 3 days.
+- Only `package_pro_mrr` exists (`isSupportedProduct`). Retired plans are ignored everywhere with no admin alert; the client
+  also skips purchases tagged (`obfuscatedAccountId`) for another ProHost account, so a shared device never raises
+  OWNERSHIP_MISMATCH for someone else's purchase.
 - Billing rescue (`billing/billingRescue.ts`, Admin › Packages + the user dossier): `billingHealthCheck`
   (probes subscriptionsv2 with a dummy token — 400/404 = credentials OK, 401/403 = Play Console access missing;
   RTDN heartbeat in `app_config/billing_health`: `lastRtdnAt` only from Play-published messages, `lastSelfTestAt` from the

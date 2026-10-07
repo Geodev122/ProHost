@@ -77,15 +77,8 @@ export const retryPendingPlayActivations = onSchedule({ schedule: "*/15 * * * *"
         continue;
       }
       if (outcome.status === "unsupported_product") {
-        // Retired plan: retrying can't change that, an admin decides.
-        await doc.ref.update({
-          needsAdmin: true, attempts, updatedAt: now,
-          lastError: `unsupported_product: ${outcome.productId} is a retired plan (only package_pro_mrr grants Pro Host)`,
-        });
-        await notifyAdminsOfSubscriptionChange(uid, "UNSUPPORTED_PRODUCT", {
-          planId: outcome.productId,
-          note: "open Admin › Packages › Payments needing attention to activate it, or let Google Play refund it",
-        });
+        // Retired plan (growth, enterprise): closed quietly, never an admin alert.
+        await doc.ref.update({ resolved: true, outcome: "retired_ignored", attempts, resolvedAt: now });
         continue;
       }
       if (outcome.status === "owned_by_other") {

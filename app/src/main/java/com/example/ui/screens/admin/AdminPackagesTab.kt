@@ -85,9 +85,8 @@ internal fun AdminPackagesTab(
                         icon = Icons.Default.Info
                     )
                     Text(
-                        "Subscription ${com.example.data.billing.PlayCatalog.PRODUCT_ID} with base plans " +
-                            "${com.example.data.billing.PlayCatalog.BASE_PLAN_MONTHLY} (monthly) and " +
-                            "${com.example.data.billing.PlayCatalog.BASE_PLAN_YEARLY} (yearly). Prices, offers, " +
+                        "Subscription ${com.example.data.billing.PlayCatalog.PRODUCT_ID} with a monthly and a yearly " +
+                            "base plan (exact ids and states: Billing health below). Prices, offers, " +
                             "renewals and refunds come only from Google Play; roles follow automatically.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant

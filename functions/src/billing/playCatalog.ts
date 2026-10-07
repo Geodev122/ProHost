@@ -7,16 +7,16 @@
 import type { PlaySubscription } from "./playSubscription";
 
 export const PLAY_PRODUCT_ID = "package_pro_mrr";
-/** Base plan ids exactly as created in Play Console (the monthly id is spelled "montly"). */
+/** Known base plan ids (the original monthly id is spelled "montly" in Play Console). */
 export const BASE_PLAN_MONTHLY = "pro-montly";
 export const BASE_PLAN_YEARLY = "pro-yearly";
+const MONTHLY_IDS = new Set([BASE_PLAN_MONTHLY, "pro-monthly"]);
+const YEARLY_IDS = new Set([BASE_PLAN_YEARLY]);
 
 /**
- * Only [PLAY_PRODUCT_ID] grants Pro Host on its own. Older app versions also sold
- * package_growth_mrr / package_enterprise_mrr; such a purchase is never granted or
- * acknowledged automatically — it is parked for an admin, who either activates it
- * (an adminOverride link, which then also covers its renewals) or lets Google Play
- * refund it 3 days after purchase.
+ * Only [PLAY_PRODUCT_ID] exists. Plans sold by older app versions (package_growth_mrr,
+ * package_enterprise_mrr) are retired: every path ignores them before any ownership check,
+ * record, grant, acknowledgement, parking or admin alert.
  */
 export function isSupportedProduct(productId: string | null | undefined): boolean {
   return productId === PLAY_PRODUCT_ID;
@@ -78,19 +78,24 @@ export function grantsAccess(status: BillingStatus, expiryMillis: number, now = 
 
 /** Display name for an entitlement's ownerPackageId (a base plan id or a forced upgrade). */
 export function planLabel(planId: string | null | undefined): string {
-  switch (planId) {
-    case BASE_PLAN_MONTHLY: return "Pro Host Monthly";
-    case BASE_PLAN_YEARLY: return "Pro Host Yearly";
-    case ADMIN_FORCED_PLAN_ID:
-    case LEGACY_UNLIMITED_GRANT_PLAN_ID: return "Pro Host (granted)";
-    default: return "Pro Host";
-  }
+  if (planId === ADMIN_FORCED_PLAN_ID || planId === LEGACY_UNLIMITED_GRANT_PLAN_ID) return "Pro Host (granted)";
+  const interval = planInterval(planId);
+  if (interval === "monthly") return "Pro Host Monthly";
+  if (interval === "yearly") return "Pro Host Yearly";
+  return "Pro Host";
 }
 
-/** "monthly" / "yearly" for analytics; null for anything else. */
+/**
+ * "monthly" / "yearly" for a base plan id, whatever its exact spelling in Play Console
+ * (known ids first, then the words in the id); null for grants and anything else.
+ */
 export function planInterval(basePlanId: string | null | undefined): "monthly" | "yearly" | null {
-  if (basePlanId === BASE_PLAN_MONTHLY) return "monthly";
-  if (basePlanId === BASE_PLAN_YEARLY) return "yearly";
+  const id = basePlanId?.trim().toLowerCase();
+  if (!id || id === ADMIN_FORCED_PLAN_ID || id === LEGACY_UNLIMITED_GRANT_PLAN_ID) return null;
+  if (MONTHLY_IDS.has(id)) return "monthly";
+  if (YEARLY_IDS.has(id)) return "yearly";
+  if (id.includes("year") || id.includes("annual")) return "yearly";
+  if (id.includes("month") || id.includes("mont")) return "monthly";
   return null;
 }
 
@@ -104,8 +109,7 @@ export type AdminBillingEvent =
   | "EXPIRED"
   | "UNLINKED_PURCHASE"
   | "ACTIVATION_AT_RISK"
-  | "OWNERSHIP_MISMATCH"
-  | "UNSUPPORTED_PRODUCT";
+  | "OWNERSHIP_MISMATCH";
 
 /**
  * What changed between the stored subscriptions record ([prev]) and Google's current state,

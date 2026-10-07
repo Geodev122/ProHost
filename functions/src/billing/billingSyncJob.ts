@@ -9,8 +9,6 @@ import { PlayApiError, classifyPlayError } from "./playSubscription";
 import { SUBSCRIPTIONS, syncSubscription } from "./subscriptionService";
 import { ADMIN_FORCED_PLAN_ID, LEGACY_UNLIMITED_GRANT_PLAN_ID, LIFETIME_EXPIRY_MILLIS, isSupportedProduct } from "./playCatalog";
 import "../lib/admin";
-import { adminOverrideUid } from "./purchaseLinks";
-import { parkPendingActivation } from "./activatePurchase";
 
 const OPEN_STATUSES = ["ACTIVE", "GRACE_PERIOD", "ON_HOLD", "PAUSED", "CANCELED", "PENDING"];
 
@@ -54,9 +52,9 @@ export async function runBillingSyncOnce(): Promise<BillingSyncReport> {
     const uid = d.userId as string | undefined;
     const token = d.purchaseToken as string | undefined;
     if (!uid || !token) continue;
-    // A retired plan never grants on its own (an admin Activate records an override).
-    if (!isSupportedProduct(d.productId as string | undefined) && !(await adminOverrideUid(token))) {
-      logger.warn(`billingSync: ${doc.id} is a retired product without admin approval — skipped`);
+    // Retired plans (growth, enterprise) are ignored.
+    if (!isSupportedProduct(d.productId as string | undefined)) {
+      logger.info(`billingSync: ${doc.id} is a retired product — ignored`);
       continue;
     }
     report.checked++;
@@ -87,16 +85,8 @@ export async function runBillingSyncOnce(): Promise<BillingSyncReport> {
       try {
         const sub = await queryPlaySubscription(token);
         if (!sub.obfuscatedAccountId || sub.obfuscatedAccountId === doc.id) {
-          if (!isSupportedProduct(sub.productId) && !(await adminOverrideUid(token))) {
-            // A retired plan never grants on its own: hand it to an admin, leave the profile as is.
-            await parkPendingActivation(
-              doc.id, token, sub.productId,
-              `unsupported_product: ${sub.productId} is a retired plan (only package_pro_mrr grants Pro Host)`,
-              "billingSync migration",
-              { needsAdmin: true }
-            );
-            continue;
-          }
+          // Retired plans (growth, enterprise) are ignored: nothing granted, parked or alerted.
+          if (!isSupportedProduct(sub.productId)) continue;
           await syncSubscription(doc.id, token, sub, { source: "migration" });
           report.migratedPlay++;
           continue;

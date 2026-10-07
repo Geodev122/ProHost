@@ -26,10 +26,6 @@ export function hoursUntilRefund(sinceMillis: number, now: number): number {
 /** What the admin must do for a parked purchase, from its stored error. */
 export function rescueHint(lastError: string | undefined, needsAdmin: boolean): string {
   const e = (lastError ?? "").toLowerCase();
-  if (e.startsWith("unsupported_product")) {
-    return "Retired plan (not package_pro_mrr), bought with an old app version — Activate to honour it as Pro Host, " +
-      "or leave it and Google Play refunds the buyer 3 days after purchase.";
-  }
   if (needsAdmin || e.startsWith("owned_by_other")) {
     return "Tagged for another ProHost account — check with the buyer, then Activate for the right account.";
   }

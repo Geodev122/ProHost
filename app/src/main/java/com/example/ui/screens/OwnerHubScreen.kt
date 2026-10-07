@@ -154,7 +154,7 @@ fun OwnerHubScreen(
                 // Include the specific product ID so Play Store deep-links directly
                 // to this subscription rather than the generic subscriptions list.
                 val productId = currentUser?.ownerPackageId
-                    ?.takeIf { it in com.example.data.billing.PlayCatalog.BASE_PLANS }
+                    ?.takeIf { currentUser?.entitlementSource == "google_play" || com.example.data.billing.PlayCatalog.kindOf(it) != null }
                     ?.let { com.example.data.billing.PlayCatalog.PRODUCT_ID }
                 val uri = if (productId != null)
                     "market://subscriptions?sku=$productId&package=app.geonajjar.prohost"

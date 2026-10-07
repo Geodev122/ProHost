@@ -281,9 +281,12 @@ class PlayBillingManager(
         if (!billingClient.isReady) return
         billingClient.queryPurchasesAsync(subsQueryParams()) { billingResult, purchases ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                Log.d(TAG, "Found ${purchases.size} subscription purchases")
-                _activePurchases.value = purchases
-                purchases.forEach { handlePurchase(it, fromCheckout = false) }
+                // Only ProHost Premium: retired plans (growth, enterprise) or other apps' leftovers on
+                // this Play account are never shown, restored or sent to the server.
+                val premium = purchases.filter { p -> p.products.any(PlayCatalog::isSupportedProduct) }
+                Log.d(TAG, "Found ${premium.size} ProHost Premium purchases (${purchases.size} total)")
+                _activePurchases.value = premium
+                premium.forEach { handlePurchase(it, fromCheckout = false) }
             } else {
                 Log.e(TAG, "Error querying active purchases: ${billingResult.debugMessage}")
             }
@@ -310,7 +313,7 @@ class PlayBillingManager(
             Log.e(TAG, "fetchActivePurchases failed: ${result.billingResult.debugMessage}")
             return null
         }
-        val purchases = result.purchasesList
+        val purchases = result.purchasesList.filter { p -> p.products.any(PlayCatalog::isSupportedProduct) }
         _activePurchases.value = purchases
         purchases.forEach { handlePurchase(it, fromCheckout = false) }
         return purchases
@@ -326,6 +329,7 @@ class PlayBillingManager(
      * get no entitlement and are not acknowledged; the 3-day window starts at PURCHASED.
      */
     private fun handlePurchase(purchase: Purchase, fromCheckout: Boolean) {
+        if (purchase.products.none(PlayCatalog::isSupportedProduct)) return
         when (purchase.purchaseState) {
             Purchase.PurchaseState.PURCHASED -> {
                 if (purchase.isSuspended) return

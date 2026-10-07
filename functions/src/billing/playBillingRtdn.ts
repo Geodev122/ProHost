@@ -6,11 +6,11 @@ import { sendEmail } from "../lib/email";
 import { subscriptionActivatedTemplate, subscriptionRenewedTemplate, UserContext } from "../lib/emailTemplates";
 import { recordAuditLog } from "../lib/auditLog";
 import { PACKAGE_NAME, queryPlaySubscription, acknowledgeIfNeeded } from "./billingHelpers";
-import { PLAY_PRODUCT_ID, grantsAccess, isSupportedProduct, planInterval, planLabel, statusFor } from "./playCatalog";
+import { isSupportedProduct, planInterval, planLabel } from "./playCatalog";
 import { logPurchaseOnce, syncSubscription } from "./subscriptionService";
 import { notifyAdminsOfSubscriptionChange } from "./adminBillingAlerts";
 import { sendGa4Event } from "../lib/ga4";
-import { adminOverrideUid, resolvePurchaseUid } from "./purchaseLinks";
+import { resolvePurchaseUid } from "./purchaseLinks";
 import { classifyPlayError, PlaySubscription } from "./playSubscription";
 import { parkPendingActivation, resolvePendingActivation } from "./activatePurchase";
 import "../lib/admin";
@@ -98,6 +98,12 @@ export const playBillingRtdn = onMessagePublished(
       throw err;
     }
     const productId = purchase.productId || hintProductId;
+    // Retired plans (package_growth_mrr, package_enterprise_mrr) are ignored entirely: no
+    // record, no grant, no acknowledgement, no admin alert.
+    if (!isSupportedProduct(productId)) {
+      logger.info(`playBillingRtdn: ignored retired product ${productId} type=${notificationType}`);
+      return;
+    }
 
     // Purchases made in the app's sheet carry the uid; ones started in the Play Store
     // (promo-code redemption, resubscribe) don't, and resolve via play_purchase_links.
@@ -116,9 +122,7 @@ export const playBillingRtdn = onMessagePublished(
         (notificationType === SUBSCRIPTION_PURCHASED ||
           notificationType === SUBSCRIPTION_RESTARTED ||
           notificationType === SUBSCRIPTION_RECOVERED) &&
-        !purchase.isPending &&
-        // A retired plan is never acknowledged automatically (Play refunds it unless an admin acts).
-        isSupportedProduct(productId)
+        !purchase.isPending
       ) {
         const acked = await acknowledgeIfNeeded(productId, purchaseToken, purchase.acknowledged, "playBillingRtdn");
         // Unacknowledged = refunded in 3 days, and no account to park it under: redeliver.
@@ -130,9 +134,7 @@ export const playBillingRtdn = onMessagePublished(
       if (notificationType === SUBSCRIPTION_PURCHASED) {
         await notifyAdminsOfSubscriptionChange(null, "UNLINKED_PURCHASE", {
           planId: purchase.basePlanId || productId,
-          note: isSupportedProduct(productId)
-            ? "started in the Play Store (e.g. promo code) — activates when its owner opens the app"
-            : `retired plan ${productId} bought outside the app — not acknowledged; activate it from Admin › Packages or Google Play refunds it in 3 days`,
+          note: "started in the Play Store (e.g. promo code) — activates when its owner opens the app",
         });
       }
       await getFirestore().collection("play_billing_unresolved").add({
@@ -147,28 +149,6 @@ export const playBillingRtdn = onMessagePublished(
       return;
     }
 
-    // Only package_pro_mrr grants on its own; a retired plan counts only once an admin has
-    // activated it (adminOverride on this token or the one it replaced).
-    const adminApproved = !!(await adminOverrideUid(purchaseToken)) ||
-      (!!purchase.linkedPurchaseToken && !!(await adminOverrideUid(purchase.linkedPurchaseToken)));
-    if (!isSupportedProduct(productId) && !adminApproved) {
-      logger.warn(`playBillingRtdn: retired product ${productId} (not ${PLAY_PRODUCT_ID}) uid=${uid} type=${notificationType} — not granted`);
-      if (!purchase.isPending && grantsAccess(statusFor(purchase), purchase.expiryMillis)) {
-        const parked = await parkPendingActivation(
-          uid, purchaseToken, productId,
-          `unsupported_product: ${productId} is a retired plan (only ${PLAY_PRODUCT_ID} grants Pro Host)`,
-          "playBillingRtdn",
-          { needsAdmin: true }
-        );
-        if (parked === "new") {
-          await notifyAdminsOfSubscriptionChange(uid, "UNSUPPORTED_PRODUCT", {
-            planId: productId,
-            note: "open Admin › Packages › Payments needing attention to activate it, or let Google Play refund it",
-          });
-        }
-      }
-      return;
-    }
     const orderId = purchase.orderId ?? productId;
     const planName = planLabel(purchase.basePlanId);
 
