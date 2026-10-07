@@ -207,7 +207,12 @@ fun LoginAuthScreen(
 
     LaunchedEffect(Unit) {
         if (isPreview) return@LaunchedEffect
-        authViewModel.clearAuthMessages()
+        // Keeps an error a tapped sign-in link just produced (the link can open the app cold).
+        authViewModel.clearStaleAuthMessages()
+        // The address a link/code went to survives process death; without it, go back to entry.
+        if (authViewModel.restorePendingEmail().isBlank() &&
+            (step == AuthStep.EMAIL_LINK_SENT || step == AuthStep.EMAIL_OTP)
+        ) step = AuthStep.EMAIL_ENTRY
         // MainActivity already requests all permissions; detect country using available signals
         // (SIM/locale — no duplicate permission request here).
         val detected = PhoneCountryDetector.detectCountry(context)
@@ -530,7 +535,7 @@ fun LoginAuthScreen(
                     TextButton(
                         onClick = {
                             localErrorMessage = null
-                            authViewModel.sendEmailOtp(email = pendingEmail) { sent ->
+                            authViewModel.sendEmailOtp(emailArg = pendingEmail) { sent ->
                                 if (sent) {
                                     emailOtpCode = ""
                                     emailResendCountdownSeconds = EMAIL_RESEND_COOLDOWN_SECONDS
@@ -616,8 +621,7 @@ fun LoginAuthScreen(
                     OutlinedButton(
                         onClick = {
                             localErrorMessage = null
-                            authViewModel.savePendingEmailLink(pendingEmail)
-                            authViewModel.sendEmailLinkViaFunction(email = pendingEmail) { sent ->
+                            authViewModel.sendEmailLinkViaFunction(emailArg = pendingEmail) { sent ->
                                 if (sent) emailResendCountdownSeconds = EMAIL_RESEND_COOLDOWN_SECONDS
                             }
                         },
@@ -632,7 +636,7 @@ fun LoginAuthScreen(
                     onClick = {
                         localErrorMessage = null
                         authViewModel.clearAuthMessages()
-                        authViewModel.sendEmailOtp(email = pendingEmail) { sent ->
+                        authViewModel.sendEmailOtp(emailArg = pendingEmail) { sent ->
                             if (sent) {
                                 emailOtpCode = ""
                                 emailResendCountdownSeconds = EMAIL_RESEND_COOLDOWN_SECONDS

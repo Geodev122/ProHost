@@ -39,6 +39,10 @@
         "destination": "/redeem.html"
       },
       {
+        "source": "/emaillink",
+        "destination": "/emaillink.html"
+      },
+      {
         "source": "/listing/**",
         "function": {
           "functionId": "listingShareLanding",

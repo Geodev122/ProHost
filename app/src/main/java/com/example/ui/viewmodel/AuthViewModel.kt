@@ -49,6 +49,15 @@ class AuthViewModel(
         _authSuccessMessage.value = null
     }
 
+    // Set when a tapped sign-in link fails, so the login screen opening right after shows it.
+    private var linkErrorFresh = false
+
+    /** On entering the login screen: clears leftovers, but not an error a sign-in link just produced. */
+    fun clearStaleAuthMessages() {
+        if (linkErrorFresh) { linkErrorFresh = false; return }
+        clearAuthMessages()
+    }
+
     /**
      * Everything the registration form collects, submitted only AFTER the user is
      * already authenticated (phone OTP, email link, or Google). [phoneE164] defaults
@@ -184,7 +193,14 @@ class AuthViewModel(
     }
 
     /** Re-sends the magic link (used by the "Resend link" button). */
-    fun sendEmailLinkViaFunction(email: String, onSent: (Boolean) -> Unit) {
+    fun sendEmailLinkViaFunction(emailArg: String, onSent: (Boolean) -> Unit) {
+        val email = emailArg.ifBlank { restorePendingEmail() }
+        if (email.isBlank()) {
+            _authErrorMessage.value = "Enter your email address again to get a new sign-in email."
+            onSent(false)
+            return
+        }
+        savePendingEmailLink(email)
         viewModelScope.launch {
             try {
                 _isAuthenticating.value = true
@@ -220,16 +236,65 @@ class AuthViewModel(
 
     private fun Throwable?.isNetworkFailure(): Boolean = this is com.google.firebase.FirebaseNetworkException
 
-    fun savePendingEmailLink(email: String) {
+    private fun authPrefs() =
         firebaseAppContext().getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
-            .edit().putString("pending_email_link", email).apply()
+
+    /** Remembers the address a link/code was sent to, so the tapped link can finish sign-in. Blank is ignored. */
+    fun savePendingEmailLink(email: String) {
+        if (email.isBlank()) return
+        authPrefs().edit().putString("pending_email_link", email.trim()).apply()
     }
 
-    fun consumePendingEmailLink(): String? {
-        val prefs = firebaseAppContext().getSharedPreferences("auth_prefs", android.content.Context.MODE_PRIVATE)
-        val email = prefs.getString("pending_email_link", null)
-        prefs.edit().remove("pending_email_link").apply()
-        return email
+    /** The saved address, kept until sign-in succeeds (a failed or repeated tap must still find it). */
+    fun peekPendingEmailLink(): String? =
+        authPrefs().getString("pending_email_link", null)?.takeIf { it.isNotBlank() }
+
+    private fun clearPendingEmailLink() {
+        authPrefs().edit().remove("pending_email_link").apply()
+    }
+
+    /**
+     * The in-memory address can be lost when Android kills the app while the user is in their
+     * mail app; restore it from the saved one so "Resend" / "Use a code instead" never send "".
+     */
+    fun restorePendingEmail(): String {
+        if (_pendingEmail.value.isBlank()) peekPendingEmailLink()?.let { _pendingEmail.value = it }
+        return _pendingEmail.value
+    }
+
+    // A sign-in link that arrived without a saved address (other device, cleared data):
+    // kept here until the user confirms their email.
+    private val _linkAwaitingEmail = MutableStateFlow<String?>(null)
+    val linkAwaitingEmail: StateFlow<String?> = _linkAwaitingEmail.asStateFlow()
+    private var lastHandledLink: String? = null
+    private var lastHandledOtpToken: String? = null
+
+    /**
+     * Entry point for every tapped sign-in link (any number per app session — a returning
+     * user signs in again after signing out). The same link twice is ignored.
+     */
+    fun onEmailLinkArrived(activity: Activity, link: String, onVerified: (needsRegistration: Boolean) -> Unit) {
+        if (link == lastHandledLink) return
+        lastHandledLink = link
+        val email = peekPendingEmailLink() ?: _pendingEmail.value.takeIf { it.isNotBlank() }
+        if (email == null) {
+            _linkAwaitingEmail.value = link
+            return
+        }
+        handleEmailLink(activity, email, link, onVerified)
+    }
+
+    /** Finishes a link that arrived without a saved address, once the user typed their email. */
+    fun completeLinkWithEmail(activity: Activity, email: String, onVerified: (needsRegistration: Boolean) -> Unit) {
+        val link = _linkAwaitingEmail.value ?: return
+        _linkAwaitingEmail.value = null
+        _pendingEmail.value = email.trim()
+        handleEmailLink(activity, email.trim(), link, onVerified)
+    }
+
+    fun dismissLinkAwaitingEmail() {
+        _linkAwaitingEmail.value = null
+        lastHandledLink = null
     }
 
     fun handleEmailLink(activity: Activity, email: String, link: String, onVerified: (needsRegistration: Boolean) -> Unit) {
@@ -240,9 +305,14 @@ class AuthViewModel(
                 _authErrorMessage.value = null
                 val authService = com.example.data.auth.FirebaseAuthService(activity)
                 when (val result = authService.signInWithEmailLink(email, link)) {
-                    is AuthResult.Success -> finishVerification(activity, result.isNewUser, onVerified)
+                    is AuthResult.Success -> {
+                        clearPendingEmailLink()
+                        finishVerification(activity, result.isNewUser, onVerified)
+                    }
                     is AuthResult.Failure -> {
                         com.example.analytics.AnalyticsTracker.authError(authMethod, "credential_failed")
+                        lastHandledLink = null // a retry of the same link may succeed
+                        linkErrorFresh = true
                         _authErrorMessage.value = result.message
                         _isAuthenticating.value = false
                     }
@@ -251,6 +321,8 @@ class AuthViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
+                lastHandledLink = null
+                linkErrorFresh = true
                 _isAuthenticating.value = false
                 _authErrorMessage.value = e.toUserMessage("Sign-in link verification failed. Try again.")
             }
@@ -258,7 +330,14 @@ class AuthViewModel(
     }
 
     /** Sends a 6-digit OTP to [email] via the sendEmailOtp function (Trigger Email extension). */
-    fun sendEmailOtp(email: String, onSent: (Boolean) -> Unit) {
+    fun sendEmailOtp(emailArg: String, onSent: (Boolean) -> Unit) {
+        val email = emailArg.ifBlank { restorePendingEmail() }
+        if (email.isBlank()) {
+            _authErrorMessage.value = "Enter your email address again to get a new sign-in email."
+            onSent(false)
+            return
+        }
+        savePendingEmailLink(email)
         viewModelScope.launch {
             try {
                 _isAuthenticating.value = true
@@ -332,6 +411,8 @@ class AuthViewModel(
         customToken: String,
         onVerified: (needsRegistration: Boolean) -> Unit
     ) {
+        if (customToken == lastHandledOtpToken) return
+        lastHandledOtpToken = customToken
         authMethod = "email_code"
         viewModelScope.launch {
             try {

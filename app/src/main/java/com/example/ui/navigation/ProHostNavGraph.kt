@@ -279,43 +279,57 @@ fun ProHostAppRoot(
     // retrieving the pending email from SharedPreferences and calling signInWithEmailLink.
     val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
     val authViewModelForEmailLink: com.example.ui.viewmodel.AuthViewModel = viewModel()
-    val emailLinkConsumed = remember { mutableStateOf(false) }
+    // Every tapped link is handled (a returning user signs in again after signing out in the
+    // same app session). The ViewModel ignores a repeat of the link it is already handling.
+    val onLinkVerified: (Boolean) -> Unit = { needsRegistration -> if (needsRegistration) activeTabId = "auth" }
     LaunchedEffect(emailSignInLink) {
         val link = emailSignInLink ?: return@LaunchedEffect
-        if (emailLinkConsumed.value) return@LaunchedEffect
-        emailLinkConsumed.value = true
-        val savedEmail = authViewModelForEmailLink.consumePendingEmailLink()
-        if (savedEmail != null && activity != null) {
-            authViewModelForEmailLink.handleEmailLink(activity, savedEmail, link) { needsRegistration ->
-                onEmailSignInLinkConsumed()
-                if (needsRegistration) {
-                    activeTabId = "auth"
+        if (activity != null) authViewModelForEmailLink.onEmailLinkArrived(activity, link, onLinkVerified)
+        onEmailSignInLinkConsumed()
+    }
+    // A link opened without a saved address (other device, cleared app data): ask for it.
+    val linkAwaitingEmail by authViewModelForEmailLink.linkAwaitingEmail.collectAsState()
+    if (linkAwaitingEmail != null && activity != null) {
+        var confirmEmail by remember { mutableStateOf("") }
+        com.example.ui.components.ProHostDialog(
+            onDismissRequest = { authViewModelForEmailLink.dismissLinkAwaitingEmail() },
+            title = { androidx.compose.material3.Text("Finish signing in") },
+            text = {
+                androidx.compose.foundation.layout.Column {
+                    androidx.compose.material3.Text(
+                        "Enter the email address the sign-in link was sent to.",
+                        style = androidx.compose.material3.MaterialTheme.typography.bodySmall
+                    )
+                    androidx.compose.material3.OutlinedTextField(
+                        value = confirmEmail,
+                        onValueChange = { confirmEmail = it.trim() },
+                        label = { androidx.compose.material3.Text("Email") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    enabled = android.util.Patterns.EMAIL_ADDRESS.matcher(confirmEmail).matches(),
+                    onClick = { authViewModelForEmailLink.completeLinkWithEmail(activity, confirmEmail, onLinkVerified) }
+                ) { androidx.compose.material3.Text("Sign in") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { authViewModelForEmailLink.dismissLinkAwaitingEmail() }) {
+                    androidx.compose.material3.Text("Cancel")
                 }
             }
-        } else {
-            // No saved email — cannot complete without it; reset consumed flag
-            emailLinkConsumed.value = false
-            onEmailSignInLinkConsumed()
-        }
+        )
     }
 
     // One-click email OTP magic link: prohost://emailotp/verified?token=<customToken>
     // Sent by clickEmailOtpLink CF; signs in using the custom token exactly as if
     // the user had entered the OTP code manually in the OTP entry screen.
-    val emailOtpConsumed = remember { mutableStateOf(false) }
     LaunchedEffect(emailOtpToken) {
         val token = emailOtpToken ?: return@LaunchedEffect
-        if (emailOtpConsumed.value) return@LaunchedEffect
-        emailOtpConsumed.value = true
-        if (activity != null) {
-            authViewModelForEmailLink.signInWithOtpToken(activity, token) { needsRegistration ->
-                onEmailOtpTokenConsumed()
-                if (needsRegistration) activeTabId = "auth"
-            }
-        } else {
-            emailOtpConsumed.value = false
-            onEmailOtpTokenConsumed()
-        }
+        if (activity != null) authViewModelForEmailLink.signInWithOtpToken(activity, token, onLinkVerified)
+        onEmailOtpTokenConsumed()
     }
 
     // Opens the listing detail modal for a tapped share link
@@ -899,7 +913,7 @@ fun ProHostAppRoot(
     // Play subscribers (and those with a payment problem) also get Play's transactional
     // in-app message on app open — Play shows it at most once a day, so it's safe to ask.
     val hasPlaySubscription = currentUser?.entitlementSource == "google_play" ||
-        currentUser?.ownerPackageId in com.example.data.billing.PlayCatalog.BASE_PLANS ||
+        com.example.data.billing.PlayCatalog.kindOf(currentUser?.ownerPackageId) != null ||
         currentUser?.billingStatus in setOf("GRACE_PERIOD", "ON_HOLD", "PAUSED")
     val rootActivity = androidx.activity.compose.LocalActivity.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
