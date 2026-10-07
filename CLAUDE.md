@@ -260,6 +260,10 @@ plan + recurring price + date;
   filled soft green (free) / soft red (booked) with no status words.
 - Per-attendee Shift rooms: shifts carry `AVAILABILITY_MARKER_PRICE` (`RentalPricingConfigEditor` in availability mode
   and `AttendeePricing.markShifts` when the room is built) — otherwise `hasRealPrice()` fails and Save never enables.
+- No camera / photo-library permissions (Play Photo & Video Permissions policy): the manifest strips CAMERA,
+  READ_MEDIA_IMAGES/VIDEO and READ_EXTERNAL_STORAGE (`tools:node="remove"`); photos come from `PickVisualMedia` /
+  `GetContent`, "Take Photo" hands off via `TakePicture` (needs no permission when CAMERA isn't declared — declaring it
+  makes the intent throw for users who denied it). Launch asks only for notifications; location is asked on the map.
 - Payment reminders go to the user's own calendar via `PaymentCalendar` (insert intent, monthly
   RRULE) — no calendar permission, no Google Calendar API.
 
