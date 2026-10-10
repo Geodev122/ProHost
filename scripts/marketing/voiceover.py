@@ -144,18 +144,26 @@ def main():
             continue
         placed, rows = [], []
         for i, line in enumerate(p["lines"], 1):
-            pcm, engine = synth(p, line)
-            raw = TMP / f"{p['id']}_{i:02d}_raw.wav"
-            raw.write_bytes(as_wav(pcm))
-            print(f"  {p['id']} line {i}: {engine}, {len(pcm)} bytes", flush=True)
-            # trim leading/trailing silence and shorten long pauses inside the line so timing is exact
-            trimmed = TMP / f"{p['id']}_{i:02d}_trim.wav"
-            ff("-i", str(raw), "-af",
-               "silenceremove=start_periods=1:start_threshold=-42dB:stop_periods=-1:stop_duration=0.22:"
-               "stop_threshold=-42dB:stop_silence=0.16,areverse,"
-               "silenceremove=start_periods=1:start_threshold=-42dB,areverse",
-               "-ar", str(RATE), "-ac", "1", str(trimmed))
-            dur = wav_seconds(trimmed)
+            slot = line["end"] - line["at"]
+            best = None
+            for take in range(1, 4):  # Gemini varies take to take: keep the shortest that fits
+                pcm, engine = synth(p, line)
+                raw = TMP / f"{p['id']}_{i:02d}_raw{take}.wav"
+                raw.write_bytes(as_wav(pcm))
+                # trim leading/trailing silence and shorten long pauses inside the line so timing is exact
+                trimmed = TMP / f"{p['id']}_{i:02d}_trim{take}.wav"
+                ff("-i", str(raw), "-af",
+                   "silenceremove=start_periods=1:start_threshold=-42dB:stop_periods=-1:stop_duration=0.22:"
+                   "stop_threshold=-42dB:stop_silence=0.16,areverse,"
+                   "silenceremove=start_periods=1:start_threshold=-42dB,areverse",
+                   "-ar", str(RATE), "-ac", "1", str(trimmed))
+                d = wav_seconds(trimmed)
+                print(f"  {p['id']} line {i} take {take}: {engine}, {d:.2f}s (slot {slot:.2f}s)", flush=True)
+                if best is None or d < best[0]:
+                    best = (d, trimmed, engine)
+                if d <= slot * 1.15 or engine.startswith("chirp"):
+                    break
+            dur, trimmed, engine = best
             slot = line["end"] - line["at"]
             tempo = 1.0 if dur <= slot else min(MAX_TEMPO, dur / slot)
             final = LINES / f"{p['id']}_{i:02d}.wav"
