@@ -2,7 +2,7 @@
 
 usage: python render.py post1.html [seconds=15] [fps=30] [preview]
 """
-import os, subprocess, sys, pathlib
+import json, os, subprocess, sys, pathlib
 from playwright.sync_api import sync_playwright
 import imageio_ffmpeg
 
@@ -19,7 +19,7 @@ def main():
     out_dir.mkdir(exist_ok=True)
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path=CHROME, args=["--force-color-profile=srgb"])
-        pg = b.new_page(viewport={"width": 1080, "height": 1920}, device_scale_factor=1)
+        pg = b.new_page(viewport={"width": 1080, "height": 1350}, device_scale_factor=1)
         pg.goto((HERE / name).as_uri())
         pg.wait_for_function("document.fonts.ready.then(() => true)")
         pg.wait_for_function("Array.from(document.images).every(i => i.complete)")
@@ -45,9 +45,10 @@ def main():
         proc.wait()
         pg.evaluate(f"render({secs - 0.05})")
         pg.screenshot(path=str(out_dir / f"{stem}_cover.png"))
-        # Instagram profile grid shows Reels as a 3:4 crop of the cover (1080x1440, centred)
+        # Instagram profile grid shows posts as a 3:4 centre crop (1012x1350)
         from PIL import Image
-        Image.open(out_dir / f"{stem}_cover.png").crop((0, 240, 1080, 1680)).save(out_dir / f"{stem}_grid.png")
+        Image.open(out_dir / f"{stem}_cover.png").crop((34, 0, 1046, 1350)).save(out_dir / f"{stem}_grid.png")
+        (out_dir / f"{stem}_events.json").write_text(json.dumps(pg.evaluate("window.EVENTS || []")))
         b.close()
         print(f"{mp4} ({n} frames)")
 

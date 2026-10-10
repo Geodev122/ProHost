@@ -6,10 +6,10 @@
   --green: #4caf72; --green-c: #e3f4ea; --red-c: #fde3df; --white: #fff;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { width: 1080px; height: 1920px; overflow: hidden; }
-/* Instagram Reels safe zone: keep content clear of the top bar (~250 px), the caption/buttons (~420 px)
-   and the right-hand action rail; the 1080x1350 design stage is scaled to 92% and centred. */
-#stage { position: absolute; left: 0; top: 250px; width: 1080px; height: 1350px; transform: scale(.92); transform-origin: 50% 0; }
+html, body { width: 1080px; height: 1350px; overflow: hidden; }
+/* Instagram feed post 4:5 (1080x1350). The profile grid shows a 3:4 centre crop (34 px off each side),
+   so nothing important sits within 60 px of the left/right edges. */
+#stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1350px; }
 body { font-family: "Plus Jakarta Sans", "DejaVu Sans", sans-serif; color: var(--ink); position: relative; }
 .abs { position: absolute; }
 .scene { position: absolute; inset: 0; }

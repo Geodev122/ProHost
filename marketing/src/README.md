@@ -15,3 +15,11 @@ Render (needs Python with `playwright imageio-ffmpeg pillow` and Chromium):
 Combine with the voice (from the "Marketing voiceovers" workflow):
 
     ffmpeg -i ../post7_hotel.mp4 -i ../voice/post7_hotel_voice.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k -t 16 ../final/post7_hotel_final.mp4
+
+## Feed posts (4:5) with music
+
+`base.css` now targets the 4:5 feed canvas (1080×1350). `render.py` also writes `out/<post>_events.json`, the animation cue sheet.
+Then:
+
+    cp out/*_events.json events/
+    VIDEOS=out python mix.py                 # → ../posts/<post>.mp4 (music from ../music/, synced to the events)

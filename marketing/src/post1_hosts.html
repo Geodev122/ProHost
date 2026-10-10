@@ -125,4 +125,11 @@
     document.getElementById("shB").style.opacity = t < 3.4 ? 0 : Math.min(1, (t - 3.4) / 0.5);
     if (t > 12.6) document.getElementById("dB").style.transform = `scale(${1 + Math.sin((t - 12.6) * 3) * .025})`;
   });
+  window.EVENTS = [
+    ...[0, 1, 2, 3].map((i) => ({ t: 0.25 + i * 0.32, k: "pop", major: i === 0 })), { t: 1.75, k: "impact", major: true },
+    { t: 3.35, k: "whoosh", major: true }, ...[0, 1, 2, 3, 4].map((i) => ({ t: 4.25 + i * 0.13, k: "tick" })),
+    ...[0, 2, 4, 6, 8].map((i) => ({ t: 6.1 + i * 0.17, k: "tick" })),
+    { t: 7.95, k: "whoosh", major: true }, ...[0, 1, 2, 3].map((i) => ({ t: 8.8 + i * 0.22, k: "pop" })),
+    { t: 11.25, k: "whoosh", major: true }, { t: 11.7, k: "impact", major: true }, { t: 12.55, k: "pop" },
+  ];
 </script></body></html>

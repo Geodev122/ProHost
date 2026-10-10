@@ -79,4 +79,9 @@
     bgi.style.filter = `blur(${t < 2.6 ? 0 : Math.min(10, (t - 2.6) / 0.6 * 10)}px)`;
     if (t > 1.4 && t < 11.4) document.getElementById("ph").style.transform = `translateY(${Math.sin((t - 1.4) * 1.2) * 8}px)`;
   });
+  window.EVENTS = [
+    { t: 0.3, k: "whoosh", major: true }, { t: 3.0, k: "whoosh", major: true }, { t: 6.0, k: "whoosh", major: true }, { t: 8.8, k: "whoosh", major: true },
+    ...[3.6, 4.2, 6.6, 7.2, 9.4].map((t) => ({ t, k: "pop" })),
+    { t: 11.4, k: "whoosh", major: true }, { t: 11.9, k: "impact", major: true }, { t: 12.8, k: "pop" },
+  ];
 </script></body></html>

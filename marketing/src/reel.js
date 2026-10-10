@@ -207,3 +207,14 @@ L((t) => {
     tap.style.transform = `scale(${1 - pulse * .3})`;
   }
 });
+
+// sound-design cue sheet for the music mixer: {t, k} with k = whoosh | pop | tick | tap | notify | success | impact
+window.EVENTS = [
+  { t: 0.2, k: "pop" }, { t: 0.55, k: "whoosh" },
+  ...p.problem.map((_, i) => ({ t: 1.4 + i * 0.4, k: "tick" })),
+  { t: 4.6, k: "whoosh", major: true }, { t: 5.3, k: "whoosh" },
+  ...taps.map((k) => ({ t: k.t, k: "tap" })),
+  ...(host ? [{ t: 7.7, k: "notify", major: true }, { t: p.accept + 0.15, k: "success", major: true }]
+           : [{ t: p.sent + 0.15, k: "success", major: true }]),
+  { t: 11.2, k: "whoosh", major: true }, { t: 11.9, k: "impact", major: true }, { t: 12.8, k: "pop" },
+];

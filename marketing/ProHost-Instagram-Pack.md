@@ -1,4 +1,36 @@
-# ProHost — Instagram Reels pack (10 Reels)
+# ProHost — Instagram pack
+
+## ★ Feed posts with music (`posts/`): use these
+Ten animated **feed posts at 4:5 (1080×1350)**, the full-size feed format, 16 s each. They tell the same second-person story as
+the Reels below, with the same tap-through app interactions and photo backgrounds, but **no voiceover**. Each one has its own
+background track, made with Vertex AI **Lyria** (instrumental, royalty-free to use), plus light sound effects on the animation:
+- **Music shifted to the animation:** the mixer (`src/mix.py`) slides each 33 s Lyria track until its strongest beats land on
+  the post's scene changes, the incoming request, the Accept/Send tap and the 50% badge.
+- **Sound effects:** a whoosh on each scene change, a pop on cards, a soft click on taps, a chime for a new request, a sparkle
+  when a request is sent or accepted, and an impact on the 50% badge. The music dips for a breath just before the offer.
+- **Loudness:** -14 LUFS, Instagram's level. Video H.264 + AAC 192 kb/s.
+- **Files:** `posts/<post>.mp4`, `posts/<post>_cover.png` (cover) and `posts/<post>_grid.png` (the 3:4 crop the profile grid shows).
+  All text stays at least 60 px from the edges, so the grid crop never cuts anything.
+
+| Post | Music (Lyria prompt) |
+|---|---|
+| post1_hosts | upbeat corporate house |
+| post2_app | bright pop electronic |
+| post3_psychologist | calm lo-fi, Rhodes piano |
+| post4_trainer | energetic motivational electronic |
+| post5_lifecoach | feel-good acoustic pop, ukulele |
+| post6_dietitian | light tropical house, marimba |
+| post7_hotel | smooth deep house lounge |
+| post8_medical | clean minimal corporate pop |
+| post9_institute | inspiring indie electronic |
+| post10_studio | relaxed organic downtempo |
+
+Regenerate the music: Actions › "Marketing music (manual)" (`scripts/marketing/music.json`). Re-render and re-score:
+`src/README.md`. Captions and hashtags: the same as each Reel below.
+
+---
+
+## Reels with Lebanese voiceover (9:16, `final/`)
 
 **Format (Instagram Reels, 2026):** 1080×1920 (9:16), 16 s, 30 fps, H.264 + AAC. Every word and card sits inside Instagram's
 safe zone: clear of the top bar (top 250 px), the caption and buttons (bottom ~420 px) and the right-hand action rail. The
