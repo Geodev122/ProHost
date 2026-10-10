@@ -130,7 +130,7 @@ def main():
             pcm, engine = synth(p, line)
             raw = TMP / f"{p['id']}_{i:02d}_raw.wav"
             raw.write_bytes(as_wav(pcm))
-            print(f"{p['id']} line {i}: {engine}, {len(pcm)} bytes", flush=True)
+            print(f"  {p['id']} line {i}: {engine}, {len(pcm)} bytes", flush=True)
             # trim leading/trailing silence and shorten long pauses inside the line so timing is exact
             trimmed = TMP / f"{p['id']}_{i:02d}_trim.wav"
             ff("-i", str(raw), "-af",
