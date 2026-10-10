@@ -161,11 +161,15 @@ def main():
             final = LINES / f"{p['id']}_{i:02d}.wav"
             ff("-i", str(trimmed), "-af", f"atempo={tempo:.3f}", "-ar", "48000", "-ac", "1", str(final))
             fdur = wav_seconds(final)
-            overflow = round(line["at"] + fdur - line["end"], 2)
+            start = line["at"]
+            if placed:  # never talk over the previous line
+                prev_f, prev_at = placed[-1]
+                start = max(start, round(prev_at + wav_seconds(prev_f) + 0.12, 2))
+            overflow = round(start + fdur - line["end"], 2)
             if overflow > 0:
                 print(f"::warning::{p['id']} line {i} runs {overflow}s into the next scene")
-            placed.append((final, line["at"]))
-            rows.append({"line": i, "engine": engine, "start": line["at"], "end": round(line["at"] + fdur, 2),
+            placed.append((final, start))
+            rows.append({"line": i, "engine": engine, "start": start, "end": round(start + fdur, 2),
                          "sceneEnd": line["end"], "spoken": round(dur, 2), "tempo": round(tempo, 3),
                          "text": line["text"]})
         # mix every line at its start time into one 15.0 s track
