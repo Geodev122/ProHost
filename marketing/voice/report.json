@@ -1,0 +1,260 @@
+[
+  {
+    "post": "post1_hosts",
+    "voice": "Orus",
+    "gender": "male",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "chirp3-hd/ar-XA",
+        "start": 0.25,
+        "end": 3.82,
+        "sceneEnd": 3.55,
+        "spoken": 4.64,
+        "tempo": 1.3,
+        "text": "عندك مكتب، عيادة، استوديو أو صالة اجتماعات… قاعدة فاضية؟"
+      },
+      {
+        "line": 2,
+        "engine": "chirp3-hd/ar-XA",
+        "start": 3.8,
+        "end": 9.39,
+        "sceneEnd": 8.05,
+        "spoken": 7.25,
+        "tempo": 1.3,
+        "text": "مع برو هوست، أجّرها عَ ذوقك: بالساعة، بالشيفت، باليوم، بالشهر… أو عَ عدد الأشخاص."
+      },
+      {
+        "line": 3,
+        "engine": "chirp3-hd/ar-XA",
+        "start": 8.4,
+        "end": 12.29,
+        "sceneEnd": 11.4,
+        "spoken": 5.04,
+        "tempo": 1.3,
+        "text": "كل الطلبات بمحل واحد، بلا حجز مزدوج، وبتغيّر سعرك وقت ما بدّك."
+      },
+      {
+        "line": 4,
+        "engine": "chirp3-hd/ar-XA",
+        "start": 11.65,
+        "end": 15.4,
+        "sceneEnd": 14.9,
+        "spoken": 4.88,
+        "tempo": 1.3,
+        "text": "وهلّق، أوّل شهر بريميوم بنصّ السعر! نزّل برو هوست من غوغل بلاي."
+      }
+    ],
+    "trackSeconds": 15.0
+  },
+  {
+    "post": "post2_app",
+    "voice": "Aoede",
+    "gender": "female",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "chirp3-hd/ar-XA",
+        "start": 0.35,
+        "end": 1.56,
+        "sceneEnd": 2.95,
+        "spoken": 1.21,
+        "tempo": 1.0,
+        "text": "شغلك… بشروطك."
+      },
+      {
+        "line": 2,
+        "engine": "chirp3-hd/ar-XA",
+        "start": 3.15,
+        "end": 6.91,
+        "sceneEnd": 6.25,
+        "spoken": 4.9,
+        "tempo": 1.3,
+        "text": "كل المساحات عالخريطة، واحجز بالساعة، بالشيفت، باليوم أو بالشهر."
+      },
+      {
+        "line": 3,
+        "engine": "chirp3-hd/ar-XA",
+        "start": 6.45,
+        "end": 9.55,
+        "sceneEnd": 9.55,
+        "spoken": 3.47,
+        "tempo": 1.12,
+        "text": "بتعرف شو فاضي هلّق، وبتحكي صاحب المحل عالواتساب."
+      },
+      {
+        "line": 4,
+        "engine": "chirp3-hd/ar-XA",
+        "start": 9.75,
+        "end": 14.67,
+        "sceneEnd": 12.35,
+        "spoken": 6.39,
+        "tempo": 1.3,
+        "text": "ولأصحاب المساحات: الطلبات والحجوزات والمدخول، كلّن قدّامك."
+      },
+      {
+        "line": 5,
+        "engine": "chirp3-hd/ar-XA",
+        "start": 12.6,
+        "end": 15.18,
+        "sceneEnd": 14.95,
+        "spoken": 3.34,
+        "tempo": 1.3,
+        "text": "برو هوست: لاقيها، احجزها، وبلّش شغل."
+      }
+    ],
+    "trackSeconds": 15.0
+  },
+  {
+    "post": "post3_psychologist",
+    "voice": "Achernar",
+    "gender": "female",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "chirp3-hd/ar-XA",
+        "start": 0.3,
+        "end": 4.97,
+        "sceneEnd": 4.55,
+        "spoken": 6.05,
+        "tempo": 1.3,
+        "text": "مرحبا، أنا معالِجة نفسية بالأشرفية. بس بدّي عيادة التلاتا والخميس الصبح."
+      },
+      {
+        "line": 2,
+        "engine": "chirp3-hd/ar-XA",
+        "start": 4.8,
+        "end": 10.46,
+        "sceneEnd": 10.9,
+        "spoken": 5.67,
+        "tempo": 1.0,
+        "text": "عَ برو هوست بختار الشيفت الصبحي، التلاتا والخميس، لأربع جمع… وببعت الطلب."
+      },
+      {
+        "line": 3,
+        "engine": "chirp3-hd/ar-XA",
+        "start": 11.15,
+        "end": 14.49,
+        "sceneEnd": 14.9,
+        "spoken": 3.34,
+        "tempo": 1.0,
+        "text": "صار عندي عيادتي، يومين بالجمعة. برو هوست."
+      }
+    ],
+    "trackSeconds": 15.0
+  },
+  {
+    "post": "post4_trainer",
+    "voice": "Fenrir",
+    "gender": "male",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "chirp3-hd/ar-XA",
+        "start": 0.3,
+        "end": 4.56,
+        "sceneEnd": 4.55,
+        "spoken": 4.87,
+        "tempo": 1.145,
+        "text": "مرحبا، أنا مدرّب شركات. عندي تمنطعش متدرّب السبت… وما بدّي قهوة!"
+      },
+      {
+        "line": 2,
+        "engine": "chirp3-hd/ar-XA",
+        "start": 4.8,
+        "end": 10.91,
+        "sceneEnd": 10.9,
+        "spoken": 6.27,
+        "tempo": 1.028,
+        "text": "عَ برو هوست القاعة مسعّرة عَ الشخص: بحط تمنطعش، بزيد كوفي بريك، وببعت الطلب."
+      },
+      {
+        "line": 3,
+        "engine": "chirp3-hd/ar-XA",
+        "start": 11.15,
+        "end": 13.8,
+        "sceneEnd": 14.9,
+        "spoken": 2.65,
+        "tempo": 1.0,
+        "text": "تمنطعش كرسي… بكبسة وحدة! برو هوست."
+      }
+    ],
+    "trackSeconds": 15.0
+  },
+  {
+    "post": "post5_lifecoach",
+    "voice": "Leda",
+    "gender": "female",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "chirp3-hd/ar-XA",
+        "start": 0.3,
+        "end": 5.18,
+        "sceneEnd": 4.55,
+        "spoken": 6.33,
+        "tempo": 1.3,
+        "text": "مرحبا، أنا لايف كوتش بالحمرا. عندي جلستين اليوم… ليش إدفع إيجار شهر؟"
+      },
+      {
+        "line": 2,
+        "engine": "chirp3-hd/ar-XA",
+        "start": 4.8,
+        "end": 9.28,
+        "sceneEnd": 10.9,
+        "spoken": 4.49,
+        "tempo": 1.0,
+        "text": "بفتح برو هوست، بشوف شو فاضي، بختار الساعة أربعة وخمسة… وخلصت!"
+      },
+      {
+        "line": 3,
+        "engine": "chirp3-hd/ar-XA",
+        "start": 11.15,
+        "end": 14.9,
+        "sceneEnd": 14.9,
+        "spoken": 3.92,
+        "tempo": 1.045,
+        "text": "احجز بالساعة، واشتغل من وين ما بدّك. برو هوست."
+      }
+    ],
+    "trackSeconds": 15.0
+  },
+  {
+    "post": "post6_dietitian",
+    "voice": "Sulafat",
+    "gender": "female",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "chirp3-hd/ar-XA",
+        "start": 0.3,
+        "end": 5.03,
+        "sceneEnd": 4.55,
+        "spoken": 6.13,
+        "tempo": 1.3,
+        "text": "مرحبا، أنا أخصائية تغذية بجونيه. جاهزة لعيادتي… بس بلا عقد تلات سنين."
+      },
+      {
+        "line": 2,
+        "engine": "chirp3-hd/ar-XA",
+        "start": 4.8,
+        "end": 9.17,
+        "sceneEnd": 10.9,
+        "spoken": 4.38,
+        "tempo": 1.0,
+        "text": "عَ برو هوست لقيت عيادة جاهزة، اخترت تلات شهور… وببلّش الشهر الجاي."
+      },
+      {
+        "line": 3,
+        "engine": "chirp3-hd/ar-XA",
+        "start": 11.15,
+        "end": 14.9,
+        "sceneEnd": 14.9,
+        "spoken": 4.79,
+        "tempo": 1.279,
+        "text": "عيادتك الخاصة، شهر بشهر، بلا عقد طويل. برو هوست."
+      }
+    ],
+    "trackSeconds": 15.0
+  }
+]
