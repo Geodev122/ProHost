@@ -25,3 +25,5 @@ firebase-debug.log
 .claude/
 tests/e2e/*.log
 tests/rules/*.log
+
+__pycache__/
