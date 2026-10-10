@@ -4,7 +4,11 @@ This build has the same app code as the audited 1.0.38 build (`docs/release/RELE
 1–5). Only the version number changed, so it is uploadable even if 38 already went to a test track. The backend it
 talks to passed `prodcheck` three times in a row on 2026-10-10 (08:17–08:19 UTC).
 
-## Files (GitHub Actions › "ProHost - Build Play-Signed Official Release Bundle" › artifact)
+## Files
+Artifact **`prohost-release-main-8`** (≈ 22 MB, kept until 2027-01-08):
+https://github.com/Geodev122/ProHost/actions/runs/38037993427 → Artifacts. Built from `55dc6f8`;
+the signature and Play app-signing fingerprint checks passed.
+
 | File | Where it goes in Play Console |
 |---|---|
 | `app-release.aab` | Test and release › Production › Create new release › App bundles |
