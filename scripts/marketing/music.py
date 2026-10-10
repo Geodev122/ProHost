@@ -76,7 +76,12 @@ def generate(prompt, seed, model_list):
                          for style in ("generateContent", "predict")]
     errors = []
     for combo in combos:
-        raw, info = attempt(*combo, prompt, seed)
+        for k in range(6):  # "blocked by recitation checks" is per sample: retry with other seeds
+            raw, info = attempt(*combo, prompt, seed + 7919 * k)
+            if raw or "recitation" not in str(info):
+                break
+        if not raw and combo[0].startswith("lyria-3") and combo[1] == "global":
+            print(f"::notice::{combo} -> {str(info)[:600]}")
         if raw:
             if not WORKING:
                 WORKING.append(combo)
