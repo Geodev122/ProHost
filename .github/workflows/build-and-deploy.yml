@@ -140,7 +140,7 @@ jobs:
   deploy-firebase:
     name: Deploy Live Firebase Backend
     if: github.event_name != 'pull_request'
-    needs: [build-and-test, functions-build, rules-tests]
+    needs: [build-and-test, functions-build, rules-tests, e2e-flows]
     runs-on: ubuntu-latest
     concurrency: firebase-deploy
     steps:

@@ -209,6 +209,14 @@ plan + recurring price + date;
   `listings/legacyPricing.ts`, unit-tested — keep both identical). Admin › Demo tab › "Migrate Legacy Listing
   Fields" (`migrateLegacyListingFields`) writes `pricing` and deletes the old keys. `RentalFormula` itself stays:
   bookings record one (`representativeFormula`).
+- Backend flows are end-to-end tested in the emulators (`tests/e2e/flows.test.js`, CI job "End-to-end Backend Flows",
+  gates the deploy): request → code + host push, accept → occupancy, conflict guard, accepted edit, Change price,
+  per-attendee auto-reject, withdraw/cancel pushes. firebase-tools proxies even localhost through `HTTPS_PROXY`, so in a
+  proxied sandbox run it in CI, not locally. Production readiness: Maintenance task `prodcheck` (deployed functions vs
+  exports, indexes, Cloud Billing, functions answering, public pages, audit); `authorphans` explains Auth users with no
+  profile (abandoned Google registrations: the profile is created only when the registration form is submitted).
+  A deploy failing with Secret Manager "requires billing to be enabled" means the GCP billing account lapsed — every
+  function bound to a secret (`assignInitialRole`) then 500s; re-enable billing and redeploy.
 - Security rules are unit-tested in the emulator (`tests/rules`, CI job "Security Rules Tests"); add a test with
   every rules change. Bookings: create must be PENDING with no review/cancel state, on a bookable listing, and an
   edit (`replacesBookingId`) may only replace the caller's own booking; per-side transitions only (host
