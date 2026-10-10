@@ -10,7 +10,7 @@ on:
         required: true
         default: audit
         type: choice
-        options: [audit, prodcheck, j8, retiregrowth, occupancy, emailauth, enableemaillink, mailtest, clearstalesecrets]
+        options: [audit, prodcheck, authorphans, j8, retiregrowth, occupancy, emailauth, enableemaillink, mailtest, clearstalesecrets]
       code:
         description: "unused (kept for older runs)"
         required: false

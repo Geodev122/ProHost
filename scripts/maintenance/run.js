@@ -10,6 +10,8 @@
 //   node scripts/maintenance/run.js enableemaillink  turn on Firebase Auth "Email link (passwordless)" sign-in
 //   node scripts/maintenance/run.js mailtest         queue one test email to the extension's reply-to (owner) address
 //   node scripts/maintenance/run.js clearstalesecrets drop retired HOSTINGER_* secret bindings that block deploys
+//   node scripts/maintenance/run.js authorphans      read-only: Auth users with no profile, grouped by provider, day and
+//                                                    test-robot domain (no emails printed)
 //   node scripts/maintenance/run.js prodcheck        production readiness (read-only apart from one RTDN self-test
 //                                                    message): deployed functions + indexes, public pages, Play catalog
 //                                                    as this account sees it, RTDN topic → function, then the audit
@@ -448,6 +450,41 @@ async function emailauth(db) {
   });
 }
 
+async function authorphans(db, auth) {
+  // Who signed in but never got a profile (assignInitialRole creates it on first sign-in)?
+  // Play's pre-launch robots and reviewers sign in with @cloudtestlabaccounts.com accounts.
+  const ids = new Set((await db.collection("user_profiles").select().get()).docs.map((d) => d.id));
+  const byProvider = {}; const byDay = {}; const byKind = {}; let total = 0; let signedInAgain = 0;
+  let page;
+  do {
+    const r = await auth.listUsers(1000, page);
+    for (const u of r.users) {
+      if (ids.has(u.uid)) continue;
+      total++;
+      const prov = (u.providerData || []).map((p) => p.providerId).sort().join("+") || "none";
+      byProvider[prov] = (byProvider[prov] || 0) + 1;
+      const day = new Date(u.metadata.creationTime).toISOString().slice(0, 10);
+      byDay[day] = (byDay[day] || 0) + 1;
+      const domain = (u.email || "").split("@")[1] || "";
+      const kind = /cloudtestlabaccounts\.com$/i.test(domain) ? "playTestRobot" :
+        u.email ? "email" : u.phoneNumber ? "phoneOnly" : "anonymous";
+      byKind[kind] = (byKind[kind] || 0) + 1;
+      if (u.metadata.lastSignInTime && u.metadata.lastSignInTime !== u.metadata.creationTime) signedInAgain++;
+    }
+    page = r.pageToken;
+  } while (page);
+  const j = (o) => JSON.stringify(o).replace(/[{}"]/g, "");
+  notice(`authWithoutProfile=${total} signedInAgainLater=${signedInAgain} kinds=${j(byKind)}`);
+  notice(`byProvider=${j(byProvider)}`);
+  notice(`createdByDay=${j(byDay)}`);
+  // The audit log shows whether assignInitialRole ever ran for them (INITIAL_ROLE_ASSIGNED).
+  const since = Date.now() - 14 * 24 * 3600 * 1000;
+  const logs = await db.collection("audit_security_logs").where("timestamp", ">=", since).get();
+  const types = {};
+  logs.docs.forEach((d) => { const t = d.data().actionType; types[t] = (types[t] || 0) + 1; });
+  notice(`auditLog14d=${j(types)}`);
+}
+
 async function prodcheck(db, auth) {
   const project = process.env.GCLOUD_PROJECT;
   // 1. Every function the code exports is deployed, ACTIVE, and on the expected runtime.
@@ -534,5 +571,6 @@ async function prodcheck(db, auth) {
   else if (task === "mailtest") { await mailtest(db); await emailauth(db); }
   else if (task === "clearstalesecrets") await clearstalesecrets();
   else if (task === "prodcheck") await prodcheck(db, auth);
+  else if (task === "authorphans") await authorphans(db, auth);
   else throw new Error(`unknown task ${task}`);
 })().catch((e) => { fail(`${e && e.message}`); process.exit(1); });
