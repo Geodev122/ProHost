@@ -26,6 +26,7 @@ FF = imageio_ffmpeg.get_ffmpeg_exe()
 LENGTH = 15.0
 RATE = 24000
 MAX_TEMPO = 1.3
+WARNED = []
 
 creds, project = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
 project = project or "prohost-f766f"
@@ -68,10 +69,18 @@ def synth(p, line):
     errors = []
     for engine, body in attempts:
         body["audioConfig"] = {"audioEncoding": "LINEAR16", "sampleRateHertz": RATE}
+        if engine.startswith("chirp"):
+            if errors and not WARNED:
+                WARNED.append(1)
+                print("::warning::Gemini-TTS unavailable, using Chirp 3 HD | " + " | ".join(errors)[:900])
+            body["audioConfig"]["speakingRate"] = p.get("rate", 1.1)
         for retry in range(3):
             code, js = post("https://texttospeech.googleapis.com/v1/text:synthesize", body)
             if code == 200:
                 return base64.b64decode(js["audioContent"]), engine
+            if code == 400 and "speakingRate" in body["audioConfig"] and "peak" in json.dumps(js):
+                del body["audioConfig"]["speakingRate"]
+                continue
             if code in (429, 500, 503):
                 time.sleep(5 * (retry + 1))
                 continue
@@ -103,11 +112,12 @@ def main():
             pcm, engine = synth(p, line)
             raw = TMP / f"{p['id']}_{i:02d}_raw.wav"
             raw.write_bytes(pcm)  # LINEAR16 responses carry a WAV header
-            # trim leading/trailing silence so timing is exact
+            # trim leading/trailing silence and shorten long pauses inside the line so timing is exact
             trimmed = TMP / f"{p['id']}_{i:02d}_trim.wav"
             ff("-i", str(raw), "-af",
-               "silenceremove=start_periods=1:start_threshold=-45dB,areverse,"
-               "silenceremove=start_periods=1:start_threshold=-45dB,areverse",
+               "silenceremove=start_periods=1:start_threshold=-42dB:stop_periods=-1:stop_duration=0.22:"
+               "stop_threshold=-42dB:stop_silence=0.16,areverse,"
+               "silenceremove=start_periods=1:start_threshold=-42dB,areverse",
                "-ar", str(RATE), "-ac", "1", str(trimmed))
             dur = wav_seconds(trimmed)
             slot = line["end"] - line["at"]

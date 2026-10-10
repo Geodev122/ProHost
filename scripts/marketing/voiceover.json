@@ -3,60 +3,177 @@
   "dialect": "You are a native Lebanese Arabic speaker from Beirut. Speak natural, everyday Lebanese dialect (Levantine), never Egyptian and never Modern Standard Arabic. Sound like a real person on an Instagram reel, not an announcer.",
   "posts": [
     {
-      "id": "post1_hosts", "voice": "Orus", "gender": "male",
+      "id": "post1_hosts",
+      "voice": "Orus",
+      "gender": "male",
       "persona": "Confident, warm Lebanese businessman in his 40s talking to fellow property owners.",
       "lines": [
-        {"at": 0.25, "end": 3.55, "style": "Curious and slightly teasing, a knowing half-smile, rising question at the end.", "text": "عندك مكتب، عيادة، استوديو أو صالة اجتماعات… قاعدة فاضية؟"},
-        {"at": 3.8, "end": 8.05, "style": "Confident and upbeat, listing the options with rhythm.", "text": "مع برو هوست، أجّرها عَ ذوقك: بالساعة، بالشيفت، باليوم، بالشهر… أو عَ عدد الأشخاص."},
-        {"at": 8.4, "end": 11.4, "style": "Reassuring and calm, like a friend who has it all under control.", "text": "كل الطلبات بمحل واحد، بلا حجز مزدوج، وبتغيّر سعرك وقت ما بدّك."},
-        {"at": 11.65, "end": 14.9, "style": "Excited, celebratory announcement, big smile.", "text": "وهلّق، أوّل شهر بريميوم بنصّ السعر! نزّل برو هوست من غوغل بلاي."}
+        {
+          "at": 0.25,
+          "end": 3.55,
+          "style": "Curious and slightly teasing, a knowing half-smile, rising question at the end.",
+          "text": "عندك مكتب أو عيادة… قاعدة فاضية؟"
+        },
+        {
+          "at": 3.8,
+          "end": 8.05,
+          "style": "Confident and upbeat, listing the options with rhythm.",
+          "text": "مع برو هوست أجّرها عَ ذوقك: بالساعة، باليوم، بالشهر، أو عَ الشخص."
+        },
+        {
+          "at": 8.4,
+          "end": 11.4,
+          "style": "Reassuring and calm, like a friend who has it all under control.",
+          "text": "كل الطلبات بمحل واحد، وبتغيّر سعرك وقت ما بدّك."
+        },
+        {
+          "at": 11.65,
+          "end": 14.9,
+          "style": "Excited, celebratory announcement, big smile.",
+          "text": "وهلّق، أوّل شهر بنصّ السعر! نزّل برو هوست."
+        }
       ]
     },
     {
-      "id": "post2_app", "voice": "Aoede", "gender": "female",
+      "id": "post2_app",
+      "voice": "Aoede",
+      "gender": "female",
       "persona": "Warm, modern Lebanese woman in her late 20s presenting an app she loves.",
       "lines": [
-        {"at": 0.35, "end": 2.95, "style": "Slow, confident, inviting, with a small pause between the two words.", "text": "شغلك… بشروطك."},
-        {"at": 3.15, "end": 6.25, "style": "Bright and enthusiastic, discovering the map.", "text": "كل المساحات عالخريطة، واحجز بالساعة، بالشيفت، باليوم أو بالشهر."},
-        {"at": 6.45, "end": 9.55, "style": "Easy, friendly, matter-of-fact.", "text": "بتعرف شو فاضي هلّق، وبتحكي صاحب المحل عالواتساب."},
-        {"at": 9.75, "end": 12.35, "style": "Professional and reassuring, speaking to space owners.", "text": "ولأصحاب المساحات: الطلبات والحجوزات والمدخول، كلّن قدّامك."},
-        {"at": 12.6, "end": 14.95, "style": "Punchy and proud slogan, energy rising on the last phrase.", "text": "برو هوست: لاقيها، احجزها، وبلّش شغل."}
+        {
+          "at": 0.35,
+          "end": 2.95,
+          "style": "Slow, confident, inviting, with a small pause between the two words.",
+          "text": "شغلك… بشروطك."
+        },
+        {
+          "at": 3.15,
+          "end": 6.25,
+          "style": "Bright and enthusiastic, discovering the map.",
+          "text": "كل المساحات عالخريطة، واحجز بالساعة أو بالشهر."
+        },
+        {
+          "at": 6.45,
+          "end": 9.55,
+          "style": "Easy, friendly, matter-of-fact.",
+          "text": "بتعرف شو فاضي هلّق، وبتحكي صاحب المحل عالواتساب."
+        },
+        {
+          "at": 9.75,
+          "end": 12.35,
+          "style": "Professional and reassuring, speaking to space owners.",
+          "text": "ولأصحاب المساحات، كل شي قدّامك."
+        },
+        {
+          "at": 12.6,
+          "end": 14.95,
+          "style": "Punchy and proud slogan, energy rising on the last phrase.",
+          "text": "برو هوست: لاقيها، احجزها، واشتغل."
+        }
       ]
     },
     {
-      "id": "post3_psychologist", "voice": "Achernar", "gender": "female",
+      "id": "post3_psychologist",
+      "voice": "Achernar",
+      "gender": "female",
       "persona": "Calm, gentle clinical psychologist in her 30s; soft and thoughtful, never salesy.",
       "lines": [
-        {"at": 0.3, "end": 4.55, "style": "Soft, warm introduction, a little tired of paying for a full-time clinic.", "text": "مرحبا، أنا معالِجة نفسية بالأشرفية. بس بدّي عيادة التلاتا والخميس الصبح."},
-        {"at": 4.8, "end": 10.9, "style": "Relaxed and pleased, explaining how simple it was, gentle pace.", "text": "عَ برو هوست بختار الشيفت الصبحي، التلاتا والخميس، لأربع جمع… وببعت الطلب."},
-        {"at": 11.15, "end": 14.9, "style": "Quietly happy and fulfilled, a soft smile in the voice.", "text": "صار عندي عيادتي، يومين بالجمعة. برو هوست."}
+        {
+          "at": 0.3,
+          "end": 4.55,
+          "style": "Soft, warm introduction, a little tired of paying for a full-time clinic.",
+          "text": "مرحبا، أنا معالِجة نفسية بالأشرفية. بدّي عيادة يومين بالجمعة بس."
+        },
+        {
+          "at": 4.8,
+          "end": 10.9,
+          "style": "Relaxed and pleased, explaining how simple it was, gentle pace.",
+          "text": "عَ برو هوست بختار الشيفت الصبحي، التلاتا والخميس، لأربع جمع… وببعت الطلب."
+        },
+        {
+          "at": 11.15,
+          "end": 14.9,
+          "style": "Quietly happy and fulfilled, a soft smile in the voice.",
+          "text": "صار عندي عيادتي، يومين بالجمعة. برو هوست."
+        }
       ]
     },
     {
-      "id": "post4_trainer", "voice": "Fenrir", "gender": "male",
+      "id": "post4_trainer",
+      "voice": "Fenrir",
+      "gender": "male",
       "persona": "Energetic corporate trainer in his 30s, dynamic and a little playful.",
       "lines": [
-        {"at": 0.3, "end": 4.55, "style": "Energetic, slightly exasperated about working from cafés, playful.", "text": "مرحبا، أنا مدرّب شركات. عندي تمنطعش متدرّب السبت… وما بدّي قهوة!"},
-        {"at": 4.8, "end": 10.9, "style": "Fast, efficient, satisfied, like ticking boxes.", "text": "عَ برو هوست القاعة مسعّرة عَ الشخص: بحط تمنطعش، بزيد كوفي بريك، وببعت الطلب."},
-        {"at": 11.15, "end": 14.9, "style": "Triumphant and proud, a confident punchline.", "text": "تمنطعش كرسي… بكبسة وحدة! برو هوست."}
+        {
+          "at": 0.3,
+          "end": 4.55,
+          "style": "Energetic, slightly exasperated about working from cafés, playful.",
+          "text": "مرحبا، أنا مدرّب شركات. عندي تمنطعش متدرّب السبت… وما بدّي قهوة!"
+        },
+        {
+          "at": 4.8,
+          "end": 10.9,
+          "style": "Fast, efficient, satisfied, like ticking boxes.",
+          "text": "عَ برو هوست القاعة مسعّرة عَ الشخص: بحط تمنطعش، بزيد كوفي بريك، وببعت الطلب."
+        },
+        {
+          "at": 11.15,
+          "end": 14.9,
+          "style": "Triumphant and proud, a confident punchline.",
+          "text": "تمنطعش كرسي… بكبسة وحدة! برو هوست."
+        }
       ]
     },
     {
-      "id": "post5_lifecoach", "voice": "Leda", "gender": "female",
+      "id": "post5_lifecoach",
+      "voice": "Leda",
+      "gender": "female",
       "persona": "Bright, upbeat life coach in her late 20s, positive and motivating.",
       "lines": [
-        {"at": 0.3, "end": 4.55, "style": "Cheerful and a bit cheeky, the question is rhetorical.", "text": "مرحبا، أنا لايف كوتش بالحمرا. عندي جلستين اليوم… ليش إدفع إيجار شهر؟"},
-        {"at": 4.8, "end": 10.9, "style": "Light and quick, delighted at how easy it is, ending with a happy 'done'.", "text": "بفتح برو هوست، بشوف شو فاضي، بختار الساعة أربعة وخمسة… وخلصت!"},
-        {"at": 11.15, "end": 14.9, "style": "Motivating and warm, speaking straight to the viewer.", "text": "احجز بالساعة، واشتغل من وين ما بدّك. برو هوست."}
+        {
+          "at": 0.3,
+          "end": 4.55,
+          "style": "Cheerful and a bit cheeky, the question is rhetorical.",
+          "text": "مرحبا، أنا لايف كوتش بالحمرا. عندي جلستين اليوم… ليش إدفع شهر؟"
+        },
+        {
+          "at": 4.8,
+          "end": 10.9,
+          "style": "Light and quick, delighted at how easy it is, ending with a happy 'done'.",
+          "text": "بفتح برو هوست، بشوف شو فاضي، بختار الساعة أربعة وخمسة… وخلصت!"
+        },
+        {
+          "at": 11.15,
+          "end": 14.9,
+          "style": "Motivating and warm, speaking straight to the viewer.",
+          "text": "احجز بالساعة، واشتغل من وين ما بدّك. برو هوست."
+        }
       ]
     },
     {
-      "id": "post6_dietitian", "voice": "Sulafat", "gender": "female",
+      "id": "post6_dietitian",
+      "voice": "Sulafat",
+      "gender": "female",
       "persona": "Composed, ambitious dietitian in her 30s; warm but determined.",
       "lines": [
-        {"at": 0.3, "end": 4.55, "style": "Determined and hopeful, with a firm 'but' about the long lease.", "text": "مرحبا، أنا أخصائية تغذية بجونيه. جاهزة لعيادتي… بس بلا عقد تلات سنين."},
-        {"at": 4.8, "end": 10.9, "style": "Relieved and practical, it just worked.", "text": "عَ برو هوست لقيت عيادة جاهزة، اخترت تلات شهور… وببلّش الشهر الجاي."},
-        {"at": 11.15, "end": 14.9, "style": "Warm, confident invitation to the viewer.", "text": "عيادتك الخاصة، شهر بشهر، بلا عقد طويل. برو هوست."}
+        {
+          "at": 0.3,
+          "end": 4.55,
+          "style": "Determined and hopeful, with a firm 'but' about the long lease.",
+          "text": "مرحبا، أنا أخصائية تغذية بجونيه. بدّي عيادتي… بلا عقد طويل."
+        },
+        {
+          "at": 4.8,
+          "end": 10.9,
+          "style": "Relieved and practical, it just worked.",
+          "text": "عَ برو هوست لقيت عيادة جاهزة، اخترت تلات شهور… وببلّش الشهر الجاي."
+        },
+        {
+          "at": 11.15,
+          "end": 14.9,
+          "style": "Warm, confident invitation to the viewer.",
+          "text": "عيادتك الخاصة، شهر بشهر، بلا عقد طويل. برو هوست."
+        }
       ]
     }
   ]
