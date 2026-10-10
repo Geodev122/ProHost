@@ -97,7 +97,22 @@ def wav_seconds(path):
 
 
 def ff(*args):
-    subprocess.run([FF, "-y", "-loglevel", "error", *args], check=True)
+    subprocess.run([FF, "-nostdin", "-y", "-loglevel", "error", *args], check=True,
+                   stdin=subprocess.DEVNULL, timeout=120)
+
+
+def as_wav(audio):
+    """Chirp returns a WAV file; Gemini-TTS may return bare 16-bit PCM. Always hand ffmpeg a WAV."""
+    if audio[:4] == b"RIFF":
+        return audio
+    import io
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(RATE)
+        w.writeframes(audio)
+    return buf.getvalue()
 
 
 def main():
@@ -114,7 +129,8 @@ def main():
         for i, line in enumerate(p["lines"], 1):
             pcm, engine = synth(p, line)
             raw = TMP / f"{p['id']}_{i:02d}_raw.wav"
-            raw.write_bytes(pcm)  # LINEAR16 responses carry a WAV header
+            raw.write_bytes(as_wav(pcm))
+            print(f"{p['id']} line {i}: {engine}, {len(pcm)} bytes", flush=True)
             # trim leading/trailing silence and shorten long pauses inside the line so timing is exact
             trimmed = TMP / f"{p['id']}_{i:02d}_trim.wav"
             ff("-i", str(raw), "-af",

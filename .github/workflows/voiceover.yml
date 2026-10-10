@@ -18,7 +18,7 @@ concurrency: marketing-voiceover
 jobs:
   voiceover:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -41,7 +41,7 @@ jobs:
           POSTS: ${{ inputs.posts }}
         run: |
           set -o pipefail
-          python scripts/marketing/voiceover.py "$RUNNER_TEMP/vo" "$POSTS" 2>&1 | tee "$RUNNER_TEMP/vo.log" || {
+          python -u scripts/marketing/voiceover.py "$RUNNER_TEMP/vo" "$POSTS" 2>&1 | tee "$RUNNER_TEMP/vo.log" || {
             echo "::error::$(tail -c 1500 "$RUNNER_TEMP/vo.log" | tr '\n' ' ')"; exit 1; }
           while read -r l; do echo "::notice::$l"; done < <(grep -E '^post' "$RUNNER_TEMP/vo.log")
 
