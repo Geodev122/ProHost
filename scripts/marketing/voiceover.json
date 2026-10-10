@@ -12,25 +12,25 @@
           "at": 0.25,
           "end": 3.55,
           "style": "Curious and slightly teasing, a knowing half-smile, rising question at the end.",
-          "text": "عندك مكتب أو عيادة… قاعدة فاضية؟"
+          "text": "عندَك مكتب أو عِيادة…  فاضية؟"
         },
         {
           "at": 3.8,
           "end": 8.05,
           "style": "Confident and upbeat, listing the options with rhythm.",
-          "text": "مع برو هوست أجّرها عَ ذوقك: بالساعة، باليوم، بالشهر، أو عَ الشخص."
+          "text": "مع ProHost أجِّرها عَ ذوأك: بالساعة، باليوم، بالشهر، أو عَ الشَخص."
         },
         {
           "at": 8.4,
           "end": 11.4,
           "style": "Reassuring and calm, like a friend who has it all under control.",
-          "text": "كل الطلبات بمحل واحد، وبتغيّر سعرك وقت ما بدّك."
+          "text": "كل الطَلبات بْمَحل واحَد، وبتغَيِّر سِعْرَكْ وَئِت ما بَدّك."
         },
         {
           "at": 11.65,
           "end": 14.9,
           "style": "Excited, celebratory announcement, big smile.",
-          "text": "وهلّق، أوّل شهر بنصّ السعر! نزّل برو هوست."
+          "text": "وهلّّأ، أوّل شهر إشتِراك بنصّ السِّعر! نَزِّل برو هوست."
         }
       ]
     },
@@ -44,19 +44,19 @@
           "at": 0.35,
           "end": 2.95,
           "style": "Slow, confident, inviting, with a small pause between the two words.",
-          "text": "شغلك… بشروطك."
+          "text": "شِغْلَكْ… بْشْروطَك."
         },
         {
           "at": 3.15,
           "end": 6.25,
           "style": "Bright and enthusiastic, discovering the map.",
-          "text": "كل المساحات عالخريطة، واحجز بالساعة أو بالشهر."
+          "text": "كِلْ لمَكاتِبْ عَلْخَريطة، حْجوز بِليْوْمْ، أو بِلْساعة."
         },
         {
           "at": 6.45,
           "end": 9.55,
           "style": "Easy, friendly, matter-of-fact.",
-          "text": "بتعرف شو فاضي هلّق، وبتحكي صاحب المحل عالواتساب."
+          "text": "بْتِعرِف شو فاضي هلّأ، وبتحكي صاحب المحل عل WhatsApp."
         },
         {
           "at": 9.75,
@@ -82,19 +82,19 @@
           "at": 0.3,
           "end": 4.55,
           "style": "Soft, warm introduction, a little tired of paying for a full-time clinic.",
-          "text": "مرحبا، أنا معالِجة نفسية بالأشرفية. بدّي عيادة يومين بالجمعة بس."
+          "text": " أنا  psychologist بالأشرفية. بدّي عيادة يومين بالجمعة بس."
         },
         {
           "at": 4.8,
           "end": 10.9,
           "style": "Relaxed and pleased, explaining how simple it was, gentle pace.",
-          "text": "عَ برو هوست بختار الشيفت الصبحي، التلاتا والخميس، لأربع جمع… وببعت الطلب."
+          "text": "عَ prohost بختار ال shift لصَباحي، التلاتا والخميس، لأربع تِجماع… وببعت الطلب."
         },
         {
           "at": 11.15,
           "end": 14.9,
           "style": "Quietly happy and fulfilled, a soft smile in the voice.",
-          "text": "صار عندي عيادتي، يومين بالجمعة. برو هوست."
+          "text": "صار عندي عيادتي، يومين بالجمعة. Prohost."
         }
       ]
     },
@@ -108,19 +108,19 @@
           "at": 0.3,
           "end": 4.55,
           "style": "Energetic, slightly exasperated about working from cafés, playful.",
-          "text": "مرحبا، أنا مدرّب شركات. عندي تمنطعش متدرّب السبت… وما بدّي قهوة!"
+          "text": "مرحبا، أنا trainer. عندي  تدريب لتمنطعش شخص السبت… !"
         },
         {
           "at": 4.8,
           "end": 10.9,
           "style": "Fast, efficient, satisfied, like ticking boxes.",
-          "text": "عَ برو هوست القاعة مسعّرة عَ الشخص: بحط تمنطعش، بزيد كوفي بريك، وببعت الطلب."
+          "text": "عَ prohost القاعة مسعّرة عَ الشخص: بحط تمنطعش، بزيد كوفي بريك، وببعت الطلب."
         },
         {
           "at": 11.15,
           "end": 14.9,
           "style": "Triumphant and proud, a confident punchline.",
-          "text": "تمنطعش كرسي… بكبسة وحدة! برو هوست."
+          "text": "تمنطعشر كرسي… بكبسة وحدة! prohost."
         }
       ]
     },
@@ -134,19 +134,19 @@
           "at": 0.3,
           "end": 4.55,
           "style": "Cheerful and a bit cheeky, the question is rhetorical.",
-          "text": "مرحبا، أنا لايف كوتش بالحمرا. عندي جلستين اليوم… ليش إدفع شهر؟"
+          "text": " أنا life coach بالحمرا. عندي جلستين بس… ليش إدفع شهر؟"
         },
         {
           "at": 4.8,
           "end": 10.9,
           "style": "Light and quick, delighted at how easy it is, ending with a happy 'done'.",
-          "text": "بفتح برو هوست، بشوف شو فاضي، بختار الساعة أربعة وخمسة… وخلصت!"
+          "text": "بفتح prohost، بشوف شو فاضي، بختار ساعة أربعة و ساعة خمسة… وخُلْصِت!"
         },
         {
           "at": 11.15,
           "end": 14.9,
           "style": "Motivating and warm, speaking straight to the viewer.",
-          "text": "احجز بالساعة، واشتغل من وين ما بدّك. برو هوست."
+          "text": "حْجوز بالساعة، واشتغل من وين ما بدّك. Prohost."
         }
       ]
     },
@@ -166,7 +166,7 @@
           "at": 4.8,
           "end": 10.9,
           "style": "Relieved and practical, it just worked.",
-          "text": "عَ برو هوست لقيت عيادة جاهزة، اخترت تلات شهور… وببلّش الشهر الجاي."
+          "text": "عَ برو هوست لقيت عيادة جاهزة، اخترت تلات شهور ... بِبلّشو لجاي."
         },
         {
           "at": 11.15,
