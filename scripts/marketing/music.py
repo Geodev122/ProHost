@@ -40,26 +40,51 @@ def models():
     return out
 
 
+def attempt(model, loc, style, prompt, seed):
+    host = "aiplatform.googleapis.com" if loc == "global" else f"{loc}-aiplatform.googleapis.com"
+    base = f"https://{host}/v1/projects/{project}/locations/{loc}/publishers/google/models/{model}"
+    if style == "predict":
+        url, body = base + ":predict", {"instances": [{"prompt": prompt, "negative_prompt": CFG["negative"], "seed": seed}], "parameters": {}}
+    else:
+        url, body = base + ":generateContent", {
+            "contents": [{"role": "user", "parts": [{"text": f"{prompt}. Avoid: {CFG['negative']}."}]}],
+            "generationConfig": {"responseModalities": ["AUDIO"], "seed": seed}}
+    for retry in range(4):
+        r = session.post(url, json=body, timeout=300)
+        if r.status_code in (429, 500, 503):
+            time.sleep(15 * (retry + 1))
+            continue
+        break
+    if r.ok:
+        js = r.json()
+        for pr in js.get("predictions", []):
+            data = pr.get("bytesBase64Encoded") or pr.get("audioContent")
+            if data:
+                return base64.b64decode(data), pr.get("mimeType", "audio/wav")
+        for c in js.get("candidates", []):
+            for part in c.get("content", {}).get("parts", []):
+                if "inlineData" in part:
+                    return base64.b64decode(part["inlineData"]["data"]), part["inlineData"].get("mimeType", "")
+    return None, f"{r.status_code} {r.text[:300]}"
+
+
+WORKING = []
+
+
 def generate(prompt, seed, model_list):
+    combos = WORKING or [(m, loc, style) for m in model_list for loc in ("global", "us-central1")
+                         for style in ("generateContent", "predict")]
     errors = []
-    for model in model_list:
-        url = (f"https://us-central1-aiplatform.googleapis.com/v1/projects/{project}/locations/us-central1/"
-               f"publishers/google/models/{model}:predict")
-        body = {"instances": [{"prompt": prompt, "negative_prompt": CFG["negative"], "seed": seed}], "parameters": {}}
-        for retry in range(4):
-            r = session.post(url, json=body, timeout=300)
-            if r.status_code in (429, 500, 503):
-                time.sleep(15 * (retry + 1))
-                continue
-            break
-        if r.ok:
-            preds = r.json().get("predictions", [])
-            for pr in preds:
-                data = pr.get("bytesBase64Encoded") or pr.get("audioContent")
-                if data:
-                    return base64.b64decode(data), model
-        errors.append(f"{model}: {r.status_code} {r.text[:200]}")
-    sys.exit("::error::Lyria failed | " + " | ".join(errors))
+    for combo in combos:
+        raw, info = attempt(*combo, prompt, seed)
+        if raw:
+            if not WORKING:
+                WORKING.append(combo)
+                print(f"::notice::music engine: {combo} ({info})")
+            return raw, combo[0], info
+        errors.append(f"{combo}: {info}")
+    print("::error::" + " || ".join(e[:260] for e in errors))
+    sys.exit("Lyria failed")
 
 
 def main():
@@ -69,8 +94,9 @@ def main():
     for i, (pid, prompt) in enumerate(CFG["tracks"].items()):
         if only and pid not in only:
             continue
-        raw, model = generate(prompt + ", instrumental only, seamless steady groove from the first second", 1000 + i, ml)
-        (OUT / f"{pid}.wav").write_bytes(raw)
+        raw, model, mime = generate(prompt + ", instrumental only, seamless steady groove from the first second", 1000 + i, ml)
+        ext = "mp3" if "mp3" in mime or "mpeg" in mime else ("wav" if raw[:4] == b"RIFF" else "raw")
+        (OUT / f"{pid}.{ext}").write_bytes(raw)
         print(f"{pid}: {model} {len(raw)} bytes", flush=True)
 
 
