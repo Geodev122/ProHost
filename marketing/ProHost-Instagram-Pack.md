@@ -1,4 +1,4 @@
-# ProHost — Instagram launch pack (6 animated Reels)
+# ProHost — Instagram launch pack (10 animated Reels)
 
 Each video is **1080×1920 (9:16 Reel)**, 15 s at 30 fps, H.264 MP4, silent; the voice is a separate file.
 All content sits inside the centre 1080×1350 area (y 285–1635), so it stays clear of Instagram's Reel UI and
@@ -26,28 +26,28 @@ profession and area ("Hello, I'm a…"). Prices in the persona posts are illustr
 - 0–3.5 s: "Office. Clinic. Studio. Meeting room. Sitting empty?"
 - 3.7–8 s: "Rent it on your terms": the rental types, then a week calendar filling with bookings.
 - 8.3–11.5 s: "Run it all from one app", with 4 features.
-- 11.6–15 s: **50% OFF your first month of ProHost Premium**, the logo and Google Play.
+- 11.6–15 s: **50% OFF your first ProHost Premium subscription** (monthly or yearly), the logo and Google Play.
 
 **Voiceover (Lebanese Arabic)**: voice `Orus` (male), confident, warm Lebanese businessman in his 40s talking to fellow property owners.  
 File: `voice/post1_hosts_voice.mp3` (15.0 s, each line already starts on its scene)
 
-> **0.25–3.55 s** · عندك مكتب أو عيادة… قاعدة فاضية؟  
+> **0.25–3.55 s** · عِنْدَك مَكْتَب أَو عِيادِة… فاضْيِة؟  
 > _Curious and slightly teasing, a knowing half-smile, rising question at the end._
 >
-> **3.80–8.05 s** · مع برو هوست أجّرها عَ ذوقك: بالساعة، باليوم، بالشهر، أو عَ الشخص.  
-> _Confident and upbeat, listing the options with rhythm._
+> **3.80–8.05 s** · مَع ProHost أَجِّرْها عَ ذَوْأَك: بِالسّاعَة، بِاليَوْم، بِالشَّهْر، أَو عَ الشَّخْص.  
+> _Brisk, confident and upbeat ad read, quick rhythm through the list, no long pauses._
 >
-> **8.40–11.40 s** · كل الطلبات بمحل واحد، وبتغيّر سعرك وقت ما بدّك.  
-> _Reassuring and calm, like a friend who has it all under control._
+> **8.40–11.40 s** · كِلّ الطَّلَبات بْمَحَلّ واحَد، وبْتْغَيِّر سِعْرَك وَئِت ما بَدَّك.  
+> _Reassuring but brisk, a friend who has it all under control; keep it moving, no long pauses._
 >
-> **11.65–14.90 s** · وهلّق، أوّل شهر بنصّ السعر! نزّل برو هوست.  
-> _Excited, celebratory announcement, big smile._
+> **11.65–14.90 s** · وْهَلَّأ، أَوَّل اشْتِراك بِـ ProHost Premium بْنُصّ السِّعْر!  
+> _Excited, celebratory announcement with a big smile, punchy and quick, no long pauses._
 
 **Caption:**
 Your office, clinic or meeting room doesn't have to sit empty. 🗝️
 With ProHost you rent it your way: by the hour, the shift, the day, the month, or per attendee.
 Requests land in one inbox, availability updates live, and you can change prices anytime.
-🎉 Launch offer: 50% off your first month of ProHost Premium.
+🎉 Launch offer: 50% off your first ProHost Premium subscription, monthly or yearly.
 📲 Get ProHost on Google Play, link in bio.
 **Hashtags:** #ProHost #Lebanon #Beirut #OfficeSpace #ClinicForRent #MeetingRoom #CoworkingLebanon #PropertyOwners #FlexibleWorkspace #PassiveIncome
 
@@ -186,9 +186,106 @@ Dietitians, physios, doctors: your own space, on your terms.
 
 ---
 
+## A hotel with idle meeting rooms (per attendee) (`post7_hotel.mp4`)
+**On screen:** "Hello, we're a hotel in Hamra." Its meeting rooms sit empty most weekdays. Listed on ProHost, a request arrives, Accept, this month's earnings, then **50% off your first ProHost Premium subscription**.
+
+**Voiceover (Lebanese Arabic)**: voice `Charon` (male), hotel general manager in Hamra in his 40s; calm, friendly, matter-of-fact, talking to other business owners.  
+File: `voice/post7_hotel_voice.mp3` (15.0 s, each line already starts on its scene)
+
+> **0.30–4.55 s** · نِحْنا أوتيل بِالحَمْرا، وقاعات الـ meeting عِنّا فاضْيِة أَغْلَب أَيّام الجِمْعَة.  
+> _Easy-going, a little rueful about the empty rooms._
+>
+> **4.80–10.90 s** · حَطَّيْناها عَ ProHost بِالشَّخْص… إِجانا طَلَب لَخَمْسَة وعِشْرين شَخْص، وقِبِلْناه بِكَبْسِة.  
+> _Pleased and relaxed, telling a small success story._
+>
+> **11.15–14.90 s** · وهَلَّأ، أَوَّل اشْتِراك Premium بْنُصّ السِّعْر.  
+> _Friendly tip to a colleague, warm and direct._
+
+**Caption:**
+Hotels: your meeting rooms don't have to wait for the next wedding. 🏨
+List them on ProHost by the day or per attendee, accept requests in a tap and watch weekday revenue grow.
+🎉 Launch offer: 50% off your first ProHost Premium subscription.
+📲 ProHost on Google Play.
+**Hashtags:** #Hotels #HotelLebanon #MeetingRooms #ConferenceRoom #Hamra #Beirut #HospitalityBusiness #ProHost
+
+---
+
+## A medical center with free clinic rooms (by the shift) (`post8_medical.mp4`)
+**On screen:** "Hello, we're a medical center in Sin el Fil." Three clinic rooms are free every afternoon. Listed on ProHost, a request arrives, Accept, this month's earnings, then **50% off your first ProHost Premium subscription**.
+
+**Voiceover (Lebanese Arabic)**: voice `Kore` (female), administrator of a medical center in Sin el Fil in her 30s; composed, practical, kind.  
+File: `voice/post8_medical_voice.mp3` (15.0 s, each line already starts on its scene)
+
+> **0.30–4.55 s** · نِحْنا مَرْكَز طِبّي بْسِنّ الفيل. عِنّا تْلات عِيادات فاضْيِين كِلّ بَعْد الضُّهْر.  
+> _Calm and practical, stating a fact._
+>
+> **4.80–10.90 s** · عَ ProHost أَجَّرْناهُن بِالشيفْت، ودَكْتورَة جِلْدِيِّة حَجَزِت التَّنين والأَرْبْعا.  
+> _Satisfied, simple explanation, a soft smile._
+>
+> **11.15–14.90 s** · الوَئِت الفاضي صار دَخِل. أَوَّل اشْتِراك بْنُصّ السِّعْر.  
+> _Warm, encouraging._
+
+**Caption:**
+Medical centers: empty clinic rooms are lost income. 🩺
+Rent them by the shift to doctors, therapists and dietitians on ProHost. You choose the shifts and approve every request.
+🎉 Launch offer: 50% off your first ProHost Premium subscription.
+📲 ProHost on Google Play.
+**Hashtags:** #MedicalCenter #Clinic #ClinicForRent #HealthcareLebanon #SinElFil #Doctors #ProHost #Lebanon
+
+---
+
+## A training institute with empty classrooms (per attendee) (`post9_institute.mp4`)
+**On screen:** "Hello, we're a training institute in Kaslik." Its classrooms are empty every evening and weekend. Listed on ProHost, a request arrives, Accept, this month's earnings, then **50% off your first ProHost Premium subscription**.
+
+**Voiceover (Lebanese Arabic)**: voice `Puck` (male), director of a training institute in Kaslik in his 30s; upbeat, friendly, a bit enthusiastic.  
+File: `voice/post9_institute_voice.mp3` (15.0 s, each line already starts on its scene)
+
+> **0.30–4.55 s** · نِحْنا مَعْهَد تَدْريب بِالكَسْليك. الصُّفوف فاضْيِة كِلّ مَسا وكِلّ weekend.  
+> _Friendly, slightly amused._
+>
+> **4.80–10.90 s** · صِرْنا نْأَجِّرْها عَ ProHost عَ عَدَد الأَشْخاص… وكِلّ طَلَب بيوْصَلْنا، مِنْقْبَل أَو مِنْرْفُض.  
+> _Enthusiastic but natural, like sharing good news._
+>
+> **11.15–14.90 s** · خَلّي صُفوفَك تِشْتِغِل. أَوَّل اشْتِراك بْنُصّ السِّعْر.  
+> _Upbeat invitation._
+
+**Caption:**
+Schools and institutes: your classrooms can work evenings and weekends too. 🎓
+List them on ProHost per attendee or by the hour. Trainers and course organisers send requests, and you accept or decline.
+🎉 Launch offer: 50% off your first ProHost Premium subscription.
+📲 ProHost on Google Play.
+**Hashtags:** #TrainingCenter #Classroom #Education #Kaslik #Keserwan #Workshops #ProHost #Lebanon
+
+---
+
+## A yoga studio with quiet daytime hours (by the hour) (`post10_studio.mp4`)
+**On screen:** "Hello, I run a yoga studio in Mar Mikhael." It's quiet until 6 PM. Listed on ProHost, a request arrives, Accept, this month's earnings, then **50% off your first ProHost Premium subscription**.
+
+**Voiceover (Lebanese Arabic)**: voice `Zephyr` (female), owner of a small yoga studio in Mar Mikhael in her late 20s; bright, easy-going, genuine.  
+File: `voice/post10_studio_voice.mp3` (15.0 s, each line already starts on its scene)
+
+> **0.30–4.55 s** · عِنْدي studio يوغا بْمار مِخايِل، وما بْيِمْتِلي قَبِل السِّتّة المَسا.  
+> _Light, honest, a little laugh in the voice._
+>
+> **4.80–10.90 s** · حَطّيت السّاعات الفاضْيِة عَ ProHost، وأُسْتاذِة pilates حَجَزِت الصُّبْح كِلّ جِمْعَة.  
+> _Happy and casual, telling a friend._
+>
+> **11.15–14.90 s** · كِلّ ساعَة فاضْيِة فيها تْجيبْلَك مَصاري. وأَوَّل اشْتِراك بْنُصّ السِّعْر.  
+> _Warm, cheerful nudge._
+
+**Caption:**
+Studio owners: your quiet hours can pay the rent. 🧘
+List your free hours on ProHost and let instructors and coaches book them by the hour, every week.
+🎉 Launch offer: 50% off your first ProHost Premium subscription.
+📲 ProHost on Google Play.
+**Hashtags:** #YogaStudio #Pilates #FitnessStudio #MarMikhael #Beirut #StudioRental #ProHost #Lebanon
+
+---
+
 ## Posting plan
 1. **Day 1:** Post 2 (the app). It introduces the brand.
 2. **Day 2:** Post 1 (space owners plus the 50% offer). Boost it to property and business-owner audiences in Lebanon.
 3. **Days 3–6:** Posts 3–6, one per day.
-4. **Format:** share each as a **Reel** (native 9:16), use its `_cover.png` as the cover, and pin Posts 1 and 2 to the profile.
-5. **Link in bio:** the Google Play link or `pro-host.tech`. For promo campaigns, use `pro-host.tech/redeem?code=YOURCODE`.
+4. **Days 7–10:** the four host posts (hotel, medical center, institute, studio). Boost them to business owners in Lebanon.
+5. **Format:** share each as a **Reel** (native 9:16), use its `_cover.png` as the cover, and pin Posts 1 and 2 to the profile.
+6. **Link in bio:** the Google Play link or `pro-host.tech`. For promo campaigns, use `pro-host.tech/redeem?code=YOURCODE`.
