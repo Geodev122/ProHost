@@ -516,6 +516,21 @@ async function prodcheck(db, auth) {
     idx.forEach((i) => { states[i.state] = (states[i.state] || 0) + 1; });
     return `indexes=${idx.length} ${JSON.stringify(states).replace(/[{}"]/g, "")}`;
   });
+  // 2b. Cloud Billing: Blaze is required for Cloud Functions, Secret Manager and outbound calls.
+  await step("cloudBilling", async () => {
+    const res = await googleApi(`https://cloudbilling.googleapis.com/v1/projects/${project}/billingInfo`);
+    if (!res.ok) return `unknown (HTTP ${res.status} — check console.cloud.google.com/billing)`;
+    const b = await res.json();
+    return `billingEnabled=${b.billingEnabled === true}${b.billingEnabled ? "" : " — FUNCTIONS AT RISK: re-link a billing account"}`;
+  });
+  // 2c. Deployed functions answer: an HTTP page and an unauthenticated callable (expects UNAUTHENTICATED).
+  await step("functionsServing", async () => {
+    const base = `https://europe-west1-${project}.cloudfunctions.net`;
+    const page = await fetch(`${base}/legalDocumentPage?doc=privacy`);
+    const call = await fetch(`${base}/changeSlotPrice`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{\"data\":{}}" });
+    const callBody = (await call.text()).slice(0, 80).replace(/\s+/g, " ");
+    return `legalDocumentPage=${page.status} changeSlotPrice(no auth)=${call.status} ${callBody}`;
+  });
   // 3. Public pages that Play and the app link to.
   await step("publicPages", async () => {
     const out = [];
