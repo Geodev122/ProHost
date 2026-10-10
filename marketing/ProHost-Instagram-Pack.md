@@ -11,6 +11,8 @@ profession and area ("Hello, I'm a…"). Prices in the persona posts are illustr
 - `report.json`: the engine, the start and end of each line, and any speed-up applied.
 - **Merge:** `ffmpeg -i post1_hosts.mp4 -i voice/post1_hosts_voice.mp3 -c:v copy -c:a aac -b:a 192k -shortest post1_final.mp4`.
   CapCut or Instagram's editor also work: line the audio up at 0:00. Add music, a soft track at 15–20 % volume under the voice.
+- **Voice engine:** Chirp 3 HD (ar-XA). Its delivery follows the punctuation; the acting notes under each line are
+  directions for re-recording or for Gemini-TTS.
 - **Accent:** the lines are written in Lebanese dialect and the voice is told to speak Lebanese, but an AI voice can still
   sound a bit general Levantine. For the most local sound, a Lebanese voice actor can read the same scripts with the
   timings below.
@@ -28,16 +30,16 @@ profession and area ("Hello, I'm a…"). Prices in the persona posts are illustr
 **Voiceover (Lebanese Arabic)**: voice `Orus` (male), confident, warm Lebanese businessman in his 40s talking to fellow property owners.  
 File: `voice/post1_hosts_voice.mp3` (15.0 s, each line already starts on its scene)
 
-> **0.25–3.55 s** · عندك مكتب، عيادة، استوديو أو صالة اجتماعات… قاعدة فاضية؟  
+> **0.25–3.55 s** · عندك مكتب أو عيادة… قاعدة فاضية؟  
 > _Curious and slightly teasing, a knowing half-smile, rising question at the end._
 >
-> **3.80–8.05 s** · مع برو هوست، أجّرها عَ ذوقك: بالساعة، بالشيفت، باليوم، بالشهر… أو عَ عدد الأشخاص.  
+> **3.80–8.05 s** · مع برو هوست أجّرها عَ ذوقك: بالساعة، باليوم، بالشهر، أو عَ الشخص.  
 > _Confident and upbeat, listing the options with rhythm._
 >
-> **8.40–11.40 s** · كل الطلبات بمحل واحد، بلا حجز مزدوج، وبتغيّر سعرك وقت ما بدّك.  
+> **8.40–11.40 s** · كل الطلبات بمحل واحد، وبتغيّر سعرك وقت ما بدّك.  
 > _Reassuring and calm, like a friend who has it all under control._
 >
-> **11.65–14.90 s** · وهلّق، أوّل شهر بريميوم بنصّ السعر! نزّل برو هوست من غوغل بلاي.  
+> **11.65–14.90 s** · وهلّق، أوّل شهر بنصّ السعر! نزّل برو هوست.  
 > _Excited, celebratory announcement, big smile._
 
 **Caption:**
@@ -64,16 +66,16 @@ File: `voice/post2_app_voice.mp3` (15.0 s, each line already starts on its scene
 > **0.35–2.95 s** · شغلك… بشروطك.  
 > _Slow, confident, inviting, with a small pause between the two words._
 >
-> **3.15–6.25 s** · كل المساحات عالخريطة، واحجز بالساعة، بالشيفت، باليوم أو بالشهر.  
+> **3.15–6.25 s** · كل المساحات عالخريطة، واحجز بالساعة أو بالشهر.  
 > _Bright and enthusiastic, discovering the map._
 >
 > **6.45–9.55 s** · بتعرف شو فاضي هلّق، وبتحكي صاحب المحل عالواتساب.  
 > _Easy, friendly, matter-of-fact._
 >
-> **9.75–12.35 s** · ولأصحاب المساحات: الطلبات والحجوزات والمدخول، كلّن قدّامك.  
+> **9.75–12.35 s** · ولأصحاب المساحات، كل شي قدّامك.  
 > _Professional and reassuring, speaking to space owners._
 >
-> **12.60–14.95 s** · برو هوست: لاقيها، احجزها، وبلّش شغل.  
+> **12.60–14.95 s** · برو هوست: لاقيها، احجزها، واشتغل.  
 > _Punchy and proud slogan, energy rising on the last phrase._
 
 **Caption:**
@@ -93,7 +95,7 @@ Free for professionals. Download ProHost on Google Play.
 **Voiceover (Lebanese Arabic)**: voice `Achernar` (female), calm, gentle clinical psychologist in her 30s; soft and thoughtful, never salesy.  
 File: `voice/post3_psychologist_voice.mp3` (15.0 s, each line already starts on its scene)
 
-> **0.30–4.55 s** · مرحبا، أنا معالِجة نفسية بالأشرفية. بس بدّي عيادة التلاتا والخميس الصبح.  
+> **0.30–4.55 s** · مرحبا، أنا معالِجة نفسية بالأشرفية. بدّي عيادة يومين بالجمعة بس.  
 > _Soft, warm introduction, a little tired of paying for a full-time clinic._
 >
 > **4.80–10.90 s** · عَ برو هوست بختار الشيفت الصبحي، التلاتا والخميس، لأربع جمع… وببعت الطلب.  
@@ -141,7 +143,7 @@ Trainers, workshop hosts, team leads: book the room in a minute.
 **Voiceover (Lebanese Arabic)**: voice `Leda` (female), bright, upbeat life coach in her late 20s, positive and motivating.  
 File: `voice/post5_lifecoach_voice.mp3` (15.0 s, each line already starts on its scene)
 
-> **0.30–4.55 s** · مرحبا، أنا لايف كوتش بالحمرا. عندي جلستين اليوم… ليش إدفع إيجار شهر؟  
+> **0.30–4.55 s** · مرحبا، أنا لايف كوتش بالحمرا. عندي جلستين اليوم… ليش إدفع شهر؟  
 > _Cheerful and a bit cheeky, the question is rhetorical._
 >
 > **4.80–10.90 s** · بفتح برو هوست، بشوف شو فاضي، بختار الساعة أربعة وخمسة… وخلصت!  
@@ -165,7 +167,7 @@ Coaches, consultants, tutors: book the hour, not the lease.
 **Voiceover (Lebanese Arabic)**: voice `Sulafat` (female), composed, ambitious dietitian in her 30s; warm but determined.  
 File: `voice/post6_dietitian_voice.mp3` (15.0 s, each line already starts on its scene)
 
-> **0.30–4.55 s** · مرحبا، أنا أخصائية تغذية بجونيه. جاهزة لعيادتي… بس بلا عقد تلات سنين.  
+> **0.30–4.55 s** · مرحبا، أنا أخصائية تغذية بجونيه. بدّي عيادتي… بلا عقد طويل.  
 > _Determined and hopeful, with a firm 'but' about the long lease._
 >
 > **4.80–10.90 s** · عَ برو هوست لقيت عيادة جاهزة، اخترت تلات شهور… وببلّش الشهر الجاي.  
