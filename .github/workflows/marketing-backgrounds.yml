@@ -1,0 +1,56 @@
+name: Marketing backgrounds (manual)
+
+# Generates the photo backgrounds for marketing/*.mp4 with Vertex AI Imagen (CI service account)
+# and commits them to marketing/bg/ on the branch it runs on.
+on:
+  workflow_dispatch:
+    inputs:
+      names:
+        description: "Comma-separated image names from scripts/marketing/backgrounds.json (blank = all)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency: marketing-backgrounds
+
+jobs:
+  backgrounds:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install google-auth requests pillow
+
+      - name: Write Service Account Credentials
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+
+      - name: Generate
+        env:
+          NAMES: ${{ inputs.names }}
+        run: |
+          set -o pipefail
+          python -u scripts/marketing/backgrounds.py "$NAMES" 2>&1 | tee "$RUNNER_TEMP/bg.log" || {
+            echo "::error::$(tail -c 1500 "$RUNNER_TEMP/bg.log" | tr '\n' ' ')"; exit 1; }
+          echo "::notice::$(grep -E '^[a-z]+: ' "$RUNNER_TEMP/bg.log" | tr '\n' ' ')"
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add marketing/bg
+          git diff --cached --quiet && { echo "No changes"; exit 0; }
+          git commit -m "Marketing: photo backgrounds (Vertex AI Imagen)"
+          git pull --rebase
+          git push
