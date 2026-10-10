@@ -1,0 +1,64 @@
+<en-US>
+Welcome to ProHost — flexible professional workspace in Lebanon.
+• Find clinics, offices, studios and meeting rooms on a live map
+• Book by the hour, shift, day, month or per attendee, with real-time availability
+• Message hosts on WhatsApp in one tap
+• Hosts: publish spaces, manage requests and change prices with ProHost Premium
+• Monthly or yearly plans, billed securely by Google Play
+</en-US>
+<ar>
+مرحباً بك في ProHost — مساحات عمل مهنية مرنة في لبنان.
+• اعثر على العيادات والمكاتب والاستوديوهات وقاعات الاجتماعات على خريطة مباشرة
+• احجز بالساعة أو الدوام أو اليوم أو الشهر أو حسب عدد الحضور مع توفر لحظي
+• راسل المضيف عبر واتساب بلمسة واحدة
+• للمضيفين: انشر مساحاتك وأدر الطلبات وغيّر الأسعار مع ProHost Premium
+• خطط شهرية أو سنوية بدفع آمن عبر Google Play
+</ar>
+<fr-FR>
+Bienvenue sur ProHost — des espaces de travail professionnels flexibles au Liban.
+• Trouvez cabinets, bureaux, studios et salles de réunion sur une carte en direct
+• Réservez à l'heure, au créneau, à la journée, au mois ou par participant, disponibilités en temps réel
+• Contactez l'hôte sur WhatsApp en un geste
+• Hôtes : publiez vos espaces, gérez les demandes et les prix avec ProHost Premium
+• Forfaits mensuel ou annuel via Google Play
+</fr-FR>
+<es-ES>
+Bienvenido a ProHost: espacios de trabajo profesionales flexibles en Líbano.
+• Encuentra consultorios, oficinas, estudios y salas de reuniones en un mapa en vivo
+• Reserva por hora, turno, día, mes o por asistente, con disponibilidad en tiempo real
+• Escribe al anfitrión por WhatsApp con un toque
+• Anfitriones: publicad espacios, gestionad solicitudes y precios con ProHost Premium
+• Planes mensual o anual con Google Play
+</es-ES>
+<de-DE>
+Willkommen bei ProHost – flexible professionelle Arbeitsräume im Libanon.
+• Praxen, Büros, Studios und Besprechungsräume auf einer Live-Karte finden
+• Stundenweise, pro Schicht, Tag, Monat oder pro Teilnehmer buchen – mit Echtzeit-Verfügbarkeit
+• Gastgeber mit einem Tipp per WhatsApp kontaktieren
+• Gastgeber: Räume veröffentlichen, Anfragen und Preise mit ProHost Premium verwalten
+• Monats- oder Jahresabo über Google Play
+</de-DE>
+<it-IT>
+Benvenuto in ProHost: spazi di lavoro professionali flessibili in Libano.
+• Trova studi, uffici, sale e spazi riunioni su una mappa dal vivo
+• Prenota a ore, a turno, a giornata, a mese o per partecipante, con disponibilità in tempo reale
+• Scrivi all'host su WhatsApp con un tocco
+• Host: pubblica spazi, gestisci richieste e prezzi con ProHost Premium
+• Piani mensile o annuale tramite Google Play
+</it-IT>
+<pt-BR>
+Bem-vindo ao ProHost: espaços de trabalho profissionais flexíveis no Líbano.
+• Encontre consultórios, escritórios, estúdios e salas de reunião num mapa ao vivo
+• Reserve por hora, turno, dia, mês ou por participante, com disponibilidade em tempo real
+• Fale com o anfitrião pelo WhatsApp com um toque
+• Anfitriões: publiquem espaços, gerenciem pedidos e preços com o ProHost Premium
+• Planos mensal ou anual pelo Google Play
+</pt-BR>
+<tr-TR>
+ProHost'a hoş geldiniz: Lübnan'da esnek profesyonel çalışma alanları.
+• Klinik, ofis, stüdyo ve toplantı odalarını canlı haritada bulun
+• Saatlik, vardiya, günlük, aylık veya katılımcı başına, anlık müsaitlikle rezervasyon yapın
+• Ev sahibine tek dokunuşla WhatsApp'tan yazın
+• Ev sahipleri: ProHost Premium ile alan yayınlayın, talepleri ve fiyatları yönetin
+• Google Play üzerinden aylık veya yıllık planlar
+</tr-TR>
