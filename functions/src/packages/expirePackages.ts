@@ -219,6 +219,9 @@ export const expirePackages = onSchedule({ schedule: "0 * * * *", timeoutSeconds
   }
 
   logger.info(`expirePackages: swept ${totalSwept} packages`);
+  // Hourly job: only a sweep that found something belongs in the admin audit log
+  // (an entry per empty run buried the Security tab under ~24 "0 expired" rows a day).
+  if (totalSwept === 0) return;
 
   await recordAuditLog({
     actionType: "PACKAGES_EXPIRED_BATCH",

@@ -129,9 +129,13 @@ jobs:
       # per-attendee re-pricing, withdraw/cancel pushes (tests/e2e/flows.test.js).
       - name: Run end-to-end flows
         run: |
+          set -o pipefail
           npm ci --prefix functions
           npm install -g firebase-tools
-          cd tests/e2e && npm test
+          cd tests/e2e && npm test 2>&1 | tee "$RUNNER_TEMP/e2e.log" || {
+            echo "::error title=e2e flows failed::$(grep -E 'not ok|Error|error|expected|actual|timed out|✖|⚠' "$RUNNER_TEMP/e2e.log" | grep -v 'EAFNOSUPPORT\|::1\|MOTD\|outdated version\|breaking changes' | tail -n 30 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')"
+            exit 1
+          }
 
   deploy-firebase:
     name: Deploy Live Firebase Backend
@@ -161,9 +165,15 @@ jobs:
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
 
+      # On failure the tail of the output becomes an annotation, so the cause is readable from the
+      # run summary / API without downloading logs.
       - name: Deploy Firebase Backend Resources
-        run: >
-          npx --yes firebase-tools@14 deploy
-          --project prohost-f766f
-          --only functions,firestore,storage,hosting
-          --non-interactive --force
+        run: |
+          set -o pipefail
+          npx --yes firebase-tools@14 deploy \
+            --project prohost-f766f \
+            --only functions,firestore,storage,hosting \
+            --non-interactive --force 2>&1 | tee "$RUNNER_TEMP/deploy.log" || {
+            echo "::error title=firebase deploy failed::$(grep -v '^\s*$' "$RUNNER_TEMP/deploy.log" | tail -n 30 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')"
+            exit 1
+          }
