@@ -548,7 +548,7 @@ async function prodcheck(db, auth) {
       if (!r.ok) { out.push(`${svc}=api${r.status}`); continue; }
       const { uri } = await r.json();
       const isPage = svc === "legaldocumentpage";
-      const res = await fetch(isPage ? `${uri}/?doc=privacy` : uri, isPage ? {} :
+      const res = await fetch(isPage ? `${uri}/privacy` : uri, isPage ? {} :
         { method: "POST", headers: { "Content-Type": "application/json" }, body: "{\"data\":{}}" });
       out.push(`${svc}=${res.status} ${(await res.text()).replace(/\s+/g, " ").slice(0, 70)}`);
     }
@@ -576,7 +576,7 @@ async function prodcheck(db, auth) {
   // 2c. Deployed functions answer: an HTTP page and an unauthenticated callable (expects UNAUTHENTICATED).
   await step("functionsServing", async () => {
     const base = `https://europe-west1-${project}.cloudfunctions.net`;
-    const page = await fetch(`${base}/legalDocumentPage?doc=privacy`);
+    const page = await fetch(`${base}/legalDocumentPage/privacy`);
     const call = await fetch(`${base}/changeSlotPrice`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{\"data\":{}}" });
     const callBody = (await call.text()).slice(0, 80).replace(/\s+/g, " ");
     return `legalDocumentPage=${page.status} changeSlotPrice(no auth)=${call.status} ${callBody}`;
