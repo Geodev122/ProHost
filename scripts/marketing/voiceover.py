@@ -115,8 +115,25 @@ def as_wav(audio):
     return buf.getvalue()
 
 
+def iam_report():
+    """Prints which project roles this service account holds and whether it may call Gemini-TTS."""
+    email = getattr(creds, "service_account_email", "?")
+    code, js = post(f"https://cloudresourcemanager.googleapis.com/v1/projects/{project}:getIamPolicy", {})
+    if code == 200:
+        mine = sorted(b["role"] for b in js.get("bindings", []) if f"serviceAccount:{email}" in b.get("members", []))
+        holders = sorted({m for b in js.get("bindings", []) if b["role"] == "roles/aiplatform.user" for m in b.get("members", [])})
+        print(f"::notice::IAM {email}: {', '.join(mine)}")
+        print(f"::notice::roles/aiplatform.user holders: {', '.join(holders) or 'none'}")
+    else:
+        print(f"::notice::getIamPolicy {code}")
+    code, js = post(f"https://cloudresourcemanager.googleapis.com/v1/projects/{project}:testIamPermissions",
+                    {"permissions": ["aiplatform.endpoints.predict"]})
+    print(f"::notice::aiplatform.endpoints.predict allowed: {bool(js.get('permissions'))} ({code})")
+
+
 def main():
     ensure_api()
+    iam_report()
     ensure_api("aiplatform.googleapis.com", required=False)  # Gemini-TTS (style prompts) runs on Vertex AI
     TMP.mkdir(parents=True, exist_ok=True)
     LINES.mkdir(parents=True, exist_ok=True)
