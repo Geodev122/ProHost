@@ -521,7 +521,43 @@ async function prodcheck(db, auth) {
     const res = await googleApi(`https://cloudbilling.googleapis.com/v1/projects/${project}/billingInfo`);
     if (!res.ok) return `unknown (HTTP ${res.status} — check console.cloud.google.com/billing)`;
     const b = await res.json();
-    return `billingEnabled=${b.billingEnabled === true}${b.billingEnabled ? "" : " — FUNCTIONS AT RISK: re-link a billing account"}`;
+    let account = "";
+    if (b.billingAccountName) {
+      const a = await googleApi(`https://cloudbilling.googleapis.com/v1/${b.billingAccountName}`);
+      account = a.ok ? ` accountOpen=${(await a.json()).open}` : ` account=…${b.billingAccountName.slice(-4)} (status not readable: HTTP ${a.status})`;
+    }
+    return `billingEnabled=${b.billingEnabled === true}${account}${b.billingEnabled ? "" : " — FUNCTIONS AT RISK: re-link a billing account"}`;
+  });
+  // 2d. Cloud Run state behind two functions, and their recent errors.
+  await step("cloudRunState", async () => {
+    const out = [];
+    for (const svc of ["legaldocumentpage", "changeslotprice", "playbillingrtdn"]) {
+      const r = await googleApi(`https://run.googleapis.com/v2/projects/${project}/locations/europe-west1/services/${svc}`);
+      if (!r.ok) { out.push(`${svc}=HTTP${r.status}`); continue; }
+      const j = await r.json();
+      const c = j.terminalCondition || {};
+      out.push(`${svc}=${c.state || "?"}${c.reason ? `/${c.reason}` : ""}${c.message ? `:${String(c.message).slice(0, 80)}` : ""}`);
+    }
+    return out.join(" | ");
+  });
+  await step("recentFunctionErrors", async () => {
+    const since = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
+    const r = await googleApi("https://logging.googleapis.com/v2/entries:list", {
+      method: "POST",
+      body: JSON.stringify({
+        resourceNames: [`projects/${project}`], orderBy: "timestamp desc", pageSize: 50,
+        filter: `severity>=ERROR AND (resource.type="cloud_run_revision" OR resource.type="cloud_function") AND timestamp>="${since}"`,
+      }),
+    });
+    if (!r.ok) return `logs not readable (HTTP ${r.status})`;
+    const groups = {};
+    for (const e of (await r.json()).entries || []) {
+      const m = String(e.textPayload || e.jsonPayload?.message || e.protoPayload?.status?.message || "")
+        .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "<email>").replace(/\s+/g, " ").slice(0, 90);
+      const k = `${e.resource?.labels?.service_name || "?"}: ${m}`;
+      groups[k] = (groups[k] || 0) + 1;
+    }
+    return Object.entries(groups).slice(0, 6).map(([k, v]) => `${v}x ${k}`).join(" || ") || "none in 6h";
   });
   // 2c. Deployed functions answer: an HTTP page and an unauthenticated callable (expects UNAUTHENTICATED).
   await step("functionsServing", async () => {
