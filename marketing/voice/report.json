@@ -6,46 +6,46 @@
     "lines": [
       {
         "line": 1,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 0.25,
         "end": 3.56,
         "sceneEnd": 3.55,
-        "spoken": 4.07,
-        "tempo": 1.233,
+        "spoken": 4.0,
+        "tempo": 1.213,
         "text": "عِنْدَك office، clinic أو studio… وقاعِد فاضي نُصّ الجِمْعَة؟"
       },
       {
         "line": 2,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 3.8,
-        "end": 7.94,
+        "end": 8.06,
         "sceneEnd": 8.05,
-        "spoken": 4.14,
-        "tempo": 1.0,
+        "spoken": 4.78,
+        "tempo": 1.126,
         "text": "مع ProHost، أَجّْرو بِالساعَة، بِالـ shift، بِاليوم أو بِالشَّهِر."
       },
       {
         "line": 3,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 8.4,
-        "end": 11.67,
+        "end": 11.5,
         "sceneEnd": 11.4,
-        "spoken": 4.24,
+        "spoken": 4.02,
         "tempo": 1.3,
-        "text": "الـ requests، الـ bookings والأَسْعار… كِلُّن بِـ app واحِد."
+        "text": "الـ requests، الـ bookings والأَسْعار… بِـ app واحِد."
       },
       {
         "line": 4,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
-        "start": 11.79,
-        "end": 15.91,
-        "sceneEnd": 14.95,
-        "spoken": 5.35,
-        "tempo": 1.3,
-        "text": "نَزِّل ProHost هَلَّأ، وأَوَّل اشْتِراك Premium بْنُصّ السِّعِر، monthly أو yearly."
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 11.65,
+        "end": 15.9,
+        "sceneEnd": 15.9,
+        "spoken": 5.3,
+        "tempo": 1.247,
+        "text": "نَزِّل ProHost، وأَوَّل اشْتِراك Premium بْنُصّ السِّعِر، monthly أو yearly."
       }
     ],
-    "trackSeconds": 15.0
+    "trackSeconds": 16.0
   },
   {
     "post": "post2_app",
@@ -54,56 +54,56 @@
     "lines": [
       {
         "line": 1,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 0.3,
-        "end": 2.74,
+        "end": 2.91,
         "sceneEnd": 2.9,
-        "spoken": 2.46,
-        "tempo": 1.0,
+        "spoken": 2.69,
+        "tempo": 1.034,
         "text": "بَدَّك مَحَل تِشْتِغِل فيه… مِش عَقْد؟"
       },
       {
         "line": 2,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 3.1,
-        "end": 6.25,
+        "end": 6.09,
         "sceneEnd": 5.9,
-        "spoken": 4.09,
+        "spoken": 3.87,
         "tempo": 1.3,
-        "text": "مع ProHost بْتْلاقي clinics، offices و studios عَ الـ map."
+        "text": "مع ProHost، الـ clinics والـ offices كِلُّن عَ الـ map."
       },
       {
         "line": 3,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
-        "start": 6.37,
-        "end": 9.28,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 6.21,
+        "end": 8.81,
         "sceneEnd": 8.7,
-        "spoken": 3.77,
-        "tempo": 1.3,
-        "text": "بْتِحْجُز بِالساعَة أو بِالشَّهِر، وبْتِحْكي الـ host عَ WhatsApp."
+        "spoken": 2.95,
+        "tempo": 1.135,
+        "text": "احْجُز بِالساعَة، وِحْكي الـ host عَ WhatsApp."
       },
       {
         "line": 4,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
-        "start": 9.4,
-        "end": 11.9,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 8.93,
+        "end": 11.44,
         "sceneEnd": 11.4,
-        "spoken": 3.1,
-        "tempo": 1.24,
-        "text": "وإذا عِنْدَك space، بْتْأَجّْرا وبْتِتابِع كِل شي."
+        "spoken": 2.89,
+        "tempo": 1.156,
+        "text": "وإذا عِنْدَك space، أَجّْرا مِن نَفْس الـ app."
       },
       {
         "line": 5,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
-        "start": 12.02,
-        "end": 15.28,
-        "sceneEnd": 14.95,
-        "spoken": 3.76,
-        "tempo": 1.156,
-        "text": "نَزِّل ProHost، وأَوَّل اشْتِراك Premium بْنُصّ السِّعِر."
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 11.7,
+        "end": 15.99,
+        "sceneEnd": 15.9,
+        "spoken": 5.58,
+        "tempo": 1.3,
+        "text": "نَزِّل ProHost، وأَوَّل اشْتِراك Premium بْنُصّ السِّعِر، monthly أو yearly."
       }
     ],
-    "trackSeconds": 15.0
+    "trackSeconds": 16.0
   },
   {
     "post": "post3_psychologist",
@@ -112,36 +112,36 @@
     "lines": [
       {
         "line": 1,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 0.3,
         "end": 4.55,
         "sceneEnd": 4.55,
-        "spoken": 4.61,
-        "tempo": 1.085,
+        "spoken": 4.4,
+        "tempo": 1.035,
         "text": "إنتَ psychologist، وما بْتِحْتاج clinic كِل الجِمْعَة… بَس يومين؟"
       },
       {
         "line": 2,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 4.8,
         "end": 10.91,
         "sceneEnd": 10.9,
-        "spoken": 6.49,
-        "tempo": 1.065,
+        "spoken": 6.91,
+        "tempo": 1.132,
         "text": "هَلَّأ فيك، مع ProHost، تِحْجُز الـ morning shift التَّلاتا والخَميس، وتِدْفَع بَس عَ وَئْتَك."
       },
       {
         "line": 3,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 11.15,
-        "end": 16.24,
-        "sceneEnd": 14.9,
-        "spoken": 6.6,
+        "end": 16.0,
+        "sceneEnd": 15.9,
+        "spoken": 6.3,
         "tempo": 1.3,
-        "text": "نَزِّل ProHost، والـ booking بِبَلاش… وإذا عِنْدَك space، أَوَّل اشْتِراك Premium بْنُصّ السِّعِر."
+        "text": "نَزِّل ProHost، الـ booking بِبَلاش… وإذا عِنْدَك space، أَوَّل Premium بْنُصّ السِّعِر."
       }
     ],
-    "trackSeconds": 15.0
+    "trackSeconds": 16.0
   },
   {
     "post": "post4_trainer",
@@ -150,36 +150,36 @@
     "lines": [
       {
         "line": 1,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 0.3,
         "end": 4.56,
         "sceneEnd": 4.55,
-        "spoken": 4.66,
-        "tempo": 1.097,
+        "spoken": 4.36,
+        "tempo": 1.026,
         "text": "إنتَ trainer، وعِنْدَك workshop لَتْمَنْطَعْش شَخْص… وما في قاعَة؟"
       },
       {
         "line": 2,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 4.8,
-        "end": 10.9,
+        "end": 10.91,
         "sceneEnd": 10.9,
-        "spoken": 6.69,
-        "tempo": 1.097,
+        "spoken": 7.15,
+        "tempo": 1.172,
         "text": "مع ProHost، الـ conference room بِسِعْر عَ الشَّخْص: بِتْحُط العَدَد، بْتْزيد coffee break، وبْتِبْعَت الـ request."
       },
       {
         "line": 3,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 11.15,
-        "end": 16.07,
-        "sceneEnd": 14.9,
-        "spoken": 6.38,
+        "end": 15.97,
+        "sceneEnd": 15.9,
+        "spoken": 6.24,
         "tempo": 1.3,
-        "text": "نَزِّل ProHost، والـ booking بِبَلاش… وإذا عِنْدَك space، أَوَّل اشْتِراك Premium بْنُصّ السِّعِر."
+        "text": "نَزِّل ProHost، الـ booking بِبَلاش… وإذا عِنْدَك space، أَوَّل Premium بْنُصّ السِّعِر."
       }
     ],
-    "trackSeconds": 15.0
+    "trackSeconds": 16.0
   },
   {
     "post": "post5_lifecoach",
@@ -188,36 +188,36 @@
     "lines": [
       {
         "line": 1,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 0.3,
-        "end": 4.56,
+        "end": 4.54,
         "sceneEnd": 4.55,
-        "spoken": 4.45,
-        "tempo": 1.047,
+        "spoken": 4.42,
+        "tempo": 1.041,
         "text": "إنتَ life coach، وعِنْدَك جَلْسْتَيْن اليوم… ليش تِدْفَع إيجار شَهِر؟"
       },
       {
         "line": 2,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 4.8,
-        "end": 9.98,
+        "end": 9.75,
         "sceneEnd": 10.9,
-        "spoken": 5.19,
+        "spoken": 4.96,
         "tempo": 1.0,
         "text": "أَخيراً فيك تِحْجُز room بِالساعَة: بْتْشوف شو فاضي، بِتْنَقّي الساعَة، وخَلْصِت."
       },
       {
         "line": 3,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 11.15,
-        "end": 16.07,
-        "sceneEnd": 14.9,
-        "spoken": 6.38,
-        "tempo": 1.3,
-        "text": "نَزِّل ProHost، والـ booking بِبَلاش… وإذا عِنْدَك space، أَوَّل اشْتِراك Premium بْنُصّ السِّعِر."
+        "end": 15.92,
+        "sceneEnd": 15.9,
+        "spoken": 5.89,
+        "tempo": 1.24,
+        "text": "نَزِّل ProHost، الـ booking بِبَلاش… وإذا عِنْدَك space، أَوَّل Premium بْنُصّ السِّعِر."
       }
     ],
-    "trackSeconds": 15.0
+    "trackSeconds": 16.0
   },
   {
     "post": "post6_dietitian",
@@ -226,36 +226,36 @@
     "lines": [
       {
         "line": 1,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 0.3,
         "end": 4.55,
         "sceneEnd": 4.55,
-        "spoken": 4.74,
-        "tempo": 1.114,
+        "spoken": 4.6,
+        "tempo": 1.081,
         "text": "إنتَ dietitian وجاهِز لَـ clinic إِلَك… بَس بلا عَقْد طَويل؟"
       },
       {
         "line": 2,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 4.8,
-        "end": 10.16,
+        "end": 10.87,
         "sceneEnd": 10.9,
-        "spoken": 5.36,
+        "spoken": 6.08,
         "tempo": 1.0,
         "text": "مع ProHost بْتِسْتَأْجِر clinic جاهْزِة شَهِر بِشَهِر، وبْتْكَبِّر وَئْت ما بَدَّك."
       },
       {
         "line": 3,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 11.15,
-        "end": 15.83,
-        "sceneEnd": 14.9,
-        "spoken": 6.07,
+        "end": 16.46,
+        "sceneEnd": 15.9,
+        "spoken": 6.9,
         "tempo": 1.3,
-        "text": "نَزِّل ProHost، والـ booking بِبَلاش… وإذا عِنْدَك space، أَوَّل اشْتِراك Premium بْنُصّ السِّعِر."
+        "text": "نَزِّل ProHost، الـ booking بِبَلاش… وإذا عِنْدَك space، أَوَّل Premium بْنُصّ السِّعِر."
       }
     ],
-    "trackSeconds": 15.0
+    "trackSeconds": 16.0
   },
   {
     "post": "post7_hotel",
@@ -264,36 +264,36 @@
     "lines": [
       {
         "line": 1,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 0.3,
-        "end": 3.58,
+        "end": 4.05,
         "sceneEnd": 4.55,
-        "spoken": 3.29,
+        "spoken": 3.75,
         "tempo": 1.0,
         "text": "عِنْدَك hotel، والـ meeting rooms فاضْيِة أَغْلَب أيّام الجِمْعَة؟"
       },
       {
         "line": 2,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 4.8,
-        "end": 10.6,
+        "end": 10.07,
         "sceneEnd": 10.9,
-        "spoken": 5.81,
+        "spoken": 5.29,
         "tempo": 1.0,
         "text": "مع ProHost، بْتْأَجِّرُن بِاليوم أو عَ الشَّخْص، وبْتِقْبَل الـ requests بِكَبْسِة."
       },
       {
         "line": 3,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 11.15,
-        "end": 15.21,
-        "sceneEnd": 14.9,
-        "spoken": 5.29,
-        "tempo": 1.3,
-        "text": "نَزِّل ProHost هَلَّأ، وأَوَّل اشْتِراك Premium بْنُصّ السِّعِر، monthly أو yearly."
+        "end": 15.91,
+        "sceneEnd": 15.9,
+        "spoken": 5.49,
+        "tempo": 1.157,
+        "text": "نَزِّل ProHost، وأَوَّل اشْتِراك Premium بْنُصّ السِّعِر، monthly أو yearly."
       }
     ],
-    "trackSeconds": 15.0
+    "trackSeconds": 16.0
   },
   {
     "post": "post8_medical",
@@ -302,36 +302,36 @@
     "lines": [
       {
         "line": 1,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 0.3,
-        "end": 4.02,
+        "end": 3.88,
         "sceneEnd": 4.55,
-        "spoken": 3.73,
+        "spoken": 3.58,
         "tempo": 1.0,
         "text": "عِنْدَك medical center، والـ clinics فاضْيِة كِل بَعْد الضُّهِر؟"
       },
       {
         "line": 2,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 4.8,
         "end": 10.89,
         "sceneEnd": 10.9,
-        "spoken": 6.11,
-        "tempo": 1.002,
+        "spoken": 6.41,
+        "tempo": 1.051,
         "text": "هَلَّأ فيك تْأَجِّرُن بِالـ shift لَدَكاتْرِة وأَخِصّائِيّين، وإنتَ بْتْوافِق عَ كِل request."
       },
       {
         "line": 3,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 11.15,
-        "end": 15.17,
-        "sceneEnd": 14.9,
-        "spoken": 5.22,
-        "tempo": 1.3,
-        "text": "نَزِّل ProHost هَلَّأ، وأَوَّل اشْتِراك Premium بْنُصّ السِّعِر، monthly أو yearly."
+        "end": 15.9,
+        "sceneEnd": 15.9,
+        "spoken": 5.8,
+        "tempo": 1.222,
+        "text": "نَزِّل ProHost، وأَوَّل اشْتِراك Premium بْنُصّ السِّعِر، monthly أو yearly."
       }
     ],
-    "trackSeconds": 15.0
+    "trackSeconds": 16.0
   },
   {
     "post": "post9_institute",
@@ -340,36 +340,36 @@
     "lines": [
       {
         "line": 1,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 0.3,
-        "end": 4.26,
+        "end": 3.91,
         "sceneEnd": 4.55,
-        "spoken": 3.96,
+        "spoken": 3.62,
         "tempo": 1.0,
         "text": "عِنْدَك training center، والصُّفوف فاضْيِة كِل مَسا وكِل weekend؟"
       },
       {
         "line": 2,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 4.8,
-        "end": 10.78,
+        "end": 10.07,
         "sceneEnd": 10.9,
-        "spoken": 5.98,
+        "spoken": 5.27,
         "tempo": 1.0,
         "text": "مع ProHost، بْتْأَجِّرُن بِالساعَة أو عَ الشَّخْص، والـ requests بْتوصَلَك عَ الـ app."
       },
       {
         "line": 3,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 11.15,
-        "end": 15.04,
-        "sceneEnd": 14.9,
-        "spoken": 5.06,
-        "tempo": 1.3,
-        "text": "نَزِّل ProHost هَلَّأ، وأَوَّل اشْتِراك Premium بْنُصّ السِّعِر، monthly أو yearly."
+        "end": 15.91,
+        "sceneEnd": 15.9,
+        "spoken": 5.5,
+        "tempo": 1.158,
+        "text": "نَزِّل ProHost، وأَوَّل اشْتِراك Premium بْنُصّ السِّعِر، monthly أو yearly."
       }
     ],
-    "trackSeconds": 15.0
+    "trackSeconds": 16.0
   },
   {
     "post": "post10_studio",
@@ -378,35 +378,35 @@
     "lines": [
       {
         "line": 1,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 0.3,
-        "end": 3.45,
+        "end": 3.36,
         "sceneEnd": 4.55,
-        "spoken": 3.15,
+        "spoken": 3.06,
         "tempo": 1.0,
         "text": "عِنْدَك yoga studio، وما بْيِمْتِلي قَبِل السِّتّة؟"
       },
       {
         "line": 2,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 4.8,
-        "end": 9.66,
+        "end": 10.36,
         "sceneEnd": 10.9,
-        "spoken": 4.87,
+        "spoken": 5.57,
         "tempo": 1.0,
         "text": "أَخيراً فيك تْأَجِّر الساعات الفاضْيِة لَـ instructors كِل جِمْعَة، مع ProHost."
       },
       {
         "line": 3,
-        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 11.15,
-        "end": 15.3,
-        "sceneEnd": 14.9,
-        "spoken": 5.4,
-        "tempo": 1.3,
-        "text": "نَزِّل ProHost هَلَّأ، وأَوَّل اشْتِراك Premium بْنُصّ السِّعِر، monthly أو yearly."
+        "end": 15.91,
+        "sceneEnd": 15.9,
+        "spoken": 5.75,
+        "tempo": 1.211,
+        "text": "نَزِّل ProHost، وأَوَّل اشْتِراك Premium بْنُصّ السِّعِر، monthly أو yearly."
       }
     ],
-    "trackSeconds": 15.0
+    "trackSeconds": 16.0
   }
 ]
