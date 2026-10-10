@@ -540,6 +540,20 @@ async function prodcheck(db, auth) {
     }
     return out.join(" | ");
   });
+  // The same functions through Cloud Run's own URL (bypasses the cloudfunctions.net front door).
+  await step("runAppServing", async () => {
+    const out = [];
+    for (const svc of ["legaldocumentpage", "changeslotprice", "assigninitialrole"]) {
+      const r = await googleApi(`https://run.googleapis.com/v2/projects/${project}/locations/europe-west1/services/${svc}`);
+      if (!r.ok) { out.push(`${svc}=api${r.status}`); continue; }
+      const { uri } = await r.json();
+      const isPage = svc === "legaldocumentpage";
+      const res = await fetch(isPage ? `${uri}/?doc=privacy` : uri, isPage ? {} :
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: "{\"data\":{}}" });
+      out.push(`${svc}=${res.status} ${(await res.text()).replace(/\s+/g, " ").slice(0, 70)}`);
+    }
+    return out.join(" | ");
+  });
   await step("recentFunctionErrors", async () => {
     const since = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
     const r = await googleApi("https://logging.googleapis.com/v2/entries:list", {
