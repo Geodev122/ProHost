@@ -23,7 +23,7 @@ OUT = ROOT / "marketing" / "voice"
 LINES = OUT / "lines"
 TMP = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "/tmp/voiceover")
 FF = imageio_ffmpeg.get_ffmpeg_exe()
-LENGTH = 15.0
+LENGTH = float(CFG.get("length", 15.0))
 RATE = 24000
 MAX_TEMPO = 1.3
 WARNED = []
@@ -105,6 +105,27 @@ def synth(p, line):
         "input": {"text": line["text"]},
         "voice": {"languageCode": "ar-XA", "name": f"ar-XA-Chirp3-HD-{p['voice']}"}}))
     errors = []
+    # Gemini TTS models the Text-to-Speech API doesn't serve yet: call Vertex generateContent with an audio response.
+    for model in [m for m in tts_models() if m not in DEAD_MODELS]:
+        engine = f"vertex:{model}"
+        if engine in DEAD_MODELS:
+            continue
+        body = {"contents": [{"role": "user", "parts": [{"text": f"{prompt}\n\nSay exactly this, in Lebanese Arabic: {line['text']}"}]}],
+                "generationConfig": {"responseModalities": ["AUDIO"],
+                                     "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": p["voice"]}}}}}
+        for retry in range(3):
+            code, js = post(f"https://aiplatform.googleapis.com/v1/projects/{project}/locations/global/publishers/google/models/{model}:generateContent", body)
+            if code in (429, 500, 503):
+                time.sleep(5 * (retry + 1))
+                continue
+            break
+        if code == 200:
+            for part in js.get("candidates", [{}])[0].get("content", {}).get("parts", []):
+                if "inlineData" in part:
+                    return base64.b64decode(part["inlineData"]["data"]), engine
+        DEAD_MODELS.add(engine)
+        print(f"::notice::{engine} skipped: {code} {json.dumps(js)[:300]}")
+        break  # only the newest model gets the Vertex path
     for engine, body in attempts:
         body["audioConfig"] = {"audioEncoding": "LINEAR16", "sampleRateHertz": RATE}
         if engine.startswith("chirp"):
@@ -125,6 +146,8 @@ def synth(p, line):
             break
         errors.append(f"{engine}: {code} {json.dumps(js)[:200]}")
         if code in (400, 403, 404) and not engine.startswith("chirp"):
+            if engine.split("/")[0] not in DEAD_MODELS:
+                print(f"::notice::{engine} skipped: {code} {json.dumps(js)[:300]}")
             DEAD_MODELS.add(engine.split("/")[0])
     sys.exit("::error::TTS failed for " + p["id"] + " | " + " | ".join(errors))
 
