@@ -1,0 +1,16 @@
+{
+  "_about": "Background music for marketing/posts/*.mp4, generated with Vertex AI Lyria (instrumental, ~30 s, 48 kHz). The mixer shifts each track so its beats land on the post's animations.",
+  "negative": "vocals, singing, voice, speech, lyrics, harsh distortion, heavy metal, sad, dark, abrupt ending, silence",
+  "tracks": {
+    "post1_hosts": "Upbeat modern corporate house, 120 BPM, warm plucked synths, punchy kick, clap on 2 and 4, optimistic and confident, clean mix for a product ad",
+    "post2_app": "Bright modern pop electronic, 118 BPM, airy synth chords, light percussion, playful arpeggio, fresh tech product launch feel",
+    "post3_psychologist": "Calm warm lo-fi, 90 BPM, soft Rhodes piano, gentle brushed drums, mellow bass, reassuring and peaceful",
+    "post4_trainer": "Energetic motivational electronic pop, 124 BPM, driving kick, bright synth stabs, claps, uplifting build",
+    "post5_lifecoach": "Feel-good acoustic pop, 112 BPM, ukulele and acoustic guitar strums, hand claps, sunny and positive",
+    "post6_dietitian": "Fresh light tropical house, 110 BPM, marimba, soft synth pads, crisp shakers, healthy and optimistic",
+    "post7_hotel": "Elegant smooth deep house, 118 BPM, warm electric piano chords, soft groove, upscale lounge feel",
+    "post8_medical": "Clean minimal corporate ambient pop, 105 BPM, soft piano motif, light pulsing synth, trustworthy and calm",
+    "post9_institute": "Inspiring upbeat indie electronic, 120 BPM, piano chords, bright synth lead, steady drums, motivational",
+    "post10_studio": "Relaxed organic downtempo, 96 BPM, warm acoustic guitar, soft percussion, airy pads, serene yoga morning"
+  }
+}

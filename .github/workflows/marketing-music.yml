@@ -1,0 +1,56 @@
+name: Marketing music (manual)
+
+# Generates the background music for marketing posts with Vertex AI Lyria (CI service account)
+# and commits them to marketing/music/ on the branch it runs on.
+on:
+  workflow_dispatch:
+    inputs:
+      names:
+        description: "Comma-separated post ids from scripts/marketing/music.json (blank = all)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency: marketing-music
+
+jobs:
+  music:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install google-auth requests
+
+      - name: Write Service Account Credentials
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+
+      - name: Generate
+        env:
+          NAMES: ${{ inputs.names }}
+        run: |
+          set -o pipefail
+          python -u scripts/marketing/music.py "$NAMES" 2>&1 | tee "$RUNNER_TEMP/music.log" || {
+            echo "::error::$(tail -c 1500 "$RUNNER_TEMP/music.log" | tr '\n' ' ')"; exit 1; }
+          echo "::notice::$(grep -E '^post' "$RUNNER_TEMP/music.log" | tr '\n' ' ')"
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add marketing/music
+          git diff --cached --quiet && { echo "No changes"; exit 0; }
+          git commit -m "Marketing: background music (Vertex AI Lyria)"
+          git pull --rebase
+          git push
