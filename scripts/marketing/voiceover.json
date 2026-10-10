@@ -1,178 +1,178 @@
 {
   "_about": "Voiceover lines for marketing/*.mp4 (15 s each). Each line starts at `at` seconds and must end before `end` (the scene change). `style` is the acting direction. Brand names are spelled in Arabic so the voice says them naturally.",
-  "dialect": "You are a native Lebanese Arabic speaker from Beirut. Speak natural, everyday Lebanese dialect (Levantine), never Egyptian and never Modern Standard Arabic; say ق as a glottal stop like Beirutis do. Sound like a real person recording a casual voice note to a friend: relaxed, warm, conversational rhythm, natural breaths and small pauses, slight smile in the voice. Never theatrical, never an announcer or a TV ad. English words (ProHost, meeting, studio, app) are said the way Lebanese people say them in English.",
+  "dialect": "You are a native Lebanese Arabic speaker from Beirut, narrating an Instagram reel in the second person to the viewer. Speak natural, everyday Lebanese dialect (Levantine), never Egyptian and never Modern Standard Arabic; say ق as a glottal stop like Beirutis do. Sound like a real person talking to a friend: relaxed, warm, conversational rhythm, natural breaths and small pauses, a smile in the voice. Never theatrical, never a TV announcer. English words (ProHost, Premium, app, booking, request, shift, clinic, studio, meeting room, monthly, yearly) are said naturally in English, the way Lebanese professionals say them.",
   "posts": [
     {
       "id": "post1_hosts",
-      "voice": "Orus",
+      "voice": "Achird",
       "gender": "male",
-      "persona": "Confident, warm Lebanese businessman in his 40s talking to fellow property owners.",
+      "persona": "Friendly, confident narrator in his 30s talking to space owners.",
       "lines": [
         {
           "at": 0.25,
           "end": 3.55,
-          "style": "Curious and slightly teasing, a knowing half-smile, rising question at the end.",
-          "text": "عِنْدَك مَكْتَب أَو عِيادِة… فاضْيِة؟"
+          "style": "Curious and empathetic, like you know exactly what they're going through; a natural question at the end.",
+          "text": "عِنْدَك office، clinic أو studio… وقاعِد فاضي نُصّ الجِمْعَة؟"
         },
         {
           "at": 3.8,
           "end": 8.05,
-          "style": "Brisk, confident and upbeat ad read, quick rhythm through the list, no long pauses.",
-          "text": "مَع ProHost أَجِّرْها عَ ذَوْأَك: بِالسّاعَة، بِاليَوْم، بِالشَّهْر، أَو عَ الشَّخْص."
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "مع ProHost، أَجّْرو بِالساعَة، بِالـ shift، بِاليوم أو بِالشَّهِر."
         },
         {
           "at": 8.4,
           "end": 11.4,
-          "style": "Reassuring but brisk, a friend who has it all under control; keep it moving, no long pauses.",
-          "text": "كِلّ الطَّلَبات بْمَحَلّ واحَد، وبْتْغَيِّر سِعْرَك وَئِت ما بَدَّك."
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "الـ requests، الـ bookings والأَسْعار… كِلُّن بِـ app واحِد."
         },
         {
           "at": 11.65,
-          "end": 14.9,
-          "style": "Excited, celebratory announcement with a big smile, punchy and quick, no long pauses.",
-          "text": "وْهَلَّأ، أَوَّل اشْتِراك بِـ ProHost Premium بْنُصّ السِّعْر!"
+          "end": 14.95,
+          "style": "Warm, confident invitation, smiling.",
+          "text": "نَزِّل ProHost هَلَّأ، وأَوَّل اشْتِراك Premium بْنُصّ السِّعِر، monthly أو yearly."
         }
       ]
     },
     {
       "id": "post2_app",
-      "voice": "Aoede",
+      "voice": "Sulafat",
       "gender": "female",
-      "persona": "Warm, modern Lebanese woman in her late 20s presenting an app she loves.",
+      "persona": "Warm narrator in her late 20s presenting an app she loves.",
       "lines": [
         {
-          "at": 0.35,
-          "end": 2.95,
-          "style": "Slow, confident, inviting, with a small pause between the two words.",
-          "text": "شِغْلَك… بْشُروطَك."
+          "at": 0.3,
+          "end": 2.9,
+          "style": "Curious and empathetic, like you know exactly what they're going through; a natural question at the end.",
+          "text": "بَدَّك مَحَل تِشْتِغِل فيه… مِش عَقْد؟"
         },
         {
-          "at": 3.15,
-          "end": 6.25,
-          "style": "Bright and enthusiastic, discovering the map.",
-          "text": "كِلّ المَكاتِب عَالخَريطَة، احْجُوز بِاليَوْم، أَو بِالسّاعَة."
+          "at": 3.1,
+          "end": 5.9,
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "مع ProHost بْتْلاقي clinics، offices و studios عَ الـ map."
         },
         {
-          "at": 6.45,
-          "end": 9.55,
-          "style": "Easy, friendly, matter-of-fact.",
-          "text": "بْتِعْرِف شو فاضي هَلَّأ، وبْتِحْكي صاحِب المَحَلّ عَالْ WhatsApp."
+          "at": 6.1,
+          "end": 8.7,
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "بْتِحْجُز بِالساعَة أو بِالشَّهِر، وبْتِحْكي الـ host عَ WhatsApp."
         },
         {
-          "at": 9.75,
-          "end": 12.35,
-          "style": "Professional and reassuring, speaking to space owners.",
-          "text": "وْلَأَصْحاب المَساحات، كِلّ شي قِدّامَك."
+          "at": 8.9,
+          "end": 11.4,
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "وإذا عِنْدَك space، بْتْأَجّْرا وبْتِتابِع كِل شي."
         },
         {
-          "at": 12.6,
+          "at": 11.7,
           "end": 14.95,
-          "style": "Punchy and proud slogan, energy rising on the last phrase.",
-          "text": "ProHost: لاقيها، احْجِزْها، وِشْتِغِل."
+          "style": "Warm, confident invitation, smiling.",
+          "text": "نَزِّل ProHost، وأَوَّل اشْتِراك Premium بْنُصّ السِّعِر."
         }
       ]
     },
     {
       "id": "post3_psychologist",
-      "voice": "Achernar",
-      "gender": "female",
-      "persona": "Calm, gentle clinical psychologist in her 30s; soft and thoughtful, never salesy.",
+      "voice": "Algieba",
+      "gender": "male",
+      "persona": "Calm, gentle narrator in his 30s.",
       "lines": [
         {
           "at": 0.3,
           "end": 4.55,
-          "style": "Soft, warm introduction, a little tired of paying for a full-time clinic.",
-          "text": "أَنا psychologist بِالأَشْرَفِيِّة. بَدّي عِيادِة يَوْمَيْن بِالجِمْعَة بَسّ."
+          "style": "Curious and empathetic, like you know exactly what they're going through; a natural question at the end.",
+          "text": "إنتَ psychologist، وما بْتِحْتاج clinic كِل الجِمْعَة… بَس يومين؟"
         },
         {
           "at": 4.8,
           "end": 10.9,
-          "style": "Relaxed and pleased, explaining how simple it was, gentle pace.",
-          "text": "عَ ProHost بِخْتار الـ shift الصَّباحي، التَّلاتا والخَميس، لَأَرْبَع جِمَع… وبِبْعَت الطَّلَب."
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "هَلَّأ فيك، مع ProHost، تِحْجُز الـ morning shift التَّلاتا والخَميس، وتِدْفَع بَس عَ وَئْتَك."
         },
         {
           "at": 11.15,
           "end": 14.9,
-          "style": "Quietly happy and fulfilled, a soft smile in the voice.",
-          "text": "صار عِنْدي عِيادْتي، يَوْمَيْن بِالجِمْعَة. ProHost."
+          "style": "Warm, confident invitation straight to the viewer, smiling; a little lift on 'بْنُصّ السِّعِر'.",
+          "text": "نَزِّل ProHost، والـ booking بِبَلاش… وإذا عِنْدَك space، أَوَّل اشْتِراك Premium بْنُصّ السِّعِر."
         }
       ]
     },
     {
       "id": "post4_trainer",
-      "voice": "Fenrir",
-      "gender": "male",
-      "persona": "Energetic corporate trainer in his 30s, dynamic and a little playful.",
+      "voice": "Despina",
+      "gender": "female",
+      "persona": "Energetic, friendly narrator in her 30s.",
       "lines": [
         {
           "at": 0.3,
           "end": 4.55,
-          "style": "Energetic, slightly exasperated about working from cafés, playful.",
-          "text": "مَرْحَبا، أَنا trainer. عِنْدي تَدْريب لَتْمَنْطَعْش شَخْص السَّبْت!"
+          "style": "Curious and empathetic, like you know exactly what they're going through; a natural question at the end.",
+          "text": "إنتَ trainer، وعِنْدَك workshop لَتْمَنْطَعْش شَخْص… وما في قاعَة؟"
         },
         {
           "at": 4.8,
           "end": 10.9,
-          "style": "Fast, efficient, satisfied, like ticking boxes.",
-          "text": "عَ ProHost القاعَة مْسَعَّرَة عَ الشَّخْص: بْحُطّ تْمَنْطَعْش، بْزيد كوفي بْريك، وبِبْعَت الطَّلَب."
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "مع ProHost، الـ conference room بِسِعْر عَ الشَّخْص: بِتْحُط العَدَد، بْتْزيد coffee break، وبْتِبْعَت الـ request."
         },
         {
           "at": 11.15,
           "end": 14.9,
-          "style": "Triumphant and proud, a confident punchline.",
-          "text": "تْمَنْطَعْشَر كِرْسي… بْكَبْسِة وِحْدِة! ProHost."
+          "style": "Warm, confident invitation straight to the viewer, smiling; a little lift on 'بْنُصّ السِّعِر'.",
+          "text": "نَزِّل ProHost، والـ booking بِبَلاش… وإذا عِنْدَك space، أَوَّل اشْتِراك Premium بْنُصّ السِّعِر."
         }
       ]
     },
     {
       "id": "post5_lifecoach",
-      "voice": "Leda",
-      "gender": "female",
-      "persona": "Bright, upbeat life coach in her late 20s, positive and motivating.",
+      "voice": "Umbriel",
+      "gender": "male",
+      "persona": "Easy-going, positive narrator in his late 20s.",
       "lines": [
         {
           "at": 0.3,
           "end": 4.55,
-          "style": "Cheerful and a bit cheeky, the question is rhetorical.",
-          "text": "أَنا life coach بِالحَمْرا. عِنْدي جَلْسْتَيْن بَسّ… لَيْش إِدْفَع شَهْر؟"
+          "style": "Curious and empathetic, like you know exactly what they're going through; a natural question at the end.",
+          "text": "إنتَ life coach، وعِنْدَك جَلْسْتَيْن اليوم… ليش تِدْفَع إيجار شَهِر؟"
         },
         {
           "at": 4.8,
           "end": 10.9,
-          "style": "Light and quick, delighted at how easy it is, ending with a happy 'done'.",
-          "text": "بِفْتَح ProHost، بْشوف شو فاضي، بِخْتار ساعَة أَرْبْعَة وْساعَة خَمْسِة… وْخِلْصِت!"
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "أَخيراً فيك تِحْجُز room بِالساعَة: بْتْشوف شو فاضي، بِتْنَقّي الساعَة، وخَلْصِت."
         },
         {
           "at": 11.15,
           "end": 14.9,
-          "style": "Motivating and warm, speaking straight to the viewer.",
-          "text": "احْجُوز بِالسّاعَة، وِشْتِغِل مِن وَيْن ما بَدَّك. ProHost."
+          "style": "Warm, confident invitation straight to the viewer, smiling; a little lift on 'بْنُصّ السِّعِر'.",
+          "text": "نَزِّل ProHost، والـ booking بِبَلاش… وإذا عِنْدَك space، أَوَّل اشْتِراك Premium بْنُصّ السِّعِر."
         }
       ]
     },
     {
       "id": "post6_dietitian",
-      "voice": "Sulafat",
+      "voice": "Callirrhoe",
       "gender": "female",
-      "persona": "Composed, ambitious dietitian in her 30s; warm but determined.",
+      "persona": "Warm, encouraging narrator in her 30s.",
       "lines": [
         {
           "at": 0.3,
           "end": 4.55,
-          "style": "Determined and hopeful, with a firm 'but' about the long lease.",
-          "text": "مَرْحَبا، أَنا أَخِصّائِيِّة تَغْذِيِة بْجونْيِة. بَدّي عِيادْتي… بَلا عَقْد طَويل."
+          "style": "Curious and empathetic, like you know exactly what they're going through; a natural question at the end.",
+          "text": "إنتَ dietitian وجاهِز لَـ clinic إِلَك… بَس بلا عَقْد طَويل؟"
         },
         {
           "at": 4.8,
           "end": 10.9,
-          "style": "Relieved and practical, it just worked.",
-          "text": "عَ ProHost لْقيت عِيادِة جاهْزِة، اخْتَرْت تْلات شْهور… وْبْبَلِّشْها الشَّهْر الجّايي."
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "مع ProHost بْتِسْتَأْجِر clinic جاهْزِة شَهِر بِشَهِر، وبْتْكَبِّر وَئْت ما بَدَّك."
         },
         {
           "at": 11.15,
           "end": 14.9,
-          "style": "Warm, confident invitation to the viewer.",
-          "text": "عِيادْتَك الخاصّة، شَهْر بْشَهْر، بَلا عَقْد طَويل. ProHost."
+          "style": "Warm, confident invitation straight to the viewer, smiling; a little lift on 'بْنُصّ السِّعِر'.",
+          "text": "نَزِّل ProHost، والـ booking بِبَلاش… وإذا عِنْدَك space، أَوَّل اشْتِراك Premium بْنُصّ السِّعِر."
         }
       ]
     },
@@ -180,103 +180,103 @@
       "id": "post7_hotel",
       "voice": "Charon",
       "gender": "male",
-      "persona": "Hotel general manager in Hamra in his 40s; calm, friendly, matter-of-fact, talking to other business owners.",
+      "persona": "Calm, friendly business narrator in his 40s.",
       "lines": [
         {
           "at": 0.3,
           "end": 4.55,
-          "style": "Easy-going, a little rueful about the empty rooms.",
-          "text": "نِحْنا أوتيل بِالحَمْرا، وقاعات الـ meeting عِنّا فاضْيِة أَغْلَب أَيّام الجِمْعَة."
+          "style": "Curious and empathetic, like you know exactly what they're going through; a natural question at the end.",
+          "text": "عِنْدَك hotel، والـ meeting rooms فاضْيِة أَغْلَب أيّام الجِمْعَة؟"
         },
         {
           "at": 4.8,
           "end": 10.9,
-          "style": "Pleased and relaxed, telling a small success story.",
-          "text": "حَطَّيْناها عَ ProHost بِالشَّخْص… إِجانا طَلَب لَخَمْسَة وعِشْرين شَخْص، وقِبِلْناه بِكَبْسِة."
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "مع ProHost، بْتْأَجِّرُن بِاليوم أو عَ الشَّخْص، وبْتِقْبَل الـ requests بِكَبْسِة."
         },
         {
           "at": 11.15,
           "end": 14.9,
-          "style": "Friendly tip to a colleague, warm and direct.",
-          "text": "وهَلَّأ، أَوَّل اشْتِراك Premium بْنُصّ السِّعْر."
+          "style": "Warm, confident invitation straight to the viewer, smiling; a little lift on 'بْنُصّ السِّعِر'.",
+          "text": "نَزِّل ProHost هَلَّأ، وأَوَّل اشْتِراك Premium بْنُصّ السِّعِر، monthly أو yearly."
         }
       ]
     },
     {
       "id": "post8_medical",
-      "voice": "Kore",
+      "voice": "Achernar",
       "gender": "female",
-      "persona": "Administrator of a medical center in Sin el Fil in her 30s; composed, practical, kind.",
+      "persona": "Composed, kind narrator in her 30s.",
       "lines": [
         {
           "at": 0.3,
           "end": 4.55,
-          "style": "Calm and practical, stating a fact.",
-          "text": "نِحْنا مَرْكَز طِبّي بْسِنّ الفيل. عِنّا تْلات عِيادات فاضْيِين كِلّ بَعْد الضُّهْر."
+          "style": "Curious and empathetic, like you know exactly what they're going through; a natural question at the end.",
+          "text": "عِنْدَك medical center، والـ clinics فاضْيِة كِل بَعْد الضُّهِر؟"
         },
         {
           "at": 4.8,
           "end": 10.9,
-          "style": "Satisfied, simple explanation, a soft smile.",
-          "text": "عَ ProHost أَجَّرْناهُن بِالشيفْت، ودَكْتورَة جِلْدِيِّة حَجَزِت التَّنين والأَرْبْعا."
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "هَلَّأ فيك تْأَجِّرُن بِالـ shift لَدَكاتْرِة وأَخِصّائِيّين، وإنتَ بْتْوافِق عَ كِل request."
         },
         {
           "at": 11.15,
           "end": 14.9,
-          "style": "Warm, encouraging.",
-          "text": "الوَئِت الفاضي صار دَخِل. أَوَّل اشْتِراك بْنُصّ السِّعْر."
+          "style": "Warm, confident invitation straight to the viewer, smiling; a little lift on 'بْنُصّ السِّعِر'.",
+          "text": "نَزِّل ProHost هَلَّأ، وأَوَّل اشْتِراك Premium بْنُصّ السِّعِر، monthly أو yearly."
         }
       ]
     },
     {
       "id": "post9_institute",
-      "voice": "Puck",
+      "voice": "Iapetus",
       "gender": "male",
-      "persona": "Director of a training institute in Kaslik in his 30s; upbeat, friendly, a bit enthusiastic.",
+      "persona": "Upbeat, clear narrator in his 30s.",
       "lines": [
         {
           "at": 0.3,
           "end": 4.55,
-          "style": "Friendly, slightly amused.",
-          "text": "نِحْنا مَعْهَد تَدْريب بِالكَسْليك. الصُّفوف فاضْيِة كِلّ مَسا وكِلّ weekend."
+          "style": "Curious and empathetic, like you know exactly what they're going through; a natural question at the end.",
+          "text": "عِنْدَك training center، والصُّفوف فاضْيِة كِل مَسا وكِل weekend؟"
         },
         {
           "at": 4.8,
           "end": 10.9,
-          "style": "Enthusiastic but natural, like sharing good news.",
-          "text": "صِرْنا نْأَجِّرْها عَ ProHost عَ عَدَد الأَشْخاص… وكِلّ طَلَب بيوْصَلْنا، مِنْقْبَل أَو مِنْرْفُض."
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "مع ProHost، بْتْأَجِّرُن بِالساعَة أو عَ الشَّخْص، والـ requests بْتوصَلَك عَ الـ app."
         },
         {
           "at": 11.15,
           "end": 14.9,
-          "style": "Upbeat invitation.",
-          "text": "خَلّي صُفوفَك تِشْتِغِل. أَوَّل اشْتِراك بْنُصّ السِّعْر."
+          "style": "Warm, confident invitation straight to the viewer, smiling; a little lift on 'بْنُصّ السِّعِر'.",
+          "text": "نَزِّل ProHost هَلَّأ، وأَوَّل اشْتِراك Premium بْنُصّ السِّعِر، monthly أو yearly."
         }
       ]
     },
     {
       "id": "post10_studio",
-      "voice": "Zephyr",
+      "voice": "Vindemiatrix",
       "gender": "female",
-      "persona": "Owner of a small yoga studio in Mar Mikhael in her late 20s; bright, easy-going, genuine.",
+      "persona": "Bright, gentle narrator in her late 20s.",
       "lines": [
         {
           "at": 0.3,
           "end": 4.55,
-          "style": "Light, honest, a little laugh in the voice.",
-          "text": "عِنْدي studio يوغا بْمار مِخايِل، وما بْيِمْتِلي قَبِل السِّتّة المَسا."
+          "style": "Curious and empathetic, like you know exactly what they're going through; a natural question at the end.",
+          "text": "عِنْدَك yoga studio، وما بْيِمْتِلي قَبِل السِّتّة؟"
         },
         {
           "at": 4.8,
           "end": 10.9,
-          "style": "Happy and casual, telling a friend.",
-          "text": "حَطّيت السّاعات الفاضْيِة عَ ProHost، وأُسْتاذِة pilates حَجَزِت الصُّبْح كِلّ جِمْعَة."
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "أَخيراً فيك تْأَجِّر الساعات الفاضْيِة لَـ instructors كِل جِمْعَة، مع ProHost."
         },
         {
           "at": 11.15,
           "end": 14.9,
-          "style": "Warm, cheerful nudge.",
-          "text": "كِلّ ساعَة فاضْيِة فيها تْجيبْلَك مَصاري. وأَوَّل اشْتِراك بْنُصّ السِّعْر."
+          "style": "Warm, confident invitation straight to the viewer, smiling; a little lift on 'بْنُصّ السِّعِر'.",
+          "text": "نَزِّل ProHost هَلَّأ، وأَوَّل اشْتِراك Premium بْنُصّ السِّعِر، monthly أو yearly."
         }
       ]
     }

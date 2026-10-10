@@ -56,11 +56,47 @@ def ensure_api(service="texttospeech.googleapis.com", required=True):
     print(f"::warning::Could not enable {service}")
 
 
+TTS_MODELS = []
+DEAD_MODELS = set()
+
+
+def tts_models():
+    """Newest Gemini TTS models first, discovered from Vertex AI's model catalogue; known ones as fallback."""
+    if TTS_MODELS:
+        return TTS_MODELS
+    found = []
+    try:
+        url = "https://us-central1-aiplatform.googleapis.com/v1beta1/publishers/google/models"
+        token = None
+        for _ in range(20):
+            r = session.get(url, params={"pageSize": 200, **({"pageToken": token} if token else {})},
+                            headers={"x-goog-user-project": project}, timeout=60)
+            if not r.ok:
+                print(f"::notice::model catalogue {r.status_code}")
+                break
+            js = r.json()
+            found += [m["name"].rsplit("/", 1)[-1] for m in js.get("publisherModels", [])]
+            token = js.get("nextPageToken")
+            if not token:
+                break
+    except Exception as e:  # catalogue is best-effort
+        print(f"::notice::model catalogue error {e}")
+    import re
+    tts = [m for m in found if "tts" in m and m.startswith("gemini")]
+    ver = lambda m: tuple(int(x) for x in re.findall(r"\d+", m.split("-tts")[0])[:2] or [0])
+    tts.sort(key=lambda m: (ver(m), "pro" in m, "preview" not in m), reverse=True)
+    for m in tts + ["gemini-2.5-pro-tts", "gemini-2.5-flash-tts"]:
+        if m not in TTS_MODELS:
+            TTS_MODELS.append(m)
+    print(f"::notice::Gemini TTS models (newest first): {', '.join(TTS_MODELS)}")
+    return TTS_MODELS
+
+
 def synth(p, line):
-    """Returns (pcm bytes, engine). Tries Gemini-TTS, then Chirp 3 HD."""
+    """Returns (pcm bytes, engine). Tries the newest Gemini-TTS model, then older ones, then Chirp 3 HD."""
     prompt = f"{CFG['dialect']} Character: {p['persona']} Delivery: {line['style']}"
     attempts = []
-    for model in ("gemini-2.5-pro-tts", "gemini-2.5-flash-tts"):
+    for model in [m for m in tts_models() if m not in DEAD_MODELS]:
         for lang in ("ar-EG",):  # Gemini-TTS has no ar-LB; the prompt asks for Lebanese
             attempts.append((f"{model}/{lang}", {
                 "input": {"text": line["text"], "prompt": prompt},
@@ -88,6 +124,8 @@ def synth(p, line):
                 continue
             break
         errors.append(f"{engine}: {code} {json.dumps(js)[:200]}")
+        if code in (400, 403, 404) and not engine.startswith("chirp"):
+            DEAD_MODELS.add(engine.split("/")[0])
     sys.exit("::error::TTS failed for " + p["id"] + " | " + " | ".join(errors))
 
 
