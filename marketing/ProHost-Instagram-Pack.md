@@ -11,8 +11,9 @@ profession and area ("Hello, I'm a…"). Prices in the persona posts are illustr
 - `report.json`: the engine, the start and end of each line, and any speed-up applied.
 - **Merge:** `ffmpeg -i post1_hosts.mp4 -i voice/post1_hosts_voice.mp3 -c:v copy -c:a aac -b:a 192k -shortest post1_final.mp4`.
   CapCut or Instagram's editor also work: line the audio up at 0:00. Add music, a soft track at 15–20 % volume under the voice.
-- **Voice engine:** Chirp 3 HD (ar-XA). Its delivery follows the punctuation; the acting notes under each line are
-  directions for re-recording or for Gemini-TTS.
+- **Voice engine:** Gemini-TTS (gemini-2.5-pro-tts), told to speak Lebanese dialect and to follow the acting notes under
+  each line. If a take runs long, up to three are recorded and the shortest is kept.
+- **Finished videos with voice:** `final/<post>_final.mp4`.
 - **Accent:** the lines are written in Lebanese dialect and the voice is told to speak Lebanese, but an AI voice can still
   sound a bit general Levantine. For the most local sound, a Lebanese voice actor can read the same scripts with the
   timings below.
