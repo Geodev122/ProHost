@@ -10,6 +10,9 @@
 //   node scripts/maintenance/run.js enableemaillink  turn on Firebase Auth "Email link (passwordless)" sign-in
 //   node scripts/maintenance/run.js mailtest         queue one test email to the extension's reply-to (owner) address
 //   node scripts/maintenance/run.js clearstalesecrets drop retired HOSTINGER_* secret bindings that block deploys
+//   node scripts/maintenance/run.js prodcheck        production readiness (read-only apart from one RTDN self-test
+//                                                    message): deployed functions + indexes, public pages, Play catalog
+//                                                    as this account sees it, RTDN topic → function, then the audit
 //
 // Results are printed as GitHub "::notice::" annotations (no PII: counts and display codes only).
 "use strict";
@@ -445,6 +448,78 @@ async function emailauth(db) {
   });
 }
 
+async function prodcheck(db, auth) {
+  const project = process.env.GCLOUD_PROJECT;
+  // 1. Every function the code exports is deployed, ACTIVE, and on the expected runtime.
+  await step("deployedFunctions", async () => {
+    const exported = Object.keys(require(`${LIB}/index`));
+    const deployed = {};
+    let pageToken = "";
+    do {
+      const res = await googleApi(`https://cloudfunctions.googleapis.com/v2/projects/${project}/locations/-/functions?pageSize=200${pageToken ? `&pageToken=${pageToken}` : ""}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
+      const j = await res.json();
+      (j.functions || []).forEach((f) => { deployed[f.name.split("/").pop()] = f; });
+      pageToken = j.nextPageToken || "";
+    } while (pageToken);
+    const missing = exported.filter((n) => !deployed[n]);
+    const extra = Object.keys(deployed).filter((n) => !exported.includes(n));
+    const notActive = Object.entries(deployed).filter(([, f]) => f.state !== "ACTIVE").map(([n, f]) => `${n}:${f.state}`);
+    const runtimes = {};
+    Object.values(deployed).forEach((f) => { const r = f.buildConfig?.runtime || "?"; runtimes[r] = (runtimes[r] || 0) + 1; });
+    return `exported=${exported.length} deployed=${Object.keys(deployed).length} missing=[${missing.join(",")}] ` +
+      `notInCode=[${extra.join(",")}] notActive=[${notActive.join(",")}] runtimes=${JSON.stringify(runtimes).replace(/[{}"]/g, "")}`;
+  });
+  // 2. Firestore composite indexes are built.
+  await step("firestoreIndexes", async () => {
+    const res = await googleApi(`https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/collectionGroups/-/indexes`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const idx = (await res.json()).indexes || [];
+    const states = {};
+    idx.forEach((i) => { states[i.state] = (states[i.state] || 0) + 1; });
+    return `indexes=${idx.length} ${JSON.stringify(states).replace(/[{}"]/g, "")}`;
+  });
+  // 3. Public pages that Play and the app link to.
+  await step("publicPages", async () => {
+    const out = [];
+    for (const page of ["privacy.html", "terms.html", "delete-account.html", "redeem.html", "emaillink.html", ".well-known/assetlinks.json"]) {
+      const r = await fetch(`https://pro-host.tech/${page}`);
+      out.push(`${page}=${r.status}`);
+    }
+    return out.join(" ");
+  });
+  // 4. The Play catalog as this (CI) account sees it. The deployed functions use their own service
+  //    account; a 401/403 here only means the CI account isn't a Play Console user.
+  await step("playCatalog", async () => {
+    const pkg = "app.geonajjar.prohost";
+    const res = await googleApi(`https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${pkg}/subscriptions/package_pro_mrr`);
+    if (res.status === 401 || res.status === 403) return `CI account has no Play access (HTTP ${res.status}) — use Admin › Packages › Billing health`;
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text()).slice(0, 160)}`);
+    const j = await res.json();
+    return (j.basePlans || []).map((bp) => `${bp.basePlanId}:${bp.state}:${bp.autoRenewingBasePlanType?.billingPeriodDuration || "?"}`).join(", ");
+  });
+  // 5. RTDN topic → playBillingRtdn: the same self-test message the admin button publishes.
+  await step("rtdnSelfTest", async () => {
+    const before = (await db.doc("app_config/billing_health").get()).data()?.lastSelfTestAt || 0;
+    const message = {
+      version: "1.0", packageName: "app.geonajjar.prohost", eventTimeMillis: String(Date.now()),
+      selfTest: true, testNotification: { version: "1.0" },
+    };
+    const res = await googleApi(`https://pubsub.googleapis.com/v1/projects/${project}/topics/play-billing-rtdn:publish`, {
+      method: "POST",
+      body: JSON.stringify({ messages: [{ data: Buffer.from(JSON.stringify(message)).toString("base64") }] }),
+    });
+    if (!res.ok) throw new Error(`publish HTTP ${res.status} ${(await res.text()).slice(0, 160)}`);
+    for (let i = 0; i < 24; i++) {
+      await new Promise((r) => setTimeout(r, 5000));
+      const now = (await db.doc("app_config/billing_health").get()).data()?.lastSelfTestAt || 0;
+      if (now > before) return `delivered to playBillingRtdn in ~${(i + 1) * 5}s`;
+    }
+    throw new Error("published, but playBillingRtdn didn't record it within 2 min");
+  });
+  await audit(db, auth);
+}
+
 (async () => {
   require(`${LIB}/lib/admin`);
   const db = admin.firestore();
@@ -458,5 +533,6 @@ async function emailauth(db) {
   else if (task === "enableemaillink") { await enableemaillink(); await emailauth(db); }
   else if (task === "mailtest") { await mailtest(db); await emailauth(db); }
   else if (task === "clearstalesecrets") await clearstalesecrets();
+  else if (task === "prodcheck") await prodcheck(db, auth);
   else throw new Error(`unknown task ${task}`);
 })().catch((e) => { fail(`${e && e.message}`); process.exit(1); });
