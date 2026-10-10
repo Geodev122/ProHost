@@ -1,0 +1,8 @@
+{
+  "name": "prohost-e2e-flows",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "npm --prefix ../../functions run build && firebase emulators:exec --config ../../firebase.json --only functions,firestore,auth --project demo-prohost \"node --test --test-concurrency=1\""
+  }
+}

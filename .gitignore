@@ -23,3 +23,5 @@ firebase-debug.log
 .env
 .env.local
 .claude/
+tests/e2e/*.log
+tests/rules/*.log
