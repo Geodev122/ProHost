@@ -9,10 +9,11 @@ import { test, before } from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 
-const require = createRequire(import.meta.url);
-const { initializeApp } = require("../../functions/node_modules/firebase-admin/app");
-const { getFirestore } = require("../../functions/node_modules/firebase-admin/firestore");
-const { getAuth } = require("../../functions/node_modules/firebase-admin/auth");
+// Resolve firebase-admin from the functions package (its exports map needs a package-name import).
+const require = createRequire(new URL("../../functions/package.json", import.meta.url));
+const { initializeApp } = require("firebase-admin/app");
+const { getFirestore } = require("firebase-admin/firestore");
+const { getAuth } = require("firebase-admin/auth");
 
 const PROJECT = "demo-prohost";
 initializeApp({ projectId: PROJECT });
