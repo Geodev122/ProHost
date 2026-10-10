@@ -8,9 +8,9 @@
         "line": 1,
         "engine": "gemini-2.5-pro-tts/ar-EG",
         "start": 0.25,
-        "end": 2.48,
+        "end": 3.08,
         "sceneEnd": 3.55,
-        "spoken": 2.24,
+        "spoken": 2.83,
         "tempo": 1.0,
         "text": "عِنْدَك مَكْتَب أَو عِيادِة… فاضْيِة؟"
       },
@@ -18,10 +18,10 @@
         "line": 2,
         "engine": "gemini-2.5-pro-tts/ar-EG",
         "start": 3.8,
-        "end": 8.05,
+        "end": 8.26,
         "sceneEnd": 8.05,
-        "spoken": 5.33,
-        "tempo": 1.254,
+        "spoken": 5.79,
+        "tempo": 1.3,
         "text": "مَع ProHost أَجِّرْها عَ ذَوْأَك: بِالسّاعَة، بِاليَوْم، بِالشَّهْر، أَو عَ الشَّخْص."
       },
       {
@@ -30,8 +30,8 @@
         "start": 8.4,
         "end": 11.4,
         "sceneEnd": 11.4,
-        "spoken": 3.84,
-        "tempo": 1.28,
+        "spoken": 3.39,
+        "tempo": 1.129,
         "text": "كِلّ الطَّلَبات بْمَحَلّ واحَد، وبْتْغَيِّر سِعْرَك وَئِت ما بَدَّك."
       },
       {
@@ -40,9 +40,9 @@
         "start": 11.65,
         "end": 14.91,
         "sceneEnd": 14.9,
-        "spoken": 3.87,
-        "tempo": 1.19,
-        "text": "وْهَلَّأ، أَوَّل شَهْر اشْتِراك بْنُصّ السِّعْر! نَزِّل ProHost."
+        "spoken": 3.96,
+        "tempo": 1.218,
+        "text": "وْهَلَّأ، أَوَّل اشْتِراك بِـ ProHost Premium بْنُصّ السِّعْر!"
       }
     ],
     "trackSeconds": 15.0
@@ -253,6 +253,158 @@
         "spoken": 3.63,
         "tempo": 1.0,
         "text": "عِيادْتَك الخاصّة، شَهْر بْشَهْر، بَلا عَقْد طَويل. ProHost."
+      }
+    ],
+    "trackSeconds": 15.0
+  },
+  {
+    "post": "post7_hotel",
+    "voice": "Charon",
+    "gender": "male",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "start": 0.3,
+        "end": 4.56,
+        "sceneEnd": 4.55,
+        "spoken": 4.34,
+        "tempo": 1.02,
+        "text": "نِحْنا أوتيل بِالحَمْرا، وقاعات الـ meeting عِنّا فاضْيِة أَغْلَب أَيّام الجِمْعَة."
+      },
+      {
+        "line": 2,
+        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "start": 4.8,
+        "end": 10.75,
+        "sceneEnd": 10.9,
+        "spoken": 5.96,
+        "tempo": 1.0,
+        "text": "حَطَّيْناها عَ ProHost بِالشَّخْص… إِجانا طَلَب لَخَمْسَة وعِشْرين شَخْص، وقِبِلْناه بِكَبْسِة."
+      },
+      {
+        "line": 3,
+        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "start": 11.15,
+        "end": 14.17,
+        "sceneEnd": 14.9,
+        "spoken": 3.02,
+        "tempo": 1.0,
+        "text": "وهَلَّأ، أَوَّل اشْتِراك Premium بْنُصّ السِّعْر."
+      }
+    ],
+    "trackSeconds": 15.0
+  },
+  {
+    "post": "post8_medical",
+    "voice": "Kore",
+    "gender": "female",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "start": 0.3,
+        "end": 4.55,
+        "sceneEnd": 4.55,
+        "spoken": 4.79,
+        "tempo": 1.127,
+        "text": "نِحْنا مَرْكَز طِبّي بْسِنّ الفيل. عِنّا تْلات عِيادات فاضْيِين كِلّ بَعْد الضُّهْر."
+      },
+      {
+        "line": 2,
+        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "start": 4.8,
+        "end": 9.65,
+        "sceneEnd": 10.9,
+        "spoken": 4.86,
+        "tempo": 1.0,
+        "text": "عَ ProHost أَجَّرْناهُن بِالشيفْت، ودَكْتورَة جِلْدِيِّة حَجَزِت التَّنين والأَرْبْعا."
+      },
+      {
+        "line": 3,
+        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "start": 11.15,
+        "end": 14.91,
+        "sceneEnd": 14.9,
+        "spoken": 3.98,
+        "tempo": 1.06,
+        "text": "الوَئِت الفاضي صار دَخِل. أَوَّل اشْتِراك بْنُصّ السِّعْر."
+      }
+    ],
+    "trackSeconds": 15.0
+  },
+  {
+    "post": "post9_institute",
+    "voice": "Puck",
+    "gender": "male",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "start": 0.3,
+        "end": 4.55,
+        "sceneEnd": 4.55,
+        "spoken": 4.52,
+        "tempo": 1.064,
+        "text": "نِحْنا مَعْهَد تَدْريب بِالكَسْليك. الصُّفوف فاضْيِة كِلّ مَسا وكِلّ weekend."
+      },
+      {
+        "line": 2,
+        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "start": 4.8,
+        "end": 10.9,
+        "sceneEnd": 10.9,
+        "spoken": 6.47,
+        "tempo": 1.061,
+        "text": "صِرْنا نْأَجِّرْها عَ ProHost عَ عَدَد الأَشْخاص… وكِلّ طَلَب بيوْصَلْنا، مِنْقْبَل أَو مِنْرْفُض."
+      },
+      {
+        "line": 3,
+        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "start": 11.15,
+        "end": 14.55,
+        "sceneEnd": 14.9,
+        "spoken": 3.41,
+        "tempo": 1.0,
+        "text": "خَلّي صُفوفَك تِشْتِغِل. أَوَّل اشْتِراك بْنُصّ السِّعْر."
+      }
+    ],
+    "trackSeconds": 15.0
+  },
+  {
+    "post": "post10_studio",
+    "voice": "Zephyr",
+    "gender": "female",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "start": 0.3,
+        "end": 4.56,
+        "sceneEnd": 4.55,
+        "spoken": 4.51,
+        "tempo": 1.062,
+        "text": "عِنْدي studio يوغا بْمار مِخايِل، وما بْيِمْتِلي قَبِل السِّتّة المَسا."
+      },
+      {
+        "line": 2,
+        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "start": 4.8,
+        "end": 9.95,
+        "sceneEnd": 10.9,
+        "spoken": 5.15,
+        "tempo": 1.0,
+        "text": "حَطّيت السّاعات الفاضْيِة عَ ProHost، وأُسْتاذِة pilates حَجَزِت الصُّبْح كِلّ جِمْعَة."
+      },
+      {
+        "line": 3,
+        "engine": "gemini-2.5-pro-tts/ar-EG",
+        "start": 11.15,
+        "end": 14.9,
+        "sceneEnd": 14.9,
+        "spoken": 4.28,
+        "tempo": 1.143,
+        "text": "كِلّ ساعَة فاضْيِة فيها تْجيبْلَك مَصاري. وأَوَّل اشْتِراك بْنُصّ السِّعْر."
       }
     ],
     "trackSeconds": 15.0
