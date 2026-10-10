@@ -590,15 +590,29 @@ async function prodcheck(db, auth) {
     }
     return out.join(" ");
   });
-  // 4. The Play catalog as this (CI) account sees it. The deployed functions use their own service
-  //    account; a 401/403 here only means the CI account isn't a Play Console user.
+  // 4. The Play catalog as this (CI) account sees it (needs the androidpublisher scope and the account
+  //    invited in Play Console › Users and permissions). Read-only: base plans and their offers.
   await step("playCatalog", async () => {
-    const pkg = "app.geonajjar.prohost";
-    const res = await googleApi(`https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${pkg}/subscriptions/package_pro_mrr`);
-    if (res.status === 401 || res.status === 403) return `CI account has no Play access (HTTP ${res.status}) — use Admin › Packages › Billing health`;
-    if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text()).slice(0, 160)}`);
-    const j = await res.json();
-    return (j.basePlans || []).map((bp) => `${bp.basePlanId}:${bp.state}:${bp.autoRenewingBasePlanType?.billingPeriodDuration || "?"}`).join(", ");
+    const { GoogleAuth } = require(path.join(__dirname, "../../functions/node_modules/google-auth-library"));
+    const client = await new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/androidpublisher"] }).getClient();
+    const base = "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/app.geonajjar.prohost/subscriptions/package_pro_mrr";
+    try {
+      const sub = (await client.request({ url: base })).data;
+      const plans = (sub.basePlans || []).map((bp) => {
+        const lb = (bp.regionalConfigs || []).find((c) => c.regionCode === "LB");
+        const price = lb?.price ? `${lb.price.units || 0}.${String(lb.price.nanos || 0).padStart(9, "0").slice(0, 2)} ${lb.price.currencyCode}` : "no LB price";
+        return `${bp.basePlanId}:${bp.state}:${bp.autoRenewingBasePlanType?.billingPeriodDuration || "?"}:LB=${price}`;
+      });
+      let offers = "";
+      try {
+        const o = (await client.request({ url: `${base}/basePlans/-/offers` })).data;
+        offers = (o.subscriptionOffers || []).map((x) => `${x.basePlanId}/${x.offerId}:${x.state}`).join(", ") || "none";
+      } catch (e) { offers = `offers HTTP ${e.response?.status}`; }
+      return `basePlans=[${plans.join(" | ")}] offers=[${offers}]`;
+    } catch (e) {
+      const st = e.response?.status;
+      return `HTTP ${st} ${String(e.response?.data?.error?.message || e.message).slice(0, 160)}`;
+    }
   });
   // 5. RTDN topic → playBillingRtdn: the same self-test message the admin button publishes.
   await step("rtdnSelfTest", async () => {
