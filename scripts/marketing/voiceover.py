@@ -38,12 +38,12 @@ def post(url, body):
     return r.status_code, (r.json() if r.content else {})
 
 
-def ensure_api():
-    url = f"https://serviceusage.googleapis.com/v1/projects/{project}/services/texttospeech.googleapis.com"
+def ensure_api(service="texttospeech.googleapis.com", required=True):
+    url = f"https://serviceusage.googleapis.com/v1/projects/{project}/services/{service}"
     r = session.get(url, timeout=60)
     if r.ok and r.json().get("state") == "ENABLED":
         return
-    print("Enabling texttospeech.googleapis.com …")
+    print(f"Enabling {service} …")
     session.post(url + ":enable", timeout=60)
     for _ in range(30):
         time.sleep(10)
@@ -51,7 +51,9 @@ def ensure_api():
         if r.ok and r.json().get("state") == "ENABLED":
             time.sleep(30)  # propagation
             return
-    sys.exit("::error::Could not enable the Text-to-Speech API")
+    if required:
+        sys.exit(f"::error::Could not enable {service}")
+    print(f"::warning::Could not enable {service}")
 
 
 def synth(p, line):
@@ -59,7 +61,7 @@ def synth(p, line):
     prompt = f"{CFG['dialect']} Character: {p['persona']} Delivery: {line['style']}"
     attempts = []
     for model in ("gemini-2.5-pro-tts", "gemini-2.5-flash-tts"):
-        for lang in ("ar-LB", "ar-EG"):
+        for lang in ("ar-EG",):  # Gemini-TTS has no ar-LB; the prompt asks for Lebanese
             attempts.append((f"{model}/{lang}", {
                 "input": {"text": line["text"], "prompt": prompt},
                 "voice": {"languageCode": lang, "name": p["voice"], "modelName": model}}))
@@ -100,6 +102,7 @@ def ff(*args):
 
 def main():
     ensure_api()
+    ensure_api("aiplatform.googleapis.com", required=False)  # Gemini-TTS (style prompts) runs on Vertex AI
     TMP.mkdir(parents=True, exist_ok=True)
     LINES.mkdir(parents=True, exist_ok=True)
     report = []
