@@ -1,0 +1,82 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+  .co { position:absolute; display:flex; align-items:center; gap:20px; padding:24px 30px; width:470px; }
+  .co .ic { width:72px; height:72px; border-radius:20px; display:grid; place-items:center; flex:none; }
+  .co .tt { white-space:nowrap; font-weight:800; font-size:30px; line-height:1.15; letter-spacing:-.3px; }
+  .co .ds { font-weight:500; font-size:22px; color:var(--muted); margin-top:4px; }
+  .b { background:var(--steel-c); color:var(--steel); } .o { background:var(--orange-c); color:var(--orange); } .g { background:var(--green-c); color:#2f8f57; }
+</style></head>
+<body class="dark">
+<div class="abs" style="inset:0;overflow:hidden"><div class="abs" id="bgi" style="inset:-40px;background:url('bg/cowork.jpg') center/cover"></div></div>
+<div class="abs" style="inset:0;background:linear-gradient(180deg,rgba(14,22,36,.78),rgba(14,22,36,.55) 40%,rgba(14,22,36,.85))"></div>
+<div id="stage">
+
+<div class="abs" id="hd" style="left:0;right:0;top:40px;text-align:center">
+  <div class="h2" style="font-size:72px">You need a space,<br><span class="orange">not a lease.</span></div>
+</div>
+
+<div class="phone" id="ph" style="left:305px;top:290px">
+  <div class="screen">
+    
+    <img class="sc" src="assets/login.jpg">
+    <img class="sc" src="assets/explore.jpg">
+    <img class="sc" src="assets/map.jpg">
+    <img class="sc" src="assets/financials.jpg">
+  </div>
+</div>
+
+<div class="card co c1" style="left:40px;top:470px"><div class="ic b" data-icon="map" data-size="40"></div><div><div class="tt">Live map of spaces</div><div class="ds">Clinics, offices, studios</div></div></div>
+<div class="card co c2" style="right:40px;top:760px"><div class="ic o" data-icon="clock" data-size="40"></div><div><div class="tt">Hour, shift, day, month</div><div class="ds">or priced per attendee</div></div></div>
+<div class="card co c3" style="left:40px;top:640px"><div class="ic g" data-icon="event" data-size="40"></div><div><div class="tt">Real-time availability</div><div class="ds">See what's free right now</div></div></div>
+<div class="card co c4" style="right:40px;top:930px"><div class="ic g" data-icon="chat" data-size="40"></div><div><div class="tt">Talk on WhatsApp</div><div class="ds">Straight to the host</div></div></div>
+<div class="card co c5" style="left:40px;top:560px"><div class="ic b" data-icon="verified" data-size="40"></div><div><div class="tt">Hosts track it all</div><div class="ds">Requests, bookings, revenue</div></div></div>
+
+<div class="abs" id="end" style="left:0;right:0;top:0;bottom:0">
+  <div class="h1 abs" id="eK" style="left:0;right:0;top:40px;text-align:center;font-size:92px">Download <span class="orange">ProHost</span></div>
+  <div class="abs" id="eO" style="left:390px;top:200px;width:300px;height:300px;border-radius:50%;display:grid;place-items:center;text-align:center;color:#fff;
+    background:radial-gradient(circle at 35% 30%,#ff8a75,var(--orange) 55%,var(--orange-d));box-shadow:0 30px 70px rgba(242,95,76,.5)">
+    <div><div style="font-weight:800;font-size:104px;line-height:.9;letter-spacing:-4px">50%</div><div style="font-weight:800;font-size:40px;letter-spacing:2px">OFF</div></div></div>
+  <div class="h3 abs" id="eT" style="left:0;right:0;top:545px;text-align:center;font-size:48px">your first <span class="orange">ProHost Premium</span><br>subscription</div>
+  <div class="abs" id="eM" style="left:0;right:0;top:690px;text-align:center"><span class="pill" style="font-size:30px;padding:14px 30px">Monthly or yearly</span></div>
+  <div class="brandbar" id="eB" style="top:820px"></div>
+  <div class="abs" id="eG" style="left:0;right:0;top:955px;text-align:center"><span class="gp"></span></div>
+  <div class="abs small" id="eF" style="left:0;right:0;top:1110px;text-align:center;color:rgba(255,255,255,.75);font-weight:500;font-size:23px">Booking is free · Premium is for listing your space</div>
+</div>
+
+</div>
+<script src="parts.js"></script>
+<script src="engine.js"></script>
+<script>
+  fadeUp("#hd", 0.1, 0.8, 40);
+  A("#ph", 0.3, 1.1, (e) => ({ opacity: e, transform: `translateY(${lerp(500, 0, e)}px) rotate(${lerp(6, 0, e)}deg)` }), "out5");
+  // screens slide in one after another
+  const sw = [3.0, 6.0, 8.8];
+  A(".sc", 0, 0.01, (e, i) => ({ transform: `translateX(${i === 0 ? 0 : 100}%)` }));
+  sw.forEach((s, k) => {
+    A(`.sc:nth-of-type(${k + 2})`, s, 0.7, (e) => ({ transform: `translateX(${lerp(100, 0, e)}%)` }), "inOut");
+    A(`.sc:nth-of-type(${k + 1})`, s, 0.7, (e) => ({ transform: `translateX(${lerp(0, -30, e)}%)`, filter: `brightness(${lerp(1, .7, e)})` }), "inOut");
+  });
+  // callouts in/out
+  const co = (sel, s, e2, dx) => {
+    A(sel, s, 0.6, (e) => ({ opacity: e, transform: `translateX(${lerp(dx, 0, e)}px) scale(${lerp(.9, 1, e)})` }), "back");
+    out(sel, e2, 0.35, 0);
+  };
+  co(".c1", 3.6, 5.8, -80); co(".c2", 4.2, 5.8, 80);
+  co(".c3", 6.6, 8.6, -80); co(".c4", 7.2, 8.6, 80);
+  co(".c5", 9.4, 11.2, -80);
+  // end card
+  A("#ph", 11.4, 0.8, (e) => ({ opacity: 1 - e, transform: `translateY(${lerp(0, 120, e)}px) scale(${lerp(1, .85, e)})` }), "in");
+  out("#hd", 11.4, 0.5, -60);
+  fadeIn("#end", 11.6, 0.01);
+  fadeUp("#eK", 11.65, 0.6);
+  A("#eO", 11.9, 0.8, (e) => ({ opacity: Math.min(1, e * 2), transform: `scale(${lerp(.3, 1, e)}) rotate(${lerp(-25, 0, e)}deg)` }), "back");
+  fadeUp("#eT", 12.3, 0.6); pop("#eM", 12.6, 0.5);
+  A("#eB", 12.8, 0.6, (e) => ({ opacity: e, transform: `translateX(-50%) translateY(${lerp(40, 0, e)}px)` }));
+  fadeUp("#eG", 13.05, 0.6); fadeIn("#eF", 13.4, 0.5);
+  L((t) => {
+    const bgi = document.getElementById("bgi");
+    bgi.style.transform = `scale(${1.12 - 0.08 * Math.min(1, t / 15)}) translateY(${-t * 2}px)`;
+    bgi.style.filter = `blur(${t < 2.6 ? 0 : Math.min(10, (t - 2.6) / 0.6 * 10)}px)`;
+    if (t > 1.4 && t < 11.4) document.getElementById("ph").style.transform = `translateY(${Math.sin((t - 1.4) * 1.2) * 8}px)`;
+  });
+</script></body></html>
