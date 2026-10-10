@@ -174,3 +174,33 @@ Replace **[fill in]** with your real closed-test figures. Google checks them aga
 ## 4. Build record
 - CI on `429d99a` (run 37613732542): Android build and tests, rules tests, functions compile and live deploy all green.
 - Release bundle: GitHub Actions › "ProHost - Build Play-Signed Official Release Bundle" on `main` (artifact `prohost-release-main-<run number>`).
+
+## 5. Production check — 2026-10-10 (after production access was granted)
+
+### Passed
+- CI green on `main`: Android build and tests, rules tests (31), functions tests (52), and the **new end-to-end
+  backend suite** in the emulators, which now gates the deploy. It runs the real triggers and callables:
+  request → code + host push; accept → occupancy; conflict guard; accepted edit; Change price; per-attendee
+  auto-reject; withdraw/cancel.
+- Deployed: all 63 exported functions are deployed, ACTIVE and on Node 22. All 5 Firestore indexes are READY.
+- Public pages return 200: privacy, terms, delete-account, redeem, emaillink, assetlinks.
+- Data integrity: 0 orphan profiles, every record has a display code, no legacy fields, no parked purchases.
+- Billing pipeline: the last real Play RTDN arrived Oct 5; the last self-test Oct 7.
+
+### Needs the owner
+1. **Google Cloud billing lapsed on 2026-10-10.** Deploys failed with Secret Manager "requires billing to be
+   enabled". Billing came back (`billingEnabled=true`) and the deploy then succeeded. However, every function then
+   answered **429 "Rate exceeded"** (07:48–07:53 UTC), including `assignInitialRole` (sign-in). Check:
+   - Billing › the account linked to `prohost-f766f` is **active**, with no payment problem.
+   - IAM & Admin › Quotas (Cloud Run, region `europe-west1`) for limits reset to 0.
+   - Cloud Run › `assigninitialrole` › Logs.
+2. **No current Premium purchase has been verified in production yet.** The only Play subscription on record is
+   the retired growth plan (`package_growth_mrr`, still ACTIVE and still charging its holder, who is now a
+   permanent admin grant). Cancel/refund it in Play Console › Order management, then make one real purchase with a
+   license-tester account.
+3. **25 Google sign-ups abandoned registration** (Sept 21 – Oct 7). They have Auth accounts but no profile, because
+   the profile is created only when the form is submitted. Most fall in the window when App Check enforcement
+   rejected every callable. Watch the `sign_up` funnel in GA4.
+4. The CI service account cannot read logs, publish to Pub/Sub (RTDN self-test) or read the Play catalog. Use
+   Admin › Packages › Billing health / "Send server self-test" in the app, or grant it Logs Viewer and Pub/Sub
+   Publisher.
