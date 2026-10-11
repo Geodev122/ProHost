@@ -1,0 +1,135 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base-16x9.css">
+<style>
+  .w { position:absolute; left:160px; font-weight:800; font-size:100px; letter-spacing:-3px; line-height:1; }
+  .grid { display:grid; grid-template-columns: repeat(7, 1fr); gap:12px; }
+  .cell { height:84px; border-radius:14px; background:#e9eef5; }
+  .dayh { text-align:center; font-weight:700; font-size:22px; color:var(--muted); }
+  .feat { display:flex; align-items:center; gap:30px; padding:30px 36px; }
+  .feat .ic { width:96px; height:96px; border-radius:26px; display:grid; place-items:center; background:var(--steel-c); color:var(--steel); flex:none; }
+  .feat .tt { font-weight:800; font-size:40px; letter-spacing:-.5px; }
+  .feat .ds { font-weight:500; font-size:28px; color:var(--muted); margin-top:4px; }
+  .badge { width:470px; height:470px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #ff8a75, var(--orange) 55%, var(--orange-d));
+    display:grid; place-items:center; text-align:center; color:#fff; box-shadow:0 40px 90px rgba(242,95,76,.45); }
+</style></head>
+<body class="dark">
+<div class="abs" style="inset:0;overflow:hidden"><div class="abs bgp" id="p0" style="inset:-40px;background:url('bg/office.jpg') center/cover"></div><div class="abs bgp" id="p1" style="inset:-40px;background:url('bg/clinic.jpg') center/cover"></div><div class="abs bgp" id="p2" style="inset:-40px;background:url('bg/studio.jpg') center/cover"></div><div class="abs bgp" id="p3" style="inset:-40px;background:url('bg/meeting.jpg') center/cover"></div></div>
+<div class="abs" id="shA" style="inset:0;background:linear-gradient(90deg,rgba(14,22,36,.9),rgba(14,22,36,.62) 55%,rgba(14,22,36,.4))"></div>
+<div class="abs" id="shB" style="inset:0;background:rgba(14,22,36,.72)"></div>
+<div id="stage">
+
+<!-- Scene A: the empty space -->
+<div class="scene" id="A">
+  <div class="small abs" id="aK" style="left:164px;top:200px;color:#9fb6d3;letter-spacing:4px">YOU HAVE</div>
+  <div class="w a" style="top:270px">An office.</div>
+  <div class="w a" style="top:390px">A clinic.</div>
+  <div class="w a" style="top:510px">A studio.</div>
+  <div class="w a" style="top:630px">A meeting room.</div>
+  <div class="w orange" id="aQ" style="top:790px;font-size:86px;line-height:1.05">Sitting empty half the week?</div>
+</div>
+
+<!-- Scene B: rent it your way -->
+<div class="scene" id="B">
+  <div class="h2 abs" id="bH" style="left:140px;top:250px;width:760px">With ProHost, rent it on <span class="orange">your</span> terms.</div>
+  <div class="abs" style="left:140px;top:560px;width:760px;display:flex;flex-wrap:wrap;gap:20px">
+    <span class="pill b">By the hour</span><span class="pill b">By the shift</span><span class="pill b">By the day</span>
+    <span class="pill b">By the month</span><span class="pill b">Per attendee</span>
+  </div>
+  <div class="card abs" id="bCal" style="left:980px;top:290px;width:800px;padding:44px 44px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px">
+      <div class="h3" style="font-size:38px">This week</div>
+      <div class="small" id="bCnt" style="color:var(--green)">0 slots booked</div>
+    </div>
+    <div class="grid" style="margin-bottom:12px">
+      <div class="dayh">Mon</div><div class="dayh">Tue</div><div class="dayh">Wed</div><div class="dayh">Thu</div><div class="dayh">Fri</div><div class="dayh">Sat</div><div class="dayh">Sun</div>
+    </div>
+    <div class="grid" id="bGrid"></div>
+  </div>
+</div>
+
+<!-- Scene C: managed in one app -->
+<div class="scene" id="C">
+  <div class="h2 abs" id="cH" style="left:140px;top:400px;width:700px">Run it all from <span class="orange">one app.</span></div>
+  <div class="abs" style="left:900px;top:150px;width:880px;display:flex;flex-direction:column;gap:24px">
+    <div class="card feat f"><div class="ic" data-icon="inbox" data-size="54"></div><div><div class="tt">Requests in one inbox</div><div class="ds">Accept or decline in a tap</div></div></div>
+    <div class="card feat f"><div class="ic" data-icon="event" data-size="54"></div><div><div class="tt">Live availability</div><div class="ds">No double bookings, ever</div></div></div>
+    <div class="card feat f"><div class="ic" data-icon="tag" data-size="54"></div><div><div class="tt">Change prices anytime</div><div class="ds">Your tenants are notified for you</div></div></div>
+    <div class="card feat f"><div class="ic" data-icon="chat" data-size="54"></div><div><div class="tt">Clients reach you on WhatsApp</div><div class="ds">Verified professionals only</div></div></div>
+  </div>
+</div>
+
+<!-- Scene D: download + offer -->
+<div class="scene" id="D">
+  <div class="h1 abs" id="dK" style="left:140px;width:1000px;top:230px;text-align:left;font-size:96px">Download <span class="orange">ProHost</span></div>
+  <div class="badge abs" id="dB" style="left:1220px;top:230px;width:540px;height:540px">
+    <div><div style="font-weight:800;font-size:180px;line-height:.9;letter-spacing:-6px">50%</div>
+    <div style="font-weight:800;font-size:66px;letter-spacing:3px">OFF</div></div>
+  </div>
+  <div class="h3 abs" id="dT" style="left:140px;width:1000px;top:380px;text-align:left;font-size:54px">your first <span class="orange">ProHost Premium</span><br>subscription</div>
+  <div class="abs" id="dM" style="left:140px;width:600px;top:545px;text-align:left"><span class="pill" style="font-size:30px;padding:14px 30px">Monthly or yearly</span></div>
+  <div class="brandbar" id="dBrand" style="left:332px;top:660px"></div>
+  <div class="abs" id="dGp" style="left:140px;width:600px;top:790px;text-align:left"><span class="gp"></span></div>
+  <div class="abs small" id="dF" style="left:140px;width:900px;top:950px;text-align:left;font-size:23px;color:rgba(255,255,255,.75);font-weight:500">New subscribers · billed securely by Google Play</div>
+</div>
+
+</div>
+<script src="parts.js"></script>
+<script src="engine.js"></script>
+<script>
+  // calendar cells
+  const grid = document.getElementById("bGrid");
+  const booked = [1,3,5,8,9,12,15,17,18,20];
+  for (let i = 0; i < 21; i++) { const c = document.createElement("div"); c.className = "cell" + (booked.includes(i) ? " bk" : " fr"); grid.appendChild(c); }
+
+  // Scene A 0–3.7
+  fadeIn("#aK", 0.1, 0.5);
+  A(".w.a", 0.25, 0.6, (e) => ({ opacity: e, transform: `translateX(${lerp(-80, 0, e)}px)` }), "out", 0.32);
+  A("#aQ", 1.75, 0.8, (e) => ({ opacity: Math.min(1, e * 2), transform: `scale(${lerp(1.25, 1, e)})` }), "back");
+  out("#A", 3.35, 0.4, -60);
+
+  // Scene B 3.7–8.3
+  fadeUp("#bH", 3.75, 0.7);
+  pop(".pill.b", 4.25, 0.55, 0.13);
+  fadeUp("#bCal", 5.0, 0.7, 80);
+  A(".cell", 5.3, 0.3, (e) => ({ opacity: e, transform: `scale(${lerp(.7, 1, e)})` }), "out", 0.02);
+  A(".cell.bk", 6.1, 0.35, (e) => ({ opacity: 1, background: e > 0.5 ? "#f25f4c" : "#e9eef5", transform: `scale(${1 + Math.sin(e * Math.PI) * .12})` }), "lin", 0.17);
+  A(".cell.fr", 5.9, 0.4, (e) => ({ opacity: 1, background: `rgba(76,175,114,${0.18 * e})` }), "out", 0.01);
+  out("#B", 7.95, 0.4, -60);
+
+  // Scene C 8.3–11.6
+  fadeUp("#cH", 8.35, 0.7);
+  slideIn(".feat.f", 8.8, 0.6, -140, 0.22);
+  out("#C", 11.25, 0.4, -60);
+
+  // Scene D 11.6–15
+  fadeUp("#dK", 11.6, 0.5);
+  A("#dB", 11.85, 0.9, (e) => ({ opacity: Math.min(1, e * 2), transform: `scale(${lerp(.3, 1, e)}) rotate(${lerp(-25, 0, e)}deg)` }), "back");
+  fadeUp("#dT", 12.2, 0.6);
+  pop("#dM", 12.5, 0.5);
+  A("#dBrand", 12.55, 0.6, (e) => ({ opacity: e, transform: `translateX(-50%) translateY(${lerp(40, 0, e)}px)` }));
+  fadeUp("#dGp", 12.85, 0.6);
+  fadeIn("#dF", 13.5, 0.5);
+  fadeIn("#D", 11.55, 0.01);
+  fadeIn("#B", 3.7, 0.01); fadeIn("#C", 8.3, 0.01);
+
+  L((t) => {
+    const cnt = Math.max(0, Math.min(10, Math.floor((t - 6.1) / 0.17) + 1));
+    document.getElementById("bCnt").textContent = `${cnt} slot${cnt === 1 ? "" : "s"} booked`;
+    const on = [0.25, 0.57, 0.89, 1.21];
+    let cur = 0; on.forEach((s0, i) => { if (t >= s0) cur = i; });
+    document.querySelectorAll(".bgp").forEach((el, i) => {
+      el.style.opacity = i === cur ? 1 : (i === cur - 1 ? Math.max(0, 1 - (t - on[cur]) / 0.3) : 0);
+      el.style.transform = `scale(${1.12 - 0.08 * Math.min(1, t / 15)}) translateY(${-t * 2}px)`;
+      el.style.filter = `blur(${t < 3.4 ? 0 : Math.min(14, (t - 3.4) / 0.5 * 14)}px)`;
+    });
+    document.getElementById("shA").style.opacity = t < 3.4 ? 1 : Math.max(0, 1 - (t - 3.4) / 0.5);
+    document.getElementById("shB").style.opacity = t < 3.4 ? 0 : Math.min(1, (t - 3.4) / 0.5);
+    if (t > 12.6) document.getElementById("dB").style.transform = `scale(${1 + Math.sin((t - 12.6) * 3) * .025})`;
+  });
+  window.EVENTS = [
+    ...[0, 1, 2, 3].map((i) => ({ t: 0.25 + i * 0.32, k: "pop", major: i === 0 })), { t: 1.75, k: "impact", major: true },
+    { t: 3.35, k: "whoosh", major: true }, ...[0, 1, 2, 3, 4].map((i) => ({ t: 4.25 + i * 0.13, k: "tick" })),
+    ...[0, 2, 4, 6, 8].map((i) => ({ t: 6.1 + i * 0.17, k: "tick" })),
+    { t: 7.95, k: "whoosh", major: true }, ...[0, 1, 2, 3].map((i) => ({ t: 8.8 + i * 0.22, k: "pop" })),
+    { t: 11.25, k: "whoosh", major: true }, { t: 11.7, k: "impact", major: true }, { t: 12.55, k: "pop" },
+  ];
+</script></body></html>
