@@ -52,6 +52,17 @@
         "destination": "/get.html"
       },
       {
+        "source": "/admin",
+        "destination": "/admin.html"
+      },
+      {
+        "source": "/unsubscribe",
+        "function": {
+          "functionId": "mailingUnsubscribe",
+          "region": "europe-west1"
+        }
+      },
+      {
         "source": "/emaillink",
         "destination": "/emaillink.html"
       },

@@ -502,6 +502,20 @@ service cloud.firestore {
     match /mail/{id} {
       allow read, write: if false;
     }
+    // Website address book, contact messages, campaigns and admin sessions (functions/src/website/*):
+    // personal data handled only by functions; the admin console reaches it through code-gated callables.
+    match /mailing_list/{id} {
+      allow read, write: if false;
+    }
+    match /mailing_messages/{id} {
+      allow read, write: if false;
+    }
+    match /mail_campaigns/{id} {
+      allow read, write: if false;
+    }
+    match /mailing_admin_sessions/{id} {
+      allow read, write: if false;
+    }
     // Server-only config (app_config/ga4 holds the GA4 Measurement Protocol API secret,
     // read by functions/src/lib/ga4.ts via the Admin SDK). Set in the Firebase console.
     match /app_config/{key} {

@@ -12,6 +12,13 @@
 //   node scripts/maintenance/run.js clearstalesecrets drop retired HOSTINGER_* secret bindings that block deploys
 //   node scripts/maintenance/run.js authorphans      read-only: Auth users with no profile, grouped by provider, day and
 //                                                    test-robot domain (no emails printed)
+//   node scripts/maintenance/run.js mailingcode CODE set (or rotate) the pro-host.tech/admin access code; stores only a
+//                                                    salted scrypt hash in app_config/mailing_admin and signs out all
+//                                                    admin sessions. Without CODE: reports whether a code is set.
+//   node scripts/maintenance/run.js mailingsmoke CODE live check of the website mailing stack: admin login with CODE,
+//                                                    address book, preview, a test campaign to admin@pro-host.tech
+//                                                    (waits for delivery), one contact-form request from
+//                                                    admin@pro-host.tech (waits for the email), /admin and /unsubscribe
 //   node scripts/maintenance/run.js prodcheck        production readiness (read-only apart from one RTDN self-test
 //                                                    message): deployed functions + indexes, public pages, Play catalog
 //                                                    as this account sees it, RTDN topic → function, then the audit
@@ -640,6 +647,68 @@ async function prodcheck(db, auth) {
   await audit(db, auth);
 }
 
+async function mailingcode(db, code) {
+  const ref = db.collection("app_config").doc("mailing_admin");
+  if (!code) {
+    const snap = await ref.get();
+    notice(`mailing admin code: ${snap.exists && snap.get("hash") ? `set (updated ${snap.get("updatedAt")?.toDate?.().toISOString() ?? "?"})` : "NOT set"}`);
+    return;
+  }
+  if (!/^\d{4,12}$/.test(code.trim())) throw new Error("the code must be 4-12 digits");
+  const { hashAdminCode } = require(`${LIB}/website/mailingAdmin`);
+  const salt = require("crypto").randomBytes(16).toString("hex");
+  await ref.set({ salt, hash: hashAdminCode(code, salt), updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+  const sessions = await db.collection("mailing_admin_sessions").get();
+  const batch = db.batch();
+  sessions.docs.forEach((d) => batch.delete(d.ref));
+  await batch.commit();
+  notice(`mailing admin code set (${code.trim().length} digits); ${sessions.size} old admin session(s) signed out`);
+}
+
+async function mailingsmoke(db, code) {
+  const FN = "https://europe-west1-prohost-f766f.cloudfunctions.net/";
+  const call = async (name, data) => {
+    const r = await fetch(FN + name, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data }) });
+    const j = await r.json().catch(() => ({}));
+    if (j.error) throw new Error(`${name}: ${j.error.status} ${j.error.message}`);
+    return j.result;
+  };
+  const waitMail = async (query, label) => {
+    for (let i = 0; i < 24; i++) {
+      const docs = (await query.get()).docs;
+      const states = docs.map((d) => d.get("delivery.state") || "PENDING");
+      if (docs.length && states.every((s) => s === "SUCCESS" || s === "ERROR")) {
+        notice(`${label}: ${states.join(",")}${states.includes("ERROR") ? ` (${docs.map((d) => d.get("delivery.error")).filter(Boolean).join("; ").slice(0, 200)})` : ""}`);
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+    fail(`${label}: not delivered within 2 minutes`);
+  };
+  for (const page of ["", "admin", "get", "unsubscribe?t=smoketest-invalid-token"]) {
+    const r = await fetch(`https://pro-host.tech/${page}`);
+    notice(`page /${page} = ${r.status}`);
+  }
+  const { token } = await call("mailingAdminLogin", { code: String(code || "") });
+  const data = await call("mailingAdminData", { token });
+  notice(`address book: ${data.contacts.length} contacts, ${data.contacts.filter((c) => c.subscribed).length} subscribed, ${data.messages.length} messages`);
+  const campaign = { subject: "ProHost mailing smoke test", heading: "Smoke test", body: "This is an automatic test of the ProHost campaign email.\n\n- Template\n- Delivery", ctaLabel: "Open ProHost", ctaUrl: "https://pro-host.tech/get" };
+  const prev = await call("mailingAdminPreview", { token, campaign });
+  notice(`preview html ${prev.html.length} chars, unsubscribe link ${prev.html.includes("/unsubscribe?t=") ? "present" : "MISSING"}`);
+  const sent = await call("mailingAdminSend", { token, campaign, testOnly: true });
+  await waitMail(db.collection("mail").where("campaignId", "==", sent.campaignId), "test campaign to admin");
+  const status = await call("mailingAdminCampaign", { token, campaignId: sent.campaignId });
+  notice(`campaign status: ${JSON.stringify(status.counts)}`);
+  const before = Date.now();
+  await call("websiteContact", { name: "ProHost smoke test", email: "admin@pro-host.tech", organization: "ProHost", role: "Other", message: "Automatic test of the pro-host.tech contact form. No action needed.", subscribe: false });
+  await new Promise((r) => setTimeout(r, 3000));
+  const since = admin.firestore.Timestamp.fromMillis(before - 5000);
+  const last = (await db.collection("mail").where("createdAt", ">=", since).get()).docs
+    .find((d) => d.get("to") === "admin@pro-host.tech" && !d.get("campaignId") && String(d.get("message.subject") || "").startsWith("New contact"));
+  if (!last) fail("contact form: no notification email queued");
+  else await waitMail(db.collection("mail").where(admin.firestore.FieldPath.documentId(), "==", last.id), "contact form email to admin");
+}
+
 (async () => {
   require(`${LIB}/lib/admin`);
   const db = admin.firestore();
@@ -655,5 +724,7 @@ async function prodcheck(db, auth) {
   else if (task === "clearstalesecrets") await clearstalesecrets();
   else if (task === "prodcheck") await prodcheck(db, auth);
   else if (task === "authorphans") await authorphans(db, auth);
+  else if (task === "mailingcode") await mailingcode(db, arg);
+  else if (task === "mailingsmoke") await mailingsmoke(db, arg);
   else throw new Error(`unknown task ${task}`);
 })().catch((e) => { fail(`${e && e.message}`); process.exit(1); });

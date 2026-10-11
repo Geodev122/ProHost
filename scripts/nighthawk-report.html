@@ -32,12 +32,12 @@
 <body>
 <header>
   <h1>🦅 NIGHTHAWK — ProHost Enhanced Debug Report</h1>
-  <p>81 issues found · 29 checks passed</p>
+  <p>84 issues found · 29 checks passed</p>
 </header>
 <div class="stats">
   <div class="stat crit"><div class="num">0</div><div class="lbl">Critical</div></div>
   <div class="stat high"><div class="num">0</div><div class="lbl">High</div></div>
-  <div class="stat med"><div class="num">17</div><div class="lbl">Medium</div></div>
+  <div class="stat med"><div class="num">20</div><div class="lbl">Medium</div></div>
   <div class="stat low"><div class="num">64</div><div class="lbl">Low</div></div>
   <div class="stat pass"><div class="num">29</div><div class="lbl">Passing</div></div>
 </div>
@@ -49,7 +49,7 @@
     <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
     <td><code class="tag">reliability</code></td>
     <td><strong>Forced Non-Null Assertion</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/ManageListingScreen.kt:468</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/ManageListingScreen.kt:489</code></td>
     <td>Forced non-null assertion (!!) can throw NullPointerException.</td>
     <td class="suggestion">Use safe call ?. with a fallback or requireNotNull().</td>
   </tr>
@@ -166,6 +166,24 @@
     <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
     <td><code class="tag">consistency</code></td>
     <td><strong>Orphaned Module</strong></td>
+    <td><code>functions/src/bookings/bookingTerms.ts</code></td>
+    <td>Module &quot;bookings/bookingTerms&quot; has exports but is not imported from index.ts.</td>
+    <td class="suggestion">Export or remove.</td>
+  </tr>
+
+  <tr style="background:#FFF3E0">
+    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
+    <td><code class="tag">consistency</code></td>
+    <td><strong>Orphaned Module</strong></td>
+    <td><code>functions/src/bookings/priceChange.ts</code></td>
+    <td>Module &quot;bookings/priceChange&quot; has exports but is not imported from index.ts.</td>
+    <td class="suggestion">Export or remove.</td>
+  </tr>
+
+  <tr style="background:#FFF3E0">
+    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
+    <td><code class="tag">consistency</code></td>
+    <td><strong>Orphaned Module</strong></td>
     <td><code>functions/src/listings/legacyPricing.ts</code></td>
     <td>Module &quot;listings/legacyPricing&quot; has exports but is not imported from index.ts.</td>
     <td class="suggestion">Export or remove.</td>
@@ -184,8 +202,17 @@
     <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
     <td><code class="tag">consistency</code></td>
     <td><strong>Orphaned Module</strong></td>
-    <td><code>functions/src/roles/bootstrapSuperAdmin.ts</code></td>
-    <td>Module &quot;roles/bootstrapSuperAdmin&quot; has exports but is not imported from index.ts.</td>
+    <td><code>functions/src/website/addressBook.ts</code></td>
+    <td>Module &quot;website/addressBook&quot; has exports but is not imported from index.ts.</td>
+    <td class="suggestion">Export or remove.</td>
+  </tr>
+
+  <tr style="background:#FFF3E0">
+    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
+    <td><code class="tag">consistency</code></td>
+    <td><strong>Orphaned Module</strong></td>
+    <td><code>functions/src/website/mailTemplates.ts</code></td>
+    <td>Module &quot;website/mailTemplates&quot; has exports but is not imported from index.ts.</td>
     <td class="suggestion">Export or remove.</td>
   </tr>
 
@@ -202,7 +229,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/data/model/DataModels.kt:1447</code></td>
+    <td><code>app/src/main/java/com/example/data/model/DataModels.kt:1488</code></td>
     <td>Line has 170 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -211,7 +238,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/data/repository/ProHostRepository.kt:1052</code></td>
+    <td><code>app/src/main/java/com/example/data/repository/ProHostRepository.kt:1071</code></td>
     <td>Line has 719 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -220,7 +247,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/data/repository/ProHostRepository.kt:1056</code></td>
+    <td><code>app/src/main/java/com/example/data/repository/ProHostRepository.kt:1075</code></td>
     <td>Line has 182 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -229,7 +256,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/data/repository/ProHostRepository.kt:1068</code></td>
+    <td><code>app/src/main/java/com/example/data/repository/ProHostRepository.kt:1087</code></td>
     <td>Line has 180 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -238,7 +265,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/data/repository/ProHostRepository.kt:1078</code></td>
+    <td><code>app/src/main/java/com/example/data/repository/ProHostRepository.kt:1097</code></td>
     <td>Line has 165 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -247,7 +274,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/data/repository/ProHostRepository.kt:1151</code></td>
+    <td><code>app/src/main/java/com/example/data/repository/ProHostRepository.kt:1170</code></td>
     <td>Line has 203 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -265,7 +292,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/components/OwnerIncomingRequestsView.kt:415</code></td>
+    <td><code>app/src/main/java/com/example/ui/components/OwnerIncomingRequestsView.kt:436</code></td>
     <td>Line has 190 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -274,7 +301,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/components/OwnerIncomingRequestsView.kt:416</code></td>
+    <td><code>app/src/main/java/com/example/ui/components/OwnerIncomingRequestsView.kt:437</code></td>
     <td>Line has 172 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -292,7 +319,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/components/RentalBookingDialog.kt:741</code></td>
+    <td><code>app/src/main/java/com/example/ui/components/RentalBookingDialog.kt:755</code></td>
     <td>Line has 194 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -301,7 +328,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/components/RentalBookingDialog.kt:861</code></td>
+    <td><code>app/src/main/java/com/example/ui/components/RentalBookingDialog.kt:875</code></td>
     <td>Line has 183 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -492,7 +519,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt:878</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt:883</code></td>
     <td>Line has 165 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -501,7 +528,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt:900</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt:905</code></td>
     <td>Line has 164 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -537,7 +564,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt:666</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt:670</code></td>
     <td>Line has 168 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -546,7 +573,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt:763</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt:767</code></td>
     <td>Line has 162 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -555,7 +582,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt:839</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt:843</code></td>
     <td>Line has 176 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -564,7 +591,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt:840</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt:844</code></td>
     <td>Line has 166 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -573,7 +600,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/OwnerRentingProgressScreen.kt:132</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/OwnerRentingProgressScreen.kt:138</code></td>
     <td>Line has 162 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -582,7 +609,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/OwnerRentingProgressScreen.kt:388</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/OwnerRentingProgressScreen.kt:394</code></td>
     <td>Line has 173 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -601,8 +628,19 @@
   <tr style="background:#E3F2FD">
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
+    <td><strong>Long Parameter List</strong></td>
+    <td><code>app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt</code></td>
+    <td>Function signature has 8 parameters (&gt;7): fun PlanTile(
+    kind: PlayCatalog.PlanKind,
+    ...</td>
+    <td class="suggestion">Group parameters into a data class/state holder object to reduce complexity.</td>
+  </tr>
+
+  <tr style="background:#E3F2FD">
+    <td><span class="badge" style="background:#1976D2">LOW</span></td>
+    <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt:263</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt:265</code></td>
     <td>Line has 173 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -611,7 +649,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt:409</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt:419</code></td>
     <td>Line has 161 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -620,16 +658,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt:691</code></td>
-    <td>Line has 178 characters (&gt;160 limit).</td>
-    <td class="suggestion">Break line into multiple statements for readability.</td>
-  </tr>
-
-  <tr style="background:#E3F2FD">
-    <td><span class="badge" style="background:#1976D2">LOW</span></td>
-    <td><code class="tag">detekt</code></td>
-    <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt:768</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt:816</code></td>
     <td>Line has 161 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -638,7 +667,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt:780</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/OwnerSubscriptionsScreen.kt:828</code></td>
     <td>Line has 177 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -658,7 +687,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt:648</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt:674</code></td>
     <td>Line has 174 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -667,7 +696,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt:662</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt:688</code></td>
     <td>Line has 225 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -676,7 +705,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt:713</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt:739</code></td>
     <td>Line has 184 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -766,7 +795,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/admin/AdminPackagesTab.kt:140</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/admin/AdminPackagesTab.kt:139</code></td>
     <td>Line has 163 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -786,7 +815,7 @@
   <tbody>
   <tr>
     <td><span class="badge" style="background:#388E3C">PASS</span></td>
-    <td colspan="4">All 22 getHttpsCallable() calls match exported functions in index.ts.</td>
+    <td colspan="4">All 23 getHttpsCallable() calls match exported functions in index.ts.</td>
     <td>—</td>
   </tr>
 

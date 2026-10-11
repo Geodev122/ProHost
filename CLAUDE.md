@@ -272,6 +272,18 @@ plan + recurring price + date;
   READ_MEDIA_IMAGES/VIDEO and READ_EXTERNAL_STORAGE (`tools:node="remove"`); photos come from `PickVisualMedia` /
   `GetContent`, "Take Photo" hands off via `TakePicture` (needs no permission when CAMERA isn't declared — declaring it
   makes the intent throw for users who denied it). Launch asks only for notifications; location is asked on the map.
+- Website (pro-host.tech, `public/`): `index.html` is the Premium-conversion landing page (every CTA goes to the smart link
+  `/get?utm_*`; `/ig /fb /wa /li /qr /app` are tagged redirects in firebase.json). Contact + newsletter forms call the
+  `websiteContact` / `websiteSubscribe` callables (`functions/src/website/`, plain fetch, honeypot + per-IP/address limits)
+  → address book `mailing_list/{sha256(email)[0:32]}` + `mailing_messages`; contact requests are emailed to
+  admin@pro-host.tech (reply-to the visitor). `/admin` (footer link) is the code-locked console: the code is checked only
+  server-side (`mailingAdminLogin`; salted scrypt hash in `app_config/mailing_admin`, set/rotated by Maintenance task
+  `mailingcode` — never put the code in client code or docs), 12 h sessions in `mailing_admin_sessions`. Console: Excel
+  export (SheetJS), campaigns to `subscribed == true` only, one `mail` doc per recipient from noreply@pro-host.tech with a
+  personal unsubscribe link + RFC 8058 List-Unsubscribe headers, admin BCC'd once per campaign, progress from the
+  extension's `delivery.state` (`mailingAdminCampaign`, Retry failed). Template: `website/mailTemplates.ts`
+  (unit-tested). `/unsubscribe` (→ `mailingUnsubscribe`) confirms on GET and unsubscribes on POST. Live check: Maintenance
+  task `mailingsmoke` with the code. All four collections are server-only (rules + rules tests).
 - Payment reminders go to the user's own calendar via `PaymentCalendar` (insert intent, monthly
   RRULE) — no calendar permission, no Google Calendar API.
 

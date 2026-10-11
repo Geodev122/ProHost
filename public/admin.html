@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProHost Admin · Mailing</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/site.css">
+  <style>
+    :root { --steel: #2B5A8C; --orange: #F25F4C; --green: #2F8F57; --red: #C2410C; }
+    body { background: var(--bg); }
+    .shell { max-width: 1180px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+    .lock { max-width: 380px; margin: 10vh auto; text-align: center; }
+    .lock input { width: 100%; font: 700 1.6rem/1 ui-monospace, Menlo, monospace; letter-spacing: .5em; text-align: center; padding: .8rem; border: 2px solid var(--border); border-radius: .7rem; background: var(--card); color: var(--ink); }
+    .lock input:focus { outline: none; border-color: var(--steel); }
+    .err { color: var(--red); font-size: .9rem; min-height: 1.3em; margin-top: .5rem; }
+    .ok { color: var(--green); }
+    .tabs { display: flex; gap: .4rem; flex-wrap: wrap; margin: 1rem 0 1.2rem; border-bottom: 1px solid var(--border); }
+    .tabs button { font: 600 .95rem 'Manrope', sans-serif; border: 0; background: none; color: var(--muted); padding: .7rem 1rem; border-bottom: 3px solid transparent; cursor: pointer; }
+    .tabs button.on { color: var(--steel); border-bottom-color: var(--steel); }
+    .bar { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
+    .bar input[type=search], .bar select { padding: .55rem .8rem; border: 1px solid var(--border); border-radius: .55rem; background: var(--card); color: var(--ink); font: inherit; min-width: 0; }
+    .bar input[type=search] { flex: 1 1 240px; }
+    .stats { display: flex; gap: .8rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .stat { background: var(--card); border: 1px solid var(--border); border-radius: .8rem; padding: .7rem 1rem; min-width: 140px; }
+    .stat b { display: block; font: 800 1.5rem 'Manrope', sans-serif; color: var(--steel); }
+    .stat span { font-size: .82rem; color: var(--muted); }
+    .b { display: inline-flex; align-items: center; gap: .4rem; font: 700 .9rem 'Manrope', sans-serif; padding: .6rem 1rem; border-radius: .6rem; border: 1px solid transparent; cursor: pointer; text-decoration: none; }
+    .b-primary { background: var(--orange); color: #fff; }
+    .b-steel { background: var(--steel); color: #fff; }
+    .b-ghost { background: var(--card); border-color: var(--border); color: var(--ink); }
+    .b:disabled { opacity: .55; cursor: default; }
+    .tablewrap { overflow-x: auto; background: var(--card); border: 1px solid var(--border); border-radius: .8rem; }
+    table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+    th, td { text-align: left; padding: .6rem .75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { font: 700 .78rem 'Manrope', sans-serif; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); background: var(--soft); position: sticky; top: 0; }
+    td.msg { max-width: 360px; white-space: pre-wrap; color: var(--muted); }
+    .pill { display: inline-block; padding: .15rem .55rem; border-radius: 99px; font-size: .78rem; font-weight: 700; }
+    .pill.on { background: #E3F4EA; color: var(--green); } .pill.off { background: var(--soft); color: var(--muted); }
+    .grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.2rem; }
+    @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+    label.f { display: block; font-weight: 600; font-size: .88rem; margin: .7rem 0 .3rem; }
+    label.f small { font-weight: 400; color: var(--muted); }
+    .f-in { width: 100%; padding: .65rem .8rem; border: 1px solid var(--border); border-radius: .6rem; background: var(--card); color: var(--ink); font: inherit; }
+    textarea.f-in { min-height: 260px; resize: vertical; line-height: 1.55; }
+    .preview { width: 100%; height: 760px; border: 1px solid var(--border); border-radius: .8rem; background: #EEF2F7; }
+    .progress { height: 14px; background: var(--soft); border-radius: 99px; overflow: hidden; display: flex; margin: .6rem 0; }
+    .progress i { display: block; height: 100%; }
+    .card2 { background: var(--card); border: 1px solid var(--border); border-radius: .8rem; padding: 1rem 1.2rem; margin-bottom: 1rem; }
+    .hidden { display: none !important; }
+    .confirm { background: #FFF4EE; border: 1px solid #F6C9B4; border-radius: .7rem; padding: .9rem 1rem; margin-top: .8rem; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+</head>
+<body>
+  <nav class="topbar">
+    <a class="home" href="/"><img src="/logo.png" alt="ProHost"><img class="wordmark" src="/logo-wordmark.png" alt=""></a>
+    <span class="sep">/</span><span class="title">Admin · Address book &amp; mailing</span>
+    <span style="flex:1"></span>
+    <button id="logout" class="b b-ghost hidden" type="button">Lock</button>
+  </nav>
+
+  <section id="lockView" class="lock card">
+    <div class="badge"><svg viewBox="0 0 24 24" fill="#fff"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg></div>
+    <h1>Admin access</h1>
+    <p>Enter the admin code to open the address book.</p>
+    <form id="lockForm" autocomplete="off">
+      <input id="code" inputmode="numeric" pattern="[0-9]*" maxlength="12" aria-label="Admin code" autofocus>
+      <button class="b b-steel" style="width:100%;justify-content:center;margin-top:.8rem" type="submit">Unlock</button>
+      <div class="err" id="lockErr" role="alert"></div>
+    </form>
+  </section>
+
+  <main id="app" class="shell hidden">
+    <div class="tabs" role="tablist">
+      <button class="on" data-tab="book">Address book</button>
+      <button data-tab="messages">Messages</button>
+      <button data-tab="compose">Write email</button>
+      <button data-tab="campaigns">Sent emails</button>
+    </div>
+
+    <section data-view="book">
+      <div class="stats" id="stats"></div>
+      <div class="bar">
+        <input type="search" id="q" placeholder="Search name, email, phone, organization…">
+        <select id="filter"><option value="all">Everyone</option><option value="sub">Subscribed</option><option value="unsub">Not subscribed</option></select>
+        <button class="b b-steel" id="xlsx" type="button">⬇ Download Excel</button>
+        <button class="b b-ghost" id="reload" type="button">Refresh</button>
+      </div>
+      <div class="tablewrap"><table><thead><tr><th>Date</th><th>Name</th><th>Email</th><th>Phone</th><th>Organization</th><th>Role</th><th>Last message</th><th>Subscribed</th></tr></thead><tbody id="rows"></tbody></table></div>
+    </section>
+
+    <section data-view="messages" class="hidden">
+      <div class="tablewrap"><table><thead><tr><th>Date</th><th>Name</th><th>Email</th><th>Phone</th><th>Organization</th><th>Role</th><th>Message</th></tr></thead><tbody id="msgRows"></tbody></table></div>
+    </section>
+
+    <section data-view="compose" class="hidden">
+      <div class="grid2">
+        <div>
+          <p class="fine" style="margin-top:0">Sent from <b>noreply@pro-host.tech</b> to <b id="subCount">0</b> subscribed contacts only, one email each, with their own unsubscribe link. Replies go to admin@pro-host.tech, which also receives one copy of every campaign.</p>
+          <label class="f" for="c_subject">Subject</label><input class="f-in" id="c_subject" maxlength="150">
+          <label class="f" for="c_pre">Preview text <small>(shown after the subject in the inbox)</small></label><input class="f-in" id="c_pre" maxlength="160">
+          <label class="f" for="c_head">Heading</label><input class="f-in" id="c_head" maxlength="120">
+          <label class="f" for="c_body">Message <small>— blank line = new paragraph · "- " = bullet · **bold** · links work as-is. "Hi {first name}," is added for you.</small></label>
+          <textarea class="f-in" id="c_body" maxlength="20000"></textarea>
+          <div class="grid2" style="gap:.8rem">
+            <div><label class="f" for="c_cta">Button text <small>(optional)</small></label><input class="f-in" id="c_cta" maxlength="40" placeholder="Get ProHost"></div>
+            <div><label class="f" for="c_url">Button link</label><input class="f-in" id="c_url" maxlength="500" placeholder="https://pro-host.tech/get"></div>
+          </div>
+          <div class="bar" style="margin-top:1rem">
+            <button class="b b-ghost" id="btnPreview" type="button">Preview</button>
+            <button class="b b-steel" id="btnTest" type="button">Send test to admin</button>
+            <button class="b b-primary" id="btnSend" type="button">Send to subscribers…</button>
+          </div>
+          <div id="confirmBox" class="confirm hidden">
+            <b>Send "<span id="cfSubject"></span>" to <span id="cfCount"></span> subscribers?</b>
+            <p class="fine" style="margin:.3rem 0 .6rem">This can't be undone. You'll see delivery progress under Sent emails.</p>
+            <button class="b b-primary" id="btnConfirm" type="button">Yes, send now</button>
+            <button class="b b-ghost" id="btnCancel" type="button">Cancel</button>
+          </div>
+          <div class="err" id="composeErr" role="alert"></div>
+          <p class="fine">Templates: <a href="#" data-tpl="offer">Premium offer</a> · <a href="#" data-tpl="news">Product news</a> · <a href="#" data-tpl="blank">Blank</a></p>
+        </div>
+        <div><iframe class="preview" id="preview" title="Email preview" sandbox=""></iframe></div>
+      </div>
+    </section>
+
+    <section data-view="campaigns" class="hidden">
+      <div id="live" class="card2 hidden">
+        <h2 style="margin:0;border:0;padding:0;font-size:1.1rem" id="liveTitle"></h2>
+        <div class="progress" id="liveBar"></div>
+        <div id="liveText" class="fine" style="margin:0"></div>
+        <div id="liveFailed"></div>
+      </div>
+      <div class="tablewrap"><table><thead><tr><th>Date</th><th>Subject</th><th>Recipients</th><th></th></tr></thead><tbody id="campRows"></tbody></table></div>
+    </section>
+  </main>
+
+  <footer class="site"><a href="/">pro-host.tech</a> · Personal data: handle according to our <a href="/privacy">Privacy Policy</a>.</footer>
+
+<script>
+(function () {
+  "use strict";
+  var BASE = "https://europe-west1-prohost-f766f.cloudfunctions.net/";
+  var $ = function (id) { return document.getElementById(id); };
+  var store = { get: function (k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
+                set: function (k, v) { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (e) {} } };
+  var token = store.get("ph_admin");
+  var data = { contacts: [], messages: [], campaigns: [] };
+  var pollTimer = null;
+
+  function call(name, payload) {
+    return fetch(BASE + name, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: payload || {} }) })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (j) {
+        if (j && j.error) {
+          var e = new Error(j.error.message || "Something went wrong."); e.status = j.error.status;
+          if (e.status === "UNAUTHENTICATED") lock(e.message);
+          throw e;
+        }
+        return j.result;
+      });
+  }
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  var day = function (iso) { return iso ? new Date(iso).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : ""; };
+
+  function lock(msg) {
+    token = null; store.set("ph_admin", null);
+    $("app").classList.add("hidden"); $("logout").classList.add("hidden"); $("lockView").classList.remove("hidden");
+    $("lockErr").textContent = msg || ""; $("code").value = ""; $("code").focus();
+    if (pollTimer) clearInterval(pollTimer);
+  }
+  function open() {
+    $("lockView").classList.add("hidden"); $("app").classList.remove("hidden"); $("logout").classList.remove("hidden");
+    load();
+  }
+  $("lockForm").addEventListener("submit", function (e) {
+    e.preventDefault(); $("lockErr").textContent = "Checking…";
+    call("mailingAdminLogin", { code: $("code").value }).then(function (r) {
+      token = r.token; store.set("ph_admin", token); $("lockErr").textContent = ""; open();
+    }).catch(function (err) { $("lockErr").textContent = err.message; $("code").select(); });
+  });
+  $("logout").addEventListener("click", function () { lock(""); });
+
+  document.querySelectorAll(".tabs button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      document.querySelectorAll(".tabs button").forEach(function (x) { x.classList.toggle("on", x === b); });
+      document.querySelectorAll("[data-view]").forEach(function (v) { v.classList.toggle("hidden", v.getAttribute("data-view") !== b.getAttribute("data-tab")); });
+    });
+  });
+
+  function load() {
+    $("rows").innerHTML = '<tr><td colspan="8">Loading…</td></tr>';
+    return call("mailingAdminData", { token: token }).then(function (r) { data = r; renderAll(); })
+      .catch(function (err) { $("rows").innerHTML = '<tr><td colspan="8" class="err">' + esc(err.message) + "</td></tr>"; });
+  }
+  function renderAll() { renderStats(); renderRows(); renderMessages(); renderCampaigns(); }
+  function renderStats() {
+    var subs = data.contacts.filter(function (c) { return c.subscribed; }).length;
+    $("subCount").textContent = subs;
+    $("stats").innerHTML = [["Contacts", data.contacts.length], ["Subscribed", subs], ["Messages", data.messages.length], ["Campaigns", data.campaigns.filter(function (c) { return !c.test; }).length]]
+      .map(function (s) { return '<div class="stat"><b>' + s[1] + "</b><span>" + s[0] + "</span></div>"; }).join("");
+  }
+  function filtered() {
+    var q = $("q").value.trim().toLowerCase(), f = $("filter").value;
+    return data.contacts.filter(function (c) {
+      if (f === "sub" && !c.subscribed) return false;
+      if (f === "unsub" && c.subscribed) return false;
+      return !q || [c.name, c.email, c.phone, c.organization, c.role, c.lastMessage].join(" ").toLowerCase().indexOf(q) >= 0;
+    });
+  }
+  function renderRows() {
+    var list = filtered();
+    $("rows").innerHTML = list.length ? list.map(function (c) {
+      return "<tr><td>" + esc(day(c.createdAt)) + "</td><td>" + esc(c.name) + '</td><td><a href="mailto:' + esc(c.email) + '">' + esc(c.email) + "</a></td><td>" + esc(c.phone) +
+        "</td><td>" + esc(c.organization) + "</td><td>" + esc(c.role) + '</td><td class="msg">' + esc(c.lastMessage) + "</td><td>" +
+        '<span class="pill ' + (c.subscribed ? "on" : "off") + '">' + (c.subscribed ? "Yes" : "No") + "</span> " +
+        '<button class="b b-ghost" style="padding:.2rem .5rem;font-size:.75rem" data-toggle="' + esc(c.id) + '" data-to="' + (!c.subscribed) + '">' + (c.subscribed ? "Unsubscribe" : "Subscribe") + "</button></td></tr>";
+    }).join("") : '<tr><td colspan="8">No contacts yet.</td></tr>';
+  }
+  $("rows").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-toggle]"); if (!b) return;
+    b.disabled = true;
+    call("mailingAdminSetSubscribed", { token: token, id: b.getAttribute("data-toggle"), subscribed: b.getAttribute("data-to") === "true" })
+      .then(load).catch(function (err) { alertBox(err.message); b.disabled = false; });
+  });
+  $("q").addEventListener("input", renderRows); $("filter").addEventListener("change", renderRows);
+  $("reload").addEventListener("click", load);
+  function renderMessages() {
+    $("msgRows").innerHTML = data.messages.length ? data.messages.map(function (m) {
+      return "<tr><td>" + esc(day(m.createdAt)) + "</td><td>" + esc(m.name) + '</td><td><a href="mailto:' + esc(m.email) + '">' + esc(m.email) + "</a></td><td>" + esc(m.phone) +
+        "</td><td>" + esc(m.organization) + "</td><td>" + esc(m.role) + '</td><td class="msg">' + esc(m.message) + "</td></tr>";
+    }).join("") : '<tr><td colspan="7">No messages yet.</td></tr>';
+  }
+  function alertBox(msg) { $("composeErr").textContent = msg; }
+
+  // ---- Excel ----
+  $("xlsx").addEventListener("click", function () {
+    if (!window.XLSX) { alertBox("The Excel library is still loading — try again in a second."); return; }
+    var row = function (c) { return { "Date": day(c.createdAt), "Name": c.name, "Email": c.email, "Phone": c.phone, "Organization": c.organization, "Role": c.role,
+      "Last message": c.lastMessage, "Messages": c.messagesCount, "Subscribed": c.subscribed ? "Yes" : "No", "Subscribed at": day(c.subscribedAt),
+      "Unsubscribed at": day(c.unsubscribedAt), "Source": (c.sources || []).join(", "), "Last updated": day(c.updatedAt) }; };
+    var wb = XLSX.utils.book_new();
+    var add = function (name, rows) { var ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{}]); ws["!cols"] = Object.keys(rows[0] || {}).map(function (k) { return { wch: k === "Last message" || k === "Message" ? 60 : 20 }; }); XLSX.utils.book_append_sheet(wb, ws, name); };
+    add("Address book", data.contacts.map(row));
+    add("Subscribers", data.contacts.filter(function (c) { return c.subscribed; }).map(row));
+    add("Messages", data.messages.map(function (m) { return { "Date": day(m.createdAt), "Name": m.name, "Email": m.email, "Phone": m.phone, "Organization": m.organization, "Role": m.role, "Message": m.message }; }));
+    XLSX.writeFile(wb, "ProHost-address-book-" + new Date().toISOString().slice(0, 10) + ".xlsx");
+  });
+
+  // ---- Compose ----
+  var TPL = {
+    offer: { s: "Half price on your first ProHost Premium subscription", p: "List your clinic, office, studio or meeting room and rent it your way.", h: "Turn your empty hours into income",
+      b: "ProHost is live on Google Play.\n\nList your space and rent it the way that suits you:\n- By the hour, shift, day or month\n- Per attendee for training and meeting rooms\n- **Every request in one inbox**, accepted in a tap\n\nFor a limited time, your first ProHost Premium subscription is **50% off**, monthly or yearly.",
+      c: "Get ProHost", u: "https://pro-host.tech/get?utm_source=email&utm_campaign=offer" },
+    news: { s: "What's new on ProHost", p: "New features for hosts and professionals.", h: "What's new on ProHost", b: "Here's what we've been working on:\n\n- \n- \n- \n\nThank you for being part of ProHost.", c: "Open ProHost", u: "https://pro-host.tech/get?utm_source=email&utm_campaign=news" },
+    blank: { s: "", p: "", h: "", b: "", c: "", u: "" },
+  };
+  document.querySelectorAll("[data-tpl]").forEach(function (a) {
+    a.addEventListener("click", function (e) { e.preventDefault(); var t = TPL[a.getAttribute("data-tpl")];
+      $("c_subject").value = t.s; $("c_pre").value = t.p; $("c_head").value = t.h; $("c_body").value = t.b; $("c_cta").value = t.c; $("c_url").value = t.u; preview(); });
+  });
+  function campaign() { return { subject: $("c_subject").value, preheader: $("c_pre").value, heading: $("c_head").value, body: $("c_body").value, ctaLabel: $("c_cta").value, ctaUrl: $("c_url").value }; }
+  function preview() {
+    alertBox("");
+    return call("mailingAdminPreview", { token: token, campaign: campaign() })
+      .then(function (r) { $("preview").srcdoc = r.html; }).catch(function (err) { alertBox(err.message); });
+  }
+  $("btnPreview").addEventListener("click", preview);
+  $("btnTest").addEventListener("click", function () {
+    var b = this; b.disabled = true; alertBox("");
+    call("mailingAdminSend", { token: token, campaign: campaign(), testOnly: true }).then(function (r) {
+      alertBox(""); $("composeErr").innerHTML = '<span class="ok">Test queued to admin@pro-host.tech.</span>'; watch(r.campaignId, "Test: " + campaign().subject);
+    }).catch(function (err) { alertBox(err.message); }).then(function () { b.disabled = false; });
+  });
+  $("btnSend").addEventListener("click", function () {
+    alertBox("");
+    if (!$("c_subject").value.trim() || $("c_body").value.trim().length < 10) { alertBox("Add a subject and a message first."); return; }
+    $("cfSubject").textContent = $("c_subject").value; $("cfCount").textContent = $("subCount").textContent;
+    $("confirmBox").classList.remove("hidden");
+  });
+  $("btnCancel").addEventListener("click", function () { $("confirmBox").classList.add("hidden"); });
+  $("btnConfirm").addEventListener("click", function () {
+    var b = this; b.disabled = true;
+    call("mailingAdminSend", { token: token, campaign: campaign(), testOnly: false }).then(function (r) {
+      $("confirmBox").classList.add("hidden");
+      document.querySelector('.tabs button[data-tab="campaigns"]').click();
+      watch(r.campaignId, campaign().subject); load();
+    }).catch(function (err) { alertBox(err.message); }).then(function () { b.disabled = false; });
+  });
+
+  // ---- Campaign progress ----
+  function renderCampaigns() {
+    $("campRows").innerHTML = data.campaigns.length ? data.campaigns.map(function (c) {
+      return "<tr><td>" + esc(day(c.createdAt)) + "</td><td>" + (c.test ? '<span class="pill off">Test</span> ' : "") + esc(c.subject) + "</td><td>" + esc(c.total) +
+        '</td><td><button class="b b-ghost" style="padding:.3rem .7rem;font-size:.8rem" data-watch="' + esc(c.id) + '" data-subject="' + esc(c.subject) + '">Delivery status</button></td></tr>';
+    }).join("") : '<tr><td colspan="4">No emails sent yet.</td></tr>';
+  }
+  $("campRows").addEventListener("click", function (e) { var b = e.target.closest("[data-watch]"); if (b) watch(b.getAttribute("data-watch"), b.getAttribute("data-subject")); });
+  function watch(id, subject) {
+    if (pollTimer) clearInterval(pollTimer);
+    $("live").classList.remove("hidden"); $("liveTitle").textContent = subject; $("liveText").textContent = "Checking delivery…";
+    var tick = function () {
+      call("mailingAdminCampaign", { token: token, campaignId: id }).then(function (r) {
+        var c = r.counts, t = r.total || 1, done = (c.SUCCESS || 0) + (c.ERROR || 0);
+        var seg = function (n, color) { return n ? '<i style="width:' + (100 * n / t) + "%;background:" + color + '"></i>' : ""; };
+        $("liveBar").innerHTML = seg(c.SUCCESS, "#2F8F57") + seg(c.ERROR, "#C2410C") + seg((c.PROCESSING || 0) + (c.RETRY || 0), "#F2B84C");
+        $("liveText").innerHTML = "<b>" + (c.SUCCESS || 0) + "</b> delivered · <b>" + ((c.PENDING || 0) + (c.PROCESSING || 0) + (c.RETRY || 0)) + "</b> in progress · <b>" + (c.ERROR || 0) + "</b> failed · " + r.total + " total" +
+          (done >= r.total ? " — <b>finished</b>" : "");
+        $("liveFailed").innerHTML = r.failed.length ? '<p class="fine" style="margin:.6rem 0 .3rem"><b>Not delivered:</b></p><ul style="margin:0 0 .6rem 1.2rem">' +
+          r.failed.map(function (f) { return "<li>" + esc(f.email) + ' <span class="fine">' + esc(f.error) + "</span></li>"; }).join("") +
+          '</ul><button class="b b-steel" id="retry" type="button">Retry failed</button>' : "";
+        var rb = $("retry"); if (rb) rb.onclick = function () { rb.disabled = true; call("mailingAdminRetry", { token: token, campaignId: id }).then(tick); };
+        if (done >= r.total && pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+      }).catch(function (err) { $("liveText").textContent = err.message; });
+    };
+    tick(); pollTimer = setInterval(tick, 4000);
+  }
+
+  if (token) open(); else $("code").focus();
+})();
+</script>
+</body>
+</html>

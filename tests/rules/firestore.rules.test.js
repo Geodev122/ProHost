@@ -185,6 +185,13 @@ describe("workspace_listings", () => {
     await assertFails(getDoc(doc(specCtx(), "display_codes", "U-AAAAAA")));
     await assertFails(setDoc(doc(specCtx(), "mail", "m1"), { to: "a@b.c" }));
   });
+  test("website address book, messages, campaigns and admin sessions are server-only", async () => {
+    for (const col of ["mailing_list", "mailing_messages", "mail_campaigns", "mailing_admin_sessions"]) {
+      await assertFails(getDoc(doc(specCtx(), col, "x1")));
+      await assertFails(setDoc(doc(specCtx(), col, "x1"), { email: "a@b.c", subscribed: true }));
+      await assertFails(getDoc(doc(hostCtx(), col, "x1")));
+    }
+  });
 });
 
 describe("in-app notifications", () => {
