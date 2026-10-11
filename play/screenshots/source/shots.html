@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<!-- Google Play phone screenshots (1080x1920). Each screen is rebuilt in dp from the Compose code
+     (theme colours, shapes, WorkspaceCard, RoomFolderTabs, DetailsBookingBar, ProHostBottomNavBar…);
+     screen 1 is a real capture of the Explore map. Render: python render_shots.py -->
+<style>
+@font-face{font-family:Roboto;src:url(fonts/roboto-latin.woff2) format('woff2');font-weight:100 900;font-display:block}
+@font-face{font-family:PJ;src:url(fonts/pj-latin.woff2) format('woff2');font-weight:200 800;font-display:block}
+@font-face{font-family:MI;src:url(fonts/material-icons.woff2) format('woff2');font-display:block}
+@font-face{font-family:MO;src:url(fonts/material-icons-outlined.woff2) format('woff2');font-display:block}
+:root{
+  --primary:#2B5A8C; --pc:#E5EDF6; --onpc:#173452; --sec:#D2432F; --secc:#FFECE9; --onsecc:#D44432; --orange:#F25F4C;
+  --ok:#2E7D4F; --okc:#EAF7EE; --onokc:#1B5E20; --warn:#B35F00; --warnc:#FEF3E7; --onwarnc:#8A4805;
+  --err:#D32F2F; --errc:#FDE8E8; --ink:#1B242F; --muted:rgba(56,65,82,.70); --sv:#ECEFF4; --outline:#D1D5DC; --ov:#E2E4E8;
+  --bg:#FBFCFE; --wa:#1E7E34;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1080px;height:1920px;overflow:hidden}
+body{font-family:PJ,sans-serif;background:#F3F6FA;position:relative;color:var(--ink)}
+.blob{position:absolute;border-radius:50%;filter:blur(90px)}
+.cap{position:absolute;left:70px;right:70px;top:96px;text-align:center}
+.kick{font:800 30px/1 PJ;letter-spacing:6px;color:var(--primary)}
+body.host .kick{color:var(--sec)}
+.head{font:800 84px/1.06 PJ;letter-spacing:-2.4px;margin-top:26px;text-wrap:balance;color:#16202B}
+.head em{font-style:normal;color:var(--orange)}
+.sub{font:500 34px/1.38 PJ;color:#4B5768;margin-top:24px;text-wrap:balance}
+.phone{position:absolute;left:191px;top:500px;width:698px;height:1412px;border-radius:84px;background:#0F141B;padding:14px;
+  box-shadow:0 50px 90px rgba(18,32,56,.28),0 0 0 3px #2A323D inset}
+.screen{width:670px;height:1384px;border-radius:72px;overflow:hidden;position:relative;background:var(--bg)}
+.dp{width:360px;height:744px;transform:scale(1.8611);transform-origin:0 0;position:absolute;left:0;top:0;font-family:Roboto,sans-serif;
+  color:var(--ink);overflow:hidden;font-size:14px;line-height:1.35}
+.tex{background:var(--bg) radial-gradient(circle at 6px 6px,rgba(43,90,140,.05) .9px,transparent 1.1px) 0 0/12px 12px}
+.mi,.mo{font-family:MI;font-weight:normal;font-style:normal;line-height:1;display:inline-block;white-space:nowrap;-webkit-font-feature-settings:'liga';font-feature-settings:'liga';vertical-align:middle;font-size:24px}
+.mo{font-family:MO}
+.abs{position:absolute}
+.row{display:flex;align-items:center}
+.sb{position:absolute;left:0;right:0;top:0;height:28px;padding:0 20px 0 26px;display:flex;align-items:center;justify-content:space-between;font:500 13px Roboto;color:var(--ink);z-index:20}
+.sb .mi{font-size:15px;margin-left:2px}
+.punch{position:absolute;top:8px;left:50%;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#0F141B;z-index:21}
+/* surfaces */
+.card{background:#fff;border:1px solid rgba(226,228,232,.7);border-radius:16px;box-shadow:0 2px 6px rgba(40,53,68,.08)}
+.circ{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;border:1px solid var(--ov)}
+.float{box-shadow:0 3px 8px rgba(20,30,45,.18);border:0}
+.badge{position:absolute;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--err);color:#fff;font:700 10.5px/17px Roboto;text-align:center;border:1.5px solid #fff}
+.chip{display:inline-flex;align-items:center;gap:3px;border-radius:4px;padding:2px 6px;font:500 11px/1.3 Roboto}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:99px;padding:4px 10px;font:600 12px/1.2 Roboto}
+.btn{white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:12px;height:40px;font:700 13.5px Roboto}
+.btn .mi,.btn .mo{font-size:18px}
+.tb{position:absolute;top:28px;left:0;right:0;height:56px;display:flex;align-items:center;gap:6px;padding:0 6px 0 4px;background:#fff;z-index:5}
+.tb .t{font:600 19px Roboto;flex:1;color:var(--ink);letter-spacing:-.1px}
+.tb .ib{width:44px;height:44px;display:grid;place-items:center;position:relative}
+.h-sec{font:700 11px Roboto;letter-spacing:1px;color:var(--muted)}
+/* bottom nav */
+.nav{position:absolute;left:16px;right:16px;bottom:12px;height:64px;border-radius:28px;background:#fff;border:1px solid var(--ov);
+  box-shadow:0 8px 22px rgba(20,30,45,.16);display:flex;align-items:center;justify-content:space-around;padding:0 8px;z-index:9}
+.nav .it{height:48px;display:flex;align-items:center;gap:6px;padding:0 10px;border-radius:24px;color:var(--muted)}
+.nav .it .mi,.nav .it .mo{font-size:22px}
+.nav .on{background:var(--primary);color:#fff;padding:0 14px;font:700 13.5px Roboto}
+body.host .nav .on{background:var(--sec)}
+.navc{width:40px;height:40px;display:grid;place-items:center;color:var(--muted)}
+/* workspace card */
+.wc{margin:0 12px 12px;padding:16px;border-radius:16px}
+.wc .ph{height:100px;border-radius:12px;background:#ccd center/cover;position:relative}
+.wc .ver{position:absolute;left:8px;top:8px;background:var(--okc);border:1px solid rgba(46,125,79,.5);border-radius:8px;padding:3px 6px;font:700 11px Roboto;color:var(--onokc);display:flex;gap:4px;align-items:center}
+.wc .ver .mi{font-size:12px}
+.wc .hrt{position:absolute;right:8px;top:8px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.88);display:grid;place-items:center}
+.wc .hrt .mi,.wc .hrt .mo{font-size:18px}
+.wc .ty{position:absolute;left:8px;bottom:8px;background:rgba(229,237,246,.92);color:var(--onpc);border-radius:8px;padding:2px 6px;font:700 11px Roboto}
+.wc .tr{display:flex;justify-content:space-between;align-items:flex-start;margin-top:10px}
+.wc .ti{font:700 16px/1.3 Roboto;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:8px}
+.wc .pr{font:800 16px Roboto;color:var(--primary);white-space:nowrap}.wc .pr small{font:400 11px Roboto;color:var(--muted)}
+.wc .lo{display:flex;align-items:center;gap:4px;font:400 12px Roboto;color:var(--muted);margin-top:4px}.wc .lo .mi{font-size:14px;color:var(--primary)}
+.wc .bd{display:flex;gap:6px;margin-top:8px}
+.wc .acts{display:flex;gap:8px;border-top:1px solid rgba(226,228,232,.5);margin-top:12px;padding-top:12px}
+.wc .acts .btn{flex:1;height:38px;font-size:13px}
+.o-btn{border:1px solid var(--outline);color:var(--primary);background:#fff}
+.wa-btn{background:var(--wa);color:#fff}
+.p-btn{background:var(--primary);color:#fff}
+.s-btn{background:var(--sec);color:#fff}
+.mapcard{position:absolute;height:72px;background:#fff;border-radius:14px;box-shadow:0 4px 12px rgba(20,30,45,.16);display:flex;align-items:center;gap:10px;padding:0 10px;font-family:Roboto}
+.mapcard .th{width:48px;height:48px;border-radius:8px;background:center/cover;flex:none}
+.mapcard .tg{display:inline-block;background:var(--primary);color:#fff;font:700 9.5px Roboto;border-radius:3px;padding:1px 5px}
+.pin{position:absolute;width:30px;height:40px;margin:-40px 0 0 -15px}
+.dayc{border:1px solid var(--ov);border-radius:14px;background:#fff;margin-bottom:8px}
+.slot{border-radius:10px;padding:7px 8px;font:500 12px/1.25 Roboto;border:1px solid var(--outline);background:#fff}
+.slot b{display:block;font-weight:700;font-size:12.5px}
+.slot.sel{background:var(--primary);border-color:var(--primary);color:#fff}
+.slot.full{background:#F5F6F8;color:#9EA7B4;border-color:#E6E8EC}
+.kv{display:flex;justify-content:space-between;font:400 12.5px/1.25 Roboto;padding:5px 0}
+.kv span:first-child{color:var(--muted)}.kv span:last-child{font-weight:600;text-align:right}
+.occ{display:grid;grid-template-columns:62px repeat(7,1fr);gap:3px;font:500 10px Roboto;align-items:center}
+.occ .c{height:24px;border-radius:5px}
+.occ .f{background:#E3F4E8}.occ .b{background:#FBE0DC}
+</style></head>
+<body>
+<div class="blob" id="b1"></div><div class="blob" id="b2"></div>
+<div class="cap"><div class="kick" id="kick"></div><div class="head" id="head"></div><div class="sub" id="sub"></div></div>
+<div class="phone"><div class="screen"><div class="dp tex" id="dp"></div></div></div>
+<script>
+const R = "../../../";
+const ph = (n) => `url(${R}marketing/backgrounds/${n}.jpg)`;
+const I = (n, cls = "mi", st = "") => `<i class="${cls}" style="${st}">${n}</i>`;
+const SB = `<div class="punch"></div><div class="sb"><span>9:41</span><span>${I("signal_cellular_alt")}${I("wifi")}${I("battery_full")}</span></div>`;
+const nav = (tabs, on) => `<div class="nav">${tabs.map(([icon, label, out]) => label === on
+  ? `<div class="it on">${I(icon)}<span>${label}</span></div>`
+  : `<div class="it">${I(out || icon, "mo")}</div>`).join("")}<div class="navc">${I("keyboard_arrow_down")}</div></div>`;
+const SPEC = [["search", "Explore", "search"], ["favorite", "Saved", "favorite_border"], ["receipt_long", "Rentals"], ["person", "Profile", "person_outline"]];
+const HOST = [["home_work", "Listings"], ["schedule", "Progress"], ["receipt_long", "Rentals"], ["person", "Profile", "person_outline"]];
+const logoPill = (float) => `<div class="row" style="gap:6px;background:#fff;border-radius:22px;padding:6px 12px 6px 8px;${float ? "box-shadow:0 3px 8px rgba(20,30,45,.18)" : "border:1px solid var(--ov)"}">
+  <img src="${R}public/logo.png" style="width:24px;height:24px;object-fit:contain"><b style="font:800 14px Roboto">ProHost</b></div>`;
+const wcard = (o) => `<div class="card wc">
+  <div class="ph" style="background-image:${ph(o.img)}">${o.ver ? `<div class="ver">${I("verified")}Verified</div>` : ""}
+    <div class="hrt">${o.saved ? I("favorite", "mi", "color:var(--err)") : I("favorite_border", "mo")}</div><div class="ty">${o.type}</div></div>
+  <div class="tr"><div class="ti">${o.title}</div><div class="pr">$${o.price}<small>${o.unit}</small></div></div>
+  <div class="lo">${I("place")}${o.loc}</div>
+  <div class="bd"><span class="chip" style="background:var(--sv);color:var(--muted)">${I("access_time", "mi", "font-size:10px")} ${o.hours}</span>
+    <span class="chip" style="background:rgba(255,236,233,.6);color:var(--onsecc)">${I("calendar_month", "mi", "font-size:10px")} ${o.days}</span></div>
+  <div class="bd" style="gap:4px;margin-top:6px">${o.f.map((x) => `<span class="chip" style="background:rgba(229,237,246,.45);color:var(--primary)">${x}</span>`).join("")}</div>
+  <div class="acts"><div class="btn o-btn">${I("visibility")}Check Space</div><div class="btn wa-btn">${I("chat")}WhatsApp</div></div></div>`;
+const exploreHeader = (float) => `<div class="abs" style="left:12px;right:12px;top:${float ? 36 : 34}px;z-index:6">
+  <div class="row" style="justify-content:space-between;height:44px">
+    <div class="circ ${float ? "float" : ""}">${I("search", "mi", "color:var(--primary)")}</div>${logoPill(float)}
+    <div style="position:relative"><div class="circ ${float ? "float" : ""}">${I("notifications_active")}</div><span class="badge" style="right:-3px;top:-4px">2</span></div></div>
+  <div class="row" style="justify-content:space-between;height:44px;margin-top:8px">
+    <div class="row" style="background:#fff;border-radius:24px;padding:3px;gap:2px;${float ? "box-shadow:0 3px 8px rgba(20,30,45,.18)" : "border:1px solid var(--ov)"}">
+      <div style="width:44px;height:36px;border-radius:18px;display:grid;place-items:center;${float ? "background:var(--primary);color:#fff" : "color:var(--muted)"}">${I("map")}</div>
+      <div style="width:44px;height:36px;border-radius:18px;display:grid;place-items:center;${float ? "color:var(--muted)" : "background:var(--primary);color:#fff"}">${I("format_list_bulleted")}</div></div>
+    <div style="position:relative"><div class="circ ${float ? "float" : ""}">${I("tune", "mi", "color:var(--sec)")}</div>${float ? "" : `<span class="badge" style="right:-3px;top:-4px;background:var(--sec)">1</span>`}</div></div></div>`;
+const pinSvg = (c1, c2) => `<svg class="pin" viewBox="0 0 30 40"><defs><linearGradient id="g${c1.slice(1)}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>
+  <path d="M15 1C7.3 1 1 7.1 1 14.7 1 25 15 39 15 39s14-14 14-24.3C29 7.1 22.7 1 15 1z" fill="url(#g${c1.slice(1)})"/><circle cx="15" cy="14.5" r="5.2" fill="#fff"/></svg>`;
+
+const SHOTS = {
+  1: { kick: "FIND A WORKSPACE", head: "Rooms for your <em>practice</em>, on one map", sub: "Clinics, therapy rooms, studios and meeting rooms across Lebanon",
+    screen: () => `<div class="abs" style="left:0;top:20px;width:360px;height:726px;background:url(${R}marketing/source/assets/map.jpg) 0 0/360px 726px"></div>
+      <div class="abs" style="left:349px;top:30px;width:11px;height:26px;background:#F1F2F4"></div>
+      <span class="badge abs" style="left:336px;top:28px">2</span>
+      ${[[118, 300, "#6E97C4", "#2B5A8C"], [262, 236, "#FF8F73", "#F25F4C"], [70, 470, "#7DD9A0", "#2E7D4F"], [300, 420, "#6E97C4", "#2B5A8C"]]
+        .map(([x, y, a, b]) => `<div class="abs" style="left:${x}px;top:${y}px">${pinSvg(a, b)}</div>`).join("")}
+      <div class="abs" style="left:0;right:0;top:584px;height:88px;background:linear-gradient(transparent,rgba(240,241,243,.0))"></div>
+      <div class="mapcard" style="left:11px;top:604px;width:262px;height:80px">
+        <div class="th" style="background-image:${ph("therapy")}"></div>
+        <div style="flex:1;min-width:0"><div class="row" style="justify-content:space-between"><span class="tg">Room</span><span style="font:800 13px Roboto;color:var(--primary)">$15<span style="font:400 9.5px Roboto;color:var(--muted)">/hr</span></span></div>
+          <div style="font:700 13px Roboto;margin-top:3px">Quiet therapy room</div><div style="font:400 10px Roboto;color:var(--muted)">Achrafieh Wellness Suite</div>
+          <div style="font:500 10px Roboto;color:var(--primary)">${I("keyboard_arrow_up", "mi", "font-size:11px")} Select choices, and Request</div></div></div>
+      <div class="mapcard" style="left:281px;top:604px;width:262px;height:80px"><div class="th" style="background-image:${ph("clinic")}"></div>
+        <div><span class="tg">Office</span><div style="font:700 13px Roboto;margin-top:3px">Clinic 2</div></div></div>
+      ${SB.replace('class="sb"', 'class="sb" style="background:rgba(255,255,255,.85)"')}` },
+
+  2: { kick: "SEARCH & FILTER", head: "By the <em>hour</em>, shift, day or month", sub: "Filter by space type, room and pricing to find what fits your schedule",
+    screen: () => `${SB}${exploreHeader(false)}
+      <div class="abs" style="left:0;right:0;top:138px">
+        <div class="row" style="gap:6px;padding:0 12px 10px;font:500 12px Roboto;color:var(--muted)">${I("tune", "mi", "font-size:15px;color:var(--sec)")} Pricing formula: <b style="color:var(--ink)">Per-Hour</b> · 24 workspaces</div>
+        ${wcard({ img: "therapy", ver: 1, saved: 1, type: "Center", title: "Achrafieh Wellness Suite", price: 15, unit: "/hr", loc: "Achrafieh, Beirut", hours: "08:00 - 20:00", days: "6 days/wk", f: ["Per-Hour", "Shift-Based"] })}
+        ${wcard({ img: "meeting", ver: 1, type: "Co-working Space", title: "Mar Mikhael Meeting Rooms", price: 20, unit: "/hr", loc: "Mar Mikhael, Beirut", hours: "09:00 - 21:00", days: "7 days/wk", f: ["Per-Hour", "Day-Based"] })}
+      </div>${nav(SPEC, "Explore")}` },
+
+  3: { kick: "EVERY ROOM, IN DETAIL", head: "See each <em>room</em> before you book", sub: "Photos, capacity, pricing and live availability for every room",
+    screen: () => `<div class="abs" style="left:0;right:0;top:0;height:222px;background:${ph("clinic")} center/cover"></div>
+      <div class="abs" style="left:0;right:0;top:0;height:80px;background:linear-gradient(rgba(0,0,0,.35),transparent)"></div>
+      ${SB.replace('class="sb"', 'class="sb" style="color:#fff"')}
+      <div class="abs row" style="left:12px;right:12px;top:34px;justify-content:space-between">
+        <div class="circ float" style="width:40px;height:40px">${I("arrow_back")}</div>
+        <div class="row" style="gap:8px"><div class="circ float" style="width:40px;height:40px">${I("share", "mo", "font-size:20px")}</div><div class="circ float" style="width:40px;height:40px">${I("favorite", "mi", "font-size:20px;color:var(--err)")}</div></div></div>
+      <div class="abs row" style="left:0;right:0;top:204px;justify-content:center;gap:5px">${[1, 0, 0, 0].map((a) => `<span style="width:${a ? 7 : 5}px;height:${a ? 7 : 5}px;border-radius:50%;background:#fff;opacity:${a ? 1 : .7}"></span>`).join("")}</div>
+      <div class="abs tex" style="left:0;right:0;top:222px;bottom:0;padding:14px 16px 0">
+        <div class="row" style="gap:6px"><span class="chip" style="background:var(--pc);color:var(--onpc);font-weight:700">Polyclinic</span><span class="chip" style="background:var(--okc);color:var(--onokc);font-weight:700">${I("verified", "mi", "font-size:12px")} Verified</span></div>
+        <div style="font:700 21px/1.25 Roboto;margin-top:8px;letter-spacing:-.2px">Hamra Medical Center</div>
+        <div class="row" style="gap:4px;font:400 12.5px Roboto;color:var(--muted);margin-top:3px">${I("place", "mi", "font-size:15px;color:var(--primary)")} Hamra, Beirut · Mon – Sat, 08:00 - 20:00</div>
+        <div class="card row" style="gap:10px;padding:10px 12px;margin-top:12px">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--pc);color:var(--primary);display:grid;place-items:center;font:700 14px Roboto">NK</div>
+          <div style="flex:1"><div style="font:700 13px Roboto">Nadine K.</div><div style="font:400 11px Roboto;color:var(--ok)">${I("verified", "mi", "font-size:11px")} Verified</div></div>
+          <div class="btn" style="height:32px;padding:0 10px;border:1px solid rgba(30,126,52,.5);color:var(--wa);font-size:11.5px;border-radius:10px">${I("chat", "mi", "font-size:15px")} Ask the host on WhatsApp</div></div>
+        <div style="font:700 15px Roboto;margin:14px 0 8px">Rental Options</div>
+        <div class="row" style="gap:4px;align-items:flex-end">
+          <div style="background:rgba(229,237,246,.55);border-radius:12px 12px 0 0;padding:7px 12px 6px;border-top:3px solid var(--primary)"><div style="font:700 12.5px Roboto;color:var(--onpc)">Clinic 1</div><div style="font:400 10px Roboto;color:var(--muted)">Office</div></div>
+          <div style="background:rgba(236,239,244,.6);border-radius:12px 12px 0 0;padding:7px 12px 6px"><div style="font:600 12.5px Roboto;color:var(--muted)">Clinic 2</div><div style="font:400 10px Roboto;color:var(--muted)">Office</div></div>
+          <div style="background:rgba(236,239,244,.6);border-radius:12px 12px 0 0;padding:7px 12px 6px"><div style="font:600 12.5px Roboto;color:var(--muted)">Group Room</div><div style="font:400 10px Roboto;color:var(--muted)">Conference Room</div></div></div>
+        <div style="background:rgba(229,237,246,.55);border-radius:0 12px 12px 12px;padding:10px">
+          <div class="card" style="padding:10px;border-radius:14px">
+            <div style="height:116px;border-radius:10px;background:${ph("medical")} center/cover;position:relative">
+              <div class="abs row" style="left:0;right:0;bottom:6px;justify-content:center;gap:4px">${[1, 0, 0].map((a) => `<span style="width:${a ? 6 : 4}px;height:${a ? 6 : 4}px;border-radius:50%;background:#fff"></span>`).join("")}</div></div>
+            <div class="row" style="justify-content:space-between;margin-top:8px"><b style="font:700 14px Roboto">Clinic 1</b><span style="font:800 14px Roboto;color:var(--primary)">$35<span style="font:400 10.5px Roboto;color:var(--muted)">/shift</span></span></div>
+            <div class="row" style="gap:5px;margin-top:5px"><span class="chip" style="background:var(--sv);color:var(--muted)">${I("groups", "mi", "font-size:12px")} Up to 3</span><span class="chip" style="background:rgba(229,237,246,.6);color:var(--primary)">Shift-Based</span><span class="chip" style="background:var(--sv);color:var(--muted)">Morning · Afternoon</span></div>
+          </div></div></div>
+      <div class="abs" style="left:0;right:0;bottom:0;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -6px 18px rgba(20,30,45,.12);padding:8px 16px 14px;z-index:8">
+        <div style="width:36px;height:4px;border-radius:2px;background:#C9CED6;margin:0 auto 8px"></div>
+        <div class="row" style="justify-content:space-between"><span class="pill" style="background:var(--pc);color:var(--onpc)">${I("meeting_room", "mi", "font-size:16px")} Clinic 1</span>
+          <span class="row" style="gap:6px;font:500 12px Roboto;color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:var(--ok)"></span>5 slots open ${I("keyboard_arrow_up", "mi", "font-size:20px")}</span></div>
+        <div style="height:1px;background:rgba(226,228,232,.6);margin:9px 0"></div>
+        <div class="row" style="justify-content:space-between"><div><span style="font:800 19px Roboto">$35</span><span style="font:400 12px Roboto;color:var(--muted)"> USD/shift</span><div style="font:400 11px Roboto;color:var(--muted)">Tap the card to check live availability</div></div>
+          <div class="btn p-btn" style="height:48px;padding:0 18px">${I("event_available")}Availability</div></div></div>` },
+
+  4: { kick: "BOOK IN SECONDS", head: "Pick your slots, <em>send</em> a request", sub: "Choose the days and hours you need. The host confirms in the app.",
+    screen: () => `<div class="abs" style="inset:0;background:${ph("clinic")} center top/360px 222px no-repeat,var(--bg)"></div>${SB}
+      <div class="abs" style="inset:0;background:rgba(15,20,27,.42)"></div>
+      <div class="abs" style="left:0;right:0;top:118px;bottom:0;background:#fff;border-radius:24px 24px 0 0;padding:10px 16px 0">
+        <div style="width:36px;height:4px;border-radius:2px;background:#C9CED6;margin:0 auto 12px"></div>
+        <div style="font:700 19px Roboto">Check Availability</div>
+        <div style="font:400 12px Roboto;color:var(--muted);margin-top:2px">Hamra Medical Center · Clinic 1 · Shift-Based</div>
+        <div class="row" style="gap:6px;margin:12px 0">${["Clinic 1", "Clinic 2", "Group Room"].map((r, i) => `<span class="pill" style="${i ? "background:var(--sv);color:var(--muted)" : "background:var(--primary);color:#fff"}">${r}</span>`).join("")}</div>
+        <div style="font:400 12px Roboto;color:var(--muted);margin-bottom:8px">Tap a day to expand and select open slots.</div>
+        ${[["Monday", "Mon 13 Oct", [["Morning", "08:00 - 14:00", "sel"], ["Afternoon", "14:00 - 20:00", ""]]],
+           ["Wednesday", "Wed 15 Oct", [["Morning", "08:00 - 14:00", "sel"], ["Afternoon", "14:00 - 20:00", "full"]]],
+           ["Friday", "Fri 17 Oct", [["Morning", "08:00 - 14:00", "full"], ["Afternoon", "14:00 - 20:00", "sel"]]]]
+          .map(([d, dt, sl]) => `<div class="dayc" style="padding:10px 12px">
+            <div class="row" style="justify-content:space-between"><div><b style="font:700 13.5px Roboto">${d}</b> <span style="font:400 11.5px Roboto;color:var(--muted)">· ${dt}</span></div>
+              <span style="font:500 11px Roboto;color:var(--ok)">${sl.filter((s) => s[2] !== "full").length} open ${I("expand_less", "mi", "font-size:18px;color:var(--muted)")}</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px">${sl.map(([n, h, c]) => `<div class="slot ${c}"><b>${n}${c === "sel" ? ` ${I("check_circle", "mi", "font-size:13px;float:right")}` : ""}</b>${h} · ${c === "full" ? "FULL" : "$35"}</div>`).join("")}</div></div>`).join("")}
+        <div class="row" style="gap:6px;margin:4px 0 0;font:400 11.5px Roboto;color:var(--muted)">${I("event_repeat", "mi", "font-size:15px")} Weekly · starts Mon 13 Oct</div></div>
+      <div class="abs" style="left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--ov);padding:12px 16px 16px;z-index:9">
+        <div class="row" style="justify-content:space-between"><div><div style="font:500 11px Roboto;color:var(--muted)">Estimated Total</div><div style="font:800 20px Roboto">$105 <span style="font:400 12px Roboto;color:var(--muted)">USD / week · 3 shifts</span></div></div>
+          <div class="btn s-btn" style="height:46px;padding:0 22px;border-radius:14px">${I("send", "mi", "font-size:17px")}Send</div></div></div>` },
+
+  5: { kick: "STAY ORGANISED", head: "All your <em>rentals</em> in one place", sub: "Track requests, message hosts on WhatsApp and add payment reminders",
+    screen: () => `${SB}<div class="tb"><div style="width:10px"></div><div class="t">My Rentals</div><div class="ib">${I("notifications_none", "mo")}</div></div>
+      <div class="abs" style="left:0;right:0;top:84px;background:#fff;border-bottom:1px solid var(--ov);display:flex;font:600 13px Roboto">
+        ${[["Active (2)", 1], ["Pending (1)", 0], ["History", 0]].map(([t, a]) => `<div style="flex:1;text-align:center;padding:12px 0;${a ? "color:var(--primary);border-bottom:3px solid var(--primary)" : "color:var(--muted)"}">${t}</div>`).join("")}</div>
+      <div class="abs" style="left:12px;right:12px;top:136px">
+        ${[["therapy", "Achrafieh Wellness Suite", "Therapy room 1", "Confirmed", "ok", "Per-Hour · Tue, Thu", "16:00 - 19:00", "Started Tue 7 Oct · weekly", "$90 USD / week", "You marked this paid"],
+           ["yoga", "Badaro Movement Studio", "Main studio", "Confirmed", "ok", "Per-Hour · Sat", "10:00 - 12:00", "Starts Sat 18 Oct · weekly", "$40 USD / week", "Not marked paid yet"]]
+          .map(([img, t, room, st, c, f, h, d, tot, paid], i) => `<div class="card" style="padding:12px;margin-bottom:10px">
+            <div class="row" style="gap:10px"><div style="width:52px;height:52px;border-radius:10px;background:${ph(img)} center/cover;flex:none"></div>
+              <div style="flex:1;min-width:0"><div style="font:700 14.5px Roboto">${t}</div><div style="font:400 11.5px Roboto;color:var(--muted)">${room} · B-${["7KQ2MD", "R4X9TA"][i]}</div></div>
+              <span class="pill" style="background:var(--okc);color:var(--onokc);padding:3px 8px;font-size:11px">${I("check_circle", "mi", "font-size:13px")}${st}</span></div>
+            <div style="background:#F6F8FB;border-radius:10px;padding:6px 10px;margin-top:10px">
+              <div class="h-sec" style="margin-top:2px">FORMULA & TIMING</div><div class="kv"><span>${f}</span><span>${h}</span></div>
+              <div class="h-sec" style="margin-top:4px">DURATION & LEASE</div><div class="kv"><span>Term</span><span>${d}</span></div>
+              <div class="kv" style="border-top:1px solid var(--ov);margin-top:3px;padding-top:7px"><span>Total Commitment</span><span style="color:var(--primary);font-weight:800">${tot}</span></div></div>
+            <div style="font:500 11px Roboto;color:${i ? "var(--muted)" : "var(--ok)"};margin-top:7px">${I(i ? "radio_button_unchecked" : "check", "mi", "font-size:13px")} ${paid}</div>
+            <div class="row" style="gap:8px;margin-top:8px"><div class="btn wa-btn" style="flex:1;height:36px;font-size:12.5px">${I("chat")}WhatsApp Host</div>
+              <div class="btn o-btn" style="flex:1;height:36px;font-size:12.5px">${I(i ? "payments" : "event", "mo")}${i ? "Mark as Paid" : "Payment reminders"}</div></div></div>`).join("")}
+      </div>${nav(SPEC, "Rentals")}` },
+
+  6: { kick: "FOR SPACE OWNERS", host: 1, head: "List your rooms, <em>fill</em> empty hours", sub: "Rent by the hour, shift, day, month or per attendee",
+    screen: () => `${SB}<div class="tb">${`<div class="ib">${I("menu")}</div>`}<div class="t">My Listings</div><div class="ib">${I("notifications_active")}<span class="badge" style="right:6px;top:6px">3</span></div></div>
+      <div class="abs" style="left:12px;right:12px;top:92px">
+        <div style="border-radius:18px;padding:14px 16px;background:linear-gradient(135deg,#2B5A8C,#4A78AB);color:#fff">
+          <div style="font:700 11px Roboto;letter-spacing:1px;opacity:.85">PROHOST PORTAL</div><div style="font:700 17px Roboto;margin-top:3px">Your listings & availability</div>
+          <div class="row" style="gap:14px;margin-top:10px;font:500 11.5px Roboto">
+            ${[["3", "Listings"], ["7", "Rooms"], ["2", "Requests"]].map(([n, l]) => `<div><div style="font:800 18px Roboto">${n}</div><div style="opacity:.85;white-space:nowrap">${l}</div></div>`).join("")}
+            <div style="flex:1"></div><div class="btn" style="background:var(--sec);color:#fff;height:36px;padding:0 12px;font-size:12.5px">${I("add")}Add Listing</div></div></div>
+        ${[["hotel", "Hamra Boutique Hotel — Meetings", "Conference rooms · 2 rooms", "Verified Listing", "ok", "Per attendee · Day-Based"],
+           ["yoga", "Badaro Movement Studio", "Studio · 1 room", "Verified Listing", "ok", "Per-Hour · Per attendee"],
+           ["classroom", "Jdeideh Training Center", "Training rooms · 4 rooms", "Pending Admin Review", "warn", "Shift-Based · Day-Based"]]
+          .map(([img, t, s, st, c, f]) => `<div class="card" style="padding:10px;margin-top:10px;display:flex;gap:10px">
+            <div style="width:84px;height:84px;border-radius:12px;background:${ph(img)} center/cover;flex:none"></div>
+            <div style="flex:1;min-width:0"><span class="chip" style="font-weight:700;background:var(--${c}c);color:var(--on${c}c)">${I(c === "ok" ? "verified" : "hourglass_top", "mi", "font-size:12px")} ${st}</span>
+              <div style="font:700 13.5px/1.25 Roboto;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t}</div>
+              <div style="font:400 11px Roboto;color:var(--muted)">${s}</div><div style="font:500 11px Roboto;color:var(--primary);margin-top:2px">${f}</div>
+              <div class="row" style="gap:6px;margin-top:6px"><div class="btn p-btn" style="height:28px;padding:0 10px;font-size:11.5px;border-radius:8px">Manage</div><div class="btn o-btn" style="height:28px;padding:0 10px;font-size:11.5px;border-radius:8px">${I("edit", "mo", "font-size:14px")}Edit Listing</div></div></div></div>`).join("")}
+      </div>${nav(HOST, "Listings")}` },
+
+  7: { kick: "FOR SPACE OWNERS", host: 1, head: "Accept requests in <em>one tap</em>", sub: "Review every request, then accept, decline or change the price",
+    screen: () => `${SB}<div class="tb"><div class="ib">${I("menu")}</div><div class="t">Renting Requests</div><div class="ib">${I("notifications_none", "mo")}</div></div>
+      <div class="abs" style="left:12px;right:12px;top:92px">
+        <div style="font:400 12px Roboto;color:var(--muted)">Review and confirm professional rental contracts</div>
+        <div class="row" style="gap:6px;margin:10px 0">${[["Pending (2)", 1], ["Accepted (5)", 0], ["Declined", 0]].map(([t, a]) => `<span class="pill" style="${a ? "background:var(--secc);color:var(--onsecc);border:1px solid rgba(210,67,47,.4)" : "background:#fff;color:var(--muted);border:1px solid var(--outline)"}">${a ? I("check", "mi", "font-size:14px") : ""}${t}</span>`).join("")}</div>
+        <div class="card" style="padding:14px">
+          <div class="row" style="justify-content:space-between"><b style="font:700 15px Roboto">Booking Request</b><span class="chip" style="font-weight:700;background:var(--warnc);color:var(--onwarnc)">PENDING</span></div>
+          <div class="row" style="gap:10px;margin-top:10px"><div style="width:38px;height:38px;border-radius:50%;background:var(--pc);color:var(--primary);display:grid;place-items:center;font:700 14px Roboto">RH</div>
+            <div><div style="font:700 13.5px Roboto">Rana H. · Psychologist</div><div style="font:400 11px Roboto;color:var(--ok)">${I("verified", "mi", "font-size:11px")} Verified phone · U-8KD2QW</div></div></div>
+          <div style="margin-top:10px">${[["Space", "Hamra Medical Center"], ["Room / Area", "Clinic 1"], ["Schedule", "Mon, Wed, Fri · Morning shift"], ["Start Date", "Mon 13 Oct 2026"], ["Submitted", "Oct 11, 2026 · 10:24"]]
+            .map(([k, v]) => `<div class="kv"><span>${k}</span><span>${v}</span></div>`).join("")}
+            <div class="kv" style="border-top:1px solid var(--ov);margin-top:4px;padding-top:8px"><span>Total</span><span style="font:800 15px Roboto;color:var(--primary)">$105 USD / week</span></div></div>
+          <div class="row" style="gap:8px;margin-top:12px"><div class="btn o-btn" style="flex:1;color:var(--err);border-color:rgba(211,47,47,.4)">${I("close")}Reject</div><div class="btn s-btn" style="flex:1.4">${I("check")}Accept</div></div>
+          <div class="row" style="gap:8px;margin-top:8px"><div class="btn" style="flex:1;height:36px;font-size:12.5px;color:var(--wa);border:1px solid rgba(30,126,52,.4)">${I("chat")}WhatsApp</div><div class="btn o-btn" style="flex:1;height:36px;font-size:12.5px">${I("sell", "mo")}Change price</div></div></div>
+        <div class="card" style="padding:12px 14px;margin-top:10px;opacity:.95">
+          <div class="row" style="justify-content:space-between"><b style="font:700 14px Roboto">Change Request</b><span class="chip" style="font-weight:700;background:var(--warnc);color:var(--onwarnc)">PENDING</span></div>
+          <div style="font:400 12px Roboto;color:var(--muted);margin-top:4px">Karim S. · Life coach — Group Room · Sat 10:00 - 13:00</div></div>
+      </div>` },
+
+  8: { kick: "FOR SPACE OWNERS", host: 1, head: "Your <em>occupancy</em> and revenue at a glance", sub: "See booked and free slots for the week ahead, and change prices any time",
+    screen: () => `${SB}<div class="tb"><div class="ib">${I("arrow_back")}</div><div class="t">Manage</div><div class="ib">${I("more_vert")}</div></div>
+      <div class="abs" style="left:12px;right:12px;top:90px">
+        <div style="font:700 17px Roboto">Hamra Medical Center</div><div style="font:400 11.5px Roboto;color:var(--muted)">L-4MZ8QH · 3 rooms · Shift-Based</div>
+        <div class="row" style="gap:8px;margin-top:10px">
+          <div class="card" style="flex:1;padding:10px 12px"><div style="font:500 11px Roboto;color:var(--muted)">Yield This Month</div><div style="font:800 21px Roboto;color:var(--ok);margin-top:2px">$1,260</div><div style="font:400 10.5px Roboto;color:var(--ok)">${I("trending_up", "mi", "font-size:13px")} 12 accepted bookings</div></div>
+          <div class="card" style="flex:1;padding:10px 12px"><div style="font:500 11px Roboto;color:var(--muted)">Occupancy</div><div style="font:800 21px Roboto;color:var(--primary);margin-top:2px">68%</div><div style="font:400 10.5px Roboto;color:var(--muted)">next 7 days</div></div></div>
+        <div class="card" style="padding:12px;margin-top:10px">
+          <div class="row" style="justify-content:space-between"><div><b style="font:700 14px Roboto">Change price</b><div style="font:400 11px Roboto;color:var(--muted)">Keep, apply now or from the next term</div></div><div class="btn o-btn" style="height:32px;padding:0 12px;font-size:12px">${I("sell", "mo", "font-size:15px")}Change</div></div></div>
+        <div class="card" style="padding:12px;margin-top:10px">
+          <b style="font:700 14px Roboto">Availability</b><div style="font:400 11px Roboto;color:var(--muted);margin:2px 0 10px">Configured slots and their current booking state</div>
+          <div class="occ" style="margin-bottom:5px;color:var(--muted)"><span></span>${["Mon\n13", "Tue\n14", "Wed\n15", "Thu\n16", "Fri\n17", "Sat\n18", "Sun\n19"].map((d) => `<span style="text-align:center;white-space:pre-line;line-height:1.15">${d}</span>`).join("")}</div>
+          ${[["Clinic 1 · AM", "bbbfbfb"], ["Clinic 1 · PM", "fbfbfff"], ["Clinic 2 · AM", "bbbbbff"], ["Clinic 2 · PM", "ffbfbbf"], ["Group · Day", "fbffbbf"]]
+            .map(([n, s]) => `<div class="occ" style="margin-bottom:4px"><span style="color:var(--ink);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${n}</span>${[...s].map((x) => `<span class="c ${x}"></span>`).join("")}</div>`).join("")}
+          <div class="row" style="gap:12px;margin-top:8px;font:400 10.5px Roboto;color:var(--muted)"><span class="row" style="gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#E3F4E8"></span>Free</span><span class="row" style="gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#FBE0DC"></span>Booked</span></div></div>
+        <div class="card" style="padding:12px;margin-top:10px"><b style="font:700 14px Roboto">Division Performance</b>
+          ${[["Clinic 1", 74], ["Clinic 2", 66], ["Group Room", 48]].map(([n, p]) => `<div style="margin-top:8px"><div class="row" style="justify-content:space-between;font:500 11.5px Roboto"><span>${n}</span><span style="color:var(--muted)">${p}% occupied</span></div><div style="height:6px;border-radius:3px;background:var(--sv);margin-top:4px"><div style="width:${p}%;height:6px;border-radius:3px;background:var(--primary)"></div></div></div>`).join("")}</div>
+      </div>` },
+};
+
+const n = +(location.hash.slice(1) || 1);
+const s = SHOTS[n];
+document.getElementById("kick").textContent = s.kick;
+document.getElementById("head").innerHTML = s.head;
+document.getElementById("sub").textContent = s.sub;
+document.getElementById("dp").innerHTML = s.screen();
+if (s.host) document.body.classList.add("host");
+const b1 = document.getElementById("b1"), b2 = document.getElementById("b2");
+Object.assign(b1.style, { width: "720px", height: "720px", left: "-300px", top: "-180px", background: s.host ? "#FFD9D2" : "#CFE0F3", opacity: .9 });
+Object.assign(b2.style, { width: "760px", height: "760px", right: "-340px", top: "900px", background: s.host ? "#CFE0F3" : "#FFE1DB", opacity: .8 });
+</script></body></html>

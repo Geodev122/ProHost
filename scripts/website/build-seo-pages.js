@@ -1,0 +1,236 @@
+#!/usr/bin/env node
+// Builds the pro-host.tech search landing pages (English + Arabic) from seo-pages.js into public/.
+// Run after editing copy:  node scripts/website/build-seo-pages.js
+const fs = require("fs");
+const path = require("path");
+const { PAGES, AR, AREAS_BEIRUT, AREAS_LEB } = require("./seo-pages");
+
+const SITE = "https://pro-host.tech";
+const PUB = path.join(__dirname, "..", "..", "public");
+const PLAY = "https://play.google.com/store/apps/details?id=app.geonajjar.prohost";
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const strip = (s) => s.replace(/<[^>]+>/g, "");
+const bySlug = Object.fromEntries(PAGES.map((p) => [p.slug, p]));
+const NAV_LABEL = {
+  "clinic-room-rental-lebanon": "Clinic rooms", "therapy-room-rental-beirut": "Therapy rooms", "meeting-room-rental-beirut": "Meeting rooms",
+  "training-room-rental-lebanon": "Training rooms", "studio-rental-beirut": "Studios", "office-space-by-the-hour-lebanon": "Offices & desks",
+  "list-your-space": "List your space",
+};
+const getUrl = (medium, slug) => `/get?utm_source=website&amp;utm_medium=${medium}&amp;utm_campaign=seo_${slug.replace(/-/g, "_")}`;
+const PLAY_SVG = `<svg width="26" height="28" viewBox="0 0 26 28" aria-hidden="true"><path d="M1.2.5 14.6 14 1.2 27.5c-.5-.3-.8-.9-.8-1.6V2.1c0-.7.3-1.3.8-1.6z" fill="#00D7FE"/><path d="M19.1 9.5 14.6 14 1.2.5c.2-.1.4-.2.7-.2.3 0 .6.1.9.2l16.3 9z" fill="#00F076"/><path d="M19.1 18.5 2.8 27.7c-.3.2-.6.2-.9.2-.3 0-.5-.1-.7-.2L14.6 14l4.5 4.5z" fill="#FF3A44"/><path d="M24.6 14c0 .6-.3 1.2-.9 1.5l-4.6 3L14.6 14l4.5-4.5 4.6 3c.6.3.9.9.9 1.5z" fill="#FFD500"/></svg>`;
+
+const ORG = { "@type": "Organization", "@id": `${SITE}/#org`, name: "ProHost", url: `${SITE}/`, logo: `${SITE}/logo.png`, email: "admin@pro-host.tech",
+  sameAs: [PLAY], areaServed: { "@type": "Country", name: "Lebanon" } };
+
+const WEBSITE = { "@type": "WebSite", "@id": `${SITE}/#site`, url: `${SITE}/`, name: "ProHost", inLanguage: ["en", "ar"], publisher: { "@id": `${SITE}/#org` } };
+
+function head({ lang, dir, title, description, keywords, canonical, image, ld, alternates }) {
+  return `<!DOCTYPE html>
+<html lang="${lang}"${dir ? ` dir="${dir}"` : ""}>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(description)}">
+<meta name="keywords" content="${esc(keywords)}">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="${canonical}">
+${(alternates || []).map(([hl, href]) => `<link rel="alternate" hreflang="${hl}" href="${href}">`).join("\n")}
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ProHost">
+<meta property="og:locale" content="${lang === "ar" ? "ar_LB" : "en_US"}">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(description)}">
+<meta property="og:url" content="${canonical}">
+<meta property="og:image" content="${image}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="${image}">
+<meta name="theme-color" content="#1C2A40">
+<link rel="icon" type="image/png" href="/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600${lang === "ar" ? "&family=Cairo:wght@400;600;700;800" : ""}&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/landing.css">
+<script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@graph": ld })}</script>
+</head>`;
+}
+
+const header = (ar) => `<header class="top"><div class="wrap nav">
+  <a class="brand" href="${ar ? "/ar" : "/"}" aria-label="ProHost"><img class="mark" src="/logo.png" alt="ProHost logo" width="34" height="34"><span>Pro<i>Host</i></span></a>
+  <nav aria-label="${ar ? "القائمة" : "Main"}">${ar
+    ? `<a href="#rooms">المساحات</a><a href="#how">كيف يعمل</a><a href="#hosts">لأصحاب المساحات</a><a href="#faq">أسئلة</a><a href="/" hreflang="en" lang="en">English</a>`
+    : `<a href="/clinic-room-rental-lebanon">Clinics</a><a href="/therapy-room-rental-beirut">Therapy rooms</a><a href="/meeting-room-rental-beirut">Meeting rooms</a><a href="/list-your-space">List your space</a><a href="/ar" hreflang="ar" lang="ar">العربية</a>`}</nav>
+  <a class="btn btn-orange" href="/get?utm_source=website&amp;utm_medium=header&amp;utm_campaign=seo">${ar ? "حمّل التطبيق" : "Get the app"}</a>
+</div></header>`;
+
+function footer(ar) {
+  const links = PAGES.map((p) => `<a href="/${p.slug}">${NAV_LABEL[p.slug]}</a>`).join("");
+  return `<footer class="site"><div class="wrap">
+  <div class="foot">
+    <div style="max-width:340px"><a class="brand" href="/"><img class="mark" src="/logo.png" alt="" width="34" height="34"><span>Pro<i>Host</i></span></a>
+      <p style="margin-top:.8rem">${ar ? "احجز وأجّر العيادات والمكاتب والاستوديوهات وقاعات التدريب والاجتماعات في كل لبنان، بالساعة أو بالدوام أو باليوم أو بالشهر أو حسب عدد المشاركين." : "Rent and book clinics, therapy rooms, offices, studios, classrooms and meeting rooms across Lebanon, by the hour, shift, day, month or per attendee."}</p></div>
+    <nav aria-label="Popular searches" class="fcol"><b>${ar ? "مساحات" : "Find a space"}</b>${links}<a href="/ar" lang="ar">العربية</a></nav>
+    <nav aria-label="Company" class="fcol"><b>ProHost</b><a href="/">Home</a><a href="/#premium">Premium</a><a href="/#contact">Contact</a><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Use</a><a href="/delete-account">Delete account</a></nav>
+  </div>
+  <div class="copy"><span>© 2026 ProHost · admin@pro-host.tech</span></div>
+</div></footer>`;
+}
+
+function page(p) {
+  const url = `${SITE}/${p.slug}`;
+  const image = `${SITE}/img/${p.img}.jpg`;
+  const hosts = p.audience === "hosts";
+  const ld = [
+    ORG, WEBSITE,
+    { "@type": "WebPage", "@id": `${url}#page`, url, name: p.title, description: p.description, inLanguage: "en", isPartOf: { "@id": `${SITE}/#site` },
+      about: { "@type": "Service", serviceType: strip(p.h1), provider: { "@id": `${SITE}/#org` }, areaServed: { "@type": "Country", name: "Lebanon" } },
+      primaryImageOfPage: image, breadcrumb: { "@id": `${url}#bc` } },
+    { "@type": "BreadcrumbList", "@id": `${url}#bc`, itemListElement: [
+      { "@type": "ListItem", position: 1, name: "ProHost", item: `${SITE}/` },
+      { "@type": "ListItem", position: 2, name: NAV_LABEL[p.slug], item: url }] },
+    { "@type": "FAQPage", mainEntity: p.faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
+  ];
+  const html = `${head({ lang: "en", title: p.title, description: p.description, keywords: p.keywords, canonical: url, image, ld,
+    alternates: [["en", url], ["ar", `${SITE}/ar`], ["x-default", url]] })}
+<body>
+${header(false)}
+<main>
+<nav class="crumbs wrap" aria-label="Breadcrumb"><a href="/">ProHost</a> <span aria-hidden="true">›</span> <span>${NAV_LABEL[p.slug]}</span></nav>
+<section class="hero"><div class="wrap hero-grid">
+  <div>
+    <span class="eyebrow">${p.eyebrow}</span>
+    <h1>${p.h1}</h1>
+    <p class="lead">${p.lead}</p>
+    <div class="ctas">
+      <a class="play" href="${getUrl("hero", p.slug)}" aria-label="Get ProHost on Google Play">${PLAY_SVG}<span><small>GET IT ON</small><b>Google Play</b></span></a>
+      <a class="btn btn-outline" href="${hosts ? "/#contact" : "#how"}">${hosts ? "Talk to our team" : "How it works"}</a>
+    </div>
+    <ul class="ticks">${(hosts ? ["50% off your first Premium subscription", "No booking commission", "Cancel anytime in Google Play"] : ["Free for professionals", "Phone-verified community", "Live availability"]).map((t) => `<li>${t}</li>`).join("")}</ul>
+  </div>
+  <img class="hero-img" src="/img/${p.img}.jpg" alt="${esc(p.imgAlt)}" width="640" height="800" fetchpriority="high">
+</div></section>
+
+<section><div class="wrap">
+  <div class="sec-head"><span class="eyebrow">Why ProHost</span><h2>${hosts ? "Fill the hours your rooms sit empty" : "Book exactly the time you need"}</h2></div>
+  <div class="grid4">${p.why.map(([t, d]) => `<article class="feat"><h3>${t}</h3><p>${d}</p></article>`).join("")}</div>
+</div></section>
+
+<section id="how" class="white"><div class="wrap">
+  <div class="sec-head"><span class="eyebrow">How it works</span><h2>${hosts ? "From empty room to accepted booking in three steps" : "From search to confirmed booking in three steps"}</h2></div>
+  <ol class="steps">${(hosts
+    ? [["List your space", "Add photos, rooms, amenities and opening hours. Your listing appears on the ProHost map for professionals nearby."],
+       ["Set how each room is rented", `Choose ${p.modes.join(", ").toLowerCase()} pricing, room by room, and change prices whenever you need.`],
+       ["Accept requests", "Requests land in one inbox with every detail. Accept in a tap, talk on WhatsApp, and your availability updates itself."]]
+    : [["Search the map", "Open ProHost, filter by space type, room and pricing formula, and see what is available in your area."],
+       ["Pick your slots", "Open a room, check its live availability and choose the days and hours you need. The total is shown before you send."],
+       ["Get confirmed", "The host accepts your request in the app. Track it in My Rentals, message the host on WhatsApp and add payment reminders."]])
+    .map(([t, d]) => `<li><h3>${t}</h3><p>${d}</p></li>`).join("")}</ol>
+  <div class="modes"><b>Ways to rent:</b> ${p.modes.map((m) => `<span class="chip">${m}</span>`).join("")}</div>
+</div></section>
+
+<section><div class="wrap two">
+  <div><span class="eyebrow">${hosts ? "Who lists on ProHost" : "Who books on ProHost"}</span><h2 class="h2s">${hosts ? "Built for every kind of space" : "Made for independent professionals"}</h2>
+    <ul class="list">${p.who.map((w) => `<li>${w}</li>`).join("")}</ul></div>
+  <div><span class="eyebrow">Where</span><h2 class="h2s">${hosts ? "Professionals searching across Lebanon" : "Spaces across Beirut and Lebanon"}</h2>
+    <p class="muted">Beirut: ${AREAS_BEIRUT.join(", ")}.</p><p class="muted" style="margin-top:.5rem">Across Lebanon: ${AREAS_LEB.join(", ")}.</p>
+    <p class="fine" style="margin-top:.8rem">Availability changes daily. Open the map in the app to see the spaces listed near you right now.</p></div>
+</div></section>
+
+<section id="faq" class="white"><div class="wrap">
+  <div class="sec-head center"><span class="eyebrow">FAQ</span><h2>Frequently asked questions</h2></div>
+  <div class="faq">${p.faq.map(([q, a], i) => `<details${i ? "" : " open"}><summary>${q}</summary><p>${a}</p></details>`).join("")}</div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="final"><div><h2>${hosts ? "Your first Premium subscription is half price." : "Find your next room on ProHost."}</h2>
+    <p>${hosts ? "List your space today, monthly or yearly. Offer for new Premium subscribers; Google Play shows the exact price before you confirm." : "Free to download and free to book. Search the map, check live availability and send your request in minutes."}</p></div>
+    <a class="btn btn-white" href="${getUrl("final", p.slug)}">Get ProHost on Google Play</a></div>
+  <div class="related"><b>Related:</b> ${p.related.map((s) => `<a href="/${s}">${esc(strip(bySlug[s].h1))}</a>`).join("")}</div>
+</div></section>
+</main>
+${footer(false)}
+</body>
+</html>
+`;
+  fs.writeFileSync(path.join(PUB, `${p.slug}.html`), html);
+}
+
+function arabic() {
+  const url = `${SITE}/ar`;
+  const faq = [
+    ["هل يمكنني استئجار عيادة لبضع ساعات فقط في الأسبوع؟", "نعم. كثير من العيادات على ProHost معروضة بالدوام أو بالساعة، فتحجز مثلاً صباح الاثنين والخميس فقط، ويظهر لك المجموع قبل إرسال الطلب."],
+    ["هل الحجز مجاني للمهنيين؟", "نعم. البحث والحجز على ProHost مجانيان للمهنيين، وتدفع ثمن الغرفة مباشرة لصاحب المساحة."],
+    ["كيف أتواصل مع صاحب المساحة؟", "من صفحة المساحة اضغط على زر واتساب لتسأل عن التجهيزات أو الموقف قبل الحجز، من دون أن يُنشر رقم صاحب المساحة."],
+    ["كم يكلّف عرض مساحتي على ProHost؟", "نشر المساحات وإدارتها جزء من اشتراك ProHost Premium الشهري أو السنوي عبر Google Play، مع خصم 50% على أول اشتراك للمشتركين الجدد. يظهر السعر الدقيق في Google Play قبل التأكيد."],
+    ["هل يأخذ ProHost عمولة على الحجوزات؟", "لا. ProHost لا يأخذ عمولة ولا يعالج المدفوعات بينك وبين المهني، وتتفقان على الدفع مباشرة."],
+  ];
+  const ld = [ORG, WEBSITE,
+    { "@type": "WebPage", "@id": `${url}#page`, url, name: AR.title, description: AR.description, inLanguage: "ar", isPartOf: { "@id": `${SITE}/#site` } },
+    { "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) }];
+  const rooms = [
+    ["medical", "عيادات للايجار بالساعة أو بالدوام", "للأطباء وأطباء الأسنان وأخصائيي التغذية والعلاج الفيزيائي: غرف عيادات داخل مراكز طبية في بيروت وجبل لبنان."],
+    ["therapy", "غرف علاج نفسي واستشارات", "للمعالجين النفسيين والمستشارين والمدرّبين: غرف هادئة وخاصة تحجزها لساعات جلساتك فقط."],
+    ["meeting", "قاعات اجتماعات ومؤتمرات", "قاعات في فنادق ومراكز أعمال ومساحات عمل مشتركة، بالساعة أو باليوم أو حسب عدد المشاركين."],
+    ["classroom", "قاعات تدريب وصفوف", "للمدرّبين ومراكز الدورات: صفوف متاحة في المساء وعطلة نهاية الأسبوع، مع تسعير حسب عدد المتدرّبين."],
+    ["yoga", "استوديوهات يوغا ورقص ورياضة", "لمدرّبي اليوغا والبيلاتس والرقص: احجز ساعات صفّك أسبوعياً في استوديو قريب من طلابك."],
+    ["office", "مكاتب خاصة ومكاتب مشتركة", "للمستقلين والاستشاريين والفرق الصغيرة: مكتب باليوم أو مقعد بالشهر من دون عقد طويل."],
+  ];
+  const html = `${head({ lang: "ar", dir: "rtl", title: AR.title, description: AR.description, keywords: AR.keywords, canonical: url, image: `${SITE}/img/clinic.jpg`, ld,
+    alternates: [["ar", url], ["en", `${SITE}/`], ["x-default", `${SITE}/`]] })}
+<body class="rtl">
+${header(true)}
+<main>
+<section class="hero"><div class="wrap hero-grid">
+  <div>
+    <span class="eyebrow">لبنان · بيروت وجبل لبنان والمناطق</span>
+    <h1>عيادة أو مكتب أو قاعة… <em>بالساعة</em> أو بالدوام أو بالشهر</h1>
+    <p class="lead">ProHost تطبيق لحجز وتأجير مساحات العمل في لبنان: عيادات، غرف علاج نفسي، مكاتب، قاعات اجتماعات وتدريب واستوديوهات. احجز الوقت الذي تحتاجه فقط، أو اعرض غرفك الفارغة واربح منها.</p>
+    <div class="ctas">
+      <a class="play" href="/get?utm_source=website&amp;utm_medium=hero&amp;utm_campaign=seo_ar" aria-label="حمّل ProHost من Google Play">${PLAY_SVG}<span><small>GET IT ON</small><b>Google Play</b></span></a>
+      <a class="btn btn-outline" href="#hosts">لأصحاب المساحات</a>
+    </div>
+    <ul class="ticks"><li>مجاني للمهنيين</li><li>أرقام هاتف موثّقة</li><li>توفّر مباشر من دون حجز مزدوج</li></ul>
+  </div>
+  <img class="hero-img" src="/img/clinic.jpg" alt="غرفة عيادة للايجار بالساعة في بيروت عبر ProHost" width="640" height="800" fetchpriority="high">
+</div></section>
+
+<section id="rooms"><div class="wrap">
+  <div class="sec-head"><span class="eyebrow">ماذا تجد على ProHost</span><h2>مساحات عمل لكل مهنة</h2></div>
+  <div class="cards3">${rooms.map(([img, t, d]) => `<article class="rcard"><img src="/img/${img}.jpg" alt="${esc(t)}" width="640" height="800" loading="lazy"><div><h3>${t}</h3><p>${d}</p></div></article>`).join("")}</div>
+</div></section>
+
+<section id="how" class="white"><div class="wrap">
+  <div class="sec-head"><span class="eyebrow">كيف يعمل</span><h2>من البحث إلى الحجز المؤكد بثلاث خطوات</h2></div>
+  <ol class="steps"><li><h3>ابحث على الخريطة</h3><p>افتح ProHost وفلتر حسب نوع المساحة والغرفة وطريقة التسعير، وشاهد ما هو متاح في منطقتك.</p></li>
+    <li><h3>اختر أوقاتك</h3><p>افتح الغرفة، تحقق من التوفّر المباشر، واختر الأيام والساعات. يظهر المجموع قبل الإرسال.</p></li>
+    <li><h3>احصل على التأكيد</h3><p>يقبل صاحب المساحة طلبك في التطبيق. تابعه في «إيجاراتي» وتواصل عبر واتساب وأضف تذكيرات الدفع.</p></li></ol>
+  <div class="modes"><b>طرق الإيجار:</b> <span class="chip">بالساعة</span><span class="chip">بالدوام</span><span class="chip">باليوم</span><span class="chip">بالشهر</span><span class="chip">حسب عدد المشاركين</span></div>
+</div></section>
+
+<section id="hosts"><div class="wrap two">
+  <div><span class="eyebrow">لأصحاب المساحات</span><h2 class="h2s">غرفك فارغة جزءاً من الأسبوع؟ أجّرها.</h2>
+    <p class="muted">فنادق ومراكز طبية ومراكز تدريب واستوديوهات ومكاتب تعرض غرفها على ProHost لتملأ الساعات الفارغة مع مهنيين موثّقين. خمس طرق للتأجير لكل غرفة، صندوق طلبات واحد، توفّر مباشر يمنع الحجز المزدوج، وتغيير الأسعار في أي وقت مع إشعار المستأجرين تلقائياً.</p>
+    <a class="btn btn-orange" style="margin-top:1rem" href="/get?utm_source=website&amp;utm_medium=hosts&amp;utm_campaign=seo_ar">خصم 50% على أول اشتراك Premium</a></div>
+  <div><span class="eyebrow">المناطق</span><h2 class="h2s">في كل لبنان</h2>
+    <p class="muted">بيروت: الأشرفية، الحمرا، فردان، بدارو، مار مخايل، الجميزة، رأس بيروت، السوديكو، وسط بيروت، فرن الشباك.</p>
+    <p class="muted" style="margin-top:.5rem">جبل لبنان والمناطق: جونيه، الجديدة، ضبية، أنطلياس، بعبدا، الحازمية، سن الفيل، الدكوانة، جبيل، طرابلس، صيدا، صور، زحلة، النبطية.</p></div>
+</div></section>
+
+<section id="faq" class="white"><div class="wrap">
+  <div class="sec-head center"><span class="eyebrow">أسئلة شائعة</span><h2>أسئلة وأجوبة</h2></div>
+  <div class="faq">${faq.map(([q, a], i) => `<details${i ? "" : " open"}><summary>${q}</summary><p>${a}</p></details>`).join("")}</div>
+</div></section>
+
+<section><div class="wrap"><div class="final"><div><h2>حمّل ProHost اليوم</h2><p>مجاني للتنزيل ومجاني للحجز. ولأصحاب المساحات: خصم 50% على أول اشتراك Premium، شهري أو سنوي.</p></div>
+  <a class="btn btn-white" href="/get?utm_source=website&amp;utm_medium=final&amp;utm_campaign=seo_ar">حمّل من Google Play</a></div></div></section>
+</main>
+${footer(true)}
+</body>
+</html>
+`;
+  fs.writeFileSync(path.join(PUB, "ar.html"), html);
+}
+
+PAGES.forEach(page);
+arabic();
+console.log(`built ${PAGES.length} English pages + /ar`);
+module.exports = { PAGES };

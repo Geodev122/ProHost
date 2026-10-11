@@ -284,6 +284,14 @@ plan + recurring price + date;
   extension's `delivery.state` (`mailingAdminCampaign`, Retry failed). Template: `website/mailTemplates.ts`
   (unit-tested). `/unsubscribe` (→ `mailingUnsubscribe`) confirms on GET and unsubscribes on POST. Live check: Maintenance
   task `mailingsmoke` with the code. All four collections are server-only (rules + rules tests).
+- SEO (pro-host.tech): search landing pages (`/clinic-room-rental-lebanon`, `/therapy-room-rental-beirut`, `/meeting-room-rental-beirut`,
+  `/training-room-rental-lebanon`, `/studio-rental-beirut`, `/office-space-by-the-hour-lebanon`, `/list-your-space`, Arabic `/ar`) are
+  generated — edit `scripts/website/seo-pages.js` and run `node scripts/website/build-seo-pages.js` (never hand-edit the HTML);
+  shared CSS `public/landing.css`. Hosting uses `cleanUrls`. `/sitemap.xml` is the `siteSitemap` function (static pages +
+  publicly browsable listings, `website/sitemapXml.ts`, unit-tested — add new pages to `STATIC_PAGES`); `/listing/{id}`
+  (`listingShareLanding`) is indexable only for listings passing `isPublicListing`, with Place/BreadcrumbList JSON-LD.
+  Utility pages (`/get`, `/admin`, `/redeem`, `/emaillink`) are noindex. Maintenance `prodcheck` step `seo` verifies it live.
+  Play screenshots: `play/screenshots/` (rendered from `source/shots.html`); listing text: `play/store-listing/`.
 - Payment reminders go to the user's own calendar via `PaymentCalendar` (insert intent, monthly
   RRULE) — no calendar permission, no Google Calendar API.
 

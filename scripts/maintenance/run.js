@@ -601,6 +601,19 @@ async function prodcheck(db, auth) {
     }
     return out.join(" ");
   });
+  // 3b. SEO: sitemap (static pages + live listings), every sitemap page answers 200 with a canonical, robots.txt.
+  await step("seo", async () => {
+    const xml = await (await fetch("https://pro-host.tech/sitemap.xml")).text();
+    const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+    const bad = [];
+    for (const u of locs.filter((l) => !l.includes("/listing/")).concat(locs.filter((l) => l.includes("/listing/")).slice(0, 3))) {
+      const r = await fetch(u);
+      const html = r.ok ? await r.text() : "";
+      if (!r.ok || !/rel="canonical"/.test(html) || /noindex/.test(html)) bad.push(`${u.replace("https://pro-host.tech", "")}=${r.status}`);
+    }
+    const robots = await (await fetch("https://pro-host.tech/robots.txt")).text();
+    return `sitemap urls=${locs.length} (listings=${locs.filter((l) => l.includes("/listing/")).length}) problems=[${bad.join(" ")}] robotsSitemap=${/Sitemap: https:\/\/pro-host.tech\/sitemap.xml/.test(robots)}`;
+  });
   // 4. The Play catalog as this (CI) account sees it (needs the androidpublisher scope and the account
   //    invited in Play Console › Users and permissions). Read-only: base plans and their offers.
   await step("playCatalog", async () => {

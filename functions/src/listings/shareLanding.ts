@@ -1,6 +1,7 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
 import "../lib/admin";
+import { isPublicListing } from "../website/sitemapXml";
 
 // ProHost's own registered marketing/App-Link domain — a real custom domain
 // connected to this same Firebase Hosting site (already carrying the
@@ -28,24 +29,32 @@ function renderPage(opts: {
   url: string;
   bodyHeading: string;
   bodySubtext: string;
+  /** Only real, publicly browsable listings are indexed; error/unavailable pages are noindex. */
+  indexable?: boolean;
+  /** Extra escaped HTML under the card (rooms, description, related links). */
+  extraHtml?: string;
+  jsonLd?: object;
 }): string {
-  const { title, description, image, url, bodyHeading, bodySubtext } = opts;
+  const { title, description, image, url, bodyHeading, bodySubtext, indexable = false, extraHtml = "", jsonLd } = opts;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escapeHtml(title)}</title>
-<meta name="description" content="${escapeHtml(description)}">
+<meta name="description" content="${escapeHtml(description.slice(0, 300))}">
+<meta name="robots" content="${indexable ? "index, follow, max-image-preview:large" : "noindex, follow"}">
+<link rel="canonical" href="${escapeHtml(url)}">${jsonLd ? `
+<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, "\\u003c")}</script>` : ""}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ProHost">
 <meta property="og:title" content="${escapeHtml(title)}">
-<meta property="og:description" content="${escapeHtml(description)}">
+<meta property="og:description" content="${escapeHtml(description.slice(0, 300))}">
 <meta property="og:image" content="${escapeHtml(image)}">
 <meta property="og:url" content="${escapeHtml(url)}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${escapeHtml(title)}">
-<meta name="twitter:description" content="${escapeHtml(description)}">
+<meta name="twitter:description" content="${escapeHtml(description.slice(0, 300))}">
 <meta name="twitter:image" content="${escapeHtml(image)}">
 <link rel="icon" type="image/png" href="/logo.png">
 <style>
@@ -77,13 +86,19 @@ function renderPage(opts: {
   .btn { display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.25rem; border-radius: 0.6rem; font-weight: 700; font-size: 0.95rem; text-decoration: none; }
   .btn-primary { background: var(--vibrant-blue); color: #fff; }
   .btn-secondary { background: #fff; color: var(--oxford-blue); border: 1px solid var(--border-color); }
+  .more { margin-top: 1.25rem; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 1rem; padding: 1.25rem 1.5rem; }
+  .more h2 { font-size: 1.1rem; color: var(--oxford-blue); margin-bottom: .5rem; }
+  .more p, .more li { color: var(--text-dark); font-size: .95rem; }
+  .more ul { padding-left: 1.2rem; display: grid; gap: .3rem; }
+  .links { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: .4rem 1rem; font-size: .9rem; }
+  .links a { color: var(--vibrant-blue); }
   footer { text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.85rem; }
 </style>
 </head>
 <body>
   <header>
     <div class="nav-container">
-      <img src="/logo.png" alt="ProHost">
+      <a href="${CANONICAL_HOST}/"><img src="/logo.png" alt="ProHost"></a>
       <span class="brand-title"><span class="brand-pro">Pro</span><span class="brand-host">Host</span></span>
     </div>
   </header>
@@ -98,9 +113,9 @@ function renderPage(opts: {
           <a class="btn btn-secondary" href="${escapeHtml(PLAY_STORE_URL)}">Get the App</a>
         </div>
       </div>
-    </div>
+    </div>${extraHtml}
   </main>
-  <footer>ProHost &mdash; workspace rentals in Lebanon</footer>
+  <footer><a href="${CANONICAL_HOST}/" style="color:inherit">ProHost</a> &mdash; rent clinics, offices, studios and meeting rooms in Lebanon by the hour, shift, day or month</footer>
 </body>
 </html>`;
 }
@@ -145,7 +160,7 @@ export const listingShareLanding = onRequest(async (req, res) => {
     // Only ACTIVE listings are meant to be publicly browsable (see
     // Discovery's own status filter) — a Draft/Paused listing's title and
     // photos are not meant to leak into a link preview either.
-    if (!snap.exists || !data || data.status !== "ACTIVE") {
+    if (!snap.exists || !data || !isPublicListing(data)) {
       res.status(404).send(renderPage({
         title: "Listing not available - ProHost",
         description: "This listing is no longer available on ProHost.",
@@ -172,13 +187,51 @@ export const listingShareLanding = onRequest(async (req, res) => {
       ? data.imageUrls[0]
       : FALLBACK_IMAGE;
 
+    const rooms = (Array.isArray(data.subdivisions) ? data.subdivisions : [])
+      .map((r: { name?: unknown; type?: unknown }) => ({
+        name: typeof r?.name === "string" ? r.name.trim() : "",
+        type: typeof r?.type === "string" ? r.type.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase()) : "",
+      }))
+      .filter((r: { name: string }) => r.name)
+      .slice(0, 30);
+    const where = location ? ` in ${location}` : " in Lebanon";
+    const pageTitle = `${title}${category ? ` · ${category}` : ""} for rent${where} | ProHost`;
+    const extraHtml = `
+    <section class="more">
+      ${rawDescription ? `<h2>About this space</h2><p>${escapeHtml(rawDescription.slice(0, 2000))}</p>` : ""}
+      ${rooms.length ? `<h2 style="margin-top:1rem">Rooms you can book</h2><ul>${rooms.map((r: { name: string; type: string }) =>
+        `<li>${escapeHtml(r.name)}${r.type ? ` · ${escapeHtml(r.type)}` : ""}</li>`).join("")}</ul>` : ""}
+      <p style="margin-top:1rem">Book by the hour, shift, day, month or per attendee and see live availability in the free ProHost app.</p>
+      <div class="links"><a href="${CANONICAL_HOST}/clinic-room-rental-lebanon">Clinic rooms</a><a href="${CANONICAL_HOST}/therapy-room-rental-beirut">Therapy rooms</a><a href="${CANONICAL_HOST}/meeting-room-rental-beirut">Meeting rooms</a><a href="${CANONICAL_HOST}/office-space-by-the-hour-lebanon">Offices</a><a href="${CANONICAL_HOST}/list-your-space">List your space</a></div>
+    </section>`;
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Place", "@id": `${url}#place`, name: title, url, image, description: description.slice(0, 500),
+          address: { "@type": "PostalAddress", addressLocality: district || undefined, addressRegion: governorateLabel || undefined, addressCountry: "LB" },
+          ...(rooms.length ? { containsPlace: rooms.map((r: { name: string; type: string }) => ({ "@type": "Room", name: r.name, ...(r.type ? { description: r.type } : {}) })) } : {}),
+        },
+        {
+          "@type": "BreadcrumbList", itemListElement: [
+            { "@type": "ListItem", position: 1, name: "ProHost", item: `${CANONICAL_HOST}/` },
+            { "@type": "ListItem", position: 2, name: title, item: url },
+          ],
+        },
+      ],
+    };
+
+    res.set("Cache-Control", "public, max-age=300, s-maxage=900");
     res.status(200).send(renderPage({
-      title: `${title} - ProHost`,
+      title: pageTitle,
       description,
       image,
       url,
       bodyHeading: title,
       bodySubtext: location ? `${category ? category + " • " : ""}${location}` : description,
+      indexable: true,
+      extraHtml,
+      jsonLd,
     }));
   } catch {
     // Never let a Firestore hiccup surface as a raw 500 to a link-preview

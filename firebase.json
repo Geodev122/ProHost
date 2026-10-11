@@ -16,6 +16,8 @@
   "extensions": {},
   "hosting": {
     "public": "public",
+    "cleanUrls": true,
+    "trailingSlash": false,
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -31,6 +33,7 @@
       { "source": "/qr", "destination": "/get?utm_source=qr&utm_medium=print&utm_campaign=launch", "type": 302 }
     ],
     "rewrites": [
+      { "source": "/sitemap.xml", "function": { "functionId": "siteSitemap", "region": "europe-west1" } },
       {
         "source": "/privacy",
         "destination": "/privacy.html"
@@ -83,7 +86,12 @@
             "value": "application/json"
           }
         ]
-      }
+      },
+      { "source": "/img/**", "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }] },
+      { "source": "/media/**", "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }] },
+      { "source": "**/*.@(css|woff2|svg)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }] },
+      { "source": "/@(get|admin|emaillink|redeem|404)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }] },
+      { "source": "/@(get|admin|emaillink|redeem|404).html", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }] }
     ]
   },
   "emulators": {
