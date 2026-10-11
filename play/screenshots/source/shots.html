@@ -91,11 +91,34 @@ body.host .nav .on{background:var(--sec)}
 .occ{display:grid;grid-template-columns:62px repeat(7,1fr);gap:3px;font:500 10px Roboto;align-items:center}
 .occ .c{height:24px;border-radius:5px}
 .occ .f{background:#E3F4E8}.occ .b{background:#FBE0DC}
+/* ---- larger formats (tablet / desktop window / Android XR panel) ---- */
+.wide .col{max-width:816px;margin:0 auto}
+.wide .nav{max-width:480px;margin:0 auto}
+.wide .sheet{max-width:640px;margin:0 auto}
+.wide .detail{padding-left:max(16px,calc(50% - 404px))!important;padding-right:max(16px,calc(50% - 404px))!important}
+body.land .cap{left:110px;right:auto;width:640px;top:50%;transform:translateY(-50%);text-align:left}
+body.land .head{font-size:72px;letter-spacing:-2px}
+body.land .sub{font-size:31px}
+.tablet{position:absolute;background:#0F141B;border-radius:56px;box-shadow:0 50px 90px rgba(18,32,56,.28),0 0 0 3px #2A323D inset}
+.tablet .screen{border-radius:34px;position:absolute}
+.cam{position:absolute;width:10px;height:10px;border-radius:50%;background:#2A323D;left:50%;margin-left:-5px;top:9px}
+.win{position:absolute;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 40px 90px rgba(10,20,40,.35),0 0 0 1px rgba(20,30,45,.12)}
+.win .bar{height:44px;display:flex;align-items:center;gap:10px;padding:0 10px 0 16px;background:#EEF2F7;font:600 16px Roboto;color:#1B242F}
+.win .bar .mi{font-size:20px;color:#4B5768;width:40px;text-align:center}
+.win .screen{position:relative;border-radius:0}
+.shelf{position:absolute;left:0;right:0;bottom:0;height:56px;background:rgba(20,28,40,.55);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;gap:14px}
+.shelf span{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.18)}
+.shelf img{width:40px;height:40px;border-radius:10px;background:#fff;padding:4px;box-shadow:0 0 0 2px #F25F4C}
+.shelf .clock{position:absolute;right:22px;color:#fff;font:500 15px Roboto;background:none;width:auto}
+.panel{position:absolute;border-radius:36px;overflow:hidden;box-shadow:0 60px 120px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.35)}
+.panel .screen{border-radius:0;position:relative}
+.grab{position:absolute;height:10px;width:130px;border-radius:5px;background:rgba(255,255,255,.85);box-shadow:0 4px 12px rgba(0,0,0,.25)}
+body.k-xr .cap{width:590px;background:rgba(255,255,255,.78);backdrop-filter:blur(18px);border-radius:36px;padding:56px 54px;box-shadow:0 30px 80px rgba(0,0,0,.25)}
 </style></head>
 <body>
 <div class="blob" id="b1"></div><div class="blob" id="b2"></div>
 <div class="cap"><div class="kick" id="kick"></div><div class="head" id="head"></div><div class="sub" id="sub"></div></div>
-<div class="phone"><div class="screen"><div class="dp tex" id="dp"></div></div></div>
+<div id="dev"></div>
 <script>
 const R = "../../../";
 const ph = (n) => `url(${R}marketing/backgrounds/${n}.jpg)`;
@@ -117,7 +140,7 @@ const wcard = (o) => `<div class="card wc">
     <span class="chip" style="background:rgba(255,236,233,.6);color:var(--onsecc)">${I("calendar_month", "mi", "font-size:10px")} ${o.days}</span></div>
   <div class="bd" style="gap:4px;margin-top:6px">${o.f.map((x) => `<span class="chip" style="background:rgba(229,237,246,.45);color:var(--primary)">${x}</span>`).join("")}</div>
   <div class="acts"><div class="btn o-btn">${I("visibility")}Check Space</div><div class="btn wa-btn">${I("chat")}WhatsApp</div></div></div>`;
-const exploreHeader = (float) => `<div class="abs" style="left:12px;right:12px;top:${float ? 36 : 34}px;z-index:6">
+const exploreHeader = (float) => `<div class="abs col" style="left:12px;right:12px;top:${float ? 36 : 34}px;z-index:6">
   <div class="row" style="justify-content:space-between;height:44px">
     <div class="circ ${float ? "float" : ""}">${I("search", "mi", "color:var(--primary)")}</div>${logoPill(float)}
     <div style="position:relative"><div class="circ ${float ? "float" : ""}">${I("notifications_active")}</div><span class="badge" style="right:-3px;top:-4px">2</span></div></div>
@@ -129,9 +152,37 @@ const exploreHeader = (float) => `<div class="abs" style="left:12px;right:12px;t
 const pinSvg = (c1, c2) => `<svg class="pin" viewBox="0 0 30 40"><defs><linearGradient id="g${c1.slice(1)}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>
   <path d="M15 1C7.3 1 1 7.1 1 14.7 1 25 15 39 15 39s14-14 14-24.3C29 7.1 22.7 1 15 1z" fill="url(#g${c1.slice(1)})"/><circle cx="15" cy="14.5" r="5.2" fill="#fff"/></svg>`;
 
+const FORMATS = { phone: { cw: 1080, ch: 1920, W: 360, kind: "phone" }, tab7: { cw: 1080, ch: 1920, W: 600, kind: "tablet" },
+  tab10: { cw: 1080, ch: 1920, W: 800, kind: "tablet" }, desk: { cw: 1920, ch: 1080, W: 840, kind: "desk" }, xr: { cw: 1920, ch: 1080, W: 820, kind: "xr" } };
+const F = FORMATS[new URLSearchParams(location.search).get("f") || "phone"];
+// Explore map at tablet/window width: a sharpened 2.5x crop of the real capture (map-wide.jpg, source y 318–995),
+// with the app's own floating controls, pins, "Search this area", my-location, map list cards and the collapsed nav handle.
+function wideMap() {
+  const W = F.W, H = F.H + (F.kind === "desk" || F.kind === "xr" ? 28 : 0);
+  const s = Math.max(W / 1797, H / 1692), ox = (1797 * s - W) / 2, oy = (1692 * s - H) / 2, k = s / 0.2;
+  const at = (x, y) => [x * 2.5 * s - ox, (y - 318) * 2.5 * s - oy];
+  const pins = [[250, 470, "#6E97C4", "#2B5A8C"], [540, 500, "#FF8F73", "#F25F4C"], [140, 820, "#7DD9A0", "#2E7D4F"], [600, 860, "#6E97C4", "#2B5A8C"], [330, 650, "#FF8F73", "#F25F4C"], [90, 560, "#6E97C4", "#2B5A8C"]];
+  const cards = [["therapy", "Room", "Quiet therapy room", "Achrafieh Wellness Suite", "$15", "/hr"], ["clinic", "Office", "Clinic 2", "Hamra Medical Center", "$35", "/shift"],
+    ["meeting", "Conference Room", "Meeting room A", "Mar Mikhael Meeting Rooms", "$20", "/hr"], ["yoga", "Studio", "Main studio", "Badaro Movement Studio", "$12", "/person"]];
+  return `<div class="abs" style="left:0;top:0;width:${W}px;height:${H}px;background:url(map-wide.jpg) ${-ox}px ${-oy}px/${1797 * s}px ${1692 * s}px no-repeat"></div>
+    ${pins.map(([x, y, a, b]) => { const [px, py] = at(x, y); return `<div class="abs" style="left:${px}px;top:${py}px;transform:scale(${k});transform-origin:0 0">${pinSvg(a, b)}</div>`; }).join("")}
+    ${SB.replace('class="sb"', 'class="sb" style="background:rgba(255,255,255,.85)"')}
+    ${exploreHeader(true)}
+    <div class="abs row" style="left:0;right:0;top:140px;justify-content:center"><div class="pill" style="background:var(--secc);color:var(--sec);padding:9px 16px;font-size:14px;box-shadow:0 3px 8px rgba(20,30,45,.15)">${I("travel_explore", "mi", "font-size:18px")} Search this area</div></div>
+    <div class="abs circ float" style="right:16px;bottom:182px;width:56px;height:56px;background:#E8EEF6">${I("my_location", "mi", "color:#173452")}</div>
+    <div class="abs" style="left:10px;bottom:172px;font:700 15px Roboto;letter-spacing:-.3px"><span style="color:#4285F4">G</span><span style="color:#EA4335">o</span><span style="color:#FBBC05">o</span><span style="color:#4285F4">g</span><span style="color:#34A853">l</span><span style="color:#EA4335">e</span></div>
+    <div class="abs row" style="left:0;right:0;bottom:150px;justify-content:center"><div class="pill" style="background:#fff;color:var(--primary);box-shadow:0 3px 8px rgba(20,30,45,.15)">${I("keyboard_arrow_down", "mi", "font-size:16px")} Collapse Map List</div></div>
+    <div class="abs row" style="left:11px;bottom:62px;gap:8px">${cards.map(([img, tg, t, sub, pr, u]) => `<div class="mapcard" style="position:relative;width:262px;height:80px;flex:none">
+      <div class="th" style="background-image:${ph(img)}"></div>
+      <div style="flex:1;min-width:0"><div class="row" style="justify-content:space-between"><span class="tg">${tg}</span><span style="font:800 13px Roboto;color:var(--primary)">${pr}<span style="font:400 9.5px Roboto;color:var(--muted)">${u}</span></span></div>
+        <div style="font:700 13px Roboto;margin-top:3px">${t}</div><div style="font:400 10px Roboto;color:var(--muted)">${sub}</div>
+        <div style="font:500 10px Roboto;color:var(--primary)">${I("keyboard_arrow_up", "mi", "font-size:11px")} Select choices, and Request</div></div></div>`).join("")}</div>
+    <div class="abs row" style="left:0;right:0;bottom:12px;justify-content:center"><div style="width:56px;height:32px;border-radius:16px;background:#fff;border:1px solid var(--ov);box-shadow:0 6px 16px rgba(20,30,45,.16);display:grid;place-items:center">${I("keyboard_arrow_up", "mi", "font-size:22px;color:var(--primary)")}</div></div>`;
+}
+
 const SHOTS = {
   1: { kick: "FIND A WORKSPACE", head: "Rooms for your <em>practice</em>, on one map", sub: "Clinics, therapy rooms, studios and meeting rooms across Lebanon",
-    screen: () => `<div class="abs" style="left:0;top:20px;width:360px;height:726px;background:url(${R}marketing/source/assets/map.jpg) 0 0/360px 726px"></div>
+    screen: () => F.W > 360 ? wideMap() : `<div class="abs" style="left:0;top:20px;width:360px;height:726px;background:url(${R}marketing/source/assets/map.jpg) 0 0/360px 726px"></div>
       <div class="abs" style="left:349px;top:30px;width:11px;height:26px;background:#F1F2F4"></div>
       <span class="badge abs" style="left:336px;top:28px">2</span>
       ${[[118, 300, "#6E97C4", "#2B5A8C"], [262, 236, "#FF8F73", "#F25F4C"], [70, 470, "#7DD9A0", "#2E7D4F"], [300, 420, "#6E97C4", "#2B5A8C"]]
@@ -148,7 +199,7 @@ const SHOTS = {
 
   2: { kick: "SEARCH & FILTER", head: "By the <em>hour</em>, shift, day or month", sub: "Filter by space type, room and pricing to find what fits your schedule",
     screen: () => `${SB}${exploreHeader(false)}
-      <div class="abs" style="left:0;right:0;top:138px">
+      <div class="abs col" style="left:0;right:0;top:138px">
         <div class="row" style="gap:6px;padding:0 12px 10px;font:500 12px Roboto;color:var(--muted)">${I("tune", "mi", "font-size:15px;color:var(--sec)")} Pricing formula: <b style="color:var(--ink)">Per-Hour</b> · 24 workspaces</div>
         ${wcard({ img: "therapy", ver: 1, saved: 1, type: "Center", title: "Achrafieh Wellness Suite", price: 15, unit: "/hr", loc: "Achrafieh, Beirut", hours: "08:00 - 20:00", days: "6 days/wk", f: ["Per-Hour", "Shift-Based"] })}
         ${wcard({ img: "meeting", ver: 1, type: "Co-working Space", title: "Mar Mikhael Meeting Rooms", price: 20, unit: "/hr", loc: "Mar Mikhael, Beirut", hours: "09:00 - 21:00", days: "7 days/wk", f: ["Per-Hour", "Day-Based"] })}
@@ -162,7 +213,7 @@ const SHOTS = {
         <div class="circ float" style="width:40px;height:40px">${I("arrow_back")}</div>
         <div class="row" style="gap:8px"><div class="circ float" style="width:40px;height:40px">${I("share", "mo", "font-size:20px")}</div><div class="circ float" style="width:40px;height:40px">${I("favorite", "mi", "font-size:20px;color:var(--err)")}</div></div></div>
       <div class="abs row" style="left:0;right:0;top:204px;justify-content:center;gap:5px">${[1, 0, 0, 0].map((a) => `<span style="width:${a ? 7 : 5}px;height:${a ? 7 : 5}px;border-radius:50%;background:#fff;opacity:${a ? 1 : .7}"></span>`).join("")}</div>
-      <div class="abs tex" style="left:0;right:0;top:222px;bottom:0;padding:14px 16px 0">
+      <div class="abs tex detail" style="left:0;right:0;top:222px;bottom:0;padding:14px 16px 0">
         <div class="row" style="gap:6px"><span class="chip" style="background:var(--pc);color:var(--onpc);font-weight:700">Polyclinic</span><span class="chip" style="background:var(--okc);color:var(--onokc);font-weight:700">${I("verified", "mi", "font-size:12px")} Verified</span></div>
         <div style="font:700 21px/1.25 Roboto;margin-top:8px;letter-spacing:-.2px">Hamra Medical Center</div>
         <div class="row" style="gap:4px;font:400 12.5px Roboto;color:var(--muted);margin-top:3px">${I("place", "mi", "font-size:15px;color:var(--primary)")} Hamra, Beirut · Mon – Sat, 08:00 - 20:00</div>
@@ -191,9 +242,9 @@ const SHOTS = {
           <div class="btn p-btn" style="height:48px;padding:0 18px">${I("event_available")}Availability</div></div></div>` },
 
   4: { kick: "BOOK IN SECONDS", head: "Pick your slots, <em>send</em> a request", sub: "Choose the days and hours you need. The host confirms in the app.",
-    screen: () => `<div class="abs" style="inset:0;background:${ph("clinic")} center top/360px 222px no-repeat,var(--bg)"></div>${SB}
+    screen: () => `<div class="abs" style="inset:0;background:${ph("clinic")} center top/100% 222px no-repeat,var(--bg)"></div>${SB}
       <div class="abs" style="inset:0;background:rgba(15,20,27,.42)"></div>
-      <div class="abs" style="left:0;right:0;top:118px;bottom:0;background:#fff;border-radius:24px 24px 0 0;padding:10px 16px 0">
+      <div class="abs sheet" style="left:0;right:0;top:118px;bottom:0;background:#fff;border-radius:24px 24px 0 0;padding:10px 16px 0">
         <div style="width:36px;height:4px;border-radius:2px;background:#C9CED6;margin:0 auto 12px"></div>
         <div style="font:700 19px Roboto">Check Availability</div>
         <div style="font:400 12px Roboto;color:var(--muted);margin-top:2px">Hamra Medical Center · Clinic 1 · Shift-Based</div>
@@ -207,7 +258,7 @@ const SHOTS = {
               <span style="font:500 11px Roboto;color:var(--ok)">${sl.filter((s) => s[2] !== "full").length} open ${I("expand_less", "mi", "font-size:18px;color:var(--muted)")}</span></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px">${sl.map(([n, h, c]) => `<div class="slot ${c}"><b>${n}${c === "sel" ? ` ${I("check_circle", "mi", "font-size:13px;float:right")}` : ""}</b>${h} · ${c === "full" ? "FULL" : "$35"}</div>`).join("")}</div></div>`).join("")}
         <div class="row" style="gap:6px;margin:4px 0 0;font:400 11.5px Roboto;color:var(--muted)">${I("event_repeat", "mi", "font-size:15px")} Weekly · starts Mon 13 Oct</div></div>
-      <div class="abs" style="left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--ov);padding:12px 16px 16px;z-index:9">
+      <div class="abs sheet" style="left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--ov);padding:12px 16px 16px;z-index:9">
         <div class="row" style="justify-content:space-between"><div><div style="font:500 11px Roboto;color:var(--muted)">Estimated Total</div><div style="font:800 20px Roboto">$105 <span style="font:400 12px Roboto;color:var(--muted)">USD / week · 3 shifts</span></div></div>
           <div class="btn s-btn" style="height:46px;padding:0 22px;border-radius:14px">${I("send", "mi", "font-size:17px")}Send</div></div></div>` },
 
@@ -215,7 +266,7 @@ const SHOTS = {
     screen: () => `${SB}<div class="tb"><div style="width:10px"></div><div class="t">My Rentals</div><div class="ib">${I("notifications_none", "mo")}</div></div>
       <div class="abs" style="left:0;right:0;top:84px;background:#fff;border-bottom:1px solid var(--ov);display:flex;font:600 13px Roboto">
         ${[["Active (2)", 1], ["Pending (1)", 0], ["History", 0]].map(([t, a]) => `<div style="flex:1;text-align:center;padding:12px 0;${a ? "color:var(--primary);border-bottom:3px solid var(--primary)" : "color:var(--muted)"}">${t}</div>`).join("")}</div>
-      <div class="abs" style="left:12px;right:12px;top:136px">
+      <div class="abs col" style="left:12px;right:12px;top:136px">
         ${[["therapy", "Achrafieh Wellness Suite", "Therapy room 1", "Confirmed", "ok", "Per-Hour · Tue, Thu", "16:00 - 19:00", "Started Tue 7 Oct · weekly", "$90 USD / week", "You marked this paid"],
            ["yoga", "Badaro Movement Studio", "Main studio", "Confirmed", "ok", "Per-Hour · Sat", "10:00 - 12:00", "Starts Sat 18 Oct · weekly", "$40 USD / week", "Not marked paid yet"]]
           .map(([img, t, room, st, c, f, h, d, tot, paid], i) => `<div class="card" style="padding:12px;margin-bottom:10px">
@@ -233,7 +284,7 @@ const SHOTS = {
 
   6: { kick: "FOR SPACE OWNERS", host: 1, head: "List your rooms, <em>fill</em> empty hours", sub: "Rent by the hour, shift, day, month or per attendee",
     screen: () => `${SB}<div class="tb">${`<div class="ib">${I("menu")}</div>`}<div class="t">My Listings</div><div class="ib">${I("notifications_active")}<span class="badge" style="right:6px;top:6px">3</span></div></div>
-      <div class="abs" style="left:12px;right:12px;top:92px">
+      <div class="abs col" style="left:12px;right:12px;top:92px">
         <div style="border-radius:18px;padding:14px 16px;background:linear-gradient(135deg,#2B5A8C,#4A78AB);color:#fff">
           <div style="font:700 11px Roboto;letter-spacing:1px;opacity:.85">PROHOST PORTAL</div><div style="font:700 17px Roboto;margin-top:3px">Your listings & availability</div>
           <div class="row" style="gap:14px;margin-top:10px;font:500 11.5px Roboto">
@@ -252,7 +303,7 @@ const SHOTS = {
 
   7: { kick: "FOR SPACE OWNERS", host: 1, head: "Accept requests in <em>one tap</em>", sub: "Review every request, then accept, decline or change the price",
     screen: () => `${SB}<div class="tb"><div class="ib">${I("menu")}</div><div class="t">Renting Requests</div><div class="ib">${I("notifications_none", "mo")}</div></div>
-      <div class="abs" style="left:12px;right:12px;top:92px">
+      <div class="abs col" style="left:12px;right:12px;top:92px">
         <div style="font:400 12px Roboto;color:var(--muted)">Review and confirm professional rental contracts</div>
         <div class="row" style="gap:6px;margin:10px 0">${[["Pending (2)", 1], ["Accepted (5)", 0], ["Declined", 0]].map(([t, a]) => `<span class="pill" style="${a ? "background:var(--secc);color:var(--onsecc);border:1px solid rgba(210,67,47,.4)" : "background:#fff;color:var(--muted);border:1px solid var(--outline)"}">${a ? I("check", "mi", "font-size:14px") : ""}${t}</span>`).join("")}</div>
         <div class="card" style="padding:14px">
@@ -271,7 +322,7 @@ const SHOTS = {
 
   8: { kick: "FOR SPACE OWNERS", host: 1, head: "Your <em>occupancy</em> and revenue at a glance", sub: "See booked and free slots for the week ahead, and change prices any time",
     screen: () => `${SB}<div class="tb"><div class="ib">${I("arrow_back")}</div><div class="t">Manage</div><div class="ib">${I("more_vert")}</div></div>
-      <div class="abs" style="left:12px;right:12px;top:90px">
+      <div class="abs col" style="left:12px;right:12px;top:90px">
         <div style="font:700 17px Roboto">Hamra Medical Center</div><div style="font:400 11.5px Roboto;color:var(--muted)">L-4MZ8QH · 3 rooms · Shift-Based</div>
         <div class="row" style="gap:8px;margin-top:10px">
           <div class="card" style="flex:1;padding:10px 12px"><div style="font:500 11px Roboto;color:var(--muted)">Yield This Month</div><div style="font:800 21px Roboto;color:var(--ok);margin-top:2px">$1,260</div><div style="font:400 10.5px Roboto;color:var(--ok)">${I("trending_up", "mi", "font-size:13px")} 12 accepted bookings</div></div>
@@ -294,9 +345,44 @@ const s = SHOTS[n];
 document.getElementById("kick").textContent = s.kick;
 document.getElementById("head").innerHTML = s.head;
 document.getElementById("sub").textContent = s.sub;
-document.getElementById("dp").innerHTML = s.screen();
 if (s.host) document.body.classList.add("host");
+const portrait = F.kind === "phone" || F.kind === "tablet";
+document.documentElement.style.width = document.body.style.width = F.cw + "px";
+document.documentElement.style.height = document.body.style.height = F.ch + "px";
+if (!portrait) document.body.classList.add("land");
+if (F.W > 360) document.body.classList.add("wide");
+document.body.classList.add("k-" + F.kind);
+// Device: geometry in canvas px; the app (W x H dp) is scaled to the screen width.
+const dev = document.getElementById("dev");
+
+if (F.kind === "phone") {
+  dev.innerHTML = `<div class="phone"><div class="screen"><div class="dp tex" id="dp"></div></div></div>`;
+} else if (F.kind === "tablet") {
+  const fw = 880, fh = 1390, b = 24;
+  dev.innerHTML = `<div class="tablet" style="left:${(F.cw - fw) / 2}px;top:500px;width:${fw}px;height:${fh}px"><div class="cam"></div>
+    <div class="screen" style="left:${b}px;top:${b + 4}px;width:${fw - 2 * b}px;height:${fh - 2 * b - 4}px;overflow:hidden;background:var(--bg)"><div class="dp tex" id="dp"></div></div></div>`;
+} else if (F.kind === "desk") {
+  document.body.style.background = "linear-gradient(130deg,#EAF1F9 0%,#F6F2F1 55%,#FCE3DD 100%)";
+  dev.innerHTML = `<div class="win" style="left:840px;top:70px;width:980px">
+      <div class="bar"><img src="${R}public/logo.png" style="width:22px;height:22px;object-fit:contain">ProHost<span style="flex:1"></span>${I("remove")}${I("crop_square")}${I("close")}</div>
+      <div class="screen" style="width:980px;height:866px;overflow:hidden;background:var(--bg)"><div class="dp tex" id="dp"></div></div></div>
+    <div class="shelf"><span></span><span></span><img src="${R}public/logo.png"><span></span><span></span><b class="clock">9:41</b></div>`;
+} else {
+  document.body.style.background = `#2a2f36 url(xr-room.jpg) center/cover`;
+  dev.innerHTML = `<div class="panel" style="left:860px;top:70px;width:960px">
+      <div class="screen" style="width:960px;height:880px;overflow:hidden;background:var(--bg)"><div class="dp tex" id="dp"></div></div></div>
+    <div class="grab" style="left:${860 + 480 - 65}px;top:972px"></div>`;
+}
+const dp = document.getElementById("dp");
+const scr = dp.parentElement;
+const scale = scr.clientWidth / F.W;
+F.H = Math.round(scr.clientHeight / scale);
+// Windowed formats (desktop, XR) have no Android status bar inside the window.
+const noSB = F.kind === "desk" || F.kind === "xr";
+const H = F.H + (noSB ? 28 : 0);
+Object.assign(dp.style, { width: F.W + "px", height: H + "px", transform: `scale(${scale})`, top: (noSB ? -28 * scale : 0) + "px" });
+dp.innerHTML = s.screen();
 const b1 = document.getElementById("b1"), b2 = document.getElementById("b2");
-Object.assign(b1.style, { width: "720px", height: "720px", left: "-300px", top: "-180px", background: s.host ? "#FFD9D2" : "#CFE0F3", opacity: .9 });
-Object.assign(b2.style, { width: "760px", height: "760px", right: "-340px", top: "900px", background: s.host ? "#CFE0F3" : "#FFE1DB", opacity: .8 });
+Object.assign(b1.style, { width: "720px", height: "720px", left: "-300px", top: "-180px", background: s.host ? "#FFD9D2" : "#CFE0F3", opacity: F.kind === "xr" ? 0 : .9 });
+Object.assign(b2.style, { width: "760px", height: "760px", right: "-340px", top: portrait ? "900px" : "300px", background: s.host ? "#CFE0F3" : "#FFE1DB", opacity: F.kind === "xr" || F.kind === "desk" ? 0 : .8 });
 </script></body></html>

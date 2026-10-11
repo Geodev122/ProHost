@@ -1,6 +1,23 @@
-# Google Play screenshots — phone
+# Google Play screenshots
 
-Upload `phone/01…08` to Play Console › Store presence › Main store listing › Phone screenshots, **in this order**
+| Play Console field | Folder | Size | How the app is shown |
+|---|---|---|---|
+| Phone screenshots | `phone/` | 1080 × 1920 (9:16) | phone, 360 dp |
+| 7-inch tablet screenshots | `tablet-7in/` | 1080 × 1920 (9:16) | tablet, app at 600 dp |
+| 10-inch tablet screenshots | `tablet-10in/` | 1440 × 2560 (9:16) | tablet, app at 800 dp |
+| Desktop screenshots | `desktop/` | 1920 × 1080 (16:9) | resizable app window (ChromeOS / Play Games on PC style) |
+| Android XR screenshots | `android-xr/` | 1920 × 1080 (16:9) | app panel floating in Home Space |
+
+Every folder holds the same 8 screens in the same order (file names below). On wide screens the app keeps its
+layout centred at ≤ 840 dp (Discovery, Owner Hub, Progress, Profile), bottom sheets at ≤ 640 dp and the floating nav at
+≤ 480 dp, following the Compose layouts (Material 3 caps sheets at 640 dp). All PNG, 24-bit, no alpha, each under 2.1 MB.
+
+**Spatial XR video** (YouTube, 360°/180°/3D) can't be produced from screenshots: it needs a spatial capture or an
+equirectangular 360° render uploaded to YouTube (public or unlisted, ads off, not age-restricted). The field is optional.
+
+## Phone order and captions
+
+Upload `01…08` to Play Console › Store presence › Main store listing, **in this order**
 (the first three appear in search results, so they carry the specialist story; 06–08 speak to space owners).
 
 | # | File | Caption on the image |
@@ -22,4 +39,6 @@ names, people and amounts inside the screens are illustrative examples. Screen 1
 the others are rebuilt from the app's Compose layouts (theme colours, cards, booking bar, bottom navigation) so they show
 the current UI.
 
-Regenerate: `cd source && python render_shots.py` (Playwright + Pillow). Copy and layout live in `source/shots.html`.
+Regenerate: `cd source && python render_shots.py [phone,tab7,tab10,desk,xr]` (Playwright + Pillow). Copy and layout live in
+`source/shots.html` (`?f=<format>#<1-8>`); `map-wide.jpg` is a sharpened 2.5× crop of the real Explore map capture used
+for the wide formats, `xr-room.jpg` the blurred room behind the XR panel.
