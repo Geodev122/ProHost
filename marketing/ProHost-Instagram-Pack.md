@@ -1,5 +1,14 @@
 # ProHost — Instagram pack
 
+## Download link (live)
+- **pro-host.tech/get**: the smart link. On Android it opens ProHost if it's installed (on Explore, ready to sign in) and
+  otherwise opens Google Play. On iPhone or a computer it shows a page with the Play button and a QR code.
+- **Per-channel short links** go to the same place but tag the install so Play Console shows where it came from
+  (Play Console › Grow › Store performance › Acquisition, by UTM source/campaign):
+  `pro-host.tech/ig` (Instagram bio), `/fb`, `/wa` (WhatsApp), `/li` (LinkedIn), `/qr` (print/QR; `public/get-qr.svg`).
+- Direct Play listing: https://play.google.com/store/apps/details?id=app.geonajjar.prohost
+- Every feed post ends on **pro-host.tech/get** under the Google Play badge.
+
 ## ★ Feed posts with music (`posts/`): use these
 Ten animated **feed posts at 4:5 (1080×1350)**, the full-size feed format, 16 s each. They tell the same second-person story as
 the Reels below, with the same tap-through app interactions and photo backgrounds, but **no voiceover**. Each one has its own

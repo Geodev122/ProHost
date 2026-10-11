@@ -98,7 +98,8 @@ document.body.innerHTML = `
   <div class="abs" id="my" style="left:0;right:0;top:690px;text-align:center"><span class="pill" style="font-size:30px;padding:14px 30px">Monthly or yearly</span></div>
   <div class="brandbar" id="bb" style="top:820px"></div>
   <div class="abs" id="gp" style="left:0;right:0;top:955px;text-align:center"><span class="gp"></span></div>
-  <div class="abs small" id="ff" style="left:0;right:0;top:1110px;text-align:center;color:rgba(255,255,255,.75);font-weight:500;font-size:23px;line-height:1.5">
+  <div class="abs" id="lk" style="left:0;right:0;top:1062px;text-align:center"><span style="display:inline-flex;align-items:center;gap:12px;padding:12px 28px;border-radius:999px;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.45);color:#fff;font-weight:800;font-size:34px;letter-spacing:.3px"><svg width="34" height="34" viewBox="0 0 24 24" fill="#fff"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>pro-host.tech/get</span></div>
+  <div class="abs small" id="ff" style="left:0;right:0;top:1160px;text-align:center;color:rgba(255,255,255,.75);font-weight:500;font-size:23px;line-height:1.5">
     ${host ? "New subscribers · billed securely by Google Play<br>Prices and earnings shown are examples"
            : "Booking is free · Premium is for listing your space<br>Prices shown are examples"}</div>
 </div></div>`;
@@ -142,7 +143,8 @@ fadeUp("#oS", 12.3, 0.6);
 pop("#my", 12.6, 0.5);
 A("#bb", 12.8, 0.6, (e) => ({ opacity: e, transform: `translateX(-50%) translateY(${lerp(40, 0, e)}px)` }));
 fadeUp("#gp", 13.05, 0.6);
-fadeIn("#ff", 13.4, 0.5);
+pop("#lk", 13.3, 0.5);
+fadeIn("#ff", 13.6, 0.5);
 
 // tap targets (positions in unscaled stage coordinates)
 const stage = document.getElementById("stage");
