@@ -6,9 +6,15 @@ on:
   workflow_dispatch:
     inputs:
       posts:
-        description: "Comma-separated post ids (blank = all six)"
+        description: "Comma-separated post ids (blank = all)"
         required: false
         default: ""
+      config:
+        description: "Script set: voiceover.json (Lebanese Arabic) or voiceover_en.json (British English)"
+        required: false
+        default: voiceover.json
+        type: choice
+        options: [voiceover.json, voiceover_en.json]
 
 permissions:
   contents: write
@@ -39,6 +45,7 @@ jobs:
       - name: Synthesize
         env:
           POSTS: ${{ inputs.posts }}
+          VO_CONFIG: ${{ inputs.config || 'voiceover.json' }}
         run: |
           set -o pipefail
           python -u scripts/marketing/voiceover.py "$RUNNER_TEMP/vo" "$POSTS" 2>&1 | tee "$RUNNER_TEMP/vo.log" || {
@@ -49,8 +56,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add marketing/voice
+          git add marketing/voice marketing/voice_en 2>/dev/null || git add marketing/voice
           git diff --cached --quiet && { echo "No changes"; exit 0; }
-          git commit -m "Marketing: voiceovers (Cloud Text-to-Speech)"
+          git commit -m "Marketing: voiceovers (${{ inputs.config || 'voiceover.json' }})"
           git pull --rebase
           git push

@@ -18,8 +18,11 @@ import imageio_ffmpeg
 import requests
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-CFG = json.loads((pathlib.Path(__file__).parent / "voiceover.json").read_text(encoding="utf-8"))
-OUT = ROOT / "marketing" / "voice"
+import os
+# VO_CONFIG picks the script set: voiceover.json (Lebanese Arabic, → marketing/voice) or voiceover_en.json
+# (British English, → marketing/voice_en). The config's "language", "chirpLanguage", "say" and "output" keys drive it.
+CFG = json.loads((pathlib.Path(__file__).parent / os.environ.get("VO_CONFIG", "voiceover.json")).read_text(encoding="utf-8"))
+OUT = ROOT / CFG.get("output", "marketing/voice")
 LINES = OUT / "lines"
 TMP = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "/tmp/voiceover")
 FF = imageio_ffmpeg.get_ffmpeg_exe()
@@ -97,20 +100,21 @@ def synth(p, line):
     prompt = f"{CFG['dialect']} Character: {p['persona']} Delivery: {line['style']}"
     attempts = []
     for model in [m for m in tts_models() if m not in DEAD_MODELS]:
-        for lang in ("ar-EG",):  # Gemini-TTS has no ar-LB; the prompt asks for Lebanese
+        for lang in (CFG.get("language", "ar-EG"),):  # Gemini-TTS has no ar-LB; the prompt asks for Lebanese
             attempts.append((f"{model}/{lang}", {
                 "input": {"text": line["text"], "prompt": prompt},
                 "voice": {"languageCode": lang, "name": p["voice"], "modelName": model}}))
-    attempts.append(("chirp3-hd/ar-XA", {
+    chirp = CFG.get("chirpLanguage", "ar-XA")
+    attempts.append((f"chirp3-hd/{chirp}", {
         "input": {"text": line["text"]},
-        "voice": {"languageCode": "ar-XA", "name": f"ar-XA-Chirp3-HD-{p['voice']}"}}))
+        "voice": {"languageCode": chirp, "name": f"{chirp}-Chirp3-HD-{p['voice']}"}}))
     errors = []
     # Gemini TTS models the Text-to-Speech API doesn't serve yet: call Vertex generateContent with an audio response.
     for model in [m for m in tts_models() if m not in DEAD_MODELS]:
         engine = f"vertex:{model}"
         if engine in DEAD_MODELS:
             continue
-        body = {"contents": [{"role": "user", "parts": [{"text": f"{prompt}\n\nSay exactly this, in Lebanese Arabic: {line['text']}"}]}],
+        body = {"contents": [{"role": "user", "parts": [{"text": f"{prompt}\n\n{CFG.get('say', 'Say exactly this, in Lebanese Arabic:')} {line['text']}"}]}],
                 "generationConfig": {"responseModalities": ["AUDIO"],
                                      "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": p["voice"]}}}}}
         for retry in range(3):

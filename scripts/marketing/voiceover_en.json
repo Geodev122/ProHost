@@ -1,0 +1,289 @@
+{
+  "_about": "British English voiceovers for the 9:16 Reels (16 s). Same scenes and timing as voiceover.json. Output: marketing/voice_en/.",
+  "language": "en-GB",
+  "chirpLanguage": "en-GB",
+  "output": "marketing/voice_en",
+  "length": 16.0,
+  "say": "Say exactly this, in natural British English:",
+  "dialect": "You are a native British English speaker with a natural, smooth, contemporary London accent (soft Received Pronunciation). You are narrating a short Instagram reel in the second person, talking to one viewer like a friend: relaxed, warm, unhurried but flowing, with natural breaths and a smile in your voice. Never theatrical, never a TV advert announcer, never American. Say 'ProHost' as 'Pro-Host'.",
+  "posts": [
+    {
+      "id": "post1_hosts",
+      "voice": "Achird",
+      "gender": "male",
+      "persona": "Friendly, confident narrator in his 30s talking to space owners.",
+      "lines": [
+        {
+          "at": 0.25,
+          "end": 3.55,
+          "style": "Warm and curious, gently empathetic, a natural rising question.",
+          "text": "Got an office, a clinic or a studio… sitting empty half the week?"
+        },
+        {
+          "at": 3.8,
+          "end": 8.05,
+          "style": "Relaxed, confident and upbeat, explaining something genuinely useful to a friend.",
+          "text": "With ProHost, rent it by the hour, the shift, the day or the month."
+        },
+        {
+          "at": 8.4,
+          "end": 11.4,
+          "style": "Relaxed, confident and upbeat, explaining something genuinely useful to a friend.",
+          "text": "Requests, bookings and prices, all in one app."
+        },
+        {
+          "at": 11.65,
+          "end": 15.9,
+          "style": "Warm, smiling invitation straight to the viewer; a little lift on 'half price'.",
+          "text": "Download ProHost today, and get half price on your first Premium subscription, monthly or yearly."
+        }
+      ]
+    },
+    {
+      "id": "post2_app",
+      "voice": "Sulafat",
+      "gender": "female",
+      "persona": "Warm narrator in her late 20s presenting an app she loves.",
+      "lines": [
+        {
+          "at": 0.3,
+          "end": 2.9,
+          "style": "Warm and curious, gently empathetic, a natural rising question.",
+          "text": "Need a space to work, not a lease?"
+        },
+        {
+          "at": 3.1,
+          "end": 5.9,
+          "style": "Relaxed, confident and upbeat, explaining something genuinely useful to a friend.",
+          "text": "With ProHost, clinics, offices and studios are all on the map."
+        },
+        {
+          "at": 6.1,
+          "end": 8.7,
+          "style": "Relaxed, confident and upbeat, explaining something genuinely useful to a friend.",
+          "text": "Book by the hour, and chat to the host on WhatsApp."
+        },
+        {
+          "at": 8.9,
+          "end": 11.4,
+          "style": "Relaxed, confident and upbeat, explaining something genuinely useful to a friend.",
+          "text": "Got a space of your own? Rent it out from the same app."
+        },
+        {
+          "at": 11.7,
+          "end": 15.95,
+          "style": "Warm, smiling invitation straight to the viewer; a little lift on 'half price'.",
+          "text": "Download ProHost. Your first Premium subscription is half price."
+        }
+      ]
+    },
+    {
+      "id": "post3_psychologist",
+      "voice": "Algieba",
+      "gender": "male",
+      "persona": "Calm, gentle narrator in his 30s.",
+      "lines": [
+        {
+          "at": 0.3,
+          "end": 4.55,
+          "style": "Warm and curious, gently empathetic, a natural rising question.",
+          "text": "You're a psychologist, and you don't need a clinic all week… just two mornings?"
+        },
+        {
+          "at": 4.8,
+          "end": 10.9,
+          "style": "Relaxed, confident and upbeat, explaining something genuinely useful to a friend.",
+          "text": "Now you can book the morning shift on Tuesdays and Thursdays with ProHost, and only pay for your time."
+        },
+        {
+          "at": 11.15,
+          "end": 15.9,
+          "style": "Warm, smiling invitation straight to the viewer; a little lift on 'half price'.",
+          "text": "Download ProHost. Booking's free, and if you've got a space, your first Premium subscription is half price."
+        }
+      ]
+    },
+    {
+      "id": "post4_trainer",
+      "voice": "Despina",
+      "gender": "female",
+      "persona": "Energetic, friendly narrator in her 30s.",
+      "lines": [
+        {
+          "at": 0.3,
+          "end": 4.55,
+          "style": "Warm and curious, gently empathetic, a natural rising question.",
+          "text": "You're a trainer with eighteen people on Saturday… and no proper room?"
+        },
+        {
+          "at": 4.8,
+          "end": 10.9,
+          "style": "Relaxed, confident and upbeat, explaining something genuinely useful to a friend.",
+          "text": "With ProHost, conference rooms are priced per seat. Set the headcount, add a coffee break, and send your request."
+        },
+        {
+          "at": 11.15,
+          "end": 15.9,
+          "style": "Warm, smiling invitation straight to the viewer; a little lift on 'half price'.",
+          "text": "Download ProHost. Booking's free, and if you've got a space, your first Premium subscription is half price."
+        }
+      ]
+    },
+    {
+      "id": "post5_lifecoach",
+      "voice": "Umbriel",
+      "gender": "male",
+      "persona": "Easy-going, positive narrator in his late 20s.",
+      "lines": [
+        {
+          "at": 0.3,
+          "end": 4.55,
+          "style": "Warm and curious, gently empathetic, a natural rising question.",
+          "text": "You're a life coach with two sessions today. Why pay a whole month's rent?"
+        },
+        {
+          "at": 4.8,
+          "end": 10.9,
+          "style": "Relaxed, confident and upbeat, explaining something genuinely useful to a friend.",
+          "text": "Finally, you can book a room by the hour. See what's free, pick your time, and you're done."
+        },
+        {
+          "at": 11.15,
+          "end": 15.9,
+          "style": "Warm, smiling invitation straight to the viewer; a little lift on 'half price'.",
+          "text": "Download ProHost. Booking's free, and if you've got a space, your first Premium subscription is half price."
+        }
+      ]
+    },
+    {
+      "id": "post6_dietitian",
+      "voice": "Callirrhoe",
+      "gender": "female",
+      "persona": "Warm, encouraging narrator in her 30s.",
+      "lines": [
+        {
+          "at": 0.3,
+          "end": 4.55,
+          "style": "Warm and curious, gently empathetic, a natural rising question.",
+          "text": "You're a dietitian, ready for your own clinic… but not a long lease?"
+        },
+        {
+          "at": 4.8,
+          "end": 10.9,
+          "style": "Relaxed, confident and upbeat, explaining something genuinely useful to a friend.",
+          "text": "With ProHost, rent a ready-made clinic month to month, and grow whenever you like."
+        },
+        {
+          "at": 11.15,
+          "end": 15.9,
+          "style": "Warm, smiling invitation straight to the viewer; a little lift on 'half price'.",
+          "text": "Download ProHost. Booking's free, and if you've got a space, your first Premium subscription is half price."
+        }
+      ]
+    },
+    {
+      "id": "post7_hotel",
+      "voice": "Charon",
+      "gender": "male",
+      "persona": "Calm, friendly business narrator in his 40s.",
+      "lines": [
+        {
+          "at": 0.3,
+          "end": 4.55,
+          "style": "Warm and curious, gently empathetic, a natural rising question.",
+          "text": "You run a hotel, and your meeting rooms sit empty most weekdays?"
+        },
+        {
+          "at": 4.8,
+          "end": 10.9,
+          "style": "Relaxed, confident and upbeat, explaining something genuinely useful to a friend.",
+          "text": "With ProHost, rent them by the day or per attendee, and accept requests in a single tap."
+        },
+        {
+          "at": 11.15,
+          "end": 15.9,
+          "style": "Warm, smiling invitation straight to the viewer; a little lift on 'half price'.",
+          "text": "Download ProHost today, and get half price on your first Premium subscription, monthly or yearly."
+        }
+      ]
+    },
+    {
+      "id": "post8_medical",
+      "voice": "Achernar",
+      "gender": "female",
+      "persona": "Composed, kind narrator in her 30s.",
+      "lines": [
+        {
+          "at": 0.3,
+          "end": 4.55,
+          "style": "Warm and curious, gently empathetic, a natural rising question.",
+          "text": "You run a medical centre, and your clinic rooms are free every afternoon?"
+        },
+        {
+          "at": 4.8,
+          "end": 10.9,
+          "style": "Relaxed, confident and upbeat, explaining something genuinely useful to a friend.",
+          "text": "Now you can rent them by the shift to doctors and specialists, and approve every request yourself."
+        },
+        {
+          "at": 11.15,
+          "end": 15.9,
+          "style": "Warm, smiling invitation straight to the viewer; a little lift on 'half price'.",
+          "text": "Download ProHost today, and get half price on your first Premium subscription, monthly or yearly."
+        }
+      ]
+    },
+    {
+      "id": "post9_institute",
+      "voice": "Iapetus",
+      "gender": "male",
+      "persona": "Upbeat, clear narrator in his 30s.",
+      "lines": [
+        {
+          "at": 0.3,
+          "end": 4.55,
+          "style": "Warm and curious, gently empathetic, a natural rising question.",
+          "text": "You run a training centre, and your classrooms are empty every evening and weekend?"
+        },
+        {
+          "at": 4.8,
+          "end": 10.9,
+          "style": "Relaxed, confident and upbeat, explaining something genuinely useful to a friend.",
+          "text": "Finally, they can earn. Rent them by the hour or per attendee, with every request in the app."
+        },
+        {
+          "at": 11.15,
+          "end": 15.9,
+          "style": "Warm, smiling invitation straight to the viewer; a little lift on 'half price'.",
+          "text": "Download ProHost today, and get half price on your first Premium subscription, monthly or yearly."
+        }
+      ]
+    },
+    {
+      "id": "post10_studio",
+      "voice": "Vindemiatrix",
+      "gender": "female",
+      "persona": "Bright, gentle narrator in her late 20s.",
+      "lines": [
+        {
+          "at": 0.3,
+          "end": 4.55,
+          "style": "Warm and curious, gently empathetic, a natural rising question.",
+          "text": "You run a yoga studio, and it's quiet until six?"
+        },
+        {
+          "at": 4.8,
+          "end": 10.9,
+          "style": "Relaxed, confident and upbeat, explaining something genuinely useful to a friend.",
+          "text": "Now your free hours can pay. Instructors book them every week, right in ProHost."
+        },
+        {
+          "at": 11.15,
+          "end": 15.9,
+          "style": "Warm, smiling invitation straight to the viewer; a little lift on 'half price'.",
+          "text": "Download ProHost today, and get half price on your first Premium subscription, monthly or yearly."
+        }
+      ]
+    }
+  ]
+}
