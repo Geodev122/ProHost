@@ -5,7 +5,7 @@
   "output": "marketing/voice_en",
   "length": 16.0,
   "say": "Say exactly this, in natural British English:",
-  "dialect": "You are a native British English speaker with a natural, smooth, contemporary London accent (soft Received Pronunciation). You are narrating a short Instagram reel in the second person, talking to one viewer like a friend: relaxed, warm, unhurried but flowing, with natural breaths and a smile in your voice. Never theatrical, never a TV advert announcer, never American. Say 'ProHost' as 'Pro-Host'.",
+  "dialect": "You are a native British English speaker with a natural, smooth, contemporary London accent (soft Received Pronunciation). You are narrating a short Instagram reel in the second person, talking to one viewer like a friend: relaxed and warm but with a brisk, flowing social-media pace, natural breaths and a smile in your voice; no long pauses. Never theatrical, never a TV advert announcer, never American. Say 'ProHost' as 'Pro-Host'.",
   "posts": [
     {
       "id": "post1_hosts",
@@ -35,7 +35,7 @@
           "at": 11.65,
           "end": 15.9,
           "style": "Warm, smiling invitation straight to the viewer; a little lift on 'half price'.",
-          "text": "Download ProHost today, and get half price on your first Premium subscription, monthly or yearly."
+          "text": "Download ProHost today. Your first Premium subscription is half price."
         }
       ]
     },
@@ -55,7 +55,7 @@
           "at": 3.1,
           "end": 5.9,
           "style": "Relaxed, confident and upbeat, explaining something genuinely useful to a friend.",
-          "text": "With ProHost, clinics, offices and studios are all on the map."
+          "text": "Clinics, offices and studios, all on one map."
         },
         {
           "at": 6.1,
@@ -67,13 +67,13 @@
           "at": 8.9,
           "end": 11.4,
           "style": "Relaxed, confident and upbeat, explaining something genuinely useful to a friend.",
-          "text": "Got a space of your own? Rent it out from the same app."
+          "text": "Got a space? Rent it out from the same app."
         },
         {
           "at": 11.7,
           "end": 15.95,
           "style": "Warm, smiling invitation straight to the viewer; a little lift on 'half price'.",
-          "text": "Download ProHost. Your first Premium subscription is half price."
+          "text": "Download ProHost today. Your first Premium subscription is half price."
         }
       ]
     },
@@ -87,7 +87,7 @@
           "at": 0.3,
           "end": 4.55,
           "style": "Warm and curious, gently empathetic, a natural rising question.",
-          "text": "You're a psychologist, and you don't need a clinic all week… just two mornings?"
+          "text": "You're a psychologist. You don't need a clinic all week, just two mornings?"
         },
         {
           "at": 4.8,
@@ -99,7 +99,7 @@
           "at": 11.15,
           "end": 15.9,
           "style": "Warm, smiling invitation straight to the viewer; a little lift on 'half price'.",
-          "text": "Download ProHost. Booking's free, and if you've got a space, your first Premium subscription is half price."
+          "text": "Download ProHost, booking's free. Got a space? Premium's half price."
         }
       ]
     },
@@ -125,7 +125,7 @@
           "at": 11.15,
           "end": 15.9,
           "style": "Warm, smiling invitation straight to the viewer; a little lift on 'half price'.",
-          "text": "Download ProHost. Booking's free, and if you've got a space, your first Premium subscription is half price."
+          "text": "Download ProHost, booking's free. Got a space? Premium's half price."
         }
       ]
     },
@@ -151,7 +151,7 @@
           "at": 11.15,
           "end": 15.9,
           "style": "Warm, smiling invitation straight to the viewer; a little lift on 'half price'.",
-          "text": "Download ProHost. Booking's free, and if you've got a space, your first Premium subscription is half price."
+          "text": "Download ProHost, booking's free. Got a space? Premium's half price."
         }
       ]
     },
@@ -177,7 +177,7 @@
           "at": 11.15,
           "end": 15.9,
           "style": "Warm, smiling invitation straight to the viewer; a little lift on 'half price'.",
-          "text": "Download ProHost. Booking's free, and if you've got a space, your first Premium subscription is half price."
+          "text": "Download ProHost, booking's free. Got a space? Premium's half price."
         }
       ]
     },
@@ -203,7 +203,7 @@
           "at": 11.15,
           "end": 15.9,
           "style": "Warm, smiling invitation straight to the viewer; a little lift on 'half price'.",
-          "text": "Download ProHost today, and get half price on your first Premium subscription, monthly or yearly."
+          "text": "Download ProHost today. Your first Premium subscription is half price."
         }
       ]
     },
@@ -229,7 +229,7 @@
           "at": 11.15,
           "end": 15.9,
           "style": "Warm, smiling invitation straight to the viewer; a little lift on 'half price'.",
-          "text": "Download ProHost today, and get half price on your first Premium subscription, monthly or yearly."
+          "text": "Download ProHost today. Your first Premium subscription is half price."
         }
       ]
     },
@@ -255,7 +255,7 @@
           "at": 11.15,
           "end": 15.9,
           "style": "Warm, smiling invitation straight to the viewer; a little lift on 'half price'.",
-          "text": "Download ProHost today, and get half price on your first Premium subscription, monthly or yearly."
+          "text": "Download ProHost today. Your first Premium subscription is half price."
         }
       ]
     },
@@ -281,7 +281,7 @@
           "at": 11.15,
           "end": 15.9,
           "style": "Warm, smiling invitation straight to the viewer; a little lift on 'half price'.",
-          "text": "Download ProHost today, and get half price on your first Premium subscription, monthly or yearly."
+          "text": "Download ProHost today. Your first Premium subscription is half price."
         }
       ]
     }
