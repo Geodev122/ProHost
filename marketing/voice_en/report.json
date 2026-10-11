@@ -1,0 +1,412 @@
+[
+  {
+    "post": "post1_hosts",
+    "voice": "Achird",
+    "gender": "male",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 0.25,
+        "end": 3.62,
+        "sceneEnd": 3.55,
+        "spoken": 4.38,
+        "tempo": 1.3,
+        "text": "Got an office, a clinic or a studio… sitting empty half the week?"
+      },
+      {
+        "line": 2,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 3.8,
+        "end": 8.06,
+        "sceneEnd": 8.05,
+        "spoken": 5.19,
+        "tempo": 1.222,
+        "text": "With ProHost, rent it by the hour, the shift, the day or the month."
+      },
+      {
+        "line": 3,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 8.4,
+        "end": 11.41,
+        "sceneEnd": 11.4,
+        "spoken": 3.43,
+        "tempo": 1.142,
+        "text": "Requests, bookings and prices, all in one app."
+      },
+      {
+        "line": 4,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 11.65,
+        "end": 16.3,
+        "sceneEnd": 15.9,
+        "spoken": 6.03,
+        "tempo": 1.3,
+        "text": "Download ProHost today, and get half price on your first Premium subscription, monthly or yearly."
+      }
+    ],
+    "trackSeconds": 16.0
+  },
+  {
+    "post": "post2_app",
+    "voice": "Sulafat",
+    "gender": "female",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 0.3,
+        "end": 2.92,
+        "sceneEnd": 2.9,
+        "spoken": 2.72,
+        "tempo": 1.045,
+        "text": "Need a space to work, not a lease?"
+      },
+      {
+        "line": 2,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 3.1,
+        "end": 6.85,
+        "sceneEnd": 5.9,
+        "spoken": 4.87,
+        "tempo": 1.3,
+        "text": "With ProHost, clinics, offices and studios are all on the map."
+      },
+      {
+        "line": 3,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 6.97,
+        "end": 9.57,
+        "sceneEnd": 8.7,
+        "spoken": 2.95,
+        "tempo": 1.136,
+        "text": "Book by the hour, and chat to the host on WhatsApp."
+      },
+      {
+        "line": 4,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 9.69,
+        "end": 12.18,
+        "sceneEnd": 11.4,
+        "spoken": 3.09,
+        "tempo": 1.238,
+        "text": "Got a space of your own? Rent it out from the same app."
+      },
+      {
+        "line": 5,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 12.3,
+        "end": 16.55,
+        "sceneEnd": 15.95,
+        "spoken": 4.42,
+        "tempo": 1.041,
+        "text": "Download ProHost. Your first Premium subscription is half price."
+      }
+    ],
+    "trackSeconds": 16.0
+  },
+  {
+    "post": "post3_psychologist",
+    "voice": "Algieba",
+    "gender": "male",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 0.3,
+        "end": 4.63,
+        "sceneEnd": 4.55,
+        "spoken": 5.61,
+        "tempo": 1.3,
+        "text": "You're a psychologist, and you don't need a clinic all week… just two mornings?"
+      },
+      {
+        "line": 2,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 4.8,
+        "end": 10.9,
+        "sceneEnd": 10.9,
+        "spoken": 6.91,
+        "tempo": 1.133,
+        "text": "Now you can book the morning shift on Tuesdays and Thursdays with ProHost, and only pay for your time."
+      },
+      {
+        "line": 3,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 11.15,
+        "end": 17.22,
+        "sceneEnd": 15.9,
+        "spoken": 7.87,
+        "tempo": 1.3,
+        "text": "Download ProHost. Booking's free, and if you've got a space, your first Premium subscription is half price."
+      }
+    ],
+    "trackSeconds": 16.0
+  },
+  {
+    "post": "post4_trainer",
+    "voice": "Despina",
+    "gender": "female",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 0.3,
+        "end": 4.55,
+        "sceneEnd": 4.55,
+        "spoken": 5.22,
+        "tempo": 1.229,
+        "text": "You're a trainer with eighteen people on Saturday… and no proper room?"
+      },
+      {
+        "line": 2,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 4.8,
+        "end": 10.9,
+        "sceneEnd": 10.9,
+        "spoken": 7.56,
+        "tempo": 1.24,
+        "text": "With ProHost, conference rooms are priced per seat. Set the headcount, add a coffee break, and send your request."
+      },
+      {
+        "line": 3,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 11.15,
+        "end": 16.54,
+        "sceneEnd": 15.9,
+        "spoken": 6.98,
+        "tempo": 1.3,
+        "text": "Download ProHost. Booking's free, and if you've got a space, your first Premium subscription is half price."
+      }
+    ],
+    "trackSeconds": 16.0
+  },
+  {
+    "post": "post5_lifecoach",
+    "voice": "Umbriel",
+    "gender": "male",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 0.3,
+        "end": 4.56,
+        "sceneEnd": 4.55,
+        "spoken": 4.83,
+        "tempo": 1.137,
+        "text": "You're a life coach with two sessions today. Why pay a whole month's rent?"
+      },
+      {
+        "line": 2,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 4.8,
+        "end": 10.78,
+        "sceneEnd": 10.9,
+        "spoken": 5.99,
+        "tempo": 1.0,
+        "text": "Finally, you can book a room by the hour. See what's free, pick your time, and you're done."
+      },
+      {
+        "line": 3,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 11.15,
+        "end": 16.69,
+        "sceneEnd": 15.9,
+        "spoken": 7.2,
+        "tempo": 1.3,
+        "text": "Download ProHost. Booking's free, and if you've got a space, your first Premium subscription is half price."
+      }
+    ],
+    "trackSeconds": 16.0
+  },
+  {
+    "post": "post6_dietitian",
+    "voice": "Callirrhoe",
+    "gender": "female",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 0.3,
+        "end": 4.55,
+        "sceneEnd": 4.55,
+        "spoken": 4.99,
+        "tempo": 1.173,
+        "text": "You're a dietitian, ready for your own clinic… but not a long lease?"
+      },
+      {
+        "line": 2,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 4.8,
+        "end": 10.68,
+        "sceneEnd": 10.9,
+        "spoken": 5.89,
+        "tempo": 1.0,
+        "text": "With ProHost, rent a ready-made clinic month to month, and grow whenever you like."
+      },
+      {
+        "line": 3,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 11.15,
+        "end": 16.97,
+        "sceneEnd": 15.9,
+        "spoken": 7.56,
+        "tempo": 1.3,
+        "text": "Download ProHost. Booking's free, and if you've got a space, your first Premium subscription is half price."
+      }
+    ],
+    "trackSeconds": 16.0
+  },
+  {
+    "post": "post7_hotel",
+    "voice": "Charon",
+    "gender": "male",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 0.3,
+        "end": 4.56,
+        "sceneEnd": 4.55,
+        "spoken": 4.7,
+        "tempo": 1.105,
+        "text": "You run a hotel, and your meeting rooms sit empty most weekdays?"
+      },
+      {
+        "line": 2,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 4.8,
+        "end": 10.89,
+        "sceneEnd": 10.9,
+        "spoken": 6.69,
+        "tempo": 1.096,
+        "text": "With ProHost, rent them by the day or per attendee, and accept requests in a single tap."
+      },
+      {
+        "line": 3,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 11.15,
+        "end": 16.16,
+        "sceneEnd": 15.9,
+        "spoken": 6.5,
+        "tempo": 1.3,
+        "text": "Download ProHost today, and get half price on your first Premium subscription, monthly or yearly."
+      }
+    ],
+    "trackSeconds": 16.0
+  },
+  {
+    "post": "post8_medical",
+    "voice": "Achernar",
+    "gender": "female",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 0.3,
+        "end": 4.55,
+        "sceneEnd": 4.55,
+        "spoken": 4.37,
+        "tempo": 1.028,
+        "text": "You run a medical centre, and your clinic rooms are free every afternoon?"
+      },
+      {
+        "line": 2,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 4.8,
+        "end": 10.91,
+        "sceneEnd": 10.9,
+        "spoken": 6.68,
+        "tempo": 1.096,
+        "text": "Now you can rent them by the shift to doctors and specialists, and approve every request yourself."
+      },
+      {
+        "line": 3,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 11.15,
+        "end": 16.1,
+        "sceneEnd": 15.9,
+        "spoken": 6.42,
+        "tempo": 1.3,
+        "text": "Download ProHost today, and get half price on your first Premium subscription, monthly or yearly."
+      }
+    ],
+    "trackSeconds": 16.0
+  },
+  {
+    "post": "post9_institute",
+    "voice": "Iapetus",
+    "gender": "male",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 0.3,
+        "end": 4.55,
+        "sceneEnd": 4.55,
+        "spoken": 5.0,
+        "tempo": 1.177,
+        "text": "You run a training centre, and your classrooms are empty every evening and weekend?"
+      },
+      {
+        "line": 2,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 4.8,
+        "end": 10.91,
+        "sceneEnd": 10.9,
+        "spoken": 6.86,
+        "tempo": 1.124,
+        "text": "Finally, they can earn. Rent them by the hour or per attendee, with every request in the app."
+      },
+      {
+        "line": 3,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 11.15,
+        "end": 16.04,
+        "sceneEnd": 15.9,
+        "spoken": 6.33,
+        "tempo": 1.3,
+        "text": "Download ProHost today, and get half price on your first Premium subscription, monthly or yearly."
+      }
+    ],
+    "trackSeconds": 16.0
+  },
+  {
+    "post": "post10_studio",
+    "voice": "Vindemiatrix",
+    "gender": "female",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 0.3,
+        "end": 4.55,
+        "sceneEnd": 4.55,
+        "spoken": 4.58,
+        "tempo": 1.078,
+        "text": "You run a yoga studio, and it's quiet until six?"
+      },
+      {
+        "line": 2,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 4.8,
+        "end": 10.89,
+        "sceneEnd": 10.9,
+        "spoken": 6.15,
+        "tempo": 1.009,
+        "text": "Now your free hours can pay. Instructors book them every week, right in ProHost."
+      },
+      {
+        "line": 3,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 11.15,
+        "end": 16.3,
+        "sceneEnd": 15.9,
+        "spoken": 6.69,
+        "tempo": 1.3,
+        "text": "Download ProHost today, and get half price on your first Premium subscription, monthly or yearly."
+      }
+    ],
+    "trackSeconds": 16.0
+  }
+]
