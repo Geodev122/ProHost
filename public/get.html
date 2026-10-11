@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Get ProHost</title>
+  <meta name="description" content="ProHost: rent and book clinics, offices, studios and meeting rooms in Lebanon by the hour, shift, day or month. Get it on Google Play.">
+  <meta property="og:title" content="Get ProHost on Google Play">
+  <meta property="og:description" content="Rent and book clinics, offices, studios and meeting rooms by the hour, shift, day or month.">
+  <meta property="og:image" content="https://pro-host.tech/logo.png">
+  <meta property="og:url" content="https://pro-host.tech/get">
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/site.css">
+  <style>
+    .lead { margin-bottom: 0.4rem; }
+    .qr { display: none; margin: 1.2rem auto 0.2rem; width: 180px; height: 180px; padding: 8px; background: #fff; border-radius: 12px; border: 1px solid var(--border); }
+    .desktop .qr { display: block; }
+    .note { display: none; font-size: 0.92rem; margin-top: 0.8rem; }
+    .desktop .note.desk, .ios .note.ios { display: block; }
+    #open { display: none; }
+    .android #open { display: block; }
+  </style>
+</head>
+<body class="center-page">
+  <nav class="topbar">
+    <a class="home" href="/">
+      <img src="/logo.png" alt="ProHost">
+      <img class="wordmark" src="/logo-wordmark.png" alt="">
+    </a>
+  </nav>
+  <main>
+   <div class="card narrow">
+    <h1>Get ProHost</h1>
+    <p class="lead">Clinics, offices, studios and meeting rooms across Lebanon, by the hour, shift, day or month.</p>
+    <p>Free to book. Own a space? List it and manage every request in one app.</p>
+
+    <img class="qr" src="/get-qr.svg" alt="QR code to get ProHost on your phone">
+    <p class="note desk">Scan with your Android phone's camera to install ProHost.</p>
+    <p class="note ios">ProHost is on Android for now. The iPhone app is coming soon.</p>
+
+    <a class="btn btn-primary" id="play" href="https://play.google.com/store/apps/details?id=app.geonajjar.prohost">Get it on Google Play</a>
+    <a class="btn btn-secondary" id="open" href="https://play.google.com/store/apps/details?id=app.geonajjar.prohost">Already installed? Open ProHost</a>
+
+    <p class="fine">After installing, open ProHost and sign in with Google, email or your phone number. See our <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</p>
+   </div>
+  </main>
+  <script>
+    (function () {
+      var PKG = "app.geonajjar.prohost";
+      var q = new URLSearchParams(location.search);
+      var clean = function (v, d) { return (v || d).toLowerCase().replace(/[^a-z0-9_\-.]/g, "").slice(0, 40) || d; };
+      // Campaign tags travel to Google Play as the install referrer (Play Console › Acquisition shows them).
+      var ref = "utm_source=" + clean(q.get("utm_source"), "link") +
+                "&utm_medium=" + clean(q.get("utm_medium"), "referral") +
+                "&utm_campaign=" + clean(q.get("utm_campaign"), "launch");
+      var play = "https://play.google.com/store/apps/details?id=" + PKG + "&referrer=" + encodeURIComponent(ref);
+      // Opens the installed app on Explore; Chrome falls back to the Play listing when it isn't installed.
+      var intent = "intent://discovery#Intent;scheme=prohost;package=" + PKG +
+                   ";S.browser_fallback_url=" + encodeURIComponent(play) + ";end";
+      document.getElementById("play").href = play;
+      document.getElementById("open").href = intent;
+
+      var ua = navigator.userAgent || "";
+      var android = /android/i.test(ua);
+      var ios = /iphone|ipad|ipod/i.test(ua) || (/macintosh/i.test(ua) && "ontouchend" in document);
+      document.body.classList.add(android ? "android" : ios ? "ios" : "desktop");
+      if (!android || q.get("stay") === "1") return;
+
+      // Android: open the app if it's installed, otherwise go straight to Google Play.
+      // In-app browsers (Instagram, Facebook) may ignore intent:// links, so fall back to Play after a moment.
+      var left = false;
+      document.addEventListener("visibilitychange", function () { if (document.hidden) left = true; });
+      location.href = intent;
+      setTimeout(function () { if (!left && !document.hidden) location.href = play; }, 1400);
+    })();
+  </script>
+</body>
+</html>

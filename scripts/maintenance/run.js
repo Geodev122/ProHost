@@ -584,9 +584,13 @@ async function prodcheck(db, auth) {
   // 3. Public pages that Play and the app link to.
   await step("publicPages", async () => {
     const out = [];
-    for (const page of ["privacy.html", "terms.html", "delete-account.html", "redeem.html", "emaillink.html", ".well-known/assetlinks.json"]) {
+    for (const page of ["privacy.html", "terms.html", "delete-account.html", "redeem.html", "emaillink.html", "get", "get-qr.svg", ".well-known/assetlinks.json"]) {
       const r = await fetch(`https://pro-host.tech/${page}`);
       out.push(`${page}=${r.status}`);
+    }
+    for (const alias of ["ig", "qr", "app"]) {  // marketing short links redirect to /get with campaign tags
+      const r = await fetch(`https://pro-host.tech/${alias}`, { redirect: "manual" });
+      out.push(`/${alias}=${r.status}→${r.headers.get("location") || "-"}`);
     }
     return out.join(" ");
   });

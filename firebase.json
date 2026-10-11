@@ -21,6 +21,15 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "redirects": [
+      { "source": "/app", "destination": "/get", "type": 302 },
+      { "source": "/download", "destination": "/get", "type": 302 },
+      { "source": "/ig", "destination": "/get?utm_source=instagram&utm_medium=social&utm_campaign=launch", "type": 302 },
+      { "source": "/fb", "destination": "/get?utm_source=facebook&utm_medium=social&utm_campaign=launch", "type": 302 },
+      { "source": "/wa", "destination": "/get?utm_source=whatsapp&utm_medium=social&utm_campaign=launch", "type": 302 },
+      { "source": "/li", "destination": "/get?utm_source=linkedin&utm_medium=social&utm_campaign=launch", "type": 302 },
+      { "source": "/qr", "destination": "/get?utm_source=qr&utm_medium=print&utm_campaign=launch", "type": 302 }
+    ],
     "rewrites": [
       {
         "source": "/privacy",
@@ -37,6 +46,10 @@
       {
         "source": "/redeem",
         "destination": "/redeem.html"
+      },
+      {
+        "source": "/get",
+        "destination": "/get.html"
       },
       {
         "source": "/emaillink",
