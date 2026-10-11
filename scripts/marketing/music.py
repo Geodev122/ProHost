@@ -1,6 +1,6 @@
 """Generate instrumental background music for marketing posts with Vertex AI Lyria (CI service account).
 
-Writes marketing/music/<post>.wav for every track in music.json (or only the ids in argv[1]).
+Writes marketing/audio/music/<post>.wav for every track in music.json (or only the ids in argv[1]).
 """
 import base64, json, pathlib, re, sys, time
 
@@ -9,7 +9,7 @@ import google.auth.transport.requests
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 CFG = json.loads((pathlib.Path(__file__).parent / "music.json").read_text(encoding="utf-8"))
-OUT = ROOT / "marketing" / "music"
+OUT = ROOT / "marketing" / "audio" / "music"
 
 creds, project = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
 project = project or "prohost-f766f"

@@ -1,7 +1,7 @@
 name: Marketing backgrounds (manual)
 
 # Generates the photo backgrounds for marketing/*.mp4 with Vertex AI Imagen (CI service account)
-# and commits them to marketing/bg/ on the branch it runs on.
+# and commits them to marketing/backgrounds/ on the branch it runs on.
 on:
   workflow_dispatch:
     inputs:
@@ -49,7 +49,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add marketing/bg
+          git add marketing/backgrounds
           git diff --cached --quiet && { echo "No changes"; exit 0; }
           git commit -m "Marketing: photo backgrounds (Vertex AI Imagen)"
           git pull --rebase

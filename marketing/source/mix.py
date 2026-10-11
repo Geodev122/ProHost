@@ -4,11 +4,11 @@ For every post: reads events/<post>_events.json (written by render.py), finds th
 best match the post's major animation events, cuts LENGTH seconds, adds light sound effects on the animation cues,
 dips the music just before the closing offer and muxes it with the silent video.
 
-With VOICE=voice_en (or voice) the post's voiceover (../<VOICE>/<post>_voice.wav) goes on top: the music bed is
+With VOICE=audio/voiceovers-english (or audio/voiceovers-arabic) the post's voiceover (../<VOICE>/<post>_voice.wav) goes on top: the music bed is
 dimmed and ducks further under the voice (smooth sidechain envelope), the UI sounds stay audible.
 
-usage: python mix.py [post ids...]                       → ../posts/<post>.mp4
-       VOICE=voice_en OUT_DIR=final_en python mix.py     → ../final_en/<post>_final.mp4
+usage: VIDEOS=<silent renders> OUT_DIR=<staging> [VOICE=audio/voiceovers-english] python mix.py [post ids...]
+       → <OUT_DIR>/<post>.mp4; then export.py copies them into the numbered delivery folders.
 """
 import json, pathlib, subprocess, sys, wave
 
@@ -21,7 +21,7 @@ SR, LENGTH = 48000, 16.0
 _env = __import__("os").environ
 VIDEOS = pathlib.Path(_env.get("VIDEOS", HERE / "out"))  # silent renders from render.py
 VOICE = _env.get("VOICE")                                # e.g. "voice_en" or "voice" (Lebanese Arabic)
-OUT_DIR = _env.get("OUT_DIR", "posts")
+OUT_DIR = _env.get("OUT_DIR", str(HERE / "out" / "mixed"))  # staging; export.py copies into the numbered folders
 FF = imageio_ffmpeg.get_ffmpeg_exe()
 rng = np.random.default_rng(7)
 
@@ -112,7 +112,7 @@ def sfx(kind):
 
 
 def score(post):
-    music = load(ROOT / "music" / f"{post}.wav")
+    music = load(ROOT / "audio" / "music" / f"{post}.wav")
     events = json.loads((HERE / "events" / f"{post}_events.json").read_text())
     d, s = best_offset(music, events)
     n = int(LENGTH * SR)
@@ -159,13 +159,13 @@ def score(post):
     with wave.open(str(tmp), "wb") as w:
         w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR)
         w.writeframes((mix * 32767).astype("<i2").tobytes())
-    out = ROOT / OUT_DIR / (f"{post}_final.mp4" if VOICE else f"{post}.mp4")
-    out.parent.mkdir(exist_ok=True)
+    out = pathlib.Path(OUT_DIR) / f"{post}.mp4"
+    out.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run([FF, "-nostdin", "-y", "-loglevel", "error", "-i", str(VIDEOS / f"{post}.mp4"), "-i", str(tmp),
                     "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-af", "loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000",
                     "-c:a", "aac", "-b:a", "192k", "-t", str(LENGTH), "-movflags", "+faststart", str(out)], check=True)
-    print(f"{post}: music offset {d:.2f}s, beat match {s:.2f}{', voice ' + VOICE if VOICE else ''} → {out.relative_to(ROOT)}")
+    print(f"{post}: music offset {d:.2f}s, beat match {s:.2f}{', voice ' + VOICE if VOICE else ''} → {out}")
 
 
-for p in sys.argv[1:] or [f.stem for f in sorted((ROOT / "music").glob("*.wav"))]:
+for p in sys.argv[1:] or [f.stem for f in sorted((ROOT / "audio" / "music").glob("*.wav"))]:
     score(p)

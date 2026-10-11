@@ -2,7 +2,7 @@
   "_about": "British English voiceovers for the 9:16 Reels (16 s). Same scenes and timing as voiceover.json. Output: marketing/voice_en/.",
   "language": "en-GB",
   "chirpLanguage": "en-GB",
-  "output": "marketing/voice_en",
+  "output": "marketing/audio/voiceovers-english",
   "length": 16.0,
   "say": "Say exactly this, in natural British English:",
   "dialect": "You are a native British English speaker with a natural, smooth, contemporary London accent (soft Received Pronunciation). You are narrating a short Instagram reel in the second person, talking to one viewer like a friend: relaxed and warm but with a brisk, flowing social-media pace, natural breaths and a smile in your voice; no long pauses. Never theatrical, never a TV advert announcer, never American. Say 'ProHost' as 'Pro-Host'.",

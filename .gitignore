@@ -27,3 +27,5 @@ tests/e2e/*.log
 tests/rules/*.log
 
 __pycache__/
+
+marketing/source/out/

@@ -3,10 +3,10 @@
 Runs in CI (.github/workflows/voiceover.yml) with the CI service account (GOOGLE_APPLICATION_CREDENTIALS).
 For every post in voiceover.json it synthesizes each line with that post's voice, fits it into its scene
 (speeds it up a little if needed), places it at its start time and writes:
-  marketing/voice/<post>_voice.mp3   the full 15.0 s track, ready to merge with the video
-  marketing/voice/<post>_voice.wav   the same track, lossless
-  marketing/voice/lines/<post>_NN.wav each line on its own (to re-time by hand)
-  marketing/voice/report.json        engine, voice, durations and tempo per line
+  marketing/audio/voiceovers-arabic/<post>_voice.mp3   the full 15.0 s track, ready to merge with the video
+  marketing/audio/voiceovers-arabic/<post>_voice.wav   the same track, lossless
+  marketing/audio/voiceovers-arabic/lines/<post>_NN.wav each line on its own (to re-time by hand)
+  marketing/audio/voiceovers-arabic/report.json        engine, voice, durations and tempo per line
 
 Engine: Gemini-TTS (style prompt with Lebanese dialect + acting direction); falls back to Chirp 3 HD (ar-XA).
 """
@@ -19,10 +19,10 @@ import requests
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 import os
-# VO_CONFIG picks the script set: voiceover.json (Lebanese Arabic, → marketing/voice) or voiceover_en.json
-# (British English, → marketing/voice_en). The config's "language", "chirpLanguage", "say" and "output" keys drive it.
+# VO_CONFIG picks the script set: voiceover.json (Lebanese Arabic, → marketing/audio/voiceovers-arabic) or voiceover_en.json
+# (British English, → marketing/audio/voiceovers-english). The config's "language", "chirpLanguage", "say" and "output" keys drive it.
 CFG = json.loads((pathlib.Path(__file__).parent / os.environ.get("VO_CONFIG", "voiceover.json")).read_text(encoding="utf-8"))
-OUT = ROOT / CFG.get("output", "marketing/voice")
+OUT = ROOT / CFG.get("output", "marketing/audio/voiceovers-arabic")
 LINES = OUT / "lines"
 TMP = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "/tmp/voiceover")
 FF = imageio_ffmpeg.get_ffmpeg_exe()

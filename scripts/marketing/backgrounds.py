@@ -1,6 +1,6 @@
 """Generate photo backgrounds for marketing videos with Vertex AI Imagen (CI service account).
 
-Writes marketing/bg/<name>.jpg (1080x1920) for every entry in backgrounds.json (or only the names in argv[1]).
+Writes marketing/backgrounds/<name>.jpg (1080x1920) for every entry in backgrounds.json (or only the names in argv[1]).
 Tries the newest Imagen model first and falls back to older ones.
 """
 import base64, io, json, pathlib, sys, time
@@ -11,7 +11,7 @@ from PIL import Image
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 CFG = json.loads((pathlib.Path(__file__).parent / "backgrounds.json").read_text(encoding="utf-8"))
-OUT = ROOT / "marketing" / "bg"
+OUT = ROOT / "marketing" / "backgrounds"
 FALLBACK = ["imagen-4.0-ultra-generate-001", "imagen-4.0-generate-001", "imagen-3.0-generate-002", "gemini-2.5-flash-image"]
 DEAD = set()
 
