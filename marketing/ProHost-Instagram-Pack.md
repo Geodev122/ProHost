@@ -9,7 +9,19 @@
 - Direct Play listing: https://play.google.com/store/apps/details?id=app.geonajjar.prohost
 - Every feed post ends on **pro-host.tech/get** under the Google Play badge.
 
-## ★ Feed posts with music (`posts/`): use these
+## ★ Reels with voice + music (9:16): `final_en/` (British English) and `final_ar/` (Lebanese Arabic)
+The 10 second-person Reels (1080×1920, 16 s), each ending on **pro-host.tech/get**, with three audio layers:
+1. **Voiceover:** British English (`voice_en/`, Gemini 3.1 TTS, natural, smooth, contemporary London accent, voices alternating
+   male/female) or Lebanese Arabic (`voice/`).
+2. **Background music:** the post's own Lyria track, shifted so its beats land on the animation. It's dimmed under the
+   whole Reel and dips a further ~4 dB whenever the voice speaks (smooth sidechain).
+3. **UI sounds:** whooshes on scene changes, pops on cards, soft clicks on taps, a chime for the new request, a sparkle on
+   send/accept and an impact on the 50% badge.
+Levelled to -14 LUFS. Re-mix: `VIDEOS=<renders> VOICE=voice_en OUT_DIR=final_en python src/mix.py` (see `src/README.md`).
+English script: `scripts/marketing/voiceover_en.json` → Actions › "Marketing voiceovers" with config `voiceover_en.json`.
+(`final/` holds the earlier voice-only Arabic Reels and is superseded by `final_ar/`.)
+
+## ★ Feed posts with music (`posts/`): 4:5 feed version, no voice
 Ten animated **feed posts at 4:5 (1080×1350)**, the full-size feed format, 16 s each. They tell the same second-person story as
 the Reels below, with the same tap-through app interactions and photo backgrounds, but **no voiceover**. Each one has its own
 background track, made with Vertex AI **Lyria** (instrumental, royalty-free to use), plus light sound effects on the animation:
