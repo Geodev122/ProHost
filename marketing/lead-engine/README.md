@@ -22,6 +22,40 @@ https://claude.ai/artifact/Q63Xzo5jQwG6cLhcKBh9HN. To update it, republish this 
 AI calls run on the viewer's own Claude account, two batches at a time, started by a click and stoppable; each finished
 lead is saved immediately, so a stopped or rate-limited run continues where it left off.
 
+## Discovery agents
+
+Source: `agents/discovery.js` (copied into the page by `python3 agents/build.py`; edit it there, never in the HTML).
+
+```
+ planner (in the page)      scouts (scheduled routines)           inbox (live)        you
+ ICP + cities + languages → linkedin · web · social · directories → inbox/<run> rows → review → merge → pipeline
+ discovery/<channel> plans    hiring · news · decision-maker finder   learned + suggest
+          ▲                                  │                                │
+          └────────── strategist (weekly) ◄──┴── discovery/stats, known, targets (written by the page)
+```
+
+- **Planner** (`planQueries`, deterministic, "Plan queries" in step 3): per channel, tiered searches (1 plain city
+  searches, 2 other languages and angles, 3 neighborhoods) in English, Arabic and French. Re-planning keeps progress and
+  everything the strategist added (`mergePlan`).
+- **Scouts** (six channels, Mon/Wed/Fri, staggered UTC slots): each picks its next queries (todo first, lowest tier first),
+  triages every result (segment, country, name + title + company agree), reformulates weak searches (Arabic/French, no
+  operators, neighborhood, synonym), skips companies already in the engine (`discovery/known`), rates confidence, and
+  writes `inbox/<channel>-<time>` with rows (each with an evidence URL), `learned` reformulations and `suggest` ideas.
+  They search only: no logins, never open LinkedIn or Facebook, no forms, no contacting anyone.
+- **Decision-maker finder** (weekdays): reads `discovery/targets` (companies with no named contact, written by the page)
+  and finds the owner or operator of each.
+- **Strategist** (Mondays): reads plans, `discovery/stats` (rows, leads, qualified, with email per channel) and recent
+  runs; retires searches with 2+ tries and no yield, adds variants of productive ones, promotes learned reformulations and
+  suggestions, writes `discovery/strategy` (summary, health, guidance) that scouts read next run.
+- **Page**: live inbox (`onSnapshot`), "Review and import" goes through the normal import preview (rows become New /
+  Updated, source `Agent · <channel>`, evidence URL kept), company-only rows are kept as leads and replaced once a named
+  person at that company is imported, runs are marked imported and come back if you undo the import.
+
+Documents: `discovery/{linkedin,web,social,directories,hiring,news}` (plans), `discovery/{known,targets,stats}` (page →
+agents), `discovery/{enrich,strategy}` (agents), `inbox/*` (runs), `config/agents` (schedules shown in the page).
+Each run is a Claude Code session on your account (usage counts against your plan). Agents run in the cloud environment's
+network policy: with default settings they can search but not open arbitrary sites.
+
 ## Importing
 
 - Formats: CSV / TSV / TXT (delimiter detected; UTF-8, UTF-16 and Windows-1252/1256 decoded), Excel (best sheet and
@@ -50,7 +84,7 @@ each with its own timestamp). Readable and writable only at Contributor level or
 
 ## Tests
 
-`tests/` drives the real page in headless Chromium against an in-memory database and a scripted Claude: 58 checks over
+`tests/` drives the real page in headless Chromium against an in-memory database and a scripted Claude: 79 checks over
 every import path, merge and change tracking, undo, the research and email agents (including a renamed key, a buzzword
 and a rate limit), QC, the verifier round-trip, the Excel workbook, a round-trip of the engine's own export, reload and
 clean-up. `scale.mjs` imports and re-imports 10,000 leads.

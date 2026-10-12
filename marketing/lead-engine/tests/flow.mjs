@@ -16,16 +16,20 @@ const MOCK = `
   window.__writes = 0;
   const clone = v => JSON.parse(JSON.stringify(v));
   const snap = p => ({ id: p.split('/').pop(), exists: p in D, data: () => p in D ? clone(D[p]) : undefined, metadata: {} });
+  window.__ls = [];
+  const notify = p => window.__ls.forEach(l => { if (p.startsWith(l.col + '/')) setTimeout(l.f, 0); });
   function q(col, f = [], ob = null, lim = 1000) {
+    const run = () => { let docs = Object.keys(D).filter(k => k.startsWith(col + '/') && k.split('/').length === col.split('/').length + 1).map(snap);
+      docs = docs.filter(s => f.every(([a, op, v]) => op === '>' ? s.data()[a] > v : true));
+      if (ob) docs.sort((x, y) => x.data()[ob] < y.data()[ob] ? -1 : 1); docs = docs.slice(0, lim); return { docs, size: docs.length, empty: !docs.length }; };
     return { where: (a, op, v) => q(col, [...f, [a, op, v]], ob, lim), orderBy: a => q(col, f, a, lim), limit: n => q(col, f, ob, n),
-      get: async () => { let docs = Object.keys(D).filter(k => k.startsWith(col + '/') && k.split('/').length === col.split('/').length + 1).map(snap);
-        docs = docs.filter(s => f.every(([a, op, v]) => op === '>' ? s.data()[a] > v : true));
-        if (ob) docs.sort((x, y) => x.data()[ob] < y.data()[ob] ? -1 : 1); docs = docs.slice(0, lim); return { docs, size: docs.length, empty: !docs.length }; },
+      get: async () => run(),
+      onSnapshot: cb => { const l = { col, f: () => cb(run()) }; window.__ls.push(l); setTimeout(l.f, 0); return () => { window.__ls = window.__ls.filter(x => x !== l); }; },
       doc: id => ref(col + '/' + id) };
   }
   function ref(p) { return { id: p.split('/').pop(), path: p, get: async () => snap(p),
-    set: async d => { const s = JSON.stringify(d); if (new TextEncoder().encode(s).length > 262144) throw { code: 'invalid_argument', message: 'too big' }; D[p] = JSON.parse(s); window.__writes++; },
-    update: async d => { Object.assign(D[p], d); }, delete: async () => { delete D[p]; window.__writes++; } }; }
+    set: async d => { const s = JSON.stringify(d); if (new TextEncoder().encode(s).length > 262144) throw { code: 'invalid_argument', message: 'too big' }; D[p] = JSON.parse(s); window.__writes++; notify(p); },
+    update: async d => { if (!(p in D)) throw { code: 'invalid_argument', message: 'missing' }; Object.assign(D[p], d); notify(p); }, delete: async () => { delete D[p]; window.__writes++; notify(p); } }; }
   function respond(p) {
     if (p.includes('Company Intelligence agent')) return { company: 'ProHost', website: 'https://pro-host.tech', product: 'Room rental app', pain_points: ['Empty rooms'], proof_points: ['No double bookings'], markets: ['Lebanon'], ideal_customer: ['Clinics'] };
     if (p.includes('ICP Builder agent')) return { segments: [{ name: 'Property Managers', source: 'goal', keywords: ['property management', 'business center', 'coworking'], why: 'x' }, { name: 'Hospitality Companies', source: 'goal', keywords: ['hotel', 'hospitality', 'hotel apartments'], why: 'y' }, { name: 'Real Estate Agencies', source: 'goal', keywords: ['real estate', 'commercial property'], why: 'z' }, { name: 'Clinics', source: 'website', keywords: ['polyclinic', 'hospital & health care'], why: 'w' }],
@@ -256,6 +260,71 @@ const rtHead = await page.locator('#importCard .card-head').innerText(); const r
 ok(/ProHost export/.test(rtHead) && /0\s*new leads/.test(rtPlan) && /0\s*updated/.test(rtPlan), 'own export re-imports as unchanged', rtHead + ' | ' + rtPlan);
 if (!/0\s*updated/.test(rtPlan)) { await page.click('#importCard details summary').catch(() => {}); console.log(await page.locator('#importCard details').innerText().catch(() => '')); }
 await page.click('[data-act="cancelImport"]'); await page.waitForTimeout(100);
+// ── 12b. discovery agents: planner, live inbox, review and import, shared state
+await go('discover');
+await page.evaluate(async () => { const db = await window.claude.use('db'); const d = await db.doc('discovery/linkedin').get();
+  window.__prePlan = d.exists; });
+await page.click('[data-act="planAll"]'); await page.waitForTimeout(900);
+const plans = await page.evaluate(() => Object.fromEntries(['linkedin', 'web', 'social', 'directories', 'hiring', 'news'].map(c => [c, window.__docs['discovery/' + c]?.queries])));
+ok(Object.values(plans).every(q => q && q.length > 40), 'planner wrote a plan for every channel', Object.entries(plans).map(([k, v]) => k + ':' + (v && v.length)).join(' '));
+ok(Object.values(plans).every(q => new Set(q.map(x => x.id)).size === q.length && q.every(x => x.status === 'todo' && x.tier >= 1)), 'query ids unique, all todo, tiered');
+ok(plans.web.some(q => q.lang === 'ar') && plans.web.some(q => q.tier === 3) && plans.hiring.some(q => /site:bayt\.com/.test(q.q)), 'plans include Arabic, neighborhood and job-board queries');
+await page.evaluate(async () => { const db = await window.claude.use('db'); const d = (await db.doc('discovery/web').get()).data();
+  d.queries[0].status = 'done'; d.queries[0].found = 7; d.queries[0].tries = 1;
+  d.queries.push({ id: 'sabc123', q: 'coworking space Hamra Beirut', segment: 'Property Managers', city: 'Beirut', country: 'Lebanon', tier: 1, status: 'todo', tries: 0, found: 0, source: 'strategist' });
+  await db.doc('discovery/web').set(d); window.__webLen = d.queries.length; });
+await page.click('[data-act="planAll"]'); await page.waitForTimeout(700);
+const web2 = await page.evaluate(() => window.__docs['discovery/web'].queries);
+ok(web2[0].status === 'done' && web2[0].found === 7 && web2.some(q => q.id === 'sabc123') && web2.length === await page.evaluate(() => window.__webLen), 're-planning keeps progress and the strategist\'s additions, adds nothing twice');
+const kn = await page.evaluate(() => window.__docs['discovery/known']);
+ok(kn?.domains?.includes('skylineprops.example') && (await page.evaluate(() => !!window.__docs['discovery/targets'] && !!window.__docs['discovery/stats'])), 'known domains, targets and stats shared with the agents');
+const agentsTxt = await page.locator('main').innerText();
+ok(/LinkedIn search/.test(agentsTxt) && /Decision-maker finder/.test(agentsTxt) && /Strategist/.test(agentsTxt) && /of \d+ searches/.test(agentsTxt), 'agents table lists scouts, finder and strategist with plan progress');
+
+const leadsBefore = (await dbLeads()).length;
+await page.evaluate(async () => { const db = await window.claude.use('db');
+  const row = o => ({ name: '', firstName: '', lastName: '', title: '', company: '', website: '', industry: '', country: '', city: '', email: '', emailStatus: '', phone: '', linkedin: '', description: '', signals: '', evidence: '', confidence: 'high', ...o });
+  await db.doc('inbox/linkedin-202610121200').set({ channel: 'linkedin', agent: 'LinkedIn search', runAt: Date.now() - 3600000, queries: ['q1'], notes: 'ok', learned: [], suggest: [], rows: [
+    row({ name: 'Hala Sarkis', firstName: 'Hala', lastName: 'Sarkis', title: 'General Manager', company: 'Beirut Harbor Hotel', website: 'https://harborhotel.example', country: 'Lebanon', city: 'Beirut', linkedin: 'https://lb.linkedin.com/in/hala-sarkis/', email: 'hala@harborhotel.example', emailStatus: 'Published', signals: 'Hiring a front office manager, Oct 2026', evidence: 'https://www.google.com/search?q=hala' }),
+    row({ name: 'Low Confidence', title: 'Owner', company: 'Ghost Co', country: 'Lebanon', confidence: 'low', linkedin: 'https://www.linkedin.com/in/ghost' }),
+    row({ name: 'Rami Aoun', title: 'Chief Executive Officer', company: 'Skyline Properties S.A.L.', country: 'Lebanon', city: 'Beirut', linkedin: 'https://www.linkedin.com/in/rami-aoun', signals: 'Hiring a leasing manager, Oct 2026', evidence: 'https://example.org/rami' })] });
+  await db.doc('inbox/web-202610121300').set({ channel: 'web', agent: 'Web search', runAt: Date.now() - 1800000, queries: ['q2'], notes: 'page fetching blocked, snippets only', learned: [{ from: 'a', to: 'b', rows: 2 }], suggest: ['peer hotels Beirut'], rows: [
+    row({ company: 'Beirut Harbor Hotel', website: 'www.harborhotel.example/en', country: 'Lebanon', city: 'Beirut', evidence: 'https://harborhotel.example' }),
+    row({ company: 'Cedar Spa Clinic', website: 'https://cedarspa.example', phone: '+961 1 555 000', country: 'Lebanon', city: 'Beirut', industry: 'hospital & health care', description: 'Polyclinic with rooms', evidence: 'https://cedarspa.example/about' })] });
+  await db.doc('inbox/news-202610121400').set({ channel: 'news', agent: 'Openings & news', runAt: Date.now(), queries: [], notes: 'nothing new', rows: [], learned: [], suggest: [] }); });
+await page.waitForTimeout(700);
+const railTxt = await page.locator('#rail').innerText();
+ok(/5 agent rows waiting/.test(railTxt), 'inbox updates live: rail shows rows waiting (no reload)', railTxt.replace(/\n/g, ' ').slice(0, 400));
+const inboxTxt = await page.locator('.inbox').innerText();
+ok(/5 rows from 3 runs/.test(inboxTxt) && /Review and import 5 rows/.test(inboxTxt), 'inbox card summarises the runs', inboxTxt.slice(0, 200));
+await page.click('[data-act="openInbox"]'); await page.waitForTimeout(250);
+const ih = await page.locator('#importCard .card-head').innerText(); const ip = await planText();
+ok(/Agent runs \(2\)/.test(ih) && /3\s*new leads/.test(ip) && /1\s*updated/.test(ip), 'review: low-confidence row left out, 3 new, 1 updated', ih + ' | ' + ip);
+const imap = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-map]')].map(s => [s.dataset.map, s.value])));
+ok(imap.evidence === 'evidence' && imap.channel === 'channel' && imap.linkedin === 'linkedin' && imap.firstName === 'firstName', 'inbox columns map themselves', JSON.stringify(imap));
+await commit();
+L = await dbLeads();
+const hala = byName(L, 'Hala Sarkis'); const cedar = L.find(r => r.company === 'Cedar Spa Clinic'); const harborCo = L.find(r => !r.name && r.domain === 'harborhotel.example');
+ok(hala && hala.source === 'Agent · LinkedIn search' && hala.channel === 'linkedin' && hala.evidence.startsWith('https://www.google.com') && hala.linkedin === 'https://www.linkedin.com/in/hala-sarkis', 'agent lead keeps channel, source and evidence', JSON.stringify(hala && [hala.source, hala.channel, hala.linkedin]));
+ok(!harborCo, 'company-only row dropped once a named person works there');
+ok(cedar && !cedar.name && cedar.phone === '+961 1 555 000' && cedar.domain === 'cedarspa.example' && cedar.source === 'Agent · Web search', 'company-only lead kept when nobody is named', JSON.stringify(cedar && [cedar.source, cedar.phone]));
+ok(L.length === leadsBefore + 2 && !byName(L, 'Low Confidence'), 'two leads added net, low-confidence row never imported', L.length + ' vs ' + leadsBefore);
+ok(byName(L, 'Rami Aoun').signals.includes('Hiring a leasing manager') && byName(L, 'Rami Aoun').importStatus === 'updated', 'existing lead updated by an agent signal');
+const inb = await page.evaluate(() => Object.fromEntries(Object.entries(window.__docs).filter(([k]) => k.startsWith('inbox/')).map(([k, v]) => [k, v.imported])));
+ok(inb['inbox/linkedin-202610121200'] === true && inb['inbox/web-202610121300'] === true && !inb['inbox/news-202610121400'], 'imported runs are marked, the empty run stays', JSON.stringify(inb));
+await page.waitForTimeout(3200);
+const tg = await page.evaluate(() => ({ t: window.__docs['discovery/targets'].companies, k: window.__docs['discovery/known'].domains, s: window.__docs['discovery/stats'] }));
+ok(tg.t.some(c => c.id === 'cedarspa.example') && !tg.t.some(c => c.id === 'harborhotel.example') && tg.k.includes('harborhotel.example'), 'finder targets = companies with no named contact; known domains refreshed', JSON.stringify(tg.t.map(c => c.id)));
+ok(tg.s.channels.linkedin?.leads >= 1 && tg.s.channels.web?.leads >= 1, 'stats count leads per channel', JSON.stringify(tg.s.channels));
+await page.click('[data-act="undoImport"]'); await page.waitForTimeout(600);
+const inb2 = await page.evaluate(() => window.__docs['inbox/linkedin-202610121200'].imported);
+L = await dbLeads();
+ok(inb2 === false && L.length === leadsBefore, 'undo restores the leads and puts the runs back in the inbox', inb2 + ' ' + L.length);
+await page.click('[data-act="dismissInbox"][data-id="all"]'); await page.waitForTimeout(300);
+ok(/reviewed/.test(await page.locator('.card:has-text("Discovery agents")').first().innerText()), 'dismiss all clears the inbox');
+await page.click('[data-act="copyAgent"][data-id="linkedin"]'); await page.waitForTimeout(200);
+ok(/Copied|Select the text/.test(await page.locator('#toast').innerText()), 'copy instructions button works');
+
 // ── 13. clear all
 await page.click('[data-act="confirm"][data-k="clear"]'); await page.click('[data-act="clearAll"]'); await page.waitForTimeout(600);
 const left = await page.evaluate(() => Object.keys(window.__docs).filter(k => /^(leads|ai)\//.test(k)));
