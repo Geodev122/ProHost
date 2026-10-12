@@ -1,0 +1,48 @@
+// Run from this folder: npm i --no-save xlsx@0.18.5 playwright && node make-files.js && node flow.mjs
+import { createRequire } from 'module'; import fs from 'fs';
+const require = createRequire(import.meta.url);
+let pw; try { pw = require('playwright'); } catch { pw = require(require('child_process').execSync('npm root -g').toString().trim() + '/playwright'); }
+const HERE = new URL('.', import.meta.url).pathname;
+const XLSX_JS = require.resolve('xlsx/dist/xlsx.full.min.js');
+const launch = () => pw.chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
+const SP = HERE; fs.mkdirSync(HERE + 'out', { recursive: true });
+const H = ['First Name','Last Name','Title','Company','Email','Email Status','# Employees','Industry','Keywords','Person Linkedin Url','Website','City','Country','SEO Description','Latest Funding'];
+const long = (n, w) => Array.from({ length: n }, (_, i) => w + i).join(' ');
+const titles = ['CEO', 'Operations Manager', 'Property Manager', 'Sales Executive', 'Hotel Manager', 'Founder'];
+const countries = ['Lebanon', 'United Arab Emirates', 'Saudi Arabia'];
+const row = (i, v) => [`Name${i}`, `Last${i}`, v && i % 20 === 0 ? 'Managing Director' : titles[i % 6], `Company ${i % 3000} Properties`, `p${i}@co${i % 3000}.example`, 'Verified', String(10 + i % 400), i % 2 ? 'real estate' : 'hospitality',
+  'property management, business center, ' + long(40, 'kw'), `https://www.linkedin.com/in/p-${i}`, `co${i % 3000}.example`, 'Beirut', countries[i % 3], 'عقارات ' + long(80, 'desc'), i % 7 ? '' : 'Series A'];
+const csv = rows => rows.map(r => r.map(v => /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v).join(',')).join('\n');
+fs.writeFileSync(SP + 'out/big1.csv', csv([H, ...Array.from({ length: 10000 }, (_, i) => row(i, false))]));
+fs.writeFileSync(SP + 'out/big2.csv', csv([H, ...Array.from({ length: 10000 }, (_, i) => row(i, true))]));
+const docs = { 'config/icp': JSON.parse(fs.readFileSync(HERE + 'seed/icp.json')), 'config/company': JSON.parse(fs.readFileSync(HERE + 'seed/company.json')) };
+const MOCK = fs.readFileSync(HERE + 'flow.mjs', 'utf8').match(/const MOCK = `([\s\S]*?)`;/)[1].replace(/\\\\n/g, '\\n');
+const browser = await launch();
+const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+const errs = []; page.on('pageerror', e => errs.push(e.message));
+await page.route('https://cdnjs.cloudflare.com/**', r => r.fulfill({ body: fs.readFileSync(XLSX_JS), contentType: 'application/javascript' }));
+await page.route('https://fonts.googleapis.com/**', r => r.abort());
+await page.addInitScript(`window.__docs = ${JSON.stringify(docs)};` + MOCK);
+await page.goto('file://' + SP + 'out/page.html'); await page.waitForTimeout(600);
+await page.click('#rail [data-view="discover"]');
+let t = Date.now();
+await page.setInputFiles('#leadFile', SP + 'out/big1.csv'); await page.waitForSelector('.plan');
+console.log('read + map + preview 10k rows:', Date.now() - t, 'ms ·', (await page.locator('.plan').innerText()).replace(/\n/g, ' '));
+t = Date.now(); let w0 = await page.evaluate(() => window.__writes);
+await page.click('[data-act="commitImport"]'); await page.waitForFunction(() => !document.querySelector('#importCard'), null, { timeout: 120000 });
+console.log('commit 10k:', Date.now() - t, 'ms ·', (await page.evaluate(() => window.__writes)) - w0, 'writes');
+const sizes = await page.evaluate(() => Object.keys(window.__docs).filter(k => k.startsWith('leads/')).map(k => new TextEncoder().encode(JSON.stringify(window.__docs[k])).length));
+console.log('chunks:', sizes.length, '· largest', Math.max(...sizes), 'bytes (limit 262144)');
+t = Date.now();
+await page.setInputFiles('#leadFile', SP + 'out/big2.csv'); await page.waitForSelector('.plan');
+console.log('re-import preview:', Date.now() - t, 'ms ·', (await page.locator('.plan').innerText()).replace(/\n/g, ' '));
+t = Date.now(); w0 = await page.evaluate(() => window.__writes);
+await page.click('[data-act="commitImport"]'); await page.waitForFunction(() => !document.querySelector('#importCard'), null, { timeout: 120000 });
+console.log('re-import commit:', Date.now() - t, 'ms ·', (await page.evaluate(() => window.__writes)) - w0, 'writes');
+t = Date.now(); await page.click('#rail [data-view="leads"]'); await page.selectOption('#tableF', 'updated'); await page.waitForTimeout(50);
+console.log('updated filter:', (await page.locator('#tableF option:checked').innerText()), Date.now() - t, 'ms');
+t = Date.now(); await page.click('#topExport'); await page.waitForTimeout(300);
+await page.waitForFunction(() => Object.keys(window.__saved).length > 0, null, { timeout: 60000 });
+console.log('Excel build 10k:', Date.now() - t, 'ms ·', await page.evaluate(() => Object.values(window.__saved)[0].size), 'bytes');
+console.log('ERRORS:', errs);
+await browser.close();

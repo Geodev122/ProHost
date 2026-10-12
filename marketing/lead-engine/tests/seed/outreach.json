@@ -1,0 +1,2 @@
+{ "senderName": "Georges", "senderTitle": "ProHost", "cta": "Would a short conversation next week be worthwhile?", "variant": "A", "topN": 50, "threshold": 75,
+  "requireVerified": false, "includeUnpersonalized": true, "weights": { "icp": 40, "industry": 20, "role": 20, "size": 10, "activity": 10 } }

@@ -217,6 +217,20 @@ table.t td.n { font-family: var(--mono); text-align: right; white-space: nowrap;
 details > summary { cursor: pointer; font-weight: 600; color: var(--brand); }
 details[open] > summary { margin-bottom: 10px; }
 .list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.plan { display: flex; flex-wrap: wrap; gap: 8px; }
+.stat { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; min-width: 104px; background: var(--surface); }
+.stat b { font-family: var(--mono); font-size: 1.1rem; font-weight: 600; }
+.stat span { font-size: .74rem; color: var(--muted); }
+.stat.new b { color: var(--brand); }
+.stat.upd b { color: var(--warn); }
+.changes { margin: 4px 0 0; padding-left: 18px; font-size: .82rem; display: flex; flex-direction: column; gap: 2px; word-break: break-word; }
+.confirm { border: 1px solid var(--bad); background: var(--bad-soft); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.btn.danger { background: var(--bad); border-color: var(--bad); color: var(--surface); }
+.btn.danger:hover { filter: brightness(1.08); }
+hr.rule { border: 0; border-top: 1px solid var(--line); width: 100%; margin: 4px 0; }
+.paste { display: flex; flex-direction: column; gap: 8px; }
+.who b .pill { margin-left: 4px; vertical-align: 1px; font-weight: 600; }
+h1 .pill { font-family: var(--body); font-size: .74rem; vertical-align: middle; }
 </style>
 
 <header class="top">
@@ -267,38 +281,61 @@ const BANNED = ['synergy', 'synergies', 'leverage', 'cutting-edge', 'cutting edg
 const ROLE_LOCAL = new Set(['info', 'sales', 'admin', 'administrator', 'contact', 'contactus', 'hello', 'hi', 'support', 'help', 'office', 'reservations', 'reservation', 'booking', 'bookings', 'hr', 'careers', 'jobs', 'recruitment', 'marketing', 'enquiries', 'enquiry', 'inquiries', 'inquiry', 'team', 'mail', 'email', 'accounts', 'accounting', 'finance', 'billing', 'noreply', 'no-reply', 'donotreply', 'webmaster', 'frontdesk', 'front.desk', 'reception', 'events', 'leasing', 'rentals', 'customerservice', 'service', 'feedback', 'media', 'press', 'pr', 'general', 'management', 'operations', 'legal', 'privacy', 'security', 'it', 'postmaster', 'abuse']);
 const FREE_MAIL = new Set(['gmail.com', 'googlemail.com', 'yahoo.com', 'yahoo.fr', 'hotmail.com', 'hotmail.fr', 'outlook.com', 'live.com', 'msn.com', 'icloud.com', 'me.com', 'aol.com', 'proton.me', 'protonmail.com', 'yandex.com', 'gmx.com', 'mail.com', 'zoho.com']);
 const DISPOSABLE = new Set(['mailinator.com', 'guerrillamail.com', '10minutemail.com', 'tempmail.com', 'temp-mail.org', 'yopmail.com', 'trashmail.com', 'sharklasers.com', 'getnada.com', 'dispostable.com', 'throwawaymail.com', 'maildrop.cc']);
+const SOCIAL_DOMAINS = new Set(['facebook.com', 'instagram.com', 'linkedin.com', 'twitter.com', 'x.com', 'youtube.com', 'tiktok.com', 'google.com', 'goo.gl', 'bit.ly', 'wa.me', 'linktr.ee', 'sites.google.com']);
 const COUNTRY_ALIASES = {
-  'UAE': ['united arab emirates', 'uae', 'u.a.e', 'u.a.e.', 'emirates', 'dubai', 'abu dhabi', 'sharjah', 'ajman', 'ras al khaimah', 'fujairah', 'umm al quwain', 'al ain'],
-  'Saudi Arabia': ['saudi arabia', 'ksa', 'kingdom of saudi arabia', 'saudi', 'riyadh', 'jeddah', 'jiddah', 'dammam', 'khobar', 'al khobar', 'makkah', 'mecca', 'madinah', 'medina', 'neom'],
-  'Lebanon': ['lebanon', 'lebanese republic', 'beirut', 'jounieh', 'saida', 'sidon', 'byblos', 'jbeil', 'zahle', 'tyre', 'nabatieh', 'baabda', 'antelias', 'dbayeh', 'jdeideh', 'hazmieh', 'achrafieh'],
+  'UAE': ['united arab emirates', 'uae', 'u.a.e', 'u.a.e.', 'emirates', 'emirats arabes unis', 'émirats arabes unis', 'dubai', 'dubaï', 'abu dhabi', 'sharjah', 'ajman', 'ras al khaimah', 'fujairah', 'umm al quwain', 'al ain', 'الإمارات', 'الامارات', 'دبي', 'أبوظبي', 'ابوظبي', 'الشارقة'],
+  'Saudi Arabia': ['saudi arabia', 'ksa', 'kingdom of saudi arabia', 'saudi', 'arabie saoudite', 'riyadh', 'jeddah', 'jiddah', 'dammam', 'khobar', 'al khobar', 'makkah', 'mecca', 'madinah', 'medina', 'neom', 'السعودية', 'الرياض', 'جدة', 'الدمام'],
+  'Lebanon': ['lebanon', 'lebanese republic', 'liban', 'beirut', 'beyrouth', 'jounieh', 'saida', 'sidon', 'byblos', 'jbeil', 'zahle', 'tyre', 'nabatieh', 'baabda', 'antelias', 'dbayeh', 'jdeideh', 'hazmieh', 'achrafieh', 'لبنان', 'بيروت', 'جونية', 'طرابلس', 'صيدا'],
 };
+const COUNTRY_CODES = { ae: 'UAE', are: 'UAE', sa: 'Saudi Arabia', sau: 'Saudi Arabia', lb: 'Lebanon', lbn: 'Lebanon' };
+const HONORIFICS = new Set(['mr', 'mrs', 'ms', 'miss', 'dr', 'eng', 'engr', 'prof', 'sheikh', 'shaikh', 'sir', 'madam', 'mme', 'mx']);
+const LEGAL_SUFFIX = /[\s,]+(?:s\.?\s?a\.?\s?l\.?|s\.?a\.?r\.?l\.?|l\.?\s?l\.?\s?c\.?|fz[\s-]?llc|fz[\s-]?co|fze|w\.?l\.?l\.?|ltd\.?|limited|inc\.?|co\.?|corp\.?|plc|gmbh|est\.?|llp)$/i;
+const has = (h, ...xs) => xs.some(x => h.includes(x));
+// al: exact header aliases (letters and digits only). fz: fallback test on the same normalized header.
 const FIELDS = [
-  { k: 'firstName',   label: 'First name',          al: ['firstname', 'givenname', 'first'] },
-  { k: 'lastName',    label: 'Last name',           al: ['lastname', 'surname', 'familyname', 'last'] },
-  { k: 'name',        label: 'Full name',           al: ['name', 'fullname', 'leadname', 'contactname', 'personname'] },
-  { k: 'title',       label: 'Job title',           al: ['title', 'jobtitle', 'position', 'role', 'designation', 'persontitle'] },
-  { k: 'company',     label: 'Company',             al: ['company', 'companyname', 'organization', 'organizationname', 'organisation', 'accountname', 'jobcompanyname', 'employer', 'companynameforemails'] },
-  { k: 'website',     label: 'Website',             al: ['website', 'companywebsite', 'websiteurl', 'companydomain', 'domain', 'jobcompanywebsite', 'organizationwebsite', 'companyurl', 'organizationprimarydomain'] },
-  { k: 'industry',    label: 'Industry',            al: ['industry', 'companyindustry', 'jobcompanyindustry', 'sector', 'organizationindustry'] },
-  { k: 'employees',   label: 'Employee count',      al: ['employees', 'employeecount', 'companysize', 'jobcompanysize', 'headcount', 'numemployees', 'estimatednumemployees', 'numberofemployees', 'organizationnumemployees'] },
-  { k: 'country',     label: 'Country',             al: ['country', 'companycountry', 'locationcountry', 'personcountry', 'jobcompanylocationcountry', 'organizationcountry'] },
-  { k: 'city',        label: 'City',                al: ['city', 'companycity', 'locationlocality', 'personcity', 'locality', 'jobcompanylocationlocality', 'location'] },
-  { k: 'email',       label: 'Email',               al: ['email', 'workemail', 'emailaddress', 'businessemail', 'professionalemail', 'personemail', 'recommendedemail'] },
-  { k: 'emailStatus', label: 'Email status',        al: ['emailstatus', 'verificationstatus', 'emailverification', 'result', 'verificationresult'] },
-  { k: 'linkedin',    label: 'LinkedIn URL',        al: ['personlinkedinurl', 'linkedinurl', 'linkedin', 'linkedinprofile', 'linkedinprofileurl', 'profileurl'] },
-  { k: 'keywords',    label: 'Company keywords',    al: ['keywords', 'companykeywords', 'tags', 'specialties', 'organizationkeywords', 'jobcompanytags'] },
-  { k: 'description', label: 'Company description', al: ['shortdescription', 'companydescription', 'seodescription', 'description', 'about', 'companysummary', 'organizationshortdescription'] },
+  { k: 'firstName',    label: 'First name',              al: ['firstname', 'givenname', 'first', 'forename', 'prenom', 'الاسمالاول'], fz: h => has(h, 'first') && has(h, 'name') },
+  { k: 'lastName',     label: 'Last name',               al: ['lastname', 'surname', 'familyname', 'last', 'nom', 'nomdefamille', 'اسمالعائلة', 'الكنية'], fz: h => (has(h, 'last') && has(h, 'name')) || has(h, 'surname') },
+  { k: 'name',         label: 'Full name',               al: ['name', 'fullname', 'leadname', 'contactname', 'personname', 'prospectname', 'contact', 'nomcomplet', 'الاسم', 'الاسمالكامل'], fz: h => has(h, 'name') && has(h, 'full', 'contact', 'person', 'lead', 'prospect') && !has(h, 'company', 'account', 'organi', 'first', 'last', 'owner', 'file') },
+  { k: 'title',        label: 'Job title',               al: ['title', 'jobtitle', 'position', 'designation', 'persontitle', 'currenttitle', 'currentposition', 'role', 'poste', 'fonction', 'المسمىالوظيفي', 'الوظيفة', 'المنصب', 'headline'], fz: h => has(h, 'title', 'position', 'designation') && !has(h, 'seo', 'company', 'page', 'email', 'level') },
+  { k: 'seniority',    label: 'Seniority',               al: ['seniority', 'managementlevel', 'joblevel', 'jobtitlelevels', 'senioritylevel', 'level'], fz: h => has(h, 'seniority') || (has(h, 'level') && has(h, 'job', 'management', 'title')) },
+  { k: 'company',      label: 'Company',                 al: ['company', 'companyname', 'organization', 'organizationname', 'organisation', 'organisationname', 'accountname', 'account', 'jobcompanyname', 'employer', 'currentcompany', 'societe', 'entreprise', 'الشركة', 'اسمالشركة', 'المؤسسة'], fz: h => has(h, 'company', 'organi', 'account', 'employer') && has(h, 'name') && !has(h, 'email', 'linkedin', 'short', 'domain') },
+  { k: 'companyShort', label: 'Company name for emails', al: ['companynameforemails', 'companyshortname', 'shortcompanyname', 'brandname', 'companyshort'], fz: h => has(h, 'company') && has(h, 'foremail', 'short', 'brand') },
+  { k: 'website',      label: 'Website',                 al: ['website', 'companywebsite', 'websiteurl', 'companydomain', 'domain', 'domainname', 'jobcompanywebsite', 'organizationwebsite', 'organizationwebsiteurl', 'companyurl', 'organizationprimarydomain', 'web'], fz: h => has(h, 'website', 'domain') && !has(h, 'email') },
+  { k: 'industry',     label: 'Industry',                al: ['industry', 'companyindustry', 'jobcompanyindustry', 'sector', 'organizationindustry', 'industries', 'secteur', 'القطاع'], fz: h => has(h, 'industr', 'sector') },
+  { k: 'employees',    label: 'Employee count',          al: ['employees', 'employeecount', 'companysize', 'jobcompanysize', 'headcount', 'numemployees', 'estimatednumemployees', 'numberofemployees', 'organizationnumemployees', 'organizationestimatednumemployees', 'companyheadcount', 'employeesize', 'size'], fz: h => has(h, 'employee', 'headcount', 'staff') },
+  { k: 'country',      label: 'Country',                 al: ['country', 'personcountry', 'locationcountry', 'companycountry', 'jobcompanylocationcountry', 'organizationcountry', 'pays', 'البلد', 'الدولة'], fz: h => has(h, 'country') },
+  { k: 'city',         label: 'City',                    al: ['city', 'personcity', 'locationlocality', 'companycity', 'locality', 'jobcompanylocationlocality', 'organizationcity', 'location', 'town', 'ville', 'المدينة'], fz: h => has(h, 'city', 'locality', 'town') },
+  { k: 'email',        label: 'Email',                   al: ['email', 'workemail', 'emailaddress', 'businessemail', 'professionalemail', 'personemail', 'recommendedemail', 'primaryemail', 'emails', 'mail', 'courriel', 'البريدالالكتروني', 'البريدالإلكتروني', 'البريد', 'الايميل'], fz: h => has(h, 'email', 'mail') && !has(h, 'status', 'verif', 'source', 'confidence', 'catch', 'sent', 'open', 'bounce', 'click', 'repl', 'date', 'last', 'secondary', 'tertiary', 'personal', 'type', 'domain', 'company', 'forname') },
+  { k: 'emailStatus',  label: 'Email status',            al: ['emailstatus', 'verificationstatus', 'emailverification', 'emailverificationstatus', 'result', 'verificationresult'], fz: h => has(h, 'email') && has(h, 'status', 'verif') && !has(h, 'catch', 'date', 'last') },
+  { k: 'phone',        label: 'Phone',                   al: ['mobilephone', 'mobile', 'workdirectphone', 'directphone', 'phone', 'phonenumber', 'phonenumbers', 'mobilenumber', 'whatsapp', 'telephone', 'tel', 'workphone', 'corporatephone', 'companyphone', 'mobilephones', 'portable', 'الهاتف', 'الجوال', 'رقمالهاتف'], fz: h => has(h, 'phone', 'mobile', 'whatsapp', 'tel') && !has(h, 'type', 'hotel') },
+  { k: 'linkedin',     label: 'LinkedIn URL',            al: ['personlinkedinurl', 'linkedinurl', 'linkedin', 'linkedinprofile', 'linkedinprofileurl', 'profileurl'], fz: h => has(h, 'linkedin') && !has(h, 'company', 'organi', 'account') },
+  { k: 'keywords',     label: 'Company keywords',        al: ['keywords', 'companykeywords', 'tags', 'specialties', 'organizationkeywords', 'jobcompanytags'], fz: h => has(h, 'keyword', 'specialt', 'tags') },
+  { k: 'description',  label: 'Company description',     al: ['shortdescription', 'companydescription', 'seodescription', 'description', 'about', 'companysummary', 'organizationshortdescription', 'companyabout'], fz: h => has(h, 'description', 'about', 'overview') && !has(h, 'job') },
 ];
+// Used when the ICP's own title lists don't match: English, French and Arabic titles common in Lebanon and the Gulf.
+const ROLE_DECISION = /(^|[^a-z])(ceo|coo|founder|co-founder|cofounder|owner|proprietor|managing director|general manager|president|chairman|managing partner|pdg|directeur general|directrice generale|gerant|gerante|proprietaire|fondateur|fondatrice|associe gerant)([^a-z]|$)|مدير عام|المدير العام|المديرة العامة|الرئيس التنفيذي|المالك|مالك|مؤسس|المؤسس|رئيس مجلس الإدارة|رئيس مجلس الادارة|الشريك المدير/;
+const ROLE_DIRECTOR = /(^|[^a-z])(director|head|vp|vice president|chief|directeur|directrice)([^a-z]|$)|مدير|مديرة|رئيس قسم/;
+const ROLE_MANAGER = /(^|[^a-z])(manager|responsable|chef)([^a-z]|$)/;
+const FIELD_LABEL = Object.fromEntries(FIELDS.map(f => [f.k, f.label]));
+FIELD_LABEL.name = 'Name';
+// Fields compared on re-import. A change in a STALE field makes earlier research and emails out of date.
+const TRACKED = ['name', 'title', 'seniority', 'company', 'companyShort', 'website', 'industry', 'employees', 'country', 'city', 'email', 'emailStatus', 'phone', 'linkedin', 'keywords', 'description', 'signals'];
+const STALE_FIELDS = new Set(['name', 'title', 'company', 'companyShort', 'industry', 'employees', 'country', 'city', 'keywords', 'description', 'signals']);
+FIELD_LABEL.signals = 'Signals';
 const SIGNAL_HINTS = ['latestfunding', 'lastraisedat', 'totalfunding', 'fundingstage', 'jobpostings', 'jobposting', 'openjobs', 'hiring', 'news', 'intent', 'signal', 'recentactivity', 'jobchange', 'trigger'];
 const FATAL = new Set(['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed', 'rate_limited', 'session_expired', 'queue_overflow']);
+const CHUNK = 50;
+const MAX_LEADS = 20000;
+const IMPORT_LABEL = { new: 'New', updated: 'Updated', unchanged: 'Unchanged' };
 
 /* ───────────── state ───────────── */
 const S = {
   view: 'overview', loaded: false, db: null, sample: null, downloads: null, readOnly: false, aiOff: false,
   save: 'idle', saveNote: '', company: null, coSource: { url: '', text: '' }, icp: null,
-  out: structuredClone(DEFAULT_OUT), leads: [], ai: {}, meta: {}, chunkCount: 0,
-  busy: {}, msg: {}, job: null, import: null, table: { q: '', filter: 'qualified', page: 0 },
-  drawer: null, edit: {}, loadError: '',
+  out: structuredClone(DEFAULT_OUT), leads: [], ai: {}, meta: {}, mappings: {},
+  chunkKeys: [], chunkIdx: new Set(), dirty: new Set(), dirtyAll: false,
+  busy: {}, msg: {}, job: null, import: null, importQueue: [], undo: null, confirm: '',
+  table: { q: '', filter: 'qualified', page: 0 }, drawer: null, edit: {}, loadError: '',
 };
 let D = { rows: [], byKey: new Map(), c: {} };
 
@@ -308,9 +345,11 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const fmt = n => Number(n || 0).toLocaleString('en-US');
 const norm = s => (s == null ? '' : String(s)).replace(/\s+/g, ' ').trim();
 const lc = s => norm(s).toLowerCase();
+const fold = s => lc(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').normalize('NFC'); // drops Latin accents, keeps Arabic intact
 const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const nkey = s => String(s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const nkey = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\u0621-\u064a]/g, '');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+FIELDS.forEach(f => { f.al = f.al.map(nkey); }); // aliases go through the same normalization as headers (accents, Arabic hamza forms)
 const chunk = (a, n) => { const o = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o; };
 const arr = x => Array.isArray(x) ? x.map(v => norm(typeof v === 'string' ? v : (v == null ? '' : String(v)))).filter(Boolean) : (typeof x === 'string' && x.trim() ? [x.trim()] : []);
 const str = x => typeof x === 'string' ? x.trim() : (x == null ? '' : (Array.isArray(x) ? x.join(', ') : String(x)));
@@ -327,31 +366,68 @@ function hash(str) { // cyrb53
 }
 function canonCountry(s) {
   const t = lc(s); if (!t) return '';
+  const code = t.replace(/\./g, ''); if (COUNTRY_CODES[code]) return COUNTRY_CODES[code];
   for (const [k, al] of Object.entries(COUNTRY_ALIASES)) if (al.some(a => t === a || phraseRe(a).test(t))) return k;
   return '';
 }
-function titleCase(s) { return norm(s).replace(/\b([a-z])/g, m => m.toUpperCase()); }
-function toDomain(u) {
-  let s = lc(u); if (!s) return '';
-  s = s.replace(/^[a-z]+:\/\//, '').replace(/^www\./, '').split(/[/?#\s]/)[0];
-  return /\./.test(s) ? s : '';
+function titleCase(s) { return norm(s).replace(/(^|[\s\-'(])([a-z])/g, (m, a, b) => a + b.toUpperCase()); }
+function smartCase(s) {
+  s = norm(s); if (!s) return s;
+  if ((s === s.toUpperCase() && /[A-Z]{2}/.test(s)) || (s === s.toLowerCase() && /[a-z]/.test(s))) return titleCase(s.toLowerCase());
+  return s;
 }
+function toDomain(u) {
+  let s = lc(u); if (!s || s.includes('@')) return '';
+  s = s.replace(/^[a-z]+:\/\//, '').replace(/^www\d?\./, '').split(/[/?#\s]/)[0].replace(/:\d+$/, '');
+  return /^[a-z0-9.-]+\.[a-z]{2,}$/.test(s) ? s : '';
+}
+function liKey(u) {
+  let s = lc(u).replace(/^[a-z]+:\/\//, '');
+  s = s.replace(/^(?:[a-z]{2,3}\.|www\.)+(?=linkedin\.com)/, '').split(/[?#]/)[0].replace(/\/+$/, '');
+  return /^linkedin\.com\/.+/.test(s) ? s : '';
+}
+const liUrl = u => { const k = liKey(u); return k ? 'https://www.' + k : ''; };
 function sameDomain(a, b) { return a === b || a.endsWith('.' + b) || b.endsWith('.' + a); }
 function parseEmp(v) {
-  const s = String(v ?? '').replace(/,/g, '').trim(); if (!s) return null;
-  const m = s.match(/(\d+)\s*[-–to]+\s*(\d+)/); if (m) return Math.round((+m[1] + +m[2]) / 2);
-  const n = s.match(/\d+/); return n ? +n[0] : null;
+  const s = String(v ?? '').replace(/,/g, '').trim().toLowerCase(); if (!s) return null;
+  const k = x => /k$/.test(x) ? parseFloat(x) * 1000 : parseFloat(x);
+  const m = s.match(/(\d+(?:\.\d+)?k?)\s*(?:-|–|to)\s*(\d+(?:\.\d+)?k?)/); if (m) return Math.round((k(m[1]) + k(m[2])) / 2);
+  const n = s.match(/\d+(?:\.\d+)?k?/); return n ? Math.round(k(n[0])) : null;
 }
+function cleanCompany(c) { let s = norm(c); for (let i = 0; i < 3; i++) { const t = s.replace(LEGAL_SUFFIX, '').trim(); if (t === s || !t) break; s = t; } return s; }
+const displayCompany = L => norm(L.companyShort) || cleanCompany(L.company);
 const leadName = L => norm(L.name) || norm([L.firstName, L.lastName].join(' '));
-const firstName = L => norm(L.firstName) || (leadName(L).split(' ')[0] || 'there');
-const STOP = new Set(['the', 'al', 'el', 'and', 'group', 'company', 'co', 'llc', 'l.l.c', 'ltd', 'sal', 's.a.l', 'fz', 'fze', 'fzco', 'inc', 'est', 'for', 'of', 'trading', 'holding', 'holdings']);
+function firstName(L) {
+  const parts = (norm(L.firstName) || leadName(L)).split(' ').filter(Boolean);
+  return parts.find(w => !HONORIFICS.has(w.toLowerCase().replace(/\.$/, ''))) || parts[0] || 'there';
+}
+const STOP = new Set(['the', 'al', 'el', 'and', 'group', 'company', 'co', 'llc', 'ltd', 'sal', 'fz', 'fze', 'fzco', 'inc', 'est', 'for', 'of', 'trading', 'holding', 'holdings']);
 function companyToken(name) { const w = lc(name).split(/[^a-z0-9؀-ۿ]+/).filter(x => x.length >= 3 && !STOP.has(x)); return w[0] || ''; }
+const EMAIL_RE = /^[a-z0-9._%+'-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/;
+const emailDomain = e => lc(e).split('@')[1] || '';
+const isPlaceholder = e => /not_unlocked|notunlocked/.test(e) || emailDomain(e) === 'domain.com';
+const isRoleMail = e => ROLE_LOCAL.has((lc(e).split('@')[0] || '').replace(/[0-9]+$/, ''));
+function identityEmail(e) { e = lc(e); return EMAIL_RE.test(e) && !isPlaceholder(e) && !isRoleMail(e) && !DISPOSABLE.has(emailDomain(e)) ? e : ''; }
+function extractEmail(v) {
+  const raw = lc(v).replace(/mailto:/g, '');
+  if (!raw.includes('@')) return '';
+  const cands = raw.split(/[\s,;|<>()"'[\]]+/).filter(x => x.includes('@'));
+  const valid = cands.filter(x => EMAIL_RE.test(x));
+  if (!valid.length) return cands[0] || '';
+  const rank = e => (FREE_MAIL.has(emailDomain(e)) ? 2 : 0) + (isRoleMail(e) ? 1 : 0);
+  return valid.slice().sort((a, b) => rank(a) - rank(b))[0];
+}
+function fmtDate(ms) {
+  if (!ms) return '';
+  try { return new Date(ms).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return new Date(ms).toISOString().slice(0, 16).replace('T', ' '); }
+}
+const shortVal = (f, v) => { const s = f === 'employees' ? (v == null ? '' : String(v)) : str(v); return s.length > 80 ? s.slice(0, 77) + '…' : s; };
 
 function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); } catch { /* storage blocked */ } }
 
 let toastTimer;
-function toast(t) { const el = $('#toast'); el.textContent = t; el.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 4200); }
+function toast(t) { const el = $('#toast'); el.textContent = t; el.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 4500); }
 async function copy(text, btn) {
   try { await navigator.clipboard.writeText(text); toast('Copied'); }
   catch { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); toast('Copied'); } catch { toast('Select the text and copy it'); } ta.remove(); }
@@ -360,7 +436,7 @@ async function copy(text, btn) {
 
 /* ───────────── scoring, verification, QC ───────────── */
 function compileIcp(icp) {
-  const mk = a => arr(a).map(p => p.toLowerCase()).map(p => ({ p, re: phraseRe(p) }));
+  const mk = a => arr(a).map(fold).filter(Boolean).map(p => ({ p, re: phraseRe(p) }));
   return {
     segments: (Array.isArray(icp?.segments) ? icp.segments : []).map(s => ({ name: str(s.name), res: mk(s.keywords) })).filter(s => s.res.length),
     adjacent: mk(icp?.adjacent_keywords), exclude: mk(icp?.exclude_keywords),
@@ -370,15 +446,25 @@ function compileIcp(icp) {
     emp: icp?.employees || {},
   };
 }
-function roleTier(title, C) {
-  const t = lc(title);
-  if (!t) return { f: 0, tier: 'No title' };
-  if (C.exTitles.some(x => x.re.test(t))) return { f: 0, tier: 'Excluded title' };
-  if (C.decision.some(x => x.re.test(t))) return { f: 1, tier: 'Decision maker' };
-  if (C.operator.some(x => x.re.test(t))) return { f: 0.8, tier: 'Runs operations' };
-  if (/(^|[^a-z])(director|head|vp|vice president|chief)([^a-z]|$)/.test(t)) return { f: 0.6, tier: 'Director' };
-  if (/(^|[^a-z])manager([^a-z]|$)/.test(t)) return { f: 0.4, tier: 'Manager' };
-  return { f: 0.1, tier: 'Other role' };
+function roleTier(title, seniority, C) {
+  const t = fold(title).replace(/vice[\s-]?president/g, 'vp'); // a VP is not the president
+  let base;
+  if (!t) base = { f: 0, tier: 'No title' };
+  else if (C.exTitles.some(x => x.re.test(t))) return { f: 0, tier: 'Excluded title' };
+  else if (C.decision.some(x => x.re.test(t)) || ROLE_DECISION.test(t)) return { f: 1, tier: 'Decision maker' };
+  else if (C.operator.some(x => x.re.test(t))) base = { f: 0.8, tier: 'Runs operations' };
+  else if (ROLE_DIRECTOR.test(t)) base = { f: 0.6, tier: 'Director' };
+  else if (ROLE_MANAGER.test(t)) base = { f: 0.4, tier: 'Manager' };
+  else base = { f: 0.1, tier: 'Other role' };
+  const s = lc(seniority);
+  if (s) {
+    let sf = 0, st = '';
+    if (/(owner|founder|c[_\s-]?suite|cxo|chief|partner|president)/.test(s)) { sf = 1; st = 'Decision maker'; }
+    else if (/(vp|vice|director|head)/.test(s)) { sf = 0.6; st = 'Director'; }
+    else if (/manager/.test(s)) { sf = 0.4; st = 'Manager'; }
+    if (sf > base.f) return { f: sf, tier: st + ' (by seniority)' };
+  }
+  return base;
 }
 function sizeFrac(n, e) {
   if (n == null) return 0.4;
@@ -394,9 +480,9 @@ function normWeights(w) {
   for (const k in o) o[k] = o[k] * 100 / sum;
   return o;
 }
-function scoreLead(L, C, W, ai) {
-  const hayInd = lc(L.industry + ' | ' + L.keywords);
-  const hayAll = lc([L.company, L.industry, L.keywords, L.description].join(' | '));
+function scoreLead(L, C, W, research) {
+  const hayInd = fold(L.industry + ' | ' + L.keywords);
+  const hayAll = fold([L.company, L.companyShort, L.industry, L.keywords, L.description].join(' | '));
   let best = null, bestHits = 0, bestInd = 0;
   for (const seg of C.segments) {
     let hits = 0, ind = 0;
@@ -408,34 +494,33 @@ function scoreLead(L, C, W, ai) {
   const indF = excluded ? 0 : bestInd > 0 ? 1 : bestHits > 0 ? 0.7 : adjacent ? 0.4 : 0;
   const countryOk = C.countries.has(L.country);
   const icpF = ((countryOk ? 15 : 0) + (excluded ? 0 : bestHits > 0 ? 15 : adjacent ? 6 : 0) + (L.domain ? 5 : 0) + (L.linkedin ? 5 : 0)) / 40;
-  const role = roleTier(L.title, C);
+  const role = roleTier(L.title, L.seniority, C);
   const sizeF = sizeFrac(L.employees, C.emp);
-  const hayAct = lc(L.signals + ' | ' + L.description);
+  const hayAct = fold(L.signals + ' | ' + L.description);
   const dataSignal = C.signals.find(x => x.re.test(hayAct));
-  const researchSignal = ai?.research?.signal_source === 'data' && ai.research.signal;
+  const researchSignal = research?.signal_source === 'data' && research.signal;
   const actF = (dataSignal || researchSignal) ? 1 : 0;
   const parts = { icp: icpF * W.icp, industry: indF * W.industry, role: role.f * W.role, size: sizeF * W.size, activity: actF * W.activity };
   const total = Math.round(Object.values(parts).reduce((a, b) => a + b, 0));
-  return { total, parts, segment: best?.name || (adjacent ? 'Adjacent industry' : ''), roleTier: role.tier, countryOk, excluded,
-    activity: researchSignal ? ai.research.signal + ' (found by research)' : dataSignal ? 'The record mentions "' + dataSignal.p + '"' : '' };
+  return { total, parts, segment: excluded ? 'Excluded industry' : best?.name || (adjacent ? 'Adjacent industry' : ''), roleTier: role.tier, countryOk, excluded,
+    activity: researchSignal ? research.signal + ' (found by research)' : dataSignal ? 'The record mentions "' + dataSignal.p + '"' : '' };
 }
 function providerStatus(x) {
   const s = nkey(x);
   if (!s) return '';
   if (['valid', 'verified', 'ok', 'deliverable', 'safe', 'safetosend'].includes(s)) return 'verified';
   if (['invalid', 'bounced', 'bounce', 'undeliverable', 'spamtrap', 'abuse', 'donotmail', 'disposable', 'unavailable', 'syntaxerror', 'hardbounce', 'invalidsyntax'].includes(s)) return 'invalid';
-  if (['unverified', 'likelytoengage', 'pending', 'new', 'notchecked', 'unchecked'].includes(s)) return '';
+  if (['unverified', 'likelytoengage', 'pending', 'new', 'notchecked', 'unchecked', 'notverifiedyet'].includes(s)) return '';
   return 'risky';
 }
-const EMAIL_RE = /^[a-z0-9._%+'-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/;
 function emailCheck(L, seen) {
   const e = lc(L.email);
   if (!e) return { status: 'missing', note: 'No email in the record' };
   if (!EMAIL_RE.test(e)) return { status: 'invalid', note: 'Not a valid address' };
-  const [local, domain] = e.split('@');
-  if (/not_unlocked|notunlocked/.test(local) || domain === 'domain.com') return { status: 'invalid', note: 'Locked placeholder from the export' };
+  const domain = emailDomain(e);
+  if (isPlaceholder(e)) return { status: 'invalid', note: 'Locked placeholder from the export' };
   if (DISPOSABLE.has(domain)) return { status: 'invalid', note: 'Disposable domain' };
-  if (ROLE_LOCAL.has(local.replace(/[0-9]+$/, ''))) return { status: 'role', note: 'Role mailbox (' + local + '@)' };
+  if (isRoleMail(e)) return { status: 'role', note: 'Role mailbox (' + e.split('@')[0] + '@)' };
   if (seen.has(e)) return { status: 'duplicate', note: 'Same address as ' + seen.get(e) };
   seen.set(e, leadName(L) || L.company || 'another row');
   const p = providerStatus(L.emailStatus);
@@ -458,40 +543,48 @@ const EMAIL_STATUS = {
 };
 const BANNED_RE = BANNED.map(b => ({ b, re: phraseRe(b) }));
 function qcCheck(r) {
-  const issues = []; const L = r.L; const ai = S.ai[L.key];
+  const issues = []; const L = r.L; const em = r.personalized ? S.ai[L.key].emails : null;
   if (!r.hasName) issues.push('Missing name');
   if (!r.usable) issues.push('Email: ' + EMAIL_STATUS[r.em.status].label.toLowerCase());
-  if (ai?.emails) {
-    const tok = companyToken(L.company);
-    if (!str(ai.emails.subject)) issues.push('No subject line');
+  if (em) {
+    const toks = [companyToken(displayCompany(L)), companyToken(L.company)].filter(Boolean);
+    if (!str(em.subject)) issues.push('No subject line');
     for (const v of ['a', 'b', 'c']) {
-      const body = str(ai.emails[v]); const label = 'Variant ' + v.toUpperCase();
+      const body = str(em[v]); const label = 'Variant ' + v.toUpperCase();
       if (!body) { issues.push(label + ' is empty'); continue; }
+      const low = lc(body);
       const words = wordCount(body + ' ' + S.out.cta);
       if (words > 80) issues.push(`${label}: ${words} words (limit 80)`);
-      if (tok && !lc(body).includes(tok)) issues.push(`${label} doesn't name ${L.company}`);
-      const hit = BANNED_RE.find(x => x.re.test(lc(body)));
+      if (toks.length && !toks.some(t => low.includes(t))) issues.push(`${label} doesn't name ${displayCompany(L)}`);
+      const hit = BANNED_RE.find(x => x.re.test(low));
       if (hit) issues.push(`${label} uses "${hit.b}"`);
+      if (/!/.test(body)) issues.push(`${label} uses an exclamation mark`);
+      if (/[[{]\s*(first|name|company|title|lead)[^\]}]*[\]}]/i.test(body)) issues.push(`${label} has an unfilled placeholder`);
     }
   }
   return { ok: issues.length === 0, issues };
 }
 function derive() {
   const C = compileIcp(S.icp); const W = normWeights(S.out.weights); const seen = new Map();
-  const rows = []; const byKey = new Map();
-  const c = { total: S.leads.length, usable: 0, qualified: 0, researched: 0, personalized: 0, qcPass: 0, qcFail: 0, exportable: 0, status: {}, bands: { top: 0, mid: 0, low: 0 } };
+  const rows = []; const byKey = new Map(); const lastId = S.meta.lastImport?.id;
+  const c = { total: S.leads.length, usable: 0, qualified: 0, researched: 0, personalized: 0, qcPass: 0, qcFail: 0, exportable: 0, stale: 0, lastNew: 0, lastUpd: 0, status: {}, bands: { top: 0, mid: 0, low: 0 } };
   for (const k of Object.keys(EMAIL_STATUS)) c.status[k] = 0;
   for (const L of S.leads) {
-    const ai = S.ai[L.key];
-    const r = { L, em: emailCheck(L, seen), sc: scoreLead(L, C, W, ai) };
+    const ai = S.ai[L.key]; const staleAt = L.aiStaleAt || 0;
+    const resFresh = !!ai?.research && (ai.research.at || ai.at || 0) >= staleAt;
+    const emFresh = !!ai?.emails && (ai.emails.at || ai.at || 0) >= staleAt;
+    const r = { L, em: emailCheck(L, seen), sc: scoreLead(L, C, W, resFresh ? ai.research : null) };
+    r.researched = resFresh; r.personalized = emFresh;
+    r.stale = (!!ai?.research && !resFresh) || (!!ai?.emails && !emFresh);
     r.usable = EMAIL_STATUS[r.em.status].keep && (!S.out.requireVerified || r.em.status === 'verified');
     r.hasName = leadName(L).length >= 2;
     r.qualified = r.usable && r.hasName && r.sc.total >= S.out.threshold;
-    r.researched = !!ai?.research; r.personalized = !!ai?.emails;
     r.qc = r.qualified ? qcCheck(r) : null;
     r.exportable = r.qualified && r.qc.ok && (r.personalized || S.out.includeUnpersonalized);
     c.status[r.em.status]++;
     if (r.usable) c.usable++;
+    if (r.stale) c.stale++;
+    if (lastId && L.lastImportId === lastId) { if (L.importStatus === 'new') c.lastNew++; else if (L.importStatus === 'updated') c.lastUpd++; }
     if (r.qualified) { c.qualified++; if (r.researched) c.researched++; if (r.personalized) c.personalized++; }
     if (r.qualified && r.personalized) { if (r.qc.ok) c.qcPass++; else c.qcFail++; }
     if (r.exportable) c.exportable++;
@@ -506,7 +599,11 @@ const ranked = () => D.rows.filter(r => r.qualified).sort((a, b) => b.sc.total -
 const canWrite = () => !!S.db && !S.readOnly;
 async function dbw(fn) {
   try { return await fn(); }
-  catch (e) { if (e?.code === 'unavailable') { await sleep(400 + Math.random() * 700); return await fn(); } throw e; }
+  catch (e) {
+    if (e?.code === 'unavailable') { await sleep(400 + Math.random() * 700); return await fn(); }
+    if (e?.code === 'resource_exhausted') { await sleep(1500 + Math.random() * 1000); return await fn(); }
+    throw e;
+  }
 }
 function setSave(s, note = '') { S.save = s; S.saveNote = note; renderTop(); }
 function dbFail(e) {
@@ -524,17 +621,38 @@ async function saveDoc(path, data) {
 let outTimer;
 function saveOutSoon() { clearTimeout(outTimer); outTimer = setTimeout(() => saveDoc('config/outreach', structuredClone(S.out)), 700); }
 const chunkId = i => 'c' + String(i).padStart(4, '0');
-async function saveLeads(extraMeta = {}) {
-  if (!canWrite()) return true;
-  const size = 100; const n = Math.ceil(S.leads.length / size);
+const utf8Len = s => new TextEncoder().encode(s).length;
+function fitChunk(rows) { // a document holds at most 256 KiB
+  if (utf8Len(JSON.stringify(rows)) <= 240000) return rows;
+  const trimmed = rows.map(L => ({ ...L, description: str(L.description).slice(0, 200), keywords: str(L.keywords).slice(0, 150), signals: str(L.signals).slice(0, 150), changes: [] }));
+  if (utf8Len(JSON.stringify(trimmed)) <= 240000) return trimmed;
+  return trimmed.map(L => ({ ...L, description: '', keywords: '' }));
+}
+// Writes only the chunk documents whose leads changed, plus meta/state.
+async function saveLeads() {
+  if (!canWrite()) { S.dirty.clear(); S.dirtyAll = false; return true; }
+  const chunks = chunk(S.leads, CHUNK); const n = chunks.length;
+  const todo = [];
+  for (let i = 0; i < n; i++) {
+    const keys = chunks[i].map(L => L.key).join(',');
+    if (S.dirtyAll || S.chunkKeys[i] !== keys || chunks[i].some(L => S.dirty.has(L.key))) todo.push(i);
+  }
+  const stale = [...S.chunkIdx].filter(i => i >= n);
   try {
-    for (let i = 0; i < n; i++) {
-      setSave('saving', `Saving leads ${i + 1}/${n}`);
-      await dbw(() => S.db.doc('leads/' + chunkId(i)).set({ i, rows: S.leads.slice(i * size, (i + 1) * size), updatedAt: Date.now() }));
-    }
-    for (let i = n; i < S.chunkCount; i++) await dbw(() => S.db.doc('leads/' + chunkId(i)).delete());
-    S.chunkCount = n;
-    S.meta = { ...S.meta, ...extraMeta, count: S.leads.length, chunks: n, updatedAt: Date.now() };
+    let done = 0, next = 0;
+    const worker = async () => { // different documents, so up to three writes run at once
+      while (next < todo.length) {
+        const i = todo[next++]; const rows = fitChunk(chunks[i]);
+        await dbw(() => S.db.doc('leads/' + chunkId(i)).set({ i, rows, updatedAt: Date.now() }));
+        S.chunkKeys[i] = chunks[i].map(L => L.key).join(','); S.chunkIdx.add(i);
+        setSave('saving', `Saving leads ${++done}/${todo.length}`);
+      }
+    };
+    await Promise.all([worker(), worker(), worker()]);
+    for (const i of stale) { await dbw(() => S.db.doc('leads/' + chunkId(i)).delete()); S.chunkIdx.delete(i); }
+    S.chunkKeys.length = n;
+    S.dirty.clear(); S.dirtyAll = false;
+    S.meta = { ...S.meta, count: S.leads.length, chunks: n, updatedAt: Date.now() };
     await dbw(() => S.db.doc('meta/state').set(S.meta));
     setSave('saved');
     return true;
@@ -546,15 +664,19 @@ async function saveAi(key) {
 }
 async function loadAll() {
   try {
-    const [co, icp, out, meta] = await Promise.all(['config/company', 'config/icp', 'config/outreach', 'meta/state'].map(p => S.db.doc(p).get()));
+    const [co, icp, out, meta, maps] = await Promise.all(['config/company', 'config/icp', 'config/outreach', 'meta/state', 'config/mappings'].map(p => S.db.doc(p).get()));
     if (co.exists) { const d = co.data(); S.company = d.profile || null; S.coSource = { url: str(d.sourceUrl), text: str(d.sourceText) }; }
     if (icp.exists) S.icp = icp.data().icp || null;
     if (out.exists) { const o = out.data(); S.out = { ...structuredClone(DEFAULT_OUT), ...o, weights: { ...DEFAULT_OUT.weights, ...(o.weights || {}) } }; }
     if (meta.exists) S.meta = { ...meta.data() };
+    if (maps.exists) S.mappings = { ...(maps.data().maps || {}) };
     const ls = await S.db.collection('leads').limit(1000).get();
-    const chunks = ls.docs.map(d => d.data()).filter(Boolean).sort((a, b) => (a.i || 0) - (b.i || 0));
-    S.chunkCount = chunks.reduce((m, c) => Math.max(m, (c.i || 0) + 1), 0);
-    S.leads = chunks.flatMap(c => Array.isArray(c.rows) ? c.rows : []).filter(r => r && r.key).map(fillLead);
+    const chunks = ls.docs.map(d => d.data()).filter(c => c && Array.isArray(c.rows)).sort((a, b) => (a.i || 0) - (b.i || 0));
+    S.chunkIdx = new Set(chunks.map(c => c.i || 0));
+    S.chunkKeys = [];
+    for (const c of chunks) S.chunkKeys[c.i || 0] = c.rows.map(r => r?.key).join(',');
+    const legacyAt = S.meta.lastImport?.at || null;
+    S.leads = chunks.flatMap(c => c.rows).filter(r => r && r.key).map(fillLead).map(L => (L.firstImportedAt || L.ex ? L : { ...L, firstImportedAt: legacyAt }));
     S.ai = {}; let last = '';
     for (let guard = 0; guard < 60; guard++) {
       const s = await S.db.collection('ai').where('k', '>', last).orderBy('k').limit(500).get();
@@ -569,9 +691,13 @@ async function loadAll() {
   }
 }
 function fillLead(r) {
-  const o = { key: '', company: '', website: '', domain: '', industry: '', employees: null, country: '', city: '', firstName: '', lastName: '', name: '', title: '', email: '', emailStatus: '', linkedin: '', keywords: '', description: '', signals: '', source: '', ex: false };
+  const o = { key: '', company: '', companyShort: '', website: '', domain: '', industry: '', employees: null, country: '', city: '',
+    firstName: '', lastName: '', name: '', title: '', seniority: '', email: '', emailStatus: '', phone: '', linkedin: '',
+    keywords: '', description: '', signals: '', source: '', ex: false,
+    firstImportedAt: null, firstImportFile: '', lastSeenAt: null, lastSeenFile: '', lastImportId: '', importStatus: '', updatedAt: null, changes: [], aiStaleAt: null };
   for (const k in o) if (r[k] != null) o[k] = r[k];
   o.employees = r.employees == null || r.employees === '' ? null : Number(r.employees);
+  if (!Array.isArray(o.changes)) o.changes = [];
   return o;
 }
 
@@ -615,7 +741,7 @@ Reply with only a JSON object in this shape:
 
 Rules:
 - One segment per user-chosen segment (source "goal"). Add at most 3 more (source "website") only when the seller profile names another clear buyer type.
-- keywords: 10-20 lowercase words or short phrases per segment, as they appear in company names, LinkedIn industries, Apollo keywords and company descriptions in the target countries.
+- keywords: 10-20 lowercase words or short phrases per segment, as they appear in company names, LinkedIn industries, Apollo keywords and company descriptions in the target countries, including the common French and Arabic terms used there (for example immobilier, hôtel, عقارات, فندق).
 - why: one sentence on why that segment buys.
 - adjacent_keywords: industries that are sometimes a fit. exclude_keywords: phrases that mark a company as a non-buyer or a competitor.
 - titles.decision: owners and executives who can buy. titles.operator: people who run the spaces or operations day to day. titles.exclude: titles that never buy. All lowercase; 10-40 each for decision and operator.
@@ -625,7 +751,7 @@ Rules:
 }
 function promptResearch(rows) {
   const leads = rows.map(r => ({
-    key: r.L.key, name: leadName(r.L), title: r.L.title, company: r.L.company, industry: r.L.industry,
+    key: r.L.key, name: leadName(r.L), title: r.L.title, company: displayCompany(r.L), industry: r.L.industry,
     employees: r.L.employees, country: r.L.country, city: r.L.city, segment: r.sc.segment,
     keywords: str(r.L.keywords).slice(0, 300), description: str(r.L.description).slice(0, 400), signals: str(r.L.signals).slice(0, 300),
   }));
@@ -638,7 +764,7 @@ For every lead return:
 - "pain_point": the problem this lead most likely has that the seller solves, under 15 words, based on their role and type of business.
 - "reason_selected": one sentence on why this lead fits: role, type of business, market.
 - "summary": under 25 words describing the company from the given fields.
-Never invent numbers, news, events, people or places.
+Never invent numbers, news, events, people or places. Copy each lead's "key" exactly.
 
 Reply with only a JSON array, one object per lead, in the same order:
 [{"key":"","signal":"","signal_source":"data","pain_point":"","reason_selected":"","summary":""}]
@@ -649,7 +775,7 @@ ${JSON.stringify(leads)}`;
 function promptEmails(rows) {
   const leads = rows.map(r => {
     const rs = S.ai[r.L.key]?.research || {};
-    return { key: r.L.key, first_name: firstName(r.L), title: r.L.title, company: r.L.company, city: r.L.city, country: r.L.country,
+    return { key: r.L.key, first_name: firstName(r.L), title: r.L.title, company: displayCompany(r.L), city: r.L.city, country: r.L.country,
       segment: r.sc.segment, signal: str(rs.signal), signal_source: rs.signal_source === 'data' ? 'data' : 'none', pain_point: str(rs.pain_point) };
   });
   return `You are the Personalized Outreach agent for ${S.company?.company || 'the seller'}. Write a short cold email for each lead, in three variants.
@@ -659,14 +785,15 @@ Sender: ${S.out.senderName || '(name added later)'}${S.out.senderTitle ? ', ' + 
 
 Each variant is the BODY only: no greeting, no sign-off and no call to action. The page puts "Hi <first name>," before it and "${S.out.cta}" plus the signature after it.
 - At most 60 words, 2-3 short sentences.
-- Name the lead's company and speak to their role.
+- Name the lead's company exactly as given in "company", and speak to their role.
 - Use the signal only when signal_source is "data". Otherwise refer to their type of business; never invent an event, number or piece of news.
 - Never say or imply the seller operates in a country or city that is not in its markets.
-- Plain words. No exclamation marks, no long introduction, no marketing language, and none of: ${BANNED.join(', ')}.
+- Plain words. No exclamation marks, no placeholders, no long introduction, no marketing language, and none of: ${BANNED.join(', ')}.
 - variant_a (curiosity): open with a specific question or observation about their space or operations.
 - variant_b (problem): name the pain point and how the product removes it.
 - variant_c (growth): frame it as extra income, occupancy or growth for them.
 - subject: at most 6 words, lowercase except names, no clickbait.
+Copy each lead's "key" exactly.
 
 Reply with only a JSON array, one object per lead, in the same order:
 [{"key":"","subject":"","variant_a":"","variant_b":"","variant_c":""}]
@@ -736,7 +863,9 @@ async function buildIcp() {
   try {
     const o = await S.sample.json(promptIcp(goals, countries), { modelTier: 'default', signal: ctl.signal });
     if (!o || typeof o !== 'object' || !Array.isArray(o.segments)) throw { code: 'invalid_json' };
-    S.icp = normalizeIcp(o, goals, countries);
+    const next = normalizeIcp(o, goals, countries);
+    if (!next.segments.length) throw { code: 'invalid_json' };
+    S.icp = next;
     await saveDoc('config/icp', { icp: S.icp, updatedAt: Date.now() });
     derive(); toast('Targeting rules rebuilt');
   } catch (e) { S.msg.icp = sampleErr(e); }
@@ -745,20 +874,24 @@ async function buildIcp() {
 
 /* batch runner: sequential batches, two at a time, started by a click, stoppable */
 async function applyBatch(phase, batch, out) {
-  const list = Array.isArray(out) ? out : (Array.isArray(out?.leads) ? out.leads : []);
-  const want = new Set(batch.map(r => r.L.key));
-  let ok = 0;
-  for (const o of list) {
-    const key = str(o?.key); if (!want.has(key)) continue;
+  const list = (Array.isArray(out) ? out : Array.isArray(out?.leads) ? out.leads : []).filter(o => o && typeof o === 'object');
+  const keys = new Set(batch.map(r => r.L.key));
+  let ok = 0; const now = Date.now();
+  for (let i = 0; i < batch.length; i++) {
+    const key = batch[i].L.key;
+    let o = list.find(x => str(x.key) === key);
+    // Claude sometimes rewrites a key; fall back to the same position when the answer has one object per lead.
+    if (!o && list.length === batch.length && !keys.has(str(list[i]?.key))) o = list[i];
+    if (!o) continue;
     const cur = S.ai[key] || { k: key };
     if (phase === 'research') {
       cur.research = { signal: str(o.signal).slice(0, 300), signal_source: o.signal_source === 'data' && str(o.signal) ? 'data' : 'none',
-        pain_point: str(o.pain_point).slice(0, 200), reason_selected: str(o.reason_selected).slice(0, 400), summary: str(o.summary).slice(0, 300) };
+        pain_point: str(o.pain_point).slice(0, 200), reason_selected: str(o.reason_selected).slice(0, 400), summary: str(o.summary).slice(0, 300), at: now };
     } else {
       if (!str(o.variant_a) && !str(o.variant_b) && !str(o.variant_c)) continue;
-      cur.emails = { subject: str(o.subject).slice(0, 120), a: str(o.variant_a).slice(0, 1200), b: str(o.variant_b).slice(0, 1200), c: str(o.variant_c).slice(0, 1200) };
+      cur.emails = { subject: str(o.subject).slice(0, 120), a: str(o.variant_a).slice(0, 1200), b: str(o.variant_b).slice(0, 1200), c: str(o.variant_c).slice(0, 1200), at: now };
     }
-    cur.at = Date.now(); S.ai[key] = cur; want.delete(key); ok++;
+    cur.k = key; cur.at = now; S.ai[key] = cur; ok++;
     await saveAi(key);
   }
   return ok;
@@ -791,15 +924,16 @@ async function runAgents(kind) {
   if (!S.company || !S.icp) { toast('Finish steps 1 and 2 first.'); return; }
   const n = clampInt(S.out.topN, 1, 500);
   const pool = ranked().slice(0, n);
-  const needR = pool.filter(r => !S.ai[r.L.key]?.research);
-  const needE = kind === 'emails' ? pool.filter(r => !S.ai[r.L.key]?.emails) : [];
+  const needR = pool.filter(r => !r.researched);
+  const needE = kind === 'emails' ? pool.filter(r => !r.personalized) : [];
   if (!needR.length && !needE.length) { toast(pool.length ? 'The top ' + pool.length + ' leads are already done.' : 'No qualified leads yet.'); return; }
+  S.undo = null;
   S.job = { kind, phase: '', total: needR.length + needE.length, done: 0, failed: 0, ctls: new Set(), stop: false, error: '' };
-  render();
+  S.msg.job = ''; render();
   if (needR.length) await runBatches('research', needR, 10);
   if (!S.job.stop && needE.length) await runBatches('emails', needE, 5);
   const j = S.job; S.job = null; derive();
-  S.msg.job = j.error || (j.stop ? 'Stopped. Finished leads are saved.' : `Done: ${fmt(j.done - j.failed)} leads processed${j.failed ? ', ' + fmt(j.failed) + ' failed (run again to retry them)' : ''}.`);
+  S.msg.job = j.error || (j.stop ? 'Stopped. Finished leads are saved.' : `Done: ${fmt(j.done - j.failed)} of ${fmt(j.total)} steps finished${j.failed ? ', ' + fmt(j.failed) + ' failed (run again to retry them)' : ''}.`);
   render();
 }
 function stopJob() { if (!S.job) return; S.job.stop = true; for (const c of S.job.ctls) c.abort(); renderJob(); }
@@ -807,128 +941,322 @@ async function rewriteOne(key) {
   const r = D.byKey.get(key); if (!r || !aiReady() || S.busy.one) return;
   const ctl = new AbortController(); S.busy.one = ctl; S.msg.one = ''; renderDrawer();
   try {
-    if (!S.ai[key]?.research) { const o = await S.sample.json(promptResearch([r]), { modelTier: 'quick', signal: ctl.signal }); await applyBatch('research', [r], o); derive(); }
+    if (!r.researched) { const o = await S.sample.json(promptResearch([r]), { modelTier: 'quick', signal: ctl.signal, cache: false }); await applyBatch('research', [r], o); derive(); }
     const o = await S.sample.json(promptEmails([D.byKey.get(key)]), { modelTier: 'default', signal: ctl.signal, cache: false });
     const ok = await applyBatch('emails', [r], o);
     if (!ok) throw { code: 'invalid_json' };
-    toast('Emails rewritten');
+    toast('Emails written');
   } catch (e) { S.msg.one = sampleErr(e); }
   finally { S.busy.one = null; derive(); render(); renderDrawer(); }
 }
 
-/* ───────────── import ───────────── */
-function autoMap(headers) {
-  const nh = headers.map(h => ({ h, n: nkey(h) })); const map = {}; const used = new Set();
-  for (const f of FIELDS) {
-    for (const a of f.al) { const hit = nh.find(x => x.n === a && !used.has(x.h)); if (hit) { map[f.k] = hit.h; used.add(hit.h); break; } }
+/* ───────────── reading files ───────────── */
+function decodeText(buf) {
+  const b = new Uint8Array(buf);
+  if (b[0] === 0xFF && b[1] === 0xFE) return new TextDecoder('utf-16le').decode(b);
+  if (b[0] === 0xFE && b[1] === 0xFF) return new TextDecoder('utf-16be').decode(b);
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(b); }
+  catch {
+    try { const ar = new TextDecoder('windows-1256').decode(b); if (/[ء-ي]/.test(ar)) return ar; } catch { /* decoder missing */ }
+    return new TextDecoder('windows-1252').decode(b);
   }
+}
+function countOutside(line, c) { let n = 0, q = false; for (const ch of line) { if (ch === '"') q = !q; else if (ch === c && !q) n++; } return n; }
+function parseDelimited(text) {
+  text = String(text || '').replace(/^﻿/, '');
+  let sep = null;
+  const m = text.match(/^sep=(.)\r?\n/i); if (m) { sep = m[1]; text = text.slice(m[0].length); }
+  if (!sep) {
+    const lines = text.slice(0, 50000).split(/\r?\n/).filter(l => l.trim()).slice(0, 12);
+    let best = ',', bestScore = -1;
+    for (const c of ['\t', ',', ';', '|']) {
+      const counts = lines.map(l => countOutside(l, c)); const h = counts[0] || 0; if (!h) continue;
+      const score = counts.filter(n => n === h).length / counts.length * 1000 + h;
+      if (score > bestScore) { bestScore = score; best = c; }
+    }
+    sep = best;
+  }
+  const rows = []; let row = [], cell = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += ch; }
+    else if (ch === '"' && cell === '') q = true;
+    else if (ch === sep) { row.push(cell); cell = ''; }
+    else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+    else cell += ch;
+  }
+  if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter(r => r.some(c => String(c).trim() !== ''));
+}
+function flattenJson(rec, prefix = '', out = {}, depth = 0) {
+  for (const [k, v] of Object.entries(rec || {})) {
+    const key = prefix ? prefix + '_' + k : k;
+    if (v == null || v === '') continue;
+    if (Array.isArray(v)) {
+      const s = v.map(x => x && typeof x === 'object' ? (x.address || x.email || x.name || x.url || x.number || '') : x).filter(x => x !== '' && x != null).join(', ');
+      if (s) out[key] = s;
+    } else if (typeof v === 'object') { if (depth < 2) flattenJson(v, key, out, depth + 1); }
+    else out[key] = String(v);
+  }
+  return out;
+}
+function jsonToAoa(text) {
+  let data;
+  try { data = JSON.parse(text); }
+  catch { data = text.split(/\r?\n/).filter(l => l.trim()).map(l => JSON.parse(l)); }
+  const list = Array.isArray(data) ? data : (['data', 'people', 'contacts', 'leads', 'results', 'records', 'items', 'persons'].map(k => data?.[k]).find(Array.isArray) || (data && typeof data === 'object' ? [data] : []));
+  const recs = list.filter(x => x && typeof x === 'object').map(r => flattenJson(r));
+  const headers = [...new Set(recs.flatMap(r => Object.keys(r)))];
+  return [headers, ...recs.map(r => headers.map(h => r[h] ?? ''))];
+}
+async function readSource(file) {
+  const name = file.name; const ext = (name.toLowerCase().match(/\.([a-z0-9]+)$/) || [])[1] || '';
+  if (['json', 'jsonl', 'ndjson'].includes(ext)) return { name, sheets: [{ name: 'JSON', aoa: jsonToAoa(decodeText(await file.arrayBuffer())) }] };
+  if (['xlsx', 'xlsm', 'xls', 'xlsb', 'ods'].includes(ext)) {
+    if (!window.XLSX) throw new Error('the Excel reader did not load. Reload the page, or save the sheet as CSV and import that.');
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+    return { name, sheets: wb.SheetNames.map(n => ({ name: n, aoa: XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '', raw: false, blankrows: false }) })).filter(s => s.aoa.length) };
+  }
+  return { name, sheets: [{ name: 'Rows', aoa: parseDelimited(decodeText(await file.arrayBuffer())) }] };
+}
+
+/* ───────────── column mapping ───────────── */
+function headerScore(row) {
+  const used = new Set(); let n = 0;
+  for (const c of row || []) { const h = nkey(c); if (!h) continue; const f = FIELDS.find(f => !used.has(f.k) && (f.al.includes(h) || f.fz(h))); if (f) { used.add(f.k); n++; } }
+  return n;
+}
+function detectHeaderRow(aoa) { let best = 0, bestN = -1; for (let i = 0; i < Math.min(15, aoa.length); i++) { const n = headerScore(aoa[i]); if (n > bestN) { best = i; bestN = n; } } return best; }
+function uniqueHeaders(row) { const seen = {}; return (row || []).map((h, i) => { let n = norm(h) || 'Column ' + (i + 1); if (seen[n]) { seen[n]++; n = n + ' (' + seen[n] + ')'; } else seen[n] = 1; return n; }); }
+function autoMap(headers, rows) {
+  const nh = headers.map(h => ({ h, n: nkey(h) })); const map = {}; const used = new Set();
+  for (const f of FIELDS) for (const a of f.al) { const hit = nh.find(x => x.n === a && !used.has(x.h)); if (hit) { map[f.k] = hit.h; used.add(hit.h); break; } }
+  for (const f of FIELDS) { if (map[f.k]) continue; const hit = nh.find(x => x.n && !used.has(x.h) && f.fz(x.n)); if (hit) { map[f.k] = hit.h; used.add(hit.h); } }
+  const sample = h => rows.slice(0, 40).map(r => norm(r[h])).filter(Boolean);
+  const sniff = (k, test) => {
+    if (map[k]) return;
+    const hit = headers.find(h => { if (used.has(h)) return false; const v = sample(h); return v.length >= 2 && v.filter(test).length / v.length >= 0.6; });
+    if (hit) { map[k] = hit; used.add(hit); }
+  };
+  sniff('linkedin', v => /linkedin\.com\//i.test(v));
+  sniff('email', v => /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(v));
+  sniff('website', v => !!toDomain(v) && !/linkedin\.com/i.test(v) && !/\s/.test(v));
   return map;
 }
-const autoSignals = headers => headers.filter(h => SIGNAL_HINTS.some(s => nkey(h).includes(s)));
+const autoSignals = (headers, map) => { const mapped = new Set(Object.values(map)); return headers.filter(h => !mapped.has(h) && SIGNAL_HINTS.some(s => nkey(h).includes(s))); };
 function guessSource(headers) {
-  const n = headers.map(nkey);
-  if (n.includes('apollocontactid') || n.includes('personlinkedinurl') || n.includes('companynameforemails')) return 'Apollo';
-  if (n.includes('jobcompanyname') || n.includes('workemail') && n.includes('fullname')) return 'People Data Labs';
+  const n = new Set(headers.map(nkey));
+  if (n.has('leadscore') && n.has('reasonselected')) return 'ProHost export';
+  if (n.has('apollocontactid') || n.has('companynameforemails') || n.has('personlinkedinurl') || (n.has('organizationname') && n.has('emailstatus'))) return 'Apollo';
+  if (n.has('jobcompanyname') || n.has('jobtitlelevels') || (n.has('workemail') && n.has('fullname'))) return 'People Data Labs';
+  if (n.has('confidencescore') || (n.has('emailaddress') && n.has('domainname'))) return 'Hunter';
+  if (n.has('profileurl') || [...n].some(h => h.includes('salesnavigator'))) return 'LinkedIn';
   return 'Import';
 }
-function flattenJson(rec) {
-  const o = {};
-  for (const [k, v] of Object.entries(rec || {})) {
-    if (v == null) continue;
-    if (Array.isArray(v)) { const s = v.filter(x => typeof x !== 'object').join(', '); if (s) o[k] = s; }
-    else if (typeof v !== 'object') o[k] = String(v);
-  }
-  return o;
+function prepareImport(src, sheetIdx = null, headerRow = null) {
+  let si = sheetIdx;
+  if (si == null) { let best = -1; src.sheets.forEach((s, i) => { const n = headerScore(s.aoa[detectHeaderRow(s.aoa)]); if (n > best) { best = n; si = i; } }); }
+  si = si ?? 0;
+  const aoa = src.sheets[si]?.aoa || [];
+  const hr = headerRow == null ? detectHeaderRow(aoa) : clampInt(headerRow, 0, Math.max(0, aoa.length - 1));
+  const headers = uniqueHeaders(aoa[hr]);
+  const rows = aoa.slice(hr + 1).filter(r => r.some(c => norm(c))).map(a => { const o = {}; headers.forEach((h, i) => { o[h] = a[i] == null ? '' : String(a[i]); }); return o; });
+  const sig = hash(headers.map(nkey).sort().join('|'));
+  const saved = S.mappings[sig];
+  const map = saved ? Object.fromEntries(Object.entries(saved.map || {}).filter(([, h]) => headers.includes(h))) : autoMap(headers, rows);
+  const signals = saved ? arr(saved.signals).filter(h => headers.includes(h)) : autoSignals(headers, map);
+  return { name: src.name, src, sheet: si, headerRow: hr, headers, rows, map, signals, sig, savedMap: !!saved, source: guessSource(headers), plan: null };
 }
-async function readTable(file) {
-  const name = file.name.toLowerCase();
-  if (name.endsWith('.json')) {
-    const j = JSON.parse(await file.text());
-    const list = Array.isArray(j) ? j : Array.isArray(j?.data) ? j.data : Array.isArray(j?.people) ? j.people : [];
-    const rows = list.map(flattenJson);
-    const headers = [...new Set(rows.flatMap(r => Object.keys(r)))];
-    return { rows, headers };
-  }
-  if (!window.XLSX) throw new Error('The spreadsheet reader did not load. Reload the page and try again.');
-  const wb = /\.(csv|tsv|txt)$/.test(name) ? XLSX.read(await file.text(), { type: 'string', raw: true }) : XLSX.read(await file.arrayBuffer(), { type: 'array' });
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false, blankrows: false });
-  const headers = (aoa[0] || []).map((h, i) => norm(h) || 'Column ' + (i + 1));
-  const rows = aoa.slice(1).map(a => { const o = {}; headers.forEach((h, i) => { o[h] = a[i] == null ? '' : String(a[i]); }); return o; });
-  return { rows, headers };
-}
-async function onLeadFile(file) {
-  if (!file) return;
-  S.msg.import = '';
-  try {
-    const { rows, headers } = await readTable(file);
-    if (!rows.length) throw new Error('That file has no rows.');
-    S.import = { fileName: file.name, rows, headers, map: autoMap(headers), signals: autoSignals(headers), source: guessSource(headers), mode: (S.meta.example || !S.leads.length) ? 'replace' : 'add' };
-  } catch (e) { S.import = null; S.msg.import = 'Could not read ' + file.name + ': ' + (e?.message || 'unknown error'); }
-  render();
-}
+
+/* ───────────── import: merge, never replace ───────────── */
 function rowToLead(r, map, sigCols, source) {
   const g = k => map[k] ? norm(r[map[k]]) : '';
-  let first = g('firstName'); const last = g('lastName'); let name = g('name');
-  if (!name) name = norm([first, last].join(' '));
-  if (!first && name) first = name.split(' ')[0];
-  const site = g('website');
-  const email = lc(g('email')).replace(/^mailto:/, '');
-  let linkedin = g('linkedin'); if (linkedin && !/^https?:\/\//i.test(linkedin)) linkedin = 'https://' + linkedin.replace(/^\/+/, '');
-  const country = g('country'); const city = g('city');
-  const L = fillLead({
-    company: g('company').slice(0, 160), website: site ? (/^https?:\/\//i.test(site) ? site : 'https://' + site) : '', domain: toDomain(site),
+  const first = smartCase(g('firstName')); const last = smartCase(g('lastName'));
+  let name = smartCase(g('name')); if (!name) name = norm([first, last].join(' '));
+  const email = extractEmail(g('email'));
+  let domain = toDomain(g('website')); let website = '';
+  if (domain && SOCIAL_DOMAINS.has(domain)) domain = ''; else if (domain) website = 'https://' + domain;
+  const ed = emailDomain(email);
+  if (!domain && EMAIL_RE.test(email) && !FREE_MAIL.has(ed) && !isPlaceholder(email)) domain = ed;
+  let city = g('city'); let country = g('country');
+  if (city.includes(',')) { const parts = city.split(',').map(norm).filter(Boolean); city = parts[0] || ''; if (!country) country = parts.slice(1).join(', '); }
+  const cc = canonCountry(country) || canonCountry(city);
+  let company = g('company'); const companyShort = g('companyShort'); if (!company) company = companyShort;
+  return fillLead({
+    company: company.slice(0, 160), companyShort: companyShort.slice(0, 120), website, domain,
     industry: g('industry').slice(0, 120), employees: parseEmp(g('employees')),
-    country: canonCountry(country) || (country ? titleCase(country) : canonCountry(city)), city: titleCase(city).slice(0, 80),
-    firstName: first.slice(0, 60), lastName: last.slice(0, 60), name: name.slice(0, 120), title: g('title').slice(0, 160),
-    email, emailStatus: g('emailStatus').slice(0, 40), linkedin: linkedin.slice(0, 300),
-    keywords: g('keywords').slice(0, 400), description: g('description').slice(0, 600),
-    signals: sigCols.map(h => norm(r[h]) ? h + ': ' + norm(r[h]) : '').filter(Boolean).join(' · ').slice(0, 400),
-    source,
+    country: cc || smartCase(country).slice(0, 60), city: smartCase(city).slice(0, 80),
+    firstName: first.slice(0, 60), lastName: last.slice(0, 60), name: name.slice(0, 120), title: g('title').slice(0, 160), seniority: g('seniority').slice(0, 60),
+    email, emailStatus: nkey(g('emailStatus')) === 'notverifiedyet' ? '' : g('emailStatus').slice(0, 40), phone: (g('phone').split(/[,;/]/)[0] || '').replace(/[^\d+()\s-]/g, '').trim().slice(0, 40),
+    linkedin: liUrl(g('linkedin')), keywords: g('keywords').slice(0, 400), description: g('description').slice(0, 600),
+    signals: sigCols.map(h => norm(r[h]) ? h + ': ' + norm(r[h]) : '').filter(Boolean).join(' · ').slice(0, 400), source,
   });
-  L.key = 'l' + hash(email || lc(L.name + '|' + L.company));
-  return L;
 }
-async function doImport() {
-  const im = S.import; if (!im || S.busy.import) return;
-  S.busy.import = true; render();
-  const incoming = []; const seenKeys = new Set();
-  for (const r of im.rows) {
-    const L = rowToLead(r, im.map, im.signals, im.source);
-    if (!leadName(L) && !L.email && !L.company) continue;
-    if (seenKeys.has(L.key)) continue; seenKeys.add(L.key); incoming.push(L);
+// Identity in priority order: work email, LinkedIn profile, name + company, name + company domain.
+function idKeysOf(L) {
+  const out = []; const e = identityEmail(L.email); if (e) out.push('e:' + e);
+  const li = liKey(L.linkedin); if (li) out.push('l:' + li);
+  const nm = nkey(leadName(L));
+  if (nm.length >= 4) { const c = nkey(cleanCompany(L.company)); if (c) out.push('n:' + nm + '|' + c); if (L.domain) out.push('d:' + nm + '|' + L.domain); }
+  return out;
+}
+function same(f, a, b) {
+  if (f === 'employees') return (a ?? null) === (b ?? null);
+  if (f === 'website') return toDomain(a) === toDomain(b);
+  if (f === 'linkedin') return liKey(a) === liKey(b);
+  if (f === 'name') { const h = x => lc(x).split(' ').filter(w => !HONORIFICS.has(w.replace(/\.$/, ''))).join(' '); return h(a) === h(b); }
+  if (f === 'emailStatus') return providerStatus(a) === providerStatus(b) && (!!norm(a) === !!norm(b) || !providerStatus(a));
+  return lc(a) === lc(b);
+}
+function mergeFields(M, L) {
+  for (const f of [...TRACKED, 'firstName', 'lastName']) { const v = L[f]; if (v == null || v === '') continue; if (!same(f, M[f], v)) M[f] = v; }
+  M.domain = toDomain(M.website) || M.domain || L.domain;
+  if (!norm(M.company) && norm(M.companyShort)) M.company = M.companyShort;
+}
+function newKey(L, taken) {
+  const base = 'l' + hash(identityEmail(L.email) || liKey(L.linkedin) || (nkey(leadName(L)) + '|' + nkey(cleanCompany(L.company))) || lc(L.email));
+  let k = base, i = 2; while (taken.has(k)) k = base + '-' + i++;
+  return k;
+}
+function planImport(im) {
+  const base = S.meta.example ? [] : S.leads;
+  const baseByKey = new Map(base.map(L => [L.key, L]));
+  const idx = new Map(); const index = L => { for (const k of idKeysOf(L)) if (!idx.has(k)) idx.set(k, L.key); };
+  base.forEach(index);
+  const taken = new Set(baseByKey.keys());
+  const work = new Map(); const seen = new Set(); let dupes = 0; const skipped = [];
+  im.rows.forEach((row, i) => {
+    const L = rowToLead(row, im.map, im.signals, im.source);
+    if (!L.email && !L.linkedin && !(leadName(L) && L.company)) { skipped.push({ line: im.headerRow + i + 2, why: 'No email, LinkedIn URL, or name with company' }); return; }
+    let key = null; for (const k of idKeysOf(L)) if (idx.has(k)) { key = idx.get(k); break; }
+    if (key) {
+      if (seen.has(key)) dupes++;
+      let w = work.get(key);
+      if (!w) { const t = baseByKey.get(key); w = { key, target: t, merged: { ...t, changes: [...(t.changes || [])] }, isNew: false }; work.set(key, w); }
+      mergeFields(w.merged, L); index(w.merged);
+    } else {
+      key = newKey(L, taken); taken.add(key); L.key = key;
+      work.set(key, { key, target: null, merged: L, isNew: true }); index(L);
+    }
+    seen.add(key);
+  });
+  const counts = { rows: im.rows.length, new: 0, updated: 0, unchanged: 0, dupes, skipped: skipped.length };
+  for (const w of work.values()) {
+    if (w.isNew) { counts.new++; continue; }
+    // A website that only confirms the domain already taken from the work email is not a change.
+    w.changes = TRACKED.filter(f => !same(f, w.target[f], w.merged[f]) && !(f === 'website' && !w.target.website && toDomain(w.merged.website) === w.target.domain)).map(f => ({ f, from: w.target[f], to: w.merged[f] }));
+    if (w.changes.length) counts.updated++; else counts.unchanged++;
   }
-  const replace = im.mode === 'replace' || S.meta.example;
-  let next;
-  if (replace) next = incoming;
-  else {
-    const m = new Map(S.leads.map(L => [L.key, L]));
-    for (const L of incoming) { const cur = m.get(L.key); if (cur) { for (const k in L) if (L[k] !== '' && L[k] != null) cur[k] = L[k]; } else m.set(L.key, L); }
-    next = [...m.values()];
+  return { work, counts, skipped };
+}
+const getPlan = im => (im.plan ||= planImport(im));
+async function commitImport() {
+  const im = S.import; if (!im || S.busy.import || S.job) return;
+  im.plan = null; const plan = getPlan(im); const cn = plan.counts;
+  const total = (S.meta.example ? 0 : S.leads.length) + cn.new;
+  if (total > MAX_LEADS) { S.msg.import = `This would hold ${fmt(total)} leads; the engine keeps up to ${fmt(MAX_LEADS)}. Remove leads or split the file.`; render(); return; }
+  if (!cn.new && !cn.updated && !cn.unchanged) { S.msg.import = 'Nothing to import: every row was skipped. Check the column choices.'; render(); return; }
+  S.busy.import = true; S.msg.import = ''; render();
+  const now = Date.now(); const id = 'i' + now.toString(36);
+  const undo = { id, leads: S.leads.map(L => ({ ...L })), meta: structuredClone(S.meta), ai: {}, chunkSnapshot: null };
+  const exampleKeys = [];
+  if (S.meta.example) {
+    for (const L of S.leads) if (L.ex) { exampleKeys.push(L.key); if (S.ai[L.key]) undo.ai[L.key] = S.ai[L.key]; }
+    S.leads = S.leads.filter(L => !L.ex);
+    S.dirtyAll = true;
   }
-  if (next.length > 20000) { S.busy.import = false; S.msg.import = 'This would hold ' + fmt(next.length) + ' leads; the engine keeps up to 20,000. Split the file or replace instead of adding.'; render(); return; }
-  const removed = Object.keys(S.ai).filter(k => !next.some(L => L.key === k));
-  S.leads = next; S.import = null;
-  const saved = await saveLeads({ example: false, source: im.source, lastImport: { file: im.fileName, rows: incoming.length, at: Date.now() } });
-  if (replace && removed.length) {
-    const keep = new Set(next.map(L => L.key));
-    for (const k of Object.keys(S.ai)) if (!keep.has(k)) { delete S.ai[k]; if (canWrite()) { try { await dbw(() => S.db.doc('ai/' + k).delete()); } catch (e) { dbFail(e); break; } } }
+  const pos = new Map(S.leads.map((L, i) => [L.key, i]));
+  for (const w of plan.work.values()) {
+    const M = w.merged;
+    Object.assign(M, { lastSeenAt: now, lastSeenFile: im.name, lastImportId: id, ex: false });
+    if (w.isNew) {
+      Object.assign(M, { firstImportedAt: now, firstImportFile: im.name, importStatus: 'new', updatedAt: null, changes: [] });
+      pos.set(M.key, S.leads.length); S.leads.push(M);
+    } else {
+      if (w.changes.length) {
+        M.importStatus = 'updated'; M.updatedAt = now;
+        M.changes = w.changes.map(c => ({ f: c.f, from: shortVal(c.f, c.from), to: shortVal(c.f, c.to) }));
+        if (w.changes.some(c => STALE_FIELDS.has(c.f))) M.aiStaleAt = now;
+      } else M.importStatus = 'unchanged';
+      if (!M.firstImportedAt) M.firstImportedAt = S.meta.lastImport?.at || now;
+      S.leads[pos.get(M.key)] = M;
+    }
+    S.dirty.add(M.key);
   }
-  S.meta.example = false;
+  const entry = { id, at: now, file: im.name, source: im.source, rows: cn.rows, new: cn.new, updated: cn.updated, unchanged: cn.unchanged, dupes: cn.dupes, skipped: cn.skipped };
+  S.meta = { ...S.meta, example: false, source: im.source, lastImport: entry, imports: [entry, ...(S.meta.imports || [])].slice(0, 30) };
+  S.undo = undo; S.table.page = 0;
+  S.mappings[im.sig] = { map: im.map, signals: im.signals, at: now };
+  const sigs = Object.entries(S.mappings).sort((a, b) => (b[1].at || 0) - (a[1].at || 0)).slice(0, 25); S.mappings = Object.fromEntries(sigs);
+  derive();
+  const ok = await saveLeads();
+  for (const k of exampleKeys) { delete S.ai[k]; if (canWrite()) { try { await dbw(() => S.db.doc('ai/' + k).delete()); } catch (e) { dbFail(e); break; } } }
+  saveDoc('config/mappings', { maps: S.mappings });
   S.busy.import = false; derive();
-  toast(`Imported ${fmt(incoming.length)} leads${saved ? '' : ' (not saved)'}`);
-  go('verify');
+  toast(`${im.name}: ${fmt(cn.new)} new, ${fmt(cn.updated)} updated, ${fmt(cn.unchanged)} unchanged${ok ? '' : ' (not saved)'}`);
+  nextFile();
+}
+async function undoImport() {
+  const u = S.undo; if (!u || S.busy.import || S.job) return;
+  S.busy.import = true; render();
+  S.leads = u.leads; S.meta = u.meta; S.dirtyAll = true;
+  for (const [k, v] of Object.entries(u.ai)) { S.ai[k] = v; await saveAi(k); }
+  S.undo = null; derive();
+  await saveLeads();
+  S.busy.import = false; derive(); toast('Import undone'); render();
+}
+async function clearAll() {
+  if (S.busy.clear || S.job) return;
+  S.busy.clear = true; S.confirm = ''; render();
+  try {
+    if (canWrite()) {
+      const docs = [...[...S.chunkIdx].map(i => 'leads/' + chunkId(i)), ...Object.keys(S.ai).map(k => 'ai/' + k)];
+      let i = 0;
+      for (const p of docs) { setSave('saving', `Removing ${++i}/${docs.length}`); await dbw(() => S.db.doc(p).delete()); }
+    }
+    S.leads = []; S.ai = {}; S.chunkKeys = []; S.chunkIdx = new Set(); S.dirty.clear(); S.undo = null;
+    S.meta = { ...S.meta, example: false, count: 0, chunks: 0, updatedAt: Date.now() };
+    if (canWrite()) { await dbw(() => S.db.doc('meta/state').set(S.meta)); setSave('saved'); }
+    toast('All leads removed');
+  } catch (e) { dbFail(e); }
+  S.busy.clear = false; derive(); render();
+}
+async function onFiles(files) {
+  const list = [...(files || [])]; if (!list.length) return;
+  S.importQueue.push(...list); S.msg.import = '';
+  if (!S.import) await nextFile(); else render();
+}
+async function nextFile() {
+  S.import = null;
+  while (S.importQueue.length && !S.import) {
+    const file = S.importQueue.shift();
+    try {
+      const src = await readSource(file);
+      if (!src.sheets.length || src.sheets.every(s => s.aoa.length < 2)) throw new Error('it has no data rows.');
+      S.import = prepareImport(src);
+    } catch (e) { S.msg.import = `Could not read ${file.name}: ${e?.message || 'unknown error'}`; }
+  }
+  render();
+}
+function readPaste() {
+  const text = $('#pasteBox')?.value || '';
+  const aoa = parseDelimited(text);
+  if (aoa.length < 2) { S.msg.import = 'Paste a header row and at least one row of leads (copy the cells straight from Excel or Google Sheets).'; render(); return; }
+  S.msg.import = '';
+  S.import = prepareImport({ name: 'Pasted rows ' + new Date().toLocaleDateString('en-GB'), sheets: [{ name: 'Pasted', aoa }] });
+  render();
 }
 async function onVerifyFile(file) {
   if (!file) return;
   try {
-    const { rows, headers } = await readTable(file);
+    const src = await readSource(file); const aoa = src.sheets[0]?.aoa || [];
+    const headers = uniqueHeaders(aoa[0]); const rows = aoa.slice(1).map(a => Object.fromEntries(headers.map((h, i) => [h, a[i] ?? ''])));
     const emailH = headers.find(h => ['email', 'emailaddress', 'workemail', 'address'].includes(nkey(h))) || headers.find(h => rows.slice(0, 20).some(r => /@/.test(r[h])));
-    const statusH = headers.find(h => ['result', 'status', 'emailstatus', 'verificationresult', 'verificationstatus', 'quality', 'state'].includes(nkey(h)));
-    if (!emailH || !statusH) throw new Error('Need an email column and a result or status column.');
+    const statusH = headers.find(h => ['result', 'status', 'emailstatus', 'verificationresult', 'verificationstatus', 'quality', 'state', 'zbstatus'].includes(nkey(h)));
+    if (!emailH || !statusH) throw new Error('need an email column and a result or status column.');
     const m = new Map(rows.map(r => [lc(r[emailH]), norm(r[statusH])]));
     let n = 0;
-    for (const L of S.leads) { const s = m.get(lc(L.email)); if (s) { L.emailStatus = s.slice(0, 40); n++; } }
+    for (const L of S.leads) { const s = m.get(lc(L.email)); if (s && lc(s) !== lc(L.emailStatus)) { L.emailStatus = s.slice(0, 40); S.dirty.add(L.key); n++; } }
     derive(); render();
     await saveLeads();
     toast(`Updated ${fmt(n)} email statuses from ${file.name}`);
@@ -947,8 +1275,11 @@ function rejectReason(r) {
   if (r.qc && !r.qc.ok) return 'QC: ' + r.qc.issues.join('; ');
   return '';
 }
+const changesText = L => (L.changes || []).map(c => `${FIELD_LABEL[c.f] || c.f}: ${c.from || '(empty)'} → ${c.to || '(empty)'}`).join('; ');
+const xDate = ms => (ms ? new Date(ms) : '');
+const siteOf = L => L.website || (L.domain ? 'https://' + L.domain : '');
 function sheet(aoa, widths, links = []) {
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true, dateNF: 'yyyy-mm-dd hh:mm' });
   ws['!cols'] = widths.map(w => ({ wch: w }));
   if (aoa.length > 1) ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: aoa.length - 1, c: aoa[0].length - 1 } }) };
   for (const col of links) for (let r = 1; r < aoa.length; r++) {
@@ -960,36 +1291,40 @@ function sheet(aoa, widths, links = []) {
 function buildWorkbook() {
   const rows = D.rows.filter(r => r.exportable).sort((a, b) => b.sc.total - a.sc.total);
   const v = (S.out.variant || 'A').toLowerCase();
-  const ai = r => S.ai[r.L.key] || {};
-  const master = [['Company', 'Website', 'Industry', 'Employee Count', 'Country', 'City', 'Lead Name', 'Title', 'Email', 'Email Status', 'LinkedIn', 'Lead Score', 'Segment', 'Reason Selected', 'Personalized Email']];
+  const master = [['Company', 'Website', 'Industry', 'Employee Count', 'Country', 'City', 'Lead Name', 'Title', 'Email', 'Email Status', 'Phone', 'LinkedIn', 'Lead Score', 'Segment', 'Reason Selected', 'Personalized Email', 'Import Status', 'Imported On', 'Updated On', 'Changes', 'Source File']];
   const insights = [['Lead Name', 'Company', 'Segment', 'Lead Score', WEIGHT_LABELS.icp, WEIGHT_LABELS.industry, WEIGHT_LABELS.role, WEIGHT_LABELS.size, WEIGHT_LABELS.activity, 'Role Tier', 'Signal', 'Signal Source', 'Pain Point', 'Reason Selected', 'Company Summary']];
   const outreach = [['Lead Name', 'Company', 'Email', 'Subject Line', 'Email Variant A (Curiosity)', 'Email Variant B (Problem)', 'Email Variant C (Growth)']];
   for (const r of rows) {
-    const L = r.L; const a = ai(r); const rs = a.research || {}; const em = a.emails;
+    const L = r.L; const ai = S.ai[L.key] || {}; const rs = r.researched ? ai.research : {}; const em = r.personalized ? ai.emails : null;
     const reason = rs.reason_selected || `${r.sc.roleTier} at a ${r.sc.segment || 'target'} company in ${L.country || 'a target country'}`;
-    master.push([L.company, L.website, L.industry, L.employees ?? '', L.country, L.city, leadName(L), L.title, L.email, EMAIL_STATUS[r.em.status].label, L.linkedin, r.sc.total, r.sc.segment, reason, em ? assemble(L, em[v]) : '']);
+    master.push([L.company, siteOf(L), L.industry, L.employees ?? '', L.country, L.city, leadName(L), L.title, L.email, EMAIL_STATUS[r.em.status].label, L.phone, L.linkedin, r.sc.total, r.sc.segment, reason, em ? assemble(L, em[v]) : '',
+      IMPORT_LABEL[L.importStatus] || '', xDate(L.firstImportedAt), xDate(L.updatedAt), changesText(L), L.lastSeenFile || L.firstImportFile || L.source]);
     const p = r.sc.parts;
     insights.push([leadName(L), L.company, r.sc.segment, r.sc.total, Math.round(p.icp), Math.round(p.industry), Math.round(p.role), Math.round(p.size), Math.round(p.activity), r.sc.roleTier, rs.signal || r.sc.activity || '', rs.signal_source === 'data' ? 'From the lead record' : (rs.signal_source ? 'None found' : ''), rs.pain_point || '', reason, rs.summary || '']);
     if (em) outreach.push([leadName(L), L.company, L.email, em.subject, assemble(L, em.a), assemble(L, em.b), assemble(L, em.c)]);
   }
-  const rejected = [['Lead Name', 'Company', 'Title', 'Email', 'Lead Score', 'Reason']];
-  for (const r of D.rows) { if (r.exportable) continue; const why = rejectReason(r) || 'No personalized email (excluded by export setting)'; rejected.push([leadName(r.L), r.L.company, r.L.title, r.L.email, r.sc.total, why]); }
-  const c = D.c; const icp = S.icp || {};
+  const rejected = [['Lead Name', 'Company', 'Title', 'Email', 'Lead Score', 'Reason', 'Import Status', 'Imported On']];
+  for (const r of D.rows) { if (r.exportable) continue; rejected.push([leadName(r.L), r.L.company, r.L.title, r.L.email, r.sc.total, rejectReason(r) || 'No personalized email (excluded by export setting)', IMPORT_LABEL[r.L.importStatus] || '', xDate(r.L.firstImportedAt)]); }
+  const log = [['Date', 'File', 'Source', 'Rows', 'New', 'Updated', 'Unchanged', 'Duplicates Merged', 'Skipped']];
+  for (const e of S.meta.imports || []) log.push([xDate(e.at), e.file, e.source, e.rows, e.new, e.updated, e.unchanged, e.dupes || 0, e.skipped || 0]);
+  const c = D.c; const icp = S.icp || {}; const li = S.meta.lastImport;
   const summary = [
-    ['ProHost Lead Engine export', ''], ['Generated', new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC'],
-    ['Data', S.meta.example ? 'EXAMPLE ROWS: fictional companies and people' : (S.meta.lastImport?.file || S.meta.source || 'Imported leads')],
+    ['ProHost Lead Engine export', ''], ['Generated', new Date()],
+    ['Data', S.meta.example ? 'EXAMPLE ROWS: fictional companies and people' : `${fmt(c.total)} leads from ${fmt((S.meta.imports || []).length)} imports`],
+    ['Last import', li ? `${li.file} · ${fmtDate(li.at)} · ${li.new} new, ${li.updated} updated, ${li.unchanged} unchanged` : '—'],
     ['Seller', S.company?.company || ''], ['Website', S.company?.website || ''], ['Product', S.company?.product || ''],
     ['Target segments', (icp.segments || []).map(s => s.name).join(', ')], ['Countries', arr(icp.countries).join(', ')],
     ['Score weights', Object.entries(normWeights(S.out.weights)).map(([k, w]) => WEIGHT_LABELS[k] + ' ' + Math.round(w)).join(' · ')],
     ['Qualification threshold', S.out.threshold], ['Email variant in Lead Master', 'Variant ' + S.out.variant],
-    ['', ''], ['Leads imported', c.total], ['Usable emails', c.usable], ['Qualified (score ≥ ' + S.out.threshold + ')', c.qualified],
+    ['', ''], ['Leads in the engine', c.total], ['Usable emails', c.usable], ['Qualified (score ≥ ' + S.out.threshold + ')', c.qualified],
     ['Researched', c.researched], ['Personalized', c.personalized], ['Failed QC', c.qcFail], ['Rows in Lead Master', rows.length], ['Rows in Rejected', rejected.length - 1],
   ];
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, sheet(master, [28, 30, 22, 10, 14, 14, 24, 30, 32, 14, 40, 8, 22, 50, 70], [1, 10]), 'Lead Master');
-  XLSX.utils.book_append_sheet(wb, sheet(insights, [24, 28, 22, 8, 8, 8, 8, 8, 8, 16, 46, 18, 40, 50, 50]), 'AI Insights');
+  XLSX.utils.book_append_sheet(wb, sheet(master, [28, 30, 22, 10, 14, 14, 24, 30, 32, 14, 18, 40, 8, 22, 50, 70, 12, 16, 16, 50, 28], [1, 11]), 'Lead Master');
+  XLSX.utils.book_append_sheet(wb, sheet(insights, [24, 28, 22, 8, 8, 8, 8, 8, 8, 18, 46, 18, 40, 50, 50]), 'AI Insights');
   XLSX.utils.book_append_sheet(wb, sheet(outreach, [24, 28, 32, 30, 70, 70, 70]), 'Outreach');
-  XLSX.utils.book_append_sheet(wb, sheet(rejected, [24, 28, 30, 32, 8, 60]), 'Rejected');
+  XLSX.utils.book_append_sheet(wb, sheet(rejected, [24, 28, 30, 32, 8, 60, 12, 16]), 'Rejected');
+  XLSX.utils.book_append_sheet(wb, sheet(log, [16, 36, 18, 8, 8, 8, 10, 10, 8]), 'Import Log');
   XLSX.utils.book_append_sheet(wb, sheet(summary, [32, 90]), 'Run Summary');
   return { wb, count: rows.length };
 }
@@ -1008,22 +1343,42 @@ async function exportExcel() {
     else toast('The download could not start (' + (c || 'error') + ').');
   }
 }
-async function exportVerifyCsv() {
+async function saveText(filename, text, empty) {
+  if (!S.downloads) { toast('Downloads are not available in this view.'); return; }
+  try { await S.downloads.save({ filename, data: text }); } catch (e) { if (e?.code !== 'declined') toast('The download could not start (' + (e?.code || 'error') + ').'); }
+}
+function exportVerifyCsv() {
   const emails = [...new Set(D.rows.filter(r => r.em.status === 'unchecked' || r.em.status === 'risky').map(r => lc(r.L.email)))];
   if (!emails.length) { toast('No addresses need verifying.'); return; }
-  if (!S.downloads) { toast('Downloads are not available in this view.'); return; }
-  try { await S.downloads.save({ filename: `emails-to-verify-${today()}.csv`, data: 'email\n' + emails.join('\n') + '\n' }); }
-  catch (e) { if (e?.code !== 'declined') toast('The download could not start (' + (e?.code || 'error') + ').'); }
+  saveText(`emails-to-verify-${today()}.csv`, 'email\n' + emails.join('\n') + '\n');
+}
+function exportTemplate() {
+  const cols = ['First Name', 'Last Name', 'Title', 'Company', 'Website', 'Industry', 'Employees', 'Country', 'City', 'Email', 'Email Status', 'Phone', 'LinkedIn URL', 'Keywords', 'Description', 'Job Postings'];
+  saveText('lead-import-template.csv', cols.join(',') + '\n');
 }
 
 /* ───────────── rendering ───────────── */
 function go(view) { if (!VIEWS.has(view)) return; S.view = view; lsSet('pl-view', view); render(); window.scrollTo({ top: 0 }); }
+let renderQueued = false;
+// Re-render after the current input event finishes, keeping focus and caret where the viewer left them.
+function scheduleRender() {
+  if (renderQueued) return; renderQueued = true;
+  setTimeout(() => {
+    renderQueued = false;
+    const a = document.activeElement; const id = a && a.id && !a.closest('#drawerRoot') ? a.id : null;
+    let sel = null; try { if (id && typeof a.selectionStart === 'number') sel = [a.selectionStart, a.selectionEnd]; } catch { /* not a text field */ }
+    const y = window.scrollY;
+    render();
+    if (id) { const el = document.getElementById(id); if (el) { el.focus({ preventScroll: true }); if (sel) try { el.setSelectionRange(sel[0], sel[1]); } catch { /* number fields */ } } }
+    window.scrollTo(0, y);
+  }, 0);
+}
 function stageStat(id) {
   const c = D.c;
   switch (id) {
     case 'company': return S.company ? (S.company.company || 'Profile') + ' profile' : 'Not analyzed';
     case 'icp': return S.icp ? `${(S.icp.segments || []).length} segments · ${arr(S.icp.countries).length} countries` : 'No rules yet';
-    case 'discover': return S.leads.length ? fmt(c.total) + (S.meta.example ? ' example leads' : ' leads') : 'No leads yet';
+    case 'discover': return S.leads.length ? fmt(c.total) + (S.meta.example ? ' example leads' : ' leads') + (S.meta.lastImport && !S.meta.example ? ` · ${fmt(S.meta.lastImport.new)} new last time` : '') : 'No leads yet';
     case 'verify': return S.leads.length ? `${fmt(c.usable)} usable emails` : '—';
     case 'research': return c.qualified ? `${fmt(c.researched)} of top leads researched` : '—';
     case 'score': return S.leads.length ? `${fmt(c.qualified)} qualified ≥ ${S.out.threshold}` : '—';
@@ -1056,9 +1411,9 @@ function render() {
   renderTop(); renderRail();
   const v = S.view;
   const body = { overview: viewOverview, leads: viewLeads, company: viewCompany, icp: viewIcp, discover: viewDiscover, verify: viewVerify, research: viewResearch, score: viewScore, outreach: viewOutreach, qc: viewQc, export: viewExport }[v]();
-  const banner = S.meta.example ? `<div class="banner"><span><b>Example data.</b> These ${fmt(S.leads.length)} leads are fictional companies with <code>.example</code> addresses, here to show how the engine works. Import your Apollo or People Data Labs export to replace them.</span><span class="spacer"></span><button class="btn sm" data-act="go" data-view="discover">Import leads</button></div>` : '';
+  const banner = S.meta.example ? `<div class="banner"><span><b>Example data.</b> These ${fmt(S.leads.length)} leads are fictional companies with <code>.example</code> addresses, here to show how the engine works. Your first import removes them.</span><button class="btn sm" data-act="go" data-view="discover">Import leads</button></div>` : '';
   const loadErr = S.loadError ? `<div class="err">${esc(S.loadError)}</div>` : '';
-  const noAi = S.loaded && !aiReady() ? `<div class="note">${S.aiOff ? 'Claude is not allowed on this page, so the AI agents are paused. Allow it in the artifact\'s permissions and reload.' : 'The AI agents need this page open in claude.ai. Scoring, verification and Excel export still work.'}</div>` : '';
+  const noAi = S.loaded && !aiReady() ? `<div class="note">${S.aiOff ? 'Claude is not allowed on this page, so the AI agents are paused. Allow it in the artifact\'s permissions and reload.' : 'The AI agents need this page open in claude.ai. Importing, scoring, verification and Excel export still work.'}</div>` : '';
   $('#main').innerHTML = `<div class="wrap">${loadErr}${banner}${['company', 'icp', 'research', 'outreach'].includes(v) ? noAi : ''}${body}</div>`;
   if (S.drawer) renderDrawer();
 }
@@ -1074,17 +1429,24 @@ function renderJob() { const el = $('#jobBox'); if (el) el.innerHTML = jobHtml()
 function msgHtml(k) { return S.msg[k] ? `<div class="err">${esc(S.msg[k])}</div>` : ''; }
 function scoreChip(n) { return `<span class="score ${n >= S.out.threshold ? 'hi' : n >= S.out.threshold - 15 ? 'mid' : ''}">${n}</span>`; }
 function emailPill(r) { const s = EMAIL_STATUS[r.em.status]; return `<span class="pill ${s.cls}" title="${esc(r.em.note)}">${s.label}</span>`; }
+function importBadge(L) {
+  if (!L.lastImportId || L.lastImportId !== S.meta.lastImport?.id) return '';
+  if (L.importStatus === 'new') return '<span class="pill info plain">New</span>';
+  if (L.importStatus === 'updated') return '<span class="pill warn plain">Updated</span>';
+  return '';
+}
 function stagePill(r) {
   if (!r.usable) return emailPill(r);
   if (!r.qualified) return '<span class="pill mute">Below threshold</span>';
   if (r.personalized) return r.qc.ok ? '<span class="pill good">Emails ready</span>' : '<span class="pill bad">Failed QC</span>';
+  if (r.stale) return '<span class="pill warn">Changed, redo emails</span>';
   if (r.researched) return '<span class="pill info">Researched</span>';
   return '<span class="pill info">Qualified</span>';
 }
 function leadRows(list) {
   return list.map(r => `<tr class="click" data-act="lead" data-key="${esc(r.L.key)}" tabindex="0">
     <td>${scoreChip(r.sc.total)}</td>
-    <td class="who"><b>${esc(leadName(r.L) || '—')}</b><span>${esc(r.L.title || 'No title')}</span></td>
+    <td class="who"><b>${esc(leadName(r.L) || '—')} ${importBadge(r.L)}</b><span>${esc(r.L.title || 'No title')}</span></td>
     <td class="who"><b>${esc(r.L.company || '—')}</b><span>${esc([r.L.city, r.L.country].filter(Boolean).join(', ') || '—')}${r.L.ex ? ' · example' : ''}</span></td>
     <td class="who"><b class="mono" style="font-weight:400">${esc(r.L.email || '—')}</b><span>${emailPill(r)}</span></td>
     <td>${stagePill(r)}</td></tr>`).join('');
@@ -1093,12 +1455,16 @@ function leadTable(list, empty) {
   if (!list.length) return `<div class="empty"><p class="muted">${empty}</p></div>`;
   return `<div class="tablewrap"><table class="t"><thead><tr><th>Score</th><th>Lead</th><th>Company</th><th>Email</th><th>Stage</th></tr></thead><tbody>${leadRows(list)}</tbody></table></div>`;
 }
+function lastImportLine() {
+  const li = S.meta.lastImport; if (!li || S.meta.example) return '';
+  return `${esc(li.file)} · ${esc(fmtDate(li.at))} · <span class="num">${fmt(li.new)}</span> new · <span class="num">${fmt(li.updated)}</span> updated · <span class="num">${fmt(li.unchanged)}</span> unchanged`;
+}
 
 /* overview */
 function viewOverview() {
   const c = D.c; const co = S.company; const icp = S.icp;
   const steps = [
-    ['Leads imported', 'from ' + (S.meta.example ? 'example rows' : (S.meta.source || 'your exports')), c.total],
+    ['Leads in the engine', S.meta.example ? 'example rows' : `from ${fmt((S.meta.imports || []).length)} imports`, c.total],
     ['Usable emails', 'invalid, role and duplicate removed', c.usable],
     ['Qualified', `score ≥ ${S.out.threshold}`, c.qualified],
     ['Researched', 'signal, pain point, reason', c.researched],
@@ -1111,6 +1477,7 @@ function viewOverview() {
   if (!co) next = ['Analyze your website', 'Paste your website text so the engine knows what you sell.', 'company', 'Open step 1'];
   else if (!icp) next = ['Build the ICP', 'Turn the company profile into segments, titles and keywords.', 'icp', 'Open step 2'];
   else if (!S.leads.length || S.meta.example) next = ['Import real leads', 'Run the Apollo or People Data Labs search from step 3, export it, and drop the file in.', 'discover', 'Open step 3'];
+  else if (c.stale) next = ['Refresh changed leads', `${fmt(c.stale)} leads changed in an import after their research or emails were written.`, 'outreach', 'Open step 7'];
   else if (c.qualified && c.personalized < Math.min(c.qualified, S.out.topN)) next = ['Write emails for your top leads', `Research and three email variants for the top ${fmt(Math.min(c.qualified, S.out.topN))} qualified leads.`, 'outreach', 'Open step 7'];
   else if (c.qcFail) next = ['Fix rows that failed QC', `${fmt(c.qcFail)} leads have emails that break a rule.`, 'qc', 'Open step 8'];
   else next = ['Download the Excel file', `${fmt(c.exportable)} leads are ready.`, 'export', 'Open step 9'];
@@ -1122,8 +1489,8 @@ function viewOverview() {
       <div class="card"><div class="card-head"><h2>Pipeline</h2><span class="small muted">counts update as agents run</span></div>
         <div class="funnel">${steps.map(([l, s, n]) => `<div class="frow"><div class="lab">${l}<small>${esc(s)}</small></div><div class="track" aria-hidden="true"><span style="width:${(n / max * 100).toFixed(1)}%"></span></div><div class="val num">${fmt(n)}</div></div>`).join('')}</div></div>
       <div class="card"><p class="eyebrow">Next step</p><h2>${esc(next[0])}</h2><p class="muted">${esc(next[1])}</p><div class="row"><button class="btn primary" data-act="go" data-view="${next[2]}">${next[3]}</button>${c.exportable ? '<button class="btn" data-act="export">Download Excel</button>' : ''}</div>
-        <hr style="border:0;border-top:1px solid var(--line);width:100%;margin:4px 0">
-        <dl class="kv small"><dt>Score bands</dt><dd class="num">${fmt(c.bands.top)} at 90+ · ${fmt(c.bands.mid)} at ${S.out.threshold}–89 · ${fmt(c.bands.low)} below</dd>
+        <hr class="rule">
+        <dl class="kv small">${lastImportLine() ? `<dt>Last import</dt><dd>${lastImportLine()}</dd>` : ''}<dt>Score bands</dt><dd class="num">${fmt(c.bands.top)} at 90+ · ${fmt(c.bands.mid)} at ${S.out.threshold}–89 · ${fmt(c.bands.low)} below</dd>
         <dt>Removed emails</dt><dd class="num">${fmt(c.status.invalid)} invalid · ${fmt(c.status.role)} role · ${fmt(c.status.duplicate)} duplicate · ${fmt(c.status.missing)} missing</dd></dl></div>
     </div>
     <div class="card"><div class="card-head"><h2>Top qualified leads</h2><button class="btn ghost sm" data-act="go" data-view="leads">See all leads</button></div>
@@ -1185,37 +1552,78 @@ function apolloText(a) {
   return [L('Job Titles', a.person_titles), L('Management Level', a.person_seniorities), L('Company Location', a.organization_locations || a.person_locations),
     L('# Employees', arr(a.organization_num_employees_ranges).map(r => r.replace(',', '–'))), L('Industry & Keywords', a.q_organization_keyword_tags), 'Email Status: Verified'].join('\n');
 }
+function changeList(changes, max = 4) {
+  const cs = (changes || []).slice(0, max).map(c => `<li><b>${esc(FIELD_LABEL[c.f] || c.f)}</b>: ${esc(shortVal(c.f, c.from)) || '<i>empty</i>'} → ${esc(shortVal(c.f, c.to)) || '<i>empty</i>'}</li>`).join('');
+  return cs ? `<ul class="changes">${cs}${(changes || []).length > max ? `<li class="muted">and ${changes.length - max} more</li>` : ''}</ul>` : '';
+}
+function importCard() {
+  const im = S.import; if (!im) return '';
+  const plan = getPlan(im); const cn = plan.counts;
+  const upd = [...plan.work.values()].filter(w => !w.isNew && w.changes.length).slice(0, 6);
+  const sheetSel = im.src.sheets.length > 1 ? `<label class="f">Sheet<select id="impSheet">${im.src.sheets.map((s, i) => `<option value="${i}" ${i === im.sheet ? 'selected' : ''}>${esc(s.name)} (${fmt(Math.max(0, s.aoa.length - 1))} rows)</option>`).join('')}</select></label>` : '';
+  const aoa = im.src.sheets[im.sheet].aoa;
+  const hdrSel = `<label class="f">Header row<select id="impHeader">${aoa.slice(0, 15).map((r, i) => `<option value="${i}" ${i === im.headerRow ? 'selected' : ''}>Row ${i + 1}: ${esc(r.filter(c => norm(c)).slice(0, 4).join(' · ').slice(0, 60))}</option>`).join('')}</select></label>`;
+  const unmapped = im.headers.filter(h => !Object.values(im.map).includes(h) && !im.signals.includes(h));
+  const label = cn.new || cn.updated ? `Import: ${fmt(cn.new)} new, ${fmt(cn.updated)} updated` : `Import ${fmt(cn.unchanged)} unchanged leads`;
+  return `<div class="card" id="importCard"><div class="card-head"><h2>Check the columns · ${esc(im.name)}</h2><span class="small muted num">${fmt(im.rows.length)} rows · ${esc(im.source)}${S.importQueue.length ? ` · ${fmt(S.importQueue.length)} more file${S.importQueue.length > 1 ? 's' : ''} waiting` : ''}</span></div>
+    <div class="fields">${sheetSel}${hdrSel}</div>
+    ${im.savedMap ? '<p class="note">Using the column choices saved the last time you imported a file with these columns.</p>' : ''}
+    <div class="tablewrap maptable"><table class="t"><thead><tr><th>Engine field</th><th>Column in your file</th><th>First rows</th></tr></thead><tbody>
+    ${FIELDS.map(f => `<tr><td>${f.label}</td><td><select id="map-${f.k}" data-map="${f.k}" aria-label="${esc(f.label)} column"><option value="">— not in file —</option>${im.headers.map(h => `<option ${im.map[f.k] === h ? 'selected' : ''}>${esc(h)}</option>`).join('')}</select></td><td class="muted small">${esc(im.rows.slice(0, 3).map(r => norm(r[im.map[f.k]])).filter(Boolean).join(' · ').slice(0, 90))}</td></tr>`).join('')}
+    </tbody></table></div>
+    <p class="small muted">Read as activity signals: ${im.signals.length ? im.signals.map(esc).join(', ') : 'none found'}.${unmapped.length ? ` Not used: ${unmapped.slice(0, 12).map(esc).join(', ')}${unmapped.length > 12 ? '…' : ''}.` : ''}</p>
+    <div class="plan" aria-live="polite">
+      <div class="stat new"><b class="num">${fmt(cn.new)}</b><span>new leads</span></div>
+      <div class="stat upd"><b class="num">${fmt(cn.updated)}</b><span>updated</span></div>
+      <div class="stat"><b class="num">${fmt(cn.unchanged)}</b><span>unchanged</span></div>
+      <div class="stat"><b class="num">${fmt(cn.dupes)}</b><span>duplicate rows merged</span></div>
+      <div class="stat"><b class="num">${fmt(cn.skipped)}</b><span>rows skipped</span></div></div>
+    ${S.meta.example ? `<p class="small muted">The ${fmt(S.leads.length)} example leads are removed by this import.</p>` : ''}
+    ${upd.length ? `<details><summary>What changes in updated leads</summary><div class="tablewrap"><table class="t"><tbody>${upd.map(w => `<tr><td class="who"><b>${esc(leadName(w.merged))}</b><span>${esc(w.merged.company)}</span></td><td>${changeList(w.changes)}</td></tr>`).join('')}</tbody></table></div></details>` : ''}
+    ${plan.skipped.length ? `<p class="small muted">Skipped rows ${plan.skipped.slice(0, 8).map(s => s.line).join(', ')}${plan.skipped.length > 8 ? '…' : ''}: no email, LinkedIn URL, or name with company.</p>` : ''}
+    ${msgHtml('import')}
+    <div class="row"><button class="btn primary" data-act="commitImport" ${S.busy.import || S.job || !(cn.new + cn.updated + cn.unchanged) ? 'disabled' : ''}>${S.busy.import ? 'Importing…' : label}</button>
+      ${S.importQueue.length ? '<button class="btn" data-act="skipFile">Skip this file</button>' : ''}<button class="btn" data-act="cancelImport">Cancel</button></div></div>`;
+}
+function historyCard() {
+  const list = S.meta.imports || []; if (!list.length) return '';
+  const latest = list[0]; const canUndo = S.undo && S.undo.id === latest.id;
+  return `<div class="card"><div class="card-head"><h2>Import history</h2><div class="row">
+      ${D.c.lastNew ? `<button class="btn sm" data-act="showLeads" data-filter="new">See ${fmt(D.c.lastNew)} new</button>` : ''}
+      ${D.c.lastUpd ? `<button class="btn sm" data-act="showLeads" data-filter="updated">See ${fmt(D.c.lastUpd)} updated</button>` : ''}
+      ${canUndo ? `<button class="btn sm" data-act="undoImport" ${S.busy.import ? 'disabled' : ''}>Undo last import</button>` : ''}</div></div>
+    <div class="tablewrap"><table class="t"><thead><tr><th>Date</th><th>File</th><th style="text-align:right">Rows</th><th style="text-align:right">New</th><th style="text-align:right">Updated</th><th style="text-align:right">Unchanged</th><th style="text-align:right">Skipped</th></tr></thead><tbody>
+    ${list.slice(0, 10).map(e => `<tr><td class="small">${esc(fmtDate(e.at))}</td><td class="who"><b>${esc(e.file)}</b><span>${esc(e.source)}</span></td><td class="n">${fmt(e.rows)}</td><td class="n">${fmt(e.new)}</td><td class="n">${fmt(e.updated)}</td><td class="n">${fmt(e.unchanged)}</td><td class="n">${fmt(e.skipped)}</td></tr>`).join('')}
+    </tbody></table></div></div>`;
+}
 function viewDiscover() {
-  const a = S.icp?.apollo || {}; const im = S.import;
+  const a = S.icp?.apollo || {};
   const sources = S.icp ? `<div class="grid2">
       <div class="card"><div class="card-head"><h2>Apollo</h2><span class="pill info plain">Preferred</span></div>
         <p class="small muted">In Apollo › People, set these filters, select the results and export them as CSV. Apollo exports include work emails and their verification status.</p>
         <pre class="copybox">${esc(apolloText(a))}</pre>
         <div class="row"><button class="btn sm" data-act="copy" data-text="${esc(apolloText(a))}">Copy filters</button><button class="btn sm" data-act="copy" data-text="${esc(JSON.stringify(a, null, 2))}">Copy API JSON</button></div></div>
       <div class="card"><div class="card-head"><h2>People Data Labs</h2><span class="pill info plain">Preferred</span></div>
-        <p class="small muted">Run this in PDL's Person Search (the <code>sql</code> parameter). Save the response as JSON or CSV and import it here.</p>
+        <p class="small muted">Run this in PDL's Person Search (the <code>sql</code> parameter). Save the response as JSON, JSON lines or CSV and import it here.</p>
         <pre class="copybox">${esc(S.icp.pdl_sql || '—')}</pre>
         <div class="row"><button class="btn sm" data-act="copy" data-text="${esc(S.icp.pdl_sql || '')}">Copy SQL</button></div></div></div>` : '<div class="note">Build the ICP (step 2) to get ready-made Apollo filters and a PDL query.</div>';
-  const mapping = im ? `<div class="card"><div class="card-head"><h2>Map columns · ${esc(im.fileName)}</h2><span class="small muted num">${fmt(im.rows.length)} rows · detected ${esc(im.source)}</span></div>
-      <div class="tablewrap maptable"><table class="t"><thead><tr><th>Engine field</th><th>Column in your file</th><th>First row</th></tr></thead><tbody>
-      ${FIELDS.map(f => `<tr><td>${f.label}</td><td><select id="map-${f.k}" data-map="${f.k}"><option value="">— not in file —</option>${im.headers.map(h => `<option ${im.map[f.k] === h ? 'selected' : ''}>${esc(h)}</option>`).join('')}</select></td><td class="muted small">${esc(norm(im.rows[0]?.[im.map[f.k]]).slice(0, 60))}</td></tr>`).join('')}
-      </tbody></table></div>
-      <p class="small muted">Activity columns read as signals: ${im.signals.length ? im.signals.map(esc).join(', ') : 'none found'}.</p>
-      <div class="row"><label class="check"><input type="radio" name="impmode" id="impReplace" value="replace" ${im.mode === 'replace' ? 'checked' : ''} data-impmode="replace"> Replace current leads</label>
-        ${S.meta.example || !S.leads.length ? '' : `<label class="check"><input type="radio" name="impmode" id="impAdd" value="add" ${im.mode === 'add' ? 'checked' : ''} data-impmode="add"> Add to the ${fmt(S.leads.length)} current leads (same email = same lead)</label>`}</div>
-      <div class="row"><button class="btn primary" data-act="doImport" ${S.busy.import ? 'disabled' : ''}>${S.busy.import ? 'Importing…' : 'Import ' + fmt(im.rows.length) + ' rows'}</button><button class="btn" data-act="cancelImport">Cancel</button></div></div>` : '';
   const bySource = {}; const byCountry = {};
   for (const L of S.leads) { bySource[L.source || 'Import'] = (bySource[L.source || 'Import'] || 0) + 1; byCountry[L.country || 'Unknown'] = (byCountry[L.country || 'Unknown'] || 0) + 1; }
   const top = o => Object.entries(o).sort((x, y) => y[1] - x[1]).slice(0, 6).map(([k, v]) => `<span class="chip">${esc(k)} · <span class="num">${fmt(v)}</span></span>`).join('');
   return `<section class="head"><p class="eyebrow">Agent 3 · Lead discovery</p><h1>Find companies and decision makers</h1>
-    <p class="lede">Run the ICP in Apollo or People Data Labs, export the people it finds, and import the file. The engine never makes up contacts: every lead comes from your data provider.</p></section>
+    <p class="lede">Run the ICP in Apollo or People Data Labs, export the people it finds, and import the files here. Every import adds new leads and updates the ones you already have; nothing is replaced. The engine never makes up contacts.</p></section>
     ${sources}
     <div class="card"><h2>Import leads</h2>
-      <div class="drop" id="drop"><b>Drop a CSV, Excel or JSON export here</b><span class="small muted">Apollo CSV, PDL JSON or CSV, Clay, Hunter, Sales Navigator exports. Columns are matched automatically; you can adjust them.</span>
-        <input type="file" id="leadFile" accept=".csv,.tsv,.txt,.xlsx,.xls,.json"></div>${msgHtml('import')}</div>
-    ${mapping}
-    ${S.leads.length ? `<div class="card"><h2>In the engine now · <span class="num">${fmt(S.leads.length)}</span> leads</h2><div><h3 class="small muted">By source</h3><div class="chips">${top(bySource)}</div></div><div><h3 class="small muted">By country</h3><div class="chips">${top(byCountry)}</div></div>
-      ${S.meta.lastImport ? `<p class="small muted">Last import: ${esc(S.meta.lastImport.file)}, ${fmt(S.meta.lastImport.rows)} rows.</p>` : ''}</div>` : ''}`;
+      <div class="drop" id="drop"><b>Drop one or more exports here</b><span class="small muted">CSV, TSV, Excel (any sheet, any header row), JSON or JSON lines: Apollo, People Data Labs, LinkedIn Sales Navigator, Hunter, Clay, or an Excel file this engine exported. Columns are matched automatically and remembered for next time.</span>
+        <input type="file" id="leadFile" accept=".csv,.tsv,.txt,.xlsx,.xlsm,.xls,.ods,.json,.jsonl,.ndjson" multiple></div>
+      <details><summary>Or paste rows from Excel or Google Sheets</summary><div class="paste"><textarea id="pasteBox" rows="5" placeholder="Copy the cells, header row included, and paste them here."></textarea><div class="row"><button class="btn sm" data-act="readPaste">Read pasted rows</button></div></div></details>
+      <p class="small muted">Same lead = same work email, LinkedIn profile, or name with company. A lead whose data changed is marked <span class="pill warn plain">Updated</span> with the old and new values; a lead seen for the first time is marked <span class="pill info plain">New</span>. Both carry their import dates into the Excel file. <button class="btn ghost sm" data-act="template">Download a blank template</button></p>
+      ${S.import ? '' : msgHtml('import')}</div>
+    ${importCard()}
+    ${historyCard()}
+    ${S.leads.length && !S.meta.example ? `<div class="card"><h2>In the engine now · <span class="num">${fmt(S.leads.length)}</span> leads</h2><div><h3 class="small muted">By source</h3><div class="chips">${top(bySource)}</div></div><div><h3 class="small muted">By country</h3><div class="chips">${top(byCountry)}</div></div>
+      ${S.confirm === 'clear' ? `<div class="confirm"><b>Remove all ${fmt(S.leads.length)} leads, with their research and emails?</b><span class="small">The import history and your settings stay. This cannot be undone.</span><div class="row"><button class="btn danger" data-act="clearAll">Remove all leads</button><button class="btn" data-act="confirm" data-k="">Keep them</button></div></div>`
+        : `<div class="row"><button class="btn ghost sm" data-act="confirm" data-k="clear" ${S.busy.clear ? 'disabled' : ''}>${S.busy.clear ? 'Removing…' : 'Remove all leads…'}</button></div>`}</div>` : ''}`;
 }
 
 /* 4. verify */
@@ -1242,10 +1650,11 @@ function topNControl() {
 }
 function viewResearch() {
   const done = ranked().filter(r => r.researched).slice(0, 6);
+  const todo = ranked().slice(0, S.out.topN).filter(r => !r.researched).length;
   return `<section class="head"><p class="eyebrow">Agent 5 · Deep lead research</p><h1>Why this lead, why now</h1>
     <p class="lede">For each top lead, Claude reads everything in the record (title, company description, keywords, hiring and funding columns) and writes the business signal, the likely pain point and the reason the lead was selected. It only uses facts in the record; a lead with no signal says so instead of inventing one.</p></section>
-    <div class="card"><div class="row" style="align-items:flex-end">${topNControl()}<button class="btn primary" data-act="run" data-kind="research" ${S.job || !aiReady() ? 'disabled' : ''}>Research the top ${fmt(Math.min(S.out.topN, D.c.qualified))} leads</button></div>
-      <p class="small muted">Uses the fast model, ten leads per call. A lead with a real signal earns the activity points in its score. To include website, news and LinkedIn activity, add those columns to your export (Apollo's job postings and funding columns are read automatically).</p>
+    <div class="card"><div class="row" style="align-items:flex-end">${topNControl()}<button class="btn primary" data-act="run" data-kind="research" ${S.job || !aiReady() || !todo ? 'disabled' : ''}>${todo ? `Research ${fmt(todo)} leads` : 'Top leads are researched'}</button></div>
+      <p class="small muted">Uses the fast model, ten leads per call. A lead with a real signal earns the activity points in its score. Leads that changed in a later import are researched again. To include website, news and LinkedIn activity, add those columns to your export (Apollo's job postings and funding columns are read automatically).</p>
       <div id="jobBox">${jobHtml()}</div></div>
     ${done.length ? `<div class="card"><h2>Latest research</h2><div class="tablewrap"><table class="t"><thead><tr><th>Lead</th><th>Signal</th><th>Pain point</th></tr></thead><tbody>
       ${done.map(r => { const rs = S.ai[r.L.key].research; return `<tr class="click" data-act="lead" data-key="${esc(r.L.key)}"><td class="who"><b>${esc(leadName(r.L))}</b><span>${esc(r.L.company)}</span></td><td>${rs.signal_source === 'data' ? esc(rs.signal) : '<span class="muted">No signal in the record</span>'}</td><td>${esc(rs.pain_point)}</td></tr>`; }).join('')}
@@ -1260,9 +1669,9 @@ function viewScore() {
     <p class="lede">Applied instantly to all ${fmt(c.total)} leads with the ICP rules. Only leads at or above the threshold are researched, written to and exported.</p></section>
     <div class="grid2"><div class="card"><h2>Formula</h2>
       <div class="tablewrap"><table class="t"><thead><tr><th>Part</th><th>How it is measured</th><th>Weight</th></tr></thead><tbody>
-        <tr><td>${WEIGHT_LABELS.icp}</td><td class="small muted">Target country (15), matches a segment (15), company website (5), LinkedIn profile (5)</td><td><input type="number" id="w-icp" min="0" max="100" value="${W.icp}" data-weight="icp"></td></tr>
+        <tr><td>${WEIGHT_LABELS.icp}</td><td class="small muted">Target country (15), matches a segment (15), company website or work-email domain (5), LinkedIn profile (5)</td><td><input type="number" id="w-icp" min="0" max="100" value="${W.icp}" data-weight="icp"></td></tr>
         <tr><td>${WEIGHT_LABELS.industry}</td><td class="small muted">Segment keyword in industry or keywords (full), in name or description (70%), adjacent (40%)</td><td><input type="number" id="w-industry" min="0" max="100" value="${W.industry}" data-weight="industry"></td></tr>
-        <tr><td>${WEIGHT_LABELS.role}</td><td class="small muted">Decision maker (full), runs operations (80%), director (60%), manager (40%)</td><td><input type="number" id="w-role" min="0" max="100" value="${W.role}" data-weight="role"></td></tr>
+        <tr><td>${WEIGHT_LABELS.role}</td><td class="small muted">Decision maker (full), runs operations (80%), director (60%), manager (40%); seniority column used when the title says less</td><td><input type="number" id="w-role" min="0" max="100" value="${W.role}" data-weight="role"></td></tr>
         <tr><td>${WEIGHT_LABELS.size}</td><td class="small muted">Inside the best-fit employee band (full), acceptable band (60%), unknown (40%)</td><td><input type="number" id="w-size" min="0" max="100" value="${W.size}" data-weight="size"></td></tr>
         <tr><td>${WEIGHT_LABELS.activity}</td><td class="small muted">Signal keyword in the record, or a signal found by research</td><td><input type="number" id="w-activity" min="0" max="100" value="${W.activity}" data-weight="activity"></td></tr>
       </tbody></table></div><p class="small muted num">Weights add up to ${sum}${sum !== 100 ? ' and are scaled to 100' : ''}.</p></div>
@@ -1275,16 +1684,19 @@ function viewScore() {
 }
 
 /* 7. outreach */
-function mailCard(L, key, label, body, subject) {
+function mailCard(L, label, body, subject) {
   const full = assemble(L, body);
   return `<div class="mail"><div class="mail-h"><b>${label}</b><span class="wc num">${wordCount(body + ' ' + S.out.cta)} words</span><span class="spacer"></span><button class="btn ghost sm" data-act="copy" data-text="${esc((subject ? 'Subject: ' + subject + '\n\n' : '') + full)}">Copy</button></div><div class="mail-b">${esc(full)}</div></div>`;
 }
 function mailsFor(r) {
   const em = S.ai[r.L.key]?.emails; if (!em) return '';
-  return `<p class="small"><span class="muted">Subject:</span> <b>${esc(em.subject)}</b></p><div class="mails">${mailCard(r.L, r.L.key, 'A · Curiosity', em.a, em.subject)}${mailCard(r.L, r.L.key, 'B · Problem', em.b, em.subject)}${mailCard(r.L, r.L.key, 'C · Growth', em.c, em.subject)}</div>`;
+  return `${r.personalized ? '' : '<div class="banner"><span><b>Out of date.</b> This lead changed in an import after these emails were written, so they are left out of the Excel file. Rewrite them to update.</span></div>'}
+    <p class="small"><span class="muted">Subject:</span> <b>${esc(em.subject)}</b></p><div class="mails">${mailCard(r.L, 'A · Curiosity', em.a, em.subject)}${mailCard(r.L, 'B · Problem', em.b, em.subject)}${mailCard(r.L, 'C · Growth', em.c, em.subject)}</div>`;
 }
 function viewOutreach() {
   const sample = ranked().find(r => r.personalized);
+  const pool = ranked().slice(0, S.out.topN);
+  const todo = pool.filter(r => !r.personalized).length;
   return `<section class="head"><p class="eyebrow">Agent 7 · Personalized email</p><h1>Three short emails per lead</h1>
     <p class="lede">Curiosity, problem and growth variants under 80 words, naming the lead's company and role and using the research signal only when the record backs it. Only the top qualified leads are written to; it would be wasteful to personalize everyone.</p></section>
     <div class="card"><div class="fields">
@@ -1292,8 +1704,8 @@ function viewOutreach() {
       <label class="f">Sender title<input type="text" id="senderTitle" value="${esc(S.out.senderTitle)}" placeholder="Founder, ProHost" data-out="senderTitle"></label>
       <label class="f">Variant in the Lead Master sheet<select id="variant" data-out="variant">${['A', 'B', 'C'].map(x => `<option ${S.out.variant === x ? 'selected' : ''} value="${x}">Variant ${x} · ${{ A: 'Curiosity', B: 'Problem', C: 'Growth' }[x]}</option>`).join('')}</select></label></div>
       <label class="f">Closing line (added to every email)<input type="text" id="cta" value="${esc(S.out.cta)}" data-out="cta"></label>
-      <div class="row" style="align-items:flex-end">${topNControl()}<button class="btn primary" data-act="run" data-kind="emails" ${S.job || !aiReady() ? 'disabled' : ''}>Write emails for the top ${fmt(Math.min(S.out.topN, D.c.qualified))}</button></div>
-      <p class="small muted">Leads without research are researched first. Emails use the balanced model, five leads per call. ${fmt(D.c.personalized)} of ${fmt(D.c.qualified)} qualified leads have emails.</p>
+      <div class="row" style="align-items:flex-end">${topNControl()}<button class="btn primary" data-act="run" data-kind="emails" ${S.job || !aiReady() || !todo ? 'disabled' : ''}>${todo ? `Write emails for ${fmt(todo)} leads` : 'Top leads have emails'}</button></div>
+      <p class="small muted">Leads without research are researched first; leads that changed in a later import are redone. Emails use the balanced model, five leads per call. ${fmt(D.c.personalized)} of ${fmt(D.c.qualified)} qualified leads have current emails.</p>
       <div id="jobBox">${jobHtml()}</div></div>
     ${sample ? `<div class="card"><div class="card-head"><h2>${esc(leadName(sample.L))} · ${esc(sample.L.company)}</h2><button class="btn ghost sm" data-act="lead" data-key="${esc(sample.L.key)}">Open lead</button></div>${mailsFor(sample)}</div>` : ''}`;
 }
@@ -1306,9 +1718,10 @@ function viewQc() {
     <div class="grid2"><div class="card"><h2>Checks</h2><ul class="list">
       <li>The lead has a name</li><li>The email is usable (not invalid, role, duplicate or missing)</li><li>The email address appears once</li>
       <li>Subject line and all three variants exist</li><li>Each variant is 80 words or fewer, closing line included</li><li>Each variant names the lead's company</li>
-      <li>No buzzwords (${BANNED.slice(0, 8).map(esc).join(', ')}…)</li><li>Ends with your closing line (added automatically)</li></ul></div>
+      <li>No buzzwords (${BANNED.slice(0, 8).map(esc).join(', ')}…), exclamation marks or unfilled placeholders</li><li>Emails written before the lead last changed are left out</li><li>Ends with your closing line (added automatically)</li></ul></div>
       <div class="card"><h2>Result</h2><dl class="kv"><dt>Passed</dt><dd class="num"><span class="pill good">${fmt(D.c.qcPass)}</span></dd><dt>Failed</dt><dd class="num"><span class="pill ${D.c.qcFail ? 'bad' : 'mute'}">${fmt(D.c.qcFail)}</span></dd>
-        <dt>Qualified, no emails yet</dt><dd class="num">${fmt(D.c.qualified - D.c.personalized)} <span class="muted small">(${S.out.includeUnpersonalized ? 'exported without an email' : 'left out of the export'})</span></dd></dl></div></div>
+        <dt>Qualified, no emails yet</dt><dd class="num">${fmt(D.c.qualified - D.c.personalized)} <span class="muted small">(${S.out.includeUnpersonalized ? 'exported without an email' : 'left out of the export'})</span></dd>
+        ${D.c.stale ? `<dt>Changed since written</dt><dd class="num">${fmt(D.c.stale)} <button class="btn ghost sm" data-act="showLeads" data-filter="stale">See them</button></dd>` : ''}</dl></div></div>
     <div class="card"><h2>Failed rows</h2>${fails.length ? `<div class="tablewrap"><table class="t"><thead><tr><th>Lead</th><th>Problems</th><th></th></tr></thead><tbody>${fails.slice(0, 100).map(r => `<tr><td class="who"><b>${esc(leadName(r.L))}</b><span>${esc(r.L.company)}</span></td><td><ul class="list small">${r.qc.issues.map(i => `<li>${esc(i)}</li>`).join('')}</ul></td><td><button class="btn sm" data-act="lead" data-key="${esc(r.L.key)}">Open</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Nothing failed. Every lead with emails passes QC.</p>'}</div>`;
 }
 
@@ -1320,22 +1733,26 @@ function viewExport() {
     <div class="card"><label class="check"><input type="checkbox" id="inclUnp" data-out="includeUnpersonalized" ${S.out.includeUnpersonalized ? 'checked' : ''}> Include qualified leads that have no personalized email yet (${fmt(c.qualified - c.personalized)} leads)</label>
       <div class="row"><button class="btn host" data-act="export" ${c.exportable ? '' : 'disabled'}>Download Excel · ${fmt(c.exportable)} leads</button>${S.meta.example ? '<span class="pill warn">Example data</span>' : ''}</div></div>
     <div class="card"><h2>Sheets</h2><dl class="kv">
-      <dt>Lead Master</dt><dd>Company, Website, Industry, Employee Count, Country, City, Lead Name, Title, Email, Email Status, LinkedIn, Lead Score, Segment, Reason Selected, Personalized Email (variant ${esc(S.out.variant)})</dd>
+      <dt>Lead Master</dt><dd>Company, Website, Industry, Employee Count, Country, City, Lead Name, Title, Email, Email Status, Phone, LinkedIn, Lead Score, Segment, Reason Selected, Personalized Email (variant ${esc(S.out.variant)}), Import Status (New, Updated, Unchanged), Imported On, Updated On, Changes (old → new), Source File</dd>
       <dt>AI Insights</dt><dd>Score breakdown, role tier, signal and its source, pain point, reason selected, company summary</dd>
       <dt>Outreach</dt><dd>Subject line and Email Variant A, B and C, ready to paste</dd>
-      <dt>Rejected</dt><dd>Every lead left out, with the reason (email check, score, QC)</dd>
-      <dt>Run Summary</dt><dd>Seller, segments, countries, weights, threshold and the pipeline counts</dd></dl></div>`;
+      <dt>Rejected</dt><dd>Every lead left out, with the reason (email check, score, QC), its import status and date</dd>
+      <dt>Import Log</dt><dd>Every import: date, file, source and the new, updated, unchanged, merged and skipped counts</dd>
+      <dt>Run Summary</dt><dd>Seller, segments, countries, weights, threshold, last import and the pipeline counts</dd></dl></div>`;
 }
 
 /* all leads */
 function filteredLeads() {
-  const q = lc(S.table.q); const f = S.table.filter;
+  const q = lc(S.table.q); const f = S.table.filter; const lastId = S.meta.lastImport?.id;
   return D.rows.filter(r => {
     if (f === 'qualified' && !r.qualified) return false;
     if (f === 'personalized' && !(r.qualified && r.personalized)) return false;
+    if (f === 'new' && !(lastId && r.L.lastImportId === lastId && r.L.importStatus === 'new')) return false;
+    if (f === 'updated' && !(lastId && r.L.lastImportId === lastId && r.L.importStatus === 'updated')) return false;
+    if (f === 'stale' && !r.stale) return false;
     if (f === 'rejected' && r.usable) return false;
     if (f === 'below' && !(r.usable && !r.qualified)) return false;
-    if (q && !lc([leadName(r.L), r.L.company, r.L.email, r.L.title, r.L.country].join(' ')).includes(q)) return false;
+    if (q && !lc([leadName(r.L), r.L.company, r.L.email, r.L.title, r.L.country, r.L.city].join(' ')).includes(q)) return false;
     return true;
   }).sort((a, b) => b.sc.total - a.sc.total);
 }
@@ -1348,10 +1765,10 @@ function tableHtml() {
 }
 function viewLeads() {
   const c = D.c;
-  const opts = [['qualified', `Qualified (${fmt(c.qualified)})`], ['personalized', `With emails (${fmt(c.personalized)})`], ['below', 'Below threshold'], ['rejected', 'Removed by email check'], ['all', `All (${fmt(c.total)})`]];
-  return `<section class="head"><p class="eyebrow">All leads</p><h1>${fmt(c.total)} leads in the engine</h1><p class="lede">Open a lead to see its score breakdown, research and emails.</p></section>
-    <div class="row"><input type="text" id="tableQ" placeholder="Search name, company, email, title" value="${esc(S.table.q)}" style="max-width:340px">
-      <select id="tableF" style="max-width:240px">${opts.map(([v, l]) => `<option value="${v}" ${S.table.filter === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+  const opts = [['qualified', `Qualified (${fmt(c.qualified)})`], ['personalized', `With emails (${fmt(c.personalized)})`], ['new', `New in last import (${fmt(c.lastNew)})`], ['updated', `Updated in last import (${fmt(c.lastUpd)})`], ['stale', `Changed since emails (${fmt(c.stale)})`], ['below', 'Below threshold'], ['rejected', 'Removed by email check'], ['all', `All (${fmt(c.total)})`]];
+  return `<section class="head"><p class="eyebrow">All leads</p><h1>${fmt(c.total)} leads in the engine</h1><p class="lede">Open a lead to see its score breakdown, import history, research and emails.</p></section>
+    <div class="row"><input type="text" id="tableQ" placeholder="Search name, company, email, title, city" value="${esc(S.table.q)}" style="max-width:340px" aria-label="Search leads">
+      <select id="tableF" style="max-width:260px" aria-label="Filter leads">${opts.map(([v, l]) => `<option value="${v}" ${S.table.filter === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
     <div id="tableBox">${tableHtml()}</div>`;
 }
 
@@ -1363,19 +1780,24 @@ function renderDrawer() {
   const L = r.L; const ai = S.ai[L.key] || {}; const rs = ai.research; const W = normWeights(S.out.weights);
   const busy = S.busy.one;
   root.innerHTML = `<div class="scrim" data-act="closeDrawer"></div><aside class="drawer" role="dialog" aria-modal="true" aria-label="${esc(leadName(L))}">
-    <div class="row"><div style="min-width:0"><p class="eyebrow">${esc(r.sc.segment || 'Lead')}${L.ex ? ' · example' : ''}</p><h1 style="font-size:1.35rem">${esc(leadName(L) || 'Unnamed lead')}</h1><p class="muted">${esc(L.title || 'No title')} · ${esc(L.company || '—')}</p></div><span class="spacer"></span>${scoreChip(r.sc.total)}<button class="btn sm" data-act="closeDrawer">Close</button></div>
+    <div class="row"><div style="min-width:0"><p class="eyebrow">${esc(r.sc.segment || 'Lead')}${L.ex ? ' · example' : ''}</p><h1 style="font-size:1.35rem">${esc(leadName(L) || 'Unnamed lead')} ${importBadge(L)}</h1><p class="muted">${esc(L.title || 'No title')} · ${esc(L.company || '—')}</p></div><span class="spacer"></span>${scoreChip(r.sc.total)}<button class="btn sm" data-act="closeDrawer">Close</button></div>
     <div class="card"><dl class="kv small">
       <dt>Email</dt><dd><span class="mono">${esc(L.email || '—')}</span> ${emailPill(r)} <span class="muted">${esc(r.em.note)}</span></dd>
+      ${L.phone ? `<dt>Phone</dt><dd class="mono">${esc(L.phone)}</dd>` : ''}
       <dt>LinkedIn</dt><dd>${L.linkedin ? `<a href="${esc(L.linkedin)}" target="_blank" rel="noopener">${esc(L.linkedin)}</a>` : '—'}</dd>
-      <dt>Website</dt><dd>${L.website ? `<a href="${esc(L.website)}" target="_blank" rel="noopener">${esc(L.website)}</a>` : '—'}</dd>
+      <dt>Website</dt><dd>${siteOf(L) ? `<a href="${esc(siteOf(L))}" target="_blank" rel="noopener">${esc(siteOf(L))}</a>${L.website ? '' : ' <span class="muted">(from the email domain)</span>'}` : '—'}</dd>
       <dt>Industry · size</dt><dd>${esc(L.industry || '—')} · ${L.employees != null ? fmt(L.employees) + ' employees' : 'size unknown'}</dd>
       <dt>Location</dt><dd>${esc([L.city, L.country].filter(Boolean).join(', ') || '—')}</dd>
-      ${L.keywords ? `<dt>Keywords</dt><dd>${esc(L.keywords)}</dd>` : ''}${L.description ? `<dt>Description</dt><dd>${esc(L.description)}</dd>` : ''}${L.signals ? `<dt>Signals in record</dt><dd>${esc(L.signals)}</dd>` : ''}
+      ${L.seniority ? `<dt>Seniority</dt><dd>${esc(L.seniority)}</dd>` : ''}${L.keywords ? `<dt>Keywords</dt><dd>${esc(L.keywords)}</dd>` : ''}${L.description ? `<dt>Description</dt><dd>${esc(L.description)}</dd>` : ''}${L.signals ? `<dt>Signals in record</dt><dd>${esc(L.signals)}</dd>` : ''}
       <dt>Source</dt><dd>${esc(L.source || '—')}</dd></dl></div>
+    ${L.firstImportedAt || L.lastSeenAt ? `<div class="card"><h2>Import history</h2><dl class="kv small">
+      <dt>First imported</dt><dd>${esc(fmtDate(L.firstImportedAt) || '—')}${L.firstImportFile ? ' · ' + esc(L.firstImportFile) : ''}</dd>
+      ${L.lastSeenAt ? `<dt>Last import</dt><dd>${esc(IMPORT_LABEL[L.importStatus] || '')} · ${esc(fmtDate(L.lastSeenAt))} · ${esc(L.lastSeenFile)}</dd>` : ''}
+      ${L.updatedAt ? `<dt>Last change</dt><dd>${esc(fmtDate(L.updatedAt))}${changeList(L.changes, 20)}</dd>` : ''}</dl></div>` : ''}
     <div class="card"><div class="card-head"><h2>Score ${r.sc.total} / 100</h2><span class="small muted">${esc(r.sc.roleTier)}${r.sc.countryOk ? '' : ' · outside target countries'}</span></div>
       <div class="parts">${Object.keys(W).map(k => `<div class="part"><span>${WEIGHT_LABELS[k]}</span><div class="track" aria-hidden="true"><span style="width:${W[k] ? (r.sc.parts[k] / W[k] * 100).toFixed(0) : 0}%"></span></div><span class="v num">${Math.round(r.sc.parts[k])}/${Math.round(W[k])}</span></div>`).join('')}</div>
       ${r.sc.activity ? `<p class="small muted">Activity: ${esc(r.sc.activity)}</p>` : ''}${!r.qualified ? `<p class="small"><span class="pill mute">Not exported</span> ${esc(rejectReason(r))}</p>` : (r.qc && !r.qc.ok ? `<div class="err">QC: ${esc(r.qc.issues.join('; '))}</div>` : '')}</div>
-    <div class="card"><h2>Research</h2>${rs ? `<dl class="kv small"><dt>Signal</dt><dd>${rs.signal_source === 'data' ? esc(rs.signal) : '<span class="muted">No signal in the record</span>'}</dd><dt>Pain point</dt><dd>${esc(rs.pain_point)}</dd><dt>Reason selected</dt><dd>${esc(rs.reason_selected)}</dd><dt>Summary</dt><dd>${esc(rs.summary)}</dd></dl>` : '<p class="muted small">Not researched yet.</p>'}</div>
+    <div class="card"><h2>Research</h2>${rs ? `${r.researched ? '' : '<p class="small"><span class="pill warn">Out of date</span> The lead changed after this was written.</p>'}<dl class="kv small"><dt>Signal</dt><dd>${rs.signal_source === 'data' ? esc(rs.signal) : '<span class="muted">No signal in the record</span>'}</dd><dt>Pain point</dt><dd>${esc(rs.pain_point)}</dd><dt>Reason selected</dt><dd>${esc(rs.reason_selected)}</dd><dt>Summary</dt><dd>${esc(rs.summary)}</dd></dl>` : '<p class="muted small">Not researched yet.</p>'}</div>
     <div class="card"><div class="card-head"><h2>Emails</h2><button class="btn ${ai.emails ? '' : 'primary'} sm" data-act="rewrite" data-key="${esc(L.key)}" ${busy || !aiReady() || !S.company ? 'disabled' : ''}>${busy ? 'Writing…' : ai.emails ? 'Rewrite emails' : 'Write emails'}</button></div>
       ${msgHtml('one')}${ai.emails ? mailsFor(r) : '<p class="muted small">No emails yet.</p>'}</div>
   </aside>`;
@@ -1398,21 +1820,29 @@ const ACT = {
       const v = JSON.parse($('#' + id).value);
       if (k === 'company') { S.company = normalizeProfile(v, S.company?.website || ''); await saveDoc('config/company', { profile: S.company, sourceUrl: S.coSource.url, sourceText: S.coSource.text.slice(0, 60000), updatedAt: Date.now() }); }
       else { S.icp = normalizeIcp(v, arr(v.goals || S.icp?.goals), arr(v.countries || S.icp?.countries)); await saveDoc('config/icp', { icp: S.icp, updatedAt: Date.now() }); }
-      S.edit[k] = false; derive(); render(); toast('Saved');
+      S.edit[k] = false; S.msg[id] = ''; derive(); render(); toast('Saved');
     } catch (e) { S.msg[id] = 'That is not valid JSON: ' + (e?.message || ''); render(); }
   },
   chipAdd: el => {
     const kind = el.dataset.kind; const inp = $('#add-' + kind); const v = norm(inp?.value); if (!v) return;
     S.icp = S.icp || { goals: [], countries: [], segments: [] };
-    const list = arr(S.icp[kind]); if (!list.some(x => lc(x) === lc(v))) list.push(kind === 'countries' ? (canonCountry(v) || titleCase(v)) : v);
-    S.icp[kind] = list; saveDoc('config/icp', { icp: S.icp, updatedAt: Date.now() }); derive(); render();
+    const list = arr(S.icp[kind]); const val = kind === 'countries' ? (canonCountry(v) || titleCase(v)) : v;
+    if (!list.some(x => lc(x) === lc(val))) list.push(val);
+    S.icp[kind] = list; saveDoc('config/icp', { icp: S.icp, updatedAt: Date.now() }); derive(); render(); $('#add-' + kind)?.focus();
   },
   chipDel: el => {
     const kind = el.dataset.kind; const list = arr(S.icp?.[kind]); list.splice(+el.dataset.i, 1);
     S.icp[kind] = list; saveDoc('config/icp', { icp: S.icp, updatedAt: Date.now() }); derive(); render();
   },
-  doImport: () => doImport(),
-  cancelImport: () => { S.import = null; render(); },
+  commitImport: () => commitImport(),
+  cancelImport: () => { S.import = null; S.importQueue = []; S.msg.import = ''; render(); },
+  skipFile: () => nextFile(),
+  readPaste: () => readPaste(),
+  template: () => exportTemplate(),
+  undoImport: () => undoImport(),
+  confirm: el => { S.confirm = el.dataset.k || ''; render(); },
+  clearAll: () => clearAll(),
+  showLeads: el => { S.table.filter = el.dataset.filter; S.table.page = 0; S.table.q = ''; go('leads'); },
   verifyCsv: () => exportVerifyCsv(),
   lead: el => { S.drawer = el.dataset.key; S.msg.one = ''; renderDrawer(); },
   closeDrawer: () => { S.drawer = null; renderDrawer(); },
@@ -1431,19 +1861,24 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('change', e => {
   const t = e.target;
-  if (t.id === 'leadFile') { onLeadFile(t.files?.[0]); t.value = ''; return; }
+  if (t.id === 'leadFile') { onFiles(t.files); t.value = ''; return; }
   if (t.id === 'verifyFile') { onVerifyFile(t.files?.[0]); t.value = ''; return; }
-  if (t.dataset.map && S.import) { S.import.map[t.dataset.map] = t.value; render(); return; }
-  if (t.dataset.impmode && S.import) { S.import.mode = t.dataset.impmode; return; }
+  if (t.id === 'impSheet' && S.import) { const q = S.importQueue; S.import = prepareImport(S.import.src, +t.value, null); S.importQueue = q; scheduleRender(); return; }
+  if (t.id === 'impHeader' && S.import) { S.import = prepareImport(S.import.src, S.import.sheet, +t.value); scheduleRender(); return; }
+  if (t.dataset.map && S.import) {
+    S.import.map[t.dataset.map] = t.value; if (!t.value) delete S.import.map[t.dataset.map];
+    S.import.signals = S.import.signals.filter(h => !Object.values(S.import.map).includes(h));
+    S.import.plan = null; S.import.savedMap = false; scheduleRender(); return;
+  }
   if (t.id === 'tableF') { S.table.filter = t.value; S.table.page = 0; $('#tableBox').innerHTML = tableHtml(); return; }
-  if (t.dataset.weight) { S.out.weights[t.dataset.weight] = clampInt(t.value, 0, 100); saveOutSoon(); derive(); render(); return; }
+  if (t.dataset.weight) { S.out.weights[t.dataset.weight] = clampInt(t.value, 0, 100); saveOutSoon(); derive(); scheduleRender(); return; }
   if (t.dataset.out) {
     const k = t.dataset.out;
     if (t.type === 'checkbox') S.out[k] = t.checked;
     else if (k === 'topN') S.out[k] = clampInt(t.value, 1, 500);
     else if (k === 'threshold') S.out[k] = clampInt(t.value, 0, 100);
     else S.out[k] = k === 'cta' ? (norm(t.value) || DEFAULT_OUT.cta) : norm(t.value);
-    saveOutSoon(); derive(); render();
+    saveOutSoon(); derive(); scheduleRender();
   }
 });
 let qTimer;
@@ -1455,7 +1890,7 @@ document.addEventListener('input', e => {
   e.preventDefault();
   if (type === 'dragover') drop.classList.add('over');
   else drop.classList.remove('over');
-  if (type === 'drop') onLeadFile(e.dataTransfer?.files?.[0]);
+  if (type === 'drop') onFiles(e.dataTransfer?.files);
 }));
 
 /* ───────────── boot ───────────── */

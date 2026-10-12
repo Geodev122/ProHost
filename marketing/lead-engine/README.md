@@ -11,23 +11,55 @@ https://claude.ai/artifact/Q63Xzo5jQwG6cLhcKBh9HN. To update it, republish this 
 |---|---|---|
 | 1 | Company intelligence | Claude reads pasted website text and writes the seller profile (product, buyers, pain points, proof points, markets). |
 | 2 | ICP builder | Claude turns the profile, target segments and countries into rules: segment keywords, buyer titles, size band, signal words, Apollo filters and a PDL SQL query. |
-| 3 | Lead discovery | You run the Apollo / People Data Labs search and import the export (CSV, Excel or PDL JSON). Columns are auto-mapped. The engine never invents contacts. |
+| 3 | Lead discovery | You run the Apollo / People Data Labs search and import the export. Imports merge, never replace (see below). The engine never invents contacts. |
 | 4 | Email verification | In page: syntax, Apollo locked placeholders, disposable domains, role mailboxes, duplicates, personal / mismatched domains, plus the provider's status. Mailbox checks go through NeverBounce / ZeroBounce / MillionVerifier: download the CSV, verify, import the result file. |
 | 5 | Lead research | Claude (fast model, 10 leads per call): signal, pain point, reason selected, summary, using only facts in the record. |
 | 6 | Lead scoring | In page, instantly for every lead: ICP fit 40, industry 20, role 20, size 10, activity 10 (weights and threshold editable, default ≥ 75). |
 | 7 | Personalized emails | Claude (balanced model, 5 leads per call) for the top N qualified leads only: subject + curiosity / problem / growth bodies; the page adds greeting, closing line and signature. |
 | 8 | Quality control | In page: name, usable unique email, all variants present, ≤ 80 words, names the company, no buzzwords. |
-| 9 | Excel export | SheetJS in page: Lead Master, AI Insights, Outreach, Rejected, Run Summary. |
+| 9 | Excel export | SheetJS in page: Lead Master (with Import Status, Imported On, Updated On, Changes, Source File), AI Insights, Outreach, Rejected, Import Log, Run Summary. |
 
 AI calls run on the viewer's own Claude account, two batches at a time, started by a click and stoppable; each finished
 lead is saved immediately, so a stopped or rate-limited run continues where it left off.
 
+## Importing
+
+- Formats: CSV / TSV / TXT (delimiter detected; UTF-8, UTF-16 and Windows-1252/1256 decoded), Excel (best sheet and
+  header row detected, both changeable), JSON, JSON lines and nested API JSON (Apollo `people`, PDL `data`), pasted
+  rows from Excel or Google Sheets, several files at once (queued). English, French and Arabic headers are recognised;
+  unmatched columns are found by their values (emails, LinkedIn URLs, domains). Column choices are remembered per
+  header layout (`config/mappings`).
+- Same lead = same work email (role mailboxes and Apollo's locked placeholders excluded), LinkedIn profile, name +
+  company, or name + domain. A matching lead is updated field by field; empty cells never erase data.
+- Every import shows a preview first (new / updated / unchanged / duplicate rows / skipped, with old → new values),
+  is logged in `meta/state.imports`, and can be undone until the next import or AI run.
+- Each lead keeps `firstImportedAt`, `lastSeenAt` + file, `importStatus` (new / updated / unchanged), `updatedAt` and
+  `changes` (old → new). A change to name, title, company, industry, size, location, keywords, description or signals
+  marks its research and emails out of date (`aiStaleAt`): they leave the export and are redone on the next run.
+- Clean-up on the way in: name casing, honorifics (Dr., Eng.) out of greetings, legal suffixes (S.A.L., LLC, FZE) out of
+  email copy, canonical LinkedIn and website URLs, company domain from the work email, "Dubai, UAE" style locations,
+  ranges like 51-200 or 1K-5K, ISO / French / Arabic country names.
+
 ## Saved data (artifact database)
 
-`config/company`, `config/icp`, `config/outreach`, `meta/state`, `leads/c0000…` (100 leads per document, up to
-20,000 leads), `ai/{leadKey}` (research + email bodies). Readable and writable only at Contributor level or above
+`config/company`, `config/icp`, `config/outreach`, `config/mappings`, `meta/state` (import log), `leads/c0000…` (50
+leads per document, only changed documents are rewritten, up to 20,000 leads), `ai/{leadKey}` (research + email bodies,
+each with its own timestamp). Readable and writable only at Contributor level or above
 (view-only shares see nothing). The first version was seeded with ProHost's real profile and ICP (from `public/`) and
 12 fictional example leads (`.example` domains) that the first import replaces.
+
+## Tests
+
+`tests/` drives the real page in headless Chromium against an in-memory database and a scripted Claude: 58 checks over
+every import path, merge and change tracking, undo, the research and email agents (including a renamed key, a buzzword
+and a rate limit), QC, the verifier round-trip, the Excel workbook, a round-trip of the engine's own export, reload and
+clean-up. `scale.mjs` imports and re-imports 10,000 leads.
+
+```
+cd marketing/lead-engine/tests
+npm i --no-save xlsx@0.18.5 playwright
+node make-files.js && node flow.mjs && node scale.mjs   # set CHROMIUM=/path/to/chrome if Playwright has no browser
+```
 
 ## Limits
 
