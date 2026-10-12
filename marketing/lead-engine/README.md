@@ -51,6 +51,12 @@ Source: `agents/discovery.js` (copied into the page by `python3 agents/build.py`
   Updated, source `Agent · <channel>`, evidence URL kept), company-only rows are kept as leads and replaced once a named
   person at that company is imported, runs are marked imported and come back if you undo the import.
 
+Schedules (UTC, routines on your Claude account, named "ProHost discovery · …"): LinkedIn and Facebook/Instagram weekly
+(Mon, low yield), web, directories, hiring and news Mon/Wed/Fri, decision-maker finder weekdays, strategist Mondays after
+the scouts. Change or pause them in claude.ai › Routines. Each scout reads its time from the shell, never from memory.
+First live test (LinkedIn scout): 14 searches, 3 usable rows, plan bookkeeping correct; search-only LinkedIn discovery is
+low yield by nature, which is why the finder and the strategist exist.
+
 Documents: `discovery/{linkedin,web,social,directories,hiring,news}` (plans), `discovery/{known,targets,stats}` (page →
 agents), `discovery/{enrich,strategy}` (agents), `inbox/*` (runs), `config/agents` (schedules shown in the page).
 Each run is a Claude Code session on your account (usage counts against your plan). Agents run in the cloud environment's
@@ -84,7 +90,7 @@ each with its own timestamp). Readable and writable only at Contributor level or
 
 ## Tests
 
-`tests/` drives the real page in headless Chromium against an in-memory database and a scripted Claude: 79 checks over
+`tests/` drives the real page in headless Chromium against an in-memory database and a scripted Claude: 79 flow checks and 95 agent checks over
 every import path, merge and change tracking, undo, the research and email agents (including a renamed key, a buzzword
 and a rate limit), QC, the verifier round-trip, the Excel workbook, a round-trip of the engine's own export, reload and
 clean-up. `scale.mjs` imports and re-imports 10,000 leads.

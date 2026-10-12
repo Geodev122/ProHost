@@ -43,7 +43,8 @@ for (const c of api.CHANNELS) {
   ok(/reformulate/.test(p) && /confidence/.test(p) && /discovery\/known/.test(p) && /"learned"/.test(p), `${c.id}: adaptive, scored, deduped, reports what it learned`);
   ok(p.includes('collection "inbox"') && p.includes(`doc_id "${c.id}-`) && /if_version/.test(p), `${c.id}: writes only its inbox run and its plan with if_version`);
   ok(p.includes(`at most ${c.searches} web searches`), `${c.id}: search budget stated`);
-  ok(/^\d+ \d+ \* \* [\d,-]+$/.test(api.cronFor(c, 'thrice')), `${c.id}: valid cron ${api.cronFor(c, 'thrice')}`);
+  ok(/^\d+ \d+ \* \* [\d,-]+$/.test(api.cronFor(c)), `${c.id}: valid cron ${api.cronFor(c)}`);
+  ok(/date -u \+%Y%m%d%H%M/.test(p) && /never guess/i.test(p), `${c.id}: reads the clock from the shell instead of guessing`);
 }
 ok(/targets/.test(api.promptFor('enrich', countries)) && /"done"/.test(api.promptFor('enrich', countries)), 'finder reads targets and records what it tried');
 ok(/do not search the web/i.test(api.promptFor('strategist', countries)) && /RETIRE/.test(api.promptFor('strategist', countries)) && /BOOST/.test(api.promptFor('strategist', countries)), 'strategist reads and rewrites plans only');
