@@ -32,8 +32,8 @@ const MOCK = `
     update: async d => { if (!(p in D)) throw { code: 'invalid_argument', message: 'missing' }; Object.assign(D[p], d); notify(p); }, delete: async () => { delete D[p]; window.__writes++; notify(p); } }; }
   function respond(p) {
     if (p.includes('Company Intelligence agent')) return { company: 'ProHost', website: 'https://pro-host.tech', product: 'Room rental app', pain_points: ['Empty rooms'], proof_points: ['No double bookings'], markets: ['Lebanon'], ideal_customer: ['Clinics'] };
-    if (p.includes('ICP Builder agent')) return { segments: [{ name: 'Property Managers', source: 'goal', keywords: ['property management', 'business center', 'coworking'], why: 'x' }, { name: 'Hospitality Companies', source: 'goal', keywords: ['hotel', 'hospitality', 'hotel apartments'], why: 'y' }, { name: 'Real Estate Agencies', source: 'goal', keywords: ['real estate', 'commercial property'], why: 'z' }, { name: 'Clinics', source: 'website', keywords: ['polyclinic', 'hospital & health care'], why: 'w' }],
-      titles: { decision: ['ceo', 'founder', 'owner', 'managing director', 'general manager', 'chief executive officer'], operator: ['operations director', 'property manager', 'leasing manager', 'hotel manager', 'medical director', 'director of sales', 'asset manager'], exclude: ['receptionist'] },
+    if (p.includes('ICP Builder agent')) return { segments: [{ name: 'Property Managers', source: 'goal', keywords: ['property management', 'business center', 'coworking'], why: 'x' }, { name: 'Hospitality Companies', source: 'goal', keywords: ['hotel', 'hospitality', 'hotel apartments'], search_terms: ['hotel with conference rooms', 'event venue'], search_terms_local: ['فندق قاعات اجتماعات'], why: 'y' }, { name: 'Real Estate Agencies', source: 'goal', keywords: ['real estate', 'commercial property'], why: 'z' }, { name: 'Clinics', source: 'website', keywords: ['polyclinic', 'hospital & health care'], why: 'w' }],
+      cities: { Lebanon: ['Beirut', 'Jounieh'], UAE: ['Dubai'] }, titles: { decision: ['ceo', 'founder', 'owner', 'managing director', 'general manager', 'chief executive officer'], operator: ['operations director', 'property manager', 'leasing manager', 'hotel manager', 'medical director', 'director of sales', 'asset manager'], exclude: ['receptionist'] },
       employees: { min: 2, sweet_min: 5, sweet_max: 500, max: 5000 }, signal_keywords: ['funding', 'series a', 'hiring'], apollo: { person_titles: ['CEO'] }, pdl_sql: 'SELECT * FROM person' };
     const leads = JSON.parse(p.slice(p.lastIndexOf('Leads:\\n') + 7));
     if (p.includes('Lead Research agent')) return leads.map((l, i) => ({ key: (i === 0 && window.__mangleKey) ? 'renamed-key' : l.key, signal: l.signals ? 'Raised funding (' + l.signals.split(':')[0] + ')' : '', signal_source: l.signals ? 'data' : 'none', pain_point: 'Rooms empty part of the week', reason_selected: l.title + ' at ' + l.company, summary: l.company + ' in ' + l.city }));
@@ -412,6 +412,12 @@ await importFiles(['nameonly.csv']); await page.waitForTimeout(500);
 const stats = await page.locator('#importCard .stat').allInnerTexts();
 ok(stats.some(t => /^1\s*\n?new/i.test(t.trim())) && stats.some(t => /^1\s*\n?rows? skipped/i.test(t.trim())), 'import keeps a business named only by city and country, skips one with no place', JSON.stringify(stats));
 await page.click('[data-act="cancelImport"]'); await page.waitForTimeout(200);
+
+// ── 12e. ICP builder carries the harvest strategy: search terms per segment, cities per country
+await go('icp'); await page.click('[data-act="buildIcp"]'); await page.waitForTimeout(700);
+const icpDoc = await page.evaluate(() => window.__docs['config/icp']?.icp);
+ok(icpDoc && icpDoc.segments.find(x => x.name === 'Hospitality Companies')?.search_terms?.includes('hotel with conference rooms') && icpDoc.cities?.Lebanon?.[0] === 'Beirut', 'ICP builder saves search terms per segment and cities per country for the agents', JSON.stringify(icpDoc?.cities));
+ok(/only in the countries listed here/.test(await page.locator('main').innerText()), 'ICP builder tells the user the agents work only in the chosen countries');
 
 // ── 13. clear all
 await go('discover');

@@ -648,12 +648,13 @@ The engine is the claude.ai artifact ${ENGINE_URL}. Read and write its database 
 
 Time: never guess it. Read it from the shell when you need it: \`date -u +%Y%m%d%H%M\` for document ids and \`date +%s%3N\` for epoch milliseconds (runAt, doneAt, updatedAt).`;
 const SCOUT_RULES = (ch, countries) => `HOW TO WORK, SMART
+- Countries: work only in the countries listed in config/icp \`countries\` (the ICP Builder's choice; read it in STEP 1). Pick queries only for those countries, even if the plan holds others, and write each row's country exactly as spelled in that list. If the message that started this run names a country, use it only when it is in that list.
 - Harvest in volume. Search results and list pages name many businesses at once ("best conference hotels in Beirut", "office space for rent in Business Bay", a broker directory): take EVERY qualifying business on the page as its own row, not just the first or the ones with an email. A good run produces 60 or more company rows. Take the website from the result link when it is the business's own page (for a hotel inside a chain, the hotel's own page URL); when no link to the business is shown, leave website empty and KEEP the row: a named hotel or agency with city and country is a valid company row, the Email finder resolves its website. Never drop a business only because it has no website.
 - OFFICIAL emails only. Keep an address only if the business itself published it (its own website, its own Facebook or Instagram page) or an official register, regulator, ministry, chamber or directory lists it as that business's entry. Never guess or construct an address from a pattern (info@ + domain) that you did not see. Ignore masked addresses such as "[email protected]".
 - Which addresses: shared business inboxes (info@, contact@, hello@, reservations@, booking@, sales@, enquiries@, admin@, office@, events@, reception@, management@) are exactly what we want, and so are named people's work addresses. Skip noreply@, privacy@, careers@, hr@, jobs@, abuse@, postmaster@, webmaster@, press@, and addresses of insurers, agents or platforms that merely list the business. A Gmail, Hotmail or Yahoo address is acceptable only when the business itself publishes it as its contact.
 - The email must belong to the business: its domain matches the business's website, or the listing is clearly that business's own entry. One row per email address (a business with two addresses gives two rows).
 - Skip what is known. discovery/known holds {"domains":[...]}: businesses already in the engine WITH an email. Skip those domains. A business in the engine without an email is a target: return it again only when you find its email.
-- Triage every result with three questions: does the business fit the segment, is it in ${countries.join(', ')}, and does the email belong to that business? Drop it if any answer is no or unsure.
+- Triage every result with three questions: does the business fit the segment, is it in one of the countries chosen in the ICP Builder (config/icp countries), and does the email belong to that business? Drop it if any answer is no or unsure.
 - Be adaptive. After each search, if fewer than 2 emails were found, reformulate up to 2 times: the same idea in Arabic or French, with "email" or "contact us" or "@" added, without quotes or operators, with a neighborhood, or with a synonym for the business type. When a reformulation yields 2 or more emails, record it under "learned".
 - Rate each row's confidence. "high": the email appears on the business's own site or page, or in an official register entry for it. "medium": it appears in a third-party directory or snippet for that business. Never return "low" rows.
 - Within one run, merge duplicates: the same email address is one row, and so is the same business (same website domain) without an email.
@@ -679,7 +680,7 @@ STEP 1. Read your work. The plan is a large document (up to 100 KB): never read 
 - ArtifactData get, collection "config", doc_id "icp" (small): segments, keywords, countries.
 - ArtifactData get, collection "discovery", doc_id "known" (may not exist; small): {"domains":[...]}.
 - ArtifactData get, collection "discovery", doc_id "strategy" (may not exist; small): the strategist's latest notes on what works; follow them.
-Choose ${ch.per} queries with one short python3 command on the plan file: status "todo" first, lowest tier first, then fewest tries; then "done" ones with the oldest doneAt. Never pick "retired", or "blocked" with tries of 3 or more. Spread the picks over all three countries (round-robin) unless the message that started this run names one country: then pick only that country's queries. Print only the chosen queries (id and q).
+Choose ${ch.per} queries with one short python3 command on the plan file: status "todo" first, lowest tier first, then fewest tries; then "done" ones with the oldest doneAt. Never pick "retired", or "blocked" with tries of 3 or more. Only pick queries whose country is in config/icp countries. Spread the picks over those countries (round-robin) unless the message that started this run names one of them: then pick only that country's queries. Print only the chosen queries (id and q).
 
 STEP 2. Run each query.
 ${ch.method}
@@ -743,7 +744,7 @@ STEP 2. Decide, for each channel. A query's "found" is the number of company row
 - ADD sensible entries from recent "suggest" lists to the channel they belong to (tier 2, "source":"strategist"); skip duplicates of existing query text (compare lower-case, ignoring quotes). Names of businesses whose email is missing go to the "web" channel as "<business> <city> contact email" queries.
 - If a channel produces rows but few withEmail leads, rewrite its weakest queries to ask for contact emails directly; if a channel was "blocked" in 3 or more recent runs or produced no emails over its last 3 runs, say so in channelHealth. Say which official registers and directories produced the most emails.
 - Every new query needs: "id" ("s" followed by a unique base-36 string you make up), "q", "segment", "city", "country", "tier", "lang", "status":"todo", "tries":0, "found":0, "source":"strategist". Keep the plan at 600 queries at most: drop retired ones first.
-New query ideas must stay inside ${countries.join(', ')} and ProHost's segments.
+New query ideas must stay inside the countries in config/icp and ProHost's segments.
 
 STEP 3. Write each changed plan back with ArtifactData set, collection "discovery", doc_id "<channel>", file_path "/tmp/prohost/discovery/<channel>.json", if_version = the version you read (get again and redo once if stale). Keep every field of the queries you did not touch.
 
@@ -1066,11 +1067,14 @@ Target segments chosen by the user: ${JSON.stringify(goals)}
 Target countries: ${JSON.stringify(countries)}
 
 Reply with only a JSON object in this shape:
-{"segments":[{"name":"","source":"goal","keywords":[""],"why":""}],"adjacent_keywords":[""],"exclude_keywords":[""],"titles":{"decision":[""],"operator":[""],"exclude":[""]},"employees":{"min":2,"sweet_min":5,"sweet_max":500,"max":5000},"signal_keywords":[""],"apollo":{"person_titles":[""],"person_seniorities":[""],"organization_locations":[""],"organization_num_employees_ranges":["11,50"],"q_organization_keyword_tags":[""]},"pdl_sql":""}
+{"segments":[{"name":"","source":"goal","keywords":[""],"search_terms":[""],"search_terms_local":[""],"why":""}],"cities":{"<country>":["<city>"]},"adjacent_keywords":[""],"exclude_keywords":[""],"titles":{"decision":[""],"operator":[""],"exclude":[""]},"employees":{"min":2,"sweet_min":5,"sweet_max":500,"max":5000},"signal_keywords":[""],"apollo":{"person_titles":[""],"person_seniorities":[""],"organization_locations":[""],"organization_num_employees_ranges":["11,50"],"q_organization_keyword_tags":[""]},"pdl_sql":""}
 
 Rules:
 - One segment per user-chosen segment (source "goal"). Add at most 3 more (source "website") only when the seller profile names another clear buyer type.
 - keywords: 10-20 lowercase words or short phrases per segment, as they appear in company names, LinkedIn industries, Apollo keywords and company descriptions in the target countries, including the common French and Arabic terms used there (for example immobilier, hôtel, عقارات, فندق).
+- search_terms: 4-8 plain English phrases a person would type into a web search to list the COMPANIES of that segment, naming the space-owning business type and its rentable rooms (for example "hotel with conference rooms", "hotel banquet hall", "serviced offices", "coworking space", "medical center", "clinic for rent", "commercial real estate agency", "office space for rent"). search_terms_local: the same in the local languages of the target countries (Arabic, French).
+- cities: for every target country, its 6-10 largest cities and main business districts, spelled as the country's people write them. The discovery agents work ONLY in the countries listed here and in these cities.
+- Strategy to build for: the discovery agents harvest COMPANIES first (name, city, country, website or phone from search results: hotels with meeting rooms, event venues, real-estate agencies and brokers, property managers and the owners behind office or clinic listings, polyclinics, coworking spaces and training centers), then look up the official business email of each. Choose segments, keywords and search_terms that find such businesses in volume.
 - why: one sentence on why that segment buys.
 - adjacent_keywords: industries that are sometimes a fit. exclude_keywords: phrases that mark a company as a non-buyer or a competitor.
 - titles.decision: owners and executives who can buy. titles.operator: people who run the spaces or operations day to day. titles.exclude: titles that never buy. All lowercase; 10-40 each for decision and operator.
@@ -1156,10 +1160,11 @@ function normalizeProfile(p, url) {
   };
 }
 function normalizeIcp(o, goals, countries) {
-  const segs = (Array.isArray(o.segments) ? o.segments : []).map(s => ({ name: str(s.name), source: str(s.source) === 'website' ? 'website' : 'goal', keywords: arr(s.keywords).map(k => k.toLowerCase()), why: str(s.why) })).filter(s => s.name && s.keywords.length);
+  const segs = (Array.isArray(o.segments) ? o.segments : []).map(s => ({ name: str(s.name), source: str(s.source) === 'website' ? 'website' : 'goal', keywords: arr(s.keywords).map(k => k.toLowerCase()), search_terms: arr(s.search_terms).slice(0, 10), search_terms_local: arr(s.search_terms_local).slice(0, 10), why: str(s.why) })).filter(s => s.name && s.keywords.length);
   const e = o.employees || {};
   return {
     goals, countries, segments: segs,
+    cities: Object.fromEntries(Object.entries(o.cities && typeof o.cities === 'object' && !Array.isArray(o.cities) ? o.cities : {}).map(([k, v]) => [canonCountry(k) || titleCase(k), arr(v).slice(0, 12)]).filter(([, v]) => v.length)),
     adjacent_keywords: arr(o.adjacent_keywords).map(k => k.toLowerCase()), exclude_keywords: arr(o.exclude_keywords).map(k => k.toLowerCase()),
     titles: { decision: arr(o.titles?.decision).map(k => k.toLowerCase()), operator: arr(o.titles?.operator).map(k => k.toLowerCase()), exclude: arr(o.titles?.exclude).map(k => k.toLowerCase()) },
     employees: { min: +e.min || 1, sweet_min: +e.sweet_min || 5, sweet_max: +e.sweet_max || 500, max: +e.max || 5000 },
@@ -2061,7 +2066,7 @@ function viewIcp() {
     <p class="lede">Turns the company profile into rules the engine applies to every lead: segment keywords, buyer titles, company size and activity signals.</p></section>
     <div class="card"><div class="grid2"><div><h3>Target segments</h3>${chipEditor('goals', arr(icp?.goals), 'Add a segment, e.g. Coworking operators')}</div>
       <div><h3>Countries</h3>${chipEditor('countries', arr(icp?.countries), 'Add a country')}</div></div>
-      <div class="row"><button class="btn primary" data-act="buildIcp" ${busy || !aiReady() ? 'disabled' : ''}>${busy ? 'Building…' : icp?.segments?.length ? 'Rebuild ICP' : 'Build ICP'}</button>${busy ? '<button class="btn" data-act="cancel" data-k="icp">Stop</button>' : ''}<span class="small muted">Countries count for scoring right away; segment changes apply after a rebuild.</span></div>${msgHtml('icp')}</div>
+      <div class="row"><button class="btn primary" data-act="buildIcp" ${busy || !aiReady() ? 'disabled' : ''}>${busy ? 'Building…' : icp?.segments?.length ? 'Rebuild ICP' : 'Build ICP'}</button>${busy ? '<button class="btn" data-act="cancel" data-k="icp">Stop</button>' : ''}<span class="small muted">Countries count for scoring right away; segment changes apply after a rebuild. The discovery agents work only in the countries listed here, and look for companies first (hotels with meeting rooms, brokers, property owners, clinics, coworking), then their emails.</span></div>${msgHtml('icp')}</div>
     ${rules}`;
 }
 
