@@ -1,0 +1,1476 @@
+<title>ProHost Lead Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: sticky top bar; a numbered pipeline rail (the real 1→9 agent sequence) beside the working panel; on phones the rail becomes a scrolling strip. */
+:root {
+  --bg: #F4F6F9; --surface: #FFFFFF; --sunken: #ECF0F5; --line: #DAE0E8; --line-strong: #C3CDD9;
+  --ink: #172231; --muted: #566377; --faint: #8592A4;
+  --brand: #2B5A8C; --brand-ink: #FFFFFF; --brand-soft: #E5EDF6; --brand-line: #B7CBE1;
+  --host: #D2470E; --host-ink: #FFFFFF;
+  --good: #1C7046; --good-soft: #E0F1E7; --warn: #8A5200; --warn-soft: #FAEED7; --bad: #B3261E; --bad-soft: #FBE5E3;
+  --display: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --r: 10px; --toph: 66px;
+  --shadow: 0 1px 2px rgba(23,34,49,.05), 0 10px 28px -18px rgba(23,34,49,.35);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D131B; --surface: #141C27; --sunken: #1A2431; --line: #263345; --line-strong: #37475C;
+    --ink: #E3E9F1; --muted: #9AA7B8; --faint: #6F7C8E;
+    --brand: #93B8E0; --brand-ink: #0D131B; --brand-soft: #1A2A3B; --brand-line: #345070;
+    --host: #FF8A57; --host-ink: #1A0E07;
+    --good: #6FD39C; --good-soft: #132B1E; --warn: #F2BE63; --warn-soft: #33270F; --bad: #FF9289; --bad-soft: #3A1A1C;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px -18px rgba(0,0,0,.7);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D131B; --surface: #141C27; --sunken: #1A2431; --line: #263345; --line-strong: #37475C;
+  --ink: #E3E9F1; --muted: #9AA7B8; --faint: #6F7C8E;
+  --brand: #93B8E0; --brand-ink: #0D131B; --brand-soft: #1A2A3B; --brand-line: #345070;
+  --host: #FF8A57; --host-ink: #1A0E07;
+  --good: #6FD39C; --good-soft: #132B1E; --warn: #F2BE63; --warn-soft: #33270F; --bad: #FF9289; --bad-soft: #3A1A1C;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 28px -18px rgba(0,0,0,.7);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 14px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { font-family: var(--display); color: var(--ink); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: 1.6rem; line-height: 1.2; font-weight: 800; }
+h2 { font-size: 1.08rem; font-weight: 700; }
+h3 { font-size: .95rem; font-weight: 700; }
+p { margin: 0; }
+a { color: var(--brand); }
+code, .mono { font-family: var(--mono); font-size: .86em; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* top bar */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.mark { width: 30px; height: 30px; border-radius: 8px; background: var(--brand); color: var(--brand-ink); display: grid; place-items: center; font-family: var(--display); font-weight: 800; font-size: 15px; flex: none; }
+.brand-name { font-family: var(--display); font-weight: 800; font-size: 1rem; white-space: nowrap; }
+.brand-sub { color: var(--muted); font-size: .8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top-right { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.savepill { font-size: .78rem; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--sunken); white-space: nowrap; }
+.savepill i { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); display: inline-block; }
+.savepill[data-s="saved"] i { background: var(--good); }
+.savepill[data-s="saving"] i { background: var(--warn); }
+.savepill[data-s="error"] i { background: var(--bad); }
+
+/* shell */
+.shell { display: grid; grid-template-columns: 272px minmax(0, 1fr); gap: 0; min-height: calc(100vh - var(--toph)); }
+.rail { border-right: 1px solid var(--line); background: var(--surface); padding-block: 14px; padding-inline: 10px; display: flex; flex-direction: column; gap: 2px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--toph)); align-self: start; max-height: calc(100vh - var(--toph)); overflow-y: auto; }
+.rail-label { font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 10px 10px 4px; font-weight: 600; }
+.step { display: grid; grid-template-columns: 26px minmax(0,1fr); gap: 10px; align-items: start; text-align: left; width: 100%; border: 0; background: transparent; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+.step:hover { background: var(--sunken); }
+.step.is-active { background: var(--brand-soft); }
+.step-n { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line-strong); display: grid; place-items: center; font-family: var(--mono); font-size: .72rem; color: var(--muted); background: var(--surface); margin-top: 1px; }
+.step.is-done .step-n { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
+.step.is-active .step-n { border-color: var(--brand); color: var(--brand); }
+.step.is-active.is-done .step-n { color: var(--brand-ink); }
+.step-name { display: block; font-weight: 600; font-size: .88rem; line-height: 1.3; }
+.step-stat { display: block; font-size: .76rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.step.is-active .step-name { color: var(--brand); }
+.rail hr { border: 0; border-top: 1px solid var(--line); margin: 8px 6px; width: auto; }
+
+main { padding-block: 24px 64px; padding-inline: 28px; min-width: 0; }
+.wrap { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+
+@media (max-width: 900px) {
+  .shell { grid-template-columns: minmax(0,1fr); }
+  .top { position: static; }
+  .rail { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; flex-direction: row; overflow-x: auto; max-height: none; border-right: 0; border-bottom: 1px solid var(--line); padding: 8px 12px; gap: 4px; }
+  .rail-label, .rail hr { display: none; }
+  .step { grid-template-columns: 22px auto; width: auto; flex: none; padding: 6px 10px; align-items: center; }
+  .step-n { width: 22px; height: 22px; margin: 0; }
+  .step-stat { display: none; }
+  .step-name { white-space: nowrap; }
+  main { padding-inline: 16px; padding-block: 18px 56px; }
+}
+
+/* panel pieces */
+.head { display: flex; flex-direction: column; gap: 6px; }
+.eyebrow { font-size: .72rem; letter-spacing: .09em; text-transform: uppercase; color: var(--brand); font-weight: 700; font-family: var(--mono); }
+.lede { color: var(--muted); max-width: 68ch; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card.flat { box-shadow: none; }
+.card-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; justify-content: space-between; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
+@media (max-width: 760px) { .grid2 { grid-template-columns: minmax(0,1fr); } }
+.muted { color: var(--muted); }
+.small { font-size: .82rem; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.spacer { flex: 1; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: .86rem; cursor: pointer; white-space: nowrap; text-decoration: none; }
+.btn:hover { background: var(--sunken); }
+.btn.primary { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.host { background: var(--host); border-color: var(--host); color: var(--host-ink); }
+.btn.host:hover { filter: brightness(1.06); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--brand); padding-inline: 8px; }
+.btn.ghost:hover { background: var(--brand-soft); }
+.btn.sm { padding: 5px 10px; font-size: .8rem; }
+.btn[disabled] { opacity: .5; cursor: not-allowed; filter: none; }
+
+label.f { display: flex; flex-direction: column; gap: 5px; font-size: .8rem; color: var(--muted); font-weight: 600; min-width: 0; }
+input[type=text], input[type=url], input[type=number], select, textarea {
+  border: 1px solid var(--line-strong); background: var(--surface); border-radius: 8px; padding: 8px 10px; font-size: .9rem; color: var(--ink); width: 100%; min-width: 0; font-weight: 400;
+}
+textarea { resize: vertical; min-height: 120px; line-height: 1.5; }
+textarea.code { font-family: var(--mono); font-size: .8rem; min-height: 280px; }
+input[type=number] { width: 96px; }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.check { display: flex; gap: 8px; align-items: flex-start; font-size: .88rem; cursor: pointer; }
+.check input { margin-top: 3px; accent-color: var(--brand); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; background: var(--sunken); border: 1px solid var(--line); font-size: .78rem; color: var(--ink); max-width: 100%; }
+.chip button { border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 0 0 0 2px; font-size: .9rem; line-height: 1; }
+.chip.brand { background: var(--brand-soft); border-color: var(--brand-line); }
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: .74rem; font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
+.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.pill.good { background: var(--good-soft); color: var(--good); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.info { background: var(--brand-soft); color: var(--brand); }
+.pill.mute { background: var(--sunken); color: var(--muted); }
+.pill.plain::before { display: none; }
+
+dl.kv { display: grid; grid-template-columns: 170px minmax(0,1fr); gap: 10px 18px; margin: 0; }
+dl.kv dt { color: var(--muted); font-size: .8rem; font-weight: 600; padding-top: 1px; }
+dl.kv dd { margin: 0; min-width: 0; }
+dl.kv ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+@media (max-width: 640px) { dl.kv { grid-template-columns: minmax(0,1fr); gap: 2px; } dl.kv dd { margin-bottom: 10px; } }
+
+.banner { border: 1px solid var(--warn); background: var(--warn-soft); color: var(--ink); border-radius: var(--r); padding: 12px 14px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.banner > span:first-child { flex: 1 1 320px; min-width: 0; }
+.banner b { color: var(--warn); }
+.note { border-left: 3px solid var(--brand-line); padding: 4px 0 4px 12px; color: var(--muted); font-size: .84rem; }
+.err { border: 1px solid var(--bad); background: var(--bad-soft); color: var(--ink); border-radius: 8px; padding: 10px 12px; font-size: .86rem; }
+.empty { text-align: left; padding: 22px; border: 1px dashed var(--line-strong); border-radius: var(--r); display: flex; flex-direction: column; gap: 10px; align-items: flex-start; background: var(--surface); }
+
+pre.copybox { margin: 0; background: var(--sunken); border: 1px solid var(--line); border-radius: 8px; padding: 12px; font-family: var(--mono); font-size: .78rem; white-space: pre-wrap; word-break: break-word; max-height: 300px; overflow: auto; }
+
+/* funnel */
+.funnel { display: flex; flex-direction: column; gap: 10px; }
+.frow { display: grid; grid-template-columns: 170px minmax(0,1fr) 72px; gap: 14px; align-items: center; }
+.frow .lab { font-weight: 600; font-size: .86rem; }
+.frow .lab small { display: block; color: var(--muted); font-weight: 400; font-size: .74rem; }
+.frow .val { text-align: right; font-family: var(--mono); font-weight: 600; font-size: .95rem; }
+.track { height: 10px; background: var(--sunken); border-radius: 0 4px 4px 0; position: relative; }
+.track span { position: absolute; inset: 0 auto 0 0; background: var(--brand); border-radius: 0 4px 4px 0; min-width: 2px; }
+@media (max-width: 560px) { .frow { grid-template-columns: minmax(0,1fr) 64px; } .frow .track { grid-column: 1 / -1; order: 3; } }
+
+/* tables */
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+table.t { width: 100%; border-collapse: collapse; font-size: .84rem; }
+table.t th { text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--sunken); white-space: nowrap; }
+table.t td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.t tr:last-child td { border-bottom: 0; }
+table.t tbody tr.click { cursor: pointer; }
+table.t tbody tr.click:hover td { background: var(--sunken); }
+table.t td.n { font-family: var(--mono); text-align: right; white-space: nowrap; }
+.who b { display: block; font-weight: 600; }
+.who span { color: var(--muted); font-size: .8rem; }
+.score { display: inline-grid; place-items: center; min-width: 38px; padding: 2px 6px; border-radius: 6px; font-family: var(--mono); font-weight: 600; font-size: .84rem; background: var(--sunken); color: var(--muted); }
+.score.hi { background: var(--good-soft); color: var(--good); }
+.score.mid { background: var(--warn-soft); color: var(--warn); }
+
+/* job progress */
+.job { border: 1px solid var(--brand-line); background: var(--brand-soft); border-radius: var(--r); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.bar { height: 6px; background: var(--surface); border-radius: 3px; overflow: hidden; }
+.bar span { display: block; height: 100%; background: var(--brand); transition: width .3s ease; }
+@media (prefers-reduced-motion: reduce) { .bar span { transition: none; } }
+
+/* emails */
+.mail { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); display: flex; flex-direction: column; min-width: 0; }
+.mail-h { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--sunken); border-radius: 8px 8px 0 0; flex-wrap: wrap; }
+.mail-h b { font-size: .8rem; }
+.mail-h .wc { font-family: var(--mono); font-size: .74rem; color: var(--muted); }
+.mail-b { padding: 12px; white-space: pre-wrap; font-size: .88rem; line-height: 1.6; word-break: break-word; }
+.mails { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+@media (max-width: 1100px) { .mails { grid-template-columns: minmax(0,1fr); } }
+
+/* score breakdown */
+.parts { display: flex; flex-direction: column; gap: 7px; }
+.part { display: grid; grid-template-columns: 120px minmax(0,1fr) 56px; gap: 10px; align-items: center; font-size: .82rem; }
+.part .track { height: 8px; }
+.part .v { font-family: var(--mono); text-align: right; color: var(--muted); }
+
+/* drawer */
+.scrim { position: fixed; inset: 0; background: rgba(10,16,24,.38); z-index: 40; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(760px, 100%); background: var(--bg); border-left: 1px solid var(--line); z-index: 41; overflow-y: auto; padding-block: calc(env(safe-area-inset-top, 0px) + 18px) calc(env(safe-area-inset-bottom, 0px) + 40px); padding-inline: 20px; display: flex; flex-direction: column; gap: 16px; box-shadow: var(--shadow); }
+@media (max-width: 640px) { .drawer { padding-inline: 16px; } }
+
+.toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 8px; font-size: .86rem; z-index: 60; max-width: calc(100% - 32px); box-shadow: var(--shadow); }
+.drop { border: 1.5px dashed var(--line-strong); border-radius: var(--r); padding: 22px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; background: var(--sunken); }
+.drop.over { border-color: var(--brand); background: var(--brand-soft); }
+.maptable select { min-width: 160px; }
+.seg { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; }
+.pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+details > summary { cursor: pointer; font-weight: 600; color: var(--brand); }
+details[open] > summary { margin-bottom: 10px; }
+.list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+</style>
+
+<header class="top">
+  <div class="brand">
+    <div class="mark" aria-hidden="true">P</div>
+    <div style="min-width:0">
+      <div class="brand-name">ProHost Lead Engine</div>
+      <div class="brand-sub" id="brandSub">Company → ICP → leads → research → emails → Excel</div>
+    </div>
+  </div>
+  <div class="top-right">
+    <span class="savepill" id="savePill" data-s="idle"><i></i><span>Loading…</span></span>
+    <button class="btn host sm" data-act="export" id="topExport">Download Excel</button>
+  </div>
+</header>
+<div class="shell">
+  <nav class="rail" id="rail" aria-label="Pipeline"></nav>
+  <main id="main"><div class="wrap"><div class="empty"><h2>Loading the engine…</h2><p class="muted">Reading your company profile, targeting rules and leads.</p></div></div></main>
+</div>
+<div id="drawerRoot"></div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+(() => {
+'use strict';
+
+/* ───────────── constants ───────────── */
+const STAGES = [
+  { id: 'company',  n: 1, name: 'Company intelligence' },
+  { id: 'icp',      n: 2, name: 'ICP builder' },
+  { id: 'discover', n: 3, name: 'Lead discovery' },
+  { id: 'verify',   n: 4, name: 'Email verification' },
+  { id: 'research', n: 5, name: 'Lead research' },
+  { id: 'score',    n: 6, name: 'Lead scoring' },
+  { id: 'outreach', n: 7, name: 'Personalized emails' },
+  { id: 'qc',       n: 8, name: 'Quality control' },
+  { id: 'export',   n: 9, name: 'Excel export' },
+];
+const VIEWS = new Set(['overview', 'leads', ...STAGES.map(s => s.id)]);
+const DEFAULT_OUT = {
+  senderName: '', senderTitle: '', cta: 'Would a short conversation next week be worthwhile?',
+  variant: 'A', topN: 50, threshold: 75, requireVerified: false, includeUnpersonalized: true,
+  weights: { icp: 40, industry: 20, role: 20, size: 10, activity: 10 },
+};
+const WEIGHT_LABELS = { icp: 'ICP fit', industry: 'Industry match', role: 'Role match', size: 'Company size', activity: 'Activity signal' };
+const BANNED = ['synergy', 'synergies', 'leverage', 'cutting-edge', 'cutting edge', 'revolutionary', 'revolutionize', 'game-changer', 'game changer', 'seamless', 'seamlessly', 'innovative', 'world-class', 'best-in-class', 'disrupt', 'disruptive', 'unlock', 'empower', 'elevate', 'supercharge', 'next-level', 'holistic', 'paradigm', 'hope this email finds you'];
+const ROLE_LOCAL = new Set(['info', 'sales', 'admin', 'administrator', 'contact', 'contactus', 'hello', 'hi', 'support', 'help', 'office', 'reservations', 'reservation', 'booking', 'bookings', 'hr', 'careers', 'jobs', 'recruitment', 'marketing', 'enquiries', 'enquiry', 'inquiries', 'inquiry', 'team', 'mail', 'email', 'accounts', 'accounting', 'finance', 'billing', 'noreply', 'no-reply', 'donotreply', 'webmaster', 'frontdesk', 'front.desk', 'reception', 'events', 'leasing', 'rentals', 'customerservice', 'service', 'feedback', 'media', 'press', 'pr', 'general', 'management', 'operations', 'legal', 'privacy', 'security', 'it', 'postmaster', 'abuse']);
+const FREE_MAIL = new Set(['gmail.com', 'googlemail.com', 'yahoo.com', 'yahoo.fr', 'hotmail.com', 'hotmail.fr', 'outlook.com', 'live.com', 'msn.com', 'icloud.com', 'me.com', 'aol.com', 'proton.me', 'protonmail.com', 'yandex.com', 'gmx.com', 'mail.com', 'zoho.com']);
+const DISPOSABLE = new Set(['mailinator.com', 'guerrillamail.com', '10minutemail.com', 'tempmail.com', 'temp-mail.org', 'yopmail.com', 'trashmail.com', 'sharklasers.com', 'getnada.com', 'dispostable.com', 'throwawaymail.com', 'maildrop.cc']);
+const COUNTRY_ALIASES = {
+  'UAE': ['united arab emirates', 'uae', 'u.a.e', 'u.a.e.', 'emirates', 'dubai', 'abu dhabi', 'sharjah', 'ajman', 'ras al khaimah', 'fujairah', 'umm al quwain', 'al ain'],
+  'Saudi Arabia': ['saudi arabia', 'ksa', 'kingdom of saudi arabia', 'saudi', 'riyadh', 'jeddah', 'jiddah', 'dammam', 'khobar', 'al khobar', 'makkah', 'mecca', 'madinah', 'medina', 'neom'],
+  'Lebanon': ['lebanon', 'lebanese republic', 'beirut', 'jounieh', 'saida', 'sidon', 'byblos', 'jbeil', 'zahle', 'tyre', 'nabatieh', 'baabda', 'antelias', 'dbayeh', 'jdeideh', 'hazmieh', 'achrafieh'],
+};
+const FIELDS = [
+  { k: 'firstName',   label: 'First name',          al: ['firstname', 'givenname', 'first'] },
+  { k: 'lastName',    label: 'Last name',           al: ['lastname', 'surname', 'familyname', 'last'] },
+  { k: 'name',        label: 'Full name',           al: ['name', 'fullname', 'leadname', 'contactname', 'personname'] },
+  { k: 'title',       label: 'Job title',           al: ['title', 'jobtitle', 'position', 'role', 'designation', 'persontitle'] },
+  { k: 'company',     label: 'Company',             al: ['company', 'companyname', 'organization', 'organizationname', 'organisation', 'accountname', 'jobcompanyname', 'employer', 'companynameforemails'] },
+  { k: 'website',     label: 'Website',             al: ['website', 'companywebsite', 'websiteurl', 'companydomain', 'domain', 'jobcompanywebsite', 'organizationwebsite', 'companyurl', 'organizationprimarydomain'] },
+  { k: 'industry',    label: 'Industry',            al: ['industry', 'companyindustry', 'jobcompanyindustry', 'sector', 'organizationindustry'] },
+  { k: 'employees',   label: 'Employee count',      al: ['employees', 'employeecount', 'companysize', 'jobcompanysize', 'headcount', 'numemployees', 'estimatednumemployees', 'numberofemployees', 'organizationnumemployees'] },
+  { k: 'country',     label: 'Country',             al: ['country', 'companycountry', 'locationcountry', 'personcountry', 'jobcompanylocationcountry', 'organizationcountry'] },
+  { k: 'city',        label: 'City',                al: ['city', 'companycity', 'locationlocality', 'personcity', 'locality', 'jobcompanylocationlocality', 'location'] },
+  { k: 'email',       label: 'Email',               al: ['email', 'workemail', 'emailaddress', 'businessemail', 'professionalemail', 'personemail', 'recommendedemail'] },
+  { k: 'emailStatus', label: 'Email status',        al: ['emailstatus', 'verificationstatus', 'emailverification', 'result', 'verificationresult'] },
+  { k: 'linkedin',    label: 'LinkedIn URL',        al: ['personlinkedinurl', 'linkedinurl', 'linkedin', 'linkedinprofile', 'linkedinprofileurl', 'profileurl'] },
+  { k: 'keywords',    label: 'Company keywords',    al: ['keywords', 'companykeywords', 'tags', 'specialties', 'organizationkeywords', 'jobcompanytags'] },
+  { k: 'description', label: 'Company description', al: ['shortdescription', 'companydescription', 'seodescription', 'description', 'about', 'companysummary', 'organizationshortdescription'] },
+];
+const SIGNAL_HINTS = ['latestfunding', 'lastraisedat', 'totalfunding', 'fundingstage', 'jobpostings', 'jobposting', 'openjobs', 'hiring', 'news', 'intent', 'signal', 'recentactivity', 'jobchange', 'trigger'];
+const FATAL = new Set(['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed', 'rate_limited', 'session_expired', 'queue_overflow']);
+
+/* ───────────── state ───────────── */
+const S = {
+  view: 'overview', loaded: false, db: null, sample: null, downloads: null, readOnly: false, aiOff: false,
+  save: 'idle', saveNote: '', company: null, coSource: { url: '', text: '' }, icp: null,
+  out: structuredClone(DEFAULT_OUT), leads: [], ai: {}, meta: {}, chunkCount: 0,
+  busy: {}, msg: {}, job: null, import: null, table: { q: '', filter: 'qualified', page: 0 },
+  drawer: null, edit: {}, loadError: '',
+};
+let D = { rows: [], byKey: new Map(), c: {} };
+
+/* ───────────── utils ───────────── */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = n => Number(n || 0).toLocaleString('en-US');
+const norm = s => (s == null ? '' : String(s)).replace(/\s+/g, ' ').trim();
+const lc = s => norm(s).toLowerCase();
+const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const nkey = s => String(s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const chunk = (a, n) => { const o = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o; };
+const arr = x => Array.isArray(x) ? x.map(v => norm(typeof v === 'string' ? v : (v == null ? '' : String(v)))).filter(Boolean) : (typeof x === 'string' && x.trim() ? [x.trim()] : []);
+const str = x => typeof x === 'string' ? x.trim() : (x == null ? '' : (Array.isArray(x) ? x.join(', ') : String(x)));
+const clampInt = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.round(Number(v) || 0)));
+const today = () => new Date().toISOString().slice(0, 10);
+const wordCount = s => (String(s || '').trim().match(/\S+/g) || []).length;
+const phraseRe = p => new RegExp('(^|[^a-z0-9])' + escRe(p) + '($|[^a-z0-9])');
+function hash(str) { // cyrb53
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) { const ch = str.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+function canonCountry(s) {
+  const t = lc(s); if (!t) return '';
+  for (const [k, al] of Object.entries(COUNTRY_ALIASES)) if (al.some(a => t === a || phraseRe(a).test(t))) return k;
+  return '';
+}
+function titleCase(s) { return norm(s).replace(/\b([a-z])/g, m => m.toUpperCase()); }
+function toDomain(u) {
+  let s = lc(u); if (!s) return '';
+  s = s.replace(/^[a-z]+:\/\//, '').replace(/^www\./, '').split(/[/?#\s]/)[0];
+  return /\./.test(s) ? s : '';
+}
+function sameDomain(a, b) { return a === b || a.endsWith('.' + b) || b.endsWith('.' + a); }
+function parseEmp(v) {
+  const s = String(v ?? '').replace(/,/g, '').trim(); if (!s) return null;
+  const m = s.match(/(\d+)\s*[-–to]+\s*(\d+)/); if (m) return Math.round((+m[1] + +m[2]) / 2);
+  const n = s.match(/\d+/); return n ? +n[0] : null;
+}
+const leadName = L => norm(L.name) || norm([L.firstName, L.lastName].join(' '));
+const firstName = L => norm(L.firstName) || (leadName(L).split(' ')[0] || 'there');
+const STOP = new Set(['the', 'al', 'el', 'and', 'group', 'company', 'co', 'llc', 'l.l.c', 'ltd', 'sal', 's.a.l', 'fz', 'fze', 'fzco', 'inc', 'est', 'for', 'of', 'trading', 'holding', 'holdings']);
+function companyToken(name) { const w = lc(name).split(/[^a-z0-9؀-ۿ]+/).filter(x => x.length >= 3 && !STOP.has(x)); return w[0] || ''; }
+
+function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch { /* storage blocked */ } }
+
+let toastTimer;
+function toast(t) { const el = $('#toast'); el.textContent = t; el.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 4200); }
+async function copy(text, btn) {
+  try { await navigator.clipboard.writeText(text); toast('Copied'); }
+  catch { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); toast('Copied'); } catch { toast('Select the text and copy it'); } ta.remove(); }
+  if (btn) { const o = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = o; }, 1400); }
+}
+
+/* ───────────── scoring, verification, QC ───────────── */
+function compileIcp(icp) {
+  const mk = a => arr(a).map(p => p.toLowerCase()).map(p => ({ p, re: phraseRe(p) }));
+  return {
+    segments: (Array.isArray(icp?.segments) ? icp.segments : []).map(s => ({ name: str(s.name), res: mk(s.keywords) })).filter(s => s.res.length),
+    adjacent: mk(icp?.adjacent_keywords), exclude: mk(icp?.exclude_keywords),
+    decision: mk(icp?.titles?.decision), operator: mk(icp?.titles?.operator), exTitles: mk(icp?.titles?.exclude),
+    signals: mk(icp?.signal_keywords),
+    countries: new Set(arr(icp?.countries).map(c => canonCountry(c) || titleCase(c))),
+    emp: icp?.employees || {},
+  };
+}
+function roleTier(title, C) {
+  const t = lc(title);
+  if (!t) return { f: 0, tier: 'No title' };
+  if (C.exTitles.some(x => x.re.test(t))) return { f: 0, tier: 'Excluded title' };
+  if (C.decision.some(x => x.re.test(t))) return { f: 1, tier: 'Decision maker' };
+  if (C.operator.some(x => x.re.test(t))) return { f: 0.8, tier: 'Runs operations' };
+  if (/(^|[^a-z])(director|head|vp|vice president|chief)([^a-z]|$)/.test(t)) return { f: 0.6, tier: 'Director' };
+  if (/(^|[^a-z])manager([^a-z]|$)/.test(t)) return { f: 0.4, tier: 'Manager' };
+  return { f: 0.1, tier: 'Other role' };
+}
+function sizeFrac(n, e) {
+  if (n == null) return 0.4;
+  const min = +e.min || 1, smin = +e.sweet_min || 5, smax = +e.sweet_max || 500, max = +e.max || 5000;
+  if (n >= smin && n <= smax) return 1;
+  if (n >= min && n <= max) return 0.6;
+  return 0.2;
+}
+function normWeights(w) {
+  const o = {}; let sum = 0;
+  for (const k of Object.keys(DEFAULT_OUT.weights)) { o[k] = Math.max(0, Number(w?.[k]) || 0); sum += o[k]; }
+  if (!sum) return { ...DEFAULT_OUT.weights };
+  for (const k in o) o[k] = o[k] * 100 / sum;
+  return o;
+}
+function scoreLead(L, C, W, ai) {
+  const hayInd = lc(L.industry + ' | ' + L.keywords);
+  const hayAll = lc([L.company, L.industry, L.keywords, L.description].join(' | '));
+  let best = null, bestHits = 0, bestInd = 0;
+  for (const seg of C.segments) {
+    let hits = 0, ind = 0;
+    for (const x of seg.res) if (x.re.test(hayAll)) { hits++; if (x.re.test(hayInd)) ind++; }
+    if (hits > bestHits || (hits === bestHits && hits > 0 && ind > bestInd)) { best = seg; bestHits = hits; bestInd = ind; }
+  }
+  const excluded = C.exclude.some(x => x.re.test(hayAll));
+  const adjacent = !bestHits && C.adjacent.some(x => x.re.test(hayAll));
+  const indF = excluded ? 0 : bestInd > 0 ? 1 : bestHits > 0 ? 0.7 : adjacent ? 0.4 : 0;
+  const countryOk = C.countries.has(L.country);
+  const icpF = ((countryOk ? 15 : 0) + (excluded ? 0 : bestHits > 0 ? 15 : adjacent ? 6 : 0) + (L.domain ? 5 : 0) + (L.linkedin ? 5 : 0)) / 40;
+  const role = roleTier(L.title, C);
+  const sizeF = sizeFrac(L.employees, C.emp);
+  const hayAct = lc(L.signals + ' | ' + L.description);
+  const dataSignal = C.signals.find(x => x.re.test(hayAct));
+  const researchSignal = ai?.research?.signal_source === 'data' && ai.research.signal;
+  const actF = (dataSignal || researchSignal) ? 1 : 0;
+  const parts = { icp: icpF * W.icp, industry: indF * W.industry, role: role.f * W.role, size: sizeF * W.size, activity: actF * W.activity };
+  const total = Math.round(Object.values(parts).reduce((a, b) => a + b, 0));
+  return { total, parts, segment: best?.name || (adjacent ? 'Adjacent industry' : ''), roleTier: role.tier, countryOk, excluded,
+    activity: researchSignal ? ai.research.signal + ' (found by research)' : dataSignal ? 'The record mentions "' + dataSignal.p + '"' : '' };
+}
+function providerStatus(x) {
+  const s = nkey(x);
+  if (!s) return '';
+  if (['valid', 'verified', 'ok', 'deliverable', 'safe', 'safetosend'].includes(s)) return 'verified';
+  if (['invalid', 'bounced', 'bounce', 'undeliverable', 'spamtrap', 'abuse', 'donotmail', 'disposable', 'unavailable', 'syntaxerror', 'hardbounce', 'invalidsyntax'].includes(s)) return 'invalid';
+  if (['unverified', 'likelytoengage', 'pending', 'new', 'notchecked', 'unchecked'].includes(s)) return '';
+  return 'risky';
+}
+const EMAIL_RE = /^[a-z0-9._%+'-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/;
+function emailCheck(L, seen) {
+  const e = lc(L.email);
+  if (!e) return { status: 'missing', note: 'No email in the record' };
+  if (!EMAIL_RE.test(e)) return { status: 'invalid', note: 'Not a valid address' };
+  const [local, domain] = e.split('@');
+  if (/not_unlocked|notunlocked/.test(local) || domain === 'domain.com') return { status: 'invalid', note: 'Locked placeholder from the export' };
+  if (DISPOSABLE.has(domain)) return { status: 'invalid', note: 'Disposable domain' };
+  if (ROLE_LOCAL.has(local.replace(/[0-9]+$/, ''))) return { status: 'role', note: 'Role mailbox (' + local + '@)' };
+  if (seen.has(e)) return { status: 'duplicate', note: 'Same address as ' + seen.get(e) };
+  seen.set(e, leadName(L) || L.company || 'another row');
+  const p = providerStatus(L.emailStatus);
+  if (p === 'invalid') return { status: 'invalid', note: 'Verifier: ' + L.emailStatus };
+  const notes = [];
+  if (FREE_MAIL.has(domain)) notes.push('Personal mailbox');
+  else if (L.domain && !sameDomain(domain, L.domain)) notes.push('Domain differs from website');
+  if (p === 'verified') return { status: 'verified', note: notes.join(' · ') || 'Provider says ' + lc(L.emailStatus) };
+  if (p === 'risky') return { status: 'risky', note: [L.emailStatus, ...notes].join(' · ') };
+  return notes.length ? { status: 'risky', note: notes.join(' · ') } : { status: 'unchecked', note: 'Syntax OK, not verified yet' };
+}
+const EMAIL_STATUS = {
+  verified:  { label: 'Verified',          cls: 'good', keep: true },
+  unchecked: { label: 'Not verified yet',  cls: 'info', keep: true },
+  risky:     { label: 'Risky',             cls: 'warn', keep: true },
+  role:      { label: 'Role mailbox',      cls: 'bad',  keep: false },
+  duplicate: { label: 'Duplicate',         cls: 'bad',  keep: false },
+  invalid:   { label: 'Invalid',           cls: 'bad',  keep: false },
+  missing:   { label: 'No email',          cls: 'mute', keep: false },
+};
+const BANNED_RE = BANNED.map(b => ({ b, re: phraseRe(b) }));
+function qcCheck(r) {
+  const issues = []; const L = r.L; const ai = S.ai[L.key];
+  if (!r.hasName) issues.push('Missing name');
+  if (!r.usable) issues.push('Email: ' + EMAIL_STATUS[r.em.status].label.toLowerCase());
+  if (ai?.emails) {
+    const tok = companyToken(L.company);
+    if (!str(ai.emails.subject)) issues.push('No subject line');
+    for (const v of ['a', 'b', 'c']) {
+      const body = str(ai.emails[v]); const label = 'Variant ' + v.toUpperCase();
+      if (!body) { issues.push(label + ' is empty'); continue; }
+      const words = wordCount(body + ' ' + S.out.cta);
+      if (words > 80) issues.push(`${label}: ${words} words (limit 80)`);
+      if (tok && !lc(body).includes(tok)) issues.push(`${label} doesn't name ${L.company}`);
+      const hit = BANNED_RE.find(x => x.re.test(lc(body)));
+      if (hit) issues.push(`${label} uses "${hit.b}"`);
+    }
+  }
+  return { ok: issues.length === 0, issues };
+}
+function derive() {
+  const C = compileIcp(S.icp); const W = normWeights(S.out.weights); const seen = new Map();
+  const rows = []; const byKey = new Map();
+  const c = { total: S.leads.length, usable: 0, qualified: 0, researched: 0, personalized: 0, qcPass: 0, qcFail: 0, exportable: 0, status: {}, bands: { top: 0, mid: 0, low: 0 } };
+  for (const k of Object.keys(EMAIL_STATUS)) c.status[k] = 0;
+  for (const L of S.leads) {
+    const ai = S.ai[L.key];
+    const r = { L, em: emailCheck(L, seen), sc: scoreLead(L, C, W, ai) };
+    r.usable = EMAIL_STATUS[r.em.status].keep && (!S.out.requireVerified || r.em.status === 'verified');
+    r.hasName = leadName(L).length >= 2;
+    r.qualified = r.usable && r.hasName && r.sc.total >= S.out.threshold;
+    r.researched = !!ai?.research; r.personalized = !!ai?.emails;
+    r.qc = r.qualified ? qcCheck(r) : null;
+    r.exportable = r.qualified && r.qc.ok && (r.personalized || S.out.includeUnpersonalized);
+    c.status[r.em.status]++;
+    if (r.usable) c.usable++;
+    if (r.qualified) { c.qualified++; if (r.researched) c.researched++; if (r.personalized) c.personalized++; }
+    if (r.qualified && r.personalized) { if (r.qc.ok) c.qcPass++; else c.qcFail++; }
+    if (r.exportable) c.exportable++;
+    if (r.usable) { if (r.sc.total >= 90) c.bands.top++; else if (r.sc.total >= S.out.threshold) c.bands.mid++; else c.bands.low++; }
+    rows.push(r); byKey.set(L.key, r);
+  }
+  D = { rows, byKey, c, C };
+}
+const ranked = () => D.rows.filter(r => r.qualified).sort((a, b) => b.sc.total - a.sc.total);
+
+/* ───────────── persistence ───────────── */
+const canWrite = () => !!S.db && !S.readOnly;
+async function dbw(fn) {
+  try { return await fn(); }
+  catch (e) { if (e?.code === 'unavailable') { await sleep(400 + Math.random() * 700); return await fn(); } throw e; }
+}
+function setSave(s, note = '') { S.save = s; S.saveNote = note; renderTop(); }
+function dbFail(e) {
+  const c = e?.code;
+  if (c === 'invalid_argument' && !S.readOnly) { S.readOnly = true; setSave('view'); toast('You can use this engine, but your changes are not saved for others.'); }
+  else if (c === 'quota_exceeded') { setSave('error'); toast('Storage is full. Remove leads before importing more.'); }
+  else if (c === 'revoked') { S.db = null; setSave('off'); }
+  else { setSave('error'); toast('Saving failed (' + (c || 'error') + '). Your work stays on this page; try again.'); }
+}
+async function saveDoc(path, data) {
+  if (!canWrite()) return;
+  setSave('saving');
+  try { await dbw(() => S.db.doc(path).set(data)); setSave('saved'); } catch (e) { dbFail(e); }
+}
+let outTimer;
+function saveOutSoon() { clearTimeout(outTimer); outTimer = setTimeout(() => saveDoc('config/outreach', structuredClone(S.out)), 700); }
+const chunkId = i => 'c' + String(i).padStart(4, '0');
+async function saveLeads(extraMeta = {}) {
+  if (!canWrite()) return true;
+  const size = 100; const n = Math.ceil(S.leads.length / size);
+  try {
+    for (let i = 0; i < n; i++) {
+      setSave('saving', `Saving leads ${i + 1}/${n}`);
+      await dbw(() => S.db.doc('leads/' + chunkId(i)).set({ i, rows: S.leads.slice(i * size, (i + 1) * size), updatedAt: Date.now() }));
+    }
+    for (let i = n; i < S.chunkCount; i++) await dbw(() => S.db.doc('leads/' + chunkId(i)).delete());
+    S.chunkCount = n;
+    S.meta = { ...S.meta, ...extraMeta, count: S.leads.length, chunks: n, updatedAt: Date.now() };
+    await dbw(() => S.db.doc('meta/state').set(S.meta));
+    setSave('saved');
+    return true;
+  } catch (e) { dbFail(e); return false; }
+}
+async function saveAi(key) {
+  if (!canWrite()) return;
+  try { await dbw(() => S.db.doc('ai/' + key).set(S.ai[key])); } catch (e) { dbFail(e); }
+}
+async function loadAll() {
+  try {
+    const [co, icp, out, meta] = await Promise.all(['config/company', 'config/icp', 'config/outreach', 'meta/state'].map(p => S.db.doc(p).get()));
+    if (co.exists) { const d = co.data(); S.company = d.profile || null; S.coSource = { url: str(d.sourceUrl), text: str(d.sourceText) }; }
+    if (icp.exists) S.icp = icp.data().icp || null;
+    if (out.exists) { const o = out.data(); S.out = { ...structuredClone(DEFAULT_OUT), ...o, weights: { ...DEFAULT_OUT.weights, ...(o.weights || {}) } }; }
+    if (meta.exists) S.meta = { ...meta.data() };
+    const ls = await S.db.collection('leads').limit(1000).get();
+    const chunks = ls.docs.map(d => d.data()).filter(Boolean).sort((a, b) => (a.i || 0) - (b.i || 0));
+    S.chunkCount = chunks.reduce((m, c) => Math.max(m, (c.i || 0) + 1), 0);
+    S.leads = chunks.flatMap(c => Array.isArray(c.rows) ? c.rows : []).filter(r => r && r.key).map(fillLead);
+    S.ai = {}; let last = '';
+    for (let guard = 0; guard < 60; guard++) {
+      const s = await S.db.collection('ai').where('k', '>', last).orderBy('k').limit(500).get();
+      for (const d of s.docs) { const v = d.data(); if (v?.k) S.ai[v.k] = v; }
+      if (s.size < 500) break;
+      last = s.docs[s.size - 1].data().k;
+    }
+    setSave(S.readOnly ? 'view' : 'saved');
+  } catch (e) {
+    S.loadError = 'Saved data could not be loaded (' + (e?.code || 'error') + '). Reload the page to try again.';
+    setSave('error');
+  }
+}
+function fillLead(r) {
+  const o = { key: '', company: '', website: '', domain: '', industry: '', employees: null, country: '', city: '', firstName: '', lastName: '', name: '', title: '', email: '', emailStatus: '', linkedin: '', keywords: '', description: '', signals: '', source: '', ex: false };
+  for (const k in o) if (r[k] != null) o[k] = r[k];
+  o.employees = r.employees == null || r.employees === '' ? null : Number(r.employees);
+  return o;
+}
+
+/* ───────────── AI agents (prompts) ───────────── */
+const sellerBrief = () => JSON.stringify({
+  company: S.company?.company, product: S.company?.product, value_proposition: S.company?.value_proposition,
+  paying_customer: S.company?.paying_customer, pain_points: S.company?.pain_points, proof_points: S.company?.proof_points,
+  offer: S.company?.offer, markets: S.company?.markets,
+});
+function promptCompany(url, text) {
+  return `You are the Company Intelligence agent of a B2B lead engine. Read the website content below and describe this company as a seller, so other agents can find its buyers and write to them.
+
+Use only what the content says. Where it says nothing, use "" or [].
+
+Reply with only a JSON object in this shape:
+{"company":"","website":"","product":"","category":"","industry":"","value_proposition":"","paying_customer":"","ideal_customer":[""],"pain_points":[""],"proof_points":[""],"offer":"","pricing_model":"","markets":[""],"platforms":"","not_a_fit":[""]}
+
+- product: one sentence: what it is and who uses it.
+- paying_customer: who pays, and how.
+- ideal_customer: 4-8 kinds of organisations that buy it.
+- pain_points: 4-8 problems of those buyers that the product solves, in the buyers' words.
+- proof_points: concrete features or facts from the content that back the value proposition.
+- markets: countries or cities where the content says the product is available.
+- not_a_fit: kinds of organisations that look similar but would not buy.
+
+Website: ${url || '(not given)'}
+Content:
+"""
+${text}
+"""`;
+}
+function promptIcp(goals, countries) {
+  return `You are the ICP Builder agent of a B2B lead engine. Turn the seller profile into targeting rules that a program applies to thousands of contact records exported from Apollo or People Data Labs.
+
+Seller profile (JSON): ${JSON.stringify(S.company)}
+Target segments chosen by the user: ${JSON.stringify(goals)}
+Target countries: ${JSON.stringify(countries)}
+
+Reply with only a JSON object in this shape:
+{"segments":[{"name":"","source":"goal","keywords":[""],"why":""}],"adjacent_keywords":[""],"exclude_keywords":[""],"titles":{"decision":[""],"operator":[""],"exclude":[""]},"employees":{"min":2,"sweet_min":5,"sweet_max":500,"max":5000},"signal_keywords":[""],"apollo":{"person_titles":[""],"person_seniorities":[""],"organization_locations":[""],"organization_num_employees_ranges":["11,50"],"q_organization_keyword_tags":[""]},"pdl_sql":""}
+
+Rules:
+- One segment per user-chosen segment (source "goal"). Add at most 3 more (source "website") only when the seller profile names another clear buyer type.
+- keywords: 10-20 lowercase words or short phrases per segment, as they appear in company names, LinkedIn industries, Apollo keywords and company descriptions in the target countries.
+- why: one sentence on why that segment buys.
+- adjacent_keywords: industries that are sometimes a fit. exclude_keywords: phrases that mark a company as a non-buyer or a competitor.
+- titles.decision: owners and executives who can buy. titles.operator: people who run the spaces or operations day to day. titles.exclude: titles that never buy. All lowercase; 10-40 each for decision and operator.
+- employees: the company-size band where buyers are most common (sweet_min..sweet_max) and the acceptable outer band (min..max).
+- signal_keywords: lowercase words in a record that show recent activity (hiring, opening, expansion, funding...).
+- apollo: filters for Apollo's People Search. pdl_sql: one People Data Labs SQL query (SELECT * FROM person WHERE ...) using location_country, job_company_industry, job_title_levels and work_email IS NOT NULL, values lowercase.`;
+}
+function promptResearch(rows) {
+  const leads = rows.map(r => ({
+    key: r.L.key, name: leadName(r.L), title: r.L.title, company: r.L.company, industry: r.L.industry,
+    employees: r.L.employees, country: r.L.country, city: r.L.city, segment: r.sc.segment,
+    keywords: str(r.L.keywords).slice(0, 300), description: str(r.L.description).slice(0, 400), signals: str(r.L.signals).slice(0, 300),
+  }));
+  return `You are the Lead Research agent of ${S.company?.company || 'the seller'}'s lead engine. For each lead, work out why they could buy, using ONLY the facts given.
+
+Seller: ${sellerBrief()}
+
+For every lead return:
+- "signal": a concrete, current fact about the lead's company taken from its own fields (signals, description, keywords), paraphrased without adding details, e.g. "Hiring a leasing coordinator" or "Runs a business center in Achrafieh". If the fields hold no such fact, return "" and signal_source "none"; otherwise signal_source "data".
+- "pain_point": the problem this lead most likely has that the seller solves, under 15 words, based on their role and type of business.
+- "reason_selected": one sentence on why this lead fits: role, type of business, market.
+- "summary": under 25 words describing the company from the given fields.
+Never invent numbers, news, events, people or places.
+
+Reply with only a JSON array, one object per lead, in the same order:
+[{"key":"","signal":"","signal_source":"data","pain_point":"","reason_selected":"","summary":""}]
+
+Leads:
+${JSON.stringify(leads)}`;
+}
+function promptEmails(rows) {
+  const leads = rows.map(r => {
+    const rs = S.ai[r.L.key]?.research || {};
+    return { key: r.L.key, first_name: firstName(r.L), title: r.L.title, company: r.L.company, city: r.L.city, country: r.L.country,
+      segment: r.sc.segment, signal: str(rs.signal), signal_source: rs.signal_source === 'data' ? 'data' : 'none', pain_point: str(rs.pain_point) };
+  });
+  return `You are the Personalized Outreach agent for ${S.company?.company || 'the seller'}. Write a short cold email for each lead, in three variants.
+
+Seller: ${sellerBrief()}
+Sender: ${S.out.senderName || '(name added later)'}${S.out.senderTitle ? ', ' + S.out.senderTitle : ''}
+
+Each variant is the BODY only: no greeting, no sign-off and no call to action. The page puts "Hi <first name>," before it and "${S.out.cta}" plus the signature after it.
+- At most 60 words, 2-3 short sentences.
+- Name the lead's company and speak to their role.
+- Use the signal only when signal_source is "data". Otherwise refer to their type of business; never invent an event, number or piece of news.
+- Never say or imply the seller operates in a country or city that is not in its markets.
+- Plain words. No exclamation marks, no long introduction, no marketing language, and none of: ${BANNED.join(', ')}.
+- variant_a (curiosity): open with a specific question or observation about their space or operations.
+- variant_b (problem): name the pain point and how the product removes it.
+- variant_c (growth): frame it as extra income, occupancy or growth for them.
+- subject: at most 6 words, lowercase except names, no clickbait.
+
+Reply with only a JSON array, one object per lead, in the same order:
+[{"key":"","subject":"","variant_a":"","variant_b":"","variant_c":""}]
+
+Leads:
+${JSON.stringify(leads)}`;
+}
+function sampleErr(e) {
+  const c = e?.code;
+  switch (c) {
+    case 'cancelled': return '';
+    case 'not_granted': case 'sampling_disabled': case 'not_declared': case 'capability_disabled': case 'capability_removed':
+      S.aiOff = true; return 'Claude is not allowed on this page. Allow it in the artifact\'s permissions, then reload to run the AI agents.';
+    case 'rate_limited': return 'Claude usage limit reached. Finished work is saved; run this again later to continue.';
+    case 'session_expired': return 'Your Claude session expired. Sign in again, then rerun.';
+    case 'invalid_json': return 'Claude answered in an unexpected format. Run it again.';
+    case 'refused': return 'Claude declined this input. Change the content and try again.';
+    case 'prompt_too_large': return 'The input is too long. Paste less text.';
+    case 'empty_completion': return 'Claude returned nothing. Run it again with less input.';
+    default: return 'Claude could not finish (' + (c || 'error') + '). Run it again.';
+  }
+}
+const aiReady = () => !!S.sample && !S.aiOff;
+
+function normalizeProfile(p, url) {
+  return {
+    company: str(p.company), website: str(p.website) || url, product: str(p.product), category: str(p.category), industry: str(p.industry),
+    value_proposition: str(p.value_proposition), paying_customer: str(p.paying_customer), ideal_customer: arr(p.ideal_customer),
+    pain_points: arr(p.pain_points), proof_points: arr(p.proof_points), offer: str(p.offer), pricing_model: str(p.pricing_model),
+    markets: arr(p.markets), platforms: str(p.platforms), not_a_fit: arr(p.not_a_fit),
+  };
+}
+function normalizeIcp(o, goals, countries) {
+  const segs = (Array.isArray(o.segments) ? o.segments : []).map(s => ({ name: str(s.name), source: str(s.source) === 'website' ? 'website' : 'goal', keywords: arr(s.keywords).map(k => k.toLowerCase()), why: str(s.why) })).filter(s => s.name && s.keywords.length);
+  const e = o.employees || {};
+  return {
+    goals, countries, segments: segs,
+    adjacent_keywords: arr(o.adjacent_keywords).map(k => k.toLowerCase()), exclude_keywords: arr(o.exclude_keywords).map(k => k.toLowerCase()),
+    titles: { decision: arr(o.titles?.decision).map(k => k.toLowerCase()), operator: arr(o.titles?.operator).map(k => k.toLowerCase()), exclude: arr(o.titles?.exclude).map(k => k.toLowerCase()) },
+    employees: { min: +e.min || 1, sweet_min: +e.sweet_min || 5, sweet_max: +e.sweet_max || 500, max: +e.max || 5000 },
+    signal_keywords: arr(o.signal_keywords).map(k => k.toLowerCase()),
+    apollo: typeof o.apollo === 'object' && o.apollo ? o.apollo : {}, pdl_sql: str(o.pdl_sql),
+  };
+}
+
+async function analyzeCompany() {
+  const url = norm($('#coUrl')?.value); const text = ($('#coText')?.value || '').trim();
+  S.coSource = { url, text };
+  if (text.length < 200) { S.msg.company = 'Paste at least a few paragraphs of website text (homepage, About, Features, Pricing). The page cannot open websites itself.'; render(); return; }
+  if (!aiReady()) return;
+  const ctl = new AbortController(); S.busy.company = ctl; S.msg.company = ''; render();
+  try {
+    const p = await S.sample.json(promptCompany(url, text.slice(0, 60000)), { modelTier: 'default', signal: ctl.signal });
+    if (!p || typeof p !== 'object' || Array.isArray(p) || !str(p.company)) throw { code: 'invalid_json' };
+    S.company = normalizeProfile(p, url);
+    await saveDoc('config/company', { profile: S.company, sourceUrl: url, sourceText: text.slice(0, 60000), updatedAt: Date.now() });
+    toast('Company profile updated');
+  } catch (e) { S.msg.company = sampleErr(e); }
+  finally { S.busy.company = null; render(); }
+}
+async function buildIcp() {
+  const goals = arr(S.icp?.goals); const countries = arr(S.icp?.countries);
+  if (!S.company) { S.msg.icp = 'Analyze the company first (step 1).'; render(); return; }
+  if (!goals.length || !countries.length) { S.msg.icp = 'Add at least one target segment and one country.'; render(); return; }
+  if (!aiReady()) return;
+  const ctl = new AbortController(); S.busy.icp = ctl; S.msg.icp = ''; render();
+  try {
+    const o = await S.sample.json(promptIcp(goals, countries), { modelTier: 'default', signal: ctl.signal });
+    if (!o || typeof o !== 'object' || !Array.isArray(o.segments)) throw { code: 'invalid_json' };
+    S.icp = normalizeIcp(o, goals, countries);
+    await saveDoc('config/icp', { icp: S.icp, updatedAt: Date.now() });
+    derive(); toast('Targeting rules rebuilt');
+  } catch (e) { S.msg.icp = sampleErr(e); }
+  finally { S.busy.icp = null; render(); }
+}
+
+/* batch runner: sequential batches, two at a time, started by a click, stoppable */
+async function applyBatch(phase, batch, out) {
+  const list = Array.isArray(out) ? out : (Array.isArray(out?.leads) ? out.leads : []);
+  const want = new Set(batch.map(r => r.L.key));
+  let ok = 0;
+  for (const o of list) {
+    const key = str(o?.key); if (!want.has(key)) continue;
+    const cur = S.ai[key] || { k: key };
+    if (phase === 'research') {
+      cur.research = { signal: str(o.signal).slice(0, 300), signal_source: o.signal_source === 'data' && str(o.signal) ? 'data' : 'none',
+        pain_point: str(o.pain_point).slice(0, 200), reason_selected: str(o.reason_selected).slice(0, 400), summary: str(o.summary).slice(0, 300) };
+    } else {
+      if (!str(o.variant_a) && !str(o.variant_b) && !str(o.variant_c)) continue;
+      cur.emails = { subject: str(o.subject).slice(0, 120), a: str(o.variant_a).slice(0, 1200), b: str(o.variant_b).slice(0, 1200), c: str(o.variant_c).slice(0, 1200) };
+    }
+    cur.at = Date.now(); S.ai[key] = cur; want.delete(key); ok++;
+    await saveAi(key);
+  }
+  return ok;
+}
+async function runBatches(phase, rows, size) {
+  const batches = chunk(rows, size); let i = 0; let fails = 0;
+  S.job.phase = phase; renderJob();
+  const worker = async () => {
+    while (!S.job.stop && i < batches.length) {
+      const b = batches[i++]; const ctl = new AbortController(); S.job.ctls.add(ctl);
+      try {
+        const prompt = phase === 'research' ? promptResearch(b) : promptEmails(b);
+        const out = await S.sample.json(prompt, { modelTier: phase === 'research' ? 'quick' : 'default', signal: ctl.signal });
+        const ok = await applyBatch(phase, b, out);
+        S.job.done += b.length; S.job.failed += b.length - ok; fails = 0;
+      } catch (e) {
+        if (e?.code === 'cancelled') { S.job.stop = true; break; }
+        if (FATAL.has(e?.code)) { S.job.stop = true; S.job.error = sampleErr(e); break; }
+        S.job.done += b.length; S.job.failed += b.length; fails++;
+        if (fails >= 3) { S.job.stop = true; S.job.error = 'Three batches in a row failed (' + (e?.code || 'error') + '). Finished work is saved; run it again to continue.'; }
+      } finally {
+        S.job.ctls.delete(ctl); derive(); renderJob(); renderRail();
+      }
+    }
+  };
+  await Promise.all([worker(), worker()]);
+}
+async function runAgents(kind) {
+  if (S.job || !aiReady()) return;
+  if (!S.company || !S.icp) { toast('Finish steps 1 and 2 first.'); return; }
+  const n = clampInt(S.out.topN, 1, 500);
+  const pool = ranked().slice(0, n);
+  const needR = pool.filter(r => !S.ai[r.L.key]?.research);
+  const needE = kind === 'emails' ? pool.filter(r => !S.ai[r.L.key]?.emails) : [];
+  if (!needR.length && !needE.length) { toast(pool.length ? 'The top ' + pool.length + ' leads are already done.' : 'No qualified leads yet.'); return; }
+  S.job = { kind, phase: '', total: needR.length + needE.length, done: 0, failed: 0, ctls: new Set(), stop: false, error: '' };
+  render();
+  if (needR.length) await runBatches('research', needR, 10);
+  if (!S.job.stop && needE.length) await runBatches('emails', needE, 5);
+  const j = S.job; S.job = null; derive();
+  S.msg.job = j.error || (j.stop ? 'Stopped. Finished leads are saved.' : `Done: ${fmt(j.done - j.failed)} leads processed${j.failed ? ', ' + fmt(j.failed) + ' failed (run again to retry them)' : ''}.`);
+  render();
+}
+function stopJob() { if (!S.job) return; S.job.stop = true; for (const c of S.job.ctls) c.abort(); renderJob(); }
+async function rewriteOne(key) {
+  const r = D.byKey.get(key); if (!r || !aiReady() || S.busy.one) return;
+  const ctl = new AbortController(); S.busy.one = ctl; S.msg.one = ''; renderDrawer();
+  try {
+    if (!S.ai[key]?.research) { const o = await S.sample.json(promptResearch([r]), { modelTier: 'quick', signal: ctl.signal }); await applyBatch('research', [r], o); derive(); }
+    const o = await S.sample.json(promptEmails([D.byKey.get(key)]), { modelTier: 'default', signal: ctl.signal, cache: false });
+    const ok = await applyBatch('emails', [r], o);
+    if (!ok) throw { code: 'invalid_json' };
+    toast('Emails rewritten');
+  } catch (e) { S.msg.one = sampleErr(e); }
+  finally { S.busy.one = null; derive(); render(); renderDrawer(); }
+}
+
+/* ───────────── import ───────────── */
+function autoMap(headers) {
+  const nh = headers.map(h => ({ h, n: nkey(h) })); const map = {}; const used = new Set();
+  for (const f of FIELDS) {
+    for (const a of f.al) { const hit = nh.find(x => x.n === a && !used.has(x.h)); if (hit) { map[f.k] = hit.h; used.add(hit.h); break; } }
+  }
+  return map;
+}
+const autoSignals = headers => headers.filter(h => SIGNAL_HINTS.some(s => nkey(h).includes(s)));
+function guessSource(headers) {
+  const n = headers.map(nkey);
+  if (n.includes('apollocontactid') || n.includes('personlinkedinurl') || n.includes('companynameforemails')) return 'Apollo';
+  if (n.includes('jobcompanyname') || n.includes('workemail') && n.includes('fullname')) return 'People Data Labs';
+  return 'Import';
+}
+function flattenJson(rec) {
+  const o = {};
+  for (const [k, v] of Object.entries(rec || {})) {
+    if (v == null) continue;
+    if (Array.isArray(v)) { const s = v.filter(x => typeof x !== 'object').join(', '); if (s) o[k] = s; }
+    else if (typeof v !== 'object') o[k] = String(v);
+  }
+  return o;
+}
+async function readTable(file) {
+  const name = file.name.toLowerCase();
+  if (name.endsWith('.json')) {
+    const j = JSON.parse(await file.text());
+    const list = Array.isArray(j) ? j : Array.isArray(j?.data) ? j.data : Array.isArray(j?.people) ? j.people : [];
+    const rows = list.map(flattenJson);
+    const headers = [...new Set(rows.flatMap(r => Object.keys(r)))];
+    return { rows, headers };
+  }
+  if (!window.XLSX) throw new Error('The spreadsheet reader did not load. Reload the page and try again.');
+  const wb = /\.(csv|tsv|txt)$/.test(name) ? XLSX.read(await file.text(), { type: 'string', raw: true }) : XLSX.read(await file.arrayBuffer(), { type: 'array' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false, blankrows: false });
+  const headers = (aoa[0] || []).map((h, i) => norm(h) || 'Column ' + (i + 1));
+  const rows = aoa.slice(1).map(a => { const o = {}; headers.forEach((h, i) => { o[h] = a[i] == null ? '' : String(a[i]); }); return o; });
+  return { rows, headers };
+}
+async function onLeadFile(file) {
+  if (!file) return;
+  S.msg.import = '';
+  try {
+    const { rows, headers } = await readTable(file);
+    if (!rows.length) throw new Error('That file has no rows.');
+    S.import = { fileName: file.name, rows, headers, map: autoMap(headers), signals: autoSignals(headers), source: guessSource(headers), mode: (S.meta.example || !S.leads.length) ? 'replace' : 'add' };
+  } catch (e) { S.import = null; S.msg.import = 'Could not read ' + file.name + ': ' + (e?.message || 'unknown error'); }
+  render();
+}
+function rowToLead(r, map, sigCols, source) {
+  const g = k => map[k] ? norm(r[map[k]]) : '';
+  let first = g('firstName'); const last = g('lastName'); let name = g('name');
+  if (!name) name = norm([first, last].join(' '));
+  if (!first && name) first = name.split(' ')[0];
+  const site = g('website');
+  const email = lc(g('email')).replace(/^mailto:/, '');
+  let linkedin = g('linkedin'); if (linkedin && !/^https?:\/\//i.test(linkedin)) linkedin = 'https://' + linkedin.replace(/^\/+/, '');
+  const country = g('country'); const city = g('city');
+  const L = fillLead({
+    company: g('company').slice(0, 160), website: site ? (/^https?:\/\//i.test(site) ? site : 'https://' + site) : '', domain: toDomain(site),
+    industry: g('industry').slice(0, 120), employees: parseEmp(g('employees')),
+    country: canonCountry(country) || (country ? titleCase(country) : canonCountry(city)), city: titleCase(city).slice(0, 80),
+    firstName: first.slice(0, 60), lastName: last.slice(0, 60), name: name.slice(0, 120), title: g('title').slice(0, 160),
+    email, emailStatus: g('emailStatus').slice(0, 40), linkedin: linkedin.slice(0, 300),
+    keywords: g('keywords').slice(0, 400), description: g('description').slice(0, 600),
+    signals: sigCols.map(h => norm(r[h]) ? h + ': ' + norm(r[h]) : '').filter(Boolean).join(' · ').slice(0, 400),
+    source,
+  });
+  L.key = 'l' + hash(email || lc(L.name + '|' + L.company));
+  return L;
+}
+async function doImport() {
+  const im = S.import; if (!im || S.busy.import) return;
+  S.busy.import = true; render();
+  const incoming = []; const seenKeys = new Set();
+  for (const r of im.rows) {
+    const L = rowToLead(r, im.map, im.signals, im.source);
+    if (!leadName(L) && !L.email && !L.company) continue;
+    if (seenKeys.has(L.key)) continue; seenKeys.add(L.key); incoming.push(L);
+  }
+  const replace = im.mode === 'replace' || S.meta.example;
+  let next;
+  if (replace) next = incoming;
+  else {
+    const m = new Map(S.leads.map(L => [L.key, L]));
+    for (const L of incoming) { const cur = m.get(L.key); if (cur) { for (const k in L) if (L[k] !== '' && L[k] != null) cur[k] = L[k]; } else m.set(L.key, L); }
+    next = [...m.values()];
+  }
+  if (next.length > 20000) { S.busy.import = false; S.msg.import = 'This would hold ' + fmt(next.length) + ' leads; the engine keeps up to 20,000. Split the file or replace instead of adding.'; render(); return; }
+  const removed = Object.keys(S.ai).filter(k => !next.some(L => L.key === k));
+  S.leads = next; S.import = null;
+  const saved = await saveLeads({ example: false, source: im.source, lastImport: { file: im.fileName, rows: incoming.length, at: Date.now() } });
+  if (replace && removed.length) {
+    const keep = new Set(next.map(L => L.key));
+    for (const k of Object.keys(S.ai)) if (!keep.has(k)) { delete S.ai[k]; if (canWrite()) { try { await dbw(() => S.db.doc('ai/' + k).delete()); } catch (e) { dbFail(e); break; } } }
+  }
+  S.meta.example = false;
+  S.busy.import = false; derive();
+  toast(`Imported ${fmt(incoming.length)} leads${saved ? '' : ' (not saved)'}`);
+  go('verify');
+}
+async function onVerifyFile(file) {
+  if (!file) return;
+  try {
+    const { rows, headers } = await readTable(file);
+    const emailH = headers.find(h => ['email', 'emailaddress', 'workemail', 'address'].includes(nkey(h))) || headers.find(h => rows.slice(0, 20).some(r => /@/.test(r[h])));
+    const statusH = headers.find(h => ['result', 'status', 'emailstatus', 'verificationresult', 'verificationstatus', 'quality', 'state'].includes(nkey(h)));
+    if (!emailH || !statusH) throw new Error('Need an email column and a result or status column.');
+    const m = new Map(rows.map(r => [lc(r[emailH]), norm(r[statusH])]));
+    let n = 0;
+    for (const L of S.leads) { const s = m.get(lc(L.email)); if (s) { L.emailStatus = s.slice(0, 40); n++; } }
+    derive(); render();
+    await saveLeads();
+    toast(`Updated ${fmt(n)} email statuses from ${file.name}`);
+  } catch (e) { S.msg.verify = 'Could not read ' + file.name + ': ' + (e?.message || 'unknown error'); render(); }
+}
+
+/* ───────────── export ───────────── */
+function assemble(L, body) {
+  const sig = [S.out.senderName, S.out.senderTitle].filter(Boolean).join('\n');
+  return `Hi ${firstName(L)},\n\n${str(body)}\n\n${S.out.cta}${sig ? '\n\nBest,\n' + sig : ''}`;
+}
+function rejectReason(r) {
+  if (!r.usable) return EMAIL_STATUS[r.em.status].label + (r.em.note ? ': ' + r.em.note : '');
+  if (!r.hasName) return 'Missing name';
+  if (r.sc.total < S.out.threshold) return `Score ${r.sc.total} is below ${S.out.threshold}`;
+  if (r.qc && !r.qc.ok) return 'QC: ' + r.qc.issues.join('; ');
+  return '';
+}
+function sheet(aoa, widths, links = []) {
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = widths.map(w => ({ wch: w }));
+  if (aoa.length > 1) ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: aoa.length - 1, c: aoa[0].length - 1 } }) };
+  for (const col of links) for (let r = 1; r < aoa.length; r++) {
+    const v = aoa[r][col]; if (!/^https?:\/\//i.test(v || '')) continue;
+    const a = XLSX.utils.encode_cell({ r, c: col }); if (ws[a]) ws[a].l = { Target: v };
+  }
+  return ws;
+}
+function buildWorkbook() {
+  const rows = D.rows.filter(r => r.exportable).sort((a, b) => b.sc.total - a.sc.total);
+  const v = (S.out.variant || 'A').toLowerCase();
+  const ai = r => S.ai[r.L.key] || {};
+  const master = [['Company', 'Website', 'Industry', 'Employee Count', 'Country', 'City', 'Lead Name', 'Title', 'Email', 'Email Status', 'LinkedIn', 'Lead Score', 'Segment', 'Reason Selected', 'Personalized Email']];
+  const insights = [['Lead Name', 'Company', 'Segment', 'Lead Score', WEIGHT_LABELS.icp, WEIGHT_LABELS.industry, WEIGHT_LABELS.role, WEIGHT_LABELS.size, WEIGHT_LABELS.activity, 'Role Tier', 'Signal', 'Signal Source', 'Pain Point', 'Reason Selected', 'Company Summary']];
+  const outreach = [['Lead Name', 'Company', 'Email', 'Subject Line', 'Email Variant A (Curiosity)', 'Email Variant B (Problem)', 'Email Variant C (Growth)']];
+  for (const r of rows) {
+    const L = r.L; const a = ai(r); const rs = a.research || {}; const em = a.emails;
+    const reason = rs.reason_selected || `${r.sc.roleTier} at a ${r.sc.segment || 'target'} company in ${L.country || 'a target country'}`;
+    master.push([L.company, L.website, L.industry, L.employees ?? '', L.country, L.city, leadName(L), L.title, L.email, EMAIL_STATUS[r.em.status].label, L.linkedin, r.sc.total, r.sc.segment, reason, em ? assemble(L, em[v]) : '']);
+    const p = r.sc.parts;
+    insights.push([leadName(L), L.company, r.sc.segment, r.sc.total, Math.round(p.icp), Math.round(p.industry), Math.round(p.role), Math.round(p.size), Math.round(p.activity), r.sc.roleTier, rs.signal || r.sc.activity || '', rs.signal_source === 'data' ? 'From the lead record' : (rs.signal_source ? 'None found' : ''), rs.pain_point || '', reason, rs.summary || '']);
+    if (em) outreach.push([leadName(L), L.company, L.email, em.subject, assemble(L, em.a), assemble(L, em.b), assemble(L, em.c)]);
+  }
+  const rejected = [['Lead Name', 'Company', 'Title', 'Email', 'Lead Score', 'Reason']];
+  for (const r of D.rows) { if (r.exportable) continue; const why = rejectReason(r) || 'No personalized email (excluded by export setting)'; rejected.push([leadName(r.L), r.L.company, r.L.title, r.L.email, r.sc.total, why]); }
+  const c = D.c; const icp = S.icp || {};
+  const summary = [
+    ['ProHost Lead Engine export', ''], ['Generated', new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC'],
+    ['Data', S.meta.example ? 'EXAMPLE ROWS: fictional companies and people' : (S.meta.lastImport?.file || S.meta.source || 'Imported leads')],
+    ['Seller', S.company?.company || ''], ['Website', S.company?.website || ''], ['Product', S.company?.product || ''],
+    ['Target segments', (icp.segments || []).map(s => s.name).join(', ')], ['Countries', arr(icp.countries).join(', ')],
+    ['Score weights', Object.entries(normWeights(S.out.weights)).map(([k, w]) => WEIGHT_LABELS[k] + ' ' + Math.round(w)).join(' · ')],
+    ['Qualification threshold', S.out.threshold], ['Email variant in Lead Master', 'Variant ' + S.out.variant],
+    ['', ''], ['Leads imported', c.total], ['Usable emails', c.usable], ['Qualified (score ≥ ' + S.out.threshold + ')', c.qualified],
+    ['Researched', c.researched], ['Personalized', c.personalized], ['Failed QC', c.qcFail], ['Rows in Lead Master', rows.length], ['Rows in Rejected', rejected.length - 1],
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, sheet(master, [28, 30, 22, 10, 14, 14, 24, 30, 32, 14, 40, 8, 22, 50, 70], [1, 10]), 'Lead Master');
+  XLSX.utils.book_append_sheet(wb, sheet(insights, [24, 28, 22, 8, 8, 8, 8, 8, 8, 16, 46, 18, 40, 50, 50]), 'AI Insights');
+  XLSX.utils.book_append_sheet(wb, sheet(outreach, [24, 28, 32, 30, 70, 70, 70]), 'Outreach');
+  XLSX.utils.book_append_sheet(wb, sheet(rejected, [24, 28, 30, 32, 8, 60]), 'Rejected');
+  XLSX.utils.book_append_sheet(wb, sheet(summary, [32, 90]), 'Run Summary');
+  return { wb, count: rows.length };
+}
+async function exportExcel() {
+  if (!window.XLSX) { toast('The spreadsheet writer did not load. Reload the page.'); return; }
+  if (!S.leads.length) { toast('Import leads first (step 3).'); go('discover'); return; }
+  if (!S.downloads) { toast('Downloads are not available in this view. Open the page in claude.ai.'); return; }
+  const { wb, count } = buildWorkbook();
+  const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array', compression: true });
+  const filename = `ProHost-leads-${S.meta.example ? 'EXAMPLE-' : ''}${today()}.xlsx`;
+  try { const res = await S.downloads.save({ filename, data: new Blob([buf]) }); if (res?.status === 'saved') toast(`Saved ${filename} with ${fmt(count)} leads`); }
+  catch (e) {
+    const c = e?.code;
+    if (c === 'declined') return;
+    if (c === 'rate_limited') toast('A download prompt is already open.');
+    else toast('The download could not start (' + (c || 'error') + ').');
+  }
+}
+async function exportVerifyCsv() {
+  const emails = [...new Set(D.rows.filter(r => r.em.status === 'unchecked' || r.em.status === 'risky').map(r => lc(r.L.email)))];
+  if (!emails.length) { toast('No addresses need verifying.'); return; }
+  if (!S.downloads) { toast('Downloads are not available in this view.'); return; }
+  try { await S.downloads.save({ filename: `emails-to-verify-${today()}.csv`, data: 'email\n' + emails.join('\n') + '\n' }); }
+  catch (e) { if (e?.code !== 'declined') toast('The download could not start (' + (e?.code || 'error') + ').'); }
+}
+
+/* ───────────── rendering ───────────── */
+function go(view) { if (!VIEWS.has(view)) return; S.view = view; lsSet('pl-view', view); render(); window.scrollTo({ top: 0 }); }
+function stageStat(id) {
+  const c = D.c;
+  switch (id) {
+    case 'company': return S.company ? (S.company.company || 'Profile') + ' profile' : 'Not analyzed';
+    case 'icp': return S.icp ? `${(S.icp.segments || []).length} segments · ${arr(S.icp.countries).length} countries` : 'No rules yet';
+    case 'discover': return S.leads.length ? fmt(c.total) + (S.meta.example ? ' example leads' : ' leads') : 'No leads yet';
+    case 'verify': return S.leads.length ? `${fmt(c.usable)} usable emails` : '—';
+    case 'research': return c.qualified ? `${fmt(c.researched)} of top leads researched` : '—';
+    case 'score': return S.leads.length ? `${fmt(c.qualified)} qualified ≥ ${S.out.threshold}` : '—';
+    case 'outreach': return c.qualified ? `${fmt(c.personalized)} leads with emails` : '—';
+    case 'qc': return c.personalized ? `${fmt(c.qcPass)} pass · ${fmt(c.qcFail)} fail` : '—';
+    case 'export': return S.leads.length ? `${fmt(c.exportable)} rows ready` : '—';
+  }
+  return '';
+}
+function stageDone(id) {
+  const c = D.c;
+  return { company: !!S.company, icp: !!S.icp, discover: S.leads.length > 0, verify: S.leads.length > 0, research: c.researched > 0, score: c.qualified > 0, outreach: c.personalized > 0, qc: c.personalized > 0 && c.qcFail === 0, export: c.exportable > 0 }[id];
+}
+function renderRail() {
+  const item = (id, n, name, stat, done) => `<button class="step${S.view === id ? ' is-active' : ''}${done ? ' is-done' : ''}" data-act="go" data-view="${id}" ${S.view === id ? 'aria-current="page"' : ''}>
+    <span class="step-n">${n}</span><span><span class="step-name">${esc(name)}</span><span class="step-stat">${esc(stat)}</span></span></button>`;
+  $('#rail').innerHTML = `<div class="rail-label">Engine</div>
+    ${item('overview', '◎', 'Overview', S.leads.length ? `${fmt(D.c.exportable)} leads ready for Excel` : 'Pipeline status', false)}
+    ${item('leads', '≡', 'All leads', S.leads.length ? fmt(S.leads.length) + ' in the engine' : 'Empty', false)}
+    <hr><div class="rail-label">Agents</div>
+    ${STAGES.map(s => item(s.id, s.n, s.name, stageStat(s.id), stageDone(s.id))).join('')}`;
+}
+function renderTop() {
+  const el = $('#savePill'); if (!el) return;
+  const t = { idle: 'Loading…', saved: 'Saved', saving: S.saveNote || 'Saving…', error: 'Not saved', off: 'Not saving: sign in to keep your work', view: 'View only' }[S.save] || '';
+  el.dataset.s = S.save; el.querySelector('span').textContent = t;
+  $('#brandSub').textContent = S.company?.company ? `Finding buyers for ${S.company.company}` : 'Company → ICP → leads → research → emails → Excel';
+}
+function render() {
+  renderTop(); renderRail();
+  const v = S.view;
+  const body = { overview: viewOverview, leads: viewLeads, company: viewCompany, icp: viewIcp, discover: viewDiscover, verify: viewVerify, research: viewResearch, score: viewScore, outreach: viewOutreach, qc: viewQc, export: viewExport }[v]();
+  const banner = S.meta.example ? `<div class="banner"><span><b>Example data.</b> These ${fmt(S.leads.length)} leads are fictional companies with <code>.example</code> addresses, here to show how the engine works. Import your Apollo or People Data Labs export to replace them.</span><span class="spacer"></span><button class="btn sm" data-act="go" data-view="discover">Import leads</button></div>` : '';
+  const loadErr = S.loadError ? `<div class="err">${esc(S.loadError)}</div>` : '';
+  const noAi = S.loaded && !aiReady() ? `<div class="note">${S.aiOff ? 'Claude is not allowed on this page, so the AI agents are paused. Allow it in the artifact\'s permissions and reload.' : 'The AI agents need this page open in claude.ai. Scoring, verification and Excel export still work.'}</div>` : '';
+  $('#main').innerHTML = `<div class="wrap">${loadErr}${banner}${['company', 'icp', 'research', 'outreach'].includes(v) ? noAi : ''}${body}</div>`;
+  if (S.drawer) renderDrawer();
+}
+function jobHtml() {
+  const j = S.job;
+  if (!j) return S.msg.job ? `<div class="note">${esc(S.msg.job)}</div>` : '';
+  const pct = j.total ? Math.round(j.done / j.total * 100) : 0;
+  const label = j.phase === 'emails' ? 'Writing emails' : 'Researching leads';
+  return `<div class="job" aria-live="polite"><div class="row"><b>${label}</b><span class="muted small num">${fmt(j.done)} of ${fmt(j.total)}${j.failed ? ' · ' + fmt(j.failed) + ' failed' : ''}</span><span class="spacer"></span>${j.stop ? '<span class="small muted">Stopping…</span>' : '<button class="btn sm" data-act="stop">Stop</button>'}</div>
+    <div class="bar"><span style="width:${pct}%"></span></div><span class="small muted">Two batches run at a time on your Claude account. Each finished lead is saved right away.</span></div>`;
+}
+function renderJob() { const el = $('#jobBox'); if (el) el.innerHTML = jobHtml(); }
+function msgHtml(k) { return S.msg[k] ? `<div class="err">${esc(S.msg[k])}</div>` : ''; }
+function scoreChip(n) { return `<span class="score ${n >= S.out.threshold ? 'hi' : n >= S.out.threshold - 15 ? 'mid' : ''}">${n}</span>`; }
+function emailPill(r) { const s = EMAIL_STATUS[r.em.status]; return `<span class="pill ${s.cls}" title="${esc(r.em.note)}">${s.label}</span>`; }
+function stagePill(r) {
+  if (!r.usable) return emailPill(r);
+  if (!r.qualified) return '<span class="pill mute">Below threshold</span>';
+  if (r.personalized) return r.qc.ok ? '<span class="pill good">Emails ready</span>' : '<span class="pill bad">Failed QC</span>';
+  if (r.researched) return '<span class="pill info">Researched</span>';
+  return '<span class="pill info">Qualified</span>';
+}
+function leadRows(list) {
+  return list.map(r => `<tr class="click" data-act="lead" data-key="${esc(r.L.key)}" tabindex="0">
+    <td>${scoreChip(r.sc.total)}</td>
+    <td class="who"><b>${esc(leadName(r.L) || '—')}</b><span>${esc(r.L.title || 'No title')}</span></td>
+    <td class="who"><b>${esc(r.L.company || '—')}</b><span>${esc([r.L.city, r.L.country].filter(Boolean).join(', ') || '—')}${r.L.ex ? ' · example' : ''}</span></td>
+    <td class="who"><b class="mono" style="font-weight:400">${esc(r.L.email || '—')}</b><span>${emailPill(r)}</span></td>
+    <td>${stagePill(r)}</td></tr>`).join('');
+}
+function leadTable(list, empty) {
+  if (!list.length) return `<div class="empty"><p class="muted">${empty}</p></div>`;
+  return `<div class="tablewrap"><table class="t"><thead><tr><th>Score</th><th>Lead</th><th>Company</th><th>Email</th><th>Stage</th></tr></thead><tbody>${leadRows(list)}</tbody></table></div>`;
+}
+
+/* overview */
+function viewOverview() {
+  const c = D.c; const co = S.company; const icp = S.icp;
+  const steps = [
+    ['Leads imported', 'from ' + (S.meta.example ? 'example rows' : (S.meta.source || 'your exports')), c.total],
+    ['Usable emails', 'invalid, role and duplicate removed', c.usable],
+    ['Qualified', `score ≥ ${S.out.threshold}`, c.qualified],
+    ['Researched', 'signal, pain point, reason', c.researched],
+    ['Emails written', 'three variants each', c.personalized],
+    ['Passed QC', 'ready to send', c.qcPass],
+    ['In the Excel file', S.out.includeUnpersonalized ? 'qualified, emails where written' : 'only leads with emails', c.exportable],
+  ];
+  const max = Math.max(1, c.total);
+  let next;
+  if (!co) next = ['Analyze your website', 'Paste your website text so the engine knows what you sell.', 'company', 'Open step 1'];
+  else if (!icp) next = ['Build the ICP', 'Turn the company profile into segments, titles and keywords.', 'icp', 'Open step 2'];
+  else if (!S.leads.length || S.meta.example) next = ['Import real leads', 'Run the Apollo or People Data Labs search from step 3, export it, and drop the file in.', 'discover', 'Open step 3'];
+  else if (c.qualified && c.personalized < Math.min(c.qualified, S.out.topN)) next = ['Write emails for your top leads', `Research and three email variants for the top ${fmt(Math.min(c.qualified, S.out.topN))} qualified leads.`, 'outreach', 'Open step 7'];
+  else if (c.qcFail) next = ['Fix rows that failed QC', `${fmt(c.qcFail)} leads have emails that break a rule.`, 'qc', 'Open step 8'];
+  else next = ['Download the Excel file', `${fmt(c.exportable)} leads are ready.`, 'export', 'Open step 9'];
+  const top = ranked().slice(0, 6);
+  return `<section class="head"><p class="eyebrow">Lead intelligence engine</p>
+    <h1>${co ? 'Buyers for ' + esc(co.company) : 'Set up your lead engine'}</h1>
+    <p class="lede">${icp ? esc((icp.segments || []).map(s => s.name).join(', ')) + ' in ' + esc(arr(icp.countries).join(', ')) + '. ' : ''}Every lead is verified, scored, researched and given three short emails, then written to an Excel workbook.</p></section>
+    <div class="grid2">
+      <div class="card"><div class="card-head"><h2>Pipeline</h2><span class="small muted">counts update as agents run</span></div>
+        <div class="funnel">${steps.map(([l, s, n]) => `<div class="frow"><div class="lab">${l}<small>${esc(s)}</small></div><div class="track" aria-hidden="true"><span style="width:${(n / max * 100).toFixed(1)}%"></span></div><div class="val num">${fmt(n)}</div></div>`).join('')}</div></div>
+      <div class="card"><p class="eyebrow">Next step</p><h2>${esc(next[0])}</h2><p class="muted">${esc(next[1])}</p><div class="row"><button class="btn primary" data-act="go" data-view="${next[2]}">${next[3]}</button>${c.exportable ? '<button class="btn" data-act="export">Download Excel</button>' : ''}</div>
+        <hr style="border:0;border-top:1px solid var(--line);width:100%;margin:4px 0">
+        <dl class="kv small"><dt>Score bands</dt><dd class="num">${fmt(c.bands.top)} at 90+ · ${fmt(c.bands.mid)} at ${S.out.threshold}–89 · ${fmt(c.bands.low)} below</dd>
+        <dt>Removed emails</dt><dd class="num">${fmt(c.status.invalid)} invalid · ${fmt(c.status.role)} role · ${fmt(c.status.duplicate)} duplicate · ${fmt(c.status.missing)} missing</dd></dl></div>
+    </div>
+    <div class="card"><div class="card-head"><h2>Top qualified leads</h2><button class="btn ghost sm" data-act="go" data-view="leads">See all leads</button></div>
+      ${leadTable(top, S.leads.length ? 'No lead reaches the threshold yet. Lower it in step 6 or import a closer-fitting list.' : 'No leads yet. Import an export in step 3.')}</div>`;
+}
+
+/* 1. company */
+function viewCompany() {
+  const p = S.company; const busy = S.busy.company;
+  const list = a => arr(a).length ? `<ul>${arr(a).map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '<span class="muted">—</span>';
+  const form = `<div class="fields"><label class="f">Website<input id="coUrl" type="url" value="${esc(S.coSource.url || p?.website || '')}" placeholder="https://pro-host.tech"></label></div>
+    <label class="f">Website text (homepage, About, Features, Pricing, Help)<textarea id="coText" rows="9" placeholder="Paste the text of each page here. The page cannot open websites itself, so it reads what you paste.">${esc(S.coSource.text)}</textarea></label>
+    <div class="row"><button class="btn primary" data-act="analyze" ${busy || !aiReady() ? 'disabled' : ''}>${busy ? 'Analyzing…' : 'Analyze website'}</button>${busy ? '<button class="btn" data-act="cancel" data-k="company">Stop</button><span class="small muted">Takes up to a minute.</span>' : ''}</div>${msgHtml('company')}`;
+  const profile = !p ? '' : S.edit.company ? `<div class="card"><h2>Edit profile</h2><textarea id="editCompany" class="code">${esc(JSON.stringify(p, null, 2))}</textarea>${msgHtml('editCompany')}<div class="row"><button class="btn primary" data-act="saveEdit" data-k="company">Save profile</button><button class="btn" data-act="toggleEdit" data-k="company">Cancel</button></div></div>` :
+    `<div class="card"><div class="card-head"><h2>${esc(p.company)}</h2><button class="btn ghost sm" data-act="toggleEdit" data-k="company">Edit</button></div>
+      <dl class="kv"><dt>Website</dt><dd>${p.website ? `<a href="${esc(p.website)}" target="_blank" rel="noopener">${esc(p.website)}</a>` : '—'}</dd>
+      <dt>Product</dt><dd>${esc(p.product) || '—'}</dd><dt>Category</dt><dd>${esc(p.category) || '—'}</dd><dt>Industry</dt><dd>${esc(p.industry) || '—'}</dd>
+      <dt>Value proposition</dt><dd>${esc(p.value_proposition) || '—'}</dd><dt>Who pays</dt><dd>${esc(p.paying_customer) || '—'}</dd>
+      <dt>Ideal customers</dt><dd>${list(p.ideal_customer)}</dd><dt>Pain points</dt><dd>${list(p.pain_points)}</dd><dt>Proof points</dt><dd>${list(p.proof_points)}</dd>
+      <dt>Offer</dt><dd>${esc(p.offer) || '—'}</dd><dt>Pricing model</dt><dd>${esc(p.pricing_model) || '—'}</dd><dt>Markets</dt><dd>${list(p.markets)}</dd>
+      <dt>Platforms</dt><dd>${esc(p.platforms) || '—'}</dd><dt>Not a fit</dt><dd>${list(p.not_a_fit)}</dd></dl></div>`;
+  return `<section class="head"><p class="eyebrow">Agent 1 · Company intelligence</p><h1>What you sell, and to whom</h1>
+    <p class="lede">The brain of the engine. It reads your website and extracts the product, value proposition, buyers and their pain points. Every later agent works from this profile.</p></section>
+    ${profile || '<div class="empty"><h2>No company profile yet</h2><p class="muted">Paste your website text below and analyze it.</p></div>'}
+    <div class="card">${p ? `<details ${S.busy.company || S.msg.company ? 'open' : ''}><summary>Re-analyze from website text</summary>${form}</details>` : form}</div>`;
+}
+
+/* 2. ICP */
+function chipEditor(kind, items, placeholder) {
+  return `<div class="chips">${items.map((x, i) => `<span class="chip brand">${esc(x)}<button data-act="chipDel" data-kind="${kind}" data-i="${i}" aria-label="Remove ${esc(x)}">×</button></span>`).join('')}</div>
+    <div class="row"><input type="text" id="add-${kind}" placeholder="${placeholder}" style="max-width:280px"><button class="btn sm" data-act="chipAdd" data-kind="${kind}">Add</button></div>`;
+}
+function viewIcp() {
+  const icp = S.icp; const busy = S.busy.icp;
+  const chips = a => `<div class="chips">${arr(a).map(x => `<span class="chip">${esc(x)}</span>`).join('') || '<span class="muted small">—</span>'}</div>`;
+  const e = icp?.employees || {};
+  const rules = !icp?.segments?.length ? '<div class="empty"><h2>No targeting rules yet</h2><p class="muted">Choose segments and countries, then build the ICP.</p></div>' : S.edit.icp ?
+    `<div class="card"><h2>Edit targeting rules</h2><textarea id="editIcp" class="code">${esc(JSON.stringify(icp, null, 2))}</textarea>${msgHtml('editIcp')}<div class="row"><button class="btn primary" data-act="saveEdit" data-k="icp">Save rules</button><button class="btn" data-act="toggleEdit" data-k="icp">Cancel</button></div></div>` :
+    `<div class="card"><div class="card-head"><h2>Segments</h2><button class="btn ghost sm" data-act="toggleEdit" data-k="icp">Edit as JSON</button></div>
+      ${icp.segments.map(s => `<div class="seg"><div class="row"><h3>${esc(s.name)}</h3>${s.source === 'website' ? '<span class="pill info plain">Suggested from website</span>' : '<span class="pill mute plain">Your goal</span>'}</div><p class="muted small">${esc(s.why)}</p>${chips(s.keywords)}</div>`).join('')}
+      <div class="grid2"><div><h3>Adjacent industries</h3>${chips(icp.adjacent_keywords)}</div><div><h3>Excluded</h3>${chips(icp.exclude_keywords)}</div></div></div>
+    <div class="card"><h2>Titles</h2>
+      <div><h3>Decision makers <span class="muted small">· full role points</span></h3>${chips(icp.titles?.decision)}</div>
+      <div><h3>Run operations <span class="muted small">· 80% of role points</span></h3>${chips(icp.titles?.operator)}</div>
+      <div><h3>Never buy <span class="muted small">· zero role points</span></h3>${chips(icp.titles?.exclude)}</div></div>
+    <div class="grid2"><div class="card"><h2>Company size</h2><p class="num">Best fit <b>${fmt(e.sweet_min)}–${fmt(e.sweet_max)}</b> employees (full points); acceptable ${fmt(e.min)}–${fmt(e.max)}.</p></div>
+      <div class="card"><h2>Activity signals</h2>${chips(icp.signal_keywords)}</div></div>`;
+  return `<section class="head"><p class="eyebrow">Agent 2 · ICP builder</p><h1>Who to target</h1>
+    <p class="lede">Turns the company profile into rules the engine applies to every lead: segment keywords, buyer titles, company size and activity signals.</p></section>
+    <div class="card"><div class="grid2"><div><h3>Target segments</h3>${chipEditor('goals', arr(icp?.goals), 'Add a segment, e.g. Coworking operators')}</div>
+      <div><h3>Countries</h3>${chipEditor('countries', arr(icp?.countries), 'Add a country')}</div></div>
+      <div class="row"><button class="btn primary" data-act="buildIcp" ${busy || !aiReady() ? 'disabled' : ''}>${busy ? 'Building…' : icp?.segments?.length ? 'Rebuild ICP' : 'Build ICP'}</button>${busy ? '<button class="btn" data-act="cancel" data-k="icp">Stop</button>' : ''}<span class="small muted">Countries count for scoring right away; segment changes apply after a rebuild.</span></div>${msgHtml('icp')}</div>
+    ${rules}`;
+}
+
+/* 3. discovery */
+function apolloText(a) {
+  const L = (k, v) => `${k}: ${arr(v).join(', ')}`;
+  return [L('Job Titles', a.person_titles), L('Management Level', a.person_seniorities), L('Company Location', a.organization_locations || a.person_locations),
+    L('# Employees', arr(a.organization_num_employees_ranges).map(r => r.replace(',', '–'))), L('Industry & Keywords', a.q_organization_keyword_tags), 'Email Status: Verified'].join('\n');
+}
+function viewDiscover() {
+  const a = S.icp?.apollo || {}; const im = S.import;
+  const sources = S.icp ? `<div class="grid2">
+      <div class="card"><div class="card-head"><h2>Apollo</h2><span class="pill info plain">Preferred</span></div>
+        <p class="small muted">In Apollo › People, set these filters, select the results and export them as CSV. Apollo exports include work emails and their verification status.</p>
+        <pre class="copybox">${esc(apolloText(a))}</pre>
+        <div class="row"><button class="btn sm" data-act="copy" data-text="${esc(apolloText(a))}">Copy filters</button><button class="btn sm" data-act="copy" data-text="${esc(JSON.stringify(a, null, 2))}">Copy API JSON</button></div></div>
+      <div class="card"><div class="card-head"><h2>People Data Labs</h2><span class="pill info plain">Preferred</span></div>
+        <p class="small muted">Run this in PDL's Person Search (the <code>sql</code> parameter). Save the response as JSON or CSV and import it here.</p>
+        <pre class="copybox">${esc(S.icp.pdl_sql || '—')}</pre>
+        <div class="row"><button class="btn sm" data-act="copy" data-text="${esc(S.icp.pdl_sql || '')}">Copy SQL</button></div></div></div>` : '<div class="note">Build the ICP (step 2) to get ready-made Apollo filters and a PDL query.</div>';
+  const mapping = im ? `<div class="card"><div class="card-head"><h2>Map columns · ${esc(im.fileName)}</h2><span class="small muted num">${fmt(im.rows.length)} rows · detected ${esc(im.source)}</span></div>
+      <div class="tablewrap maptable"><table class="t"><thead><tr><th>Engine field</th><th>Column in your file</th><th>First row</th></tr></thead><tbody>
+      ${FIELDS.map(f => `<tr><td>${f.label}</td><td><select id="map-${f.k}" data-map="${f.k}"><option value="">— not in file —</option>${im.headers.map(h => `<option ${im.map[f.k] === h ? 'selected' : ''}>${esc(h)}</option>`).join('')}</select></td><td class="muted small">${esc(norm(im.rows[0]?.[im.map[f.k]]).slice(0, 60))}</td></tr>`).join('')}
+      </tbody></table></div>
+      <p class="small muted">Activity columns read as signals: ${im.signals.length ? im.signals.map(esc).join(', ') : 'none found'}.</p>
+      <div class="row"><label class="check"><input type="radio" name="impmode" id="impReplace" value="replace" ${im.mode === 'replace' ? 'checked' : ''} data-impmode="replace"> Replace current leads</label>
+        ${S.meta.example || !S.leads.length ? '' : `<label class="check"><input type="radio" name="impmode" id="impAdd" value="add" ${im.mode === 'add' ? 'checked' : ''} data-impmode="add"> Add to the ${fmt(S.leads.length)} current leads (same email = same lead)</label>`}</div>
+      <div class="row"><button class="btn primary" data-act="doImport" ${S.busy.import ? 'disabled' : ''}>${S.busy.import ? 'Importing…' : 'Import ' + fmt(im.rows.length) + ' rows'}</button><button class="btn" data-act="cancelImport">Cancel</button></div></div>` : '';
+  const bySource = {}; const byCountry = {};
+  for (const L of S.leads) { bySource[L.source || 'Import'] = (bySource[L.source || 'Import'] || 0) + 1; byCountry[L.country || 'Unknown'] = (byCountry[L.country || 'Unknown'] || 0) + 1; }
+  const top = o => Object.entries(o).sort((x, y) => y[1] - x[1]).slice(0, 6).map(([k, v]) => `<span class="chip">${esc(k)} · <span class="num">${fmt(v)}</span></span>`).join('');
+  return `<section class="head"><p class="eyebrow">Agent 3 · Lead discovery</p><h1>Find companies and decision makers</h1>
+    <p class="lede">Run the ICP in Apollo or People Data Labs, export the people it finds, and import the file. The engine never makes up contacts: every lead comes from your data provider.</p></section>
+    ${sources}
+    <div class="card"><h2>Import leads</h2>
+      <div class="drop" id="drop"><b>Drop a CSV, Excel or JSON export here</b><span class="small muted">Apollo CSV, PDL JSON or CSV, Clay, Hunter, Sales Navigator exports. Columns are matched automatically; you can adjust them.</span>
+        <input type="file" id="leadFile" accept=".csv,.tsv,.txt,.xlsx,.xls,.json"></div>${msgHtml('import')}</div>
+    ${mapping}
+    ${S.leads.length ? `<div class="card"><h2>In the engine now · <span class="num">${fmt(S.leads.length)}</span> leads</h2><div><h3 class="small muted">By source</h3><div class="chips">${top(bySource)}</div></div><div><h3 class="small muted">By country</h3><div class="chips">${top(byCountry)}</div></div>
+      ${S.meta.lastImport ? `<p class="small muted">Last import: ${esc(S.meta.lastImport.file)}, ${fmt(S.meta.lastImport.rows)} rows.</p>` : ''}</div>` : ''}`;
+}
+
+/* 4. verify */
+function viewVerify() {
+  const c = D.c;
+  const removed = D.rows.filter(r => !EMAIL_STATUS[r.em.status].keep).slice(0, 8);
+  return `<section class="head"><p class="eyebrow">Agent 4 · Email verification</p><h1>Keep only emails worth sending to</h1>
+    <p class="lede">Every address is checked for syntax, locked export placeholders, disposable domains, role mailboxes and duplicates, and labelled with your verifier's result. Removed rows go to the Rejected sheet.</p></section>
+    <div class="card"><div class="tablewrap"><table class="t"><thead><tr><th>Status</th><th>What it means</th><th style="text-align:right">Leads</th><th>Kept</th></tr></thead><tbody>
+      ${[['verified', 'Your provider or verifier confirmed the mailbox'], ['unchecked', 'Valid format on a company domain, not verified yet'], ['risky', 'Catch-all, unknown, personal mailbox or domain mismatch'], ['role', 'info@, sales@, reservations@ and similar shared inboxes'], ['duplicate', 'Same address as an earlier row'], ['invalid', 'Bad format, locked placeholder, disposable or failed verification'], ['missing', 'The record has no email']]
+        .map(([k, d]) => `<tr><td><span class="pill ${EMAIL_STATUS[k].cls}">${EMAIL_STATUS[k].label}</span></td><td class="muted">${d}</td><td class="n">${fmt(c.status[k])}</td><td>${EMAIL_STATUS[k].keep && !(S.out.requireVerified && k !== 'verified') ? 'Yes' : 'No'}</td></tr>`).join('')}
+    </tbody></table></div>
+      <label class="check"><input type="checkbox" id="reqVerified" data-out="requireVerified" ${S.out.requireVerified ? 'checked' : ''}> Keep only verified emails (stricter, fewer leads)</label></div>
+    <div class="card"><h2>Verify mailboxes with NeverBounce, ZeroBounce or MillionVerifier</h2>
+      <p class="muted small">A browser cannot check whether a mailbox exists. Download the addresses that still need it, run them through your verifier, then import its result file: the engine reads the email column and the result column (valid, invalid, catch-all, unknown…).</p>
+      <div class="row"><button class="btn" data-act="verifyCsv">Download ${fmt(c.status.unchecked + c.status.risky)} emails to verify (.csv)</button>
+        <label class="btn" for="verifyFile">Import verifier results</label><input type="file" id="verifyFile" accept=".csv,.tsv,.txt,.xlsx,.xls" hidden></div>${msgHtml('verify')}</div>
+    ${removed.length ? `<div class="card"><h2>Removed, for example</h2><div class="tablewrap"><table class="t"><thead><tr><th>Lead</th><th>Email</th><th>Reason</th></tr></thead><tbody>${removed.map(r => `<tr><td class="who"><b>${esc(leadName(r.L) || '—')}</b><span>${esc(r.L.company)}</span></td><td class="mono">${esc(r.L.email || '—')}</td><td>${esc(r.em.note)}</td></tr>`).join('')}</tbody></table></div></div>` : ''}`;
+}
+
+/* 5. research */
+function topNControl() {
+  return `<label class="f" style="max-width:220px">Top qualified leads to process<input type="number" id="topN" min="1" max="500" value="${S.out.topN}" data-out="topN"></label>`;
+}
+function viewResearch() {
+  const done = ranked().filter(r => r.researched).slice(0, 6);
+  return `<section class="head"><p class="eyebrow">Agent 5 · Deep lead research</p><h1>Why this lead, why now</h1>
+    <p class="lede">For each top lead, Claude reads everything in the record (title, company description, keywords, hiring and funding columns) and writes the business signal, the likely pain point and the reason the lead was selected. It only uses facts in the record; a lead with no signal says so instead of inventing one.</p></section>
+    <div class="card"><div class="row" style="align-items:flex-end">${topNControl()}<button class="btn primary" data-act="run" data-kind="research" ${S.job || !aiReady() ? 'disabled' : ''}>Research the top ${fmt(Math.min(S.out.topN, D.c.qualified))} leads</button></div>
+      <p class="small muted">Uses the fast model, ten leads per call. A lead with a real signal earns the activity points in its score. To include website, news and LinkedIn activity, add those columns to your export (Apollo's job postings and funding columns are read automatically).</p>
+      <div id="jobBox">${jobHtml()}</div></div>
+    ${done.length ? `<div class="card"><h2>Latest research</h2><div class="tablewrap"><table class="t"><thead><tr><th>Lead</th><th>Signal</th><th>Pain point</th></tr></thead><tbody>
+      ${done.map(r => { const rs = S.ai[r.L.key].research; return `<tr class="click" data-act="lead" data-key="${esc(r.L.key)}"><td class="who"><b>${esc(leadName(r.L))}</b><span>${esc(r.L.company)}</span></td><td>${rs.signal_source === 'data' ? esc(rs.signal) : '<span class="muted">No signal in the record</span>'}</td><td>${esc(rs.pain_point)}</td></tr>`; }).join('')}
+    </tbody></table></div></div>` : ''}`;
+}
+
+/* 6. score */
+function viewScore() {
+  const c = D.c; const W = S.out.weights; const sum = Object.values(W).reduce((a, b) => a + (+b || 0), 0);
+  const top = ranked().slice(0, 10);
+  return `<section class="head"><p class="eyebrow">Agent 6 · Lead scoring</p><h1>Score every lead out of 100</h1>
+    <p class="lede">Applied instantly to all ${fmt(c.total)} leads with the ICP rules. Only leads at or above the threshold are researched, written to and exported.</p></section>
+    <div class="grid2"><div class="card"><h2>Formula</h2>
+      <div class="tablewrap"><table class="t"><thead><tr><th>Part</th><th>How it is measured</th><th>Weight</th></tr></thead><tbody>
+        <tr><td>${WEIGHT_LABELS.icp}</td><td class="small muted">Target country (15), matches a segment (15), company website (5), LinkedIn profile (5)</td><td><input type="number" id="w-icp" min="0" max="100" value="${W.icp}" data-weight="icp"></td></tr>
+        <tr><td>${WEIGHT_LABELS.industry}</td><td class="small muted">Segment keyword in industry or keywords (full), in name or description (70%), adjacent (40%)</td><td><input type="number" id="w-industry" min="0" max="100" value="${W.industry}" data-weight="industry"></td></tr>
+        <tr><td>${WEIGHT_LABELS.role}</td><td class="small muted">Decision maker (full), runs operations (80%), director (60%), manager (40%)</td><td><input type="number" id="w-role" min="0" max="100" value="${W.role}" data-weight="role"></td></tr>
+        <tr><td>${WEIGHT_LABELS.size}</td><td class="small muted">Inside the best-fit employee band (full), acceptable band (60%), unknown (40%)</td><td><input type="number" id="w-size" min="0" max="100" value="${W.size}" data-weight="size"></td></tr>
+        <tr><td>${WEIGHT_LABELS.activity}</td><td class="small muted">Signal keyword in the record, or a signal found by research</td><td><input type="number" id="w-activity" min="0" max="100" value="${W.activity}" data-weight="activity"></td></tr>
+      </tbody></table></div><p class="small muted num">Weights add up to ${sum}${sum !== 100 ? ' and are scaled to 100' : ''}.</p></div>
+      <div class="card"><h2>Threshold</h2><label class="f">Qualify leads scoring at least<input type="number" id="threshold" min="0" max="100" value="${S.out.threshold}" data-out="threshold"></label>
+        <dl class="kv small"><dt>90 and above</dt><dd class="num">${fmt(c.bands.top)}</dd><dt>${S.out.threshold}–89</dt><dd class="num">${fmt(c.bands.mid)}</dd><dt>Below ${S.out.threshold}</dt><dd class="num">${fmt(c.bands.low)}</dd><dt>Qualified</dt><dd class="num"><b>${fmt(c.qualified)}</b> of ${fmt(c.usable)} with usable emails</dd></dl></div></div>
+    <div class="card"><div class="card-head"><h2>Highest scores</h2><button class="btn ghost sm" data-act="go" data-view="leads">See all leads</button></div>
+      ${top.length ? `<div class="tablewrap"><table class="t"><thead><tr><th>Score</th><th>Lead</th><th>Segment</th><th style="text-align:right">ICP</th><th style="text-align:right">Ind.</th><th style="text-align:right">Role</th><th style="text-align:right">Size</th><th style="text-align:right">Act.</th></tr></thead><tbody>
+        ${top.map(r => `<tr class="click" data-act="lead" data-key="${esc(r.L.key)}"><td>${scoreChip(r.sc.total)}</td><td class="who"><b>${esc(leadName(r.L))}</b><span>${esc(r.L.title)} · ${esc(r.L.company)}</span></td><td>${esc(r.sc.segment || '—')}</td>${['icp', 'industry', 'role', 'size', 'activity'].map(k => `<td class="n">${Math.round(r.sc.parts[k])}</td>`).join('')}</tr>`).join('')}
+      </tbody></table></div>` : '<div class="empty"><p class="muted">No lead reaches the threshold yet.</p></div>'}</div>`;
+}
+
+/* 7. outreach */
+function mailCard(L, key, label, body, subject) {
+  const full = assemble(L, body);
+  return `<div class="mail"><div class="mail-h"><b>${label}</b><span class="wc num">${wordCount(body + ' ' + S.out.cta)} words</span><span class="spacer"></span><button class="btn ghost sm" data-act="copy" data-text="${esc((subject ? 'Subject: ' + subject + '\n\n' : '') + full)}">Copy</button></div><div class="mail-b">${esc(full)}</div></div>`;
+}
+function mailsFor(r) {
+  const em = S.ai[r.L.key]?.emails; if (!em) return '';
+  return `<p class="small"><span class="muted">Subject:</span> <b>${esc(em.subject)}</b></p><div class="mails">${mailCard(r.L, r.L.key, 'A · Curiosity', em.a, em.subject)}${mailCard(r.L, r.L.key, 'B · Problem', em.b, em.subject)}${mailCard(r.L, r.L.key, 'C · Growth', em.c, em.subject)}</div>`;
+}
+function viewOutreach() {
+  const sample = ranked().find(r => r.personalized);
+  return `<section class="head"><p class="eyebrow">Agent 7 · Personalized email</p><h1>Three short emails per lead</h1>
+    <p class="lede">Curiosity, problem and growth variants under 80 words, naming the lead's company and role and using the research signal only when the record backs it. Only the top qualified leads are written to; it would be wasteful to personalize everyone.</p></section>
+    <div class="card"><div class="fields">
+      <label class="f">Sender name<input type="text" id="senderName" value="${esc(S.out.senderName)}" placeholder="Georges" data-out="senderName"></label>
+      <label class="f">Sender title<input type="text" id="senderTitle" value="${esc(S.out.senderTitle)}" placeholder="Founder, ProHost" data-out="senderTitle"></label>
+      <label class="f">Variant in the Lead Master sheet<select id="variant" data-out="variant">${['A', 'B', 'C'].map(x => `<option ${S.out.variant === x ? 'selected' : ''} value="${x}">Variant ${x} · ${{ A: 'Curiosity', B: 'Problem', C: 'Growth' }[x]}</option>`).join('')}</select></label></div>
+      <label class="f">Closing line (added to every email)<input type="text" id="cta" value="${esc(S.out.cta)}" data-out="cta"></label>
+      <div class="row" style="align-items:flex-end">${topNControl()}<button class="btn primary" data-act="run" data-kind="emails" ${S.job || !aiReady() ? 'disabled' : ''}>Write emails for the top ${fmt(Math.min(S.out.topN, D.c.qualified))}</button></div>
+      <p class="small muted">Leads without research are researched first. Emails use the balanced model, five leads per call. ${fmt(D.c.personalized)} of ${fmt(D.c.qualified)} qualified leads have emails.</p>
+      <div id="jobBox">${jobHtml()}</div></div>
+    ${sample ? `<div class="card"><div class="card-head"><h2>${esc(leadName(sample.L))} · ${esc(sample.L.company)}</h2><button class="btn ghost sm" data-act="lead" data-key="${esc(sample.L.key)}">Open lead</button></div>${mailsFor(sample)}</div>` : ''}`;
+}
+
+/* 8. QC */
+function viewQc() {
+  const fails = ranked().filter(r => r.personalized && !r.qc.ok);
+  return `<section class="head"><p class="eyebrow">Agent 8 · Quality control</p><h1>Check every row before export</h1>
+    <p class="lede">A row only reaches the Lead Master sheet when it passes every check. Failed rows are listed in the Rejected sheet with the reason.</p></section>
+    <div class="grid2"><div class="card"><h2>Checks</h2><ul class="list">
+      <li>The lead has a name</li><li>The email is usable (not invalid, role, duplicate or missing)</li><li>The email address appears once</li>
+      <li>Subject line and all three variants exist</li><li>Each variant is 80 words or fewer, closing line included</li><li>Each variant names the lead's company</li>
+      <li>No buzzwords (${BANNED.slice(0, 8).map(esc).join(', ')}…)</li><li>Ends with your closing line (added automatically)</li></ul></div>
+      <div class="card"><h2>Result</h2><dl class="kv"><dt>Passed</dt><dd class="num"><span class="pill good">${fmt(D.c.qcPass)}</span></dd><dt>Failed</dt><dd class="num"><span class="pill ${D.c.qcFail ? 'bad' : 'mute'}">${fmt(D.c.qcFail)}</span></dd>
+        <dt>Qualified, no emails yet</dt><dd class="num">${fmt(D.c.qualified - D.c.personalized)} <span class="muted small">(${S.out.includeUnpersonalized ? 'exported without an email' : 'left out of the export'})</span></dd></dl></div></div>
+    <div class="card"><h2>Failed rows</h2>${fails.length ? `<div class="tablewrap"><table class="t"><thead><tr><th>Lead</th><th>Problems</th><th></th></tr></thead><tbody>${fails.slice(0, 100).map(r => `<tr><td class="who"><b>${esc(leadName(r.L))}</b><span>${esc(r.L.company)}</span></td><td><ul class="list small">${r.qc.issues.map(i => `<li>${esc(i)}</li>`).join('')}</ul></td><td><button class="btn sm" data-act="lead" data-key="${esc(r.L.key)}">Open</button></td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Nothing failed. Every lead with emails passes QC.</p>'}</div>`;
+}
+
+/* 9. export */
+function viewExport() {
+  const c = D.c;
+  return `<section class="head"><p class="eyebrow">Agent 9 · Excel generator</p><h1>Download the lead workbook</h1>
+    <p class="lede">${fmt(c.exportable)} leads, best score first. Built in your browser; nothing leaves the page except through the download you approve.</p></section>
+    <div class="card"><label class="check"><input type="checkbox" id="inclUnp" data-out="includeUnpersonalized" ${S.out.includeUnpersonalized ? 'checked' : ''}> Include qualified leads that have no personalized email yet (${fmt(c.qualified - c.personalized)} leads)</label>
+      <div class="row"><button class="btn host" data-act="export" ${c.exportable ? '' : 'disabled'}>Download Excel · ${fmt(c.exportable)} leads</button>${S.meta.example ? '<span class="pill warn">Example data</span>' : ''}</div></div>
+    <div class="card"><h2>Sheets</h2><dl class="kv">
+      <dt>Lead Master</dt><dd>Company, Website, Industry, Employee Count, Country, City, Lead Name, Title, Email, Email Status, LinkedIn, Lead Score, Segment, Reason Selected, Personalized Email (variant ${esc(S.out.variant)})</dd>
+      <dt>AI Insights</dt><dd>Score breakdown, role tier, signal and its source, pain point, reason selected, company summary</dd>
+      <dt>Outreach</dt><dd>Subject line and Email Variant A, B and C, ready to paste</dd>
+      <dt>Rejected</dt><dd>Every lead left out, with the reason (email check, score, QC)</dd>
+      <dt>Run Summary</dt><dd>Seller, segments, countries, weights, threshold and the pipeline counts</dd></dl></div>`;
+}
+
+/* all leads */
+function filteredLeads() {
+  const q = lc(S.table.q); const f = S.table.filter;
+  return D.rows.filter(r => {
+    if (f === 'qualified' && !r.qualified) return false;
+    if (f === 'personalized' && !(r.qualified && r.personalized)) return false;
+    if (f === 'rejected' && r.usable) return false;
+    if (f === 'below' && !(r.usable && !r.qualified)) return false;
+    if (q && !lc([leadName(r.L), r.L.company, r.L.email, r.L.title, r.L.country].join(' ')).includes(q)) return false;
+    return true;
+  }).sort((a, b) => b.sc.total - a.sc.total);
+}
+function tableHtml() {
+  const list = filteredLeads(); const per = 50; const pages = Math.max(1, Math.ceil(list.length / per));
+  S.table.page = Math.min(S.table.page, pages - 1);
+  const slice = list.slice(S.table.page * per, (S.table.page + 1) * per);
+  return `${leadTable(slice, S.leads.length ? 'No leads match.' : 'No leads yet. Import an export in step 3.')}
+    ${list.length > per ? `<div class="pager"><span class="small muted num">${fmt(S.table.page * per + 1)}–${fmt(Math.min(list.length, (S.table.page + 1) * per))} of ${fmt(list.length)}</span><button class="btn sm" data-act="page" data-d="-1" ${S.table.page ? '' : 'disabled'}>Previous</button><button class="btn sm" data-act="page" data-d="1" ${S.table.page < pages - 1 ? '' : 'disabled'}>Next</button></div>` : ''}`;
+}
+function viewLeads() {
+  const c = D.c;
+  const opts = [['qualified', `Qualified (${fmt(c.qualified)})`], ['personalized', `With emails (${fmt(c.personalized)})`], ['below', 'Below threshold'], ['rejected', 'Removed by email check'], ['all', `All (${fmt(c.total)})`]];
+  return `<section class="head"><p class="eyebrow">All leads</p><h1>${fmt(c.total)} leads in the engine</h1><p class="lede">Open a lead to see its score breakdown, research and emails.</p></section>
+    <div class="row"><input type="text" id="tableQ" placeholder="Search name, company, email, title" value="${esc(S.table.q)}" style="max-width:340px">
+      <select id="tableF" style="max-width:240px">${opts.map(([v, l]) => `<option value="${v}" ${S.table.filter === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+    <div id="tableBox">${tableHtml()}</div>`;
+}
+
+/* drawer */
+function renderDrawer() {
+  const root = $('#drawerRoot');
+  const r = S.drawer && D.byKey.get(S.drawer);
+  if (!r) { root.innerHTML = ''; return; }
+  const L = r.L; const ai = S.ai[L.key] || {}; const rs = ai.research; const W = normWeights(S.out.weights);
+  const busy = S.busy.one;
+  root.innerHTML = `<div class="scrim" data-act="closeDrawer"></div><aside class="drawer" role="dialog" aria-modal="true" aria-label="${esc(leadName(L))}">
+    <div class="row"><div style="min-width:0"><p class="eyebrow">${esc(r.sc.segment || 'Lead')}${L.ex ? ' · example' : ''}</p><h1 style="font-size:1.35rem">${esc(leadName(L) || 'Unnamed lead')}</h1><p class="muted">${esc(L.title || 'No title')} · ${esc(L.company || '—')}</p></div><span class="spacer"></span>${scoreChip(r.sc.total)}<button class="btn sm" data-act="closeDrawer">Close</button></div>
+    <div class="card"><dl class="kv small">
+      <dt>Email</dt><dd><span class="mono">${esc(L.email || '—')}</span> ${emailPill(r)} <span class="muted">${esc(r.em.note)}</span></dd>
+      <dt>LinkedIn</dt><dd>${L.linkedin ? `<a href="${esc(L.linkedin)}" target="_blank" rel="noopener">${esc(L.linkedin)}</a>` : '—'}</dd>
+      <dt>Website</dt><dd>${L.website ? `<a href="${esc(L.website)}" target="_blank" rel="noopener">${esc(L.website)}</a>` : '—'}</dd>
+      <dt>Industry · size</dt><dd>${esc(L.industry || '—')} · ${L.employees != null ? fmt(L.employees) + ' employees' : 'size unknown'}</dd>
+      <dt>Location</dt><dd>${esc([L.city, L.country].filter(Boolean).join(', ') || '—')}</dd>
+      ${L.keywords ? `<dt>Keywords</dt><dd>${esc(L.keywords)}</dd>` : ''}${L.description ? `<dt>Description</dt><dd>${esc(L.description)}</dd>` : ''}${L.signals ? `<dt>Signals in record</dt><dd>${esc(L.signals)}</dd>` : ''}
+      <dt>Source</dt><dd>${esc(L.source || '—')}</dd></dl></div>
+    <div class="card"><div class="card-head"><h2>Score ${r.sc.total} / 100</h2><span class="small muted">${esc(r.sc.roleTier)}${r.sc.countryOk ? '' : ' · outside target countries'}</span></div>
+      <div class="parts">${Object.keys(W).map(k => `<div class="part"><span>${WEIGHT_LABELS[k]}</span><div class="track" aria-hidden="true"><span style="width:${W[k] ? (r.sc.parts[k] / W[k] * 100).toFixed(0) : 0}%"></span></div><span class="v num">${Math.round(r.sc.parts[k])}/${Math.round(W[k])}</span></div>`).join('')}</div>
+      ${r.sc.activity ? `<p class="small muted">Activity: ${esc(r.sc.activity)}</p>` : ''}${!r.qualified ? `<p class="small"><span class="pill mute">Not exported</span> ${esc(rejectReason(r))}</p>` : (r.qc && !r.qc.ok ? `<div class="err">QC: ${esc(r.qc.issues.join('; '))}</div>` : '')}</div>
+    <div class="card"><h2>Research</h2>${rs ? `<dl class="kv small"><dt>Signal</dt><dd>${rs.signal_source === 'data' ? esc(rs.signal) : '<span class="muted">No signal in the record</span>'}</dd><dt>Pain point</dt><dd>${esc(rs.pain_point)}</dd><dt>Reason selected</dt><dd>${esc(rs.reason_selected)}</dd><dt>Summary</dt><dd>${esc(rs.summary)}</dd></dl>` : '<p class="muted small">Not researched yet.</p>'}</div>
+    <div class="card"><div class="card-head"><h2>Emails</h2><button class="btn ${ai.emails ? '' : 'primary'} sm" data-act="rewrite" data-key="${esc(L.key)}" ${busy || !aiReady() || !S.company ? 'disabled' : ''}>${busy ? 'Writing…' : ai.emails ? 'Rewrite emails' : 'Write emails'}</button></div>
+      ${msgHtml('one')}${ai.emails ? mailsFor(r) : '<p class="muted small">No emails yet.</p>'}</div>
+  </aside>`;
+}
+
+/* ───────────── events ───────────── */
+const ACT = {
+  go: el => go(el.dataset.view),
+  export: () => exportExcel(),
+  analyze: () => analyzeCompany(),
+  buildIcp: () => buildIcp(),
+  cancel: el => { S.busy[el.dataset.k]?.abort?.(); },
+  run: el => runAgents(el.dataset.kind),
+  stop: () => stopJob(),
+  copy: el => copy(el.dataset.text || '', el),
+  toggleEdit: el => { S.edit[el.dataset.k] = !S.edit[el.dataset.k]; S.msg['edit' + (el.dataset.k === 'icp' ? 'Icp' : 'Company')] = ''; render(); },
+  saveEdit: async el => {
+    const k = el.dataset.k; const id = k === 'icp' ? 'editIcp' : 'editCompany';
+    try {
+      const v = JSON.parse($('#' + id).value);
+      if (k === 'company') { S.company = normalizeProfile(v, S.company?.website || ''); await saveDoc('config/company', { profile: S.company, sourceUrl: S.coSource.url, sourceText: S.coSource.text.slice(0, 60000), updatedAt: Date.now() }); }
+      else { S.icp = normalizeIcp(v, arr(v.goals || S.icp?.goals), arr(v.countries || S.icp?.countries)); await saveDoc('config/icp', { icp: S.icp, updatedAt: Date.now() }); }
+      S.edit[k] = false; derive(); render(); toast('Saved');
+    } catch (e) { S.msg[id] = 'That is not valid JSON: ' + (e?.message || ''); render(); }
+  },
+  chipAdd: el => {
+    const kind = el.dataset.kind; const inp = $('#add-' + kind); const v = norm(inp?.value); if (!v) return;
+    S.icp = S.icp || { goals: [], countries: [], segments: [] };
+    const list = arr(S.icp[kind]); if (!list.some(x => lc(x) === lc(v))) list.push(kind === 'countries' ? (canonCountry(v) || titleCase(v)) : v);
+    S.icp[kind] = list; saveDoc('config/icp', { icp: S.icp, updatedAt: Date.now() }); derive(); render();
+  },
+  chipDel: el => {
+    const kind = el.dataset.kind; const list = arr(S.icp?.[kind]); list.splice(+el.dataset.i, 1);
+    S.icp[kind] = list; saveDoc('config/icp', { icp: S.icp, updatedAt: Date.now() }); derive(); render();
+  },
+  doImport: () => doImport(),
+  cancelImport: () => { S.import = null; render(); },
+  verifyCsv: () => exportVerifyCsv(),
+  lead: el => { S.drawer = el.dataset.key; S.msg.one = ''; renderDrawer(); },
+  closeDrawer: () => { S.drawer = null; renderDrawer(); },
+  rewrite: el => rewriteOne(el.dataset.key),
+  page: el => { S.table.page = Math.max(0, S.table.page + (+el.dataset.d)); $('#tableBox').innerHTML = tableHtml(); },
+};
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if (!el || el.disabled) return;
+  const fn = ACT[el.dataset.act]; if (!fn) return;
+  e.preventDefault(); fn(el, e);
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && S.drawer) { S.drawer = null; renderDrawer(); return; }
+  if (e.key === 'Enter' && e.target.matches?.('tr[data-act="lead"]')) { S.drawer = e.target.dataset.key; renderDrawer(); return; }
+  if (e.key === 'Enter' && e.target.id?.startsWith('add-')) { e.preventDefault(); ACT.chipAdd({ dataset: { kind: e.target.id.slice(4) } }); }
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.id === 'leadFile') { onLeadFile(t.files?.[0]); t.value = ''; return; }
+  if (t.id === 'verifyFile') { onVerifyFile(t.files?.[0]); t.value = ''; return; }
+  if (t.dataset.map && S.import) { S.import.map[t.dataset.map] = t.value; render(); return; }
+  if (t.dataset.impmode && S.import) { S.import.mode = t.dataset.impmode; return; }
+  if (t.id === 'tableF') { S.table.filter = t.value; S.table.page = 0; $('#tableBox').innerHTML = tableHtml(); return; }
+  if (t.dataset.weight) { S.out.weights[t.dataset.weight] = clampInt(t.value, 0, 100); saveOutSoon(); derive(); render(); return; }
+  if (t.dataset.out) {
+    const k = t.dataset.out;
+    if (t.type === 'checkbox') S.out[k] = t.checked;
+    else if (k === 'topN') S.out[k] = clampInt(t.value, 1, 500);
+    else if (k === 'threshold') S.out[k] = clampInt(t.value, 0, 100);
+    else S.out[k] = k === 'cta' ? (norm(t.value) || DEFAULT_OUT.cta) : norm(t.value);
+    saveOutSoon(); derive(); render();
+  }
+});
+let qTimer;
+document.addEventListener('input', e => {
+  if (e.target.id === 'tableQ') { clearTimeout(qTimer); const v = e.target.value; qTimer = setTimeout(() => { S.table.q = v; S.table.page = 0; $('#tableBox').innerHTML = tableHtml(); }, 180); }
+});
+['dragover', 'dragleave', 'drop'].forEach(type => document.addEventListener(type, e => {
+  const drop = e.target.closest?.('#drop'); if (!drop) return;
+  e.preventDefault();
+  if (type === 'dragover') drop.classList.add('over');
+  else drop.classList.remove('over');
+  if (type === 'drop') onLeadFile(e.dataTransfer?.files?.[0]);
+}));
+
+/* ───────────── boot ───────────── */
+async function boot() {
+  const v = lsGet('pl-view'); if (v && VIEWS.has(v)) S.view = v;
+  derive(); render();
+  const c = window.claude;
+  if (!c?.use) { S.loaded = true; setSave('off'); render(); return; }
+  const [db, sample, downloads, user] = await Promise.all(['db', 'sample', 'downloads', 'user'].map(n => c.use(n).catch(() => null)));
+  S.sample = sample; S.downloads = downloads;
+  if (user) { try { if (await user.can('data.write') === false) S.readOnly = true; } catch { /* not told */ } }
+  if (db) { S.db = db; await loadAll(); } else setSave('off');
+  if (!S.company && S.view === 'overview') S.view = 'company';
+  S.loaded = true; derive(); render();
+}
+boot();
+})();
+</script>
