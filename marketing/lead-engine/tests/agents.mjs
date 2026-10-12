@@ -15,10 +15,14 @@ const plans = Object.fromEntries(api.CHANNELS.map(c => [c.id, api.planQueries(c.
 for (const [id, q] of Object.entries(plans)) {
   ok(q.length >= 40 && q.length <= 400, `${id}: ${q.length} queries within bounds`);
   ok(new Set(q.map(x => x.id)).size === q.length, `${id}: unique ids`);
-  ok(q.every(x => x.q && x.city && x.country && [1, 2, 3].includes(x.tier) && x.status === 'todo'), `${id}: every query has place, tier and status`);
+  ok(q.every(x => x.q && (x.city || id === 'registries') && x.country && [1, 2, 3].includes(x.tier) && x.status === 'todo'), `${id}: every query has place, tier and status`);
   ok(q.some(x => x.tier === 1) && q.some(x => x.tier > 1), `${id}: mixes plain and deeper queries`);
 }
-ok(plans.linkedin.every(x => /site:linkedin\.com\/in/.test(x.q)), 'LinkedIn queries are people searches via the search engine, never LinkedIn itself');
+ok(!plans.linkedin && !api.CHANNELS.some(c => c.id === 'linkedin'), 'the LinkedIn people-search channel is gone');
+const emailAsking = ['web', 'social', 'directories', 'registries'];
+for (const id of emailAsking) ok(plans[id].filter(x => /email|courriel|البريد|info@/i.test(x.q)).length / plans[id].length > 0.6, `${id}: most queries ask for contact emails directly`);
+ok(plans.registries.some(x => /dhr\.gov\.ae/.test(x.q)) && plans.registries.some(x => /Ministry of Tourism/.test(x.q)) && plans.registries.some(x => /REGA|RERA/.test(x.q)), 'registries target regulators, ministries and licensed-broker lists');
+ok(['UAE', 'Saudi Arabia', 'Lebanon'].every(c => plans.registries.some(x => x.country === c)), 'registries cover every target country');
 ok(!Object.values(plans).flat().some(x => /^https?:/i.test(x.q)), 'no query is a URL to open');
 ok(plans.web.some(x => x.lang === 'ar' && /[؀-ۿ]/.test(x.q)) && plans.web.some(x => x.lang === 'fr'), 'web plan has Arabic and French variants');
 ok(plans.hiring.some(x => /site:gulftalent\.com/.test(x.q)) && plans.news.some(x => /2026/.test(x.q)), 'hiring uses job boards; news is dated');
@@ -45,7 +49,11 @@ for (const c of api.CHANNELS) {
   ok(p.includes(`at most ${c.searches} web searches`), `${c.id}: search budget stated`);
   ok(/^\d+ \d+ \* \* [\d,-]+$/.test(api.cronFor(c)), `${c.id}: valid cron ${api.cronFor(c)}`);
   ok(/date -u \+%Y%m%d%H%M/.test(p) && /never guess/i.test(p), `${c.id}: reads the clock from the shell instead of guessing`);
+  ok(/OFFICIAL BUSINESS EMAIL/.test(p) && /Never guess or construct an address/.test(p) && /info@, contact@/.test(p), `${c.id}: goal is official business emails; never constructs addresses; shared inboxes welcome`);
+  ok(/NUMBER OF ROWS WITH AN EMAIL/i.test(p) && /found/.test(p), `${c.id}: yield is counted in emails`);
 }
+for (const id of ['enrich', 'strategist']) { const p = api.promptFor(id, countries); ok(/OFFICIAL BUSINESS EMAIL/.test(p), `${id}: goal is official business emails`); }
+ok(/Never guess or construct an address/.test(api.promptFor('enrich', countries)) && /no email/.test(api.promptFor('enrich', countries)), 'finder only takes official addresses for businesses without one');
 ok(/targets/.test(api.promptFor('enrich', countries)) && /"done"/.test(api.promptFor('enrich', countries)), 'finder reads targets and records what it tried');
 ok(/do not search the web/i.test(api.promptFor('strategist', countries)) && /RETIRE/.test(api.promptFor('strategist', countries)) && /BOOST/.test(api.promptFor('strategist', countries)), 'strategist reads and rewrites plans only');
 const slots = api.CHANNELS.concat([api.ENRICH, api.STRATEGIST]).map(c => c.hour * 60 + c.minute);

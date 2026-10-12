@@ -221,7 +221,7 @@ const wbInfo = await page.evaluate(async () => {
   const dateCell = wb.Sheets['Lead Master'][XLSX.utils.encode_cell({ r: 1, c: col('Imported On') })];
   return { sheets: wb.SheetNames, header: h, rami: rami && [rami[col('Import Status')], rami[col('Changes')], rami[col('Source File')], rami[col('Personalized Email')]?.slice(0, 40)], zeina: zeina && zeina[col('Import Status')], zeinaRej: zr && zr[rj[0].indexOf('Import Status')], logRows: log.length - 1, logHead: log[0], dateType: dateCell?.t, dateFmt: dateCell?.z || dateCell?.w, rows: m.length - 1, names: m.slice(1).map(r => r[col('Lead Name')]) };
 });
-ok(JSON.stringify(wbInfo.sheets) === JSON.stringify(['Lead Master', 'AI Insights', 'Outreach', 'Rejected', 'Import Log', 'Run Summary']), 'six sheets', wbInfo.sheets.join(','));
+ok(JSON.stringify(wbInfo.sheets) === JSON.stringify(['Business Emails', 'Lead Master', 'AI Insights', 'Outreach', 'Rejected', 'Import Log', 'Run Summary']), 'seven sheets, Business Emails first', wbInfo.sheets.join(','));
 ok(['Import Status', 'Imported On', 'Updated On', 'Changes', 'Source File'].every(c => wbInfo.header.includes(c)), 'import columns in Lead Master', wbInfo.header.join('|'));
 ok(wbInfo.rami && wbInfo.rami[0] === 'Updated' && /Job title: Managing Director → Chief Executive Officer/.test(wbInfo.rami[1]) && wbInfo.rami[2] === 'apollo2.csv' && /^Hi Rami,/.test(wbInfo.rami[3] || ''), 'Rami row: Updated, changes, source, fresh email', JSON.stringify(wbInfo.rami));
 ok(wbInfo.zeinaRej === 'New', 'pasted lead (below threshold) is in Rejected, marked New', wbInfo.zeinaRej);
@@ -265,7 +265,7 @@ await go('discover');
 await page.evaluate(async () => { const db = await window.claude.use('db'); const d = await db.doc('discovery/linkedin').get();
   window.__prePlan = d.exists; });
 await page.click('[data-act="planAll"]'); await page.waitForTimeout(900);
-const plans = await page.evaluate(() => Object.fromEntries(['linkedin', 'web', 'social', 'directories', 'hiring', 'news'].map(c => [c, window.__docs['discovery/' + c]?.queries])));
+const plans = await page.evaluate(() => Object.fromEntries(['registries', 'web', 'social', 'directories', 'hiring', 'news'].map(c => [c, window.__docs['discovery/' + c]?.queries])));
 ok(Object.values(plans).every(q => q && q.length > 40), 'planner wrote a plan for every channel', Object.entries(plans).map(([k, v]) => k + ':' + (v && v.length)).join(' '));
 ok(Object.values(plans).every(q => new Set(q.map(x => x.id)).size === q.length && q.every(x => x.status === 'todo' && x.tier >= 1)), 'query ids unique, all todo, tiered');
 ok(plans.web.some(q => q.lang === 'ar') && plans.web.some(q => q.tier === 3) && plans.hiring.some(q => /site:bayt\.com/.test(q.q)), 'plans include Arabic, neighborhood and job-board queries');
@@ -279,7 +279,7 @@ ok(web2[0].status === 'done' && web2[0].found === 7 && web2.some(q => q.id === '
 const kn = await page.evaluate(() => window.__docs['discovery/known']);
 ok(kn?.domains?.includes('skylineprops.example') && (await page.evaluate(() => !!window.__docs['discovery/targets'] && !!window.__docs['discovery/stats'])), 'known domains, targets and stats shared with the agents');
 const agentsTxt = await page.locator('main').innerText();
-ok(/LinkedIn search/.test(agentsTxt) && /Decision-maker finder/.test(agentsTxt) && /Strategist/.test(agentsTxt) && /of \d+ searches/.test(agentsTxt), 'agents table lists scouts, finder and strategist with plan progress');
+ok(/Official registers/.test(agentsTxt) && /Email finder/.test(agentsTxt) && /Strategist/.test(agentsTxt) && /of \d+ searches/.test(agentsTxt), 'agents table lists scouts, finder and strategist with plan progress');
 
 const leadsBefore = (await dbLeads()).length;
 await page.evaluate(async () => { const db = await window.claude.use('db');
@@ -307,7 +307,7 @@ L = await dbLeads();
 const hala = byName(L, 'Hala Sarkis'); const cedar = L.find(r => r.company === 'Cedar Spa Clinic'); const harborCo = L.find(r => !r.name && r.domain === 'harborhotel.example');
 ok(hala && hala.source === 'Agent · LinkedIn search' && hala.channel === 'linkedin' && hala.evidence.startsWith('https://www.google.com') && hala.linkedin === 'https://www.linkedin.com/in/hala-sarkis', 'agent lead keeps channel, source and evidence', JSON.stringify(hala && [hala.source, hala.channel, hala.linkedin]));
 ok(!harborCo, 'company-only row dropped once a named person works there');
-ok(cedar && !cedar.name && cedar.phone === '+961 1 555 000' && cedar.domain === 'cedarspa.example' && cedar.source === 'Agent · Web search', 'company-only lead kept when nobody is named', JSON.stringify(cedar && [cedar.source, cedar.phone]));
+ok(cedar && !cedar.name && cedar.phone === '+961 1 555 000' && cedar.domain === 'cedarspa.example' && cedar.source === 'Agent · Business websites', 'company-only lead kept when nobody is named', JSON.stringify(cedar && [cedar.source, cedar.phone]));
 ok(L.length === leadsBefore + 2 && !byName(L, 'Low Confidence'), 'two leads added net, low-confidence row never imported', L.length + ' vs ' + leadsBefore);
 ok(byName(L, 'Rami Aoun').signals.includes('Hiring a leasing manager') && byName(L, 'Rami Aoun').importStatus === 'updated', 'existing lead updated by an agent signal');
 const inb = await page.evaluate(() => Object.fromEntries(Object.entries(window.__docs).filter(([k]) => k.startsWith('inbox/')).map(([k, v]) => [k, v.imported])));
@@ -322,10 +322,74 @@ L = await dbLeads();
 ok(inb2 === false && L.length === leadsBefore, 'undo restores the leads and puts the runs back in the inbox', inb2 + ' ' + L.length);
 await page.click('[data-act="dismissInbox"][data-id="all"]'); await page.waitForTimeout(300);
 ok(/reviewed/.test(await page.locator('.card:has-text("Discovery agents")').first().innerText()), 'dismiss all clears the inbox');
-await page.click('[data-act="copyAgent"][data-id="linkedin"]'); await page.waitForTimeout(200);
+await page.click('[data-act="copyAgent"][data-id="registries"]'); await page.waitForTimeout(200);
 ok(/Copied|Select the text/.test(await page.locator('#toast').innerText()), 'copy instructions button works');
 
+// ── 12c. email-first: business emails are the product, people are optional
+await page.evaluate(() => { window.__saved = {}; });
+await go('discover');
+await page.click('text=Or paste rows from Excel or Google Sheets');
+const T = ['Company', 'Website', 'Email', 'Country', 'City', 'Industry', 'Phone', 'Evidence', 'Email Status'];
+const R = rows => [T.join('\t'), ...rows.map(r => r.join('\t'))].join('\n');
+await page.fill('#pasteBox', R([
+  ['Harbor View Hotel', 'harborview.example', 'info@harborview.example', 'Lebanon', 'Beirut', 'Hotel', '+961 1 111 222', 'https://harborview.example/contact', 'Published'],
+  ['Harbor View Hotel', 'harborview.example', 'reservations@harborview.example', 'Lebanon', 'Beirut', 'Hotel', '', 'https://harborview.example/contact', 'Published'],
+  ['Harbor View Hotel', 'harborview.example', 'noreply@harborview.example', 'Lebanon', 'Beirut', 'Hotel', '', 'https://harborview.example/', 'Published'],
+  ['Cedar Polyclinic', 'cedarpoly.example', '', 'Lebanon', 'Beirut', 'Polyclinic', '+961 1 333 444', 'https://directory.example/cedar', ''],
+  ['Gulf Cowork', 'gulfcowork.example', 'hello@gulfcowork.example', 'UAE', 'Dubai', 'Coworking space', '', 'https://gulfcowork.example/', 'Published'],
+  ['Dr Smile Clinic', '', 'drsmile@gmail.com', 'Lebanon', 'Beirut', 'Dental clinic', '', 'https://facebook.example/drsmile', 'Published'],
+]));
+await page.click('[data-act="readPaste"]'); await page.waitForTimeout(200);
+ok(/6\s*new leads/.test(await planText()), 'paste: three addresses of one hotel stay three leads; company-only and gmail rows kept', await planText());
+await commit();
+L = await dbLeads();
+const hv = L.filter(r => r.domain === 'harborview.example');
+ok(hv.length === 3 && new Set(hv.map(r => r.email)).size === 3, 'each address of a business is its own lead (not merged into one)', JSON.stringify(hv.map(r => r.email)));
+await go('verify');
+const vtxt = (await page.locator('main').innerText()).replace(/\t/g, ' ');
+ok(/Company mailbox[^\n]*\s3\b/.test(vtxt) && /Not for outreach[^\n]*\s1\b/.test(vtxt), 'verify: info@, reservations@, hello@ are company mailboxes; noreply@ is not for outreach', vtxt.slice(0, 400));
+await go('leads'); await page.selectOption('#tableF', 'all'); await page.fill('#tableQ', 'harborview'); await page.waitForTimeout(300);
+const hvTxt = await page.locator('#tableBox').innerText();
+ok(/Harbor View Hotel/.test(hvTxt) && /Company inbox/.test(hvTxt) && /Company mailbox/.test(hvTxt), 'company rows show the business and "Company inbox"', hvTxt.slice(0, 200));
+await page.click('#tableBox tr[data-act="lead"] >> nth=0'); await page.waitForTimeout(150);
+const dr = await page.locator('.drawer').innerText();
+ok(/Company mailbox/.test(dr) && /Score \d+ \/ 100/.test(dr), 'company lead opens with a score', dr.slice(0, 200));
+await page.keyboard.press('Escape');
+await page.waitForTimeout(3200);
+const sh = await page.evaluate(() => ({ t: window.__docs['discovery/targets'].companies.map(c => c.id), k: window.__docs['discovery/known'].domains }));
+ok(sh.t.includes('cedarpoly.example') && !sh.t.includes('harborview.example') && sh.k.includes('harborview.example') && sh.k.includes('gulfcowork.example') && !sh.k.includes('cedarpoly.example'), 'targets = businesses still without an email; known = businesses that have one', JSON.stringify(sh).slice(0, 300));
+// the email finder's result fills the company-only lead instead of creating a new one
+await go('discover');
+await page.click('text=Or paste rows from Excel or Google Sheets').catch(() => {});
+await page.fill('#pasteBox', R([['Cedar Polyclinic', 'cedarpoly.example', 'info@cedarpoly.example', 'Lebanon', 'Beirut', 'Polyclinic', '', 'https://cedarpoly.example/contact', 'Published']]));
+await page.click('[data-act="readPaste"]'); await page.waitForTimeout(200);
+ok(/0\s*new leads/.test(await planText()) && /1\s*updated/.test(await planText()), 'a found email fills the business that had none (updated, not new)', await planText());
+await commit();
+L = await dbLeads();
+const cp = L.filter(r => r.domain === 'cedarpoly.example');
+ok(cp.length === 1 && cp[0].email === 'info@cedarpoly.example' && cp[0].phone === '+961 1 333 444', 'one Cedar lead with its email and the phone it already had', JSON.stringify(cp.map(r => [r.email, r.phone])));
+// emails to the shared inbox greet the team, not a person
+await go('outreach');
+await page.click('[data-act="run"][data-kind="emails"]'); await page.waitForTimeout(2000);
+await page.click('#topExport'); await page.waitForTimeout(900);
+const bx = await page.evaluate(async () => {
+  const blob = Object.values(window.__saved).filter(b => b instanceof Blob).pop(); const wb = XLSX.read(await blob.arrayBuffer(), { type: 'array' });
+  const be = XLSX.utils.sheet_to_json(wb.Sheets['Business Emails'], { header: 1 }); const h = be[0]; const col = n => h.indexOf(n);
+  const ot = XLSX.utils.sheet_to_json(wb.Sheets['Outreach'], { header: 1 });
+  return { head: h, rows: be.slice(1).map(r => ({ email: r[col('Email')], type: r[col('Type')], status: r[col('Email Status')], co: r[col('Company')], ev: r[col('Evidence URL')], by: r[col('Found By')], score: r[col('Lead Score')] })),
+    hello: ot.filter(r => /^Hello,/.test(r[4] || '')).map(r => r[2]), hi: ot.filter(r => /^Hi /.test(r[4] || '')).length };
+});
+const emailsOut = bx.rows.map(r => r.email);
+ok(['info@harborview.example', 'reservations@harborview.example', 'hello@gulfcowork.example', 'drsmile@gmail.com', 'info@cedarpoly.example'].every(e => emailsOut.includes(e)) && !emailsOut.includes('noreply@harborview.example'), 'Business Emails sheet: every usable address, noreply@ left out', emailsOut.join(' '));
+ok(new Set(emailsOut).size === emailsOut.length && emailsOut.length >= 9, 'Business Emails sheet: one row per address, includes earlier person emails', emailsOut.length + '');
+const bInfo = bx.rows.find(r => r.email === 'info@harborview.example');
+ok(bInfo && bInfo.type === 'Company inbox' && bInfo.status === 'Company mailbox' && bInfo.ev === 'https://harborview.example/contact' && /Agent|Import|Paste/i.test(bInfo.by || 'Import'), 'Business Emails row: type, status and evidence URL', JSON.stringify(bInfo));
+ok(bx.hello.length >= 3 && bx.hi >= 3, 'company inboxes get "Hello," and named people keep "Hi <name>,"', 'hello=' + bx.hello.length + ' hi=' + bx.hi);
+const bi = await page.evaluate(() => Object.values(window.__docs).filter(d => d && d.k && d.emails).map(d => d.emails.a));
+ok(bi.length >= 8, 'emails were written for company leads too', bi.length + '');
+
 // ── 13. clear all
+await go('discover');
 await page.click('[data-act="confirm"][data-k="clear"]'); await page.click('[data-act="clearAll"]'); await page.waitForTimeout(600);
 const left = await page.evaluate(() => Object.keys(window.__docs).filter(k => /^(leads|ai)\//.test(k)));
 ok(left.length === 0, 'remove all leads deletes chunks and AI docs', left.join(','));

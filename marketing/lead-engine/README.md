@@ -22,6 +22,23 @@ https://claude.ai/artifact/Q63Xzo5jQwG6cLhcKBh9HN. To update it, republish this 
 AI calls run on the viewer's own Claude account, two batches at a time, started by a click and stoppable; each finished
 lead is saved immediately, so a stopped or rate-limited run continues where it left off.
 
+## Goal: official business emails
+
+The product is a list of **official business email addresses** (hotels, real-estate agencies and brokers, property
+managers, polyclinics and medical centers, coworking spaces, business centers, training centers) in UAE, Saudi Arabia and
+Lebanon. A person's name is optional. Shared company inboxes (`info@`, `reservations@`, `contact@`, `hello@`, `sales@`...)
+are leads in their own right ("Company mailbox"); only `noreply@`, `privacy@`, `careers@`, `hr@`, `abuse@` and similar are
+dropped ("Not for outreach"). A business with several addresses gives several leads. A business with no email yet is a
+target for the email finder. The Excel export starts with a **Business Emails** sheet: every usable address, one row each,
+whatever its score, with type, status, website, country, city, industry, phone, the evidence URL where it was seen, who
+found it and when. Agents only keep emails the business itself published or an official register lists for it, and never
+construct addresses from patterns.
+
+Channels: official registers (ministries, regulators, chambers, syndicates, insurer networks), business websites,
+directories and listings, Facebook/Instagram pages, hiring ads and openings (company discovery), and the email finder.
+LinkedIn people search was retired. Page fetching is blocked in the default cloud environment, so agents work from search
+results (registers often show emails there) until network access is widened.
+
 ## Discovery agents
 
 Source: `agents/discovery.js` (copied into the page by `python3 agents/build.py`; edit it there, never in the HTML).
@@ -90,7 +107,7 @@ each with its own timestamp). Readable and writable only at Contributor level or
 
 ## Tests
 
-`tests/` drives the real page in headless Chromium against an in-memory database and a scripted Claude: 79 flow checks and 95 agent checks over
+`tests/` drives the real page in headless Chromium against an in-memory database and a scripted Claude: 92 flow checks and 115 agent checks over
 every import path, merge and change tracking, undo, the research and email agents (including a renamed key, a buzzword
 and a rate limit), QC, the verifier round-trip, the Excel workbook, a round-trip of the engine's own export, reload and
 clean-up. `scale.mjs` imports and re-imports 10,000 leads.
