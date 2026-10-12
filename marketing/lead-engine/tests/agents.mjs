@@ -50,7 +50,7 @@ for (const c of api.CHANNELS) {
   ok(/^\d+ \d+ \* \* [\d,-]+$/.test(api.cronFor(c)), `${c.id}: valid cron ${api.cronFor(c)}`);
   ok(/date -u \+%Y%m%d%H%M/.test(p) && /never guess/i.test(p), `${c.id}: reads the clock from the shell instead of guessing`);
   ok(/OFFICIAL BUSINESS EMAIL/.test(p) && /Never guess or construct an address/.test(p) && /info@, contact@/.test(p), `${c.id}: goal is official business emails; never constructs addresses; shared inboxes welcome`);
-  ok(/NUMBER OF ROWS WITH AN EMAIL/i.test(p) && /found/.test(p), `${c.id}: yield is counted in emails`);
+  ok(/company rows/i.test(p) && /found/.test(p), `${c.id}: yield is counted in emails`);
 }
 for (const c of api.CHANNELS) {
   const p = api.promptFor(c.id, countries);
