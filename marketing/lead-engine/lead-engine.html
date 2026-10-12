@@ -628,7 +628,7 @@ const SCOUT_RULES = (ch, countries) => `HOW TO WORK, SMART
 - Within one run, merge duplicates (same email address) into one row.
 - If the search tool errors or refuses twice in a row, stop: mark the remaining queries "blocked" with a short note and finish.
 - Public pages only. Never log in, never open linkedin.com or facebook.com pages (use only what search results show about them), never get around a paywall, captcha or robots.txt, never submit a form, never contact anyone.
-- Budget for this run: at most ${ch.searches} web searches${ch.fetches ? ` and ${ch.fetches} page fetches` : ' and no page fetches'}. If page fetching is not allowed in this environment, work from search results alone and say so in notes.`;
+- Budget for this run: at most ${ch.searches} web searches${ch.fetches ? ` and ${ch.fetches} page fetches` : ' and no page fetches'}. Page fetching is often blocked here: try it once; if the first fetch fails with a network or DNS error, treat fetching as unavailable for the whole run, never try again, and work from search results alone (say so in notes). Do not wait on slow pages.`;
 const ROW_SPEC = `Each row is one JSON object with these keys ("" when unknown):
 company, email, website, country, city, industry, phone, name, title, emailStatus, linkedin, description, signals, evidence, confidence
 - email (required for a company row): one official address. A business with several addresses gives several rows.
@@ -641,12 +641,14 @@ company, email, website, country, city, industry, phone, name, title, emailStatu
 function agentPrompt(ch, countries) {
   return `${DB_INTRO(ch.name + ' scout', 'Your channel: ' + ch.what)}
 
-STEP 1. Read your work.
-- ArtifactData get, collection "config", doc_id "icp": segments, keywords, countries.
-- ArtifactData get, collection "discovery", doc_id "${ch.id}": your plan {"queries":[{"id","q","segment","city","country","tier","status","tries","found"}]}. If it does not exist, stop and say: "No plan yet: open the engine, step 3, and press Plan queries."
-- ArtifactData get, collection "discovery", doc_id "known" (may not exist): {"domains":[...]}.
-- ArtifactData get, collection "discovery", doc_id "strategy" (may not exist): the strategist's latest notes on what works; follow them.
-Choose ${ch.per} queries: status "todo" first, lowest tier first, then fewest tries; then "done" ones with the oldest doneAt. Never pick "retired", or "blocked" with tries of 3 or more.
+STEP 0. Start the clock: run \`date +%s\` and remember it. Stop starting new queries 14 minutes later and go straight to STEP 3 and STEP 4 with what you have. A run must finish in under 20 minutes.
+
+STEP 1. Read your work. The plan is a large document (up to 100 KB): never read it into the conversation and never retype it. Save it to disk and work on the file.
+- ArtifactData get, collection "discovery", doc_id "${ch.id}", out_dir "/tmp/prohost". It is saved as /tmp/prohost/discovery/${ch.id}.json ({"queries":[{"id","q","segment","city","country","tier","status","tries","found"}]}); note the version number. If it does not exist, stop and say: "No plan yet: open the engine, step 3, and press Plan queries."
+- ArtifactData get, collection "config", doc_id "icp" (small): segments, keywords, countries.
+- ArtifactData get, collection "discovery", doc_id "known" (may not exist; small): {"domains":[...]}.
+- ArtifactData get, collection "discovery", doc_id "strategy" (may not exist; small): the strategist's latest notes on what works; follow them.
+Choose ${ch.per} queries with one short python3 command on the plan file: status "todo" first, lowest tier first, then fewest tries; then "done" ones with the oldest doneAt. Never pick "retired", or "blocked" with tries of 3 or more. Print only the chosen queries (id and q).
 
 STEP 2. Run each query.
 ${ch.method}
@@ -657,19 +659,19 @@ STEP 3. Build rows.
 ${ROW_SPEC}
 - Add "query": the plan id of the query that produced the row (for a reformulation, the id of the query you reformulated).
 
-STEP 4. Hand the rows to the engine.
-ArtifactData set, collection "inbox", doc_id "${ch.id}-<UTC time as YYYYMMDDHHmm>", data:
+STEP 4. Hand the rows to the engine. Write the run as a JSON file (python3 json.dump) at /tmp/prohost/run.json, then ArtifactData set with collection "inbox", doc_id "${ch.id}-<UTC time as YYYYMMDDHHmm>" and file_path "/tmp/prohost/run.json". The document is:
 {"channel":"${ch.id}","agent":"${ch.name}","runAt":<epoch ms>,"queries":[<ids you ran>],"rows":[...],"learned":[{"from":"<query>","to":"<reformulation>","rows":<n>}],"suggest":["<up to 10 new search queries, or names of businesses whose email is still missing, worth trying next>"],"notes":"<one line: what worked, what was blocked>"}
 At most 150 rows per document; put the rest in another document with "-2" added to the id. Write the document even with no rows, so the engine shows the run.
 
-STEP 5. Record progress.
-Get discovery/${ch.id} again. On each query you ran: tries + 1, "status":"done", "doneAt":<epoch ms>, "found":<number of rows WITH AN EMAIL from that query>; or "status":"blocked" with a short "note" when it was refused. Write the whole document back with ArtifactData set, using the version you just read as if_version. If that version is stale, read once more and retry.
+STEP 5. Record progress, again on the file, never by retyping the plan. With one python3 command, open /tmp/prohost/discovery/${ch.id}.json and, on each query you ran, set tries + 1, "status":"done", "doneAt":<epoch ms>, "found":<number of rows WITH AN EMAIL from that query>; or "status":"blocked" with a short "note" when it was refused. Save the file, then ArtifactData set, collection "discovery", doc_id "${ch.id}", file_path "/tmp/prohost/discovery/${ch.id}.json" (it holds the "queries" array and any other fields it came with), if_version = the version from STEP 1. If the version is stale, get it again to the same folder, redo the update on the fresh file and retry once.
 
 STEP 6. Finish with two lines: what you ran and how many emails you wrote; anything blocked or surprising.`;
 }
 function enrichPrompt(countries) {
   const ch = { ...ENRICH };
   return `${DB_INTRO(ch.name, 'Your job: ' + ch.what)}
+
+STEP 0. Start the clock with \`date +%s\`. Stop starting new companies 14 minutes later and finish; a run must take under 20 minutes.
 
 STEP 1. Read your work.
 - ArtifactData get, collection "config", doc_id "icp".
@@ -698,9 +700,9 @@ function strategistPrompt(countries) {
 
 STEP 1. Read.
 - ArtifactData get, collection "config", doc_id "icp".
-- For each channel in ${CHANNELS.map(c => c.id).join(', ')}: ArtifactData get, collection "discovery", doc_id "<channel>": the plan. Remember each document's version.
+- The plans are large (up to 100 KB each): never read them into the conversation or retype them. For each channel in ${CHANNELS.map(c => c.id).join(', ')}: ArtifactData get, collection "discovery", doc_id "<channel>", out_dir "/tmp/prohost" (saved as /tmp/prohost/discovery/<channel>.json); remember each version. Do all analysis and edits with python3 on those files.
 - ArtifactData get, collection "discovery", doc_id "stats" (may not exist): what the engine measured per channel: leads imported, qualified, and withEmail (leads with a usable email). withEmail is the number that matters.
-- ArtifactData list, collection "inbox", query limit 40: the most recent runs. Read channel, runAt, rows (count only), learned, suggest, notes. Ignore row contents.
+- ArtifactData list, collection "inbox", query limit 40, out_dir "/tmp/prohost": the most recent runs, then summarise them with python3. Read channel, runAt, rows (count only), learned, suggest, notes. Ignore row contents.
 - ArtifactData get, collection "discovery", doc_id "strategy" (may not exist): your last notes.
 
 STEP 2. Decide, for each channel. A query's "found" is the number of emails it produced.
@@ -712,7 +714,7 @@ STEP 2. Decide, for each channel. A query's "found" is the number of emails it p
 - Every new query needs: "id" ("s" followed by a unique base-36 string you make up), "q", "segment", "city", "country", "tier", "lang", "status":"todo", "tries":0, "found":0, "source":"strategist". Keep the plan at 600 queries at most: drop retired ones first.
 New query ideas must stay inside ${countries.join(', ')} and ProHost's segments.
 
-STEP 3. Write each changed plan back with ArtifactData set, using the version you read as if_version (read again and redo once if stale). Keep every field of the queries you did not touch.
+STEP 3. Write each changed plan back with ArtifactData set, collection "discovery", doc_id "<channel>", file_path "/tmp/prohost/discovery/<channel>.json", if_version = the version you read (get again and redo once if stale). Keep every field of the queries you did not touch.
 
 STEP 4. ArtifactData set, collection "discovery", doc_id "strategy" (if_version when it already exists): {"updatedAt":<epoch ms>,"summary":"<3 sentences: what is working, what is not, what you changed>","actions":{"retired":<n>,"boosted":<n>,"promoted":<n>,"added":<n>},"channelHealth":{"<channel>":"<ok | weak: reason | blocked: reason>"},"guidance":"<up to 6 short bullet lines the scouts should follow, for example which registers, languages or query shapes yield emails>"}
 

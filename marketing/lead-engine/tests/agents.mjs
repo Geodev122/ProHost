@@ -52,12 +52,20 @@ for (const c of api.CHANNELS) {
   ok(/OFFICIAL BUSINESS EMAIL/.test(p) && /Never guess or construct an address/.test(p) && /info@, contact@/.test(p), `${c.id}: goal is official business emails; never constructs addresses; shared inboxes welcome`);
   ok(/NUMBER OF ROWS WITH AN EMAIL/i.test(p) && /found/.test(p), `${c.id}: yield is counted in emails`);
 }
+for (const c of api.CHANNELS) {
+  const p = api.promptFor(c.id, countries);
+  ok(/file_path "\/tmp\/prohost\/discovery\/\w+\.json"/.test(p) && /out_dir "\/tmp\/prohost"/.test(p) && /never read it into the conversation and never retype it/.test(p), `${c.id}: plan is saved to disk and written back from the file, never retyped`);
+  ok(/Stop starting new queries 14 minutes later/.test(p) && /first fetch fails/.test(p), `${c.id}: 14-minute cap and one-strike page-fetch rule`);
+}
+ok(/never read them into the conversation or retype them/.test(api.promptFor('strategist', countries)), 'strategist works on plan files');
 for (const id of ['enrich', 'strategist']) { const p = api.promptFor(id, countries); ok(/OFFICIAL BUSINESS EMAIL/.test(p), `${id}: goal is official business emails`); }
 ok(/Never guess or construct an address/.test(api.promptFor('enrich', countries)) && /no email/.test(api.promptFor('enrich', countries)), 'finder only takes official addresses for businesses without one');
 ok(/targets/.test(api.promptFor('enrich', countries)) && /"done"/.test(api.promptFor('enrich', countries)), 'finder reads targets and records what it tried');
 ok(/do not search the web/i.test(api.promptFor('strategist', countries)) && /RETIRE/.test(api.promptFor('strategist', countries)) && /BOOST/.test(api.promptFor('strategist', countries)), 'strategist reads and rewrites plans only');
 const slots = api.CHANNELS.concat([api.ENRICH, api.STRATEGIST]).map(c => c.hour * 60 + c.minute);
 ok(new Set(slots).size === slots.length || true, 'schedule slots listed');
+const pdir = process.argv.includes('--write-prompts') ? process.argv[process.argv.indexOf('--write-prompts') + 1] : '';
+if (pdir) { fs.mkdirSync(pdir, { recursive: true }); for (const id of [...api.CHANNELS.map(c => c.id), 'enrich', 'strategist']) fs.writeFileSync(`${pdir}/${id}.txt`, api.promptFor(id, countries)); }
 const dir = process.argv.includes('--write-plans') ? process.argv[process.argv.indexOf('--write-plans') + 1] : '';
 if (dir) { fs.mkdirSync(dir, { recursive: true }); for (const [id, q] of Object.entries(plans)) fs.writeFileSync(`${dir}/${id}.json`, JSON.stringify({ channel: id, plannedAt: Date.now(), queries: q })); console.log('plans written to', dir); }
 console.log(`\n${pass} passed, ${fails.length} failed`); fails.forEach(f => console.log(' - ' + f)); process.exit(fails.length ? 1 : 0);
