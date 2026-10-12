@@ -656,7 +656,7 @@ const SCOUT_RULES = (ch, countries) => `HOW TO WORK, SMART
 - Triage every result with three questions: does the business fit the segment, is it in ${countries.join(', ')}, and does the email belong to that business? Drop it if any answer is no or unsure.
 - Be adaptive. After each search, if fewer than 2 emails were found, reformulate up to 2 times: the same idea in Arabic or French, with "email" or "contact us" or "@" added, without quotes or operators, with a neighborhood, or with a synonym for the business type. When a reformulation yields 2 or more emails, record it under "learned".
 - Rate each row's confidence. "high": the email appears on the business's own site or page, or in an official register entry for it. "medium": it appears in a third-party directory or snippet for that business. Never return "low" rows.
-- Within one run, merge duplicates (same email address) into one row.
+- Within one run, merge duplicates: the same email address is one row, and so is the same business (same website domain) without an email.
 - Network safety: never try to get around a block (no proxies, mirrors, caches, translators or other workarounds). A DNS, timeout or 403 error on a page means: skip that page and use the search snippet. Any other tool error (ArtifactData, Bash): retry once, then continue with what you have. If the search tool errors or refuses twice in a row, stop: mark the remaining queries "blocked" with a short note and finish. Always finish by writing the run document, even if empty, so a failure never leaves nothing.
 - Public pages only. Never log in, never open linkedin.com or facebook.com pages (use only what search results show about them), never get around a paywall, captcha or robots.txt, never submit a form, never contact anyone.
 - Budget for this run: at most ${ch.searches} web searches${ch.fetches ? ` and ${ch.fetches} page fetches` : ' and no page fetches'}. Page fetching is often blocked here: try it once; if the first fetch fails with a network or DNS error, treat fetching as unavailable for the whole run, never try again, and work from search results alone (say so in notes). Do not wait on slow pages.`;
@@ -664,7 +664,7 @@ const ROW_SPEC = `Each row is one JSON object with these keys ("" when unknown):
 company, email, website, country, city, industry, phone, name, title, emailStatus, linkedin, description, signals, evidence, confidence
 - email: one official address when a result shows one for this business ("" when not; then website or phone is required, so the Email finder can work from the row). A business with several addresses gives several rows. Never return a row that has neither an email, a website nor a phone.
 - company: the business's trading name as it appears on its site or listing. website: its own site, https://domain form.
-- evidence (required): the URL of the page or result where you saw the email.
+- evidence (required): the URL of the page or result where you saw this business (and its email, when it has one).
 - emailStatus: "Published" for every address that passes the official-only rule.
 - country: exactly one of the target countries. industry: what kind of business it is ("Hotel", "Real estate agency", "Polyclinic", "Coworking space", ...).
 - name, title: only when the source names a person for that address.
