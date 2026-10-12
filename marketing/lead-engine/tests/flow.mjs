@@ -406,6 +406,13 @@ await page.click('[data-act="cancelRun"]'); await page.waitForTimeout(300);
 const rq2 = await page.evaluate(() => window.__docs['discovery/runQueue']);
 const rpt = await page.locator('.runpanel').innerText(); ok(rq2.requests[0].status === 'cancelled' && /Cancelled/.test(rpt), 'Run agents: a waiting request can be cancelled', rq2.requests[0].status + ' / ' + rpt.replace(/\n/g, ' ').slice(0, 300));
 
+// ── 12d. a business named only by city and country is kept (hotels from guides have no own website)
+fs.writeFileSync(SP + 'out/nameonly.csv', 'company,city,country,evidence\nHotel Alpha Beirut,Beirut,Lebanon,https://guide.example/x\nNameless,,,https://guide.example/y\n');
+await importFiles(['nameonly.csv']); await page.waitForTimeout(500);
+const stats = await page.locator('#importCard .stat').allInnerTexts();
+ok(stats.some(t => /^1\s*\n?new/i.test(t.trim())) && stats.some(t => /^1\s*\n?rows? skipped/i.test(t.trim())), 'import keeps a business named only by city and country, skips one with no place', JSON.stringify(stats));
+await page.click('[data-act="cancelImport"]'); await page.waitForTimeout(200);
+
 // ── 13. clear all
 await go('discover');
 await page.click('[data-act="confirm"][data-k="clear"]'); await page.click('[data-act="clearAll"]'); await page.waitForTimeout(600);
