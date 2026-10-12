@@ -231,6 +231,11 @@ hr.rule { border: 0; border-top: 1px solid var(--line); width: 100%; margin: 4px
 .paste { display: flex; flex-direction: column; gap: 8px; }
 .inbox { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid var(--brand-line); background: var(--brand-soft); border-radius: 8px; }
 .inbox .tablewrap { background: var(--surface); }
+.runpanel { display: flex; flex-direction: column; gap: 8px; padding: 12px; margin: 12px 0; border: 1px solid var(--brand-line); background: var(--brand-soft); border-radius: 8px; }
+.runpanel .row { flex-wrap: wrap; gap: 8px; align-items: center; }
+.runpanel p { margin: 0; }
+.runlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .who b .pill { margin-left: 4px; vertical-align: 1px; font-weight: 600; }
 h1 .pill { font-family: var(--body); font-size: .74rem; vertical-align: middle; }
 </style>
@@ -1610,12 +1615,51 @@ function planStats(id) {
   const qs = S.disc[id]?.queries || [];
   return { total: qs.length, done: qs.filter(q => q.status === 'done').length, blocked: qs.filter(q => q.status === 'blocked').length, retired: qs.filter(q => q.status === 'retired').length, boosted: qs.filter(q => q.source === 'strategist').length };
 }
+// Run panel. A page cannot start a routine itself; Run writes a request to discovery/runQueue and Claude starts the
+// ticked agents when asked ("run the queued agents"), scouts first, then the email finder, then the strategist.
+const AGENT_ORDER = () => [...CHANNELS.map(c => c.id), 'enrich', 'strategist'];
+const agentName = id => (CHANNELS.find(c => c.id === id) || (id === 'enrich' ? ENRICH : STRATEGIST)).name;
+const pickSet = () => (S.pick ||= new Set());
+const RUN_STATUS = { queued: 'Waiting for Claude', started: 'Started', done: 'Finished', cancelled: 'Cancelled' };
+function runPanelHtml() {
+  const reqs = (Array.isArray(S.disc.runQueue?.requests) ? S.disc.runQueue.requests : []).slice().sort((a, b) => b.at - a.at).slice(0, 5);
+  const n = pickSet().size; const busy = !!S.busy.queue;
+  const history = reqs.length ? `<ul class="small runlist">${reqs.map(r => `<li><span class="pill ${r.status === 'done' ? 'good' : r.status === 'queued' ? 'warn' : 'mute'}">${esc(RUN_STATUS[r.status] || r.status)}</span> ${esc(arr(r.agents).map(agentName).join(', '))} <span class="muted">· ${esc(relTime(r.at))}</span>${r.status === 'queued' ? ` <button class="btn ghost sm" data-act="cancelRun" data-id="${esc(r.id)}">Cancel</button>` : ''}</li>`).join('')}</ul>` : '';
+  const queued = reqs.some(r => r.status === 'queued');
+  return `<div class="runpanel"><div class="row"><b>Run agents</b><span class="small muted">${n ? fmt(n) + ' selected' : 'Tick the agents to run'}</span><span class="spacer"></span>
+      <button class="btn sm" data-act="pickAgents" data-set="scouts">All scouts</button><button class="btn sm" data-act="pickAgents" data-set="all">All</button><button class="btn sm" data-act="pickAgents" data-set="none">Clear</button>
+      <button class="btn primary sm" data-act="queueRun" ${n && !busy && canWrite() ? '' : 'disabled'}>${busy ? 'Sending…' : n ? `Run ${fmt(n)} agent${n === 1 ? '' : 's'}` : 'Run'}</button></div>
+    <p class="small muted">Agents run in Claude Code on your account, so Run asks Claude to start them: ${queued ? '<b>a request is waiting. Tell Claude “run the queued agents”.</b>' : 'after pressing Run, tell Claude “run the queued agents”.'} Scouts start first, then the email finder, then the strategist. Nothing runs on a timer.</p>${history}</div>`;
+}
+async function queueRun() {
+  const agents = AGENT_ORDER().filter(id => pickSet().has(id)); if (!agents.length || S.busy.queue) return;
+  if (!canWrite()) { S.msg.agents = 'Run requests are saved in the engine database, which this view cannot write. Open the page in claude.ai with edit access.'; render(); return; }
+  S.busy.queue = true; S.msg.agents = ''; render();
+  try {
+    const cur = await dbw(() => S.db.doc('discovery/runQueue').get()); const base = cur.exists ? cur.data() : {};
+    const reqs = (Array.isArray(base.requests) ? base.requests : []).slice(-19); const now = Date.now();
+    reqs.push({ id: 'r' + now.toString(36), agents, at: now, status: 'queued' });
+    const doc = { requests: reqs, updatedAt: now };
+    await dbw(() => S.db.doc('discovery/runQueue').set(doc)); S.disc.runQueue = doc;
+    pickSet().clear(); toast(`Queued ${fmt(agents.length)} agent${agents.length === 1 ? '' : 's'}. Tell Claude: run the queued agents.`);
+  } catch (e) { dbFail(e); }
+  S.busy.queue = false; render();
+}
+async function cancelRun(id) {
+  try {
+    const cur = await dbw(() => S.db.doc('discovery/runQueue').get()); if (!cur.exists) return;
+    const doc = { ...cur.data(), updatedAt: Date.now() };
+    doc.requests = (Array.isArray(doc.requests) ? doc.requests : []).map(r => r.id === id && r.status === 'queued' ? { ...r, status: 'cancelled' } : r);
+    await dbw(() => S.db.doc('discovery/runQueue').set(doc)); S.disc.runQueue = doc;
+  } catch (e) { dbFail(e); }
+  render();
+}
 function agentsHtml() {
   const routine = id => (S.agentsCfg?.routines || []).find(x => x.id === id);
   const line = (id, name, what, plan) => {
     const runs = S.inbox.filter(r => r.channel === id); const last = runs[0]; const sc = routine(id);
     const rowsN = runs.reduce((n, r) => n + (Array.isArray(r.rows) ? r.rows.filter(x => x && /@/.test(str(x.email))).length : 0), 0);
-    return `<tr><td class="who"><b>${esc(name)}</b><span>${esc(what)}</span></td><td class="small">${plan}</td>
+    return `<tr><td><input type="checkbox" data-pick="${id}" aria-label="Select ${esc(name)}" ${pickSet().has(id) ? 'checked' : ''}></td><td class="who"><b>${esc(name)}</b><span>${esc(what)}</span></td><td class="small">${plan}</td>
       <td class="small num">${fmt(runs.length)} runs · ${fmt(rowsN)} emails<br><span class="muted">${last ? 'last ' + esc(relTime(last.runAt)) : 'not run yet'}</span></td>
       <td class="small">${sc ? esc(sc.label || sc.cron) : '<span class="muted">not scheduled</span>'}</td>
       <td><button class="btn ghost sm" data-act="copyAgent" data-id="${id}">Copy instructions</button></td></tr>`;
@@ -1635,7 +1679,8 @@ function agentsHtml() {
   return `<div class="card"><div class="card-head"><h2>Discovery agents</h2><button class="btn sm" data-act="planAll" ${S.busy.plan ? 'disabled' : ''}>${S.busy.plan ? 'Planning…' : 'Plan queries'}</button></div>
     <p class="small muted">Agents collect official business email addresses (shared inboxes like info@ count; a person's name is optional) from registers, directories and company pages, on a schedule, in Claude Code on your account, and hand their finds to this inbox. The email finder works through businesses that still have no email. A strategist retires searches that find none and adds variants of the ones that work. Rows are never merged until you review them. Agents use public pages and search results only: they never log in to LinkedIn or Facebook.</p>
     ${msgHtml('agents')}
-    <div class="tablewrap"><table class="t"><thead><tr><th>Agent</th><th>Plan</th><th>Output</th><th>Schedule (UTC)</th><th></th></tr></thead><tbody>${rowsHtml}</tbody></table></div>
+    ${runPanelHtml()}
+    <div class="tablewrap"><table class="t"><thead><tr><th><span class="sr">Select</span></th><th>Agent</th><th>Plan</th><th>Output</th><th>Schedule</th><th></th></tr></thead><tbody>${rowsHtml}</tbody></table></div>
     ${stratCard}${inbox}</div>`;
 }
 async function clearAll() {
@@ -2252,6 +2297,9 @@ const ACT = {
   planAll: () => planAll(),
   openInbox: () => openInbox(),
   dismissInbox: async el => { const ids = el.dataset.id === 'all' ? pendingRuns().map(r => r.id) : [el.dataset.id]; await markInbox(ids, true, 'dismissed', ''); render(); },
+  pickAgents: el => { const s = pickSet(); s.clear(); const w = el.dataset.set; if (w === 'all') AGENT_ORDER().forEach(id => s.add(id)); else if (w === 'scouts') CHANNELS.forEach(c => s.add(c.id)); render(); },
+  queueRun: () => queueRun(),
+  cancelRun: el => cancelRun(el.dataset.id),
   copyAgent: el => copy(promptFor(el.dataset.id, countriesOf().length ? countriesOf() : ['UAE', 'Saudi Arabia', 'Lebanon']), el),
   export: () => exportExcel(),
   analyze: () => analyzeCompany(),
@@ -2317,6 +2365,7 @@ document.addEventListener('change', e => {
     S.import.signals = S.import.signals.filter(h => !Object.values(S.import.map).includes(h));
     S.import.plan = null; S.import.savedMap = false; scheduleRender(); return;
   }
+  if (t.dataset.pick) { t.checked ? pickSet().add(t.dataset.pick) : pickSet().delete(t.dataset.pick); scheduleRender(); return; }
   if (t.id === 'tableF') { S.table.filter = t.value; S.table.page = 0; $('#tableBox').innerHTML = tableHtml(); return; }
   if (t.dataset.weight) { S.out.weights[t.dataset.weight] = clampInt(t.value, 0, 100); saveOutSoon(); derive(); scheduleRender(); return; }
   if (t.dataset.out) {

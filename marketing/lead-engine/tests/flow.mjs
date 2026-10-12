@@ -388,6 +388,24 @@ ok(bx.hello.length >= 3 && bx.hi >= 3, 'company inboxes get "Hello," and named p
 const bi = await page.evaluate(() => Object.values(window.__docs).filter(d => d && d.k && d.emails).map(d => d.emails.a));
 ok(bi.length >= 8, 'emails were written for company leads too', bi.length + '');
 
+// ── 12b. Run agents panel
+await go('discover');
+ok(await page.locator('[data-act="queueRun"]').isDisabled(), 'Run agents: Run is disabled with nothing ticked');
+await page.click('[data-act="pickAgents"][data-set="scouts"]'); await page.waitForTimeout(80);
+const scoutsTicked = await page.locator('input[data-pick]:checked').count();
+ok(scoutsTicked === 6, 'Run agents: "All scouts" ticks the six scouts', scoutsTicked + '');
+await page.check('input[data-pick="strategist"]'); await page.check('input[data-pick="enrich"]'); await page.uncheck('input[data-pick="news"]'); await page.waitForTimeout(80);
+ok((await page.locator('input[data-pick]:checked').count()) === 7, 'Run agents: ticking and unticking single agents works');
+await page.click('[data-act="queueRun"]'); await page.waitForTimeout(300);
+const rq = await page.evaluate(() => window.__docs['discovery/runQueue']);
+ok(rq && rq.requests.length === 1 && rq.requests[0].status === 'queued' && rq.requests[0].agents.length === 7 && !rq.requests[0].agents.includes('news'), 'Run agents: Run saves one queued request with the ticked agents', JSON.stringify(rq));
+const order = rq?.requests[0]?.agents || [];
+ok(order.indexOf('enrich') > order.indexOf('registries') && order[order.length - 1] === 'strategist', 'Run agents: request is ordered scouts, then email finder, then strategist', order.join(','));
+ok((await page.locator('input[data-pick]:checked').count()) === 0 && /Waiting for Claude/.test(await page.locator('.runpanel').innerText()) && /run the queued agents/.test(await page.locator('.runpanel').innerText()), 'Run agents: selection clears and the panel shows the waiting request');
+await page.click('[data-act="cancelRun"]'); await page.waitForTimeout(300);
+const rq2 = await page.evaluate(() => window.__docs['discovery/runQueue']);
+const rpt = await page.locator('.runpanel').innerText(); ok(rq2.requests[0].status === 'cancelled' && /Cancelled/.test(rpt), 'Run agents: a waiting request can be cancelled', rq2.requests[0].status + ' / ' + rpt.replace(/\n/g, ' ').slice(0, 300));
+
 // ── 13. clear all
 await go('discover');
 await page.click('[data-act="confirm"][data-k="clear"]'); await page.click('[data-act="clearAll"]'); await page.waitForTimeout(600);
