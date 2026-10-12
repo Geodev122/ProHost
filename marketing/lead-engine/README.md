@@ -35,7 +35,9 @@ found it and when. Agents only keep emails the business itself published or an o
 construct addresses from patterns.
 
 Channels: official registers (ministries, regulators, chambers, syndicates, insurer networks), business websites,
-directories and listings, Facebook/Instagram pages, hiring ads and openings (company discovery), and the email finder.
+directories and listings, Facebook/Instagram pages, hiring ads and openings (company discovery), hotels & venues (meeting-room guides), property listings (portals: the agency or owner behind each listing), and the email finder.
+
+Strategy: companies first, emails second. Scouts record every named business (name, city, country, evidence page; website and phone when shown), with or without an email; the email finder then works through the ones still missing one. **Countries:** every agent works only in the countries chosen in the ICP Builder (`config/icp` `countries`), round-robin, or one country when the run message names it. The ICP Builder also produces `search_terms`, `search_terms_local` and per-country `cities`, which the planner uses (Rebuild ICP in step 2 to refresh them). All routines are manual: tick agents in the Run agents panel, then ask Claude to run the queued agents.
 LinkedIn people search was retired. Page fetching is blocked in the default cloud environment, so agents work from search
 results (registers often show emails there) until network access is widened.
 
@@ -107,7 +109,7 @@ each with its own timestamp). Readable and writable only at Contributor level or
 
 ## Tests
 
-`tests/` drives the real page in headless Chromium against an in-memory database and a scripted Claude: 99 flow checks and 115 agent checks over
+`tests/` drives the real page in headless Chromium against an in-memory database and a scripted Claude: 102 flow checks and 162 agent checks over
 every import path, merge and change tracking, undo, the research and email agents (including a renamed key, a buzzword
 and a rate limit), QC, the verifier round-trip, the Excel workbook, a round-trip of the engine's own export, reload and
 clean-up. `scale.mjs` imports and re-imports 10,000 leads.
