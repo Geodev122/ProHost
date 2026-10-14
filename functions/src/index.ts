@@ -42,6 +42,7 @@ export { onWorkspaceListingPublishValidation } from "./listings/publishValidatio
 export { onWorkspaceListingDeletedCleanup } from "./listings/listingDeleteCleanup";
 export { listingShareLanding } from "./listings/shareLanding";
 export { siteSitemap } from "./website/sitemap";
+export { onMaintenanceRequest } from "./admin/maintenanceRequests";
 export { changeSlotPrice } from "./listings/changeSlotPrice";
 export { legalDocumentPage } from "./legal/legalDocumentPage";
 export { onBookingAcceptConflictGuard } from "./bookings/bookingConflictGuard";

@@ -722,6 +722,57 @@ async function mailingsmoke(db, code) {
   else await waitMail(db.collection("mail").where(admin.firestore.FieldPath.documentId(), "==", last.id), "contact form email to admin");
 }
 
+
+// Live Play catalog / subscriptions, read by the functions' own service account (invited in Play Console)
+// through the onMaintenanceRequest trigger: write maintenance_requests/{id}, wait for the result.
+async function serverTask(db, task) {
+  const ref = db.collection("maintenance_requests").doc();
+  await ref.set({ task, createdAt: Date.now() });
+  for (let i = 0; i < 60; i++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    const d = (await ref.get()).data();
+    if (d && d.status) {
+      await ref.delete().catch(() => {});
+      if (d.status !== "done") throw new Error(`${task} failed: ${d.result}`);
+      return JSON.parse(d.result);
+    }
+  }
+  throw new Error(`${task}: no answer from onMaintenanceRequest in 120 s (is it deployed?)`);
+}
+
+async function playcatalog(db) {
+  await step("playCatalogLive", async () => {
+    const cat = await serverTask(db, "playCatalog");
+    const lines = [];
+    for (const bp of cat.basePlans) {
+      lines.push(`BASE ${bp.basePlanId} ${bp.state} ${bp.period} LB=${bp.prices.LB}${bp.availableIn.LB ? "" : " (not for new subscribers in LB)"} US=${bp.prices.US} regions=${bp.regionCount}`);
+      for (const o of bp.offers) {
+        lines.push(`  OFFER ${o.offerId} ${o.state} | ${o.eligibility} | tags=[${o.tags.join(",")}] | LB ${o.availableIn.LB ? "on" : "OFF"} regions=${o.regionCount}${o.otherRegions ? "+other" : ""}`);
+        for (const p of o.phases) lines.push(`    phase ${p.recurrenceCount}x${p.duration} LB=${p.pricing.LB} US=${p.pricing.US}`);
+      }
+      if (!bp.offers.length) lines.push("  (no offers)");
+    }
+    lines.forEach((l) => console.log(l));
+    return `${cat.basePlans.length} base plans, ${cat.basePlans.reduce((n, b) => n + b.offers.length, 0)} offers (details in the log)`;
+  });
+  await step("playSubscriptionsLive", async () => {
+    const res = await serverTask(db, "playSubscriptions");
+    res.rows.forEach((r) => console.log(JSON.stringify(r)));
+    return `${res.count} recorded subscriptions (details in the log)`;
+  });
+  // Redeem-code plumbing: purchases made outside the app (Play Store / promo code) waiting to be claimed.
+  await step("redeemPlumbing", async () => {
+    const [links, unresolved, pending] = await Promise.all([
+      db.collection("play_purchase_links").get(),
+      db.collection("play_billing_unresolved").where("resolved", "==", false).get(),
+      db.collection("play_billing_pending").where("resolved", "==", false).get(),
+    ]);
+    const kinds = {};
+    links.docs.forEach((d) => { const k = d.get("adminOverride") ? "adminOverride" : d.get("claimedVia") || d.get("source") || "link"; kinds[k] = (kinds[k] || 0) + 1; });
+    return `purchaseLinks=${links.size} ${JSON.stringify(kinds)} unlinkedOpen=${unresolved.size} parkedOpen=${pending.size}`;
+  });
+}
+
 (async () => {
   require(`${LIB}/lib/admin`);
   const db = admin.firestore();
@@ -739,5 +790,6 @@ async function mailingsmoke(db, code) {
   else if (task === "authorphans") await authorphans(db, auth);
   else if (task === "mailingcode") await mailingcode(db, arg);
   else if (task === "mailingsmoke") await mailingsmoke(db, arg);
+  else if (task === "playcatalog") await playcatalog(db);
   else throw new Error(`unknown task ${task}`);
 })().catch((e) => { fail(`${e && e.message}`); process.exit(1); });

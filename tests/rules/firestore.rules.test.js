@@ -184,6 +184,8 @@ describe("workspace_listings", () => {
   test("server-only collections are closed", async () => {
     await assertFails(getDoc(doc(specCtx(), "display_codes", "U-AAAAAA")));
     await assertFails(setDoc(doc(specCtx(), "mail", "m1"), { to: "a@b.c" }));
+    await assertFails(setDoc(doc(hostCtx(), "maintenance_requests", "r1"), { task: "playCatalog" }));
+    await assertFails(getDoc(doc(specCtx(), "maintenance_requests", "r1")));
   });
   test("website address book, messages, campaigns and admin sessions are server-only", async () => {
     for (const col of ["mailing_list", "mailing_messages", "mail_campaigns", "mailing_admin_sessions"]) {

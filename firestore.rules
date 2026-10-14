@@ -608,6 +608,10 @@ service cloud.firestore {
     match /whish_transactions/{id} {
       allow read, write: if false;
     }
+    // Maintenance workflow ↔ onMaintenanceRequest (live Play catalog / subscription audits): server-only.
+    match /maintenance_requests/{id} {
+      allow read, write: if false;
+    }
 
     // Default deny for anything not explicitly matched above.
     match /{document=**} {
