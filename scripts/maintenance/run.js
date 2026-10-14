@@ -773,6 +773,35 @@ async function playcatalog(db) {
   });
 }
 
+
+// Promo-code campaign shown as the Premium countdown card (promo_campaigns/current).
+// arg: "PROHOST2026,2026-12-31,100" (code, last day in Beirut time, max redemptions) or "off".
+// Create the code in Play Console FIRST (Monetize › Promotions); the app only markets it.
+async function promocampaign(db, arg) {
+  const ref = db.collection("promo_campaigns").doc("current");
+  await step("promoCampaign", async () => {
+    if (!arg || arg.trim().toLowerCase() === "off") {
+      await ref.set({ active: false, updatedAt: Date.now() }, { merge: true });
+      return "campaign switched OFF (card hidden)";
+    }
+    const [code, day, max] = arg.split(",").map((x) => x.trim());
+    if (!/^[A-Za-z0-9]{3,25}$/.test(code || "")) throw new Error("code must be 3-25 letters/digits");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day || "")) throw new Error("end date must be YYYY-MM-DD");
+    // End of that day in Beirut (UTC+3 in summer / +2 in winter: use +02:00 so it never ends early).
+    const endsAt = Date.parse(`${day}T23:59:59+02:00`);
+    const maxRedemptions = max ? parseInt(max, 10) : null;
+    const prev = (await ref.get()).data() || {};
+    const sameCode = (prev.code || "").toUpperCase() === code.toUpperCase();
+    await ref.set({
+      active: true, code: code.toUpperCase(), endsAt, maxRedemptions,
+      redeemed: sameCode ? (prev.redeemed || 0) : 0,
+      title: "Early launch promo", benefit: "Your first month free", basePlanKind: "monthly",
+      updatedAt: Date.now(),
+    });
+    return `campaign ON: ${code.toUpperCase()} until ${new Date(endsAt).toISOString()} max=${maxRedemptions ?? "none"} redeemed=${sameCode ? prev.redeemed || 0 : 0}`;
+  });
+}
+
 (async () => {
   require(`${LIB}/lib/admin`);
   const db = admin.firestore();
@@ -791,5 +820,6 @@ async function playcatalog(db) {
   else if (task === "mailingcode") await mailingcode(db, arg);
   else if (task === "mailingsmoke") await mailingsmoke(db, arg);
   else if (task === "playcatalog") await playcatalog(db);
+  else if (task === "promocampaign") await promocampaign(db, arg);
   else throw new Error(`unknown task ${task}`);
 })().catch((e) => { fail(`${e && e.message}`); process.exit(1); });

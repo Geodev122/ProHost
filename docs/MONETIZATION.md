@@ -162,6 +162,25 @@ promo-code claim plumbing. It reads Play with the functions' own service account
 so it works even though the CI account isn't invited in Play Console. Admin › Packages › Billing health shows the
 same offers per base plan.
 
+## 2c. PROHOST2026 — early launch promo (first month free)
+
+Play Console has no API for promo codes, so the code is created by hand and the app only markets it.
+
+1. **Play Console › ProHost › Monetize with Play › Promotions (Promo codes) › Create promotion.**
+   Type *Subscription*, product **ProHost Premium** (`package_pro_mrr`), base plan **pro-monthly**.
+2. Code type **Custom code**: `PROHOST2026`. Redemption limit: **2,000** (Play's minimum for custom codes; the app caps
+   the campaign at 100 with its own counter). Free trial: **1 month** (or 30 days). Set the start/end dates.
+   Custom codes work only for people who never subscribed, and only **inside the app's checkout** (not the Play Store
+   redeem page).
+3. Turn on the in-app card: GitHub › Actions › Maintenance › task `promocampaign`, code
+   `PROHOST2026,YYYY-MM-DD,100` (last day of the promotion, max redemptions). `off` hides it again.
+4. The Premium screen then shows the **Early launch promo** countdown card (code, countdown, spots left) and a red dot
+   on *Redeem code*. *Use promo code* copies the code and opens Google Play's checkout for the monthly plan; the person
+   taps ▾ next to the payment method › *Redeem code*, pastes it, then subscribes. A payment method is required and the
+   subscription renews at the regular price after the free month unless cancelled.
+5. Redemptions: `promo_campaigns/current.redeemed` (counted by the server from Play's `promotionCode` on each new
+   subscription), the `playcatalog` task (per-subscription `promotionCode`), and Play Console's promotion report.
+
 ## 3. Promo-code campaign (50 early-subscriber codes)
 
 ### How a redemption flows

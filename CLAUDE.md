@@ -27,7 +27,16 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   states today's price, the date the regular price starts (`regularPriceStartsAt`) and how to cancel. Members
   switching plans never see offers. An offer edited in Play Console that "doesn't show" is almost always
   eligibility: Play returns "new customers" offers only to accounts that never had the subscription — check the live
-  catalog with Maintenance task `playcatalog` or Admin › Packages › Billing health (offers listed per base plan). Monthly ↔ yearly passes the old token
+  catalog with Maintenance task `playcatalog` or Admin › Packages › Billing health (offers listed per base plan).
+  Only the selected plan card is orange (ribbon, price); the other card, the offer banner and the explainer use steel.
+  Promo campaign (e.g. PROHOST2026, first month free): Play has no API to create or count promo codes, so the Play
+  Console promotion is the source of truth and `promo_campaigns/current` (Maintenance task `promocampaign`
+  `CODE,YYYY-MM-DD,MAX` or `off`; signed-in read, server-only write, rules-tested) drives the Premium countdown card
+  (`PromoCountdownCard`, `data/billing/PromoCampaign.kt`, unit-tested) and the red dot on "Redeem code". Custom codes are
+  redeemed only inside Play's checkout (payment method ▾ › Redeem), never on play.google.com/redeem, so "Use promo code"
+  copies the code and opens the campaign's base plan WITHOUT a developer offer (`launchPromoCheckout`,
+  `useBasePlanOffer`). `syncSubscription` checks each NEW subscription once with Play v1 (`promotionCode`) and counts
+  campaign redemptions (`billing/promoCampaign.ts`); the card hides at `maxRedemptions` (Play's own custom-code minimum is 2,000). Monthly ↔ yearly passes the old token
   (`SubscriptionUpdateParams`). The screen is "ProHost Premium" (`OwnerSubscriptionsScreen.kt`).
 - Product queries use the Billing 8+ callback `queryProductDetailsAsync(params) { billingResult,
   queryProductDetailsResult -> }` (`productDetailsList` / `unfetchedProductList`). Never cast the callback

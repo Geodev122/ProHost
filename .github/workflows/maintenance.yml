@@ -6,13 +6,13 @@ on:
   workflow_dispatch:
     inputs:
       task:
-        description: "audit (read-only) | j8 (data cleanup) | retiregrowth (remove old growth/enterprise plans) | occupancy (rebuild slot occupancy) | emailauth (why sign-in emails fail) | enableemaillink (turn on passwordless email sign-in) | mailtest (one test email to the owner) | clearstalesecrets (unblock function deploys) | mailingcode (set the website admin code) | playcatalog (live Play offers, subscriptions, promo-code plumbing)"
+        description: "audit (read-only) | j8 (data cleanup) | retiregrowth (remove old growth/enterprise plans) | occupancy (rebuild slot occupancy) | emailauth (why sign-in emails fail) | enableemaillink (turn on passwordless email sign-in) | mailtest (one test email to the owner) | clearstalesecrets (unblock function deploys) | mailingcode (set the website admin code) | playcatalog (live Play offers, subscriptions, promo-code plumbing) | promocampaign (Premium promo card: code,YYYY-MM-DD,max or off)"
         required: true
         default: audit
         type: choice
-        options: [audit, prodcheck, playcatalog, authorphans, mailingcode, mailingsmoke, j8, retiregrowth, occupancy, emailauth, enableemaillink, mailtest, clearstalesecrets]
+        options: [audit, prodcheck, playcatalog, promocampaign, authorphans, mailingcode, mailingsmoke, j8, retiregrowth, occupancy, emailauth, enableemaillink, mailtest, clearstalesecrets]
       code:
-        description: "mailingcode / mailingsmoke: the pro-host.tech/admin code (digits); other tasks ignore it"
+        description: "mailingcode / mailingsmoke: the pro-host.tech/admin code (digits); promocampaign: CODE,YYYY-MM-DD,MAX or off; other tasks ignore it"
         required: false
         default: ""
 

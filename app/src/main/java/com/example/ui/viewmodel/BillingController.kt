@@ -240,7 +240,8 @@ class BillingController(
      */
     fun launchGooglePaySubscription(
         activity: android.app.Activity,
-        basePlanId: String
+        basePlanId: String,
+        useBasePlanOffer: Boolean = false
     ) {
         val uid = currentUser.value?.id ?: run {
             _billingError.value = "Your session expired — please sign in again to subscribe."
@@ -301,7 +302,8 @@ class BillingController(
             }
             manager.launchSubscriptionPurchase(
                 activity, product, userId = uid, basePlanId = basePlanId,
-                oldPurchaseToken = oldPurchaseToken, replacementMode = replacementMode
+                oldPurchaseToken = oldPurchaseToken, replacementMode = replacementMode,
+                useBasePlanOffer = useBasePlanOffer
             )
         } else {
             // Store the intent and retry automatically once products load from Play
@@ -439,8 +441,30 @@ class BillingController(
     }
 
     fun retryBillingQuery(context: android.content.Context) {
+        refreshPromoCampaign()
         val manager = playBillingManager ?: run { initPlayBilling(context); playBillingManager } ?: return
         manager.querySubscriptionProducts()
+    }
+
+    /** The marketed promo-code campaign (countdown card + red dot on "Redeem code"); re-read on every Premium visit. */
+    val promoCampaign = MutableStateFlow<com.example.data.billing.PromoCampaign?>(null)
+
+    fun refreshPromoCampaign() {
+        scope.launch { promoCampaign.value = repository.fetchPromoCampaign() }
+    }
+
+    /**
+     * "Use promo code": copies the code and opens Play's checkout for the campaign's base plan WITHOUT a
+     * developer offer, because Play custom promo codes are redeemed inside the purchase sheet (payment
+     * method ▾ › Redeem) and replace any trial. The caller shows how to paste it first.
+     */
+    fun launchPromoCheckout(activity: android.app.Activity, basePlanId: String, code: String) {
+        runCatching {
+            val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("ProHost promo code", code))
+        }
+        com.example.analytics.AnalyticsTracker.redeemCodeOpen()
+        launchGooglePaySubscription(activity, basePlanId, useBasePlanOffer = true)
     }
 
 

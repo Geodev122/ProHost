@@ -14,6 +14,7 @@ import { PlaySubscription } from "./playSubscription";
 import { grantProHost, removeProHost } from "./entitlementManager";
 import { linkKey } from "./purchaseLinks";
 import { notifyAdminsOfSubscriptionChange } from "./adminBillingAlerts";
+import { countPromoRedemption } from "./promoCampaign";
 import "../lib/admin";
 
 export const SUBSCRIPTIONS = "subscriptions";
@@ -67,6 +68,11 @@ export async function syncSubscription(
     },
     { merge: true }
   );
+
+  // First time we see this subscription: did it use the marketed promo code? (counted once)
+  if (!existing.exists && status !== "PENDING" && opts.source !== "migration") {
+    await countPromoRedemption(purchaseToken, sub.productId);
+  }
 
   let result: SyncResult;
   if (status === "PENDING") {

@@ -39,6 +39,7 @@ import com.example.ui.components.ProHostDialog
 import com.example.ui.components.ProHostAlertBanner
 import com.example.ui.components.ShimmerLoadingCard
 import com.example.ui.components.ProHostAlertSeverity
+import com.example.ui.components.PromoCountdownCard
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ProHostViewModel
 import java.text.SimpleDateFormat
@@ -66,6 +67,9 @@ fun OwnerSubscriptionsScreen(
     var showRedeemDialog by remember { mutableStateOf(false) }
     var showLegalDocuments by remember { mutableStateOf(false) }
     var redeemCodeInput by remember { mutableStateOf("") }
+    // Promo campaign (countdown card): the how-to step before checkout, and a checkout waiting on verification.
+    var showPromoHowTo by remember { mutableStateOf(false) }
+    var pendingPromoCheckout by remember { mutableStateOf(false) }
     // A code that arrived by promo link opens the Redeem dialog pre-filled.
     val linkedPromoCode by com.example.data.billing.PendingPromoCode.code.collectAsState()
     LaunchedEffect(linkedPromoCode) {
@@ -93,6 +97,16 @@ fun OwnerSubscriptionsScreen(
     val playBillingProducts by viewModel.billing.playBillingProducts.collectAsState()
     val billingConnected by viewModel.billing.playBillingConnected.collectAsState()
     val playActivePurchases by viewModel.billing.playActivePurchases.collectAsState()
+    val promoCampaign by viewModel.billing.promoCampaign.collectAsState()
+    // Ticks once a second only while a campaign is live (the countdown).
+    var promoNow by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(promoCampaign) {
+        while (promoCampaign?.isLive(System.currentTimeMillis()) == true) {
+            promoNow = System.currentTimeMillis()
+            kotlinx.coroutines.delay(1_000L)
+        }
+        promoNow = System.currentTimeMillis()
+    }
 
     // Refresh purchases every time the screen resumes (e.g. returning from Play Store).
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -184,6 +198,10 @@ fun OwnerSubscriptionsScreen(
         playActivePurchases.firstOrNull { p -> p.products.contains(PlayCatalog.PRODUCT_ID) }
     }
     val isAutoRenewing = currentPlayPurchase?.isAutoRenewing ?: true
+    // Promo codes are for new subscribers: members with a live Play subscription see the card disabled.
+    val isPlayMember = currentUser?.entitlementSource == "google_play" && !isForcedUpgrade && !isSubscriptionExpired
+    val livePromo = promoCampaign?.takeIf { it.isLive(promoNow) }
+    val promoBasePlan = livePromo?.let { plansByKind[it.basePlanKind ?: PlayCatalog.PlanKind.MONTHLY] }
 
     LazyColumn(
         modifier = Modifier
@@ -283,12 +301,27 @@ fun OwnerSubscriptionsScreen(
                     PremiumActionChip(Icons.Default.Settings, "Manage") {
                         viewModel.billing.openManageSubscriptions(act, PlayCatalog.PRODUCT_ID)
                     }
-                    PremiumActionChip(Icons.Default.CardGiftcard, "Redeem code") { showRedeemDialog = true }
+                    PremiumActionChip(Icons.Default.CardGiftcard, "Redeem code", dot = livePromo != null) { showRedeemDialog = true }
                     PremiumActionChip(Icons.Default.Receipt, "Orders") { viewModel.billing.openPlayOrderHistory(act) }
                 }
                 PremiumActionChip(Icons.Default.Sync, "Restore") {
                     viewModel.billing.refreshPlayPurchases(context, userInitiated = true)
                 }
+            }
+        }
+        if (livePromo != null) {
+            item {
+                PromoCountdownCard(
+                    promo = livePromo,
+                    nowMillis = promoNow,
+                    enabled = !isPlayMember && !isForcedUpgrade && promoBasePlan != null,
+                    onCopy = {
+                        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("ProHost promo code", livePromo.code))
+                        Toast.makeText(context, "Code ${livePromo.code} copied", Toast.LENGTH_SHORT).show()
+                    },
+                    onUse = { showPromoHowTo = true }
+                )
             }
         }
         item {
@@ -475,14 +508,19 @@ fun OwnerSubscriptionsScreen(
                 user = user,
                 viewModel = viewModel,
                 requireAddress = true,
-                onDismiss = { showKycDialog = false },
+                onDismiss = { showKycDialog = false; pendingPromoCheckout = false },
                 onReady = {
                     showKycDialog = false
                     pendingBasePlanId?.let { pid ->
                         if (activity != null) {
-                            viewModel.billing.launchGooglePaySubscription(activity, pid)
+                            if (pendingPromoCheckout && livePromo != null) {
+                                viewModel.billing.launchPromoCheckout(activity, pid, livePromo.code)
+                            } else {
+                                viewModel.billing.launchGooglePaySubscription(activity, pid)
+                            }
                         }
                     }
+                    pendingPromoCheckout = false
                 }
             )
         }
@@ -492,6 +530,46 @@ fun OwnerSubscriptionsScreen(
         com.example.ui.components.LegalDocumentsMenu(onDismiss = { showLegalDocuments = false })
     }
 
+    if (showPromoHowTo && livePromo != null) {
+        // Play custom codes are entered in Play's checkout, not on the Play Store redeem page.
+        ProHostDialog(
+            onDismissRequest = { showPromoHowTo = false },
+            icon = { Icon(Icons.Default.Redeem, contentDescription = null) },
+            title = { Text("Use ${livePromo.code}") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        "We'll copy ${livePromo.code} and open Google Play's checkout.",
+                        "In Google Play, tap ▾ next to your payment method, then \"Redeem code\".",
+                        "Paste ${livePromo.code}, tap Redeem, then Subscribe.",
+                        "${livePromo.benefit}. After it, the subscription renews at the regular price unless you cancel in Google Play before then."
+                    ).forEachIndexed { i, line ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("${i + 1}.", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                            Text(line, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPromoHowTo = false
+                    val plan = promoBasePlan
+                    if (plan == null) {
+                        Toast.makeText(context, "Plans are still loading from Google Play. Try again in a moment.", Toast.LENGTH_SHORT).show()
+                    } else if (currentUser?.canHost(com.example.data.auth.PhoneLink.isLinked()) == false) {
+                        pendingBasePlanId = plan
+                        pendingPromoCheckout = true
+                        showKycDialog = true
+                    } else if (activity != null) {
+                        viewModel.billing.launchPromoCheckout(activity, plan, livePromo.code)
+                    }
+                }) { Text("Copy & continue", fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = { TextButton(onClick = { showPromoHowTo = false }) { Text("Cancel") } }
+        )
+    }
+
     if (showRedeemDialog) {
         ProHostDialog(
             onDismissRequest = { showRedeemDialog = false; redeemCodeInput = "" },
@@ -499,6 +577,17 @@ fun OwnerSubscriptionsScreen(
             title = { Text("Redeem a Code") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (livePromo != null && !isPlayMember && !isForcedUpgrade) {
+                        Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.primaryContainer) {
+                            Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("${livePromo.title}: ${livePromo.code}", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                                    Text(livePromo.benefit, style = MaterialTheme.typography.labelSmall)
+                                }
+                                TextButton(onClick = { showRedeemDialog = false; showPromoHowTo = true }) { Text("Use it") }
+                            }
+                        }
+                    }
                     Text(
                         "Enter your promo or gift code and we'll open Google Play with it pre-filled. " +
                             "Redeem it with the same Google account as this phone — when you come back, " +
@@ -632,15 +721,24 @@ private fun HeroStat(label: String, value: String, valueColor: Color, modifier: 
 }
 
 @Composable
-private fun PremiumActionChip(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
-    AssistChip(
-        onClick = onClick,
-        label = { Text(label, style = MaterialTheme.typography.labelMedium) },
-        leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp)) },
-        shape = RoundedCornerShape(50),
-        colors = AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    )
+private fun PremiumActionChip(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    dot: Boolean = false,
+    onClick: () -> Unit
+) {
+    Box {
+        AssistChip(
+            onClick = onClick,
+            label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+            leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp)) },
+            shape = RoundedCornerShape(50),
+            colors = AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        )
+        // A live promo campaign: red dot on "Redeem code".
+        if (dot) com.example.ui.components.AttentionDot(Modifier.align(Alignment.TopEnd).padding(top = 6.dp, end = 2.dp))
+    }
 }
 
 /**
@@ -685,6 +783,14 @@ private fun PlanTile(
                 kind == PlayCatalog.PlanKind.YEARLY && savingsPercent != null -> "BEST VALUE" to true
                 else -> null
             }
+            // Only the selected card is orange; the other stays neutral (steel tint) so the screen isn't all orange.
+            val ribbonOn = ribbon?.second == true && selected
+            val ribbonContent = when {
+                ribbon == null -> scheme.onSurface
+                ribbonOn -> scheme.onSecondary
+                ribbon.second -> scheme.primary
+                else -> scheme.onPrimaryContainer
+            }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -692,7 +798,7 @@ private fun PlanTile(
                     .background(
                         when {
                             ribbon == null -> Color.Transparent
-                            ribbon.second -> accent
+                            ribbonOn -> accent
                             else -> scheme.primaryContainer
                         }
                     ),
@@ -703,7 +809,7 @@ private fun PlanTile(
                         Icon(
                             if (ribbon.second) Icons.Default.LocalOffer else Icons.Default.Verified,
                             contentDescription = null,
-                            tint = if (ribbon.second) scheme.onSecondary else scheme.onPrimaryContainer,
+                            tint = ribbonContent,
                             modifier = Modifier.size(13.dp)
                         )
                         Text(
@@ -711,7 +817,7 @@ private fun PlanTile(
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Black,
                             letterSpacing = 0.6.sp,
-                            color = if (ribbon.second) scheme.onSecondary else scheme.onPrimaryContainer
+                            color = ribbonContent
                         )
                     }
                 }
@@ -744,7 +850,7 @@ private fun PlanTile(
                             summary.headline,
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Black,
-                            color = accent,
+                            color = if (selected) accent else scheme.onSurface,
                             maxLines = 1
                         )
                         summary.original?.let { was ->
@@ -769,7 +875,7 @@ private fun PlanTile(
                         color = scheme.onSurface
                     )
                     summary.headlinePerMonth?.let {
-                        Text(it, style = MaterialTheme.typography.labelSmall, color = accent, fontWeight = FontWeight.SemiBold)
+                        Text(it, style = MaterialTheme.typography.labelSmall, color = if (selected) accent else scheme.primary, fontWeight = FontWeight.SemiBold)
                     }
                     Text(
                         "then ${summary.recurring} / ${summary.recurringPeriod}",
@@ -786,7 +892,7 @@ private fun PlanTile(
                     )
                     Text("per ${summary.recurringPeriod}", style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
                     summary.headlinePerMonth?.let {
-                        Text(it, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = accent)
+                        Text(it, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = if (selected) accent else scheme.primary)
                     }
                 }
                 Spacer(modifier = Modifier.weight(1f))
@@ -804,7 +910,7 @@ private fun PlanTile(
  */
 @Composable
 private fun OfferBanner(headline: String) {
-    val on = MaterialTheme.colorScheme.onSecondary
+    val on = MaterialTheme.proColors.onBrandHeader
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -815,16 +921,16 @@ private fun OfferBanner(headline: String) {
             modifier = Modifier
                 .background(
                     androidx.compose.ui.graphics.Brush.linearGradient(
-                        listOf(MaterialTheme.colorScheme.secondary, CarnationOrangeLight)
+                        listOf(MaterialTheme.proColors.brandHeaderStart, MaterialTheme.proColors.brandHeaderEnd)
                     )
                 )
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Surface(shape = CircleShape, color = on.copy(alpha = 0.18f), modifier = Modifier.size(42.dp)) {
+            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(42.dp)) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.LocalOffer, contentDescription = null, tint = on, modifier = Modifier.size(22.dp))
+                    Icon(Icons.Default.LocalOffer, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondary, modifier = Modifier.size(22.dp))
                 }
             }
             Column(modifier = Modifier.weight(1f)) {
@@ -878,15 +984,15 @@ private fun OfferExplainer(summary: PlayOfferText.OfferSummary) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         color = scheme.surface,
-        border = BorderStroke(1.dp, scheme.secondary.copy(alpha = 0.35f))
+        border = BorderStroke(1.dp, scheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("HOW YOUR OFFER WORKS", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, letterSpacing = 0.8.sp, color = scheme.secondary)
+            Text("HOW YOUR OFFER WORKS", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, letterSpacing = 0.8.sp, color = scheme.primary)
             steps.forEach { (icon, title, body) ->
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
-                    Surface(shape = CircleShape, color = scheme.secondaryContainer, modifier = Modifier.size(28.dp)) {
+                    Surface(shape = CircleShape, color = scheme.primaryContainer, modifier = Modifier.size(28.dp)) {
                         Box(contentAlignment = Alignment.Center) {
-                            Icon(icon, contentDescription = null, tint = scheme.onSecondaryContainer, modifier = Modifier.size(15.dp))
+                            Icon(icon, contentDescription = null, tint = scheme.onPrimaryContainer, modifier = Modifier.size(15.dp))
                         }
                     }
                     Column(modifier = Modifier.weight(1f)) {

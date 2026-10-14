@@ -178,11 +178,16 @@ class PlayBillingManager(
         userId: String,
         basePlanId: String,
         oldPurchaseToken: String? = null,
-        replacementMode: Int = BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_FULL_PRICE
+        replacementMode: Int = BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_FULL_PRICE,
+        useBasePlanOffer: Boolean = false
     ): Boolean {
         val plan = PlayCatalog.planInterval(basePlanId) ?: basePlanId
-        // The offer for the chosen base plan (monthly or yearly), never just the first one.
-        val offerToken = PlayOfferText.preferredOffer(productDetails, basePlanId)?.offerToken
+        // The offer for the chosen base plan (monthly or yearly), never just the first one. A promo-code
+        // checkout uses the plain base plan, where Play applies the redeemed code.
+        val basePlanOnly = if (useBasePlanOffer) {
+            productDetails.subscriptionOfferDetails?.firstOrNull { it.basePlanId == basePlanId && it.offerId == null }
+        } else null
+        val offerToken = (basePlanOnly ?: PlayOfferText.preferredOffer(productDetails, basePlanId))?.offerToken
             ?: run {
                 emitMessage("This plan has no active offer in Google Play yet. Please try again later.")
                 return false

@@ -187,6 +187,13 @@ describe("workspace_listings", () => {
     await assertFails(setDoc(doc(hostCtx(), "maintenance_requests", "r1"), { task: "playCatalog" }));
     await assertFails(getDoc(doc(specCtx(), "maintenance_requests", "r1")));
   });
+  test("promo campaign: signed-in users read it, nobody writes it", async () => {
+    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), "promo_campaigns", "current"), { code: "PROHOST2026", active: true }));
+    await assertSucceeds(getDoc(doc(specCtx(), "promo_campaigns", "current")));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "promo_campaigns", "current")));
+    await assertFails(setDoc(doc(hostCtx(), "promo_campaigns", "current"), { code: "FREE", active: true }));
+    await assertFails(updateDoc(doc(specCtx(), "promo_campaigns", "current"), { redeemed: 0 }));
+  });
   test("website address book, messages, campaigns and admin sessions are server-only", async () => {
     for (const col of ["mailing_list", "mailing_messages", "mail_campaigns", "mailing_admin_sessions"]) {
       await assertFails(getDoc(doc(specCtx(), col, "x1")));

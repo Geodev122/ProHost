@@ -490,6 +490,19 @@ class FirestoreService(
         }
     }
 
+    /** The marketed promo-code campaign (promo_campaigns/current); null when absent or unreadable. */
+    suspend fun fetchPromoCampaign(): com.example.data.billing.PromoCampaign? {
+        val db = firestore ?: return null
+        return try {
+            val doc = db.collection("promo_campaigns").document("current").get().await()
+            com.example.data.billing.PromoCampaign.fromMap(doc.data)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Log.w(TAG, "fetchPromoCampaign failed: ${e.message}")
+            null
+        }
+    }
+
     /** One listing by id (e.g. a booking's space outside the loaded Explore page); null if gone or unreadable. */
     suspend fun fetchListing(spaceId: String): SpaceListing? {
         val db = firestore ?: return null
