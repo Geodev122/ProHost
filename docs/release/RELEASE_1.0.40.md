@@ -18,7 +18,8 @@
   - Play offer lint added to Maintenance `playcatalog`: no warnings on 2026-10-14.
 
 ## Files
-The artifact link is filled in once the Release Bundle workflow finishes.
+Artifact **`prohost-release-main-9`** (≈ 22 MB, kept until 2027-01-12):
+https://github.com/Geodev122/ProHost/actions/runs/38565422355 → Artifacts. Built from `05d160d`; signature and Play app-signing fingerprint checks passed.
 
 | File | Where it goes in Play Console |
 |---|---|
