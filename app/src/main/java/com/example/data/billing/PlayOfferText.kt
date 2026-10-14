@@ -199,11 +199,15 @@ object PlayOfferText {
         return out
     }
 
-    private fun phases(details: ProductDetails?, basePlanId: String?) =
-        preferredOffer(details, basePlanId)?.pricingPhases?.pricingPhaseList
+    /** The phases checkout will charge: the preferred offer, or the plain base plan for a plan switch. */
+    private fun phases(details: ProductDetails?, basePlanId: String?, basePlanOnly: Boolean = false) =
+        (if (basePlanOnly) {
+            details?.subscriptionOfferDetails.orEmpty().firstOrNull { it.basePlanId == basePlanId && it.offerId == null }
+        } else preferredOffer(details, basePlanId))?.pricingPhases?.pricingPhaseList
 
-    fun describe(details: ProductDetails?, basePlanId: String? = null): String? {
-        val phases = phases(details, basePlanId)
+    /** Terms for the buy button, e.g. "$4.99 / month for 1 month, then $9.99 / month"; [basePlanOnly] for switches. */
+    fun describe(details: ProductDetails?, basePlanId: String? = null, basePlanOnly: Boolean = false): String? {
+        val phases = phases(details, basePlanId, basePlanOnly)
         if (phases.isNullOrEmpty()) return null
         val recurring = phases.last()
         val base = "${recurring.formattedPrice} / ${per(recurring.billingPeriod)}"

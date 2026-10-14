@@ -456,7 +456,8 @@ fun OwnerSubscriptionsScreen(
                     // How the offer works: today's price, the date the regular price starts, how to cancel.
                     if (enabled) selectedSummary?.let { OfferExplainer(it) }
                     // Terms right under the purchase button (Play policy), switch timing, trial terms.
-                    val terms = PlayOfferText.describe(premiumProduct, selectedPlan)
+                    // A plan switch is charged the plain base plan (OfferChoice.BasePlanOnly), so its terms are too.
+                    val terms = PlayOfferText.describe(premiumProduct, selectedPlan, basePlanOnly = hasLivePlaySubscription)
                     val notes = buildList {
                         if (enabled && terms != null) add("$terms · renews automatically until you cancel · via Google Play")
                         if (enabled && hasLivePlaySubscription) add(
@@ -464,7 +465,7 @@ fun OwnerSubscriptionsScreen(
                                 "your current month are added to it by Google Play, so it renews in about a year plus those days."
                             else "Starts on your renewal date${expiryDateString?.let { " ($it)" }.orEmpty()}; your current plan runs until then."
                         )
-                        if (enabled && PlayOfferText.trialLabel(premiumProduct, selectedPlan) != null) add(
+                        if (enabled && !hasLivePlaySubscription && PlayOfferText.trialLabel(premiumProduct, selectedPlan) != null) add(
                             "No charge during the free trial. Cancel in Google Play before it ends and you won't be charged. " +
                                 "Google Play may place a temporary verification hold on your payment method."
                         )
@@ -520,6 +521,11 @@ fun OwnerSubscriptionsScreen(
 
     if (showPromoHowTo && livePromo != null) {
         // The offer is applied by Play itself: checkout opens on the promo offer, nothing to type.
+        // Play subscriptions policy: the date the paid price starts and how to avoid it, before purchase.
+        val promoPaidFrom = remember(livePromo) {
+            java.text.SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
+                .format(Date(PlayOfferText.regularPriceStartsAt(System.currentTimeMillis(), livePromo.summary.introPeriods)))
+        }
         ProHostDialog(
             onDismissRequest = { showPromoHowTo = false },
             icon = { Icon(Icons.Default.Redeem, contentDescription = null) },
@@ -528,8 +534,9 @@ fun OwnerSubscriptionsScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(
                         "Google Play's checkout opens with the ${livePromo.code} offer: ${livePromo.benefit.replaceFirstChar { it.lowercase() }}.",
-                        "Google Play shows today's price and the date the regular price starts before you confirm.",
-                        "Then it renews at ${livePromo.summary.recurring} / ${livePromo.summary.recurringPeriod} unless you cancel in Google Play before then."
+                        "A payment method is required. Google Play shows today's price and the date the regular price starts before you confirm.",
+                        "From $promoPaidFrom it renews automatically at ${livePromo.summary.recurring} / ${livePromo.summary.recurringPeriod}. " +
+                            "Cancel in Google Play › Payments & subscriptions before $promoPaidFrom and you won't be charged."
                     ).forEachIndexed { i, line ->
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("${i + 1}.", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)

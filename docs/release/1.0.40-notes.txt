@@ -1,0 +1,64 @@
+<en-US>
+What's new in ProHost 1.0.40
+• Redesigned ProHost Premium page: clear monthly and yearly plans with the price you pay today and the regular price
+• Welcome offers and free trials explained step by step: today's price, when the regular price starts, how to cancel
+• Early launch promo: tap "Redeem code" for the PROHOST2026 offer — your first month free for new hosts
+• Plan switches always show the exact price you'll be charged
+• Billing handled securely by Google Play
+</en-US>
+<ar>
+الجديد في ProHost 1.0.40
+• صفحة ProHost Premium بتصميم جديد: خطط شهرية وسنوية واضحة مع السعر الذي تدفعه اليوم والسعر العادي
+• شرح العروض الترحيبية والتجارب المجانية خطوة بخطوة: سعر اليوم وموعد بدء السعر العادي وطريقة الإلغاء
+• عرض الإطلاق المبكر: اضغط "استرداد رمز" لعرض PROHOST2026 — الشهر الأول مجاناً للمضيفين الجدد
+• تغيير الخطة يعرض دائماً السعر الدقيق الذي سيُدفع
+• الدفع آمن عبر Google Play
+</ar>
+<fr-FR>
+Nouveautés de ProHost 1.0.40
+• Page ProHost Premium repensée : formules mensuelle et annuelle claires, avec le prix payé aujourd'hui et le prix normal
+• Offres de bienvenue et essais gratuits expliqués pas à pas : prix du jour, début du prix normal, résiliation
+• Promo de lancement : touchez « Utiliser un code » pour l'offre PROHOST2026 — premier mois offert aux nouveaux hôtes
+• Le changement de formule affiche toujours le prix exact facturé
+• Paiement sécurisé par Google Play
+</fr-FR>
+<es-ES>
+Novedades de ProHost 1.0.40
+• Página ProHost Premium rediseñada: planes mensual y anual claros, con el precio de hoy y el precio normal
+• Ofertas de bienvenida y pruebas gratuitas explicadas paso a paso: precio de hoy, inicio del precio normal y cómo cancelar
+• Promo de lanzamiento: toca «Canjear código» para la oferta PROHOST2026, primer mes gratis para nuevos anfitriones
+• Al cambiar de plan verás siempre el precio exacto que se cobrará
+• Pagos seguros con Google Play
+</es-ES>
+<de-DE>
+Neu in ProHost 1.0.40
+• Neu gestaltete ProHost-Premium-Seite: klare Monats- und Jahrespläne mit heutigem und regulärem Preis
+• Willkommensangebote und Gratis-Tests Schritt für Schritt erklärt: heutiger Preis, Beginn des regulären Preises, Kündigung
+• Launch-Aktion: Tippe auf „Code einlösen" für das Angebot PROHOST2026 – erster Monat gratis für neue Gastgeber
+• Beim Planwechsel siehst du immer den genauen Preis
+• Sichere Abrechnung über Google Play
+</de-DE>
+<it-IT>
+Novità di ProHost 1.0.40
+• Pagina ProHost Premium rinnovata: piani mensile e annuale chiari, con il prezzo di oggi e il prezzo normale
+• Offerte di benvenuto e prove gratuite spiegate passo passo: prezzo di oggi, inizio del prezzo normale, come annullare
+• Promo di lancio: tocca "Riscatta codice" per l'offerta PROHOST2026, primo mese gratis per i nuovi host
+• Il cambio di piano mostra sempre il prezzo esatto addebitato
+• Pagamenti sicuri con Google Play
+</it-IT>
+<pt-BR>
+Novidades do ProHost 1.0.40
+• Página ProHost Premium redesenhada: planos mensal e anual claros, com o preço de hoje e o preço normal
+• Ofertas de boas-vindas e testes grátis explicados passo a passo: preço de hoje, início do preço normal e como cancelar
+• Promo de lançamento: toque em "Resgatar código" para a oferta PROHOST2026, primeiro mês grátis para novos anfitriões
+• A troca de plano sempre mostra o preço exato cobrado
+• Pagamento seguro pelo Google Play
+</pt-BR>
+<tr-TR>
+ProHost 1.0.40'taki yenilikler
+• Yeniden tasarlanan ProHost Premium sayfası: bugün ödenen ve normal fiyatla net aylık ve yıllık planlar
+• Hoş geldin teklifleri ve ücretsiz denemeler adım adım: bugünkü fiyat, normal fiyatın başlangıcı, iptal
+• Erken lansman kampanyası: PROHOST2026 teklifi için "Kod kullan"a dokunun — yeni ev sahiplerine ilk ay ücretsiz
+• Plan değişikliğinde her zaman tam ücret gösterilir
+• Ödemeler Google Play ile güvende
+</tr-TR>
