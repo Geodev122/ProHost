@@ -162,24 +162,48 @@ promo-code claim plumbing. It reads Play with the functions' own service account
 so it works even though the CI account isn't invited in Play Console. Admin › Packages › Billing health shows the
 same offers per base plan.
 
-## 2c. PROHOST2026 — early launch promo (first month free)
+## 2c. PROHOST2026 — early launch promo (first month free), configured only in Play Console
 
-Play Console has no API for promo codes, so the code is created by hand and the app only markets it.
+The promo card is a **Play subscription offer with tags**: no Firestore document, no server counter, no Maintenance task.
+Google Play decides who sees it (eligibility, regions, active/inactive) and what it costs; the app only reads the offer.
 
-1. **Play Console › ProHost › Monetize with Play › Promotions (Promo codes) › Create promotion.**
-   Type *Subscription*, product **ProHost Premium** (`package_pro_mrr`), base plan **pro-monthly**.
-2. Code type **Custom code**: `PROHOST2026`. Redemption limit: **2,000** (Play's minimum for custom codes; the app caps
-   the campaign at 100 with its own counter). Free trial: **1 month** (or 30 days). Set the start/end dates.
-   Custom codes work only for people who never subscribed, and only **inside the app's checkout** (not the Play Store
-   redeem page).
-3. Turn on the in-app card: GitHub › Actions › Maintenance › task `promocampaign`, code
-   `PROHOST2026,YYYY-MM-DD,100` (last day of the promotion, max redemptions). `off` hides it again.
-4. The Premium screen then shows the **Early launch promo** countdown card (code, countdown, spots left) and a red dot
-   on *Redeem code*. *Use promo code* copies the code and opens Google Play's checkout for the monthly plan; the person
-   taps ▾ next to the payment method › *Redeem code*, pastes it, then subscribes. A payment method is required and the
-   subscription renews at the regular price after the free month unless cancelled.
-5. Redemptions: `promo_campaigns/current.redeemed` (counted by the server from Play's `promotionCode` on each new
-   subscription), the `playcatalog` task (per-subscription `promotionCode`), and Play Console's promotion report.
+1. **Play Console › Monetize with Play › Products › Subscriptions › ProHost Premium (`package_pro_mrr`) › base plan
+   `pro-monthly` › Add offer.** Offer ID **`prohost2026`**.
+2. Eligibility: **New customer acquisition** (never had this subscription). Regions: all, including Lebanon.
+3. Phase: **Free trial, 1 month** (P1M). Activate the offer.
+4. **Offer tags** (lowercase, ≤ 20 characters each) — these drive the app's card (`PlayPromo`):
+
+   | Tag | Effect |
+   | --- | --- |
+   | `promo` | marks the promo card's offer; it is never used by the plan cards or the normal checkout |
+   | `code-prohost2026` | the code shown on the card (displayed `PROHOST2026`) |
+   | `ends-20261231` | countdown to the end of that day (Beirut); the card hides after it |
+   | `early-launch` | title "Early launch promo" (otherwise "Limited-time promo") |
+
+5. In the app: *Redeem code* shows a red dot while the offer is live; it opens a sheet with the countdown card and the
+   one-time-code field. *Use promo code* opens Google Play's checkout **on the `prohost2026` offer** (Play shows the free
+   month and the date the regular price starts). Members and admin-granted accounts see it disabled.
+6. **Cap / stop:** Play can't cap an offer at 100 people. Watch Play Console's subscription stats (or
+   `playcatalog` › `playSubscriptionsLive`, which lists the offer per subscription) and **deactivate the offer** when
+   enough people joined — the card disappears for everyone on their next Premium visit.
+7. Optional: a Play **custom promo code** `PROHOST2026` (Monetize › Promotions, min. 2,000) lets people outside the app
+   redeem it in Play's checkout (payment method ▾ › Redeem). The in-app card doesn't need it.
+8. Check with Maintenance task `playcatalog`: step `playOfferLint` warns about a promo offer without `code-`/`ends-`, an
+   ended promo still active, more than one promo, a phase ≥ 90 % off or free > 3 months, a base plan without an LB price,
+   and the website's "50 % off the first month / year" promise not matching Play.
+
+### Strict Play configuration — where every billing decision comes from
+
+| Decision | Source | Notes |
+| --- | --- | --- |
+| Product, base plans, prices, currency, periods | Play Billing SDK (`ProductDetails`) | re-queried on every Premium visit |
+| Offers, discounts, trials, "Save x %" | Play offers (`PlayOfferText`) | Play returns only offers the account is eligible for |
+| Promo card (code, benefit, countdown, on/off) | Play offer tagged `promo` (`PlayPromo`) | §2c |
+| Which offer a checkout uses | `OfferChoice`: plan cards `Preferred` (non-promo), switches `BasePlanOnly`, promo `Specific` | a missing offer aborts with a message, never falls back |
+| Purchase state, renewals, expiry, refunds | Play Developer API (`subscriptionsv2`) + RTDN | server `syncSubscription` only |
+| Entitlement | server mirror of Play status; admin Force Upgrade (`admin_forced`) | admin grants never sell or price anything |
+| Monthly vs yearly | Play's recurring period (P1M/P1Y) | known ids only as a fallback for stored ids |
+| Local only | labels, rounding of "≈ x / month", Play replacement modes for switches | |
 
 ## 3. Promo-code campaign (50 early-subscriber codes)
 

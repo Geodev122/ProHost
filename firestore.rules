@@ -608,11 +608,9 @@ service cloud.firestore {
     match /whish_transactions/{id} {
       allow read, write: if false;
     }
-    // The marketed promo-code campaign (Premium countdown card): any signed-in user reads it; only the
-    // server writes it (Maintenance task promocampaign; redemptions counted by billing/promoCampaign.ts).
+    // Retired promo-code campaign doc: the promo card is a Play offer now (app PlayPromo). Closed to clients.
     match /promo_campaigns/{id} {
-      allow read: if request.auth != null;
-      allow write: if false;
+      allow read, write: if false;
     }
     // Maintenance workflow ↔ onMaintenanceRequest (live Play catalog / subscription audits): server-only.
     match /maintenance_requests/{id} {

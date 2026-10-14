@@ -67,10 +67,10 @@ fun OwnerSubscriptionsScreen(
     var showRedeemDialog by remember { mutableStateOf(false) }
     var showLegalDocuments by remember { mutableStateOf(false) }
     var redeemCodeInput by remember { mutableStateOf("") }
-    // Promo campaign (countdown card): the how-to step before checkout, and a checkout waiting on verification.
+    // Play promo offer (card in the Redeem sheet): the confirm step before checkout, and a checkout waiting on verification.
     var showPromoHowTo by remember { mutableStateOf(false) }
     var pendingPromoCheckout by remember { mutableStateOf(false) }
-    // A code that arrived by promo link opens the Redeem dialog pre-filled.
+    // A code that arrived by promo link opens the Redeem sheet pre-filled.
     val linkedPromoCode by com.example.data.billing.PendingPromoCode.code.collectAsState()
     LaunchedEffect(linkedPromoCode) {
         com.example.data.billing.PendingPromoCode.consume()?.let { code ->
@@ -97,11 +97,14 @@ fun OwnerSubscriptionsScreen(
     val playBillingProducts by viewModel.billing.playBillingProducts.collectAsState()
     val billingConnected by viewModel.billing.playBillingConnected.collectAsState()
     val playActivePurchases by viewModel.billing.playActivePurchases.collectAsState()
-    val promoCampaign by viewModel.billing.promoCampaign.collectAsState()
-    // Ticks once a second only while a campaign is live (the countdown).
+    // The promo comes only from Play: the offer tagged `promo` that Play returned for this account (PlayPromo).
+    val promoOffer = remember(playBillingProducts) {
+        com.example.data.billing.PlayPromo.find(playBillingProducts.firstOrNull { it.productId == PlayCatalog.PRODUCT_ID })
+    }
+    // Ticks once a second only while the promo has a live countdown.
     var promoNow by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(promoCampaign) {
-        while (promoCampaign?.isLive(System.currentTimeMillis()) == true) {
+    LaunchedEffect(promoOffer) {
+        while (promoOffer?.endsAtMillis != null && promoOffer.isLive(System.currentTimeMillis())) {
             promoNow = System.currentTimeMillis()
             kotlinx.coroutines.delay(1_000L)
         }
@@ -200,8 +203,8 @@ fun OwnerSubscriptionsScreen(
     val isAutoRenewing = currentPlayPurchase?.isAutoRenewing ?: true
     // Promo codes are for new subscribers: members with a live Play subscription see the card disabled.
     val isPlayMember = currentUser?.entitlementSource == "google_play" && !isForcedUpgrade && !isSubscriptionExpired
-    val livePromo = promoCampaign?.takeIf { it.isLive(promoNow) }
-    val promoBasePlan = livePromo?.let { plansByKind[it.basePlanKind ?: PlayCatalog.PlanKind.MONTHLY] }
+    val livePromo = promoOffer?.takeIf { it.isLive(promoNow) }
+    val canUsePromo = livePromo != null && !isPlayMember && !isForcedUpgrade
 
     LazyColumn(
         modifier = Modifier
@@ -307,21 +310,6 @@ fun OwnerSubscriptionsScreen(
                 PremiumActionChip(Icons.Default.Sync, "Restore") {
                     viewModel.billing.refreshPlayPurchases(context, userInitiated = true)
                 }
-            }
-        }
-        if (livePromo != null) {
-            item {
-                PromoCountdownCard(
-                    promo = livePromo,
-                    nowMillis = promoNow,
-                    enabled = !isPlayMember && !isForcedUpgrade && promoBasePlan != null,
-                    onCopy = {
-                        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("ProHost promo code", livePromo.code))
-                        Toast.makeText(context, "Code ${livePromo.code} copied", Toast.LENGTH_SHORT).show()
-                    },
-                    onUse = { showPromoHowTo = true }
-                )
             }
         }
         item {
@@ -513,8 +501,8 @@ fun OwnerSubscriptionsScreen(
                     showKycDialog = false
                     pendingBasePlanId?.let { pid ->
                         if (activity != null) {
-                            if (pendingPromoCheckout && livePromo != null) {
-                                viewModel.billing.launchPromoCheckout(activity, pid, livePromo.code)
+                            if (pendingPromoCheckout && livePromo != null && livePromo.basePlanId == pid) {
+                                viewModel.billing.launchPromoCheckout(activity, livePromo)
                             } else {
                                 viewModel.billing.launchGooglePaySubscription(activity, pid)
                             }
@@ -531,7 +519,7 @@ fun OwnerSubscriptionsScreen(
     }
 
     if (showPromoHowTo && livePromo != null) {
-        // Play custom codes are entered in Play's checkout, not on the Play Store redeem page.
+        // The offer is applied by Play itself: checkout opens on the promo offer, nothing to type.
         ProHostDialog(
             onDismissRequest = { showPromoHowTo = false },
             icon = { Icon(Icons.Default.Redeem, contentDescription = null) },
@@ -539,10 +527,9 @@ fun OwnerSubscriptionsScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(
-                        "We'll copy ${livePromo.code} and open Google Play's checkout.",
-                        "In Google Play, tap ▾ next to your payment method, then \"Redeem code\".",
-                        "Paste ${livePromo.code}, tap Redeem, then Subscribe.",
-                        "${livePromo.benefit}. After it, the subscription renews at the regular price unless you cancel in Google Play before then."
+                        "Google Play's checkout opens with the ${livePromo.code} offer: ${livePromo.benefit.replaceFirstChar { it.lowercase() }}.",
+                        "Google Play shows today's price and the date the regular price starts before you confirm.",
+                        "Then it renews at ${livePromo.summary.recurring} / ${livePromo.summary.recurringPeriod} unless you cancel in Google Play before then."
                     ).forEachIndexed { i, line ->
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("${i + 1}.", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
@@ -554,57 +541,68 @@ fun OwnerSubscriptionsScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showPromoHowTo = false
-                    val plan = promoBasePlan
-                    if (plan == null) {
-                        Toast.makeText(context, "Plans are still loading from Google Play. Try again in a moment.", Toast.LENGTH_SHORT).show()
-                    } else if (currentUser?.canHost(com.example.data.auth.PhoneLink.isLinked()) == false) {
-                        pendingBasePlanId = plan
+                    if (currentUser?.canHost(com.example.data.auth.PhoneLink.isLinked()) == false) {
+                        pendingBasePlanId = livePromo.basePlanId
                         pendingPromoCheckout = true
                         showKycDialog = true
                     } else if (activity != null) {
-                        viewModel.billing.launchPromoCheckout(activity, plan, livePromo.code)
+                        viewModel.billing.launchPromoCheckout(activity, livePromo)
                     }
-                }) { Text("Copy & continue", fontWeight = FontWeight.Bold) }
+                }) { Text("Continue to Google Play", fontWeight = FontWeight.Bold) }
             },
             dismissButton = { TextButton(onClick = { showPromoHowTo = false }) { Text("Cancel") } }
         )
     }
 
     if (showRedeemDialog) {
-        ProHostDialog(
+        // "Redeem code": the Play promo card (when Play returned one) and the one-time-code field.
+        com.example.ui.components.ProHostBottomSheet(
             onDismissRequest = { showRedeemDialog = false; redeemCodeInput = "" },
-            icon = { Icon(Icons.Default.CardGiftcard, contentDescription = null) },
-            title = { Text("Redeem a Code") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (livePromo != null && !isPlayMember && !isForcedUpgrade) {
-                        Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-                            Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("${livePromo.title}: ${livePromo.code}", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                                    Text(livePromo.benefit, style = MaterialTheme.typography.labelSmall)
-                                }
-                                TextButton(onClick = { showRedeemDialog = false; showPromoHowTo = true }) { Text("Use it") }
-                            }
-                        }
-                    }
-                    Text(
-                        "Enter your promo or gift code and we'll open Google Play with it pre-filled. " +
-                            "Redeem it with the same Google account as this phone — when you come back, " +
-                            "your Pro Host plan activates on this ProHost account automatically.",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    OutlinedTextField(
-                        value = redeemCodeInput,
-                        onValueChange = { redeemCodeInput = com.example.data.billing.PendingPromoCode.sanitize(it).orEmpty() },
-                        label = { Text("Promo code") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+            sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = Spacing.lg)
+                    .padding(bottom = Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (livePromo != null) {
+                    PromoCountdownCard(
+                        promo = livePromo,
+                        nowMillis = promoNow,
+                        enabled = canUsePromo,
+                        onCopy = {
+                            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("ProHost promo code", livePromo.code))
+                            Toast.makeText(context, "Code ${livePromo.code} copied", Toast.LENGTH_SHORT).show()
+                        },
+                        onUse = { showRedeemDialog = false; redeemCodeInput = ""; showPromoHowTo = true }
                     )
                 }
-            },
-            confirmButton = {
-                TextButton(
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.CardGiftcard, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Text(
+                        if (livePromo != null) "Have another code?" else "Redeem a code",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Text(
+                    "Enter a promo or gift code and we'll open Google Play with it pre-filled. " +
+                        "Redeem it with the same Google account as this phone — when you come back, " +
+                        "your Pro Host plan activates on this ProHost account automatically.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                OutlinedTextField(
+                    value = redeemCodeInput,
+                    onValueChange = { redeemCodeInput = com.example.data.billing.PendingPromoCode.sanitize(it).orEmpty() },
+                    label = { Text("Promo code") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedButton(
                     onClick = {
                         val code = redeemCodeInput.trim()
                         showRedeemDialog = false
@@ -612,15 +610,11 @@ fun OwnerSubscriptionsScreen(
                         if (activity != null) {
                             viewModel.billing.openRedeemPromoCode(activity, code.ifBlank { null })
                         }
-                    }
-                ) { Text(if (redeemCodeInput.isBlank()) "Open Play Store" else "Redeem") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showRedeemDialog = false; redeemCodeInput = "" }) {
-                    Text("Cancel")
-                }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(if (redeemCodeInput.isBlank()) "Open Google Play redeem" else "Redeem on Google Play") }
             }
-        )
+        }
     }
 }
 
@@ -905,8 +899,8 @@ private fun PlanTile(
 }
 
 /**
- * The offers Play returned for this account, marketed in one card: what it is, that this account
- * qualifies (Play only returns offers the account is eligible for), and that Play shows the price.
+ * The offers Play returned for this account, marketed in one card: what it is, that Google Play offers it
+ * to this account (Play returns only offers whose eligibility the account meets), and that Play shows the price.
  */
 @Composable
 private fun OfferBanner(headline: String) {
@@ -937,7 +931,7 @@ private fun OfferBanner(headline: String) {
                 Text("WELCOME OFFER", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, letterSpacing = 1.sp, color = on.copy(alpha = 0.85f))
                 Text(headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = on)
                 Text(
-                    "Your Google Play account qualifies. The exact price is confirmed by Google Play before you pay.",
+                    "Offered to your Google Play account. Google Play confirms the exact price before you pay.",
                     style = MaterialTheme.typography.labelSmall,
                     color = on.copy(alpha = 0.9f)
                 )

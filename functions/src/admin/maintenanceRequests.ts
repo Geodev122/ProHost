@@ -5,7 +5,7 @@
  * the task and writes `{ status, result }` back (JSON string). The collection is server-only.
  *
  * Tasks:
- *  - playCatalog        base plans, regional prices and every offer (phases, eligibility, regions)
+ *  - playCatalog        base plans, regional prices and every offer (phases, eligibility, regions) + lintOffers warnings
  *  - playSubscriptions  every recorded Play subscription as Play sees it now: plan, offer, state,
  *                       bought in the app (tagged) or outside it (Play Store / promo code),
  *                       promotion type/code. Never returns purchase tokens or uids.
@@ -14,7 +14,7 @@ import * as logger from "firebase-functions/logger";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { getFirestore } from "firebase-admin/firestore";
 import "../lib/admin";
-import { readPlayCatalog } from "../billing/playCatalogLive";
+import { lintOffers, readPlayCatalog } from "../billing/playCatalogLive";
 import { PACKAGE_NAME, getPlayPublisher } from "../billing/billingHelpers";
 import { classifyPlayError } from "../billing/playSubscription";
 
@@ -67,7 +67,7 @@ export const onMaintenanceRequest = onDocumentCreated(
     const task = event.data?.get("task");
     if (!ref) return;
     try {
-      const result = task === "playCatalog" ? await readPlayCatalog()
+      const result = task === "playCatalog" ? await readPlayCatalog().then((c) => ({ ...c, lint: lintOffers(c.basePlans, Date.now()) }))
         : task === "playSubscriptions" ? await playSubscriptions()
         : { error: `unknown task ${String(task)}` };
       await ref.update({ status: "done", result: JSON.stringify(result), finishedAt: Date.now() });

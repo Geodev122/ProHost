@@ -29,14 +29,13 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   eligibility: Play returns "new customers" offers only to accounts that never had the subscription — check the live
   catalog with Maintenance task `playcatalog` or Admin › Packages › Billing health (offers listed per base plan).
   Only the selected plan card is orange (ribbon, price); the other card, the offer banner and the explainer use steel.
-  Promo campaign (e.g. PROHOST2026, first month free): Play has no API to create or count promo codes, so the Play
-  Console promotion is the source of truth and `promo_campaigns/current` (Maintenance task `promocampaign`
-  `CODE,YYYY-MM-DD,MAX` or `off`; signed-in read, server-only write, rules-tested) drives the Premium countdown card
-  (`PromoCountdownCard`, `data/billing/PromoCampaign.kt`, unit-tested) and the red dot on "Redeem code". Custom codes are
-  redeemed only inside Play's checkout (payment method ▾ › Redeem), never on play.google.com/redeem, so "Use promo code"
-  copies the code and opens the campaign's base plan WITHOUT a developer offer (`launchPromoCheckout`,
-  `useBasePlanOffer`). `syncSubscription` checks each NEW subscription once with Play v1 (`promotionCode`) and counts
-  campaign redemptions (`billing/promoCampaign.ts`); the card hides at `maxRedemptions` (Play's own custom-code minimum is 2,000). Monthly ↔ yearly passes the old token
+  Promo card (e.g. PROHOST2026, first month free) is **Play config only**: an offer tagged `promo` + `code-…` (+ `ends-YYYYMMDD`,
+  `early-launch`) — `data/billing/PlayPromo.kt` (unit-tested) reads it from ProductDetails; no Firestore doc, no server counter
+  (`promo_campaigns` is retired, rules deny all; `playcatalog` deletes the old doc). "Redeem code" (red dot while live) opens a
+  sheet with `PromoCountdownCard` + the one-time-code field. Checkout offer = `OfferChoice` (`PlayBillingManager`): plan cards
+  `Preferred` (`preferredOffer` skips `promo` offers), switches `BasePlanOnly` (regular prices shown ⇒ charged), promo
+  `Specific(offerId)`; a missing offer aborts with a billing message. `lintOffers` (`playCatalogLive.ts`, Maintenance
+  `playcatalog` step `playOfferLint`) flags Play Console slips (≥ 90 % off, promo tags, website 50 % promise). Monthly ↔ yearly passes the old token
   (`SubscriptionUpdateParams`). The screen is "ProHost Premium" (`OwnerSubscriptionsScreen.kt`).
 - Product queries use the Billing 8+ callback `queryProductDetailsAsync(params) { billingResult,
   queryProductDetailsResult -> }` (`productDetailsList` / `unfetchedProductList`). Never cast the callback
@@ -68,7 +67,7 @@ plan + recurring price + date;
   "Switch to …" with Play's replacement modes (to yearly `CHARGE_FULL_PRICE`: full yearly price now + unused monthly
   days credited as extra time, never `CHARGE_PRORATED_PRICE`, which keeps the monthly renewal date; to monthly `DEFERRED`);
   trial disclosure; `SubscriptionTermsFooter` (renewal, cancel, "only publishing needs Premium", Terms &
-  Privacy). Profile has a "Manage subscription" settings link. Play's transactional in-app messages show on
+  Privacy). Profile has a "Manage subscription" settings link. The Owner Analytics listing-health card reads the server mirror `isOwnerPackageLapsed`, never the admin listing toggle `isActiveSubscription`. Play's transactional in-app messages show on
   every app resume for Play subscribers (`showBillingInAppMessages`, re-syncs on SUBSCRIPTION_STATUS_UPDATED).
 - Admins get a push for every subscription change (`billing/adminBillingAlerts.ts`
   `notifyAdminsOfSubscriptionChange`, category `ADMIN_SUBSCRIPTION`, opens `admin_console`): new subscriber,

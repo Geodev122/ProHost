@@ -16,8 +16,9 @@ object PlayOfferText {
      * subscription), in no guaranteed order; [pickOffer] chooses among them.
      */
     fun preferredOffer(details: ProductDetails?, basePlanId: String? = null): ProductDetails.SubscriptionOfferDetails? {
+        // `promo`-tagged offers belong to the promo card only (PlayPromo), never to the plan cards.
         val offers = details?.subscriptionOfferDetails.orEmpty()
-            .filter { basePlanId == null || it.basePlanId == basePlanId }
+            .filter { (basePlanId == null || it.basePlanId == basePlanId) && !PlayPromo.isPromoTagged(it.offerTags) }
         if (offers.isEmpty()) return null
         val index = pickOffer(offers.map { o -> o.offerId to o.pricingPhases.pricingPhaseList.map(::phaseOf) })
         return offers[index]
@@ -43,7 +44,7 @@ object PlayOfferText {
     /** One pricing phase, decoupled from ProductDetails so the offer maths is unit-testable. */
     data class Phase(val micros: Long, val currency: String, val formatted: String, val period: String, val cycles: Int)
 
-    private fun phaseOf(p: ProductDetails.PricingPhase) = Phase(
+    internal fun phaseOf(p: ProductDetails.PricingPhase) = Phase(
         micros = p.priceAmountMicros,
         currency = p.priceCurrencyCode,
         formatted = p.formattedPrice,

@@ -140,3 +140,78 @@ export async function readPlayCatalog(): Promise<{ productId: string; basePlans:
       summarizeBasePlan(bp, offers.filter((o) => o.basePlanId === bp.basePlanId).map(summarizeOffer))),
   };
 }
+
+/** ISO 8601 period → months (P1M = 1, P1Y = 12, P7D ≈ 0.23); 0 when unparseable. */
+export function periodMonths(iso: string | null | undefined): number {
+  const m = /^P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?$/.exec(iso ?? "");
+  if (!m) return 0;
+  const [, y, mo, w, d] = m.map((x) => Number(x ?? 0));
+  return y * 12 + mo + (w * 7 + d) / 30.4375;
+}
+
+/** Percent off the base price for one phase in one region; null when it can't be told. */
+export function phaseDiscountPercent(pricing: string, basePrice: string): number | null {
+  if (pricing === "free") return 100;
+  const pct = /^-(\d+)%$/.exec(pricing);
+  if (pct) return Number(pct[1]);
+  const amount = (s: string) => { const x = /^-?(\d+(?:\.\d+)?) ([A-Z]{3})$/.exec(s); return x ? { v: Number(x[1]), cur: x[2] } : null; };
+  const base = amount(basePrice);
+  const off = /^-/.test(pricing) ? amount(pricing) : null;
+  const fixed = off ? null : amount(pricing);
+  if (!base || base.v <= 0) return null;
+  if (off && off.cur === base.cur) return Math.round((off.v / base.v) * 100);
+  if (fixed && fixed.cur === base.cur) return Math.round((1 - fixed.v / base.v) * 100);
+  return null;
+}
+
+/** The Play offer tags that configure the app's promo card (see the app's PlayPromo). */
+export const PROMO_TAG = "promo";
+
+/**
+ * Pure: strict-Play sanity checks on the live catalog, so a mistake in Play Console (the source of truth
+ * for every price, offer and promo) is caught by the Maintenance task `playcatalog` instead of by buyers.
+ */
+export function lintOffers(basePlans: LiveBasePlan[], nowMillis: number): string[] {
+  const out: string[] = [];
+  const promos: string[] = [];
+  for (const bp of basePlans) {
+    if (bp.state === "ACTIVE" && bp.prices.LB === "n/a") out.push(`${bp.basePlanId}: ACTIVE but has no Lebanon (LB) price`);
+    for (const o of bp.offers) {
+      if (o.state !== "ACTIVE") continue;
+      const where = `${bp.basePlanId}/${o.offerId}`;
+      o.phases.forEach((p, i) => {
+        for (const region of AUDIT_REGIONS) {
+          const pct = phaseDiscountPercent(p.pricing[region], bp.prices[region]);
+          const months = periodMonths(p.duration) * p.recurrenceCount;
+          if (pct === 100 && months > 3) out.push(`${where}: phase ${i + 1} is free for ${months.toFixed(1)} months in ${region}`);
+          else if (pct !== null && pct >= 90 && pct < 100) out.push(`${where}: phase ${i + 1} is ${pct}% off for ${p.recurrenceCount}x${p.duration} in ${region} — check the discount`);
+        }
+      });
+      const tags = o.tags.map((t) => t.toLowerCase());
+      if (!tags.includes(PROMO_TAG)) continue;
+      promos.push(where);
+      if (!tags.some((t) => /^code-[a-z0-9]+$/.test(t))) out.push(`${where}: promo offer without a code-… tag (the app hides it)`);
+      const ends = tags.find((t) => t.startsWith("ends-"));
+      const m = ends ? /^ends-(\d{4})(\d{2})(\d{2})$/.exec(ends) : null;
+      if (!ends) out.push(`${where}: promo offer without an ends-YYYYMMDD tag (no countdown)`);
+      else if (!m) out.push(`${where}: malformed ${ends} (use ends-YYYYMMDD)`);
+      // End of that day in Beirut; +02:00 never ends it early.
+      else if (Date.parse(`${m[1]}-${m[2]}-${m[3]}T23:59:59+02:00`) < nowMillis) {
+        out.push(`${where}: promo ended (${ends}) but the offer is still ACTIVE — deactivate it in Play Console`);
+      }
+      if (!o.phases.some((p) => AUDIT_REGIONS.some((r) => (phaseDiscountPercent(p.pricing[r], bp.prices[r]) ?? 0) > 0))) {
+        out.push(`${where}: promo offer has no free or discounted phase`);
+      }
+      if (bp.state !== "ACTIVE") out.push(`${where}: promo offer on a ${bp.state} base plan`);
+    }
+  }
+  if (promos.length > 1) out.push(`more than one ACTIVE promo offer (${promos.join(", ")}): the app shows only the first`);
+  // The website (index, list-your-space, ar) promises 50% off the first month / year.
+  for (const bp of basePlans.filter((b) => b.state === "ACTIVE")) {
+    const half = bp.offers.some((o) => o.state === "ACTIVE" && !o.tags.map((t) => t.toLowerCase()).includes(PROMO_TAG) &&
+      o.phases.length > 0 && o.phases[0].recurrenceCount === 1 && o.phases[0].duration === bp.period &&
+      phaseDiscountPercent(o.phases[0].pricing.LB, bp.prices.LB) === 50);
+    if (!half) out.push(`website promises 50% off the first ${bp.period === "P1Y" ? "year" : "month"}, but ${bp.basePlanId} has no ACTIVE 50% first-period offer in LB`);
+  }
+  return out;
+}

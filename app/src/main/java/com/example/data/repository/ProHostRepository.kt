@@ -519,7 +519,6 @@ class ProHostRepository(
 
     /** A listing by id, fetched when it isn't in the live lists (Explore loads 100 at a time). */
     suspend fun fetchListing(spaceId: String): SpaceListing? = firestoreService.fetchListing(spaceId)
-    suspend fun fetchPromoCampaign(): com.example.data.billing.PromoCampaign? = firestoreService.fetchPromoCampaign()
 
     /**
      * This used to only mutate local state — the confirmation dialog claimed a

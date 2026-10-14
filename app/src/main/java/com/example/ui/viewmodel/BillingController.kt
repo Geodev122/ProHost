@@ -241,7 +241,7 @@ class BillingController(
     fun launchGooglePaySubscription(
         activity: android.app.Activity,
         basePlanId: String,
-        useBasePlanOffer: Boolean = false
+        offerChoice: com.example.data.billing.OfferChoice = com.example.data.billing.OfferChoice.Preferred
     ) {
         val uid = currentUser.value?.id ?: run {
             _billingError.value = "Your session expired — please sign in again to subscribe."
@@ -303,7 +303,8 @@ class BillingController(
             manager.launchSubscriptionPurchase(
                 activity, product, userId = uid, basePlanId = basePlanId,
                 oldPurchaseToken = oldPurchaseToken, replacementMode = replacementMode,
-                useBasePlanOffer = useBasePlanOffer
+                // A plan switch shows regular prices, so it is charged the plain base plan.
+                offerChoice = if (oldPurchaseToken != null) com.example.data.billing.OfferChoice.BasePlanOnly else offerChoice
             )
         } else {
             // Store the intent and retry automatically once products load from Play
@@ -441,30 +442,21 @@ class BillingController(
     }
 
     fun retryBillingQuery(context: android.content.Context) {
-        refreshPromoCampaign()
         val manager = playBillingManager ?: run { initPlayBilling(context); playBillingManager } ?: return
         manager.querySubscriptionProducts()
     }
 
-    /** The marketed promo-code campaign (countdown card + red dot on "Redeem code"); re-read on every Premium visit. */
-    val promoCampaign = MutableStateFlow<com.example.data.billing.PromoCampaign?>(null)
-
-    fun refreshPromoCampaign() {
-        scope.launch { promoCampaign.value = repository.fetchPromoCampaign() }
-    }
-
     /**
-     * "Use promo code": copies the code and opens Play's checkout for the campaign's base plan WITHOUT a
-     * developer offer, because Play custom promo codes are redeemed inside the purchase sheet (payment
-     * method ▾ › Redeem) and replace any trial. The caller shows how to paste it first.
+     * "Use promo code": opens Google Play's checkout on the Play-configured promo offer (PlayPromo) — Play shows
+     * its benefit (e.g. the free month) and the regular price after it — and copies the code for reference.
      */
-    fun launchPromoCheckout(activity: android.app.Activity, basePlanId: String, code: String) {
+    fun launchPromoCheckout(activity: android.app.Activity, promo: com.example.data.billing.PlayPromo.PromoOffer) {
         runCatching {
             val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("ProHost promo code", code))
+            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("ProHost promo code", promo.code))
         }
         com.example.analytics.AnalyticsTracker.redeemCodeOpen()
-        launchGooglePaySubscription(activity, basePlanId, useBasePlanOffer = true)
+        launchGooglePaySubscription(activity, promo.basePlanId, com.example.data.billing.OfferChoice.Specific(promo.offerId))
     }
 
 

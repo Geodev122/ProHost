@@ -22,7 +22,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -36,17 +35,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.billing.PromoCampaign
+import com.example.data.billing.PlayPromo
 import com.example.ui.theme.proColors
 
 /**
- * "Early launch promo" card on the Premium screen: the code, what it gives, a live countdown to the
- * campaign end, spots left (server-counted redemptions) and one button that applies it at checkout.
- * Brand navy with a single orange accent (the button), so the screen doesn't turn all orange.
+ * The promo card in the "Redeem code" sheet, built only from the Play offer tagged `promo` (PlayPromo):
+ * the code, the benefit and renewal price from the offer's phases, a countdown to its `ends-` tag and one
+ * button that opens Play's checkout on that offer. Brand navy with a single orange accent (the button).
  */
 @Composable
 fun PromoCountdownCard(
-    promo: PromoCampaign,
+    promo: PlayPromo.PromoOffer,
     nowMillis: Long,
     enabled: Boolean,
     onCopy: () -> Unit,
@@ -54,7 +53,7 @@ fun PromoCountdownCard(
     modifier: Modifier = Modifier
 ) {
     val on = MaterialTheme.proColors.onBrandHeader
-    val left = PromoCampaign.countdown(nowMillis, promo.endsAtMillis)
+    val left = promo.endsAtMillis?.let { PlayPromo.countdown(nowMillis, it) }
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
@@ -77,9 +76,6 @@ fun PromoCountdownCard(
                     color = on.copy(alpha = 0.9f),
                     modifier = Modifier.weight(1f)
                 )
-                promo.spotsLeft?.let {
-                    Text("$it spots left", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.proColors.headerWarning)
-                }
             }
             Text(promo.benefit, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, color = on)
 
@@ -107,23 +103,17 @@ fun PromoCountdownCard(
                 }
             }
 
-            // Live countdown.
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Offer ends in", style = MaterialTheme.typography.labelSmall, color = on.copy(alpha = 0.8f))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CountdownBox(left.days, "DAYS", Modifier.weight(1f))
-                    CountdownBox(left.hours, "HRS", Modifier.weight(1f))
-                    CountdownBox(left.minutes, "MIN", Modifier.weight(1f))
-                    CountdownBox(left.seconds, "SEC", Modifier.weight(1f))
+            // Live countdown to the offer's `ends-` tag (none when Play's offer has no end date).
+            if (left != null) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Offer ends in", style = MaterialTheme.typography.labelSmall, color = on.copy(alpha = 0.8f))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        CountdownBox(left.days, "DAYS", Modifier.weight(1f))
+                        CountdownBox(left.hours, "HRS", Modifier.weight(1f))
+                        CountdownBox(left.minutes, "MIN", Modifier.weight(1f))
+                        CountdownBox(left.seconds, "SEC", Modifier.weight(1f))
+                    }
                 }
-            }
-            promo.maxRedemptions?.let { max ->
-                LinearProgressIndicator(
-                    progress = { (promo.redeemed.toFloat() / max).coerceIn(0f, 1f) },
-                    modifier = Modifier.fillMaxWidth().height(6.dp),
-                    color = MaterialTheme.proColors.headerWarning,
-                    trackColor = on.copy(alpha = 0.18f)
-                )
             }
 
             Button(
@@ -141,8 +131,8 @@ fun PromoCountdownCard(
                 Text(if (enabled) "Use promo code" else "For new subscribers", fontWeight = FontWeight.Bold)
             }
             Text(
-                "Applied in Google Play's checkout. A payment method is needed; after the free month it renews at the " +
-                    "regular price unless you cancel in Google Play before then.",
+                "Google Play's checkout shows the offer before you pay. A payment method is needed; then it renews at " +
+                    "${promo.summary.recurring} / ${promo.summary.recurringPeriod} unless you cancel in Google Play before then.",
                 style = MaterialTheme.typography.labelSmall,
                 color = on.copy(alpha = 0.75f),
                 textAlign = TextAlign.Center,

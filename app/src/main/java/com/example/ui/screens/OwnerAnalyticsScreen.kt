@@ -593,6 +593,9 @@ fun DisciplineDemandBar(name: String, percentage: Int, color: Color) {
 @Composable
 fun ListingHealthCard(space: SpaceListing) {
     val (lowestPrice, lowestUnit) = remember(space) { SpaceCalculationUtils.lowestPriceSummary(space) }
+    // Premium state from the server's mirror of the owner's Play entitlement (isOwnerPackageLapsed,
+    // written by grantProHost/removeProHost), never the admin listing toggle.
+    val premiumActive = !space.isOwnerPackageLapsed
     ProSurfaceCard {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -604,15 +607,15 @@ fun ListingHealthCard(space: SpaceListing) {
                 modifier = Modifier.weight(1f)
             ) {
                 Surface(
-                    color = if (space.isActiveSubscription) MaterialTheme.proColors.successContainer else MaterialTheme.colorScheme.errorContainer,
+                    color = if (premiumActive) MaterialTheme.proColors.successContainer else MaterialTheme.colorScheme.errorContainer,
                     shape = CircleShape,
                     modifier = Modifier.size(42.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = if (space.isActiveSubscription) Icons.Default.CheckCircle else Icons.Default.Warning,
+                            imageVector = if (premiumActive) Icons.Default.CheckCircle else Icons.Default.Warning,
                             contentDescription = null,
-                            tint = if (space.isActiveSubscription) MaterialTheme.proColors.success else MaterialTheme.colorScheme.error,
+                            tint = if (premiumActive) MaterialTheme.proColors.success else MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -633,10 +636,10 @@ fun ListingHealthCard(space: SpaceListing) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = if (space.isActiveSubscription) "Subscription Active" else "Renewal Required",
+                        text = if (premiumActive) "Premium active" else "Premium lapsed — renew to publish",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (space.isActiveSubscription) MaterialTheme.proColors.success else MaterialTheme.colorScheme.error
+                        color = if (premiumActive) MaterialTheme.proColors.success else MaterialTheme.colorScheme.error
                     )
                 }
             }
