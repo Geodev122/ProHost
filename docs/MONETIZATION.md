@@ -138,6 +138,30 @@ means verification is failing.
      (`play_purchase_links` admin override).
 3. The user's profile in Admin › Users shows the same rows under "Payments not active yet".
 
+## 2b. Offers (discounts, trials) — why a Play Console change may not show in the app
+
+The Premium screen shows whatever offer Google Play returns **for the signed-in Google account**, through the
+Billing SDK, re-queried on every visit. The plan cards show the price paid now, the regular price struck through,
+the % off, how long it lasts and what it renews at; "How your offer works" shows the date the regular price starts.
+
+If an offer you created or edited doesn't appear:
+
+| Cause | How to tell | Fix |
+|---|---|---|
+| Offer not **Active** (draft / inactive) | `playcatalog` → `OFFER … INACTIVE/DRAFT` | Activate it in Play Console › Subscriptions › ProHost Premium › base plan › Offers |
+| Eligibility **"New customer acquisition"** — the test Google account already had this subscription (or any, depending on the rule) | `playcatalog` → `new customers: never had …` | Test with a Google account that never subscribed, or set eligibility to *Developer determined* |
+| Offer not available in **Lebanon** (or the tester's Play country) | `playcatalog` → `LB OFF` | Add the country under the offer's *Countries / regions* |
+| Edited a **base-plan price** (not an offer) | `BASE … LB=` shows the new price | Price changes apply to new purchases after Play propagates them; existing subscribers follow Play's price-change flow |
+| Play Store cache | Catalog is right but the phone still shows the old price | Wait up to a few hours, or clear the Play Store app's cache, then reopen Premium |
+| Member switching plans | Offers are never shown when switching | Expected: offers are for new subscriptions |
+
+**Live check:** GitHub › Actions › Maintenance › task `playcatalog` prints every base plan (LB/US prices,
+availability) and every offer (state, eligibility, tags, phases with LB/US pricing), every recorded Play
+subscription as Play sees it now (offer used, bought in the app vs Play Store, promo-code type) and the
+promo-code claim plumbing. It reads Play with the functions' own service account (via `onMaintenanceRequest`),
+so it works even though the CI account isn't invited in Play Console. Admin › Packages › Billing health shows the
+same offers per base plan.
+
 ## 3. Promo-code campaign (50 early-subscriber codes)
 
 ### How a redemption flows

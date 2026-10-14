@@ -19,8 +19,15 @@ app versions), `grantPackageToUser` is gone. Never reintroduce local plans, pric
 App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; Play requires v8+).
 
 - Prices, periods, trials and "Save XX%" come only from the Billing SDK (`PlayOfferText`, per base plan:
-  `preferredOffer(details, basePlanId)`). Checkout always passes the chosen base plan's offer token —
-  picking one offer per product made the yearly plan unbuyable. Monthly ↔ yearly passes the old token
+  `preferredOffer(details, basePlanId)` → pure `pickOffer`: free trial, else deepest discount, else base plan).
+  Checkout always passes the chosen base plan's offer token — picking one offer per product made the yearly plan
+  unbuyable. Plan cards render `PlayOfferText.summary()` (`OfferSummary`, pure `summarize`, unit-tested in
+  `PlayOfferTextTest`): with an offer the headline is the price paid now, the regular price struck through,
+  "% OFF" ribbon, "for your first month/year", "then $X / month"; `OfferBanner` markets it and `OfferExplainer`
+  states today's price, the date the regular price starts (`regularPriceStartsAt`) and how to cancel. Members
+  switching plans never see offers. An offer edited in Play Console that "doesn't show" is almost always
+  eligibility: Play returns "new customers" offers only to accounts that never had the subscription — check the live
+  catalog with Maintenance task `playcatalog` or Admin › Packages › Billing health (offers listed per base plan). Monthly ↔ yearly passes the old token
   (`SubscriptionUpdateParams`). The screen is "ProHost Premium" (`OwnerSubscriptionsScreen.kt`).
 - Product queries use the Billing 8+ callback `queryProductDetailsAsync(params) { billingResult,
   queryProductDetailsResult -> }` (`productDetailsList` / `unfetchedProductList`). Never cast the callback
