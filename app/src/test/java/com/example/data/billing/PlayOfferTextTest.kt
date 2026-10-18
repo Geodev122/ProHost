@@ -112,6 +112,7 @@ class PlayOfferTextTest {
         // A lone plan is always used, even with no offers (the card still shows its price).
         assertEquals("pro-month1", PlayOfferText.chooseByKind(listOf(PlayOfferText.PlanCandidate("pro-month1", m, 0)))[m])
         assertEquals(PlayCatalog.PlanKind.MONTHLY, PlayCatalog.kindOf("pro-month1"))
+        assertEquals(PlayCatalog.PlanKind.MONTHLY, PlayCatalog.kindOf("pro-monthly1")) // the plan Play now returns
         assertNull(PlayOfferText.chooseByKind(emptyList())[m])
     }
 }
