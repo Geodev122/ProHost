@@ -24,7 +24,7 @@ const ORG = { "@type": "Organization", "@id": `${SITE}/#org`, name: "ProHost", u
 
 const WEBSITE = { "@type": "WebSite", "@id": `${SITE}/#site`, url: `${SITE}/`, name: "ProHost", inLanguage: ["en", "ar"], publisher: { "@id": `${SITE}/#org` } };
 
-function head({ lang, dir, title, description, keywords, canonical, image, ld, alternates }) {
+function head({ lang, dir, title, description, keywords, canonical, image, imageAlt, ld, alternates }) {
   return `<!DOCTYPE html>
 <html lang="${lang}"${dir ? ` dir="${dir}"` : ""}>
 <head>
@@ -39,12 +39,20 @@ ${(alternates || []).map(([hl, href]) => `<link rel="alternate" hreflang="${hl}"
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ProHost">
 <meta property="og:locale" content="${lang === "ar" ? "ar_AR" : "en_US"}">
+<meta property="og:locale:alternate" content="${lang === "ar" ? "en_US" : "ar_AR"}">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(description)}">
 <meta property="og:url" content="${canonical}">
 <meta property="og:image" content="${image}">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="${esc(imageAlt || title)}">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(description)}">
 <meta name="twitter:image" content="${image}">
+<meta name="twitter:image:alt" content="${esc(imageAlt || title)}">
 <meta name="theme-color" content="#1C2A40">
 <link rel="icon" type="image/png" href="/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -77,19 +85,19 @@ function footer(ar) {
 
 function page(p) {
   const url = `${SITE}/${p.slug}`;
-  const image = `${SITE}/img/${p.img}.jpg`;
+  const image = `${SITE}/img/og/${p.slug}.jpg`;
   const hosts = p.audience === "hosts";
   const ld = [
     ORG, WEBSITE,
     { "@type": "WebPage", "@id": `${url}#page`, url, name: p.title, description: p.description, inLanguage: "en", isPartOf: { "@id": `${SITE}/#site` },
       about: { "@type": "Service", serviceType: strip(p.h1), provider: { "@id": `${SITE}/#org` } },
-      primaryImageOfPage: image, breadcrumb: { "@id": `${url}#bc` } },
+      primaryImageOfPage: { "@type": "ImageObject", url: image, width: 1200, height: 630 }, breadcrumb: { "@id": `${url}#bc` } },
     { "@type": "BreadcrumbList", "@id": `${url}#bc`, itemListElement: [
       { "@type": "ListItem", position: 1, name: "ProHost", item: `${SITE}/` },
       { "@type": "ListItem", position: 2, name: NAV_LABEL[p.slug], item: url }] },
     { "@type": "FAQPage", mainEntity: p.faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
   ];
-  const html = `${head({ lang: "en", title: p.title, description: p.description, keywords: p.keywords, canonical: url, image, ld,
+  const html = `${head({ lang: "en", title: p.title, description: p.description, keywords: p.keywords, canonical: url, image, imageAlt: p.imgAlt, ld,
     alternates: [["en", url], ["ar", `${SITE}/ar`], ["x-default", url]] })}
 <body>
 ${header(false)}
@@ -174,7 +182,7 @@ function arabic() {
     ["yoga", "استوديوهات يوغا ورقص ورياضة", "لمدرّبي اليوغا والبيلاتس والرقص: احجز ساعات صفّك أسبوعياً في استوديو قريب من طلابك."],
     ["office", "مكاتب خاصة ومكاتب مشتركة", "للمستقلين والاستشاريين والفرق الصغيرة: مكتب باليوم أو مقعد بالشهر من دون عقد طويل."],
   ];
-  const html = `${head({ lang: "ar", dir: "rtl", title: AR.title, description: AR.description, keywords: AR.keywords, canonical: url, image: `${SITE}/img/clinic.jpg`, ld,
+  const html = `${head({ lang: "ar", dir: "rtl", title: AR.title, description: AR.description, keywords: AR.keywords, canonical: url, image: `${SITE}/img/og-hero.jpg`, imageAlt: "ProHost: تأجير العيادات والمكاتب والقاعات بالساعة", ld,
     alternates: [["ar", url], ["en", `${SITE}/`], ["x-default", `${SITE}/`]] })}
 <body class="rtl">
 ${header(true)}

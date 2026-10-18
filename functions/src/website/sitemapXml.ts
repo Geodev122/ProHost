@@ -38,13 +38,19 @@ function isoDay(ms: unknown): string | null {
   return Number.isFinite(n) && n > 0 ? new Date(n).toISOString().slice(0, 10) : null;
 }
 
+/** The English home page and the Arabic page are language alternates of each other (hreflang, per Google's sitemap format). */
+const ALTERNATES: Record<string, Array<[string, string]>> = {
+  "/": [["en", "/"], ["ar", "/ar"], ["x-default", "/"]],
+  "/ar": [["en", "/"], ["ar", "/ar"], ["x-default", "/"]],
+};
+
 export function buildSitemap(listings: Array<{ id: string; updatedAt?: unknown }>, today = new Date().toISOString().slice(0, 10)): string {
   const urls = STATIC_PAGES.map(([path, freq, prio]) =>
-    `<url><loc>${SITE}${path}</loc><lastmod>${today}</lastmod><changefreq>${freq}</changefreq><priority>${prio}</priority></url>`);
+    `<url><loc>${SITE}${path}</loc>${(ALTERNATES[path] || []).map(([hl, p]) => `<xhtml:link rel="alternate" hreflang="${hl}" href="${SITE}${p}"/>`).join("")}<lastmod>${today}</lastmod><changefreq>${freq}</changefreq><priority>${prio}</priority></url>`);
   for (const l of listings) {
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(l.id)) continue;
     const mod = isoDay(l.updatedAt);
     urls.push(`<url><loc>${SITE}/listing/${xmlEsc(l.id)}</loc>${mod ? `<lastmod>${mod}</lastmod>` : ""}<changefreq>weekly</changefreq><priority>0.7</priority></url>`);
   }
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls.join("\n")}\n</urlset>\n`;
 }

@@ -311,6 +311,7 @@ plan + recurring price + date;
   Place/BreadcrumbList JSON-LD whose place comes from the listing itself (`listings/listingLocation.ts`: stored
   country/city win; only legacy blank-country listings inside Lebanon count as Lebanon, like the app's `effectiveCountry`).
   The legal pages (terms governing law and arbitration seat, privacy) are a separate, deliberate decision.
+  Share cards: `scripts/website/build-og-images.js` renders 1200x630 previews in the home-hero look (`public/img/og-hero.jpg` for `/`, `/ar` and policy pages, `public/img/og/<slug>.jpg` per landing page; commit the JPGs after changing a headline). Titles stay <= 60 chars, descriptions <= 160. The sitemap carries the en/ar hreflang pair.
   Utility pages (`/get`, `/admin`, `/redeem`, `/emaillink`) are noindex. Maintenance `prodcheck` step `seo` verifies the
   sitemap pages and the legacy 301s live.
   Play screenshots: `play/screenshots/` (rendered from `source/shots.html`); listing text: `play/store-listing/`.

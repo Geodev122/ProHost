@@ -20,7 +20,7 @@ const PAGES = [
     slug: "clinic-room-rental",
     audience: "pros",
     title: "Clinic Room for Rent by the Hour or Shift | ProHost",
-    description: "Rent a fully equipped clinic room by the hour, shift, day or month. Doctors, dentists, dietitians and therapists book rooms in medical centers and private practices on ProHost.",
+    description: "Rent a clinic room by the hour, shift, day or month. Doctors, dentists, dietitians and therapists book rooms in medical centers and private practices on ProHost.",
     keywords: "clinic for rent by the hour, clinic room rental, medical room by the hour, clinic shift rental, rent a consulting room, doctor office sharing, عيادة للايجار",
     eyebrow: "For doctors & health professionals",
     h1: "Rent a <em>clinic room</em> by the hour or shift",
@@ -149,7 +149,7 @@ const PAGES = [
   {
     slug: "office-space-by-the-hour",
     audience: "pros",
-    title: "Private Office & Desk Rental by the Hour, Day or Month | ProHost",
+    title: "Office & Desk Rental by the Hour, Day or Month | ProHost",
     description: "Flexible office space: book a private office, desk or coworking space by the hour, day or month, without a long lease, on ProHost.",
     keywords: "office for rent by the hour, private office rental, coworking day pass, desk rental, flexible office space, shared office, مكتب للايجار بالساعة",
     eyebrow: "For freelancers, consultants & small teams",
@@ -175,7 +175,7 @@ const PAGES = [
   {
     slug: "list-your-space",
     audience: "hosts",
-    title: "Rent Out Your Clinic, Office, Studio or Meeting Room | ProHost",
+    title: "Rent Out Your Clinic, Office or Studio Rooms | ProHost",
     description: "Earn from empty rooms. List your clinic, office, studio, classroom or hotel meeting room on ProHost and rent it by the hour, shift, day, month or per attendee.",
     keywords: "rent out my clinic, list office space for rent, rent out meeting room, hotel meeting room rental platform, earn from empty rooms, space rental app, اعرض مساحتك للايجار",
     eyebrow: "For space owners",
