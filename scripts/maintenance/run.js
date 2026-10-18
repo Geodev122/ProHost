@@ -808,7 +808,7 @@ async function smsauth(db, arg) {
       : "no region policy (all regions the provider supports)";
     return `phoneEnabled=${config.signIn?.phoneNumber?.enabled === true} policy=${policy} ` +
       `testNumbers=${Object.keys(config.signIn?.phoneNumber?.testPhoneNumbers || {}).length} ` +
-      `quota=${JSON.stringify(config.quota?.signUpQuotaConfig || {}).slice(0, 120)}`;
+      `quotaConfigured=${Object.keys(config.quota?.signUpQuotaConfig || {}).length > 0}`;
   });
   await step("smsRegionFix", async () => {
     if (!arg || !arg.startsWith("allow:")) return "skipped (pass allow:SY to add regions to the policy)";
@@ -831,6 +831,35 @@ async function smsauth(db, arg) {
     } else return "no region policy set: nothing to change in Firebase (the block is elsewhere)";
     const res = await googleApi(`${base}?updateMask=smsRegionConfig`, { method: "PATCH", body: JSON.stringify({ smsRegionConfig: next }) });
     return res.ok ? `updated: ${note}` : `HTTP ${res.status} ${(await res.text()).slice(0, 300)} (change it in Firebase Console › Authentication › Settings › SMS region policy)`;
+  });
+  // APIs phone verification depends on (Identity Toolkit sends the SMS; Android Device Verification / Play
+  // Integrity prove the app) and whether billing is on (real SMS beyond test numbers needs it).
+  await step("smsApisAndBilling", async () => {
+    const out = [];
+    const names = ["identitytoolkit.googleapis.com", "androidcheck.googleapis.com", "playintegrity.googleapis.com",
+      "firebaseappcheck.googleapis.com", "recaptchaenterprise.googleapis.com"];
+    const qs = names.map((n) => `names=projects/${project}/services/${n}`).join("&");
+    const svc = await googleApi(`https://serviceusage.googleapis.com/v1/projects/${project}/services:batchGet?${qs}`);
+    if (svc.ok) {
+      const j = await svc.json();
+      out.push(...(j.services || []).map((x) => `${x.config?.name}=${x.state}`));
+    } else out.push(`serviceusage HTTP ${svc.status}`);
+    const bill = await googleApi(`https://cloudbilling.googleapis.com/v1/projects/${project}/billingInfo`);
+    out.push(bill.ok ? `billingEnabled=${(await bill.json()).billingEnabled === true}` : `billing HTTP ${bill.status}`);
+    return out.join(" ");
+  });
+  // API keys: an Android restriction that omits the app's package/fingerprint, or an API target list that
+  // leaves out Identity Toolkit, breaks phone verification exactly like a missing SHA.
+  await step("apiKeyRestrictions", async () => {
+    const res = await googleApi(`https://apikeys.googleapis.com/v2/projects/${project}/locations/global/keys`);
+    if (!res.ok) return `HTTP ${res.status} ${(await res.text()).slice(0, 160)}`;
+    const keys = (await res.json()).keys || [];
+    return keys.map((k) => {
+      const r = k.restrictions || {};
+      const android = r.androidKeyRestrictions ? `android(${(r.androidKeyRestrictions.allowedApplications || []).map((a) => a.packageName).join("|")} apps=${(r.androidKeyRestrictions.allowedApplications || []).length})` : "";
+      const targets = (r.apiTargets || []).map((t) => t.service.replace(".googleapis.com", "")).join("|");
+      return `${k.displayName || k.uid}: ${android || "no-android-restriction"} apis=${targets || "any"}`;
+    }).join(" ;; ") || "no keys listed";
   });
   // Fingerprints registered for the Android app vs the Play app-signing secrets (values never printed).
   await step("androidFingerprints", async () => {

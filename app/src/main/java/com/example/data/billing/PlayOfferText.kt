@@ -142,22 +142,6 @@ object PlayOfferText {
         return cal.timeInMillis
     }
 
-    /**
-     * Pure: one marketing line for the offers on screen, e.g.
-     * "50% off your first month or first year" or "Try Premium free for 7 days".
-     */
-    fun offerHeadline(summaries: List<OfferSummary>): String? {
-        val discounted = summaries.filter { it.discountPercent != null && it.introSpan != null }
-        if (discounted.isNotEmpty()) {
-            val pct = discounted.maxOf { it.discountPercent!! }
-            val spans = discounted.filter { it.discountPercent == pct }.mapNotNull { it.introSpan }.distinct()
-            val upTo = if (discounted.any { it.discountPercent != pct }) "Up to " else ""
-            return "$upTo$pct% off your ${spans.joinToString(" or ")}".replaceFirstChar { it.uppercase() }
-        }
-        val trial = summaries.firstNotNullOfOrNull { it.trialSpan } ?: return null
-        return "Try ProHost Premium free for $trial"
-    }
-
     /** "first month", "first 3 months", "first year", "first 7 days". */
     private fun firstSpan(iso: String, cycles: Int): String {
         val span = duration(iso, cycles)
@@ -189,14 +173,32 @@ object PlayOfferText {
         }
     }
 
+    /** A base plan Play returned, as far as choosing between two of the same kind needs. */
+    data class PlanCandidate(val id: String, val kind: PlayCatalog.PlanKind, val offerCount: Int)
+
+    /**
+     * Pure: one base plan per kind. When Play returns two of a kind (a renamed plan whose old one is still
+     * active), the one with more offers wins, then a current id over a retired one, then the first returned.
+     */
+    fun chooseByKind(candidates: List<PlanCandidate>): Map<PlayCatalog.PlanKind, String> =
+        candidates.withIndex()
+            .groupBy { it.value.kind }
+            .mapValues { (_, list) ->
+                list.sortedWith(
+                    compareByDescending<IndexedValue<PlanCandidate>> { it.value.offerCount }
+                        .thenBy { it.value.id.lowercase() in PlayCatalog.LEGACY_MONTHLY_IDS }
+                        .thenBy { it.index }
+                ).first().value.id
+            }
+
     /** The base plan id Play returned for each kind (at most one monthly and one yearly). */
     fun plansByKind(details: ProductDetails?): Map<PlayCatalog.PlanKind, String> {
-        val out = linkedMapOf<PlayCatalog.PlanKind, String>()
-        for (id in basePlans(details)) {
-            val kind = kindOf(details, id) ?: continue
-            out.putIfAbsent(kind, id)
+        val offers = details?.subscriptionOfferDetails.orEmpty()
+        val candidates = basePlans(details).mapNotNull { id ->
+            val kind = kindOf(details, id) ?: return@mapNotNull null
+            PlanCandidate(id, kind, offers.count { it.basePlanId == id && !PlayPromo.isPromoTagged(it.offerTags) })
         }
-        return out
+        return chooseByKind(candidates)
     }
 
     /** The phases checkout will charge: the preferred offer, or the plain base plan for a plan switch. */

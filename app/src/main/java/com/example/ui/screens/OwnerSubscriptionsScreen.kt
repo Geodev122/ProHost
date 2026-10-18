@@ -375,11 +375,7 @@ fun OwnerSubscriptionsScreen(
                 val selectedKind = PlayOfferText.kindOf(premiumProduct, selectedPlan)
                 val selectedBadge = selectedKind?.let(PlayCatalog::badge) ?: "Premium"
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    // Offers are for new subscriptions; members switching plans see the regular prices.
-                    // Granted (admin) accounts still see what Play offers, so the owner can preview it.
-                    val offerHeadline = if (hasLivePlaySubscription) null
-                        else PlayOfferText.offerHeadline(offerSummaries.values.filterNotNull())
-                    offerHeadline?.let { OfferBanner(it) }
+                    // Offers show on the plan cards (new subscriptions only); members switching plans see regular prices.
                     // Always exactly two tiles: Monthly and Yearly. A kind Play didn't return is a placeholder.
                     Row(
                         modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
@@ -900,48 +896,6 @@ private fun PlanTile(
                 if (kind == PlayCatalog.PlanKind.YEARLY && savingsPercent != null && !isCurrent) {
                     PlanChip("SAVE $savingsPercent% VS MONTHLY", scheme.tertiaryContainer, scheme.onTertiaryContainer)
                 }
-            }
-        }
-    }
-}
-
-/**
- * The offers Play returned for this account, marketed in one card: what it is, that Google Play offers it
- * to this account (Play returns only offers whose eligibility the account meets), and that Play shows the price.
- */
-@Composable
-private fun OfferBanner(headline: String) {
-    val on = MaterialTheme.proColors.onBrandHeader
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        color = Color.Transparent,
-        shadowElevation = 4.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .background(
-                    androidx.compose.ui.graphics.Brush.linearGradient(
-                        listOf(MaterialTheme.proColors.brandHeaderStart, MaterialTheme.proColors.brandHeaderEnd)
-                    )
-                )
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(42.dp)) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.LocalOffer, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondary, modifier = Modifier.size(22.dp))
-                }
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text("WELCOME OFFER", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, letterSpacing = 1.sp, color = on.copy(alpha = 0.85f))
-                Text(headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = on)
-                Text(
-                    "Offered to your Google Play account. Google Play confirms the exact price before you pay.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = on.copy(alpha = 0.9f)
-                )
             }
         }
     }

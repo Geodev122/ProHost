@@ -23,12 +23,12 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   Checkout always passes the chosen base plan's offer token — picking one offer per product made the yearly plan
   unbuyable. Plan cards render `PlayOfferText.summary()` (`OfferSummary`, pure `summarize`, unit-tested in
   `PlayOfferTextTest`): with an offer the headline is the price paid now, the regular price struck through,
-  "% OFF" ribbon, "for your first month/year", "then $X / month"; `OfferBanner` markets it and `OfferExplainer`
+  "% OFF" ribbon, "for your first month/year", "then $X / month"; `OfferExplainer`
   states today's price, the date the regular price starts (`regularPriceStartsAt`) and how to cancel. Members
   switching plans never see offers. An offer edited in Play Console that "doesn't show" is almost always
   eligibility: Play returns "new customers" offers only to accounts that never had the subscription — check the live
   catalog with Maintenance task `playcatalog` or Admin › Packages › Billing health (offers listed per base plan).
-  Only the selected plan card is orange (ribbon, price); the other card, the offer banner and the explainer use steel.
+  Only the selected plan card is orange (ribbon, price); the other card and the explainer use steel.
   Promo card (e.g. PROHOST2026, first month free) is **Play config only**: an offer tagged `promo` + `code-…` (+ `ends-YYYYMMDD`,
   `early-launch`) — `data/billing/PlayPromo.kt` (unit-tested) reads it from ProductDetails; no Firestore doc, no server counter
   (`promo_campaigns` is retired, rules deny all; `playcatalog` deletes the old doc). "Redeem code" (red dot while live) opens a

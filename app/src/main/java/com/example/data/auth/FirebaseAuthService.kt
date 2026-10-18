@@ -255,24 +255,25 @@ class FirebaseAuthService(private val context: Context) {
 
     /** What the person sees when Firebase can't send the SMS, by failure type. */
     private fun verificationFailureMessage(e: FirebaseException): String {
-        val m = e.message.orEmpty()
-        return when {
-            e is com.google.firebase.FirebaseTooManyRequestsException ||
-                m.contains("too-many-requests", true) || m.contains("unusual activity", true) || m.contains("quota", true) ->
-                "Too many attempts from this device. Please wait a while and try again."
-            e is com.google.firebase.auth.FirebaseAuthInvalidCredentialsException ->
-                "That phone number doesn't look valid — check the country code and number."
-            e is com.google.firebase.auth.FirebaseAuthMissingActivityForRecaptchaException ->
-                "Couldn't open the security check. Please try again."
-            // The app couldn't be verified (Play Integrity / reCAPTCHA): an unregistered signing
-            // certificate (SHA-256) in Firebase, or SMS not allowed for this region.
-            m.contains("app identifier", true) || m.contains("not authorized", true) ||
-                m.contains("integrity", true) || m.contains("recaptcha", true) || m.contains("17093") ->
+        val kind = verificationFailureKind(
+            errorCode = (e as? com.google.firebase.auth.FirebaseAuthException)?.errorCode,
+            tooManyRequests = e is com.google.firebase.FirebaseTooManyRequestsException,
+            invalidCredentials = e is com.google.firebase.auth.FirebaseAuthInvalidCredentialsException,
+            missingRecaptchaActivity = e is com.google.firebase.auth.FirebaseAuthMissingActivityForRecaptchaException,
+            message = e.message.orEmpty()
+        )
+        // The cause (a code, never the number) is the one thing needed to tell a region block from a
+        // quota or app-verification problem when codes don't arrive.
+        com.example.analytics.AnalyticsTracker.authError("phone_verification", kind.name.lowercase())
+        return when (kind) {
+            VerificationFailure.QUOTA -> "Too many attempts, or today's SMS limit was reached. Please wait a while and try again."
+            VerificationFailure.INVALID_NUMBER -> "That phone number doesn't look valid — check the country code and number."
+            VerificationFailure.RECAPTCHA_ACTIVITY -> "Couldn't open the security check. Please try again."
+            VerificationFailure.APP_NOT_VERIFIED ->
                 "We couldn't confirm this copy of the app to send the code. Update the app from Google Play and try again."
-            m.contains("region", true) || m.contains("operation-not-allowed", true) ->
-                "SMS verification isn't available for this number's country yet."
-            m.contains("network", true) -> "Network connection error. Check your internet access and try again."
-            else -> friendlyVerificationErrorMessage(e)
+            VerificationFailure.REGION_BLOCKED -> "SMS verification isn't enabled for this number's country yet. Please contact support."
+            VerificationFailure.NETWORK -> "Network connection error. Check your internet access and try again."
+            VerificationFailure.OTHER -> friendlyVerificationErrorMessage(e)
         }
     }
 
@@ -393,3 +394,35 @@ class FirebaseAuthService(private val context: Context) {
 }
 
 private val sharedResendTokens = java.util.concurrent.ConcurrentHashMap<String, PhoneAuthProvider.ForceResendingToken>()
+
+/** Why Firebase couldn't send a verification SMS. */
+enum class VerificationFailure { QUOTA, INVALID_NUMBER, RECAPTCHA_ACTIVITY, APP_NOT_VERIFIED, REGION_BLOCKED, NETWORK, OTHER }
+
+/**
+ * Pure classification of a phone-verification failure. Firebase's [errorCode] decides first (messages vary by SDK
+ * version, and the same exception class carries quota and region errors), then the message text.
+ */
+fun verificationFailureKind(
+    errorCode: String?,
+    tooManyRequests: Boolean,
+    invalidCredentials: Boolean,
+    missingRecaptchaActivity: Boolean,
+    message: String
+): VerificationFailure {
+    val code = errorCode.orEmpty().uppercase()
+    val m = message.lowercase()
+    return when {
+        code == "ERROR_OPERATION_NOT_ALLOWED" || "region" in m || "operation-not-allowed" in m || "operation is not allowed" in m ->
+            VerificationFailure.REGION_BLOCKED
+        code == "ERROR_QUOTA_EXCEEDED" || code == "ERROR_TOO_MANY_REQUESTS" || tooManyRequests ||
+            "too-many-requests" in m || "unusual activity" in m || "quota" in m -> VerificationFailure.QUOTA
+        code == "ERROR_INVALID_PHONE_NUMBER" || code == "ERROR_MISSING_PHONE_NUMBER" -> VerificationFailure.INVALID_NUMBER
+        code == "ERROR_APP_NOT_AUTHORIZED" || code == "ERROR_MISSING_CLIENT_IDENTIFIER" || code == "ERROR_INVALID_APP_CREDENTIAL" ||
+            "app identifier" in m || "not authorized" in m || "integrity" in m || "recaptcha" in m || "17093" in m ->
+            if (missingRecaptchaActivity) VerificationFailure.RECAPTCHA_ACTIVITY else VerificationFailure.APP_NOT_VERIFIED
+        missingRecaptchaActivity -> VerificationFailure.RECAPTCHA_ACTIVITY
+        invalidCredentials -> VerificationFailure.INVALID_NUMBER
+        "network" in m -> VerificationFailure.NETWORK
+        else -> VerificationFailure.OTHER
+    }
+}
