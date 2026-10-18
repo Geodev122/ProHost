@@ -12,7 +12,8 @@
   diagnosed on any build. The same code is logged as `auth_error(phone_verification, <kind>)`.
 
 ## Files
-The artifact link is filled in once the Release Bundle workflow finishes.
+Artifact **`prohost-release-main-10`** (≈ 22 MB, kept until 2027-01-16):
+https://github.com/Geodev122/ProHost/actions/runs/39167924385 → Artifacts. Built from `bb7ca85`; signature and Play app-signing fingerprint checks passed.
 
 | File | Where it goes in Play Console |
 |---|---|
