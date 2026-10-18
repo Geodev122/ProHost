@@ -3,7 +3,7 @@
 // Run after editing copy:  node scripts/website/build-seo-pages.js
 const fs = require("fs");
 const path = require("path");
-const { PAGES, AR, AREAS_BEIRUT, AREAS_LEB } = require("./seo-pages");
+const { PAGES, AR, LEGACY_SLUGS } = require("./seo-pages");
 
 const SITE = "https://pro-host.tech";
 const PUB = path.join(__dirname, "..", "..", "public");
@@ -12,15 +12,15 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 const strip = (s) => s.replace(/<[^>]+>/g, "");
 const bySlug = Object.fromEntries(PAGES.map((p) => [p.slug, p]));
 const NAV_LABEL = {
-  "clinic-room-rental-lebanon": "Clinic rooms", "therapy-room-rental-beirut": "Therapy rooms", "meeting-room-rental-beirut": "Meeting rooms",
-  "training-room-rental-lebanon": "Training rooms", "studio-rental-beirut": "Studios", "office-space-by-the-hour-lebanon": "Offices & desks",
+  "clinic-room-rental": "Clinic rooms", "therapy-room-rental": "Therapy rooms", "meeting-room-rental": "Meeting rooms",
+  "training-room-rental": "Training rooms", "studio-rental": "Studios", "office-space-by-the-hour": "Offices & desks",
   "list-your-space": "List your space",
 };
 const getUrl = (medium, slug) => `/get?utm_source=website&amp;utm_medium=${medium}&amp;utm_campaign=seo_${slug.replace(/-/g, "_")}`;
 const PLAY_SVG = `<svg width="26" height="28" viewBox="0 0 26 28" aria-hidden="true"><path d="M1.2.5 14.6 14 1.2 27.5c-.5-.3-.8-.9-.8-1.6V2.1c0-.7.3-1.3.8-1.6z" fill="#00D7FE"/><path d="M19.1 9.5 14.6 14 1.2.5c.2-.1.4-.2.7-.2.3 0 .6.1.9.2l16.3 9z" fill="#00F076"/><path d="M19.1 18.5 2.8 27.7c-.3.2-.6.2-.9.2-.3 0-.5-.1-.7-.2L14.6 14l4.5 4.5z" fill="#FF3A44"/><path d="M24.6 14c0 .6-.3 1.2-.9 1.5l-4.6 3L14.6 14l4.5-4.5 4.6 3c.6.3.9.9.9 1.5z" fill="#FFD500"/></svg>`;
 
 const ORG = { "@type": "Organization", "@id": `${SITE}/#org`, name: "ProHost", url: `${SITE}/`, logo: `${SITE}/logo.png`, email: "admin@pro-host.tech",
-  sameAs: [PLAY], areaServed: { "@type": "Country", name: "Lebanon" } };
+  sameAs: [PLAY] };
 
 const WEBSITE = { "@type": "WebSite", "@id": `${SITE}/#site`, url: `${SITE}/`, name: "ProHost", inLanguage: ["en", "ar"], publisher: { "@id": `${SITE}/#org` } };
 
@@ -38,7 +38,7 @@ function head({ lang, dir, title, description, keywords, canonical, image, ld, a
 ${(alternates || []).map(([hl, href]) => `<link rel="alternate" hreflang="${hl}" href="${href}">`).join("\n")}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ProHost">
-<meta property="og:locale" content="${lang === "ar" ? "ar_LB" : "en_US"}">
+<meta property="og:locale" content="${lang === "ar" ? "ar_AR" : "en_US"}">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(description)}">
 <meta property="og:url" content="${canonical}">
@@ -58,7 +58,7 @@ const header = (ar) => `<header class="top"><div class="wrap nav">
   <a class="brand" href="${ar ? "/ar" : "/"}" aria-label="ProHost"><img class="mark" src="/logo.png" alt="ProHost logo" width="34" height="34"><span>Pro<i>Host</i></span></a>
   <nav aria-label="${ar ? "القائمة" : "Main"}">${ar
     ? `<a href="#rooms">المساحات</a><a href="#how">كيف يعمل</a><a href="#hosts">لأصحاب المساحات</a><a href="#faq">أسئلة</a><a href="/" hreflang="en" lang="en">English</a>`
-    : `<a href="/clinic-room-rental-lebanon">Clinics</a><a href="/therapy-room-rental-beirut">Therapy rooms</a><a href="/meeting-room-rental-beirut">Meeting rooms</a><a href="/list-your-space">List your space</a><a href="/ar" hreflang="ar" lang="ar">العربية</a>`}</nav>
+    : `<a href="/clinic-room-rental">Clinics</a><a href="/therapy-room-rental">Therapy rooms</a><a href="/meeting-room-rental">Meeting rooms</a><a href="/list-your-space">List your space</a><a href="/ar" hreflang="ar" lang="ar">العربية</a>`}</nav>
   <a class="btn btn-orange" href="/get?utm_source=website&amp;utm_medium=header&amp;utm_campaign=seo">${ar ? "حمّل التطبيق" : "Get the app"}</a>
 </div></header>`;
 
@@ -67,7 +67,7 @@ function footer(ar) {
   return `<footer class="site"><div class="wrap">
   <div class="foot">
     <div style="max-width:340px"><a class="brand" href="/"><img class="mark" src="/logo.png" alt="" width="34" height="34"><span>Pro<i>Host</i></span></a>
-      <p style="margin-top:.8rem">${ar ? "احجز وأجّر العيادات والمكاتب والاستوديوهات وقاعات التدريب والاجتماعات في كل لبنان، بالساعة أو بالدوام أو باليوم أو بالشهر أو حسب عدد المشاركين." : "Rent and book clinics, therapy rooms, offices, studios, classrooms and meeting rooms across Lebanon, by the hour, shift, day, month or per attendee."}</p></div>
+      <p style="margin-top:.8rem">${ar ? "احجز وأجّر العيادات والمكاتب والاستوديوهات وقاعات التدريب والاجتماعات، بالساعة أو بالدوام أو باليوم أو بالشهر أو حسب عدد المشاركين." : "Rent and book clinics, therapy rooms, offices, studios, classrooms and meeting rooms, by the hour, shift, day, month or per attendee."}</p></div>
     <nav aria-label="Popular searches" class="fcol"><b>${ar ? "مساحات" : "Find a space"}</b>${links}<a href="/ar" lang="ar">العربية</a></nav>
     <nav aria-label="Company" class="fcol"><b>ProHost</b><a href="/">Home</a><a href="/#premium">Premium</a><a href="/#contact">Contact</a><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Use</a><a href="/delete-account">Delete account</a></nav>
   </div>
@@ -82,7 +82,7 @@ function page(p) {
   const ld = [
     ORG, WEBSITE,
     { "@type": "WebPage", "@id": `${url}#page`, url, name: p.title, description: p.description, inLanguage: "en", isPartOf: { "@id": `${SITE}/#site` },
-      about: { "@type": "Service", serviceType: strip(p.h1), provider: { "@id": `${SITE}/#org` }, areaServed: { "@type": "Country", name: "Lebanon" } },
+      about: { "@type": "Service", serviceType: strip(p.h1), provider: { "@id": `${SITE}/#org` } },
       primaryImageOfPage: image, breadcrumb: { "@id": `${url}#bc` } },
     { "@type": "BreadcrumbList", "@id": `${url}#bc`, itemListElement: [
       { "@type": "ListItem", position: 1, name: "ProHost", item: `${SITE}/` },
@@ -130,8 +130,8 @@ ${header(false)}
 <section><div class="wrap two">
   <div><span class="eyebrow">${hosts ? "Who lists on ProHost" : "Who books on ProHost"}</span><h2 class="h2s">${hosts ? "Built for every kind of space" : "Made for independent professionals"}</h2>
     <ul class="list">${p.who.map((w) => `<li>${w}</li>`).join("")}</ul></div>
-  <div><span class="eyebrow">Where</span><h2 class="h2s">${hosts ? "Professionals searching across Lebanon" : "Spaces across Beirut and Lebanon"}</h2>
-    <p class="muted">Beirut: ${AREAS_BEIRUT.join(", ")}.</p><p class="muted" style="margin-top:.5rem">Across Lebanon: ${AREAS_LEB.join(", ")}.</p>
+  <div><span class="eyebrow">Where</span><h2 class="h2s">${hosts ? "Found by professionals near your space" : "Spaces near you"}</h2>
+    <p class="muted">${hosts ? "Every listing appears on a live map, so professionals searching in your area see your rooms and their live availability." : "Every listing appears on a live map. Search your area, filter by space type and pricing, and see which rooms are free right now."}</p>
     <p class="fine" style="margin-top:.8rem">Availability changes daily. Open the map in the app to see the spaces listed near you right now.</p></div>
 </div></section>
 
@@ -167,7 +167,7 @@ function arabic() {
     { "@type": "WebPage", "@id": `${url}#page`, url, name: AR.title, description: AR.description, inLanguage: "ar", isPartOf: { "@id": `${SITE}/#site` } },
     { "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) }];
   const rooms = [
-    ["medical", "عيادات للايجار بالساعة أو بالدوام", "للأطباء وأطباء الأسنان وأخصائيي التغذية والعلاج الفيزيائي: غرف عيادات داخل مراكز طبية في بيروت وجبل لبنان."],
+    ["medical", "عيادات للايجار بالساعة أو بالدوام", "للأطباء وأطباء الأسنان وأخصائيي التغذية والعلاج الفيزيائي: غرف عيادات داخل مراكز طبية وعيادات خاصة."],
     ["therapy", "غرف علاج نفسي واستشارات", "للمعالجين النفسيين والمستشارين والمدرّبين: غرف هادئة وخاصة تحجزها لساعات جلساتك فقط."],
     ["meeting", "قاعات اجتماعات ومؤتمرات", "قاعات في فنادق ومراكز أعمال ومساحات عمل مشتركة، بالساعة أو باليوم أو حسب عدد المشاركين."],
     ["classroom", "قاعات تدريب وصفوف", "للمدرّبين ومراكز الدورات: صفوف متاحة في المساء وعطلة نهاية الأسبوع، مع تسعير حسب عدد المتدرّبين."],
@@ -181,16 +181,16 @@ ${header(true)}
 <main>
 <section class="hero"><div class="wrap hero-grid">
   <div>
-    <span class="eyebrow">لبنان · بيروت وجبل لبنان والمناطق</span>
+    <span class="eyebrow">للمهنيين ولأصحاب المساحات</span>
     <h1>عيادة أو مكتب أو قاعة… <em>بالساعة</em> أو بالدوام أو بالشهر</h1>
-    <p class="lead">ProHost تطبيق لحجز وتأجير مساحات العمل في لبنان: عيادات، غرف علاج نفسي، مكاتب، قاعات اجتماعات وتدريب واستوديوهات. احجز الوقت الذي تحتاجه فقط، أو اعرض غرفك الفارغة واربح منها.</p>
+    <p class="lead">ProHost تطبيق لحجز وتأجير مساحات العمل: عيادات، غرف علاج نفسي، مكاتب، قاعات اجتماعات وتدريب واستوديوهات. احجز الوقت الذي تحتاجه فقط، أو اعرض غرفك الفارغة واربح منها.</p>
     <div class="ctas">
       <a class="play" href="/get?utm_source=website&amp;utm_medium=hero&amp;utm_campaign=seo_ar" aria-label="حمّل ProHost من Google Play">${PLAY_SVG}<span><small>GET IT ON</small><b>Google Play</b></span></a>
       <a class="btn btn-outline" href="#hosts">لأصحاب المساحات</a>
     </div>
     <ul class="ticks"><li>مجاني للمهنيين</li><li>أرقام هاتف موثّقة</li><li>توفّر مباشر من دون حجز مزدوج</li></ul>
   </div>
-  <img class="hero-img" src="/img/clinic.jpg" alt="غرفة عيادة للايجار بالساعة في بيروت عبر ProHost" width="640" height="800" fetchpriority="high">
+  <img class="hero-img" src="/img/clinic.jpg" alt="غرفة عيادة للايجار بالساعة عبر ProHost" width="640" height="800" fetchpriority="high">
 </div></section>
 
 <section id="rooms"><div class="wrap">
@@ -210,9 +210,9 @@ ${header(true)}
   <div><span class="eyebrow">لأصحاب المساحات</span><h2 class="h2s">غرفك فارغة جزءاً من الأسبوع؟ أجّرها.</h2>
     <p class="muted">فنادق ومراكز طبية ومراكز تدريب واستوديوهات ومكاتب تعرض غرفها على ProHost لتملأ الساعات الفارغة مع مهنيين موثّقين. خمس طرق للتأجير لكل غرفة، صندوق طلبات واحد، توفّر مباشر يمنع الحجز المزدوج، وتغيير الأسعار في أي وقت مع إشعار المستأجرين تلقائياً.</p>
     <a class="btn btn-orange" style="margin-top:1rem" href="/get?utm_source=website&amp;utm_medium=hosts&amp;utm_campaign=seo_ar">خصم 50% على أول اشتراك Premium</a></div>
-  <div><span class="eyebrow">المناطق</span><h2 class="h2s">في كل لبنان</h2>
-    <p class="muted">بيروت: الأشرفية، الحمرا، فردان، بدارو، مار مخايل، الجميزة، رأس بيروت، السوديكو، وسط بيروت، فرن الشباك.</p>
-    <p class="muted" style="margin-top:.5rem">جبل لبنان والمناطق: جونيه، الجديدة، ضبية، أنطلياس، بعبدا، الحازمية، سن الفيل، الدكوانة، جبيل، طرابلس، صيدا، صور، زحلة، النبطية.</p></div>
+  <div><span class="eyebrow">الموقع</span><h2 class="h2s">مساحات قريبة منك</h2>
+    <p class="muted">تظهر كل مساحة على خريطة مباشرة، فتبحث في منطقتك وتفلتر حسب نوع المساحة وطريقة التسعير، وترى الغرف المتاحة الآن.</p>
+    <p class="fine" style="margin-top:.8rem">يتغيّر التوفّر يومياً. افتح الخريطة في التطبيق لترى المساحات المعروضة قربك الآن.</p></div>
 </div></section>
 
 <section id="faq" class="white"><div class="wrap">
@@ -232,5 +232,7 @@ ${footer(true)}
 
 PAGES.forEach(page);
 arabic();
+// A retired slug must not linger as a static file: firebase.json 301-redirects it to the new page.
+Object.keys(LEGACY_SLUGS).forEach((old) => { const f = path.join(PUB, `${old}.html`); if (fs.existsSync(f)) { fs.unlinkSync(f); console.log(`removed retired page ${old}.html`); } });
 console.log(`built ${PAGES.length} English pages + /ar`);
-module.exports = { PAGES };
+module.exports = { PAGES, LEGACY_SLUGS };

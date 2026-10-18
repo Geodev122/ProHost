@@ -30,7 +30,13 @@
       { "source": "/fb", "destination": "/get?utm_source=facebook&utm_medium=social&utm_campaign=launch", "type": 302 },
       { "source": "/wa", "destination": "/get?utm_source=whatsapp&utm_medium=social&utm_campaign=launch", "type": 302 },
       { "source": "/li", "destination": "/get?utm_source=linkedin&utm_medium=social&utm_campaign=launch", "type": 302 },
-      { "source": "/qr", "destination": "/get?utm_source=qr&utm_medium=print&utm_campaign=launch", "type": 302 }
+      { "source": "/qr", "destination": "/get?utm_source=qr&utm_medium=print&utm_campaign=launch", "type": 302 },
+      { "source": "/clinic-room-rental-lebanon", "destination": "/clinic-room-rental", "type": 301 },
+      { "source": "/therapy-room-rental-beirut", "destination": "/therapy-room-rental", "type": 301 },
+      { "source": "/meeting-room-rental-beirut", "destination": "/meeting-room-rental", "type": 301 },
+      { "source": "/training-room-rental-lebanon", "destination": "/training-room-rental", "type": 301 },
+      { "source": "/studio-rental-beirut", "destination": "/studio-rental", "type": 301 },
+      { "source": "/office-space-by-the-hour-lebanon", "destination": "/office-space-by-the-hour", "type": 301 }
     ],
     "rewrites": [
       { "source": "/sitemap.xml", "function": { "functionId": "siteSitemap", "region": "europe-west1" } },

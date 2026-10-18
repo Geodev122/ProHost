@@ -4,17 +4,21 @@
  */
 export const SITE = "https://pro-host.tech";
 
-/** Indexable static pages: path, change frequency, priority. Keep in sync with public/ and firebase.json. */
+/**
+ * Indexable static pages: path, change frequency, priority. Keep in sync with public/ and firebase.json.
+ * Slugs name no country or city (ProHost is open to every market); the retired "-lebanon" / "-beirut" slugs are
+ * 301-redirected in firebase.json and must never come back here.
+ */
 export const STATIC_PAGES: ReadonlyArray<[string, string, string]> = [
   ["/", "weekly", "1.0"],
   ["/ar", "weekly", "0.9"],
   ["/list-your-space", "weekly", "0.9"],
-  ["/clinic-room-rental-lebanon", "weekly", "0.9"],
-  ["/therapy-room-rental-beirut", "weekly", "0.9"],
-  ["/meeting-room-rental-beirut", "weekly", "0.9"],
-  ["/training-room-rental-lebanon", "weekly", "0.8"],
-  ["/studio-rental-beirut", "weekly", "0.8"],
-  ["/office-space-by-the-hour-lebanon", "weekly", "0.8"],
+  ["/clinic-room-rental", "weekly", "0.9"],
+  ["/therapy-room-rental", "weekly", "0.9"],
+  ["/meeting-room-rental", "weekly", "0.9"],
+  ["/training-room-rental", "weekly", "0.8"],
+  ["/studio-rental", "weekly", "0.8"],
+  ["/office-space-by-the-hour", "weekly", "0.8"],
   ["/privacy", "yearly", "0.3"],
   ["/terms", "yearly", "0.3"],
   ["/delete-account", "yearly", "0.2"],
