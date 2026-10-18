@@ -265,7 +265,7 @@ class FirebaseAuthService(private val context: Context) {
         // The cause (a code, never the number) is the one thing needed to tell a region block from a
         // quota or app-verification problem when codes don't arrive.
         com.example.analytics.AnalyticsTracker.authError("phone_verification", kind.name.lowercase())
-        return when (kind) {
+        val message = when (kind) {
             VerificationFailure.QUOTA -> "Too many attempts, or today's SMS limit was reached. Please wait a while and try again."
             VerificationFailure.INVALID_NUMBER -> "That phone number doesn't look valid — check the country code and number."
             VerificationFailure.RECAPTCHA_ACTIVITY -> "Couldn't open the security check. Please try again."
@@ -275,6 +275,8 @@ class FirebaseAuthService(private val context: Context) {
             VerificationFailure.NETWORK -> "Network connection error. Check your internet access and try again."
             VerificationFailure.OTHER -> friendlyVerificationErrorMessage(e)
         }
+        // A short reference the person can read out to support, so a failure class is identifiable on any build.
+        return "$message (ref: ${kind.name.lowercase()})"
     }
 
     private fun maskPhone(e164: String): String {

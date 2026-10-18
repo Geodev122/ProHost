@@ -11,6 +11,7 @@
 import type { androidpublisher_v3 } from "googleapis";
 import { PACKAGE_NAME, getPlayPublisher } from "./billingHelpers";
 import { PLAY_PRODUCT_ID } from "./playCatalog";
+import { WEBSITE_OFFER_CLAIMS } from "./offerClaims";
 
 type Money = androidpublisher_v3.Schema$Money;
 
@@ -183,7 +184,7 @@ export function lintOffers(basePlans: LiveBasePlan[], nowMillis: number): string
         for (const region of AUDIT_REGIONS) {
           const pct = phaseDiscountPercent(p.pricing[region], bp.prices[region]);
           const months = periodMonths(p.duration) * p.recurrenceCount;
-          if (pct === 100 && months > 3) out.push(`${where}: phase ${i + 1} is free for ${months.toFixed(1)} months in ${region}`);
+          if (pct === 100 && months > WEBSITE_OFFER_CLAIMS.monthlyFreeMonths) out.push(`${where}: phase ${i + 1} is free for ${months.toFixed(1)} months in ${region}`);
           else if (pct !== null && pct >= 90 && pct < 100) out.push(`${where}: phase ${i + 1} is ${pct}% off for ${p.recurrenceCount}x${p.duration} in ${region} — check the discount`);
         }
       });
@@ -213,12 +214,23 @@ export function lintOffers(basePlans: LiveBasePlan[], nowMillis: number): string
     if (ids.length > 1) out.push(`${ids.length} ACTIVE base plans bill every ${period} (${ids.join(", ")}): deactivate the retired one so buyers see one plan`);
   }
   if (promos.length > 1) out.push(`more than one ACTIVE promo offer (${promos.join(", ")}): the app shows only the first`);
-  // The website (index, list-your-space, ar) promises 50% off the first month / year.
+  // The website, email templates and media (offerClaims.ts) promise: monthly = first N months free, yearly = X% off year one.
   for (const bp of basePlans.filter((b) => b.state === "ACTIVE")) {
-    const half = bp.offers.some((o) => o.state === "ACTIVE" && !o.tags.map((t) => t.toLowerCase()).includes(PROMO_TAG) &&
-      o.phases.length > 0 && o.phases[0].recurrenceCount === 1 && o.phases[0].duration === bp.period &&
-      phaseDiscountPercent(o.phases[0].pricing.LB, bp.prices.LB) === 50);
-    if (!half) out.push(`website promises 50% off the first ${bp.period === "P1Y" ? "year" : "month"}, but ${bp.basePlanId} has no ACTIVE 50% first-period offer in LB`);
+    const kind = periodMonths(bp.period) >= 12 ? "yearly" : "monthly";
+    const live = bp.offers.filter((o) => o.state === "ACTIVE" && !o.tags.map((t) => t.toLowerCase()).includes(PROMO_TAG) && o.phases.length > 0);
+    const kept = live.some((o) => {
+      const p = o.phases[0];
+      const pct = phaseDiscountPercent(p.pricing.LB, bp.prices.LB);
+      const months = periodMonths(p.duration) * p.recurrenceCount;
+      return kind === "monthly"
+        ? pct === 100 && months >= WEBSITE_OFFER_CLAIMS.monthlyFreeMonths
+        : pct === WEBSITE_OFFER_CLAIMS.yearlyDiscountPercent && months >= 12;
+    });
+    if (!kept) {
+      out.push(kind === "monthly"
+        ? `website promises the first ${WEBSITE_OFFER_CLAIMS.monthlyFreeMonths} months free on the monthly plan, but ${bp.basePlanId} has no ACTIVE offer with that free phase in LB`
+        : `website promises ${WEBSITE_OFFER_CLAIMS.yearlyDiscountPercent}% off the first year on the yearly plan, but ${bp.basePlanId} has no ACTIVE offer with that discount in LB`);
+    }
   }
   return out;
 }

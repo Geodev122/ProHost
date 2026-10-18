@@ -61,42 +61,52 @@ const offer = (offerId: string, tags: string[], phases: LiveBasePlan["offers"][n
 });
 const NOW = Date.parse("2026-10-14T12:00:00Z");
 
-test("lintOffers is quiet for a healthy catalog with one promo", () => {
+const FREE4 = [{ duration: "P4M", recurrenceCount: 1, pricing: { LB: "free", US: "free" } }];
+const HALF_YEAR = [{ duration: "P1Y", recurrenceCount: 1, pricing: { LB: "-50%", US: "-50%" } }];
+
+test("lintOffers is quiet for the live catalog: 4 months free monthly, 50% off year one, one promo", () => {
   const warnings = lintOffers([
-    plan("pro-monthly", "P1M", [
-      offer("launch-50-first-month", [], [{ duration: "P1M", recurrenceCount: 1, pricing: { LB: "-50%", US: "-50%" } }]),
+    plan("pro-monthly1", "P1M", [
+      offer("free-4-months", [], FREE4),
       offer("prohost2026", ["promo", "code-prohost2026", "ends-20261231"], [{ duration: "P1M", recurrenceCount: 1, pricing: { LB: "free", US: "free" } }]),
     ]),
-    plan("pro-yearly", "P1Y", [offer("launch-50-first-year", [], [{ duration: "P1Y", recurrenceCount: 1, pricing: { LB: "-50%", US: "-50%" } }])]),
+    plan("pro-yearly", "P1Y", [offer("launch-50-first-year", [], HALF_YEAR)]),
   ], NOW);
   assert.deepEqual(warnings, []);
 });
 
-test("lintOffers flags the 99%-off slip, broken promos and website drift", () => {
+test("lintOffers flags the 99%-off slip, broken promos and a free phase beyond 4 months", () => {
   const warnings = lintOffers([
-    plan("pro-monthly", "P1M", [
-      offer("launch-50-first-month", [], [{ duration: "P2M", recurrenceCount: 1, pricing: { LB: "-99%", US: "-99%" } }]),
+    plan("pro-monthly1", "P1M", [
+      offer("slip", [], [{ duration: "P2M", recurrenceCount: 1, pricing: { LB: "-99%", US: "-99%" } }]),
       offer("old", ["promo", "ends-20260101"], [{ duration: "P1M", recurrenceCount: 1, pricing: { LB: "free", US: "free" } }]),
       offer("long", ["promo", "code-x1"], [{ duration: "P6M", recurrenceCount: 1, pricing: { LB: "free", US: "free" } }]),
     ]),
   ], NOW);
   const all = warnings.join("\n");
-  assert.match(all, /launch-50-first-month: phase 1 is 99% off/);
+  assert.match(all, /slip: phase 1 is 99% off/);
   assert.match(all, /old: promo offer without a code-/);
   assert.match(all, /old: promo ended \(ends-20260101\)/);
   assert.match(all, /long: promo offer without an ends-/);
   assert.match(all, /long: phase 1 is free for 6\.0 months/);
   assert.match(all, /more than one ACTIVE promo offer/);
-  assert.match(all, /website promises 50% off the first month, but pro-monthly/);
+});
+
+test("lintOffers warns when Play no longer matches what the website promises", () => {
+  const all = lintOffers([
+    plan("pro-monthly1", "P1M", [offer("short", [], [{ duration: "P2M", recurrenceCount: 1, pricing: { LB: "free", US: "free" } }])]),
+    plan("pro-yearly", "P1Y", [offer("thirty", [], [{ duration: "P1Y", recurrenceCount: 1, pricing: { LB: "-30%", US: "-30%" } }])]),
+  ], NOW).join("\n");
+  assert.match(all, /website promises the first 4 months free on the monthly plan, but pro-monthly1/);
+  assert.match(all, /website promises 50% off the first year on the yearly plan, but pro-yearly/);
 });
 
 test("lintOffers flags two ACTIVE base plans with the same period (a renamed plan left active)", () => {
-  const half = [{ duration: "P1M", recurrenceCount: 1, pricing: { LB: "-50%", US: "-50%" } }];
   const warnings = lintOffers([
-    plan("pro-montly", "P1M", [offer("launch-50-first-month", [], half)]),
-    plan("pro-month1", "P1M", [offer("launch-50-first-month", [], half)]),
-    plan("pro-yearly", "P1Y", [offer("launch-50-first-year", [], [{ duration: "P1Y", recurrenceCount: 1, pricing: { LB: "-50%", US: "-50%" } }])]),
+    plan("pro-montly", "P1M", [offer("free-4-months", [], FREE4)]),
+    plan("pro-monthly1", "P1M", [offer("free-4-months", [], FREE4)]),
+    plan("pro-yearly", "P1Y", [offer("launch-50-first-year", [], HALF_YEAR)]),
   ], NOW);
   assert.equal(warnings.length, 1);
-  assert.match(warnings[0], /2 ACTIVE base plans bill every P1M \(pro-montly, pro-month1\)/);
+  assert.match(warnings[0], /2 ACTIVE base plans bill every P1M \(pro-montly, pro-monthly1\)/);
 });

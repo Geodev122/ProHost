@@ -806,7 +806,11 @@ async function smsauth(db, arg) {
     const policy = allow ? `ALLOWLIST ${allow.join(",")} (SY ${allow.includes("SY") ? "allowed" : "NOT allowed"})`
       : deny ? `DENYLIST ${deny.join(",")} (SY ${deny.includes("SY") ? "BLOCKED" : "allowed"})`
       : "no region policy (all regions the provider supports)";
-    return `phoneEnabled=${config.signIn?.phoneNumber?.enabled === true} policy=${policy} ` +
+    // SMS fraud protection (reCAPTCHA / toll-fraud rules) can silently drop sends in every country.
+    const rc = config.recaptchaConfig || {};
+    const fraud = `recaptchaPhoneEnforcement=${rc.phoneEnforcementState || "unset"} tollFraudRules=${JSON.stringify(rc.tollFraudManagedRules || []).slice(0, 160)} ` +
+      `useSmsTollFraudProtection=${rc.useSmsTollFraudProtection === true} useSmsBotScore=${rc.useSmsBotScore === true}`;
+    return `phoneEnabled=${config.signIn?.phoneNumber?.enabled === true} policy=${policy} ${fraud} ` +
       `testNumbers=${Object.keys(config.signIn?.phoneNumber?.testPhoneNumbers || {}).length} ` +
       `quotaConfigured=${Object.keys(config.quota?.signUpQuotaConfig || {}).length > 0}`;
   });

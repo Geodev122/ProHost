@@ -6,5 +6,5 @@
 
 Keyword focus (Play indexes the title, short and full description): rent / book · clinic room · therapy room · office ·
 meeting room · training room · studio · by the hour · shift · per attendee · Beirut · Lebanon. Play's metadata policy
-forbids ranking/"best"/"#1"/price or promotion claims in the title, icon and short description — keep the 50% offer
-in promotional content (Promotional content / LiveOps), not in the listing text.
+forbids ranking/"best"/"#1"/price or promotion claims in the title, icon and short description — keep the launch offer
+(4 months free monthly, 50% off year one — `functions/src/billing/offerClaims.ts`) in promotional content (Promotional content / LiveOps), not in the listing text.

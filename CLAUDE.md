@@ -3,7 +3,7 @@
 ## Google Play Billing
 
 **Google Play is the only billing authority.** One subscription, `package_pro_mrr`, with a monthly and a yearly
-base plan (known ids `pro-montly`/`pro-monthly` and `pro-yearly`) — `data/billing/PlayCatalog.kt` (app) and
+base plan (known ids `pro-montly`/`pro-monthly`/`pro-month1`, live `pro-monthly1`, and `pro-yearly`) — `data/billing/PlayCatalog.kt` (app) and
 `functions/src/billing/playCatalog.ts` (server). Plans are told apart by **kind** (`PlayCatalog.PlanKind`): the app
 classifies Play's ProductDetails by recurring billing period (`PlayOfferText.kindOf` / `plansByKind`, P1M/P1Y), stored ids
 by `kindOf`/`planInterval` (known ids, then "month"/"year" in the id). Never compare against an exact id list again —
@@ -29,13 +29,13 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   eligibility: Play returns "new customers" offers only to accounts that never had the subscription — check the live
   catalog with Maintenance task `playcatalog` or Admin › Packages › Billing health (offers listed per base plan).
   Only the selected plan card is orange (ribbon, price); the other card and the explainer use steel.
-  Promo card (e.g. PROHOST2026, first month free) is **Play config only**: an offer tagged `promo` + `code-…` (+ `ends-YYYYMMDD`,
+  Promo card (e.g. PROHOST2026) is **Play config only**: an offer tagged `promo` + `code-…` (+ `ends-YYYYMMDD`,
   `early-launch`) — `data/billing/PlayPromo.kt` (unit-tested) reads it from ProductDetails; no Firestore doc, no server counter
   (`promo_campaigns` is retired, rules deny all; `playcatalog` deletes the old doc). "Redeem code" (red dot while live) opens a
   sheet with `PromoCountdownCard` + the one-time-code field. Checkout offer = `OfferChoice` (`PlayBillingManager`): plan cards
   `Preferred` (`preferredOffer` skips `promo` offers), switches `BasePlanOnly` (regular prices shown ⇒ charged), promo
   `Specific(offerId)`; a missing offer aborts with a billing message. `lintOffers` (`playCatalogLive.ts`, Maintenance
-  `playcatalog` step `playOfferLint`) flags Play Console slips (≥ 90 % off, promo tags, website 50 % promise). Monthly ↔ yearly passes the old token
+  `playcatalog` step `playOfferLint`) flags Play Console slips (≥ 90 % off, promo tags, the website's offer claims in `offerClaims.ts`: monthly 4 months free, yearly 50 % off year one — the static pages, `public/admin.html` email template, marketing README/voiceover scripts and videos must state them; `offerClaims.test.ts` enforces it). Monthly ↔ yearly passes the old token
   (`SubscriptionUpdateParams`). The screen is "ProHost Premium" (`OwnerSubscriptionsScreen.kt`).
 - Product queries use the Billing 8+ callback `queryProductDetailsAsync(params) { billingResult,
   queryProductDetailsResult -> }` (`productDetailsList` / `unfetchedProductList`). Never cast the callback
