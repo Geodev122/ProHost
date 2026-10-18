@@ -467,7 +467,6 @@ fun ProHostAppRoot(
         // content scrolls down and comes back on scroll up (see bottomNavScrollConnection).
         var navExpandedOffMap by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(true) }
         val onExploreMap = isMapViewActive && activeTabId == AppNavTab.SearchMap.id
-        val shellUnreadAlerts = viewModel.fcmAlerts.collectAsState().value.count { !it.isRead }
 
         ModalNavigationDrawer(
             drawerState = drawerState,
@@ -761,11 +760,8 @@ fun ProHostAppRoot(
                                         },
                                         discoveryViewModel = discoveryViewModel,
                                         // Specialists have no app bar on Explore: its floating
-                                        // header carries the logo and notifications.
-                                        unreadAlertCount = shellUnreadAlerts,
-                                        onAlertsClick = if (isSpecialistShell) {
-                                            { activeDrawerTabDialog = "fcm_alerts" }
-                                        } else null
+                                        // header carries the logo beside the Map | List toggle.
+                                        showBrand = isSpecialistShell
                                     )
                                     AppNavTab.ManageListings.id -> OwnerHubScreen(
                                         viewModel = viewModel,
@@ -809,11 +805,8 @@ fun ProHostAppRoot(
                                         },
                                         discoveryViewModel = discoveryViewModel,
                                         // Specialists have no app bar on Explore: its floating
-                                        // header carries the logo and notifications.
-                                        unreadAlertCount = shellUnreadAlerts,
-                                        onAlertsClick = if (isSpecialistShell) {
-                                            { activeDrawerTabDialog = "fcm_alerts" }
-                                        } else null
+                                        // header carries the logo beside the Map | List toggle.
+                                        showBrand = isSpecialistShell
                                     )
                                 }
                                 }

@@ -205,6 +205,13 @@ export function lintOffers(basePlans: LiveBasePlan[], nowMillis: number): string
       if (bp.state !== "ACTIVE") out.push(`${where}: promo offer on a ${bp.state} base plan`);
     }
   }
+  const byPeriod = new Map<string, string[]>();
+  for (const bp of basePlans.filter((b) => b.state === "ACTIVE" && b.period)) {
+    byPeriod.set(bp.period as string, [...(byPeriod.get(bp.period as string) ?? []), bp.basePlanId]);
+  }
+  for (const [period, ids] of byPeriod) {
+    if (ids.length > 1) out.push(`${ids.length} ACTIVE base plans bill every ${period} (${ids.join(", ")}): deactivate the retired one so buyers see one plan`);
+  }
   if (promos.length > 1) out.push(`more than one ACTIVE promo offer (${promos.join(", ")}): the app shows only the first`);
   // The website (index, list-your-space, ar) promises 50% off the first month / year.
   for (const bp of basePlans.filter((b) => b.state === "ACTIVE")) {

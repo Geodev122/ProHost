@@ -147,10 +147,7 @@ fun SpecialistProfileScreen(
                 // =========================================================================
                 // 0. IDENTITY CARD  (formerly in side drawer — single source of truth)
                 // =========================================================================
-                DrawerIdentityCard(
-                    user = user,
-                    currentPlanId = user.ownerPackageId
-                )
+                DrawerIdentityCard(user = user)
 
             }
             // Readiness banner: the same checks as booking / hosting, completed in the shared sheet.
@@ -166,28 +163,59 @@ fun SpecialistProfileScreen(
             // "Become a Pro Host" upgrade CTA — only for SPECIALIST users
             if (user.role == UserRole.SPECIALIST) {
                 item {
-                    Surface(
-                        onClick = { onNavigateToTab("owner_subscriptions") },
-                        shape = MaterialTheme.shapes.medium,
-                        color = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary,
-                        shadowElevation = 3.dp,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    // A compact tag on the button's edge says who it is for: people who want to list a space.
+                    Box(modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
+                        Surface(
+                            onClick = { onNavigateToTab("owner_subscriptions") },
+                            shape = MaterialTheme.shapes.medium,
+                            color = MaterialTheme.colorScheme.secondary,
+                            contentColor = MaterialTheme.colorScheme.onSecondary,
+                            shadowElevation = 3.dp,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondary)
-                            Text(
-                                text = "Become a Pro Host",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSecondary,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondary, modifier = Modifier.size(18.dp))
+                            Row(
+                                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondary)
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Become a Pro Host",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSecondary
+                                    )
+                                    Text(
+                                        text = "List your space and receive booking requests",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.9f)
+                                    )
+                                }
+                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondary, modifier = Modifier.size(18.dp))
+                            }
+                        }
+                        Surface(
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
+                            color = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface),
+                            shadowElevation = 2.dp,
+                            modifier = Modifier.align(Alignment.TopStart).padding(start = 14.dp).offset(y = (-10).dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(Icons.Default.Storefront, contentDescription = null, modifier = Modifier.size(11.dp))
+                                Text(
+                                    "FOR SPACE OWNERS",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 0.8.sp
+                                )
+                            }
                         }
                     }
                 }

@@ -89,3 +89,14 @@ test("lintOffers flags the 99%-off slip, broken promos and website drift", () =>
   assert.match(all, /more than one ACTIVE promo offer/);
   assert.match(all, /website promises 50% off the first month, but pro-monthly/);
 });
+
+test("lintOffers flags two ACTIVE base plans with the same period (a renamed plan left active)", () => {
+  const half = [{ duration: "P1M", recurrenceCount: 1, pricing: { LB: "-50%", US: "-50%" } }];
+  const warnings = lintOffers([
+    plan("pro-montly", "P1M", [offer("launch-50-first-month", [], half)]),
+    plan("pro-month1", "P1M", [offer("launch-50-first-month", [], half)]),
+    plan("pro-yearly", "P1Y", [offer("launch-50-first-year", [], [{ duration: "P1Y", recurrenceCount: 1, pricing: { LB: "-50%", US: "-50%" } }])]),
+  ], NOW);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /2 ACTIVE base plans bill every P1M \(pro-montly, pro-month1\)/);
+});

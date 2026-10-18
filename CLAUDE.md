@@ -206,11 +206,15 @@ plan + recurring price + date;
 - Explore filters: country matching uses `effectiveCountry` (blank = Lebanon, legacy listings) and the
   Country dropdown is always shown. "Pricing formula" options are `PricingFormulaFilter` (four strategies
   + PER_ATTENDEE, priced per person from the cheapest tier); never list `RentalStrategyType.entries` there.
-- Explore draws its own header (`ExploreOverlayHeader`; no app bar for specialists): Map|List segmented toggle
-  top-left, logo + name centre, notifications top-right, search (draft applied only on ✓ / IME Search) under the
-  toggle and filters under the bell. Transparent with floating controls on the map; on the list it has the list
-  background and sits above it in the layout (never overlapping). Map results follow `searchedBounds`, updated
-  only by the "Search this area" pill after a gesture pan/zoom.
+- Explore draws its own header (`ExploreOverlayHeader`; no app bar for specialists), one row: search top-left, the
+  Map|List toggle top-centre wrapped in one pill with the brand logo (`showBrand`, specialists only — Pro Host/Admin keep the
+  app bar's brand) and filters top-right. No notification bell on Explore (notifications are the bell of the other tabs'
+  app bar). Search is a draft applied only on ✓ / IME Search and opens a full-width field under the row. Transparent with
+  floating controls on the map; on the list it has the list background and sits above it in the layout (never
+  overlapping). Map results follow `searchedBounds`, updated only by the "Search this area" pill after a gesture pan/zoom.
+- Profile identity card (`DrawerIdentityCard`): one-word 3D role tag (Specialist steel blue · Host orange · Admin gold,
+  `RoleTag3D`), no separate "phone verified" tag (verification shows as the avatar and name checks). The specialist's
+  "Become a Pro Host" button carries a "FOR SPACE OWNERS" tag.
 - The listing page's bottom bar is `DetailsBookingBar` (`RoomCards.kt`): room chip + live availability, price and the
   Availability action (Preview mode for hosts/admins) — no Message button. WhatsApp is the host card's "Ask the host on
   WhatsApp" button under the photos (general inquiry via `launchWhatsAppInquiry(context, space)`; the number is never
