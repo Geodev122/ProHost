@@ -77,7 +77,7 @@ function shell(inner: string, preheader: string, footer: string): string {
   <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
     <td style="padding-right:12px;vertical-align:middle"><img src="${SITE}/logo.png" width="42" height="42" alt="ProHost" style="display:block;border:0;border-radius:10px;background:#FFFFFF"></td>
     <td style="vertical-align:middle"><div style="color:#FFFFFF;font:800 22px/1 ${FONT};letter-spacing:-.4px">Pro<span style="color:${ORANGE}">Host</span></div>
-      <div style="color:rgba(255,255,255,.72);font:600 11px/1.6 ${FONT};letter-spacing:1.2px;text-transform:uppercase;margin-top:4px">Flexible workspaces · Lebanon</div></td>
+      <div style="color:rgba(255,255,255,.72);font:600 11px/1.6 ${FONT};letter-spacing:1.2px;text-transform:uppercase;margin-top:4px">Flexible workspaces</div></td>
   </tr></table>
 </td></tr>
 <tr><td style="height:4px;background:${ORANGE};line-height:4px;font-size:0">&nbsp;</td></tr>

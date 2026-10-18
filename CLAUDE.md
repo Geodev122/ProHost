@@ -299,13 +299,20 @@ plan + recurring price + date;
   extension's `delivery.state` (`mailingAdminCampaign`, Retry failed). Template: `website/mailTemplates.ts`
   (unit-tested). `/unsubscribe` (→ `mailingUnsubscribe`) confirms on GET and unsubscribes on POST. Live check: Maintenance
   task `mailingsmoke` with the code. All four collections are server-only (rules + rules tests).
-- SEO (pro-host.tech): search landing pages (`/clinic-room-rental-lebanon`, `/therapy-room-rental-beirut`, `/meeting-room-rental-beirut`,
-  `/training-room-rental-lebanon`, `/studio-rental-beirut`, `/office-space-by-the-hour-lebanon`, `/list-your-space`, Arabic `/ar`) are
-  generated — edit `scripts/website/seo-pages.js` and run `node scripts/website/build-seo-pages.js` (never hand-edit the HTML);
-  shared CSS `public/landing.css`. Hosting uses `cleanUrls`. `/sitemap.xml` is the `siteSitemap` function (static pages +
-  publicly browsable listings, `website/sitemapXml.ts`, unit-tested — add new pages to `STATIC_PAGES`); `/listing/{id}`
-  (`listingShareLanding`) is indexable only for listings passing `isPublicListing`, with Place/BreadcrumbList JSON-LD.
-  Utility pages (`/get`, `/admin`, `/redeem`, `/emaillink`) are noindex. Maintenance `prodcheck` step `seo` verifies it live.
+- SEO (pro-host.tech): ProHost is open to every market, so the website names **no country or city**: no "Lebanon"/"Beirut" in
+  slugs, titles, copy, JSON-LD (`areaServed`, `addressCountry`) or the OG image. Search landing pages (`/clinic-room-rental`,
+  `/therapy-room-rental`, `/meeting-room-rental`, `/training-room-rental`, `/studio-rental`, `/office-space-by-the-hour`,
+  `/list-your-space`, Arabic `/ar`) are generated — edit `scripts/website/seo-pages.js` and run
+  `node scripts/website/build-seo-pages.js` (never hand-edit the HTML); shared CSS `public/landing.css`. The retired
+  `-lebanon` / `-beirut` slugs (`LEGACY_SLUGS`) are 301-redirected in `firebase.json`; `sitemapXml.test.ts` fails if one
+  comes back or a sitemap page has no file/canonical. Hosting uses `cleanUrls`. `/sitemap.xml` is the `siteSitemap`
+  function (static pages + publicly browsable listings, `website/sitemapXml.ts`, unit-tested — add new pages to
+  `STATIC_PAGES`); `/listing/{id}` (`listingShareLanding`) is indexable only for listings passing `isPublicListing`, with
+  Place/BreadcrumbList JSON-LD whose place comes from the listing itself (`listings/listingLocation.ts`: stored
+  country/city win; only legacy blank-country listings inside Lebanon count as Lebanon, like the app's `effectiveCountry`).
+  The legal pages (terms governing law and arbitration seat, privacy) are a separate, deliberate decision.
+  Utility pages (`/get`, `/admin`, `/redeem`, `/emaillink`) are noindex. Maintenance `prodcheck` step `seo` verifies the
+  sitemap pages and the legacy 301s live.
   Play screenshots: `play/screenshots/` (rendered from `source/shots.html`); listing text: `play/store-listing/`.
 - Payment reminders go to the user's own calendar via `PaymentCalendar` (insert intent, monthly
   RRULE) — no calendar permission, no Google Calendar API.
