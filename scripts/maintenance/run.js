@@ -789,6 +789,66 @@ async function playcatalog(db) {
 }
 
 
+
+// Phone VERIFICATION (not sign-in) diagnosis: is Phone enabled, which countries may receive SMS (SMS region
+// policy), test numbers, and are the app's signing fingerprints registered in Firebase? arg "allow:SY,..." adds
+// those regions to the SMS region policy (touches only smsRegionConfig; the log says what changed).
+async function smsauth(db, arg) {
+  const project = process.env.GCLOUD_PROJECT;
+  const base = `https://identitytoolkit.googleapis.com/admin/v2/projects/${project}/config`;
+  let config = null;
+  await step("smsConfig", async () => {
+    const res = await googleApi(base);
+    if (!res.ok) return `HTTP ${res.status} ${(await res.text()).slice(0, 200)}`;
+    config = await res.json();
+    const r = config.smsRegionConfig || {};
+    const allow = r.allowlistOnly?.allowedRegions, deny = r.allowByDefault?.disallowedRegions;
+    const policy = allow ? `ALLOWLIST ${allow.join(",")} (SY ${allow.includes("SY") ? "allowed" : "NOT allowed"})`
+      : deny ? `DENYLIST ${deny.join(",")} (SY ${deny.includes("SY") ? "BLOCKED" : "allowed"})`
+      : "no region policy (all regions the provider supports)";
+    return `phoneEnabled=${config.signIn?.phoneNumber?.enabled === true} policy=${policy} ` +
+      `testNumbers=${Object.keys(config.signIn?.phoneNumber?.testPhoneNumbers || {}).length} ` +
+      `quota=${JSON.stringify(config.quota?.signUpQuotaConfig || {}).slice(0, 120)}`;
+  });
+  await step("smsRegionFix", async () => {
+    if (!arg || !arg.startsWith("allow:")) return "skipped (pass allow:SY to add regions to the policy)";
+    if (!config) return "config not read";
+    const want = arg.slice(6).split(",").map((x) => x.trim().toUpperCase()).filter(Boolean);
+    const r = config.smsRegionConfig || {};
+    let next, note;
+    if (r.allowlistOnly) {
+      const have = r.allowlistOnly.allowedRegions || [];
+      const add = want.filter((x) => !have.includes(x));
+      if (!add.length) return `already allowed: ${want.join(",")}`;
+      next = { allowlistOnly: { allowedRegions: [...have, ...add] } };
+      note = `allowlist += ${add.join(",")}`;
+    } else if (r.allowByDefault) {
+      const have = r.allowByDefault.disallowedRegions || [];
+      const keep = have.filter((x) => !want.includes(x));
+      if (keep.length === have.length) return `not on the denylist: ${want.join(",")}`;
+      next = { allowByDefault: { disallowedRegions: keep } };
+      note = `denylist -= ${want.filter((x) => have.includes(x)).join(",")}`;
+    } else return "no region policy set: nothing to change in Firebase (the block is elsewhere)";
+    const res = await googleApi(`${base}?updateMask=smsRegionConfig`, { method: "PATCH", body: JSON.stringify({ smsRegionConfig: next }) });
+    return res.ok ? `updated: ${note}` : `HTTP ${res.status} ${(await res.text()).slice(0, 300)} (change it in Firebase Console › Authentication › Settings › SMS region policy)`;
+  });
+  // Fingerprints registered for the Android app vs the Play app-signing secrets (values never printed).
+  await step("androidFingerprints", async () => {
+    const list = await googleApi(`https://firebase.googleapis.com/v1beta1/projects/${project}/androidApps`);
+    if (!list.ok) return `HTTP ${list.status} ${(await list.text()).slice(0, 160)}`;
+    const app = ((await list.json()).apps || []).find((a) => a.packageName === "app.geonajjar.prohost");
+    if (!app) return "Android app app.geonajjar.prohost not found in Firebase";
+    const sha = await googleApi(`https://firebase.googleapis.com/v1beta1/${app.name}/sha`);
+    if (!sha.ok) return `HTTP ${sha.status} ${(await sha.text()).slice(0, 160)}`;
+    const certs = ((await sha.json()).certificates || []).map((c) => String(c.shaHash || "").toLowerCase());
+    const norm = (v) => String(v || "").replace(/[: \n]/g, "").toLowerCase();
+    const want = { playSha1: norm(process.env.PLAY_APP_SIGNING_SHA1), playSha256: norm(process.env.PLAY_APP_SIGNING_SHA256) };
+    const has = (h) => h ? certs.includes(h) : "secret-missing";
+    return `registered=${certs.length} (sha1=${certs.filter((c) => c.length === 40).length} sha256=${certs.filter((c) => c.length === 64).length}) ` +
+      `playAppSigningSha1Registered=${has(want.playSha1)} playAppSigningSha256Registered=${has(want.playSha256)}`;
+  });
+}
+
 (async () => {
   require(`${LIB}/lib/admin`);
   const db = admin.firestore();
@@ -807,5 +867,6 @@ async function playcatalog(db) {
   else if (task === "mailingcode") await mailingcode(db, arg);
   else if (task === "mailingsmoke") await mailingsmoke(db, arg);
   else if (task === "playcatalog") await playcatalog(db);
+  else if (task === "smsauth") await smsauth(db, arg);
   else throw new Error(`unknown task ${task}`);
 })().catch((e) => { fail(`${e && e.message}`); process.exit(1); });
