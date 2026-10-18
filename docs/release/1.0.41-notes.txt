@@ -1,0 +1,64 @@
+<en-US>
+What's new in ProHost 1.0.41
+• New Explore header: logo and Map/List switch in the centre, filters at the top right
+• A fresher profile card with a clear role tag, and a "For space owners" hint on Become a Pro Host
+• ProHost Premium: the monthly plan now shows its launch offer, 4 months free for new subscribers
+• Clearer messages when a phone verification code can't be sent
+• Billing handled securely by Google Play
+</en-US>
+<ar>
+الجديد في ProHost 1.0.41
+• شريط استكشاف جديد: الشعار ومفتاح الخريطة/القائمة في الوسط والفلاتر أعلى اليمين
+• بطاقة ملف شخصي أنيقة مع وسم واضح للدور وتلميح "لأصحاب المساحات" عند الترقية إلى مضيف
+• ProHost Premium: الخطة الشهرية تعرض الآن عرض الإطلاق، 4 أشهر مجانًا للمشتركين الجدد
+• رسائل أوضح عند تعذّر إرسال رمز التحقق من الهاتف
+• الدفع آمن عبر Google Play
+</ar>
+<fr-FR>
+Nouveautés de ProHost 1.0.41
+• Nouvel en-tête Explorer : logo et bascule Carte/Liste au centre, filtres en haut à droite
+• Carte de profil rafraîchie avec un badge de rôle clair et l'indication « Pour les propriétaires » sur Devenir Pro Host
+• ProHost Premium : le plan mensuel affiche l'offre de lancement, 4 mois offerts aux nouveaux abonnés
+• Messages plus clairs quand le code de vérification du téléphone ne peut pas être envoyé
+• Paiement sécurisé par Google Play
+</fr-FR>
+<es-ES>
+Novedades de ProHost 1.0.41
+• Nueva cabecera de Explorar: logotipo y selector Mapa/Lista en el centro, filtros arriba a la derecha
+• Tarjeta de perfil renovada con una etiqueta de rol clara y la pista «Para propietarios» en Hazte Pro Host
+• ProHost Premium: el plan mensual muestra su oferta de lanzamiento, 4 meses gratis para nuevos suscriptores
+• Mensajes más claros cuando no se puede enviar el código de verificación del teléfono
+• Pagos seguros con Google Play
+</es-ES>
+<de-DE>
+Neu in ProHost 1.0.41
+• Neue Explore-Kopfzeile: Logo und Karte/Liste-Schalter in der Mitte, Filter oben rechts
+• Frischere Profilkarte mit klarem Rollen-Tag und dem Hinweis „Für Raumeigentümer" bei Pro Host werden
+• ProHost Premium: Der Monatsplan zeigt sein Startangebot, 4 Monate gratis für neue Abonnenten
+• Klarere Meldungen, wenn kein Telefon-Bestätigungscode gesendet werden kann
+• Sichere Abrechnung über Google Play
+</de-DE>
+<it-IT>
+Novità di ProHost 1.0.41
+• Nuova intestazione di Esplora: logo e interruttore Mappa/Elenco al centro, filtri in alto a destra
+• Scheda profilo rinnovata con un'etichetta di ruolo chiara e il suggerimento «Per proprietari di spazi» su Diventa Pro Host
+• ProHost Premium: il piano mensile mostra l'offerta di lancio, 4 mesi gratis per i nuovi abbonati
+• Messaggi più chiari quando non si può inviare il codice di verifica del telefono
+• Pagamenti sicuri con Google Play
+</it-IT>
+<pt-BR>
+Novidades do ProHost 1.0.41
+• Novo cabeçalho do Explorar: logotipo e alternância Mapa/Lista no centro, filtros no canto superior direito
+• Cartão de perfil renovado com uma etiqueta de função clara e a dica «Para donos de espaço» em Torne-se Pro Host
+• ProHost Premium: o plano mensal mostra a oferta de lançamento, 4 meses grátis para novos assinantes
+• Mensagens mais claras quando o código de verificação do telefone não pode ser enviado
+• Pagamento seguro pelo Google Play
+</pt-BR>
+<tr-TR>
+ProHost 1.0.41'deki yenilikler
+• Yeni Keşfet başlığı: ortada logo ve Harita/Liste anahtarı, sağ üstte filtreler
+• Net bir rol etiketi olan yenilenmiş profil kartı ve Pro Host Ol'da "Mekân sahipleri için" ipucu
+• ProHost Premium: aylık plan lansman teklifini gösterir, yeni aboneler için 4 ay ücretsiz
+• Telefon doğrulama kodu gönderilemediğinde daha net mesajlar
+• Ödemeler Google Play ile güvende
+</tr-TR>
