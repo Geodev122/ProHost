@@ -12,6 +12,6 @@ forbids ranking/"best"/"#1"/price or promotion claims in the title, icon and sho
 ## App icon
 
 `icon-512.png` is the Play listing icon (512×512, full bleed — Google rounds the corners; upload it under Store presence ›
-App icon). The same mark ships in the app: adaptive layers `mipmap-*/ic_launcher_{foreground,background}.png` (mark inside
-the 66 dp safe zone) and legacy/round `ic_launcher{,_round}.png`. Steel Blue → navy field, white short stroke, orange long
-stroke; no text, so it stays legible at launcher sizes.
+App icon). It is the unchanged ProHost check logo on a soft white → pale-blue background with a faint Steel Blue glow at the
+bottom. The in-app adaptive background (`mipmap-*/ic_launcher_background.png`) and the legacy/round icons use the same
+background; the foreground logo layer is untouched.
