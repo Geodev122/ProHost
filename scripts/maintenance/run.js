@@ -754,6 +754,8 @@ async function playcatalog(db) {
       if (!bp.offers.length) lines.push("  (no offers)");
     }
     lines.forEach((l) => console.log(l));
+    // The detail as one annotation too (ids, prices, eligibility only — no people), readable without the raw log.
+    notice(`playCatalogDetail: ${lines.map((l) => l.trim()).join(" ; ")}`);
     return `${cat.basePlans.length} base plans, ${cat.basePlans.reduce((n, b) => n + b.offers.length, 0)} offers (details in the log)`;
   });
   // Strict Play: Play Console is the only billing config, so its mistakes are flagged here (lintOffers).
@@ -761,6 +763,7 @@ async function playcatalog(db) {
     if (!cat) throw new Error("catalog not read (see playCatalogLive)");
     const lint = cat.lint || [];
     lint.forEach((w) => console.log(`WARN ${w}`));
+    if (lint.length) notice(`playOfferLintDetail: ${lint.join(" ; ")}`);
     return lint.length ? `${lint.length} warning(s) — fix them in Play Console (details in the log)` : "no warnings";
   });
   // The promo card is a Play offer now (tags promo, code-…, ends-…); the old Firestore campaign doc is retired.
