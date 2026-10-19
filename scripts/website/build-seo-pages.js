@@ -24,7 +24,7 @@ const ORG = { "@type": "Organization", "@id": `${SITE}/#org`, name: "ProHost", u
 
 const WEBSITE = { "@type": "WebSite", "@id": `${SITE}/#site`, url: `${SITE}/`, name: "ProHost", inLanguage: ["en", "ar"], publisher: { "@id": `${SITE}/#org` } };
 
-function head({ lang, dir, title, description, keywords, canonical, image, imageAlt, ld, alternates }) {
+function head({ lang, dir, title, description, keywords, canonical, image, imageAlt, ld, alternates, robots }) {
   return `<!DOCTYPE html>
 <html lang="${lang}"${dir ? ` dir="${dir}"` : ""}>
 <head>
@@ -33,7 +33,7 @@ function head({ lang, dir, title, description, keywords, canonical, image, image
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}">
 <meta name="keywords" content="${esc(keywords)}">
-<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="robots" content="${robots || "index, follow, max-image-preview:large"}">
 <link rel="canonical" href="${canonical}">
 ${(alternates || []).map(([hl, href]) => `<link rel="alternate" hreflang="${hl}" href="${href}">`).join("\n")}
 <meta property="og:type" content="website">
@@ -238,9 +238,74 @@ ${footer(true)}
   fs.writeFileSync(path.join(PUB, "ar.html"), html);
 }
 
+/** /partner: the strategic-partner offer linked from the introduction email. Not in the sitemap and noindex: it is shared by link. */
+function partner() {
+  const url = `${SITE}/partner`, title = "Become ProHost's Strategic Partner | ProHost";
+  const description = "ProHost is opening one strategic partner position: a share of Google Play revenue, free listings for up to 100 accounts and your logo in the app and on our marketing.";
+  const mail = "mailto:admin@pro-host.tech?subject=" + encodeURIComponent("ProHost strategic partnership");
+  const perks = [
+    ["13% of app revenue", "13% of all revenue that Google Play billing distributes to ProHost for ProHost Premium subscriptions, in every country."],
+    ["Unlimited free listings", "Create up to 100 accounts and publish unlimited listings on all of them, with no Premium subscription to pay."],
+    ["Your logo in the app", "Your logo on the ProHost splash screen and on the login screen that every user sees when opening the app."],
+    ["Your logo on our marketing", "Your logo on all ProHost marketing materials in every expansion country on our list, flagged \"In partnership with\"."],
+  ];
+  const faq = [
+    ["What does the partner invest?", "USD 24,000. In return the partner receives everything listed on this page."],
+    ["How is the 13% calculated?", "On the revenue Google Play distributes to ProHost from ProHost Premium subscriptions. The written agreement sets out the calculation, the reporting and the payment dates."],
+    ["Which countries are covered?", "Every expansion country on ProHost's list. We share the list with the partner and the logo appears in the marketing of each country as it launches."],
+    ["How many partners are there?", "One. This is a single strategic partner position."],
+    ["How do we start?", "Write to admin@pro-host.tech or use the button below. We will set up a call and send the written agreement."],
+  ];
+  const ld = [ORG, WEBSITE, { "@type": "WebPage", "@id": `${url}#page`, url, name: title, description, inLanguage: "en", isPartOf: { "@id": `${SITE}/#site` } }];
+  const html = `${head({ lang: "en", title, description, keywords: "ProHost strategic partner, ProHost sponsor, ProHost partnership", canonical: url, image: `${SITE}/img/og/partner.jpg`, imageAlt: "ProHost strategic partner offer", ld,
+    alternates: [["en", url], ["x-default", url]], robots: "noindex, follow" })}
+<body>
+${header(false)}
+<main>
+<section class="hero"><div class="wrap hero-grid">
+  <div>
+    <span class="eyebrow">Strategic partnership</span>
+    <h1>Become ProHost's <em>strategic partner</em></h1>
+    <p class="lead">We are opening one strategic partner position for the launch and expansion of ProHost. Your brand goes into the app and onto every market we enter, and you share in the revenue the app earns on Google Play.</p>
+    <div class="ctas"><a class="btn btn-orange" href="${mail}">Talk to us about the partnership</a><a class="btn btn-outline" href="#package">See the package</a></div>
+    <ul class="ticks"><li>One partner only</li><li>Investment: USD 24,000</li><li>Terms in a written agreement</li></ul>
+  </div>
+  <img class="hero-img" src="/img/meeting.jpg" alt="A meeting room listed on ProHost" width="640" height="800" fetchpriority="high">
+</div></section>
+
+<section id="package"><div class="wrap">
+  <div class="sec-head"><span class="eyebrow">The partner package</span><h2>What the partner receives for USD 24,000</h2></div>
+  <div class="grid4">${perks.map(([t, d]) => `<article class="feat"><h3>${t}</h3><p>${d}</p></article>`).join("")}</div>
+</div></section>
+
+<section class="white"><div class="wrap">
+  <div class="sec-head"><span class="eyebrow">How it works</span><h2>From first call to your logo in the app</h2></div>
+  <ol class="steps">
+    <li><h3>Talk to us</h3><p>A short call about your goals and the countries you care about.</p></li>
+    <li><h3>Sign the agreement</h3><p>The written agreement sets the revenue calculation, reporting, payment dates and brand rules.</p></li>
+    <li><h3>Go live as partner</h3><p>Your logo appears in the app and in our marketing, and your accounts get free listings.</p></li>
+  </ol>
+</div></section>
+
+<section id="faq"><div class="wrap">
+  <div class="sec-head center"><span class="eyebrow">FAQ</span><h2>Partner questions</h2></div>
+  <div class="faq">${faq.map(([q, a], i) => `<details${i ? "" : " open"}><summary>${q}</summary><p>${a}</p></details>`).join("")}</div>
+</div></section>
+
+<section class="white"><div class="wrap"><div class="final"><div><h2>Interested in being our partner?</h2><p>Write to us and we will set up a call. Terms are confirmed in a written agreement.</p></div>
+  <a class="btn btn-white" href="${mail}">Email admin@pro-host.tech</a></div></div></section>
+</main>
+${footer(false)}
+</body>
+</html>
+`;
+  fs.writeFileSync(path.join(PUB, "partner.html"), html);
+}
+
 PAGES.forEach(page);
 arabic();
+partner();
 // A retired slug must not linger as a static file: firebase.json 301-redirects it to the new page.
 Object.keys(LEGACY_SLUGS).forEach((old) => { const f = path.join(PUB, `${old}.html`); if (fs.existsSync(f)) { fs.unlinkSync(f); console.log(`removed retired page ${old}.html`); } });
-console.log(`built ${PAGES.length} English pages + /ar`);
+console.log(`built ${PAGES.length} English pages + /ar + /partner`);
 module.exports = { PAGES, LEGACY_SLUGS };
