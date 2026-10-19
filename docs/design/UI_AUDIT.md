@@ -274,3 +274,20 @@ Four phases, each shippable on its own and ordered so earlier ones make later on
 - Ship each phase in a release with a staged rollout (20% → 100%) and watch Crashlytics and the new GA4 screen names for drop-offs.
 
 **Open question**: should Pro Hosts get Explore as a bottom tab (replacing Progress) or as a 5th tab? Both fit at 360 dp; a 5th tab keeps today's habits.
+
+## Addendum: screenshot baseline (Oct 19, 2026)
+
+The **Design Screenshots** workflow now renders 12 key screens in light, dark, font scale 1.3 and RTL
+(`app/src/test/java/com/example/design/DesignScreenshotTest.kt`; how to fetch: `.claude/skills/prohost-design/references/verify.md`).
+The first baseline confirms the audit and adds three findings:
+
+- **RTL breaks text built by concatenation.** Number + unit strings reorder under Arabic layout: "72 hrs/wk Open"
+  renders "hrs/wk Open 72", "3 slots open" → "slots open 3", "6 days/wk" → "days/wk 6". Fix with Phase 3 string
+  resources using placeholders (`%1$d slots open`) and `BidiFormatter`/`⁨…⁩` isolation for numbers and
+  prices, not with layout changes.
+- **Font scale 1.3 clips chips and titles.** The hero "Verified" chip on the details page and long listing titles on
+  Explore cards cut off ("Achrafieh Executive Me…" with the price squeezing it). Chips need `heightIn(min)` and no
+  fixed width; card titles should wrap to two lines before ellipsis, with the price on its own line at large scales.
+- **Warning colour used for a to-do.** Profile's "Ready to book" checklist uses the error/warning container (salmon)
+  for a normal next step; it reads as an error. Use `surfaceContainerHigh` with a steel accent, keep red for real
+  problems.
