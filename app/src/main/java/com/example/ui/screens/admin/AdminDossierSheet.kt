@@ -49,6 +49,7 @@ internal fun AdminDossierSheet(
     uiState: com.example.ui.state.AdminUiState,
     adminViewModel: AdminViewModel
 ) {
+    com.example.ui.components.TrackScreen("admin_user_dossier")
     val user = dossier.profile
     ProHostBottomSheet(
         onDismissRequest = { adminViewModel.closeDossier() },

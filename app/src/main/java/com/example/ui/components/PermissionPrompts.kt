@@ -164,13 +164,17 @@ fun rememberLocationAccess(onReady: () -> Unit): () -> Unit {
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
         if (granted.values.any { it }) {
+            com.example.analytics.AnalyticsTracker.locationPermission("granted", "map")
             ensureLocationOn()
         } else if (activity != null &&
             !activity.shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) &&
             !activity.shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_COARSE_LOCATION)
         ) {
             // Android won't show its prompt again: the only way back is the app's settings.
+            com.example.analytics.AnalyticsTracker.locationPermission("blocked", "map")
             showSettings = true
+        } else {
+            com.example.analytics.AnalyticsTracker.locationPermission("denied", "map")
         }
     }
     val locationPermissions = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)

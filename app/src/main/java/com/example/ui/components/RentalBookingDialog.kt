@@ -113,6 +113,7 @@ fun RebookDialog(
     attendeePackages: List<AttendeePackage> = emptyList(),
     initialAttendeeCount: Int = 0
 ) {
+    com.example.ui.components.TrackScreen("rebook")
     BookingSlotSelectorDialog(
         target = BookingDialogTarget(space = space, initialFormula = initialFormula, replacesBookingId = null, initialAttendeeCount = initialAttendeeCount),
         viewModel = viewModel,
@@ -146,6 +147,7 @@ fun EditBookingDialog(
     attendeePackages: List<AttendeePackage> = emptyList(),
     initialAttendeeCount: Int = 0
 ) {
+    com.example.ui.components.TrackScreen("edit_booking")
     BookingSlotSelectorDialog(
         target = BookingDialogTarget(space = space, initialFormula = initialFormula, replacesBookingId = replacesBookingId, initialAttendeeCount = initialAttendeeCount),
         viewModel = viewModel,

@@ -140,7 +140,10 @@ class ProHostViewModel(
     val isOfflineMode: StateFlow<Boolean> = repository.isOfflineMode
     val syncStatusMessage: StateFlow<String?> = repository.syncStatusMessage
 
-    fun markAllAlertsRead() = repository.markAllAlertsRead()
+    fun markAllAlertsRead() {
+        com.example.analytics.AnalyticsTracker.notificationMarkRead(all = true)
+        repository.markAllAlertsRead()
+    }
 
     fun markAlertAsRead(alertId: String) {
         repository.markAlertAsRead(alertId)
@@ -531,9 +534,9 @@ class ProHostViewModel(
      * else a message to show (RequirementsSheet keeps the booking selection either way).
      */
     /** Saves the WhatsApp number (the phone step of RequirementsSheet / KycScreen); null on success, else a message. */
-    suspend fun saveWhatsAppNumber(e164Phone: String): String? = try {
+    suspend fun saveWhatsAppNumber(e164Phone: String, source: String = "requirements"): String? = try {
         if (repository.saveWhatsAppNumber(e164Phone)) {
-            com.example.analytics.AnalyticsTracker.kycComplete()
+            com.example.analytics.AnalyticsTracker.kycComplete(source)
             null
         } else "The number couldn't be saved. Check your connection and try again."
     } catch (e: kotlinx.coroutines.CancellationException) {
@@ -550,10 +553,13 @@ class ProHostViewModel(
             val url = com.example.data.storage.FirebaseStorageService.getInstance()
                 .uploadProfilePicture(uid, uri, context.applicationContext)
                 ?: return "The photo couldn't be uploaded. Check your connection and try again."
-            if (repository.updateProfilePicture(url)) null else "The photo couldn't be saved. Please try again."
+            val saved = repository.updateProfilePicture(url)
+            com.example.analytics.AnalyticsTracker.profilePhotoUpload(saved, "requirements")
+            if (saved) null else "The photo couldn't be saved. Please try again."
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
+            com.example.analytics.AnalyticsTracker.profilePhotoUpload(false, "requirements")
             reportFailure(context.applicationContext, e, "The photo couldn't be uploaded. Please try again.")
             "The photo couldn't be uploaded. Please try again."
         }
@@ -561,7 +567,10 @@ class ProHostViewModel(
 
     /** Saves country + city (RequirementsSheet hosting step); returns an error message or null. */
     suspend fun updateAddress(context: Context, country: String, city: String): String? = try {
-        if (repository.updateAddress(country, city)) null else "Your address couldn't be saved. Please try again."
+        if (repository.updateAddress(country, city)) {
+            com.example.analytics.AnalyticsTracker.profileUpdate("address")
+            null
+        } else "Your address couldn't be saved. Please try again."
     } catch (e: kotlinx.coroutines.CancellationException) {
         throw e
     } catch (e: Exception) {
@@ -579,16 +588,17 @@ class ProHostViewModel(
         profilePictureUrl: String? = null
     ): Boolean {
         return repository.updateCurrentUserProfile(name, specialty, phone, country, governorate, city, profilePictureUrl)
+            .also { if (it) com.example.analytics.AnalyticsTracker.profileUpdate("profile") }
     }
 
     // Fires exactly once per space-detail view (call from a LaunchedEffect(space.id),
     // not on every recomposition) — real engagement data replacing the old fixed 850
     // placeholder.
-    fun registerSpaceView(spaceId: String, subdivisionId: String? = null) {
-        repository.incrementSpaceViewCount(spaceId)
-        spaces.value.firstOrNull { it.id == spaceId }?.let { space ->
-            com.example.analytics.AnalyticsTracker.viewItem(space, space.subdivisions.firstOrNull { it.id == subdivisionId })
-        }
+    fun registerSpaceView(space: SpaceListing, subdivisionId: String? = null) {
+        repository.incrementSpaceViewCount(space.id)
+        // The opened listing itself (also when it isn't in the loaded Explore page: deep link, paging),
+        // with the room the person tapped.
+        com.example.analytics.AnalyticsTracker.viewItem(space, space.subdivisions.firstOrNull { it.id == subdivisionId })
     }
 
     // --- WhatsApp Direct Connection ---
@@ -843,12 +853,14 @@ class ProHostViewModel(
                         valueUsd = request.totalAmountUsd,
                         strategy = formula.type.name,
                         attendeeCount = attendeeCount.takeIf { it > 0 },
-                        isRebook = replacesBookingId != null
+                        // This path serves the Rebook and Edit dialogs: no replaced booking = rebook.
+                        isRebook = replacesBookingId == null,
+                        isEdit = replacesBookingId != null
                     )
                 } else {
                     // The write didn't reach Firestore: offline, or refused (e.g. the listing stopped
                     // taking bookings). Not necessarily a connection problem.
-                    com.example.analytics.AnalyticsTracker.bookingRequestFailed("write_failed")
+                    com.example.analytics.AnalyticsTracker.bookingRequestFailed("not_synced")
                 }
 
                 Toast.makeText(
@@ -1101,9 +1113,10 @@ class ProHostViewModel(
     }
 
     /** Saves (or re-saves) a Draft listing — never blocked by the package listing limit. */
-    suspend fun saveListingDraft(listing: SpaceListing): Boolean {
+    /** [autosave]: the wizard's debounced background save — not a user action, so not logged. */
+    suspend fun saveListingDraft(listing: SpaceListing, autosave: Boolean = false): Boolean {
         return repository.saveListingDraft(listing).also { ok ->
-            if (ok) com.example.analytics.AnalyticsTracker.listingDraftSaved(listing)
+            if (ok && !autosave) com.example.analytics.AnalyticsTracker.listingDraftSaved(listing)
         }
     }
 
@@ -1159,6 +1172,7 @@ class ProHostViewModel(
         viewModelScope.launch {
             try {
                 val success = repository.removeBlackoutSlot(spaceId, slotId)
+                if (success) com.example.analytics.AnalyticsTracker.blackoutRemove()
                 Toast.makeText(
                     appContext,
                     if (success) "Slot is back on offer" else "Couldn't switch that slot on — please try again",
@@ -1259,7 +1273,7 @@ class ProHostViewModel(
 
     private fun reportFailure(appContext: Context, e: Exception, fallback: String) {
         android.util.Log.e("ProHostVM", fallback, e)
-        com.example.analytics.AnalyticsTracker.appError(fallback, com.example.analytics.AnalyticsTracker.errorCode(e))
+        com.example.analytics.AnalyticsTracker.appError(com.example.analytics.AnalyticsTracker.areaKey(fallback), com.example.analytics.AnalyticsTracker.errorCode(e))
         Toast.makeText(appContext, e.toUserMessage(fallback), Toast.LENGTH_LONG).show()
     }
 }

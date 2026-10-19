@@ -43,6 +43,7 @@ fun ListingVerificationDialog(
     viewModel: ProHostViewModel,
     onDismiss: () -> Unit
 ) {
+    com.example.ui.components.TrackScreen("listing_verification", "Dialog")
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val storageService = remember { FirebaseStorageService.getInstance() }

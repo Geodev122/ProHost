@@ -348,6 +348,7 @@ fun DiscoveryScreenContent(
     }
 
     if (showFilterSheet) {
+        com.example.ui.components.TrackScreen("explore_filters")
         DiscoveryFilterSheet(
             filterState = filterState,
             resultCount = spaces.size,

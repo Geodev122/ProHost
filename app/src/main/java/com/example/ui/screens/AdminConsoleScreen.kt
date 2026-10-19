@@ -59,6 +59,11 @@ fun AdminConsoleScreen(
 ) {
     val context = LocalContext.current
     val uiState by adminViewModel.uiState.collectAsState()
+    // Each inner tab is its own GA4 screen (admin_packages, admin_users, …), including the first one.
+    val adminAnalyticsConsent by com.example.analytics.AnalyticsConsent.state.collectAsState()
+    LaunchedEffect(uiState.selectedTab, adminAnalyticsConsent) {
+        com.example.analytics.AnalyticsTracker.screen(com.example.analytics.ScreenNames.adminTab(uiState.selectedTab), "AdminConsole")
+    }
     val currentUser by viewModel.currentUser.collectAsState()
     val isOffline by viewModel.isOfflineMode.collectAsState()
     val syncStatusMessage by viewModel.syncStatusMessage.collectAsState()

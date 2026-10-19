@@ -7,7 +7,7 @@ import { sendPushToUser } from "../lib/push";
 import { setClaimsThenFirestore } from "../lib/roles";
 import { sendEmail } from "../lib/email";
 import { subscriptionExpiringTemplate, subscriptionExpiredTemplate, UserContext } from "../lib/emailTemplates";
-import { planLabel } from "../billing/playCatalog";
+import { PLAY_PRODUCT_ID, planInterval, planLabel } from "../billing/playCatalog";
 import { queryPlaySubscription } from "../billing/billingHelpers";
 import { syncSubscription } from "../billing/subscriptionService";
 import { classifyPlayError } from "../billing/playSubscription";
@@ -173,7 +173,12 @@ export const expirePackages = onSchedule({ schedule: "0 * * * *", timeoutSeconds
             planId: (doc.data()?.ownerPackageId as string | undefined) ?? null,
             note: "demoted to Specialist by the expiry sweep",
           });
-          await sendGa4Event(uid, "subscription_expired", { plan_id: (doc.data()?.ownerPackageId as string | undefined) ?? undefined });
+          // Same shape as the RTDN event (plan = monthly/yearly, product_id); `trigger` tells the sweep apart.
+          await sendGa4Event(uid, "subscription_expired", {
+            plan: planInterval((doc.data()?.ownerPackageId as string | undefined) ?? null) ?? undefined,
+            product_id: PLAY_PRODUCT_ID,
+            trigger: "expiry_sweep",
+          });
 
           const ownedListings = await db.collection("workspace_listings").where("ownerId", "==", uid).get();
           if (!ownedListings.empty) {

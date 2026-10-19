@@ -248,6 +248,8 @@ class DiscoveryViewModel(
     }.joinToString(" ").lowercase()
 
     fun updateSearchQuery(query: String) {
+        // The query is applied on ✓ / IME Search (the settled term is logged as `search` below).
+        if (query.isBlank() && _filterState.value.query.isNotBlank()) com.example.analytics.AnalyticsTracker.searchClear()
         _filterState.update { it.copy(query = query) }
     }
 
@@ -285,11 +287,9 @@ class DiscoveryViewModel(
         com.example.analytics.AnalyticsTracker.filterApply("country", countries.sorted().joinToString(",").ifEmpty { "any" })
     }
 
-    fun setMapCenterCountry(country: String) {
-        if (country.isNotBlank()) {
-            AnalyticsTracker.filterApply("map_center_country", country)
-        }
-    }
+    /** The map's camera country. Not a user filter, so it is no longer logged as filter_apply. */
+    @Suppress("UNUSED_PARAMETER")
+    fun setMapCenterCountry(country: String) = Unit
 
     fun toggleSavedSpace(spaceId: String) {
         val wasSaved = repository.currentUser.value?.savedSpaceIds?.contains(spaceId) == true
@@ -332,6 +332,9 @@ class DiscoveryViewModel(
     }
 
     fun setFilterSheetVisible(visible: Boolean) {
+        if (visible && !_isFilterSheetVisible.value) {
+            com.example.analytics.AnalyticsTracker.filterSheetOpen(_filterState.value.activeFilterCount)
+        }
         _isFilterSheetVisible.value = visible
     }
 

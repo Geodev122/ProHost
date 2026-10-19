@@ -96,6 +96,9 @@ fun LoginAuthScreen(
         mutableStateOf(if (resumeAtRegistration) AuthStep.REGISTRATION_FORM else AuthStep.EMAIL_ENTRY)
     }
 
+    // Each sign-in step is its own GA4 screen (auth_email, auth_email_code, auth_email_link_sent, registration).
+    if (!LocalInspectionMode.current) com.example.ui.components.TrackScreen(com.example.analytics.ScreenNames.forAuthStep(step.name), "LoginAuthScreen")
+
     // --- Email entry state ---
     var emailInput by rememberSaveable { mutableStateOf("") }
     var emailResendCountdownSeconds by rememberSaveable { mutableStateOf(0) }
@@ -164,6 +167,7 @@ fun LoginAuthScreen(
                 handleCredentialResult(result)
             } catch (e: androidx.credentials.exceptions.GetCredentialCancellationException) {
                 // User dismissed the account picker — no action needed.
+                com.example.analytics.AnalyticsTracker.authError("google", "cancelled")
             } catch (e: androidx.credentials.exceptions.NoCredentialException) {
                 // One Tap could not find a matching credential (no accounts, or the flow
                 // was suppressed). Fall back to the standard Sign In With Google sheet,
@@ -177,8 +181,10 @@ fun LoginAuthScreen(
                     handleCredentialResult(result)
                 } catch (e2: androidx.credentials.exceptions.GetCredentialCancellationException) {
                     // Dismissed
+                    com.example.analytics.AnalyticsTracker.authError("google", "cancelled")
                 } catch (e2: GetCredentialException) {
                     android.util.Log.w("LoginAuthScreen", "Google sign-in unavailable: ${e2.type}")
+                    com.example.analytics.AnalyticsTracker.authError("google", "unavailable")
                     android.widget.Toast.makeText(
                         context,
                         "Google sign-in isn't available on this device. Please sign in with email.",
@@ -187,6 +193,7 @@ fun LoginAuthScreen(
                 }
             } catch (e: GetCredentialException) {
                 android.util.Log.w("LoginAuthScreen", "Google sign-in error: ${e.type}")
+                com.example.analytics.AnalyticsTracker.authError("google", "credential_error")
                 android.widget.Toast.makeText(
                     context,
                     "Google sign-in isn't available right now. Please sign in with email.",
@@ -234,6 +241,7 @@ fun LoginAuthScreen(
     // The WhatsApp number from Android's own number picker (Phone Number Hint): the person picks
     // their SIM number in a system sheet or dismisses it and types. Offered once when the form opens.
     val pickDeviceNumber = rememberPhoneNumberHint(onNumber = { e164 ->
+        com.example.analytics.AnalyticsTracker.phoneHint("used", "registration")
         val (country, local) = com.example.data.model.splitE164(e164, regWhatsAppCountry)
         regWhatsAppCountry = country
         regPhoneNumber = local
@@ -248,6 +256,7 @@ fun LoginAuthScreen(
             if (prefillGooglePictureUri != null && regProfilePicUri == null) regProfilePicUri = prefillGooglePictureUri
             if (!isPreview && !phoneHintOffered && regPhoneNumber.isBlank() && resumePhoneE164.isNullOrBlank()) {
                 phoneHintOffered = true
+                com.example.analytics.AnalyticsTracker.phoneHint("offered", "registration")
                 pickDeviceNumber()
             }
         }

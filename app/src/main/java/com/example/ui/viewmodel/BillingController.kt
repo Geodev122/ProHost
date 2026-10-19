@@ -415,14 +415,14 @@ class BillingController(
                 if (!processedPurchaseTokens.add(activePurchase.purchaseToken) && !userInitiated && !forceServerSync) return@runCatching
                 repository.verifyAndRestorePlayPurchase(activePurchase.purchaseToken, productId)
                     .onSuccess {
-                        com.example.analytics.AnalyticsTracker.premiumRestoreResult("restored")
+                        com.example.analytics.AnalyticsTracker.premiumRestoreResult("restored", if (userInitiated) "user" else "auto")
                         onPlanActivated("Purchase restored — your Pro Host plan is active.")
                     }
                     .onFailure {
                         processedPurchaseTokens.remove(activePurchase.purchaseToken)
                         awaitingServerActivation = true
                         android.util.Log.w("ProHostViewModel", "verifyAndRestorePurchase failed: ${it.message}")
-                        com.example.analytics.AnalyticsTracker.premiumRestoreResult("failed")
+                        com.example.analytics.AnalyticsTracker.premiumRestoreResult("failed", if (userInitiated) "user" else "auto")
                         // The silent on-open check stays quiet; the Restore button reports why.
                         if (userInitiated) {
                             _billingError.value = it.toUserMessage("Couldn't restore your purchase. Please try again.")
@@ -455,7 +455,7 @@ class BillingController(
             val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
             clipboard.setPrimaryClip(android.content.ClipData.newPlainText("ProHost promo code", promo.code))
         }
-        com.example.analytics.AnalyticsTracker.redeemCodeOpen()
+        com.example.analytics.AnalyticsTracker.premiumPromoCheckout(promo.code)
         launchGooglePaySubscription(activity, promo.basePlanId, com.example.data.billing.OfferChoice.Specific(promo.offerId))
     }
 

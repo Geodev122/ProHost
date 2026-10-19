@@ -70,10 +70,14 @@ fun UseDeviceNumberButton(
     onPicked: (country: com.example.data.model.Country, localNumber: String) -> Unit,
     modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier
 ) {
-    val pick = rememberPhoneNumberHint(onNumber = { e164 ->
-        val (country, local) = com.example.data.model.splitE164(e164, fallbackCountry)
-        onPicked(country, local)
-    })
+    val pick = rememberPhoneNumberHint(
+        onNumber = { e164 ->
+            com.example.analytics.AnalyticsTracker.phoneHint("used", "whatsapp_step")
+            val (country, local) = com.example.data.model.splitE164(e164, fallbackCountry)
+            onPicked(country, local)
+        },
+        onUnavailable = { com.example.analytics.AnalyticsTracker.phoneHint("unavailable", "whatsapp_step") }
+    )
     androidx.compose.material3.TextButton(onClick = pick, modifier = modifier) {
         androidx.compose.material3.Icon(
             androidx.compose.material.icons.Icons.Default.SimCard,

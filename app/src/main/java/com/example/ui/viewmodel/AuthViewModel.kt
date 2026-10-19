@@ -134,7 +134,7 @@ class AuthViewModel(
      */
     fun startEmailSignIn(email: String, onDelivered: (EmailDelivery) -> Unit) {
         authMethod = "email_link"
-        com.example.analytics.AnalyticsTracker.authStart("email")
+        com.example.analytics.AnalyticsTracker.authStart("email_link")
         viewModelScope.launch {
             _isAuthenticating.value = true
             _authErrorMessage.value = null
@@ -183,6 +183,7 @@ class AuthViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
+                com.example.analytics.AnalyticsTracker.authError(authMethod, com.example.analytics.AnalyticsTracker.errorCode(e))
                 _authErrorMessage.value = e.toUserMessage("Couldn't send the sign-in email. Please try again.")
             } finally {
                 _isAuthenticating.value = false
@@ -192,6 +193,8 @@ class AuthViewModel(
 
     /** Re-sends the magic link (used by the "Resend link" button). */
     fun sendEmailLinkViaFunction(emailArg: String, onSent: (Boolean) -> Unit) {
+        authMethod = "email_link"
+        com.example.analytics.AnalyticsTracker.authStart("email_link_resend")
         val email = emailArg.ifBlank { restorePendingEmail() }
         if (email.isBlank()) {
             _authErrorMessage.value = "Enter your email address again to get a new sign-in email."
@@ -221,6 +224,7 @@ class AuthViewModel(
                 }
             } catch (e: kotlinx.coroutines.CancellationException) { throw e }
             catch (e: Exception) {
+                com.example.analytics.AnalyticsTracker.authError(authMethod, com.example.analytics.AnalyticsTracker.errorCode(e))
                 _isAuthenticating.value = false
                 _authErrorMessage.value = e.toUserMessage("Failed to send sign-in link. Please try again.")
                 onSent(false)
@@ -319,6 +323,7 @@ class AuthViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
+                com.example.analytics.AnalyticsTracker.authError(authMethod, com.example.analytics.AnalyticsTracker.errorCode(e))
                 lastHandledLink = null
                 linkErrorFresh = true
                 _isAuthenticating.value = false
@@ -329,6 +334,8 @@ class AuthViewModel(
 
     /** Sends a 6-digit OTP to [email] via the sendEmailOtp function (Trigger Email extension). */
     fun sendEmailOtp(emailArg: String, onSent: (Boolean) -> Unit) {
+        authMethod = "email_code"
+        com.example.analytics.AnalyticsTracker.authStart("email_code")
         val email = emailArg.ifBlank { restorePendingEmail() }
         if (email.isBlank()) {
             _authErrorMessage.value = "Enter your email address again to get a new sign-in email."
@@ -350,6 +357,7 @@ class AuthViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
+                com.example.analytics.AnalyticsTracker.authError(authMethod, com.example.analytics.AnalyticsTracker.errorCode(e))
                 _isAuthenticating.value = false
                 _authErrorMessage.value = e.toUserMessage("Failed to send code. Please check your connection.")
                 onSent(false)
@@ -392,6 +400,7 @@ class AuthViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
+                com.example.analytics.AnalyticsTracker.authError(authMethod, com.example.analytics.AnalyticsTracker.errorCode(e))
                 _isAuthenticating.value = false
                 _authErrorMessage.value = e.toUserMessage("Code verification failed. Please try again.")
             }
@@ -429,6 +438,7 @@ class AuthViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
+                com.example.analytics.AnalyticsTracker.authError(authMethod, com.example.analytics.AnalyticsTracker.errorCode(e))
                 _authErrorMessage.value = e.toUserMessage("An error occurred")
                 _isAuthenticating.value = false
             }
@@ -455,6 +465,7 @@ class AuthViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
+                com.example.analytics.AnalyticsTracker.authError(authMethod, com.example.analytics.AnalyticsTracker.errorCode(e))
                 _isAuthenticating.value = false
                 _authErrorMessage.value = e.toUserMessage("Google sign-in failed. Please try again.")
             }
@@ -505,12 +516,14 @@ class AuthViewModel(
             authService.signOut()
             _authErrorMessage.value = e.message
         } catch (e: Exception) {
+            com.example.analytics.AnalyticsTracker.authError(authMethod, com.example.analytics.AnalyticsTracker.errorCode(e))
             _isAuthenticating.value = false
             _authErrorMessage.value = e.toUserMessage("Sign-in failed. Please try again.")
         }
     }
 
     private fun requestRegistration(onVerified: (needsRegistration: Boolean) -> Unit) {
+        com.example.analytics.AnalyticsTracker.registrationStart(authMethod)
         _isAuthenticating.value = false
         _registrationRequested.value = true
         onVerified(true)

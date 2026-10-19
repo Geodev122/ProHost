@@ -16,9 +16,19 @@ How analytics is wired, what is tracked, and the console steps that only the pro
 - **Identity.** GA4 `user_id` = the server display code (`U-XXXXXX`), set only after opt-in and only
   once assigned. Never the Firebase UID, email or phone. Crashlytics stays anonymous (no user id).
 - **Screens.** Automatic Activity screen reporting is off (it would always say `MainActivity`).
-  `ProHostAppRoot` logs one `screen_view` per screen change: `splash`, `auth`, `suspended`, `kyc`,
-  `manage_listing`, `space_details`, the drawer full-screen tabs and bottom tabs (by their ids),
-  `dialog_<id>` for drawer dialogs and `admin_tab_<n>` for Admin Console tabs.
+  - **Pages:** `ProHostAppRoot` resolves the page under everything with `analytics/ScreenNames.kt` (unit-tested), from
+    the same role-checked ids the shell renders. Names: `explore_map` / `explore_list`, `saved`, `my_rentals`, `profile`,
+    `my_listings`, `renting_requests`, `renting_progress`, `owner_analytics` / `admin_analytics`, `premium`,
+    `admin_console`, `admin_profile`, `space_details` (+ `item_id`, `listing_source` = explore/saved/rentals/owner_hub/
+    deep_link), `manage_listing` (+ `item_id`), `whatsapp_number_gate`, `suspended`, `splash`. Admin Console tabs:
+    `admin_packages`, `admin_users`, `admin_listings`, `admin_analytics`, `admin_schema`, `admin_security`, `admin_demo`.
+  - **Sheets, dialogs and steps** report themselves with `TrackScreen(name)` (`ui/components/TrackScreen.kt`, class
+    `Sheet`/`Dialog`): `auth_email`, `auth_email_code`, `auth_email_link_sent`, `registration`, `explore_filters`,
+    `availability`, `booking_confirm`, `request_sent`, `requirements` (+ `source` booking/hosting), `change_price`,
+    `listing_wizard_step_1..3`, `rebook`, `edit_booking`, `cancel_booking`, `listing_verification`, `legal`,
+    `legal_<doc>`, `notifications`, `premium_redeem`, `pro_host_welcome`, `admin_user_dossier`.
+  - **Stack:** they stack on the page. When one closes, the screen now visible is reported again, so time is never
+    credited to a closed sheet. Every new sheet or dialog gets a `TrackScreen`, never a raw id.
 - **Server events.** `functions/src/lib/ga4.ts` sends Measurement Protocol events for things the app
   can't see: Play RTDN renewals/cancellations/holds/expiry, restores, package lapses, system-rejected
   bookings. It only sends when the person's profile has `analyticsConsent == "GRANTED"` and a
@@ -33,15 +43,24 @@ How analytics is wired, what is tracked, and the console steps that only the pro
 | Acquisition | `deep_link_open` | `source` (share_link/email/prohost_scheme/web_link), `target` |
 | | `notification_open` | `notification_type`, `target` |
 | | `notification_permission` | `granted` |
-| Auth | `auth_start` | `method` (email/google/phone) |
+| | `notification_mark_read` | `action`=all |
+| | `location_permission` | `result` (granted/denied/blocked), `source`=map |
+| | `analytics_consent` | `granted`=true (first event after opting in) |
+| Auth | `auth_start` | `method` (email_link/email_link_resend/email_code/google) |
 | | `auth_fallback` | `from`=magic_link, `to`=email_code |
-| | `auth_error` | `method`, `code` (machine code only) |
-| | ★`login` | `method` (email_link/email_code/google/phone) |
+| | `auth_error` | `method`, `code` (machine code only; google: cancelled/unavailable/credential_error; every catch path) |
+| | ★`login` | `method` (email_link/email_code/google) |
+| | `registration_start` | `method` (the registration form opened for a new account) |
+| | `phone_hint` | `result` (offered/used/unavailable), `source` (registration/whatsapp_step) |
 | | ★`sign_up` ⚑ | `method`, `role` |
 | | `logout`, `account_deleted` | — |
-| | `kyc_start`, `kyc_complete` ⚑ | `source` |
+| | `kyc_start`, `kyc_complete` ⚑ | `source` (booking/hosting/workspace_gate) |
+| | `requirements_shown` | `source`, `missing` (photo,whatsapp,address) |
+| | `profile_photo_upload`, `profile_update` | `result` / `action` (profile/address) |
 | Discovery | ★`search` | `search_term` (≥3 chars, 1.5 s settled), `result_count` |
-| | `filter_apply` | `filter_type` (category/division_type/strategy/price/country/verified_only/saved_only), `filter_value` |
+| | `filter_apply` | `filter_type` (category/division_type/strategy/price/country/verified_only/search_area), `filter_value` |
+| | `filter_sheet_open` | `result_count` = filters already active |
+| | `search_clear` | — |
 | | `filter_reset`, `map_toggle` | `view` |
 | | ★`view_item_list` | `item_list_name` (explore_list/explore_map), `result_count`, `items` (first 10) |
 | | ★`select_item` | `item_list_name`, `items[1]` with `index` |
@@ -52,28 +71,30 @@ How analytics is wired, what is tracked, and the console steps that only the pro
 | | ★`share` | `method` (share_sheet/copy_link), `content_type`=listing, `item_id` |
 | | ★`generate_lead` ⚑ | `channel`=whatsapp, `item_id`, `item_category`, `subdivision_type`, `value` |
 | | `contact_specialist` | `channel` (host → specialist WhatsApp) |
-| Bookings | ★`begin_checkout` | `content_type`=booking, `items`, `value`, `strategy` |
+| Bookings | ★`begin_checkout` | `content_type`=booking, `items`, `value`, `strategy` — the listing page's Request tap (and Rebook/Edit) |
 | | `booking_slot_select` | `strategy`, `slot_count` |
-| | `booking_request` ⚑ | `value` (USD total), `strategy`, `attendee_count`, `pricing_mode`, `is_rebook`, `items` |
-| | `booking_request_failed` | `reason` (`write_failed` = the request didn't save; or an error code) |
-| | `booking_accepted` ⚑ | `value`, `strategy`, `is_rebook` (true = an accepted change to an existing booking) (host side) |
+| | `booking_request` ⚑ | `value` (USD total), `strategy`, `attendee_count`, `pricing_mode`, `is_rebook` (Rebook dialog), `is_edit` (change request), `items` |
+| | `booking_request_failed` | `reason` (`not_synced` = the request didn't save; or an error code) |
+| | `booking_accepted` ⚑ | `value`, `strategy`, `is_edit` (true = an accepted change to an existing booking) (host side) |
 | | `booking_rejected`, `booking_cancelled` | `strategy` / `by`, `reason` |
 | | `payment_acknowledged`, `payment_reminder_sent`, `calendar_reminder_add` | `value` |
-| Host listings | `listing_create_start`, `listing_draft_saved` | `item_category`, `subdivision_count` |
+| Host listings | `listing_create_start`, `listing_draft_saved` (explicit saves only, never the wizard autosave) | `item_category`, `subdivision_count` |
 | | `listing_publish` ⚑ | `item_category`, `country`, `subdivision_count`, `has_attendee_pricing`, `items` |
 | | `listing_publish_blocked` | `reason`=no_active_package |
 | | `listing_update`, `listing_delete`, `listing_status_change` (`from`,`to`), `listing_verification_request` | |
-| | `subdivision_add` (`subdivision_type`,`strategy`,`pricing_mode`), `subdivision_remove`, `blackout_add` | |
+| | `subdivision_add` (`subdivision_type`,`strategy`,`pricing_mode`), `subdivision_remove`, `blackout_add`, `blackout_remove`, `change_price_open` (`source` listing/booking) | |
 | | `listing_price_change` (`item_id`, `strategy` = slot kind MONTHLY/HOURLY/SHIFT/DAY/TIER, `direction` up/down, `affected_count`, `updated_now_count`, `next_term_count`, `kept_count`) — Pro Host "Change price"; no amounts | |
-| ProHost Premium | `premium_page_viewed` | `source`, `plans_loaded` |
-| | `premium_plan_viewed` | `plan` (monthly / yearly) |
+| ProHost Premium | `premium_page_viewed` | `source` (the screen the person came from), `plans_loaded` |
+| | `premium_plan_viewed` | `plan` (monthly / yearly) — impression |
+| | `premium_plan_select` | `plan`, `result` (offer/regular) — tile tapped |
+| | `premium_promo_checkout` | `code` |
 | | `premium_plans_load_failed` | `reason` |
 | | `premium_checkout_started` | `plan`, `product_id`, `value`, `currency` |
 | | `premium_purchase_failed` | `plan`, `reason` (user_cancelled, billing_error, launch_failed, feature_not_supported, server_activation), `response_code` |
-| | `premium_purchase_pending`, `premium_restore_result` (`result`), `redeem_code_open`, `manage_subscription_open`, `order_history_open` | |
-| Server only | ⚑`premium_purchase_success` (once per subscription: `plan`, `product_id`, `base_plan_id`, `value`, `currency`, `transaction_id`), `subscription_renewed` (`value`, `currency`), `subscription_restored`, `subscription_expired`, `subscription_recovered/restarted/revoked/on_hold/paused/cancelled/grace_period`, `booking_auto_rejected` | `plan`, `product_id`, `source`=server |
+| | `premium_purchase_pending`, `premium_restore_result` (`result`, `trigger` user/auto), `redeem_code_open`, `manage_subscription_open`, `order_history_open` | |
+| Server only | ⚑`premium_purchase_success` (once per subscription: `plan`, `product_id`, `base_plan_id`, `value`, `currency`, `transaction_id`), `subscription_renewed` (`value`, `currency`), `subscription_restored`, `subscription_expired` (`trigger` rtdn/expiry_sweep), `subscription_recovered/restarted/revoked/on_hold/paused/cancelled/grace_period`, `booking_auto_rejected` | `plan`, `product_id`, `source`=server |
 | Admin | `admin_action` | `action`, `result` |
-| Errors | `app_error` | `area`, `code` (every `reportFailure`) |
+| Errors | `app_error` | `area` (stable key: first five words of the fallback, snake_case), `code` (every `reportFailure`) |
 
 GA4 `items[]` for a listing: `item_id`=`L-…`, `item_name`=title, `item_category`=SpaceType,
 `item_category2`=division type (Level2Type), `item_category3`=pricing strategy, `item_category4`=country,
@@ -109,7 +130,7 @@ In [GA4 Admin](https://analytics.google.com/) → **Custom Definitions**:
 - **User-Scoped Custom Dimensions**:
   `user_role`, `user_country`, `user_governorate`, `specialty`, `kyc_complete`, `is_verified`, `plan_id`, `plan_status`, `listing_count_bucket`, `account_age_bucket`, `signup_method`, `build_type`, `is_demo`.
 - **Event-Scoped Custom Dimensions**:
-  `screen_name`, `method`, `role`, `filter_type`, `filter_value`, `strategy`, `subdivision_type`, `pricing_mode`, `channel`, `reason`, `source`, `notification_type`, `item_list_name`, `purchase_type`, `plan_id`, `action`, `area`, `code`.
+  `screen_name`, `screen_class`, `method`, `role`, `filter_type`, `filter_value`, `strategy`, `subdivision_type`, `pricing_mode`, `channel`, `reason`, `source`, `notification_type`, `item_list_name`, `listing_source`, `plan`, `action`, `area`, `code`, `result`, `trigger`, `missing`, `view`, `direction`, `is_rebook`, `is_edit`, `granted`, `target`.
 - **Event-Scoped Custom Metrics**:
   `result_count`, `attendee_count`, `slot_count`, `open_slot_count`, `subdivision_count`.
 

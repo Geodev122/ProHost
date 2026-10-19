@@ -60,6 +60,16 @@ fun RequirementsSheet(
     onReady: () -> Unit,
     requireAddress: Boolean = false
 ) {
+    val analyticsSource = if (requireAddress) "hosting" else "booking"
+    com.example.ui.components.TrackScreen("requirements", params = mapOf(com.example.analytics.Param.SOURCE to analyticsSource))
+    LaunchedEffect(Unit) {
+        com.example.analytics.AnalyticsTracker.kycStart(analyticsSource)
+        com.example.analytics.AnalyticsTracker.requirementsShown(analyticsSource, listOfNotNull(
+            "photo".takeIf { user.profilePictureUrl.isNullOrBlank() },
+            "whatsapp".takeIf { !user.hasWhatsAppNumber() },
+            "address".takeIf { requireAddress && (user.country.isBlank() || user.city.isBlank()) }
+        ).joinToString(","))
+    }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val needsPhoto = user.profilePictureUrl.isNullOrBlank()
@@ -137,7 +147,7 @@ fun RequirementsSheet(
             if (needsPhone) {
                 WhatsAppNumberSection(
                     currentPhone = user.phone,
-                    onSave = { viewModel.saveWhatsAppNumber(it) },
+                    onSave = { viewModel.saveWhatsAppNumber(it, source = analyticsSource) },
                     onSaved = { /* the profile listener flips needsPhone */ }
                 )
             }

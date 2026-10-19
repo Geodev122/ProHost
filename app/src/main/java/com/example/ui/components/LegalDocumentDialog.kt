@@ -52,6 +52,7 @@ fun LegalDocumentDialog(
     document: LegalDocument,
     onDismiss: () -> Unit
 ) {
+    com.example.ui.components.TrackScreen("legal_" + document.id.lowercase().replace(Regex("[^a-z0-9]+"), "_"), "Dialog")
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var isGeneratingPdf by remember { mutableStateOf(false) }
@@ -189,6 +190,7 @@ fun LegalDocumentDialog(
 /** Lightweight entry point: three tappable rows opening [LegalDocumentDialog] on demand. */
 @Composable
 fun LegalDocumentsMenu(onDismiss: () -> Unit) {
+    com.example.ui.components.TrackScreen("legal", "Dialog")
     var openDocument by remember { mutableStateOf<LegalDocument?>(null) }
 
     if (openDocument != null) {

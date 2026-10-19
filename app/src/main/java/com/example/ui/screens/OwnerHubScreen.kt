@@ -251,7 +251,7 @@ fun OwnerHubScreen(
             // Silent — unlike onSaveDraft above, never closes the dialog or toasts;
             // just persists progress in the background while the host keeps typing.
             onAutoSaveDraft = { draft ->
-                coroutineScope.launch { viewModel.saveListingDraft(draft) }
+                coroutineScope.launch { viewModel.saveListingDraft(draft, autosave = true) }
             },
             onListingCreated = { newListing ->
                 coroutineScope.launch {

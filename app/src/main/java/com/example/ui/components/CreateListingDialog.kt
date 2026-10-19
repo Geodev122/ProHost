@@ -402,6 +402,8 @@ fun CreateListingDialog(
     var wholeSpacePricing by remember { mutableStateOf(existingDraft?.pricing ?: RentalPricingConfig.default()) }
 
     var currentStep by rememberSaveable { mutableIntStateOf(0) }
+    // Each wizard step is a GA4 screen; leaving before publishing shows up as the last step viewed.
+    com.example.ui.components.TrackScreen("listing_wizard_step_${currentStep + 1}", "CreateListingDialog")
     // A genuine, independent choice now (spec Step 3's opening toggle) — replacing
     // the previous inference from selectedSpaceType, which made a divided Private
     // Office or an undivided Center impossible (the two facts have nothing to do

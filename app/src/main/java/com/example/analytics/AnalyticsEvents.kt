@@ -69,6 +69,22 @@ object Event {
     const val MANAGE_SUBSCRIPTION_OPEN = "manage_subscription_open"
     const val ORDER_HISTORY_OPEN = "order_history_open"
 
+    const val REQUIREMENTS_SHOWN = "requirements_shown"
+    const val REGISTRATION_START = "registration_start"
+    const val PHONE_HINT = "phone_hint"
+    const val PROFILE_PHOTO_UPLOAD = "profile_photo_upload"
+    const val PROFILE_UPDATE = "profile_update"
+    const val FILTER_SHEET_OPEN = "filter_sheet_open"
+    const val SEARCH_SUBMIT = "search_submit"
+    const val SEARCH_CLEAR = "search_clear"
+    const val BLACKOUT_REMOVE = "blackout_remove"
+    const val CHANGE_PRICE_OPEN = "change_price_open"
+    const val NOTIFICATION_MARK_READ = "notification_mark_read"
+    const val PREMIUM_PLAN_SELECT = "premium_plan_select"
+    const val PREMIUM_PROMO_CHECKOUT = "premium_promo_checkout"
+    const val LOCATION_PERMISSION = "location_permission"
+    const val ANALYTICS_CONSENT = "analytics_consent"
+
     const val ADMIN_ACTION = "admin_action"
     const val APP_ERROR = "app_error"
 }
@@ -133,6 +149,11 @@ object Param {
     const val RESULT = "result"
     const val ACTION = "action"
     const val AREA = "area"
+    const val LISTING_SOURCE = "listing_source"
+    const val IS_EDIT = "is_edit"
+    const val TRIGGER = "trigger"
+    const val STEP = "step"
+    const val MISSING = "missing"
 }
 
 /** User property names (≤24 chars). */

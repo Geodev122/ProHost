@@ -138,6 +138,8 @@ fun ProHostAppRoot(
         ownerIncomingRequestsForBadge.count { it.status == BookingRequestStatus.PENDING }
     }
     var detailedSpace by remember { mutableStateOf<SpaceListing?>(null) }
+    // Where the open listing was opened from (GA4 listing_source / select_item list name).
+    var detailedSpaceSource by remember { mutableStateOf("explore") }
     // Paired with detailedSpace: set when the user tapped a specific division/
     // subdivision card (Explore list or map) so SpaceDetailsScreen can pre-select
     // that division and open its availability sheet immediately, instead of
@@ -145,6 +147,13 @@ fun ProHostAppRoot(
     var detailedSpaceSubdivisionId by remember { mutableStateOf<String?>(null) }
     // A room card tapped on Explore opens that room's availability sheet straight away.
     var detailedSpaceOpenAvailability by remember { mutableStateOf(false) }
+    fun openSpaceFrom(source: String, space: SpaceListing) {
+        detailedSpaceSource = source
+        detailedSpaceOpenAvailability = false
+        detailedSpace = space
+        // Explore logs its own select_item (with the room and position); other lists log here.
+        com.example.analytics.AnalyticsTracker.selectItem(source, space, null, null)
+    }
     // My Rentals scrolls to this booking (after "View request", or a booking push).
     var rentalsHighlightBookingId by remember { mutableStateOf<String?>(null) }
     var managingSpace by remember { mutableStateOf<SpaceListing?>(null) }
@@ -351,6 +360,7 @@ fun ProHostAppRoot(
         val match = deepLinkSpaces.find { it.id == deepLinkSpaceId }
         if (match != null) {
             consumedDeepLinkSpaceId = deepLinkSpaceId
+            detailedSpaceSource = "deep_link"
             detailedSpace = match
             navigateTo("search_map")
         }
@@ -707,7 +717,7 @@ fun ProHostAppRoot(
                                 when (safeFullScreenDrawerTab) {
                                     AppNavTab.MyFavorites.id -> MyFavoritesScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpaceOpenAvailability = false; detailedSpace = it },
+                                        onSelectSpace = { scope.launch { drawerState.close() }; openSpaceFrom("saved", it) },
                                         onNavigateToExplore = { navigateTo(AppNavTab.SearchMap.id) }
                                     )
                                     AppNavTab.OwnerRentalRequests.id -> OwnerRentalRequestsScreen(
@@ -754,6 +764,7 @@ fun ProHostAppRoot(
                                         viewModel = viewModel,
                                         onSelectSpace = { space, subdivisionId ->
                                             scope.launch { drawerState.close() }
+                                            detailedSpaceSource = "explore"
                                             detailedSpace = space
                                             detailedSpaceSubdivisionId = subdivisionId
                                             detailedSpaceOpenAvailability = false // a room tap lands on its card; the sheet opens only from Availability
@@ -765,7 +776,7 @@ fun ProHostAppRoot(
                                     )
                                     AppNavTab.ManageListings.id -> OwnerHubScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpaceOpenAvailability = false; detailedSpace = it },
+                                        onSelectSpace = { scope.launch { drawerState.close() }; openSpaceFrom("owner_hub", it) },
                                         onManageSpace = { managingSpace = it },
                                         onOpenSubscriptions = { navigateTo(AppNavTab.OwnerSubscriptions.id) }
                                     )
@@ -775,7 +786,7 @@ fun ProHostAppRoot(
                                     )
                                     AppNavTab.MyFavorites.id -> MyFavoritesScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { detailedSpaceOpenAvailability = false; detailedSpace = it },
+                                        onSelectSpace = { openSpaceFrom("saved", it) },
                                         onNavigateToExplore = { navigateTo(AppNavTab.SearchMap.id) }
                                     )
                                     AppNavTab.ProfessionalRentals.id -> MyBookingsScreen(
@@ -783,7 +794,7 @@ fun ProHostAppRoot(
                                         highlightBookingId = rentalsHighlightBookingId,
                                         onHighlightShown = { rentalsHighlightBookingId = null },
                                         onNavigateToDiscovery = { activeTabId = AppNavTab.SearchMap.id },
-                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpaceOpenAvailability = false; detailedSpace = it }
+                                        onSelectSpace = { scope.launch { drawerState.close() }; openSpaceFrom("rentals", it) }
                                     )
                                     AppNavTab.ProfessionalProfile.id -> SpecialistProfileScreen(
                                         viewModel = viewModel,
@@ -799,6 +810,7 @@ fun ProHostAppRoot(
                                         viewModel = viewModel,
                                         onSelectSpace = { space, subdivisionId ->
                                             scope.launch { drawerState.close() }
+                                            detailedSpaceSource = "explore"
                                             detailedSpace = space
                                             detailedSpaceSubdivisionId = subdivisionId
                                             detailedSpaceOpenAvailability = false // a room tap lands on its card; the sheet opens only from Availability
@@ -846,9 +858,10 @@ fun ProHostAppRoot(
             kycReturnTab = null
         }
         if (showKycGate) {
+            LaunchedEffect(Unit) { com.example.analytics.AnalyticsTracker.kycStart("workspace_gate") }
             KycScreen(
                 currentPhone = currentUser?.phone.orEmpty(),
-                onSave = { viewModel.saveWhatsAppNumber(it) },
+                onSave = { viewModel.saveWhatsAppNumber(it, source = "workspace_gate") },
                 onKycComplete = {
                     showKycGate = false
                     val returnTo = kycReturnTab
@@ -881,6 +894,7 @@ fun ProHostAppRoot(
         )
 
         if (showProHostWelcome) {
+            com.example.ui.components.TrackScreen("pro_host_welcome", "Dialog")
             ProHostDialog(
                 onDismissRequest = { showProHostWelcome = false },
                 icon = { Icon(Icons.Default.Celebration, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
@@ -925,20 +939,38 @@ fun ProHostAppRoot(
 
     // ---- Analytics: one screen_view hook for the whole hand-rolled navigation ----
     val analyticsConsent by com.example.analytics.AnalyticsConsent.state.collectAsState()
+    // Readable names from ScreenNames, resolved from the same role-checked ids the shell renders.
+    // Login steps, sheets and dialogs report themselves (TrackScreen); "auth" is only the gap before them.
+    val analyticsRole = currentUser?.role
+    // Same activity-scoped instance the shell uses below.
+    val analyticsExploreMap by viewModel<DiscoveryViewModel>().isMapViewActive.collectAsState()
+    val analyticsTab = fullScreenDrawerTab?.takeIf { analyticsRole != null && it in allowedTabIdsForRole(analyticsRole) }
+        ?: activeTabId.takeIf { analyticsRole != null && it in allowedTabIdsForRole(analyticsRole) }
     val analyticsScreen = when {
-        showSplash -> "splash"
+        showSplash -> com.example.analytics.ScreenNames.SPLASH
         currentUser == null -> "auth"
-        currentUser?.isSuspended == true -> "suspended"
-        showKycGate -> "kyc"
-        managingSpace != null -> "manage_listing"
-        detailedSpace != null -> "space_details"
-        else -> fullScreenDrawerTab ?: activeTabId
+        currentUser?.isSuspended == true -> com.example.analytics.ScreenNames.SUSPENDED
+        showKycGate -> com.example.analytics.ScreenNames.WHATSAPP_GATE
+        managingSpace != null -> com.example.analytics.ScreenNames.MANAGE_LISTING
+        detailedSpace != null -> com.example.analytics.ScreenNames.SPACE_DETAILS
+        else -> com.example.analytics.ScreenNames.forTab(analyticsTab, analyticsRole, analyticsExploreMap)
     }
-    LaunchedEffect(analyticsScreen, analyticsConsent) {
-        com.example.analytics.AnalyticsTracker.screen(analyticsScreen)
+    val analyticsListingId = (detailedSpace ?: managingSpace)?.let { com.example.analytics.listingItemId(it) }
+    LaunchedEffect(analyticsScreen, analyticsListingId, analyticsConsent) {
+        com.example.analytics.AnalyticsTracker.screen(
+            analyticsScreen,
+            params = when {
+                detailedSpace != null -> mapOf(
+                    com.example.analytics.Param.ITEM_ID to analyticsListingId,
+                    com.example.analytics.Param.LISTING_SOURCE to detailedSpaceSource
+                )
+                managingSpace != null -> mapOf(com.example.analytics.Param.ITEM_ID to analyticsListingId)
+                else -> emptyMap()
+            }
+        )
     }
-    LaunchedEffect(activeDrawerTabDialog, analyticsConsent) {
-        activeDrawerTabDialog?.let { com.example.analytics.AnalyticsTracker.screen("dialog_$it", "Dialog") }
+    activeDrawerTabDialog?.let { id ->
+        com.example.ui.components.TrackScreen(com.example.analytics.ScreenNames.forDrawerDialog(id), "Dialog")
     }
     LaunchedEffect(currentUser, analyticsConsent) {
         com.example.analytics.AnalyticsTracker.setUser(currentUser)

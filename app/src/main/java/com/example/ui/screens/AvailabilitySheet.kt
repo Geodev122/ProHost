@@ -75,6 +75,7 @@ internal fun AvailabilitySheet(
         attendeeQuote: com.example.ui.util.AttendeePricing.Quote?
     ) -> Unit
 ) {
+    com.example.ui.components.TrackScreen("availability")
     val context = LocalContext.current
     var availabilityPanelState by availabilityPanelStateHolder
     var selectedSlots by selectedSlotsState
@@ -577,6 +578,7 @@ internal fun AvailabilitySheet(
 
     // ── Confirm-and-send popup ───────────────────────────────────────────
     if (showSendConfirm) {
+        com.example.ui.components.TrackScreen("booking_confirm", "Dialog")
         val selectedSubdivisionForDialog = if (selectedSubdivisionId != null)
             liveSpace.subdivisions.find { it.id == selectedSubdivisionId } else null
         val allSheetSlots = sheetSlotGroups.flatMap { (_, s) -> s }

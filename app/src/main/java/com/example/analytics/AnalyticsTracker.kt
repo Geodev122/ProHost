@@ -22,7 +22,10 @@ object AnalyticsTracker {
 
     private val blockedKey = Regex("(?i)(e?mail|phone|full_?name|first_?name|last_?name|uid|password|token|address)")
     private val emailLike = Regex("[^\\s@]+@[^\\s@]+\\.[^\\s@]+")
+    // A phone number: optional +, then 8+ digits with spaces/brackets/dashes between them. Price ranges
+    // ("100-2000") and ISO dates ("2026-10-20") are values we want, so a single dash-joined pair isn't one.
     private val phoneLike = Regex("^\\+?[0-9][0-9 ()\\-]{6,}$")
+    private val rangeOrDate = Regex("^\\d{1,6}-\\d{1,6}$|^\\d{4}-\\d{2}-\\d{2}$")
 
     private var buildType: String = "release"
 
@@ -41,6 +44,7 @@ object AnalyticsTracker {
             s.setUserId(null)
             s.resetData()
             lastScreen = null
+            synchronized(overlays) { overlays.clear(); baseScreen = null }
             lastUserFingerprint = null
             appInstanceId = null
         }
@@ -90,7 +94,8 @@ object AnalyticsTracker {
 
     private fun cleanString(s: String): String? {
         val t = s.trim()
-        if (t.isEmpty() || emailLike.containsMatchIn(t) || phoneLike.matches(t)) return null
+        if (t.isEmpty() || emailLike.containsMatchIn(t)) return null
+        if (phoneLike.matches(t) && !rangeOrDate.matches(t) && t.count { it.isDigit() } >= 8) return null
         return t.take(100)
     }
 
@@ -156,10 +161,52 @@ object AnalyticsTracker {
 
     // ---- navigation & acquisition -----------------------------------------------------
 
-    fun screen(name: String, screenClass: String = "ProHostAppRoot") {
-        if (!enabled || name == lastScreen) return
-        lastScreen = name
-        log(Event.SCREEN_VIEW, mapOf(Param.SCREEN_NAME to name, Param.SCREEN_CLASS to screenClass))
+    /** The screen last reported (e.g. read while a page composes = where the person came from). */
+    val currentScreen: String? get() = lastScreen
+
+    private data class ScreenEntry(val name: String, val screenClass: String, val params: Map<String, Any?>)
+
+    @Volatile private var baseScreen: ScreenEntry? = null
+    private val overlays = ArrayList<ScreenEntry>()
+
+    /**
+     * The page under everything (from the shell's resolver, [ScreenNames]). Logged unless a sheet or dialog
+     * is on top; [params] adds context such as the listing and where it was opened from.
+     */
+    fun screen(name: String, screenClass: String = "ProHostAppRoot", params: Map<String, Any?> = emptyMap()) {
+        val entry = ScreenEntry(name, screenClass, params)
+        synchronized(overlays) {
+            baseScreen = entry
+            if (overlays.isNotEmpty()) return
+        }
+        emitScreen(entry)
+    }
+
+    /** A sheet, dialog or step shown over the page (TrackScreen); logged as its own screen_view. */
+    fun pushScreen(name: String, screenClass: String = "Sheet", params: Map<String, Any?> = emptyMap()) {
+        val entry = ScreenEntry(name, screenClass, params)
+        synchronized(overlays) { overlays.add(entry) }
+        emitScreen(entry)
+    }
+
+    /** The overlay [name] closed: the screen now visible is logged again, so time isn't credited to the closed one. */
+    fun popScreen(name: String) {
+        val visible = synchronized(overlays) {
+            val i = overlays.indexOfLast { it.name == name }
+            if (i < 0) return
+            val wasTop = i == overlays.lastIndex
+            overlays.removeAt(i)
+            if (!wasTop) return
+            overlays.lastOrNull() ?: baseScreen
+        } ?: return
+        lastScreen = null
+        emitScreen(visible)
+    }
+
+    private fun emitScreen(entry: ScreenEntry) {
+        if (!enabled || entry.name == lastScreen) return
+        lastScreen = entry.name
+        log(Event.SCREEN_VIEW, entry.params + mapOf(Param.SCREEN_NAME to entry.name, Param.SCREEN_CLASS to entry.screenClass))
     }
 
     fun deepLinkOpen(source: String, target: String?) =
@@ -167,6 +214,8 @@ object AnalyticsTracker {
 
     fun notificationOpen(type: String?, target: String?) =
         log(Event.NOTIFICATION_OPEN, mapOf(Param.NOTIFICATION_TYPE to (type ?: "unknown"), Param.TARGET to target))
+
+    fun notificationMarkRead(all: Boolean) = log(Event.NOTIFICATION_MARK_READ, mapOf(Param.ACTION to if (all) "all" else "one"))
 
     fun notificationPermission(granted: Boolean) =
         log(Event.NOTIFICATION_PERMISSION, mapOf(Param.GRANTED to granted))
@@ -191,7 +240,21 @@ object AnalyticsTracker {
         setUser(null)
     }
     fun kycStart(source: String) = log(Event.KYC_START, mapOf(Param.SOURCE to source))
-    fun kycComplete() = log(Event.KYC_COMPLETE)
+    /** [source]: where the WhatsApp-number step was saved (requirements, workspace_gate, registration). */
+    fun kycComplete(source: String? = null) = log(Event.KYC_COMPLETE, mapOf(Param.SOURCE to source))
+    /** The requirements sheet opened; [missing] lists the steps still to do, e.g. "photo,whatsapp". */
+    fun requirementsShown(source: String, missing: String) =
+        log(Event.REQUIREMENTS_SHOWN, mapOf(Param.SOURCE to source, Param.MISSING to missing))
+    fun registrationStart(method: String) = log(Event.REGISTRATION_START, mapOf(Param.METHOD to method))
+    /** Android's phone-number picker: [result] is offered, used or unavailable. */
+    fun phoneHint(result: String, source: String) = log(Event.PHONE_HINT, mapOf(Param.RESULT to result, Param.SOURCE to source))
+    fun profilePhotoUpload(success: Boolean, source: String) =
+        log(Event.PROFILE_PHOTO_UPLOAD, mapOf(Param.RESULT to if (success) "success" else "failure", Param.SOURCE to source))
+    fun profileUpdate(fields: String) = log(Event.PROFILE_UPDATE, mapOf(Param.ACTION to fields))
+    fun analyticsConsent(granted: Boolean) = log(Event.ANALYTICS_CONSENT, mapOf(Param.GRANTED to granted))
+    /** [result]: granted, denied, blocked (Android won't ask again) or location_off. */
+    fun locationPermission(result: String, source: String) =
+        log(Event.LOCATION_PERMISSION, mapOf(Param.RESULT to result, Param.SOURCE to source))
 
     // ---- discovery --------------------------------------------------------------------
 
@@ -202,6 +265,10 @@ object AnalyticsTracker {
         log(Event.FILTER_APPLY, mapOf(Param.FILTER_TYPE to type, Param.VALUE_LABEL to value, Param.RESULT_COUNT to resultCount))
 
     fun filterReset() = log(Event.FILTER_RESET)
+    fun filterSheetOpen(activeFilters: Int) = log(Event.FILTER_SHEET_OPEN, mapOf(Param.RESULT_COUNT to activeFilters))
+    fun searchSubmit(term: String, resultCount: Int) =
+        log(Event.SEARCH_SUBMIT, mapOf(Param.SEARCH_TERM to term.lowercase(), Param.RESULT_COUNT to resultCount))
+    fun searchClear() = log(Event.SEARCH_CLEAR)
     fun mapToggle(isMap: Boolean) = log(Event.MAP_TOGGLE, mapOf(Param.VIEW to if (isMap) "map" else "list"))
 
     fun viewItemList(listName: String, spaces: List<SpaceListing>) {
@@ -309,7 +376,8 @@ object AnalyticsTracker {
         valueUsd: Double,
         strategy: String?,
         attendeeCount: Int?,
-        isRebook: Boolean
+        isRebook: Boolean,
+        isEdit: Boolean = false
     ) {
         if (!enabled) return
         log(Event.BOOKING_REQUEST, mapOf(
@@ -319,6 +387,7 @@ object AnalyticsTracker {
             Param.ATTENDEE_COUNT to attendeeCount,
             Param.PRICING_MODE to if (attendeeCount != null && attendeeCount > 0) "per_attendee" else "per_booking",
             Param.IS_REBOOK to isRebook,
+            Param.IS_EDIT to isEdit,
             Param.ITEMS to listOfNotNull(space?.toAnalyticsItem(sub))
         ))
     }
@@ -327,7 +396,7 @@ object AnalyticsTracker {
     /** [isEdit]: an accepted change to an existing booking (the old one is released, not new revenue). */
     fun bookingAccepted(valueUsd: Double?, strategy: String?, isEdit: Boolean = false) =
         log(Event.BOOKING_ACCEPTED, mapOf(
-            Param.CURRENCY to "USD", Param.VALUE to valueUsd, Param.STRATEGY to strategy, Param.IS_REBOOK to isEdit
+            Param.CURRENCY to "USD", Param.VALUE to valueUsd, Param.STRATEGY to strategy, Param.IS_EDIT to isEdit
         ))
     fun bookingRejected(strategy: String?) = log(Event.BOOKING_REJECTED, mapOf(Param.STRATEGY to strategy))
     fun bookingCancelled(by: String, reasonCode: String?) =
@@ -389,6 +458,8 @@ object AnalyticsTracker {
     ))
     fun subdivisionRemove() = log(Event.SUBDIVISION_REMOVE)
     fun blackoutAdd() = log(Event.BLACKOUT_ADD)
+    fun blackoutRemove() = log(Event.BLACKOUT_REMOVE)
+    fun changePriceOpen(source: String) = log(Event.CHANGE_PRICE_OPEN, mapOf(Param.SOURCE to source))
 
     // ---- subscriptions / Play Billing -------------------------------------------------
 
@@ -399,6 +470,10 @@ object AnalyticsTracker {
     fun premiumPageViewed(source: String, plansLoaded: Int) =
         log(Event.PREMIUM_PAGE_VIEWED, mapOf(Param.SOURCE to source, Param.PLANS_LOADED to plansLoaded))
     fun premiumPlanViewed(plan: String) = log(Event.PREMIUM_PLAN_VIEWED, mapOf(Param.PLAN to plan))
+    /** A plan tile tapped (selection), unlike [premiumPlanViewed] which is an impression. */
+    fun premiumPlanSelect(plan: String, hasOffer: Boolean) =
+        log(Event.PREMIUM_PLAN_SELECT, mapOf(Param.PLAN to plan, Param.RESULT to if (hasOffer) "offer" else "regular"))
+    fun premiumPromoCheckout(code: String) = log(Event.PREMIUM_PROMO_CHECKOUT, mapOf(Param.CODE to code))
     fun premiumPlansLoadFailed(reason: String) = log(Event.PREMIUM_PLANS_LOAD_FAILED, mapOf(Param.REASON to reason))
 
     fun premiumCheckoutStarted(plan: String?, priceMicros: Long?, currency: String?) =
@@ -413,7 +488,9 @@ object AnalyticsTracker {
     fun premiumPurchaseFailed(plan: String?, reason: String, responseCode: Int? = null) =
         log(Event.PREMIUM_PURCHASE_FAILED, mapOf(Param.PLAN to plan, Param.REASON to reason, Param.RESPONSE_CODE to responseCode))
     fun premiumPurchasePending(plan: String?) = log(Event.PREMIUM_PURCHASE_PENDING, mapOf(Param.PLAN to plan))
-    fun premiumRestoreResult(result: String) = log(Event.PREMIUM_RESTORE_RESULT, mapOf(Param.RESULT to result))
+    /** [trigger]: "user" (Restore button) or "auto" (silent check on app resume). */
+    fun premiumRestoreResult(result: String, trigger: String = "user") =
+        log(Event.PREMIUM_RESTORE_RESULT, mapOf(Param.RESULT to result, Param.TRIGGER to trigger))
 
     /** SHA-256 of the Play order id, first 24 hex chars — mirrored by functions/src/lib/ga4.ts. */
     fun transactionId(orderId: String): String =
@@ -433,6 +510,14 @@ object AnalyticsTracker {
 
     /** [code] is a short machine code (exception class or Firebase error code) — never a message. */
     fun appError(area: String, code: String) = log(Event.APP_ERROR, mapOf(Param.AREA to area, Param.CODE to code))
+
+    /**
+     * A stable, low-cardinality app_error area from a user-facing fallback message: its first five words,
+     * snake_case ("Couldn't change the price — please try again." → "couldnt_change_the_price_please").
+     */
+    fun areaKey(message: String): String =
+        message.lowercase().replace("'", "").split(Regex("[^a-z0-9]+")).filter { it.isNotBlank() }.take(5).joinToString("_")
+            .ifBlank { "unknown" }
 
     fun errorCode(e: Throwable): String = when (e) {
         is com.google.firebase.firestore.FirebaseFirestoreException -> e.code.name

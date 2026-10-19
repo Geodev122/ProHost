@@ -434,6 +434,10 @@ plan + recurring price + date;
   `FirebaseAnalytics`/`logEvent` elsewhere (NIGHTHAWK "Analytics Hygiene"). No PII params; listing/room
   ids are `publicCode`s. GA4 `user_id` is the display code (`U-…`), never the UID. Crashlytics stays
   without a user id.
+- Screens: the shell's page name comes only from `analytics/ScreenNames.kt` (never a raw tab id); every sheet, dialog or
+  step calls `TrackScreen(name)` (`ui/components/TrackScreen.kt`), which stacks on the page and re-reports the page when it
+  closes. Funnel: `begin_checkout` on the listing page's Request tap, `requirements_shown`/`kyc_start` from
+  RequirementsSheet. Autosaves and camera moves are never events.
 - Log at ViewModel success/failure points, not in UI, except UI-only moments (screen views in
   `ProHostAppRoot`, availability sheet, booking dialog). `reportFailure` also logs `app_error`.
 - Server events: `functions/src/lib/ga4.ts` `sendGa4Event(uid, …)` — consent-gated on

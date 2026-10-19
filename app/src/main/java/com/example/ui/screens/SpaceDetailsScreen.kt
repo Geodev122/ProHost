@@ -92,7 +92,7 @@ fun SpaceDetailsScreen(
     // host's own visits don't inflate their own stats.
     LaunchedEffect(liveSpace.id) {
         if (currentUser?.id != liveSpace.ownerId) {
-            viewModel.registerSpaceView(liveSpace.id)
+            viewModel.registerSpaceView(liveSpace, intendedSubdivisionId)
         }
     }
 
@@ -199,11 +199,15 @@ fun SpaceDetailsScreenContent(
     var showRequirements by remember { mutableStateOf(false) }
     // The request just sent: drives the "Request sent" sheet (View request / WhatsApp host).
     var sentRequest by remember { mutableStateOf<RentalBookingRequest?>(null) }
+    var selectedSubdivisionId by remember { mutableStateOf<String?>(null) }
     fun requestWithRequirements() {
         val user = currentUser ?: return
+        // Booking funnel: Request tapped (begin_checkout), then either the confirm step or the requirements gate.
+        val sub = liveSpace.subdivisions.find { it.id == selectedSubdivisionId }
+        com.example.analytics.AnalyticsTracker.beginBookingCheckout(liveSpace, sub)
+        com.example.analytics.AnalyticsTracker.bookingSlotSelect(sub?.pricing?.strategyType?.name ?: liveSpace.pricing.strategyType.name, selectedSlots.size)
         if (user.canTransact()) showSendConfirm = true else showRequirements = true
     }
-    var selectedSubdivisionId by remember { mutableStateOf<String?>(null) }
     val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
 
     // Real, live pricing config (SpaceCalculationUtils.buildAllSlotsForSpace) — the
@@ -987,7 +991,7 @@ fun SpaceDetailsScreenContent(
                 availabilityPanelState = "hidden"
                 sentRequest = request
             } else {
-                com.example.analytics.AnalyticsTracker.bookingRequestFailed("offline")
+                com.example.analytics.AnalyticsTracker.bookingRequestFailed("not_synced")
                 snackbarHostState.showSnackbar("Couldn't send your request — check your connection and try again.")
             }
         }
@@ -1022,6 +1026,7 @@ fun SpaceDetailsScreenContent(
     // "Request sent": the two next steps a specialist takes — see it in My Rentals, or
     // message the host right away (same WhatsApp text as the My Rentals card).
     sentRequest?.let { request ->
+        com.example.ui.components.TrackScreen("request_sent")
         ProHostBottomSheet(onDismissRequest = { sentRequest = null }) {
             Column(
                 modifier = Modifier

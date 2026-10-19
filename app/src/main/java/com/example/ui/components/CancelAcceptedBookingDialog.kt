@@ -32,6 +32,7 @@ fun CancelAcceptedBookingDialog(
     onDismiss: () -> Unit,
     onConfirm: (reasonCode: CancellationReasonCode, note: String?) -> Unit
 ) {
+    com.example.ui.components.TrackScreen("cancel_booking", "Dialog")
     var selectedReason by remember { mutableStateOf<CancellationReasonCode?>(null) }
     var note by remember { mutableStateOf("") }
 

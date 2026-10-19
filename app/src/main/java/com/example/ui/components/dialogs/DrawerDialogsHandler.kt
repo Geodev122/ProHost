@@ -441,6 +441,7 @@ fun DrawerDialogsHandler(
                                                                                         "pro_rentals"
                                                                                     else "owner_progress"
                                                                             }
+                                                                        com.example.analytics.AnalyticsTracker.notificationOpen(alert.category, "in_app:$resolvedTab")
                                                                         if (onOpenNotification != null) onOpenNotification(alert, resolvedTab)
                                                                         else onNavigateToTab?.invoke(resolvedTab)
                                                                     },

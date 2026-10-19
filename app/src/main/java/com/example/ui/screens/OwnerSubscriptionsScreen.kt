@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import kotlinx.coroutines.flow.first
 import android.content.ContextWrapper
 import android.media.AudioAttributes
 import android.media.MediaPlayer
@@ -170,11 +171,15 @@ fun OwnerSubscriptionsScreen(
     val isForcedUpgrade = PlayCatalog.isForcedUpgrade(currentPlanId)
 
     val pricesLoading = !billingConnected && premiumProduct == null
-    // One premium_page_viewed per visit, once Play has had a moment to answer.
+    // One premium_page_viewed per visit: source = the screen the person came from (read before this page's own
+    // screen_view), sent as soon as Play answers (or after 3 s with however many plans loaded).
+    val premiumEntrySource = remember { com.example.analytics.AnalyticsTracker.currentScreen ?: "direct" }
     val latestPlanCount by rememberUpdatedState(enabledPlans.size)
     LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(3_000L)
-        com.example.analytics.AnalyticsTracker.premiumPageViewed("subscriptions", latestPlanCount)
+        kotlinx.coroutines.withTimeoutOrNull(3_000L) {
+            androidx.compose.runtime.snapshotFlow { latestPlanCount }.first { count -> count > 0 }
+        }
+        com.example.analytics.AnalyticsTracker.premiumPageViewed(premiumEntrySource, latestPlanCount)
     }
     LaunchedEffect(enabledPlans) {
         enabledPlans.forEach { bp ->
@@ -393,6 +398,10 @@ fun OwnerSubscriptionsScreen(
                                     savingsPercent = if (kind == PlayCatalog.PlanKind.YEARLY) yearlySavings else null,
                                     modifier = Modifier.weight(1f).fillMaxHeight(),
                                     onClick = {
+                                        com.example.analytics.AnalyticsTracker.premiumPlanSelect(
+                                            PlayCatalog.planInterval(plan) ?: plan,
+                                            hasOffer = offerSummaries[kind]?.hasOffer == true && !hasLivePlaySubscription
+                                        )
                                         selectedPlan = plan
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     }
@@ -561,6 +570,7 @@ fun OwnerSubscriptionsScreen(
     }
 
     if (showRedeemDialog) {
+        com.example.ui.components.TrackScreen("premium_redeem")
         // "Redeem code": the Play promo card (when Play returned one) and the one-time-code field.
         com.example.ui.components.ProHostBottomSheet(
             onDismissRequest = { showRedeemDialog = false; redeemCodeInput = "" },
