@@ -76,3 +76,14 @@ footer.site a { color:rgba(255,255,255,.8); text-decoration:none; } footer.site 
 .fcol { display:flex; flex-direction:column; gap:.35rem; } .fcol b { color:#fff; margin-bottom:.2rem; }
 .copy { margin-top:1.6rem; font-size:.82rem; color:rgba(255,255,255,.5); }
 :focus-visible { outline:3px solid var(--orange); outline-offset:2px; }
+
+/* partner enquiry form (partner page) */
+.pform { background:var(--card); border:1px solid var(--line); border-radius:1.2rem; padding:1.4rem; display:grid; gap:.35rem; }
+.pform label { font:600 .86rem/1.4 var(--head); color:var(--navy); margin-top:.5rem; }
+.pform input, .pform select, .pform textarea { width:100%; font:inherit; padding:.7rem .85rem; border:1.5px solid var(--line); border-radius:.7rem; background:#fff; color:var(--ink); }
+.pform input:focus, .pform select:focus, .pform textarea:focus { outline:none; border-color:var(--steel); box-shadow:0 0 0 3px var(--steel-c); }
+.pform textarea { min-height:120px; resize:vertical; }
+.pform .row2 { display:grid; grid-template-columns:1fr 1fr; gap:.8rem; } @media (max-width:560px) { .pform .row2 { grid-template-columns:1fr; } }
+.pform .check { display:flex; gap:.6rem; align-items:flex-start; font-weight:500; margin-top:.9rem; } .pform .check input { width:auto; margin-top:.25rem; }
+.pform .hp { position:absolute; left:-9999px; height:0; overflow:hidden; }
+.pform .status { min-height:1.4rem; font-size:.92rem; margin-top:.6rem; } .pform .status.ok { color:var(--green); } .pform .status.err { color:#C0392B; }

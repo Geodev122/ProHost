@@ -39,3 +39,11 @@ domain not verified yet).
 
 ### 5. Clean-up
 Secret Manager: delete `HOSTINGER_SMTP_API_KEY` (and the dead `WHISH_SECRET_KEY`).
+
+## Partner enquiries (pro-host.tech/partner)
+
+The form on `/partner` calls `websiteContact` with `topic: "partner"`. Each enquiry:
+- arrives at admin@pro-host.tech with subject `[ProHost Partner] Name (Company)`, reply-to the visitor, headers `X-ProHost-Form: partner`, `X-ProHost-Tags: partner, strategic-sponsor, usd-24000`, `Importance: high`;
+- is saved in `mailing_list` (sources `partner`, `tags` array, never auto-subscribed to the newsletter) and `mailing_messages` (`source`, `tags`).
+
+Gmail filter for admin@: Has the words `subject:"[ProHost Partner]"` → Apply label `ProHost/Partner`, star, never send to spam.

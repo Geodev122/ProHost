@@ -148,6 +148,33 @@ export interface ContactRequest {
   name: string; email: string; phone?: string; organization?: string; role?: string; message: string; subscribed: boolean;
 }
 
+/** Tags carried by every partner enquiry: in the subject, in X-ProHost-* headers and on the address-book entry. */
+export const PARTNER_TAGS = ["partner", "strategic-sponsor", "usd-24000"] as const;
+export const PARTNER_SUBJECT_TAG = "[ProHost Partner]";
+
+export interface PartnerRequest extends ContactRequest { markets?: string; timeline?: string }
+
+/** Notification to admin@pro-host.tech for a /partner enquiry. Filter on the subject tag or the X-ProHost-Form header. */
+export function partnerNotificationEmail(r: PartnerRequest) {
+  const row = (k: string, v?: string) => v ? `<tr><td style="padding:6px 14px 6px 0;color:${MUTED};font:600 13px/1.5 ${FONT};white-space:nowrap;vertical-align:top">${k}</td>
+<td style="padding:6px 0;color:${INK};font:14px/1.5 ${FONT}">${esc(v)}</td></tr>` : "";
+  const inner = `<p style="margin:0 0 8px"><span style="display:inline-block;background:${ORANGE};color:#fff;border-radius:99px;padding:3px 12px;font:700 12px/1.6 ${FONT};letter-spacing:.04em">PARTNER ENQUIRY</span></p>
+<h1 style="margin:0 0 6px;color:${INK};font:800 22px/1.25 ${FONT}">Strategic partner enquiry</h1>
+<p style="margin:0 0 18px;color:${MUTED};font:14px/1.6 ${FONT}">From the pro-host.tech/partner form (USD 24,000 package). Reply to this email to answer ${esc(r.name)} directly.</p>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px">
+${row("Name", r.name)}${row("Email", r.email)}${row("Phone", r.phone)}${row("Organization", r.organization)}${row("Role", r.role)}${row("Markets of interest", r.markets)}${row("Timeline", r.timeline)}${row("Tags", PARTNER_TAGS.join(", "))}
+</table>
+<div style="background:#F6F8FB;border-left:4px solid ${ORANGE};border-radius:0 10px 10px 0;padding:14px 18px;margin:0 0 24px;color:${INK};font:15px/1.65 ${FONT};white-space:pre-wrap">${esc(r.message)}</div>
+${button("Open the address book", `${SITE}/admin`, BLUE)}`;
+  const footer = `<tr><td style="background:#F6F8FB;padding:16px 32px;text-align:center;font:12px/1.6 ${FONT};color:${MUTED}">ProHost website · partner form · ${PARTNER_TAGS.join(" · ")}</td></tr>`;
+  return {
+    subject: `${PARTNER_SUBJECT_TAG} ${r.name}${r.organization ? ` (${r.organization})` : ""}`.slice(0, 140),
+    html: shell(inner, `Partner enquiry from ${r.name}: ${r.message.slice(0, 80)}`, footer),
+    text: `${PARTNER_SUBJECT_TAG} Strategic partner enquiry\n\nName: ${r.name}\nEmail: ${r.email}\nPhone: ${r.phone ?? ""}\nOrganization: ${r.organization ?? ""}\nRole: ${r.role ?? ""}\nMarkets: ${r.markets ?? ""}\nTimeline: ${r.timeline ?? ""}\nTags: ${PARTNER_TAGS.join(", ")}\n\n${r.message}\n`,
+    headers: { "X-ProHost-Form": "partner", "X-ProHost-Tags": PARTNER_TAGS.join(", "), "X-Priority": "2", Importance: "high" } as Record<string, string>,
+  };
+}
+
 /** Notification to admin@pro-host.tech for a website contact request (reply goes straight to the visitor). */
 export function contactNotificationEmail(r: ContactRequest) {
   const row = (k: string, v?: string) => v ? `<tr><td style="padding:6px 14px 6px 0;color:${MUTED};font:600 13px/1.5 ${FONT};white-space:nowrap;vertical-align:top">${k}</td>

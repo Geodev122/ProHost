@@ -10,7 +10,7 @@ import { sendEmail, maskEmail } from "../lib/email";
 import { isPlausibleEmail, takeEmailSendSlot } from "../lib/emailRateLimit";
 import { esc } from "../lib/emailTemplates";
 import { ROLES, clip, clipText, unsubscribeByToken, upsertContact } from "./addressBook";
-import { ADMIN_EMAIL, contactNotificationEmail } from "./mailTemplates";
+import { ADMIN_EMAIL, PARTNER_TAGS, contactNotificationEmail, partnerNotificationEmail } from "./mailTemplates";
 
 function clientIp(raw: { ip?: string; headers?: Record<string, unknown> } | undefined): string {
   const fwd = String(raw?.headers?.["x-forwarded-for"] ?? "").split(",")[0].trim();
@@ -22,7 +22,10 @@ function role(v: unknown): string {
   return (ROLES as readonly string[]).includes(r) ? r : (r ? "Other" : "");
 }
 
-/** websiteContact({ name, email, phone, organization, role, message, subscribe, website }) */
+/**
+ * websiteContact({ name, email, phone, organization, role, message, subscribe, website, topic, markets, timeline })
+ * topic "partner" (the /partner page) tags the request: subject "[ProHost Partner] …", X-ProHost-* headers, address-book tags.
+ */
 export const websiteContact = onCall({ cors: true }, async (request) => {
   const d = request.data ?? {};
   if (clip(d.website, 100)) return { ok: true }; // honeypot: bots fill every field
@@ -35,17 +38,22 @@ export const websiteContact = onCall({ cors: true }, async (request) => {
   await takeEmailSendSlot("web_contact_ip", clientIp(request.rawRequest), 8);
   await takeEmailSendSlot("web_contact_email", email, 5);
 
+  const partner = d.topic === "partner";
   const entry = {
     email, name, message, phone: clip(d.phone, 40), organization: clip(d.organization, 120), role: role(d.role),
   };
-  const { subscribed } = await upsertContact({ ...entry, subscribe: d.subscribe === true, source: "contact" });
-  const mail = contactNotificationEmail({ ...entry, subscribed });
+  const extra = partner ? { markets: clip(d.markets, 200), timeline: clip(d.timeline, 60) } : {};
+  const { subscribed } = await upsertContact({
+    ...entry, subscribe: !partner && d.subscribe === true, source: partner ? "partner" : "contact",
+    ...(partner ? { tags: [...PARTNER_TAGS], message: [extra.markets && `Markets: ${extra.markets}`, extra.timeline && `Timeline: ${extra.timeline}`, message].filter(Boolean).join("\n") } : {}),
+  });
+  const mail = partner ? partnerNotificationEmail({ ...entry, ...extra, subscribed }) : contactNotificationEmail({ ...entry, subscribed });
   const queued = await sendEmail({ to: ADMIN_EMAIL, replyTo: email, ...mail });
   if (!queued) {
     // The request is saved in the address book either way; tell the visitor the truth.
     throw new HttpsError("unavailable", "We saved your message but couldn't notify the team. Please email admin@pro-host.tech.");
   }
-  logger.info("website_contact", { email: maskEmail(email), role: entry.role, subscribed });
+  logger.info(partner ? "website_partner" : "website_contact", { email: maskEmail(email), role: entry.role, subscribed });
   return { ok: true };
 });
 

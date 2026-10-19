@@ -46,7 +46,7 @@
     <span class="eyebrow">Strategic partnership</span>
     <h1>Become ProHost's <em>strategic partner</em></h1>
     <p class="lead">We are opening one strategic partner position for the launch and expansion of ProHost. Your brand goes into the app and onto every market we enter, and you share in the revenue the app earns on Google Play.</p>
-    <div class="ctas"><a class="btn btn-orange" href="mailto:admin@pro-host.tech?subject=ProHost%20strategic%20partnership">Talk to us about the partnership</a><a class="btn btn-outline" href="#package">See the package</a></div>
+    <div class="ctas"><a class="btn btn-orange" href="#enquiry">Send a partner enquiry</a><a class="btn btn-outline" href="#package">See the package</a></div>
     <ul class="ticks"><li>One partner only</li><li>Investment: USD 24,000</li><li>Terms in a written agreement</li></ul>
   </div>
   <img class="hero-img" src="/img/meeting.jpg" alt="A meeting room listed on ProHost" width="640" height="800" fetchpriority="high">
@@ -71,8 +71,28 @@
   <div class="faq"><details open><summary>What does the partner invest?</summary><p>USD 24,000. In return the partner receives everything listed on this page.</p></details><details><summary>How is the 13% calculated?</summary><p>On the revenue Google Play distributes to ProHost from ProHost Premium subscriptions. The written agreement sets out the calculation, the reporting and the payment dates.</p></details><details><summary>Which countries are covered?</summary><p>Every expansion country on ProHost's list. We share the list with the partner and the logo appears in the marketing of each country as it launches.</p></details><details><summary>How many partners are there?</summary><p>One. This is a single strategic partner position.</p></details><details><summary>How do we start?</summary><p>Write to admin@pro-host.tech or use the button below. We will set up a call and send the written agreement.</p></details></div>
 </div></section>
 
-<section class="white"><div class="wrap"><div class="final"><div><h2>Interested in being our partner?</h2><p>Write to us and we will set up a call. Terms are confirmed in a written agreement.</p></div>
-  <a class="btn btn-white" href="mailto:admin@pro-host.tech?subject=ProHost%20strategic%20partnership">Email admin@pro-host.tech</a></div></div></section>
+<section id="enquiry" class="white"><div class="wrap two">
+  <div><span class="eyebrow">Partner enquiry</span><h2 class="h2s">Tell us about your company</h2>
+    <p class="muted">Your message goes straight to the ProHost team. We reply by email and set up a call. Terms are confirmed in a written agreement.</p>
+    <p class="fine" style="margin-top:.8rem">Prefer email? Write to <a href="mailto:admin@pro-host.tech?subject=ProHost%20strategic%20partnership">admin@pro-host.tech</a>.</p></div>
+  <form class="pform" id="partnerForm" novalidate>
+    <div class="row2"><div><label for="pf_name">Name *</label><input id="pf_name" name="name" autocomplete="name" required maxlength="100"></div>
+      <div><label for="pf_email">Work email *</label><input id="pf_email" name="email" type="email" autocomplete="email" required maxlength="254"></div></div>
+    <div class="row2"><div><label for="pf_org">Company *</label><input id="pf_org" name="organization" autocomplete="organization" required maxlength="120"></div>
+      <div><label for="pf_phone">Phone / WhatsApp</label><input id="pf_phone" name="phone" type="tel" autocomplete="tel" maxlength="40"></div></div>
+    <div class="row2"><div><label for="pf_role">Your company is a…</label><select id="pf_role" name="role"><option>Hotel</option><option>Medical center</option><option>Clinic</option><option>Training center</option><option>Coworking / business center</option><option>Property owner</option><option selected>Other</option></select></div>
+      <div><label for="pf_time">When do you want to start?</label><select id="pf_time" name="timeline"><option>As soon as possible</option><option>This quarter</option><option>Within 6 months</option><option>Just exploring</option></select></div></div>
+    <label for="pf_mk">Countries you are interested in</label><input id="pf_mk" name="markets" maxlength="200" placeholder="For example: UAE, Saudi Arabia, Egypt">
+    <label for="pf_msg">Message *</label><textarea id="pf_msg" name="message" required maxlength="4000" placeholder="Tell us about your company and why ProHost is a fit."></textarea>
+    <div class="hp" aria-hidden="true"><label for="pf_web">Website</label><input id="pf_web" name="website" tabindex="-1" autocomplete="off"></div>
+    <label class="check"><input type="checkbox" id="pf_ok" required> I understand the partnership terms are confirmed in a written agreement.</label>
+    <button class="btn btn-orange" type="submit" style="width:100%;margin-top:1rem">Send partner enquiry</button>
+    <p class="status" id="pf_status" role="status" aria-live="polite"></p>
+  </form>
+</div></section>
+
+<section><div class="wrap"><div class="final"><div><h2>Interested in being our partner?</h2><p>Send the form above and we will set up a call.</p></div>
+  <a class="btn btn-white" href="#enquiry">Send a partner enquiry</a></div></div></section>
 </main>
 <footer class="site"><div class="wrap">
   <div class="foot">
@@ -83,5 +103,25 @@
   </div>
   <div class="copy"><span>© 2026 ProHost · admin@pro-host.tech</span></div>
 </div></footer>
+<script>
+(function () {
+  var BASE = "https://europe-west1-prohost-f766f.cloudfunctions.net/", form = document.getElementById("partnerForm"), st = document.getElementById("pf_status");
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var d = {}; new FormData(form).forEach(function (v, k) { d[k] = typeof v === "string" ? v.trim() : v; });
+    d.topic = "partner";
+    function bad(t) { st.className = "status err"; st.textContent = t; }
+    if (!d.name || !d.organization || !d.message) return bad("Please add your name, company and a short message.");
+    if (!/^[^s@]+@[^s@]+.[^s@]+$/.test(d.email || "")) return bad("Please enter a valid email address.");
+    if (!document.getElementById("pf_ok").checked) return bad("Please tick the box to confirm.");
+    var btn = form.querySelector("button[type=submit]"); btn.disabled = true; st.className = "status"; st.textContent = "Sending…";
+    fetch(BASE + "websiteContact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: d }) })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (j) { if (!j || j.error || !j.result) throw new Error((j && j.error && j.error.message) || "Something went wrong. Please email admin@pro-host.tech."); st.className = "status ok"; st.textContent = "Thank you! Your enquiry reached our team. We will reply by email shortly."; form.reset(); })
+      .catch(function (err) { bad(err.message); })
+      .then(function () { btn.disabled = false; });
+  });
+})();
+</script>
 </body>
 </html>
