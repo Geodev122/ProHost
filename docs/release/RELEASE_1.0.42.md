@@ -26,7 +26,7 @@
     services' own dialog to turn device location on. No more toasts.
 
 ## Files
-Release Bundle workflow run on the latest `main` (artifact `prohost-release-main-*`). Upload `app-release.aab` (Production ›
+Artifact **`prohost-release-main-12`** (≈ 22 MB, kept until 2027-01-17): https://github.com/Geodev122/ProHost/actions/runs/39213065010 → Artifacts, built from `3c36e5f`. Upload `app-release.aab` (Production ›
 Create new release), and `native-debug-symbols.zip` under App bundle explorer › version 42.
 
 ## Release details
