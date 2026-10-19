@@ -50,7 +50,15 @@ jobs:
             -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
 
       - name: Record screenshots
-        run: gradle :app:recordRoborazziDebug --tests "com.example.design.*" --no-daemon --stacktrace
+        run: |
+          set -o pipefail
+          gradle :app:recordRoborazziDebug --tests "com.example.design.*" --no-daemon --stacktrace 2>&1 | tee gradle.log
+
+      # Logs aren't readable from every client; surface compile errors as annotations instead.
+      - name: Report compile errors
+        if: failure()
+        run: |
+          grep -E "^e: |error:|FAILED" gradle.log | head -40 | while IFS= read -r line; do echo "::error title=build::${line}"; done
 
       - name: Upload screenshots
         if: always()
