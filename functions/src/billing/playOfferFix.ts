@@ -25,7 +25,8 @@ type BasePlan = androidpublisher_v3.Schema$BasePlan;
 
 const PROMO_TAG = "promo";
 /** Region versions to try, newest first (the API rejects writes without one it knows). */
-const REGIONS_VERSIONS = ["2025/03", "2025/02", "2025/01", "2024/03", "2024/02", "2024/01", "2023/02", "2023/01", "2022/02"];
+/** Play's latest regions version (the API rejects every other value as of Oct 2026). */
+const REGIONS_VERSION = "2022/02";
 
 export interface OfferFixStep {
   step: string;
@@ -91,19 +92,35 @@ export function isAnyAppScope(o: Offer): boolean {
   return !!o.targeting?.acquisitionRule?.scope?.anySubscriptionInApp;
 }
 
-/** Tries region versions newest first; a refusal that names regions moves on, and every refusal is reported. */
-async function withRegionsVersion<T>(call: (version: string) => Promise<T>): Promise<T> {
-  const tried: string[] = [];
-  for (const v of REGIONS_VERSIONS) {
+/** Pure: [offer] without any region config for [region] (offer level and every phase). */
+export function withoutRegion(offer: Offer, region: string): Offer {
+  return {
+    ...offer,
+    regionalConfigs: (offer.regionalConfigs ?? []).filter((c) => c.regionCode !== region),
+    phases: (offer.phases ?? []).map((p) => ({ ...p, regionalConfigs: (p.regionalConfigs ?? []).filter((c) => c.regionCode !== region) })),
+  };
+}
+
+/**
+ * Writes [offer] at the latest regions version. Play keeps regions in old offers that it has since stopped billing
+ * (e.g. ET), and then refuses every write with "Region code XX is not billable": such regions are dropped (they
+ * can't be sold anyway) and the write retried. Returns the regions dropped.
+ */
+async function writeOffer(offer: Offer, call: (version: string, body: Offer) => Promise<unknown>): Promise<string[]> {
+  const dropped: string[] = [];
+  let body = offer;
+  for (let i = 0; i < 20; i++) {
     try {
-      return await call(v);
+      await call(REGIONS_VERSION, body);
+      return dropped;
     } catch (e) {
-      const msg = String((e as { message?: string })?.message ?? e);
-      tried.push(`${v}: ${msg.slice(0, 90)}`);
-      if (!/region/i.test(msg)) throw new Error(tried.join(" | "));
+      const m = /Region code ([A-Z]{2}) is not billable/.exec(String((e as { message?: string })?.message ?? e));
+      if (!m) throw e;
+      dropped.push(m[1]);
+      body = withoutRegion(body, m[1]);
     }
   }
-  throw new Error(tried.join(" | "));
+  throw new Error(`gave up after dropping ${dropped.join(", ")}`);
 }
 
 const reason = (e: unknown) => {
@@ -152,9 +169,9 @@ export async function playOfferFix(apply: boolean): Promise<{ apply: boolean; st
     if (!apply) steps.push({ step: "promo", action, result: "dry run" });
     else {
       try {
-        await withRegionsVersion((version) => publisher.monetization.subscriptions.basePlans.offers.create({
+        await writeOffer(copyOfferFor(stranded, target, offerId), (version, body) => publisher.monetization.subscriptions.basePlans.offers.create({
           packageName: PACKAGE_NAME, productId: PLAY_PRODUCT_ID, basePlanId: target, offerId,
-          "regionsVersion.version": version, requestBody: copyOfferFor(stranded, target, offerId),
+          "regionsVersion.version": version, requestBody: body,
         }));
         await publisher.monetization.subscriptions.basePlans.offers.activate({
           packageName: PACKAGE_NAME, productId: PLAY_PRODUCT_ID, basePlanId: target, offerId,
@@ -178,20 +195,21 @@ export async function playOfferFix(apply: boolean): Promise<{ apply: boolean; st
     const action = `${target}/${o.offerId}${wasInactive ? " (INACTIVE)" : ""}: phase 1 ${first.recurrenceCount ?? 1}x${first.duration} ${pct}% off → free${wasInactive ? ", then activate" : ""}`;
     if (!apply) { steps.push({ step: "freePhase", action, result: "dry run" }); continue; }
     try {
-      await withRegionsVersion((version) => publisher.monetization.subscriptions.basePlans.offers.patch({
-        packageName: PACKAGE_NAME, productId: PLAY_PRODUCT_ID, basePlanId: target, offerId: o.offerId ?? "",
-        updateMask: "phases", "regionsVersion.version": version,
-        requestBody: { ...copyOfferFor(o, target, o.offerId ?? ""), phases },
-      }));
+      const dropped = await writeOffer({ ...copyOfferFor(o, target, o.offerId ?? ""), phases }, (version, body) =>
+        publisher.monetization.subscriptions.basePlans.offers.patch({
+          packageName: PACKAGE_NAME, productId: PLAY_PRODUCT_ID, basePlanId: target, offerId: o.offerId ?? "",
+          updateMask: "phases,regionalConfigs", "regionsVersion.version": version, requestBody: body,
+        }));
+      if (dropped.length) steps.push({ step: "regions", action: `${target}/${o.offerId}: dropped regions Play no longer bills`, result: dropped.join(", ") });
       if (wasInactive) await publisher.monetization.subscriptions.basePlans.offers.activate({ ...ids, offerId: o.offerId ?? "", requestBody: { ...ids, offerId: o.offerId ?? "" } });
       steps.push({ step: "freePhase", action, result: wasInactive ? "updated and ACTIVE" : "updated in place" });
     } catch (patchErr) {
       // Play may refuse to change an active offer's phases: publish a free twin, then retire the old one.
       const twin = `${o.offerId}-trial`;
       try {
-        await withRegionsVersion((version) => publisher.monetization.subscriptions.basePlans.offers.create({
+        await writeOffer({ ...copyOfferFor(o, target, twin), phases }, (version, body) => publisher.monetization.subscriptions.basePlans.offers.create({
           packageName: PACKAGE_NAME, productId: PLAY_PRODUCT_ID, basePlanId: target, offerId: twin,
-          "regionsVersion.version": version, requestBody: { ...copyOfferFor(o, target, twin), phases },
+          "regionsVersion.version": version, requestBody: body,
         }));
         await publisher.monetization.subscriptions.basePlans.offers.activate({ ...ids, offerId: twin, requestBody: { ...ids, offerId: twin } });
         if (!wasInactive) await publisher.monetization.subscriptions.basePlans.offers.deactivate({ ...ids, offerId: o.offerId ?? "", requestBody: { ...ids, offerId: o.offerId ?? "" } });
@@ -208,11 +226,11 @@ export async function playOfferFix(apply: boolean): Promise<{ apply: boolean; st
     const action = `${target}/${o.offerId}: eligibility "never had any subscription in this app" → "never had this subscription"`;
     if (!apply) { steps.push({ step: "eligibility", action, result: "dry run" }); continue; }
     try {
-      await withRegionsVersion((version) => publisher.monetization.subscriptions.basePlans.offers.patch({
-        packageName: PACKAGE_NAME, productId: PLAY_PRODUCT_ID, basePlanId: target, offerId: o.offerId ?? "",
-        updateMask: "targeting", "regionsVersion.version": version,
-        requestBody: { ...copyOfferFor(o, target, o.offerId ?? ""), targeting: { acquisitionRule: { scope: { thisSubscription: {} } } } },
-      }));
+      await writeOffer({ ...copyOfferFor(o, target, o.offerId ?? ""), targeting: { acquisitionRule: { scope: { thisSubscription: {} } } } }, (version, body) =>
+        publisher.monetization.subscriptions.basePlans.offers.patch({
+          packageName: PACKAGE_NAME, productId: PLAY_PRODUCT_ID, basePlanId: target, offerId: o.offerId ?? "",
+          updateMask: "targeting,phases,regionalConfigs", "regionsVersion.version": version, requestBody: body,
+        }));
       steps.push({ step: "eligibility", action, result: "updated" });
     } catch (e) {
       steps.push({ step: "eligibility", action, result: `failed — ${reason(e)}. Play Console: open the offer › Eligibility › "Never had this subscription" › Save.` });

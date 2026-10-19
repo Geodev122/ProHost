@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { copyOfferFor, freePhaseFrom, isAnyAppScope, isNearlyFreeClaimPhase, liveMonthlyPlan } from "./playOfferFix";
+import { copyOfferFor, freePhaseFrom, isAnyAppScope, isNearlyFreeClaimPhase, liveMonthlyPlan, withoutRegion } from "./playOfferFix";
 
 test("liveMonthlyPlan picks the single ACTIVE monthly base plan", () => {
   const plans = [
@@ -37,4 +37,13 @@ test("a 99%-off 4-month phase is turned into the promised free phase; real disco
   assert.equal(free.duration, "P4M");
   assert.deepEqual(free.regionalConfigs, [{ regionCode: "LB", free: {} }, { regionCode: "US", free: {} }]);
   assert.deepEqual(free.otherRegionsConfig, { free: {} });
+});
+
+test("withoutRegion drops a region Play no longer bills from the offer and every phase", () => {
+  const o = withoutRegion({
+    regionalConfigs: [{ regionCode: "LB" }, { regionCode: "ET" }],
+    phases: [{ duration: "P4M", regionalConfigs: [{ regionCode: "LB", free: {} }, { regionCode: "ET", free: {} }] }],
+  }, "ET");
+  assert.deepEqual(o.regionalConfigs, [{ regionCode: "LB" }]);
+  assert.deepEqual(o.phases?.[0].regionalConfigs, [{ regionCode: "LB", free: {} }]);
 });
