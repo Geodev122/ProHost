@@ -26,13 +26,16 @@
     services' own dialog to turn device location on. No more toasts.
 
 ## Files
-Artifact **`prohost-release-main-12`** (≈ 22 MB, kept until 2027-01-17): https://github.com/Geodev122/ProHost/actions/runs/39213065010 → Artifacts, built from `3c36e5f`. Upload `app-release.aab` (Production ›
+Artifact **`prohost-release-main-13`** (≈ 22 MB, kept until 2027-01-17): https://github.com/Geodev122/ProHost/actions/runs/39226785695 → Artifacts, built from `ef41178`. Upload `app-release.aab` (Production ›
 Create new release), and `native-debug-symbols.zip` under App bundle explorer › version 42.
 
 ## Release details
 - Release name `1.0.42 (42)`; notes: `docs/release/1.0.42-notes.txt` (8 languages).
 - Staged rollout at 20%. Watch Crashlytics and Android vitals for 48 h, then go to 100%.
 - Optional: upload `play/store-listing/icon-512.png` as the listing icon.
+
+- **Premium "How it works" box:** shows for whichever card is selected. With an offer it reads "HOW YOUR OFFER WORKS";
+  without one, "HOW IT WORKS" with the price, first renewal date and how to cancel, all from Play.
 
 ## Play Console: monthly offer eligibility
 `free-4-months` (on `pro-monthly1`) is set to **"New customers: never had any subscription in this app"**. Any account that
