@@ -281,8 +281,11 @@ fun LoginAuthScreen(
         modifier = Modifier
             .fillMaxSize()
             .proHostScreenBackground()
+            // Keep the fields clear of the status bar and the keyboard.
+            .statusBarsPadding()
+            .imePadding()
             .verticalScroll(scrollState)
-            .padding(20.dp)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.xl)
             .testTag("login_auth_screen"),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -302,57 +305,11 @@ fun LoginAuthScreen(
         // Status or Error Banners
         val displayError = localErrorMessage ?: authErrorMessage
         if (displayError != null) {
-            Surface(
-                color = MaterialTheme.colorScheme.errorContainer,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(Spacing.md),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.ErrorOutline,
-                        contentDescription = "Error",
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(Spacing.sm))
-                    Text(
-                        text = displayError,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
+            ProHostAlertBanner(message = displayError, severity = ProHostAlertSeverity.ERROR, modifier = Modifier.padding(bottom = 12.dp))
         }
 
         if (authSuccessMessage != null) {
-            Surface(
-                color = StatusSuccessContainer,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(Spacing.md),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        contentDescription = "Success",
-                        tint = LebaneseCedarGreen,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(Spacing.sm))
-                    Text(
-                        text = authSuccessMessage ?: "",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = StatusOnSuccessContainer,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
+            ProHostAlertBanner(message = authSuccessMessage ?: "", severity = ProHostAlertSeverity.SUCCESS, modifier = Modifier.padding(bottom = 12.dp))
         }
 
         when (step) {
@@ -462,30 +419,7 @@ fun LoginAuthScreen(
                     singleLine = true
                 )
 
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = MaterialTheme.shapes.medium,
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(Spacing.sm),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = null,
-                            tint = LebaneseCedarGreen,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Do not share this code with anyone.",
-                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
+                ProHostAlertBanner(message = "Do not share this code with anyone.", icon = Icons.Default.Lock, modifier = Modifier.padding(top = 8.dp))
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
@@ -576,29 +510,7 @@ fun LoginAuthScreen(
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = MaterialTheme.shapes.medium,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(Spacing.sm),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "The link expires in 60 minutes. Check your spam folder if it doesn't arrive.",
-                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+                ProHostAlertBanner(message = "The link expires in 60 minutes. Check your spam folder if it doesn't arrive.")
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
@@ -687,56 +599,13 @@ fun LoginAuthScreen(
                 val firebaseEmail = firebaseUser?.email ?: ""
                 val firebasePhone = firebaseUser?.phoneNumber ?: resumePhoneE164 ?: ""
 
-                if (firebaseEmail.isNotBlank()) {
-                    Surface(
-                        color = StatusSuccessContainer,
-                        shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.VerifiedUser,
-                                contentDescription = null,
-                                tint = LebaneseCedarGreen,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(Spacing.sm))
-                            Text(
-                                text = "Signed in as: $firebaseEmail",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = StatusOnSuccessContainer,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
-                } else if (firebasePhone.isNotBlank()) {
-                    Surface(
-                        color = StatusSuccessContainer,
-                        shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.VerifiedUser,
-                                contentDescription = null,
-                                tint = LebaneseCedarGreen,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(Spacing.sm))
-                            Text(
-                                text = "Phone verified: $firebasePhone",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = StatusOnSuccessContainer,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
+                val signedInAs = when {
+                    firebaseEmail.isNotBlank() -> "Signed in as: $firebaseEmail"
+                    firebasePhone.isNotBlank() -> "Phone verified: $firebasePhone"
+                    else -> null
+                }
+                if (signedInAs != null) {
+                    ProHostAlertBanner(message = signedInAs, severity = ProHostAlertSeverity.SUCCESS, icon = Icons.Default.VerifiedUser)
                 }
 
                 Spacer(modifier = Modifier.height(Spacing.lg))

@@ -153,8 +153,3 @@ private fun CountdownBox(value: Long, label: String, modifier: Modifier = Modifi
     }
 }
 
-/** A small red dot over a control, e.g. "Redeem code" while a promo campaign is live. */
-@Composable
-fun AttentionDot(modifier: Modifier = Modifier) {
-    Box(modifier = modifier.size(9.dp).background(MaterialTheme.colorScheme.error, CircleShape))
-}

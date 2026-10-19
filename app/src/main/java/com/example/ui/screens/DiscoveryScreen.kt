@@ -452,7 +452,7 @@ private fun ExploreOverlayHeader(
                 modifier = Modifier.align(Alignment.Center)
             )
             BadgedControl(
-                badge = activeFilterCount.takeIf { it > 0 }?.let { if (it > 99) "99+" else "$it" },
+                badge = activeFilterCount.takeIf { it > 0 }?.toString(),
                 modifier = Modifier.align(Alignment.CenterEnd)
             ) {
                 ExploreControlSurface(floating = isMapView, shape = CircleShape) {
@@ -495,12 +495,9 @@ private fun BadgedControl(badge: String?, modifier: Modifier = Modifier, content
     Box(modifier = modifier) {
         content()
         if (badge != null) {
-            Badge(
-                containerColor = MaterialTheme.colorScheme.error,
-                modifier = Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-2).dp)
-            ) {
-                if (badge.isNotEmpty()) Text(badge, maxLines = 1, softWrap = false)
-            }
+            val badgeModifier = Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-2).dp)
+            val count = badge.toIntOrNull()
+            if (count != null) ProHostCountBadge(count, badgeModifier) else ProHostDotBadge(badgeModifier)
         }
     }
 }

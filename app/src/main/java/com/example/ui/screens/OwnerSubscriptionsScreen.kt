@@ -747,7 +747,7 @@ private fun PremiumActionChip(
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         )
         // A live promo campaign: red dot on "Redeem code".
-        if (dot) com.example.ui.components.AttentionDot(Modifier.align(Alignment.TopEnd).padding(top = 6.dp, end = 2.dp))
+        if (dot) com.example.ui.components.ProHostDotBadge(Modifier.align(Alignment.TopEnd).padding(top = 6.dp, end = 2.dp))
     }
 }
 
