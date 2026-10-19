@@ -10,7 +10,17 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.example.data.billing.PlayCatalog
+import com.example.data.billing.PlayOfferText
 import com.example.data.model.UserRole
+import com.example.ui.theme.proHostScreenBackground
 import com.example.hermeticRepository
 import com.example.ui.preview.*
 import com.example.ui.screens.*
@@ -76,7 +86,10 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
     private fun signedInViewModel(role: UserRole): ProHostViewModel {
         val repository = hermeticRepository()
         repository.replaceSpacesForTest(listOf(mockSpace1, mockSpace2, mockSpace3))
-        runBlocking { repository.login(uid = "uid-design", email = "design@pro-host.tech", verifiedRole = role) }
+        runBlocking {
+            repository.login(uid = "uid-design", email = "design@pro-host.tech", verifiedRole = role)
+            repository.toggleSavedSpace(mockSpace1.id)
+        }
         return ProHostViewModel(repository)
     }
 
@@ -105,8 +118,38 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
                     "premium" -> OwnerSubscriptionsScreen(viewModel = vm)
                     "profile" -> SpecialistProfileScreen(viewModel = vm)
                     "owner_analytics" -> OwnerAnalyticsScreen(viewModel = vm)
+                    "premium_plans" -> PremiumPlans()
+                    "whatsapp_number" -> KycScreen(currentPhone = "", onSave = { null }, onKycComplete = {})
+                    "manage_listing" -> ManageListingScreen(space = mockSpace1, viewModel = vm, onBack = {})
                 }
             }
+        }
+    }
+
+    /** Both plan tiles + the explainer with Play-shaped offers (Play itself isn't reachable in a unit test). */
+    @Composable
+    private fun PremiumPlans() {
+        val monthly = PlayOfferText.OfferSummary(
+            offerId = "free-4-months", headline = "Free", headlinePeriod = "month", original = "$8.99",
+            discountPercent = 100, introSpan = null, trialSpan = "4 months", recurring = "$8.99", recurringPeriod = "month",
+            introPeriods = listOf("P1M" to 4)
+        )
+        val yearly = PlayOfferText.OfferSummary(
+            offerId = "launch-50-first-year", headline = "$39.99", headlinePeriod = "year", original = "$79.99",
+            discountPercent = 50, introSpan = "first year", trialSpan = null, recurring = "$79.99", recurringPeriod = "year",
+            introPeriods = listOf("P1Y" to 1), headlinePerMonth = "≈ $3.33 / month"
+        )
+        Column(
+            Modifier.fillMaxSize().proHostScreenBackground().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                PlanTile(PlayCatalog.PlanKind.MONTHLY, monthly, selected = false, isCurrent = false, savingsPercent = null,
+                    modifier = Modifier.weight(1f), onClick = {})
+                PlanTile(PlayCatalog.PlanKind.YEARLY, yearly, selected = true, isCurrent = false, savingsPercent = 26,
+                    modifier = Modifier.weight(1f), onClick = {})
+            }
+            PlanExplainer(yearly, hasOffer = true)
         }
     }
 
@@ -115,9 +158,9 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
 
         val SCREENS = listOf(
             "explore_list", "explore_map", "space_details", "saved", "my_rentals", "profile",
-            "premium", "owner_hub", "renting_requests", "renting_progress", "owner_analytics", "sign_in"
+            "premium", "premium_plans", "whatsapp_number", "owner_hub", "manage_listing", "renting_requests", "renting_progress", "owner_analytics", "sign_in"
         )
-        val HOST_SCREENS = setOf("renting_requests", "owner_analytics")
+        val HOST_SCREENS = setOf("renting_requests", "owner_analytics", "manage_listing")
         val VARIANTS = listOf("light", "dark", "font130", "rtl")
 
         @JvmStatic

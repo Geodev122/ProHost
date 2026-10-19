@@ -758,7 +758,7 @@ private fun PremiumActionChip(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PlanTile(
+internal fun PlanTile(
     kind: PlayCatalog.PlanKind,
     summary: PlayOfferText.OfferSummary?,
     selected: Boolean,
@@ -939,7 +939,7 @@ private fun PlanTile(
  * offer terms, renewal price and timing visible before purchase.
  */
 @Composable
-private fun PlanExplainer(summary: PlayOfferText.OfferSummary, hasOffer: Boolean) {
+internal fun PlanExplainer(summary: PlayOfferText.OfferSummary, hasOffer: Boolean) {
     if (!hasOffer) {
         RenewalExplainer(summary)
         return
