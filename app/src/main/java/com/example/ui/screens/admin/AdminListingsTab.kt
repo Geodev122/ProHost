@@ -297,7 +297,7 @@ internal fun AdminListingsCatalogTab(
                         if (space.ownerId.isNotBlank()) {
                             IconButton(
                                 onClick = { adminViewModel.openDossier(space.ownerId) },
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(Icons.Default.Badge, contentDescription = "Host profile", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                             }
@@ -306,7 +306,7 @@ internal fun AdminListingsCatalogTab(
                         // Delete Button
                         IconButton(
                             onClick = { adminViewModel.openDeleteListingDialog(space) },
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(40.dp)
                         ) {
                             Icon(Icons.Default.DeleteOutline, contentDescription = "Delete", tint = StatusError, modifier = Modifier.size(18.dp))
                         }

@@ -169,7 +169,7 @@ fun DrawerDialogsHandler(
                                         leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
                                     )
                                     if (auditFromMillis != null || auditToMillis != null) {
-                                        IconButton(onClick = { auditFromMillis = null; auditToMillis = null }, modifier = Modifier.size(28.dp)) {
+                                        IconButton(onClick = { auditFromMillis = null; auditToMillis = null }, modifier = Modifier.size(40.dp)) {
                                             Icon(Icons.Default.Close, contentDescription = "Clear date filter", modifier = Modifier.size(16.dp))
                                         }
                                     }

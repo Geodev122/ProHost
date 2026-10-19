@@ -104,40 +104,20 @@ internal fun SubdivisionRentalCard(
                         }
                         if (imageUrls.size > 1) {
                             if (pagerState.currentPage > 0) {
-                                IconButton(
+                                PhotoCarouselArrow(
+                                    forward = false,
                                     onClick = { cardScope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
-                                    modifier = Modifier
-                                        .align(Alignment.CenterStart)
-                                        .padding(start = 2.dp)
-                                        .size(28.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.Black.copy(alpha = 0.35f))
-                                ) {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.ArrowBackIos,
-                                        contentDescription = "Previous photo",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                }
+                                    visualSize = 28.dp,
+                                    modifier = Modifier.align(Alignment.CenterStart)
+                                )
                             }
                             if (pagerState.currentPage < imageUrls.size - 1) {
-                                IconButton(
+                                PhotoCarouselArrow(
+                                    forward = true,
                                     onClick = { cardScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
-                                    modifier = Modifier
-                                        .align(Alignment.CenterEnd)
-                                        .padding(end = 2.dp)
-                                        .size(28.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.Black.copy(alpha = 0.35f))
-                                ) {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.ArrowForwardIos,
-                                        contentDescription = "Next photo",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                }
+                                    visualSize = 28.dp,
+                                    modifier = Modifier.align(Alignment.CenterEnd)
+                                )
                             }
                             Row(
                                 modifier = Modifier

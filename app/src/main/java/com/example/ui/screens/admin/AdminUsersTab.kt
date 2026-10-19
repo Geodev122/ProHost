@@ -317,7 +317,7 @@ internal fun AdminUsersDirectoryTab(
                         if (user.role != UserRole.ADMIN) {
                             IconButton(
                                 onClick = { adminViewModel.openGrantAdminDialog(user) },
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
                                     Icons.Default.AdminPanelSettings,
@@ -335,7 +335,7 @@ internal fun AdminUsersDirectoryTab(
                         if (user.role != UserRole.ADMIN) {
                             IconButton(
                                 onClick = { adminViewModel.openSuspendUserDialog(user) },
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
                                     if (user.isSuspended) Icons.Default.LockOpen else Icons.Default.Block,
@@ -352,7 +352,7 @@ internal fun AdminUsersDirectoryTab(
                         if (user.role == UserRole.PRO_HOST) {
                             IconButton(
                                 onClick = { adminViewModel.openRevokeProHostDialog(user) },
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
                                     Icons.Default.RemoveModerator,
@@ -367,7 +367,7 @@ internal fun AdminUsersDirectoryTab(
                         if (user.role != UserRole.ADMIN) {
                             IconButton(
                                 onClick = { adminViewModel.openDeleteUserDialog(user) },
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(Icons.Default.DeleteOutline, contentDescription = "Delete", tint = StatusError, modifier = Modifier.size(18.dp))
                             }

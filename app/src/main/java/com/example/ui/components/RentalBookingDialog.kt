@@ -534,7 +534,7 @@ private fun BookingSlotSelectorDialog(
 
                     IconButton(
                         onClick = onDismiss,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(40.dp)
                     ) {
                         Icon(Icons.Default.Close, contentDescription = "Close")
                     }

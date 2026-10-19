@@ -356,40 +356,20 @@ fun SpaceDetailsScreenContent(
                     )
                     if (liveSpace.imageUrls.size > 1) {
                         if (pagerState.currentPage > 0) {
-                            IconButton(
+                            PhotoCarouselArrow(
+                                forward = false,
                                 onClick = { heroScope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
-                                modifier = Modifier
-                                    .align(Alignment.CenterStart)
-                                    .padding(start = 4.dp)
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Black.copy(alpha = 0.35f))
-                            ) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ArrowBackIos,
-                                    contentDescription = "Previous photo",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
+                                visualSize = 36.dp,
+                                modifier = Modifier.align(Alignment.CenterStart)
+                            )
                         }
                         if (pagerState.currentPage < liveSpace.imageUrls.size - 1) {
-                            IconButton(
+                            PhotoCarouselArrow(
+                                forward = true,
                                 onClick = { heroScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
-                                modifier = Modifier
-                                    .align(Alignment.CenterEnd)
-                                    .padding(end = 4.dp)
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Black.copy(alpha = 0.35f))
-                            ) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ArrowForwardIos,
-                                    contentDescription = "Next photo",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
+                                visualSize = 36.dp,
+                                modifier = Modifier.align(Alignment.CenterEnd)
+                            )
                         }
                         // Photo dots sit at the bottom (clear of the back / save / share row).
                         if (liveSpace.imageUrls.size > 1) Row(

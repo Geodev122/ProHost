@@ -134,7 +134,7 @@ fun MyFavoritesScreen(
                             onClick = { onSelectSpace(space) },
                             onQuickWhatsApp = { viewModel.launchWhatsAppInquiry(context, space, null) },
                             isSaved = true,
-                            onToggleSave = { viewModel.toggleSavedSpace(space.id) }
+                            onToggleSave = { viewModel.toggleSavedSpace(space.id, context) }
                         )
                     }
                 }
@@ -149,7 +149,7 @@ fun MyFavoritesScreen(
                     }
                     items(unavailableIds.toList(), key = { it }) { spaceId ->
                         UnavailableFavoriteCard(
-                            onRemove = { viewModel.toggleSavedSpace(spaceId) }
+                            onRemove = { viewModel.toggleSavedSpace(spaceId, context) }
                         )
                     }
                 }

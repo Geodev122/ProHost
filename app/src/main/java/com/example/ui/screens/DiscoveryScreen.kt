@@ -632,7 +632,7 @@ private fun ExploreSearchField(
             }
             FilledIconButton(
                 onClick = { submit() },
-                modifier = Modifier.padding(end = 4.dp).size(36.dp),
+                modifier = Modifier.padding(end = 4.dp).size(40.dp),
                 colors = IconButtonDefaults.filledIconButtonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary

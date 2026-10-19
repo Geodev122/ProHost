@@ -1043,13 +1043,13 @@ fun WorkspaceCard(
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                        .size(32.dp)
+                        .padding(4.dp)
+                        .size(40.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = if (isSaved) "Remove from Saved" else "Save Workspace",
+                            contentDescription = if (isSaved) "Remove from Saved" else "Save space",
                             tint = if (isSaved) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(18.dp)
                         )
@@ -1541,3 +1541,35 @@ fun ProHostFullScreenTopAppBar(
 
 
 
+
+/**
+ * Previous / next arrow over a photo carousel: a small translucent circle ([visualSize]) inside a full 48 dp touch
+ * target. Mirrors automatically in right-to-left layouts.
+ */
+@Composable
+fun PhotoCarouselArrow(
+    forward: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    visualSize: Dp = 32.dp
+) {
+    Box(
+        modifier = modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier.size(visualSize).clip(CircleShape).background(Color.Black.copy(alpha = 0.4f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                if (forward) Icons.AutoMirrored.Filled.ArrowForwardIos else Icons.AutoMirrored.Filled.ArrowBackIos,
+                contentDescription = if (forward) "Next photo" else "Previous photo",
+                tint = Color.White,
+                modifier = Modifier.size(visualSize / 2)
+            )
+        }
+    }
+}

@@ -1089,13 +1089,16 @@ class ProHostViewModel(
         if (ok) com.example.analytics.AnalyticsTracker.listingVerificationRequest()
     }
 
-    /** Toggles [spaceId] in the current user's personal saved/favorites list. */
-    fun toggleSavedSpace(spaceId: String) {
+    /** Toggles [spaceId] in the current user's personal saved/favorites list. With [context], a removal offers Undo. */
+    fun toggleSavedSpace(spaceId: String, context: Context? = null) {
         val wasSaved = currentUser.value?.savedSpaceIds?.contains(spaceId) == true
         viewModelScope.launch {
             try {
                 repository.toggleSavedSpace(spaceId)
                 spaces.value.firstOrNull { it.id == spaceId }?.let { com.example.analytics.AnalyticsTracker.wishlist(it, added = !wasSaved) }
+                if (wasSaved && context != null) {
+                    UiMessages.show(context, "Removed from Saved", actionLabel = "Undo", onAction = { toggleSavedSpace(spaceId) })
+                }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -1120,6 +1123,15 @@ class ProHostViewModel(
             try {
                 val success = repository.setListingStatus(spaceId, status)
                 if (success) com.example.analytics.AnalyticsTracker.listingStatusChange(previous?.name, status.name)
+                // Pause and resume are reversible: say what happened and offer the way back.
+                if (success && previous != null && previous != ListingStatus.DRAFT && previous != status) {
+                    UiMessages.show(
+                        appContext,
+                        if (status == ListingStatus.PAUSED) "Listing paused" else "Listing is live again",
+                        actionLabel = "Undo",
+                        onAction = { setListingStatus(spaceId, previous, appContext) }
+                    )
+                }
                 if (!success) {
                     UiMessages.show(appContext, "Couldn't update this listing — please try again.")
                 }
@@ -1145,10 +1157,13 @@ class ProHostViewModel(
         viewModelScope.launch {
             try {
                 val success = repository.addBlackoutSlot(spaceId, slot)
-                if (success) com.example.analytics.AnalyticsTracker.blackoutAdd()
-                UiMessages.show(appContext,
-                    if (success) "$dayOfWeek $startTime - $endTime is no longer offered" else "Couldn't switch that slot off — please try again",
-                    long = false)
+                if (success) {
+                    com.example.analytics.AnalyticsTracker.blackoutAdd()
+                    UiMessages.show(appContext, "$dayOfWeek $startTime - $endTime is no longer offered",
+                        actionLabel = "Undo", onAction = { removeBlackoutSlot(spaceId, slot.id, appContext) })
+                } else {
+                    UiMessages.show(appContext, "Couldn't switch that slot off — please try again")
+                }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -1159,13 +1174,18 @@ class ProHostViewModel(
 
     fun removeBlackoutSlot(spaceId: String, slotId: String, context: Context) {
         val appContext = context.applicationContext
+        val removed = spaces.value.firstOrNull { it.id == spaceId }?.blackoutSlots?.firstOrNull { it.id == slotId }
         viewModelScope.launch {
             try {
                 val success = repository.removeBlackoutSlot(spaceId, slotId)
-                if (success) com.example.analytics.AnalyticsTracker.blackoutRemove()
-                UiMessages.show(appContext,
-                    if (success) "Slot is back on offer" else "Couldn't switch that slot on — please try again",
-                    long = false)
+                if (success) {
+                    com.example.analytics.AnalyticsTracker.blackoutRemove()
+                    UiMessages.show(appContext, "Slot is back on offer", actionLabel = removed?.let { "Undo" }, onAction = removed?.let { slot ->
+                        { addBlackoutSlot(spaceId, slot.dayOfWeek, slot.startTime, slot.endTime, slot.reason, appContext) }
+                    })
+                } else {
+                    UiMessages.show(appContext, "Couldn't switch that slot on — please try again")
+                }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {

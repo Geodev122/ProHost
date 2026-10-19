@@ -1171,7 +1171,7 @@ private fun SubscriptionTermsFooter(
 /** Close button for a dismissible [ProHostAlertBanner]; inherits the banner's content color. */
 @Composable
 private fun BannerDismiss(onClick: () -> Unit) {
-    IconButton(onClick = onClick, modifier = Modifier.size(28.dp)) {
+    IconButton(onClick = onClick, modifier = Modifier.size(40.dp)) {
         Icon(Icons.Default.Close, contentDescription = "Dismiss", modifier = Modifier.size(16.dp))
     }
 }

@@ -593,7 +593,7 @@ fun SubdivisionEditorSection(
                             AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                             IconButton(
                                 onClick = { subImageUrls = subImageUrls - url },
-                                modifier = Modifier.align(Alignment.TopEnd).size(20.dp)
+                                modifier = Modifier.align(Alignment.TopEnd).size(32.dp)
                             ) {
                                 Icon(Icons.Default.Close, contentDescription = "Remove image", modifier = Modifier.size(14.dp))
                             }
@@ -858,7 +858,7 @@ fun SubdivisionEditorSection(
                                         )
                                         IconButton(
                                             onClick = { subOverrideBlackouts = subOverrideBlackouts.filterNot { it.id == slot.id } },
-                                            modifier = Modifier.size(28.dp)
+                                            modifier = Modifier.size(40.dp)
                                         ) {
                                             Icon(Icons.Default.Close, contentDescription = "Remove blocked time", modifier = Modifier.size(14.dp))
                                         }

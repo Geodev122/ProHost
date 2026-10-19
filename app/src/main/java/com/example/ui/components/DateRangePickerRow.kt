@@ -66,7 +66,7 @@ fun DateRangePickerRow(
             leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
         )
         if (fromMillis != null || toMillis != null) {
-            IconButton(onClick = { onFromChange(null); onToChange(null) }, modifier = Modifier.size(28.dp)) {
+            IconButton(onClick = { onFromChange(null); onToChange(null) }, modifier = Modifier.size(40.dp)) {
                 Icon(Icons.Default.Close, contentDescription = "Clear date filter", modifier = Modifier.size(16.dp))
             }
         }
