@@ -25,7 +25,7 @@ type BasePlan = androidpublisher_v3.Schema$BasePlan;
 
 const PROMO_TAG = "promo";
 /** Region versions to try, newest first (the API rejects writes without one it knows). */
-const REGIONS_VERSIONS = ["2025/03", "2022/02"];
+const REGIONS_VERSIONS = ["2025/03", "2025/02", "2025/01", "2024/03", "2024/02", "2024/01", "2023/02", "2023/01", "2022/02"];
 
 export interface OfferFixStep {
   step: string;
@@ -91,24 +91,25 @@ export function isAnyAppScope(o: Offer): boolean {
   return !!o.targeting?.acquisitionRule?.scope?.anySubscriptionInApp;
 }
 
+/** Tries region versions newest first; a refusal that names regions moves on, and every refusal is reported. */
 async function withRegionsVersion<T>(call: (version: string) => Promise<T>): Promise<T> {
-  let last: unknown;
+  const tried: string[] = [];
   for (const v of REGIONS_VERSIONS) {
     try {
       return await call(v);
     } catch (e) {
-      last = e;
       const msg = String((e as { message?: string })?.message ?? e);
-      if (!/region/i.test(msg)) throw e;
+      tried.push(`${v}: ${msg.slice(0, 90)}`);
+      if (!/region/i.test(msg)) throw new Error(tried.join(" | "));
     }
   }
-  throw last;
+  throw new Error(tried.join(" | "));
 }
 
 const reason = (e: unknown) => {
   const err = e as { code?: number; status?: number; message?: string };
   const status = err?.code ?? err?.status;
-  const msg = String(err?.message ?? e).slice(0, 220);
+  const msg = String(err?.message ?? e).slice(0, 900);
   return status === 401 || status === 403
     ? `HTTP ${status}: the functions service account can't edit subscriptions in Play Console (${msg})`
     : `${status ? `HTTP ${status}: ` : ""}${msg}`;
