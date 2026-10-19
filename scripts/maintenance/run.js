@@ -725,9 +725,9 @@ async function mailingsmoke(db, code) {
 
 // Live Play catalog / subscriptions, read by the functions' own service account (invited in Play Console)
 // through the onMaintenanceRequest trigger: write maintenance_requests/{id}, wait for the result.
-async function serverTask(db, task) {
+async function serverTask(db, task, arg = null) {
   const ref = db.collection("maintenance_requests").doc();
-  await ref.set({ task, createdAt: Date.now() });
+  await ref.set({ task, arg, createdAt: Date.now() });
   for (let i = 0; i < 60; i++) {
     await new Promise((r) => setTimeout(r, 2000));
     const d = (await ref.get()).data();
@@ -738,6 +738,19 @@ async function serverTask(db, task) {
     }
   }
   throw new Error(`${task}: no answer from onMaintenanceRequest in 120 s (is it deployed?)`);
+}
+
+// Repairs Play Console slips through the Play API (functions' service account): a promo offer stranded on an
+// inactive base plan is copied onto the live monthly plan, and claimed offers limited to "any subscription in this
+// app" are widened to "this subscription". Dry run unless the code is "apply".
+async function playofferfix(db, arg) {
+  const apply = arg === "apply";
+  await step("playOfferFix", async () => {
+    const res = await serverTask(db, "playOfferFix", apply ? "apply" : null);
+    res.steps.forEach((s) => notice(`playOfferFix ${s.step}: ${s.action} → ${s.result}`));
+    return `${apply ? "applied" : "dry run (code: apply to write)"}: ${res.steps.length} step(s)`;
+  });
+  if (apply) await playcatalog(db);
 }
 
 async function playcatalog(db) {
@@ -904,5 +917,6 @@ async function smsauth(db, arg) {
   else if (task === "mailingsmoke") await mailingsmoke(db, arg);
   else if (task === "playcatalog") await playcatalog(db);
   else if (task === "smsauth") await smsauth(db, arg);
+  else if (task === "playofferfix") await playofferfix(db, arg);
   else throw new Error(`unknown task ${task}`);
 })().catch((e) => { fail(`${e && e.message}`); process.exit(1); });

@@ -23,8 +23,9 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   Checkout always passes the chosen base plan's offer token — picking one offer per product made the yearly plan
   unbuyable. Plan cards render `PlayOfferText.summary()` (`OfferSummary`, pure `summarize`, unit-tested in
   `PlayOfferTextTest`): with an offer the headline is the price paid now, the regular price struck through,
-  "% OFF" ribbon, "for your first month/year", "then $X / month"; `OfferExplainer`
-  states today's price, the date the regular price starts (`regularPriceStartsAt`) and how to cancel. Members
+  "% OFF" ribbon, "for your first month/year", "then $X / month"; `PlanExplainer` (box under the CTA for the
+  selected tile, either plan) states today's price, the date the regular price starts (`regularPriceStartsAt`) and how
+  to cancel — "HOW YOUR OFFER WORKS" with an offer, "HOW IT WORKS" (plain renewal terms) without one. Members
   switching plans never see offers. An offer edited in Play Console that "doesn't show" is almost always
   eligibility: Play returns "new customers" offers only to accounts that never had the subscription — check the live
   catalog with Maintenance task `playcatalog` or Admin › Packages › Billing health (offers listed per base plan).
@@ -32,7 +33,10 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   Promo card (e.g. PROHOST2026) is **Play config only**: an offer tagged `promo` + `code-…` (+ `ends-YYYYMMDD`,
   `early-launch`) — `data/billing/PlayPromo.kt` (unit-tested) reads it from ProductDetails; no Firestore doc, no server counter
   (`promo_campaigns` is retired, rules deny all; `playcatalog` deletes the old doc). "Redeem code" (red dot while live) opens a
-  sheet with `PromoCountdownCard` + the one-time-code field. Checkout offer = `OfferChoice` (`PlayBillingManager`): plan cards
+  sheet with `PromoCountdownCard` + the one-time-code field. A promo offer must sit on an ACTIVE base plan: Play Console
+  can't resume an offer whose base plan is inactive ("An unexpected error has occurred … (5A39FA1E)"); Maintenance
+  `playofferfix` (dry run; code `apply`) copies it onto the live monthly plan and widens claimed offers from "any
+  subscription in this app" to "this subscription" (`billing/playOfferFix.ts`; lint flags both). Checkout offer = `OfferChoice` (`PlayBillingManager`): plan cards
   `Preferred` (`preferredOffer` skips `promo` offers), switches `BasePlanOnly` (regular prices shown ⇒ charged), promo
   `Specific(offerId)`; a missing offer aborts with a billing message. `lintOffers` (`playCatalogLive.ts`, Maintenance
   `playcatalog` step `playOfferLint`) flags Play Console slips (≥ 90 % off, promo tags, the website's offer claims in `offerClaims.ts`: monthly 4 months free, yearly 50 % off year one — the static pages, `public/admin.html` email template, marketing README/voiceover scripts and videos must state them; `offerClaims.test.ts` enforces it). Monthly ↔ yearly passes the old token

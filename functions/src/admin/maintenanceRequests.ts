@@ -6,6 +6,8 @@
  *
  * Tasks:
  *  - playCatalog        base plans, regional prices and every offer (phases, eligibility, regions) + lintOffers warnings
+ *  - playOfferFix       moves a promo offer stranded on an inactive base plan onto the live monthly plan and
+ *                       widens claimed offers limited to "any subscription in this app" (dry run unless arg "apply")
  *  - playSubscriptions  every recorded Play subscription as Play sees it now: plan, offer, state,
  *                       bought in the app (tagged) or outside it (Play Store / promo code),
  *                       promotion type/code. Never returns purchase tokens or uids.
@@ -15,6 +17,7 @@ import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { getFirestore } from "firebase-admin/firestore";
 import "../lib/admin";
 import { lintOffers, readPlayCatalog } from "../billing/playCatalogLive";
+import { playOfferFix } from "../billing/playOfferFix";
 import { PACKAGE_NAME, getPlayPublisher } from "../billing/billingHelpers";
 import { classifyPlayError } from "../billing/playSubscription";
 
@@ -69,6 +72,7 @@ export const onMaintenanceRequest = onDocumentCreated(
     try {
       const result = task === "playCatalog" ? await readPlayCatalog().then((c) => ({ ...c, lint: lintOffers(c.basePlans, Date.now()) }))
         : task === "playSubscriptions" ? await playSubscriptions()
+        : task === "playOfferFix" ? await playOfferFix(event.data?.get("arg") === "apply")
         : { error: `unknown task ${String(task)}` };
       await ref.update({ status: "done", result: JSON.stringify(result), finishedAt: Date.now() });
     } catch (e) {

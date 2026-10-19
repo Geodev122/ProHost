@@ -199,6 +199,17 @@ Google Play decides who sees it (eligibility, regions, active/inactive) and what
    ended promo still active, more than one promo, a phase ≥ 90 % off or free > 4 months, a base plan without an LB price,
    two ACTIVE base plans with the same period, and the website's claims (4 months free monthly, 50 % off year one) not matching Play.
 
+### Runbook: a promo or launch offer won't resume / doesn't show (Oct 2026)
+- **"An unexpected error has occurred. Please try again. (5A39FA1E)" when resuming PROHOST2026 in Play Console.**
+  The offer was created on `pro-monthly`, which is INACTIVE. Play can't activate an offer on an inactive base plan.
+- **`free-4-months` hidden from anyone who ever subscribed.** Its eligibility was "never had any subscription in this app".
+- **Fix:** Actions › Maintenance › `playofferfix`.
+  1. Run it with an empty code first (dry run) and read the planned steps.
+  2. Run it again with code `apply`. It copies the promo (phases, tags, regions, eligibility) onto the live monthly plan
+     and activates it. It also sets claimed offers to "never had this subscription", then re-runs `playcatalog`.
+  3. If it reports HTTP 403, the functions service account can't edit subscriptions; do the printed Play Console steps instead.
+- **Promo-code campaigns** (Monetize › Promo codes) point at a specific offer: recreate the campaign on the new offer.
+
 ### Strict Play configuration — where every billing decision comes from
 
 | Decision | Source | Notes |

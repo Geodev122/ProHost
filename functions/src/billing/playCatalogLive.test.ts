@@ -110,3 +110,14 @@ test("lintOffers flags two ACTIVE base plans with the same period (a renamed pla
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /2 ACTIVE base plans bill every P1M \(pro-montly, pro-monthly1\)/);
 });
+
+test("lintOffers flags a promo stranded on an inactive base plan and an offer limited to any subscription in the app", () => {
+  const all = lintOffers([
+    { ...plan("pro-monthly", "P1M", [{ ...offer("prohost2026", ["promo", "code-prohost2026", "ends-20261231"], FREE4), state: "INACTIVE" }]), state: "INACTIVE" },
+    plan("pro-monthly1", "P1M", [{ ...offer("free-4-months", [], FREE4), eligibility: "new customers: never had any subscription in this app" }]),
+    plan("pro-yearly", "P1Y", [{ ...offer("launch-50-first-year", [], HALF_YEAR), eligibility: "new customers: never had this subscription" }]),
+  ], NOW).join("\n");
+  assert.match(all, /pro-monthly\/prohost2026: promo offer on a INACTIVE base plan can't be resumed/);
+  assert.match(all, /pro-monthly1\/free-4-months: only for accounts that never had any subscription in this app/);
+  assert.doesNotMatch(all, /launch-50-first-year: only for/);
+});

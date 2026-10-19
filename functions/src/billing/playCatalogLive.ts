@@ -178,8 +178,14 @@ export function lintOffers(basePlans: LiveBasePlan[], nowMillis: number): string
   for (const bp of basePlans) {
     if (bp.state === "ACTIVE" && bp.prices.LB === "n/a") out.push(`${bp.basePlanId}: ACTIVE but has no Lebanon (LB) price`);
     for (const o of bp.offers) {
-      if (o.state !== "ACTIVE") continue;
       const where = `${bp.basePlanId}/${o.offerId}`;
+      if (o.state !== "ACTIVE") {
+        // Play Console can't activate an offer whose base plan is inactive ("An unexpected error has occurred").
+        if (bp.state !== "ACTIVE" && o.tags.map((t) => t.toLowerCase()).includes(PROMO_TAG)) {
+          out.push(`${where}: promo offer on a ${bp.state} base plan can't be resumed — recreate it on the live plan (maintenance task playofferfix)`);
+        }
+        continue;
+      }
       o.phases.forEach((p, i) => {
         for (const region of AUDIT_REGIONS) {
           const pct = phaseDiscountPercent(p.pricing[region], bp.prices[region]);
@@ -226,6 +232,9 @@ export function lintOffers(basePlans: LiveBasePlan[], nowMillis: number): string
         ? pct === 100 && months >= WEBSITE_OFFER_CLAIMS.monthlyFreeMonths
         : pct === WEBSITE_OFFER_CLAIMS.yearlyDiscountPercent && months >= 12;
     });
+    for (const o of live.filter((x) => x.eligibility.includes("any subscription in this app"))) {
+      out.push(`${bp.basePlanId}/${o.offerId}: only for accounts that never had any subscription in this app — anyone who ever subscribed never sees it (use "never had this subscription"; maintenance task playofferfix)`);
+    }
     if (!kept) {
       out.push(kind === "monthly"
         ? `website promises the first ${WEBSITE_OFFER_CLAIMS.monthlyFreeMonths} months free on the monthly plan, but ${bp.basePlanId} has no ACTIVE offer with that free phase in LB`

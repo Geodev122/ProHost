@@ -449,8 +449,11 @@ fun OwnerSubscriptionsScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(actionLabel, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     }
-                    // How the offer works: today's price, the date the regular price starts, how to cancel.
-                    if (enabled) selectedSummary?.let { OfferExplainer(it) }
+                    // How it works for the selected plan (either tile): with an offer today's price, the date
+                    // the regular price starts and how to cancel; without one the plain renewal terms.
+                    if (enabled && !hasLivePlaySubscription) {
+                        (selectedSummary ?: selectedKind?.let { offerSummaries[it] })?.let { PlanExplainer(it, hasOffer = selectedSummary != null) }
+                    }
                     // Terms right under the purchase button (Play policy), switch timing, trial terms.
                     // A plan switch is charged the plain base plan (OfferChoice.BasePlanOnly), so its terms are too.
                     val terms = PlayOfferText.describe(premiumProduct, selectedPlan, basePlanOnly = hasLivePlaySubscription)
@@ -926,8 +929,11 @@ private fun PlanTile(
  * offer terms, renewal price and timing visible before purchase.
  */
 @Composable
-private fun OfferExplainer(summary: PlayOfferText.OfferSummary) {
-    val scheme = MaterialTheme.colorScheme
+private fun PlanExplainer(summary: PlayOfferText.OfferSummary, hasOffer: Boolean) {
+    if (!hasOffer) {
+        RenewalExplainer(summary)
+        return
+    }
     val startsAt = remember(summary) {
         java.text.SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
             .format(Date(PlayOfferText.regularPriceStartsAt(System.currentTimeMillis(), summary.introPeriods)))
@@ -944,7 +950,7 @@ private fun OfferExplainer(summary: PlayOfferText.OfferSummary) {
         }
         else -> "Free for ${summary.trialSpan}. Nothing to pay today."
     }
-    val steps = listOf(
+    ExplainerSteps("HOW YOUR OFFER WORKS", listOf(
         Triple(Icons.Default.LocalOffer, "Today", today),
         Triple(Icons.Default.Autorenew, "From $startsAt", "${summary.recurring} / ${summary.recurringPeriod}, renewing automatically."),
         Triple(
@@ -953,7 +959,28 @@ private fun OfferExplainer(summary: PlayOfferText.OfferSummary) {
                 "Cancel in Google Play before $startsAt and you won't be charged."
             else "Cancel in Google Play before $startsAt to avoid the renewal; Premium stays until then."
         )
-    )
+    ))
+}
+
+/** No offer for this account: the plain terms, all from Play (price, period) plus the first renewal date. */
+@Composable
+private fun RenewalExplainer(summary: PlayOfferText.OfferSummary) {
+    val renewsAt = remember(summary) {
+        // The plain base plan has a single (recurring) phase: the first renewal is one period from today.
+        val period = when (summary.recurringPeriod) { "year" -> "P1Y"; "week" -> "P1W"; "day" -> "P1D"; else -> "P1M" }
+        java.text.SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
+            .format(Date(PlayOfferText.regularPriceStartsAt(System.currentTimeMillis(), listOf(period to 1))))
+    }
+    ExplainerSteps("HOW IT WORKS", listOf(
+        Triple(Icons.Default.Payments, "Today", "${summary.recurring} for your first ${summary.recurringPeriod}, paid through Google Play."),
+        Triple(Icons.Default.Autorenew, "From $renewsAt", "${summary.recurring} / ${summary.recurringPeriod}, renewing automatically."),
+        Triple(Icons.Default.EventBusy, "Cancel anytime", "Cancel in Google Play before $renewsAt to avoid the renewal; Premium stays until then.")
+    ))
+}
+
+@Composable
+private fun ExplainerSteps(heading: String, steps: List<Triple<androidx.compose.ui.graphics.vector.ImageVector, String, String>>) {
+    val scheme = MaterialTheme.colorScheme
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
@@ -961,7 +988,7 @@ private fun OfferExplainer(summary: PlayOfferText.OfferSummary) {
         border = BorderStroke(1.dp, scheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("HOW YOUR OFFER WORKS", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, letterSpacing = 0.8.sp, color = scheme.primary)
+            Text(heading, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, letterSpacing = 0.8.sp, color = scheme.primary)
             steps.forEach { (icon, title, body) ->
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
                     Surface(shape = CircleShape, color = scheme.primaryContainer, modifier = Modifier.size(28.dp)) {
