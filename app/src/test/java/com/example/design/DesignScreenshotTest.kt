@@ -1,0 +1,115 @@
+package com.example.design
+
+import android.content.res.Configuration
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
+import com.example.data.model.UserRole
+import com.example.hermeticRepository
+import com.example.ui.preview.*
+import com.example.ui.screens.*
+import com.example.ui.theme.ProHostTheme
+import com.example.ui.viewmodel.ProHostViewModel
+import com.github.takahirom.roborazzi.captureRoboImage
+import org.junit.Assume
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.ParameterizedRobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+import java.io.File
+
+/**
+ * Design review screenshots: key screens × light / dark / font scale 1.3 / RTL, for checking design changes
+ * (docs/design/UI_AUDIT.md) before and after. Runs only under `recordRoborazziDebug` (workflow "Design
+ * Screenshots"); the normal unit-test run skips it, so it never gates CI. A screen that can't render here
+ * writes `<name>.error.txt` instead of failing.
+ */
+@RunWith(ParameterizedRobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(qualifiers = "w390dp-h844dp-xxhdpi", sdk = [34])
+class DesignScreenshotTest(private val screen: String, private val variant: String) {
+
+    @get:Rule val compose = createComposeRule()
+
+    @Test
+    fun capture() {
+        Assume.assumeTrue(System.getProperty("roborazzi.test.record") == "true")
+        val out = File(OUT_DIR).apply { mkdirs() }
+        val name = "${screen}_$variant"
+        try {
+            compose.setContent { Variant(variant) { Screen(screen) } }
+            compose.waitForIdle()
+            compose.onRoot().captureRoboImage(filePath = "$OUT_DIR/$name.png")
+        } catch (e: Throwable) {
+            File(out, "$name.error.txt").writeText(e.stackTraceToString())
+        }
+    }
+
+    @Composable
+    private fun Variant(variant: String, content: @Composable () -> Unit) {
+        val config = Configuration(LocalConfiguration.current)
+        if (variant == "dark") {
+            config.uiMode = (config.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or Configuration.UI_MODE_NIGHT_YES
+        }
+        val density = LocalDensity.current
+        CompositionLocalProvider(
+            LocalConfiguration provides config,
+            LocalDensity provides Density(density.density, if (variant == "font130") 1.3f else density.fontScale),
+            LocalLayoutDirection provides if (variant == "rtl") LayoutDirection.Rtl else LayoutDirection.Ltr,
+            content = content
+        )
+    }
+
+    @Composable
+    private fun Screen(screen: String) {
+        when (screen) {
+            "explore_list" -> Preview01_DiscoveryScreen()
+            "explore_map" -> Preview03_MapViewScreen()
+            "owner_hub" -> Preview06_OwnerHubScreen()
+            "renting_progress" -> Preview08_ActiveTenanciesScreen()
+            "sign_in" -> Preview11_SignInScreen()
+            else -> ProHostTheme {
+                val vm = ProHostViewModel(hermeticRepository())
+                when (screen) {
+                    "space_details" -> SpaceDetailsScreenContent(
+                        space = mockSpace1, viewModel = vm, acceptedBookings = emptyList(),
+                        myRequestsForThisSpace = emptyList(), selectedFormula = mockFormula1,
+                        currentUserRole = UserRole.SPECIALIST, onSelectFormula = {}, onWhatsAppClick = {},
+                        onShareClick = {}, onBack = {}
+                    )
+                    "renting_requests" -> OwnerRentalRequestsScreenContent(
+                        incomingRequests = listOf(mockBooking2, mockBooking1), spaces = listOf(mockSpace1, mockSpace2),
+                        viewModel = vm
+                    )
+                    "my_rentals" -> MyBookingsScreen(viewModel = vm, onNavigateToDiscovery = {}, onSelectSpace = {})
+                    "saved" -> MyFavoritesScreen(viewModel = vm, onSelectSpace = {})
+                    "premium" -> OwnerSubscriptionsScreen(viewModel = vm)
+                    "profile" -> SpecialistProfileScreen(viewModel = vm)
+                    "owner_analytics" -> OwnerAnalyticsScreen(viewModel = vm)
+                }
+            }
+        }
+    }
+
+    companion object {
+        const val OUT_DIR = "build/design-shots"
+
+        val SCREENS = listOf(
+            "explore_list", "explore_map", "space_details", "saved", "my_rentals", "profile",
+            "premium", "owner_hub", "renting_requests", "renting_progress", "owner_analytics", "sign_in"
+        )
+        val VARIANTS = listOf("light", "dark", "font130", "rtl")
+
+        @JvmStatic
+        @ParameterizedRobolectricTestRunner.Parameters(name = "{0}_{1}")
+        fun params(): List<Array<Any>> = SCREENS.flatMap { s -> VARIANTS.map { v -> arrayOf<Any>(s, v) } }
+    }
+}
