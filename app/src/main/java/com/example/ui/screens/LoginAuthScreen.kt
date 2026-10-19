@@ -231,11 +231,25 @@ fun LoginAuthScreen(
     var localErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var showLegalDocument by remember { mutableStateOf<com.example.legal.LegalDocument?>(null) }
 
+    // The WhatsApp number from Android's own number picker (Phone Number Hint): the person picks
+    // their SIM number in a system sheet or dismisses it and types. Offered once when the form opens.
+    val pickDeviceNumber = rememberPhoneNumberHint(onNumber = { e164 ->
+        val (country, local) = com.example.data.model.splitE164(e164, regWhatsAppCountry)
+        regWhatsAppCountry = country
+        regPhoneNumber = local
+        localErrorMessage = null
+    })
+    var phoneHintOffered by rememberSaveable { mutableStateOf(false) }
+
     // Apply Google One Tap pre-fill when the registration form opens after Google sign-in.
     LaunchedEffect(step) {
         if (step == AuthStep.REGISTRATION_FORM) {
             if (prefillGoogleName.isNotBlank() && regFullName.isBlank()) regFullName = prefillGoogleName
             if (prefillGooglePictureUri != null && regProfilePicUri == null) regProfilePicUri = prefillGooglePictureUri
+            if (!isPreview && !phoneHintOffered && regPhoneNumber.isBlank() && resumePhoneE164.isNullOrBlank()) {
+                phoneHintOffered = true
+                pickDeviceNumber()
+            }
         }
     }
 
@@ -837,11 +851,24 @@ fun LoginAuthScreen(
                     country = regWhatsAppCountry,
                     onCountryChange = { regWhatsAppCountry = it },
                     number = regPhoneNumber,
-                    onNumberChange = { regPhoneNumber = it },
-                    label = "WhatsApp Number (Optional)",
+                    onNumberChange = { regPhoneNumber = it; localErrorMessage = null },
+                    label = "WhatsApp Number",
                     placeholder = "71 234 567",
                     modifier = Modifier.fillMaxWidth()
                 )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Hosts and guests reach you here. Never shown publicly.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TextButton(onClick = pickDeviceNumber) {
+                        Icon(Icons.Default.SimCard, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Use this phone's number", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
@@ -911,18 +938,19 @@ fun LoginAuthScreen(
                             localErrorMessage = "Please enter your city"
                             return@ProPrimaryButton
                         }
+                        // A legacy phone-auth account already has its number; everyone else gives
+                        // their WhatsApp number here (required: booking and hosting need it).
+                        val registrationPhoneE164 = resumePhoneE164?.takeIf { it.isNotBlank() }
+                            ?: com.example.data.model.formatToE164(regWhatsAppCountry, regPhoneNumber)
+                        if (regPhoneNumber.filter { it.isDigit() }.length < 6 && resumePhoneE164.isNullOrBlank() ||
+                            !com.example.data.model.isPlausibleE164(registrationPhoneE164)
+                        ) {
+                            localErrorMessage = "Please enter your WhatsApp number with its country code"
+                            return@ProPrimaryButton
+                        }
                         if (!tosAccepted) {
                             localErrorMessage = "Please agree to the Terms of Use and Privacy Policy to continue"
                             return@ProPrimaryButton
-                        }
-                        // A legacy phone-auth account already has its number; otherwise use the
-                        // WhatsApp number typed on this form (blank when left empty — never
-                        // a bare dial code).
-                        val registrationPhoneE164 = when {
-                            !resumePhoneE164.isNullOrBlank() -> resumePhoneE164
-                            regPhoneNumber.isNotBlank() ->
-                                com.example.data.model.formatToE164(regWhatsAppCountry, regPhoneNumber)
-                            else -> ""
                         }
                         authViewModel.completePendingRegistration(
                             activity = currentActivity,

@@ -776,8 +776,10 @@ private fun PlanTile(
             val ribbon: Pair<String, Boolean>? = when {
                 isCurrent -> "YOUR PLAN" to false
                 hasOffer && summary?.discountPercent != null -> "${summary.discountPercent}% OFF" to true
-                hasOffer && summary?.trialSpan != null -> "FREE ${summary.trialSpan.uppercase()}" to true
+                hasOffer && summary?.trialSpan != null -> "${summary.trialSpan.uppercase()} FREE" to true
                 kind == PlayCatalog.PlanKind.YEARLY && savingsPercent != null -> "BEST VALUE" to true
+                // Both cards always carry a ribbon so they line up and read as a pair.
+                kind == PlayCatalog.PlanKind.MONTHLY -> "FLEXIBLE" to false
                 else -> null
             }
             // Only the selected card is orange; the other stays neutral (steel tint) so the screen isn't all orange.
@@ -850,7 +852,8 @@ private fun PlanTile(
                             color = if (selected) accent else scheme.onSurface,
                             maxLines = 1
                         )
-                        summary.original?.let { was ->
+                        // A free trial strikes through the regular price it replaces.
+                        (summary.original ?: summary.recurring.takeIf { summary.trialSpan != null && summary.introSpan == null })?.let { was ->
                             Text(
                                 was,
                                 style = MaterialTheme.typography.titleSmall,
@@ -891,10 +894,26 @@ private fun PlanTile(
                     summary.headlinePerMonth?.let {
                         Text(it, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = if (selected) accent else scheme.primary)
                     }
+                    if (kind == PlayCatalog.PlanKind.MONTHLY) {
+                        Text("Billed monthly", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = if (selected) accent else scheme.primary)
+                    }
                 }
                 Spacer(modifier = Modifier.weight(1f))
-                if (kind == PlayCatalog.PlanKind.YEARLY && savingsPercent != null && !isCurrent) {
-                    PlanChip("SAVE $savingsPercent% VS MONTHLY", scheme.tertiaryContainer, scheme.onTertiaryContainer)
+                // Bottom chip: the plan's second reason, so both cards end on the same line.
+                val chip: String? = when {
+                    isCurrent -> null
+                    kind == PlayCatalog.PlanKind.YEARLY && savingsPercent != null -> "SAVE $savingsPercent% VS MONTHLY"
+                    hasOffer && summary?.trialSpan != null && summary.introSpan == null -> "NOTHING TO PAY TODAY"
+                    kind == PlayCatalog.PlanKind.MONTHLY -> "CANCEL ANYTIME"
+                    else -> null
+                }
+                chip?.let {
+                    val strong = hasOffer || kind == PlayCatalog.PlanKind.YEARLY
+                    PlanChip(
+                        it,
+                        if (strong) scheme.tertiaryContainer else scheme.surfaceVariant,
+                        if (strong) scheme.onTertiaryContainer else scheme.onSurfaceVariant
+                    )
                 }
             }
         }

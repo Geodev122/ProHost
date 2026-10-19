@@ -156,7 +156,10 @@ plan + recurring price + date;
   Host workspaces. My Rentals, browsing and Saved are never gated; there is no `isKycComplete` and email is never a
   requirement. **There is no SMS code anywhere** (owner, Oct 2026: Firebase phone verification never delivered, in any
   country): the number is self-declared, entered on the registration form or in `WhatsAppNumberSection` (`KycScreen.kt`,
-  saved by `ProHostViewModel.saveWhatsAppNumber`). Never reintroduce `verifyPhoneNumber`/phone sign-in, and never use
+  saved by `ProHostViewModel.saveWhatsAppNumber`; it always prefills from the profile's `phone`). The registration form
+  requires it and offers Android's Phone Number Hint (`ui/components/PhoneNumberHint.kt`: system SIM-number picker, no
+  permission; opened once when the form appears, and "Use this phone's number" in both places) — a Google account never
+  exposes a phone number. Never reintroduce `verifyPhoneNumber`/phone sign-in, and never use
   `isVerified` (phone-auth claim, legacy accounts only) as the phone check. Missing steps are collected by the one shared
   `RequirementsSheet` (photo, `WhatsAppNumberSection`, and the address step with `requireAddress`), opened over the booking
   page, Premium or Profile's `KycCompletionBanner`.
@@ -288,6 +291,11 @@ plan + recurring price + date;
   filled soft green (free) / soft red (booked) with no status words.
 - Per-attendee Shift rooms: shifts carry `AVAILABILITY_MARKER_PRICE` (`RentalPricingConfigEditor` in availability mode
   and `AttendeePricing.markShifts` when the room is built) — otherwise `hasRealPrice()` fails and Save never enables.
+- Permission prompts look native: runtime permissions are the system dialogs; every in-app pre/post prompt or consent uses
+  `SystemStylePermissionDialog` (`ui/components/PermissionPrompts.kt`, Android 12+ permission-dialog look: centred icon,
+  "Allow **ProHost** to …?", stacked equal-weight choices). Location goes through `rememberLocationAccess` (rationale →
+  system prompt → "Open settings" when blocked for good → Play services' "turn on location" dialog), never a toast.
+  The notification prompt waits for the first-launch analytics choice (`MainActivity`), so prompts never stack.
 - No camera / photo-library permissions (Play Photo & Video Permissions policy): the manifest strips CAMERA,
   READ_MEDIA_IMAGES/VIDEO and READ_EXTERNAL_STORAGE (`tools:node="remove"`); photos come from `PickVisualMedia` /
   `GetContent`, "Take Photo" hands off via `TakePicture` (needs no permission when CAMERA isn't declared — declaring it

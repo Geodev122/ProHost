@@ -12,58 +12,37 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
 import com.example.analytics.AnalyticsConsent
 
 /**
- * First-launch analytics opt-in. Both choices carry equal visual weight (no dark
- * pattern); the person must pick one, and can change it later in Profile.
+ * First-launch analytics opt-in, in the same native permission style as every other prompt
+ * (SystemStylePermissionDialog). Both choices carry equal visual weight (no dark pattern); the
+ * person must pick one, and can change it later in Profile. The notification prompt waits for it
+ * (MainActivity), so two prompts never stack.
  */
 @Composable
 fun AnalyticsConsentDialog() {
     val context = LocalContext.current
-    ProHostDialog(
-        onDismissRequest = {},
-        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
-        icon = { Icon(Icons.Default.Insights, contentDescription = null) },
-        title = { Text("Help improve ProHost?") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "With your permission we use Google Analytics to understand how the app is used — " +
-                        "which screens you open, searches and filters, listings you view, and bookings and " +
-                        "subscriptions you start — so we can make ProHost better."
-                )
-                Text(
-                    "Reports are tied to your ProHost code (U-…), never your name, email or phone. " +
-                        "No advertising ID is collected and nothing is used for ads. You can change this " +
-                        "any time in Profile › Privacy.",
-                    style = MaterialTheme.typography.bodySmall
-                )
-                TextButton(
-                    onClick = {
-                        runCatching {
-                            context.startActivity(
-                                Intent(Intent.ACTION_VIEW, Uri.parse("https://pro-host.tech/privacy"))
-                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            )
-                        }
-                    },
-                    contentPadding = PaddingValues(0.dp)
-                ) { Text("Read the privacy policy") }
-            }
-        },
-        confirmButton = {
-            Button(onClick = { AnalyticsConsent.grant(context) }) { Text("Allow") }
-        },
-        dismissButton = {
-            Button(
-                onClick = { AnalyticsConsent.deny(context) },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-            ) { Text("Don't allow") }
+    SystemStylePermissionDialog(
+        icon = Icons.Default.Insights,
+        title = permissionTitle("share usage analytics"),
+        message = "Google Analytics shows us which screens, searches and listings people use, so we can make " +
+            "ProHost better. Reports carry your ProHost code (U-…), never your name, email or phone. No " +
+            "advertising ID and no ads. You can change this any time in Profile › Privacy.",
+        onAllow = { AnalyticsConsent.grant(context) },
+        onDeny = { AnalyticsConsent.deny(context) },
+        dismissible = false,
+        extra = {
+            TextButton(
+                onClick = {
+                    runCatching {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse("https://pro-host.tech/privacy"))
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    }
+                }
+            ) { Text("Read the privacy policy") }
         }
     )
 }

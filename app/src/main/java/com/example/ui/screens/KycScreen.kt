@@ -78,11 +78,13 @@ fun WhatsAppNumberSection(
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
+    // Always starts from the number already on the profile (registration form, or an earlier save).
     val initial = remember(currentPhone) { splitE164(currentPhone, findCountryByName("Lebanon")) }
     var phoneCountry by rememberSaveable(
+        currentPhone,
         stateSaver = Saver(save = { it.name }, restore = { findCountryByName(it) })
     ) { mutableStateOf(initial.first) }
-    var phoneNumber by rememberSaveable { mutableStateOf(initial.second) }
+    var phoneNumber by rememberSaveable(currentPhone) { mutableStateOf(initial.second) }
     var errorMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var saving by remember { mutableStateOf(false) }
     val e164Phone = formatToE164(phoneCountry, phoneNumber)
@@ -120,6 +122,11 @@ fun WhatsAppNumberSection(
             number = phoneNumber,
             onNumberChange = { phoneNumber = it; errorMessage = null },
             modifier = Modifier.fillMaxWidth()
+        )
+        // The same number as the profile (prefilled above); with none yet, Android's number picker can fill it.
+        UseDeviceNumberButton(
+            fallbackCountry = phoneCountry,
+            onPicked = { country, local -> phoneCountry = country; phoneNumber = local; errorMessage = null }
         )
 
         errorMessage?.let {

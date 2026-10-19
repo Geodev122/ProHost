@@ -4,6 +4,9 @@ What's new in ProHost 1.0.42
 • Sign in with your email or Google
 • Refreshed app icon
 • Stability improvements
+• Your WhatsApp number is filled from this phone with one tap
+• Cleaner, Android-style permission prompts
+• Monthly and yearly Premium cards now match
 </en-US>
 <ar>
 الجديد في ProHost 1.0.42
@@ -11,6 +14,9 @@ What's new in ProHost 1.0.42
 • سجّل الدخول ببريدك الإلكتروني أو بحساب Google
 • أيقونة تطبيق محدّثة
 • تحسينات في الاستقرار
+• املأ رقم واتساب من هاتفك بلمسة واحدة
+• طلبات أذونات أوضح بأسلوب أندرويد
+• بطاقتا الاشتراك الشهري والسنوي بتصميم موحّد
 </ar>
 <fr-FR>
 Nouveautés de ProHost 1.0.42
@@ -18,6 +24,9 @@ Nouveautés de ProHost 1.0.42
 • Connexion avec votre e-mail ou Google
 • Icône de l'application rafraîchie
 • Améliorations de stabilité
+• Numéro WhatsApp rempli depuis ce téléphone en un geste
+• Demandes d'autorisation au style Android, plus claires
+• Cartes Premium mensuelle et annuelle harmonisées
 </fr-FR>
 <es-ES>
 Novedades de ProHost 1.0.42
@@ -25,6 +34,9 @@ Novedades de ProHost 1.0.42
 • Inicia sesión con tu correo o con Google
 • Icono de la app renovado
 • Mejoras de estabilidad
+• Tu número de WhatsApp se rellena desde este teléfono con un toque
+• Solicitudes de permisos más claras, al estilo Android
+• Tarjetas Premium mensual y anual a juego
 </es-ES>
 <de-DE>
 Neu in ProHost 1.0.42
@@ -32,6 +44,9 @@ Neu in ProHost 1.0.42
 • Anmeldung per E-Mail oder Google
 • Aufgefrischtes App-Symbol
 • Stabilitätsverbesserungen
+• WhatsApp-Nummer mit einem Tipp von diesem Telefon übernehmen
+• Klarere Berechtigungsabfragen im Android-Stil
+• Monats- und Jahreskarte von Premium im gleichen Design
 </de-DE>
 <it-IT>
 Novità di ProHost 1.0.42
@@ -39,6 +54,9 @@ Novità di ProHost 1.0.42
 • Accedi con la tua email o con Google
 • Icona dell'app rinnovata
 • Miglioramenti di stabilità
+• Numero WhatsApp compilato da questo telefono con un tocco
+• Richieste di autorizzazione più chiare, in stile Android
+• Schede Premium mensile e annuale uniformi
 </it-IT>
 <pt-BR>
 Novidades do ProHost 1.0.42
@@ -46,6 +64,9 @@ Novidades do ProHost 1.0.42
 • Entre com seu e-mail ou com o Google
 • Ícone do app renovado
 • Melhorias de estabilidade
+• Seu número de WhatsApp preenchido deste celular com um toque
+• Pedidos de permissão mais claros, no estilo Android
+• Cartões Premium mensal e anual no mesmo estilo
 </pt-BR>
 <tr-TR>
 ProHost 1.0.42'deki yenilikler
@@ -53,4 +74,7 @@ ProHost 1.0.42'deki yenilikler
 • E-posta veya Google ile giriş yapın
 • Yenilenen uygulama simgesi
 • Kararlılık iyileştirmeleri
+• WhatsApp numaranız tek dokunuşla bu telefondan doldurulur
+• Android tarzında daha net izin istekleri
+• Aylık ve yıllık Premium kartları artık uyumlu
 </tr-TR>
