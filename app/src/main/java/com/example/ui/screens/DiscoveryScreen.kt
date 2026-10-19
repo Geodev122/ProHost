@@ -34,7 +34,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.selectable
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -56,9 +55,8 @@ fun DiscoveryScreen(
     viewModel: ProHostViewModel,
     onSelectSpace: (SpaceListing, String?) -> Unit,
     discoveryViewModel: DiscoveryViewModel = viewModel(),
-    // Shown in Explore's own floating header when the shell has no app bar (specialists).
-    unreadAlertCount: Int = 0,
-    onAlertsClick: (() -> Unit)? = null
+    // Specialists have no app bar on Explore: its floating header carries the logo next to the Map | List toggle.
+    showBrand: Boolean = false
 ) {
     val context = LocalContext.current
     val uiState by discoveryViewModel.uiState.collectAsState()
@@ -118,8 +116,7 @@ fun DiscoveryScreen(
         onListPositionSaved = { index, offset -> discoveryViewModel.saveListPosition(index, offset) },
         initialMapCamera = discoveryViewModel.mapCamera,
         onMapCameraSaved = { discoveryViewModel.saveMapCamera(it) },
-        unreadAlertCount = unreadAlertCount,
-        onAlertsClick = onAlertsClick,
+        showBrand = showBrand,
         onMapGesture = { discoveryViewModel.setNavExpandedOnMap(false) }
     )
 }
@@ -168,8 +165,7 @@ fun DiscoveryScreenContent(
     onListPositionSaved: (index: Int, offset: Int) -> Unit = { _, _ -> },
     initialMapCamera: com.google.android.gms.maps.model.CameraPosition? = null,
     onMapCameraSaved: (com.google.android.gms.maps.model.CameraPosition) -> Unit = {},
-    unreadAlertCount: Int = 0,
-    onAlertsClick: (() -> Unit)? = null,
+    showBrand: Boolean = false,
     onMapGesture: () -> Unit = {}
 ) {
     val bottomNavInset = LocalBottomNavInset.current
@@ -218,8 +214,7 @@ fun DiscoveryScreenContent(
                         onToggleMapView = onToggleMapView,
                         onSearchQueryChange = onSearchQueryChange,
                         onOpenFilters = { onSetFilterSheetVisible(true) },
-                        unreadAlertCount = unreadAlertCount,
-                        onAlertsClick = onAlertsClick,
+                        showBrand = showBrand,
                         modifier = Modifier.align(Alignment.TopStart)
                     )
                 }
@@ -239,8 +234,7 @@ fun DiscoveryScreenContent(
                 onToggleMapView = onToggleMapView,
                 onSearchQueryChange = onSearchQueryChange,
                 onOpenFilters = { onSetFilterSheetVisible(true) },
-                unreadAlertCount = unreadAlertCount,
-                onAlertsClick = onAlertsClick
+                showBrand = showBrand
             )
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             // List View
@@ -399,11 +393,12 @@ private fun formulaUnitLabel(formula: PricingFormulaFilter): String =
     formula.strategy?.let { SpaceCalculationUtils.strategyUnitLabel(it) } ?: "/person"
 
 /**
- * Explore's own header (specialists have no app bar): map/list toggle top-left, the brand
- * top-centre and notifications top-right ([onAlertsClick]; Pro Hosts, who keep the app bar,
- * pass null), then search under the toggle and filters under the bell. On the map the row is
- * transparent and each control floats on its own surface; on the list it has the list's
- * background and sits above it in the layout. [belowControls] is the map's "Search this area".
+ * Explore's own header (specialists have no app bar), one row: search top-left, the Map | List toggle
+ * top-centre with the brand logo wrapped in the same pill ([showBrand]; Pro Hosts and Admins keep the app
+ * bar's brand, so they get the toggle alone) and filters top-right. There is no notification bell here:
+ * notifications live in the app bar of the other tabs. On the map the row is transparent and each control
+ * floats on its own surface; on the list it has the list's background and sits above it in the layout.
+ * [belowControls] is the map's "Search this area".
  */
 @Composable
 private fun ExploreOverlayHeader(
@@ -415,8 +410,7 @@ private fun ExploreOverlayHeader(
     onToggleMapView: () -> Unit,
     onSearchQueryChange: (String) -> Unit,
     onOpenFilters: () -> Unit,
-    unreadAlertCount: Int,
-    onAlertsClick: (() -> Unit)?,
+    showBrand: Boolean,
     modifier: Modifier = Modifier,
     focusSearchOnOpen: Boolean = false,
     onSearchFocusConsumed: () -> Unit = {},
@@ -429,7 +423,7 @@ private fun ExploreOverlayHeader(
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Row 1: search · logo · notifications
+        // One row: search · logo + Map|List · filters
         Box(modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp)) {
             BadgedControl(
                 badge = if (searchQuery.isNotEmpty()) "" else null,
@@ -449,37 +443,24 @@ private fun ExploreOverlayHeader(
                     }
                 }
             }
-            if (onAlertsClick != null) {
-                ExploreControlSurface(floating = isMapView, modifier = Modifier.align(Alignment.Center)) {
-                    Row(
-                        modifier = Modifier.padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        ProHostBrandLogo(size = 24.dp)
-                        Text(
-                            "ProHost",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onSurface
+            MapListToggle(
+                isMapView = isMapView,
+                floating = isMapView,
+                onToggle = onToggleMapView,
+                showBrand = showBrand,
+                modifier = Modifier.align(Alignment.Center)
+            )
+            BadgedControl(
+                badge = activeFilterCount.takeIf { it > 0 }?.let { if (it > 99) "99+" else "$it" },
+                modifier = Modifier.align(Alignment.CenterEnd)
+            ) {
+                ExploreControlSurface(floating = isMapView, shape = CircleShape) {
+                    IconButton(onClick = onOpenFilters, modifier = Modifier.size(44.dp)) {
+                        Icon(
+                            Icons.Default.Tune,
+                            contentDescription = if (activeFilterCount > 0) "Filters, $activeFilterCount active" else "Filters",
+                            tint = if (activeFilterCount > 0) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
                         )
-                    }
-                }
-                BadgedControl(
-                    badge = unreadAlertCount.takeIf { it > 0 }?.let { if (it > 99) "99+" else "$it" },
-                    modifier = Modifier.align(Alignment.CenterEnd)
-                ) {
-                    ExploreControlSurface(floating = isMapView, shape = CircleShape) {
-                        IconButton(
-                            onClick = onAlertsClick,
-                            modifier = Modifier.size(44.dp).testTag("top_bar_notifications_button")
-                        ) {
-                            Icon(
-                                if (unreadAlertCount > 0) Icons.Default.NotificationsActive else Icons.Default.Notifications,
-                                contentDescription = if (unreadAlertCount > 0) "Notifications, $unreadAlertCount unread" else "Notifications",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
                     }
                 }
             }
@@ -498,30 +479,6 @@ private fun ExploreOverlayHeader(
                     onSearchExpandedChange(false)
                 }
             )
-        }
-
-        // Row 2: Map | List · filters
-        Box(modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp)) {
-            MapListToggle(
-                isMapView = isMapView,
-                floating = isMapView,
-                onToggle = onToggleMapView,
-                modifier = Modifier.align(Alignment.CenterStart)
-            )
-            BadgedControl(
-                badge = activeFilterCount.takeIf { it > 0 }?.let { if (it > 99) "99+" else "$it" },
-                modifier = Modifier.align(Alignment.CenterEnd)
-            ) {
-                ExploreControlSurface(floating = isMapView, shape = CircleShape) {
-                    IconButton(onClick = onOpenFilters, modifier = Modifier.size(44.dp)) {
-                        Icon(
-                            Icons.Default.Tune,
-                            contentDescription = if (activeFilterCount > 0) "Filters, $activeFilterCount active" else "Filters",
-                            tint = if (activeFilterCount > 0) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-            }
         }
 
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { belowControls() }
@@ -565,16 +522,25 @@ private fun ExploreControlSurface(
     )
 }
 
-/** Segmented Map | List switch; the active half is filled with the brand colour. */
+/** Segmented Map | List switch (active half filled with the brand colour), optionally led by the brand logo. */
 @Composable
 private fun MapListToggle(
     isMapView: Boolean,
     floating: Boolean,
     onToggle: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showBrand: Boolean = false
 ) {
     ExploreControlSurface(floating = floating, shape = CircleShape, modifier = modifier) {
-        Row(modifier = Modifier.padding(4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(
+            modifier = Modifier.padding(start = if (showBrand) 8.dp else 4.dp, top = 4.dp, end = 4.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            if (showBrand) {
+                ProHostBrandLogo(size = 26.dp)
+                Spacer(Modifier.width(4.dp))
+            }
             listOf(true to "Map", false to "List").forEach { (isMapOption, label) ->
                 val selected = isMapOption == isMapView
                 val container by androidx.compose.animation.animateColorAsState(

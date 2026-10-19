@@ -732,9 +732,9 @@ async function mailingsmoke(db, code) {
 
 // Live Play catalog / subscriptions, read by the functions' own service account (invited in Play Console)
 // through the onMaintenanceRequest trigger: write maintenance_requests/{id}, wait for the result.
-async function serverTask(db, task) {
+async function serverTask(db, task, arg = null) {
   const ref = db.collection("maintenance_requests").doc();
-  await ref.set({ task, createdAt: Date.now() });
+  await ref.set({ task, arg, createdAt: Date.now() });
   for (let i = 0; i < 60; i++) {
     await new Promise((r) => setTimeout(r, 2000));
     const d = (await ref.get()).data();
@@ -745,6 +745,19 @@ async function serverTask(db, task) {
     }
   }
   throw new Error(`${task}: no answer from onMaintenanceRequest in 120 s (is it deployed?)`);
+}
+
+// Repairs Play Console slips through the Play API (functions' service account): a promo offer stranded on an
+// inactive base plan is copied onto the live monthly plan, and claimed offers limited to "any subscription in this
+// app" are widened to "this subscription". Dry run unless the code is "apply".
+async function playofferfix(db, arg) {
+  const apply = arg === "apply";
+  await step("playOfferFix", async () => {
+    const res = await serverTask(db, "playOfferFix", apply ? "apply" : null);
+    res.steps.forEach((s) => notice(`playOfferFix ${s.step}: ${s.action} → ${s.result}`));
+    return `${apply ? "applied" : "dry run (code: apply to write)"}: ${res.steps.length} step(s)`;
+  });
+  if (apply) await playcatalog(db);
 }
 
 async function playcatalog(db) {
@@ -761,6 +774,8 @@ async function playcatalog(db) {
       if (!bp.offers.length) lines.push("  (no offers)");
     }
     lines.forEach((l) => console.log(l));
+    // The detail as one annotation too (ids, prices, eligibility only — no people), readable without the raw log.
+    notice(`playCatalogDetail: ${lines.map((l) => l.trim()).join(" ; ")}`);
     return `${cat.basePlans.length} base plans, ${cat.basePlans.reduce((n, b) => n + b.offers.length, 0)} offers (details in the log)`;
   });
   // Strict Play: Play Console is the only billing config, so its mistakes are flagged here (lintOffers).
@@ -768,6 +783,7 @@ async function playcatalog(db) {
     if (!cat) throw new Error("catalog not read (see playCatalogLive)");
     const lint = cat.lint || [];
     lint.forEach((w) => console.log(`WARN ${w}`));
+    if (lint.length) notice(`playOfferLintDetail: ${lint.join(" ; ")}`);
     return lint.length ? `${lint.length} warning(s) — fix them in Play Console (details in the log)` : "no warnings";
   });
   // The promo card is a Play offer now (tags promo, code-…, ends-…); the old Firestore campaign doc is retired.
@@ -796,6 +812,99 @@ async function playcatalog(db) {
 }
 
 
+
+// Phone VERIFICATION (not sign-in) diagnosis: is Phone enabled, which countries may receive SMS (SMS region
+// policy), test numbers, and are the app's signing fingerprints registered in Firebase? arg "allow:SY,..." adds
+// those regions to the SMS region policy (touches only smsRegionConfig; the log says what changed).
+async function smsauth(db, arg) {
+  const project = process.env.GCLOUD_PROJECT;
+  const base = `https://identitytoolkit.googleapis.com/admin/v2/projects/${project}/config`;
+  let config = null;
+  await step("smsConfig", async () => {
+    const res = await googleApi(base);
+    if (!res.ok) return `HTTP ${res.status} ${(await res.text()).slice(0, 200)}`;
+    config = await res.json();
+    const r = config.smsRegionConfig || {};
+    const allow = r.allowlistOnly?.allowedRegions, deny = r.allowByDefault?.disallowedRegions;
+    const policy = allow ? `ALLOWLIST ${allow.join(",")} (SY ${allow.includes("SY") ? "allowed" : "NOT allowed"})`
+      : deny ? `DENYLIST ${deny.join(",")} (SY ${deny.includes("SY") ? "BLOCKED" : "allowed"})`
+      : "no region policy (all regions the provider supports)";
+    // SMS fraud protection (reCAPTCHA / toll-fraud rules) can silently drop sends in every country.
+    const rc = config.recaptchaConfig || {};
+    const fraud = `recaptchaPhoneEnforcement=${rc.phoneEnforcementState || "unset"} tollFraudRules=${JSON.stringify(rc.tollFraudManagedRules || []).slice(0, 160)} ` +
+      `useSmsTollFraudProtection=${rc.useSmsTollFraudProtection === true} useSmsBotScore=${rc.useSmsBotScore === true}`;
+    return `phoneEnabled=${config.signIn?.phoneNumber?.enabled === true} policy=${policy} ${fraud} ` +
+      `testNumbers=${Object.keys(config.signIn?.phoneNumber?.testPhoneNumbers || {}).length} ` +
+      `quotaConfigured=${Object.keys(config.quota?.signUpQuotaConfig || {}).length > 0}`;
+  });
+  await step("smsRegionFix", async () => {
+    if (!arg || !arg.startsWith("allow:")) return "skipped (pass allow:SY to add regions to the policy)";
+    if (!config) return "config not read";
+    const want = arg.slice(6).split(",").map((x) => x.trim().toUpperCase()).filter(Boolean);
+    const r = config.smsRegionConfig || {};
+    let next, note;
+    if (r.allowlistOnly) {
+      const have = r.allowlistOnly.allowedRegions || [];
+      const add = want.filter((x) => !have.includes(x));
+      if (!add.length) return `already allowed: ${want.join(",")}`;
+      next = { allowlistOnly: { allowedRegions: [...have, ...add] } };
+      note = `allowlist += ${add.join(",")}`;
+    } else if (r.allowByDefault) {
+      const have = r.allowByDefault.disallowedRegions || [];
+      const keep = have.filter((x) => !want.includes(x));
+      if (keep.length === have.length) return `not on the denylist: ${want.join(",")}`;
+      next = { allowByDefault: { disallowedRegions: keep } };
+      note = `denylist -= ${want.filter((x) => have.includes(x)).join(",")}`;
+    } else return "no region policy set: nothing to change in Firebase (the block is elsewhere)";
+    const res = await googleApi(`${base}?updateMask=smsRegionConfig`, { method: "PATCH", body: JSON.stringify({ smsRegionConfig: next }) });
+    return res.ok ? `updated: ${note}` : `HTTP ${res.status} ${(await res.text()).slice(0, 300)} (change it in Firebase Console › Authentication › Settings › SMS region policy)`;
+  });
+  // APIs phone verification depends on (Identity Toolkit sends the SMS; Android Device Verification / Play
+  // Integrity prove the app) and whether billing is on (real SMS beyond test numbers needs it).
+  await step("smsApisAndBilling", async () => {
+    const out = [];
+    const names = ["identitytoolkit.googleapis.com", "androidcheck.googleapis.com", "playintegrity.googleapis.com",
+      "firebaseappcheck.googleapis.com", "recaptchaenterprise.googleapis.com"];
+    const qs = names.map((n) => `names=projects/${project}/services/${n}`).join("&");
+    const svc = await googleApi(`https://serviceusage.googleapis.com/v1/projects/${project}/services:batchGet?${qs}`);
+    if (svc.ok) {
+      const j = await svc.json();
+      out.push(...(j.services || []).map((x) => `${x.config?.name}=${x.state}`));
+    } else out.push(`serviceusage HTTP ${svc.status}`);
+    const bill = await googleApi(`https://cloudbilling.googleapis.com/v1/projects/${project}/billingInfo`);
+    out.push(bill.ok ? `billingEnabled=${(await bill.json()).billingEnabled === true}` : `billing HTTP ${bill.status}`);
+    return out.join(" ");
+  });
+  // API keys: an Android restriction that omits the app's package/fingerprint, or an API target list that
+  // leaves out Identity Toolkit, breaks phone verification exactly like a missing SHA.
+  await step("apiKeyRestrictions", async () => {
+    const res = await googleApi(`https://apikeys.googleapis.com/v2/projects/${project}/locations/global/keys`);
+    if (!res.ok) return `HTTP ${res.status} ${(await res.text()).slice(0, 160)}`;
+    const keys = (await res.json()).keys || [];
+    return keys.map((k) => {
+      const r = k.restrictions || {};
+      const android = r.androidKeyRestrictions ? `android(${(r.androidKeyRestrictions.allowedApplications || []).map((a) => a.packageName).join("|")} apps=${(r.androidKeyRestrictions.allowedApplications || []).length})` : "";
+      const targets = (r.apiTargets || []).map((t) => t.service.replace(".googleapis.com", "")).join("|");
+      return `${k.displayName || k.uid}: ${android || "no-android-restriction"} apis=${targets || "any"}`;
+    }).join(" ;; ") || "no keys listed";
+  });
+  // Fingerprints registered for the Android app vs the Play app-signing secrets (values never printed).
+  await step("androidFingerprints", async () => {
+    const list = await googleApi(`https://firebase.googleapis.com/v1beta1/projects/${project}/androidApps`);
+    if (!list.ok) return `HTTP ${list.status} ${(await list.text()).slice(0, 160)}`;
+    const app = ((await list.json()).apps || []).find((a) => a.packageName === "app.geonajjar.prohost");
+    if (!app) return "Android app app.geonajjar.prohost not found in Firebase";
+    const sha = await googleApi(`https://firebase.googleapis.com/v1beta1/${app.name}/sha`);
+    if (!sha.ok) return `HTTP ${sha.status} ${(await sha.text()).slice(0, 160)}`;
+    const certs = ((await sha.json()).certificates || []).map((c) => String(c.shaHash || "").toLowerCase());
+    const norm = (v) => String(v || "").replace(/[: \n]/g, "").toLowerCase();
+    const want = { playSha1: norm(process.env.PLAY_APP_SIGNING_SHA1), playSha256: norm(process.env.PLAY_APP_SIGNING_SHA256) };
+    const has = (h) => h ? certs.includes(h) : "secret-missing";
+    return `registered=${certs.length} (sha1=${certs.filter((c) => c.length === 40).length} sha256=${certs.filter((c) => c.length === 64).length}) ` +
+      `playAppSigningSha1Registered=${has(want.playSha1)} playAppSigningSha256Registered=${has(want.playSha256)}`;
+  });
+}
+
 (async () => {
   require(`${LIB}/lib/admin`);
   const db = admin.firestore();
@@ -814,5 +923,7 @@ async function playcatalog(db) {
   else if (task === "mailingcode") await mailingcode(db, arg);
   else if (task === "mailingsmoke") await mailingsmoke(db, arg);
   else if (task === "playcatalog") await playcatalog(db);
+  else if (task === "smsauth") await smsauth(db, arg);
+  else if (task === "playofferfix") await playofferfix(db, arg);
   else throw new Error(`unknown task ${task}`);
 })().catch((e) => { fail(`${e && e.message}`); process.exit(1); });

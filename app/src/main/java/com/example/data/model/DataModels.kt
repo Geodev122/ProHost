@@ -1407,23 +1407,21 @@ data class AppUser(
     val displayCode: String = ""
 ) {
     /**
-     * Phone verified through KYC: the number is on the profile AND linked to the Firebase
-     * Auth account ([phoneLinkedInAuth], see data/auth/PhoneLink). isVerified can't be used —
-     * it is also true for email-verified accounts — and a typed profile phone isn't proof.
+     * A WhatsApp number saved on the profile in international format. There is no SMS code:
+     * Firebase phone verification never delivered reliably, so the number is self-declared
+     * (hosts and guests reach each other on WhatsApp through it).
      */
-    fun hasVerifiedPhone(phoneLinkedInAuth: Boolean): Boolean = phoneLinkedInAuth && phone.isNotBlank()
+    fun hasWhatsAppNumber(): Boolean = isPlausibleE164(phone)
 
     /**
      * The one rule for sending a booking request: a profile photo (hosts verify who's coming)
-     * and a verified phone. Checked in place at Request time (RequirementsSheet), never as a
+     * and a WhatsApp number. Checked in place at Request time (RequirementsSheet), never as a
      * navigation gate.
      */
-    fun canTransact(phoneLinkedInAuth: Boolean): Boolean =
-        hasVerifiedPhone(phoneLinkedInAuth) && !profilePictureUrl.isNullOrBlank()
+    fun canTransact(): Boolean = hasWhatsAppNumber() && !profilePictureUrl.isNullOrBlank()
 
     /** Hosting (Premium checkout, Pro Host profile): [canTransact] plus country and city. */
-    fun canHost(phoneLinkedInAuth: Boolean): Boolean =
-        canTransact(phoneLinkedInAuth) && country.isNotBlank() && city.isNotBlank()
+    fun canHost(): Boolean = canTransact() && country.isNotBlank() && city.isNotBlank()
     // Full map — only for admin/server-side contexts (e.g. bootstrapping a new profile
     // from an admin console write). NEVER use for client-initiated profile updates;
     // firestore.rules blocks writes to protected fields (role, isVerified, ownerPackageId,

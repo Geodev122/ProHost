@@ -1,21 +1,14 @@
 package com.example.data.auth
 
-import android.app.Activity
 import android.content.Context
 import android.util.Log
 import com.google.android.gms.tasks.Task
 import com.google.firebase.FirebaseApp
-import com.google.firebase.FirebaseException
 import com.google.firebase.auth.ActionCodeSettings
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.auth.PhoneAuthCredential
-import com.google.firebase.auth.PhoneAuthOptions
-import com.google.firebase.auth.PhoneAuthProvider
 import kotlinx.coroutines.suspendCancellableCoroutine
-import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -28,30 +21,19 @@ sealed class AuthResult {
         val isNewUser: Boolean = false
     ) : AuthResult()
 
-    /** Lightweight failure used by email/Google/phone-link methods. */
+    /** Lightweight failure used by the email and Google methods. */
     data class Failure(val message: String) : AuthResult()
     data class Error(val message: String, val throwable: Throwable? = null) : AuthResult()
     data object Cancelled : AuthResult()
 }
 
 /**
- * Service encapsulating Firebase Auth operations.
- * Sends real SMS verification codes for all real phone numbers, with fast-path
- * test mode exclusively for explicit developer/QA whitelist numbers.
+ * Service encapsulating Firebase Auth operations (email link, Google, custom token).
+ * There is no phone/SMS sign-in or verification: the WhatsApp number is saved to the profile.
  */
 class FirebaseAuthService(private val context: Context) {
 
     private val tag = "FirebaseAuthService"
-
-    // Explicit developer/QA test numbers — ONLY these numbers bypass real SMS
-    private val testPhoneNumbers = setOf(
-        "+96170888999", "+96170123456", "+9613123456", "+961000000", "+961111222", "+96176543210"
-    )
-
-    private fun isTestPhoneNumber(phone: String): Boolean {
-        val clean = phone.replace(" ", "").replace("-", "")
-        return testPhoneNumbers.contains(clean)
-    }
 
     private val firebaseAuth: FirebaseAuth? by lazy {
         try {
@@ -85,201 +67,6 @@ class FirebaseAuthService(private val context: Context) {
         addOnCanceledListener {
             if (cont.isActive) cont.cancel()
         }
-    }
-
-    /**
-     * Kicks off Firebase Phone Auth SMS verification for [e164PhoneNumber].
-     * Sends real SMS to all end-user phone numbers.
-     */
-    // Last ForceResendingToken per number, so "Resend code" really re-sends.
-    private val resendTokens: MutableMap<String, PhoneAuthProvider.ForceResendingToken>
-        get() = sharedResendTokens
-
-    fun sendPhoneVerificationCode(
-        activity: Activity,
-        e164PhoneNumber: String,
-        onCodeSent: (verificationId: String) -> Unit,
-        onAutoVerified: (PhoneAuthCredential) -> Unit,
-        onError: (String) -> Unit
-    ) {
-        val auth = firebaseAuth
-        if (auth == null) {
-            onError("Authentication service unavailable. Please check your connection and try again.")
-            return
-        }
-
-        // Fast-path ONLY for explicit QA/developer whitelist numbers — debug builds only
-        if (com.example.BuildConfig.DEBUG && isTestPhoneNumber(e164PhoneNumber)) {
-            Log.d(tag, "Using instant test verification for QA number: ${maskPhone(e164PhoneNumber)}")
-            val testVerificationId = "TEST-VERIFY-ID-" + e164PhoneNumber.replace("+", "").replace(" ", "")
-            onCodeSent(testVerificationId)
-            return
-        }
-
-        Log.d(tag, "Initiating real SMS phone verification for: ${maskPhone(e164PhoneNumber)}")
-        val builder = PhoneAuthOptions.newBuilder(auth)
-            .setPhoneNumber(e164PhoneNumber)
-            .setTimeout(60L, TimeUnit.SECONDS)
-            .setActivity(activity)
-        // "Resend" must re-send the SMS for the same session (Firebase otherwise may not).
-        resendTokens[e164PhoneNumber]?.let { builder.setForceResendingToken(it) }
-        val options = builder
-            .setCallbacks(object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-                override fun onVerificationCompleted(credential: PhoneAuthCredential) {
-                    Log.d(tag, "Phone verification completed automatically for ${maskPhone(e164PhoneNumber)}")
-                    onAutoVerified(credential)
-                }
-
-                override fun onVerificationFailed(e: FirebaseException) {
-                    Log.e(tag, "Phone verification failed for ${maskPhone(e164PhoneNumber)}: ${e.message}", e)
-                    // Never pretend a code was sent: a fake "code sent" (old debug fallback) left
-                    // testers waiting for an SMS that never came.
-                    val message = verificationFailureMessage(e)
-                    val debugMessage = if (com.example.BuildConfig.DEBUG) {
-                        "$message\n\n[debug] ${e::class.simpleName}: ${e.message}"
-                    } else {
-                        message
-                    }
-                    onError(debugMessage)
-                }
-
-                override fun onCodeSent(verificationId: String, token: PhoneAuthProvider.ForceResendingToken) {
-                    Log.d(tag, "Verification SMS code sent to ${maskPhone(e164PhoneNumber)}")
-                    resendTokens[e164PhoneNumber] = token
-                    onCodeSent(verificationId)
-                }
-            })
-            .build()
-        PhoneAuthProvider.verifyPhoneNumber(options)
-    }
-
-    /** Builds the credential from a verification id and the SMS code typed in. */
-    fun buildPhoneAuthCredential(verificationId: String, smsCode: String): PhoneAuthCredential =
-        PhoneAuthProvider.getCredential(verificationId, smsCode)
-
-    /**
-     * Signs in with phone credential.
-     *
-     * @param verificationId The verification id [credential] was built from
-     * (FirebaseAuthService.buildPhoneAuthCredential's first argument) — pass it
-     * whenever the caller has it, so this can tell a real Firebase-issued
-     * verification apart from this class's own synthetic
-     * "TEST-VERIFY-ID-..." one (see [sendPhoneVerificationCode]'s QA-whitelist
-     * fast path and rate-limit fallback). Only the latter is allowed to fall
-     * back to an already-cached/anonymous session below — a real credential
-     * failing (wrong code, expired code, network hiccup — all common, everyday
-     * user mistakes) must always surface as a real error. It previously didn't:
-     * ANY 6-digit code — which every real OTP also is — on a real credential's
-     * failure silently "succeeded" by grabbing whatever Firebase user happened
-     * to already be cached on the device, or minting a brand-new anonymous
-     * account and reporting it as a genuinely new registration. That is almost
-     * certainly why an already-registered phone number could get routed to the
-     * registration form instead of being recognized: a real code mismatch (or
-     * any other transient credential failure) was silently reinterpreted as
-     * "brand new user," never as the error it actually was.
-     */
-    suspend fun signInWithPhoneCredential(credential: PhoneAuthCredential, verificationId: String? = null): AuthResult {
-        val auth = firebaseAuth
-            ?: return AuthResult.Error("Authentication service unavailable. Please check your connection and try again.")
-
-        val smsCode = credential.smsCode.orEmpty()
-        val isTestFlow = verificationId?.startsWith("TEST-VERIFY-ID-") == true
-        return try {
-            val result = auth.signInWithCredential(credential).awaitTask()
-            val user = result.user
-                ?: return AuthResult.Error("Phone sign-in did not return a Firebase user.")
-            AuthResult.Success(
-                firebaseUser = user,
-                email = user.email ?: "",
-                displayName = user.displayName,
-                photoUrl = user.photoUrl?.toString(),
-                isNewUser = result.additionalUserInfo?.isNewUser ?: false
-            )
-        } catch (e: Exception) {
-            if (!isTestFlow) {
-                Log.w(tag, "Real credential sign-in failed (${e.message}).")
-                return AuthResult.Error(friendlyPhoneAuthMessage(e.message), e)
-            }
-            Log.w(tag, "Test-flow credential sign-in failed (${e.message}). Using instant test verification fallback.")
-            if (smsCode == "123456" || smsCode == "000000" || smsCode == "666666" || smsCode.length == 6) {
-                val current = auth.currentUser
-                if (current != null) {
-                    return AuthResult.Success(
-                        firebaseUser = current,
-                        email = current.email ?: "",
-                        displayName = current.displayName,
-                        photoUrl = current.photoUrl?.toString(),
-                        isNewUser = false
-                    )
-                } else {
-                    return try {
-                        val anonResult = auth.signInAnonymously().awaitTask()
-                        val anonUser = anonResult.user
-                        AuthResult.Success(
-                            firebaseUser = anonUser,
-                            email = anonUser?.email ?: "",
-                            displayName = anonUser?.displayName,
-                            photoUrl = anonUser?.photoUrl?.toString(),
-                            isNewUser = anonResult.additionalUserInfo?.isNewUser ?: true
-                        )
-                    } catch (anonErr: Exception) {
-                        AuthResult.Error(friendlyPhoneAuthMessage(e.message), e)
-                    }
-                }
-            }
-            AuthResult.Error(friendlyPhoneAuthMessage(e.message), e)
-        }
-    }
-
-    private fun friendlyPhoneAuthMessage(rawMessage: String?): String = friendlyVerificationErrorMessage(rawMessage)
-
-    private fun friendlyVerificationErrorMessage(rawMessage: String?): String {
-        val m = rawMessage.orEmpty()
-        return when {
-            m.contains("invalid-verification-code", ignoreCase = true) ->
-                "That code doesn't match. Please check and try again."
-            m.contains("session-expired", ignoreCase = true) || m.contains("code-expired", ignoreCase = true) ->
-                "This code has expired — request a new one."
-            m.contains("invalid", ignoreCase = true) && m.contains("phone", ignoreCase = true) ->
-                "That phone number doesn't look valid — check the country code and number."
-            m.contains("too-many-requests", ignoreCase = true) || m.contains("quota", ignoreCase = true) || m.contains("unusual activity", ignoreCase = true) ->
-                "Too many attempts from this device. Please wait a while and try again."
-            m.contains("network", ignoreCase = true) ->
-                "Network connection error. Check your internet access and try again."
-            else ->
-                "We couldn't verify your phone number right now. Please check the number and try again."
-        }
-    }
-
-    private fun friendlyVerificationErrorMessage(e: FirebaseException): String = friendlyVerificationErrorMessage(e.message)
-
-    /** What the person sees when Firebase can't send the SMS, by failure type. */
-    private fun verificationFailureMessage(e: FirebaseException): String {
-        val m = e.message.orEmpty()
-        return when {
-            e is com.google.firebase.FirebaseTooManyRequestsException ||
-                m.contains("too-many-requests", true) || m.contains("unusual activity", true) || m.contains("quota", true) ->
-                "Too many attempts from this device. Please wait a while and try again."
-            e is com.google.firebase.auth.FirebaseAuthInvalidCredentialsException ->
-                "That phone number doesn't look valid — check the country code and number."
-            e is com.google.firebase.auth.FirebaseAuthMissingActivityForRecaptchaException ->
-                "Couldn't open the security check. Please try again."
-            // The app couldn't be verified (Play Integrity / reCAPTCHA): an unregistered signing
-            // certificate (SHA-256) in Firebase, or SMS not allowed for this region.
-            m.contains("app identifier", true) || m.contains("not authorized", true) ||
-                m.contains("integrity", true) || m.contains("recaptcha", true) || m.contains("17093") ->
-                "We couldn't confirm this copy of the app to send the code. Update the app from Google Play and try again."
-            m.contains("region", true) || m.contains("operation-not-allowed", true) ->
-                "SMS verification isn't available for this number's country yet."
-            m.contains("network", true) -> "Network connection error. Check your internet access and try again."
-            else -> friendlyVerificationErrorMessage(e)
-        }
-    }
-
-    private fun maskPhone(e164: String): String {
-        if (e164.length <= 4) return "***"
-        val visibleSuffix = e164.takeLast(2)
-        return "${e164.first()}${"*".repeat(e164.length - 3)}$visibleSuffix"
     }
 
     // --- Email / Google sign-in methods ---
@@ -335,28 +122,6 @@ class FirebaseAuthService(private val context: Context) {
         }
     }
 
-    suspend fun linkPhoneCredentialToCurrentUser(credential: PhoneAuthCredential): AuthResult {
-        val auth = firebaseAuth
-            ?: return AuthResult.Failure("Authentication service unavailable.")
-        return try {
-            val user = auth.currentUser ?: return AuthResult.Failure("No signed-in user")
-            // Re-verifying (or changing) a number on an account that already has one: update it,
-            // since linking a second phone credential fails with "already linked".
-            if (user.providerData.any { it.providerId == com.google.firebase.auth.PhoneAuthProvider.PROVIDER_ID }) {
-                user.updatePhoneNumber(credential).awaitTask()
-            } else {
-                user.linkWithCredential(credential).awaitTask()
-            }
-            AuthResult.Success(isNewUser = false)
-        } catch (e: FirebaseAuthUserCollisionException) {
-            AuthResult.Failure("This phone number is already used by another ProHost account. Sign in with that account, or use a different number.")
-        } catch (e: Exception) {
-            if (e is kotlinx.coroutines.CancellationException) throw e
-            Log.w(tag, "Phone link failed: ${e.message}")
-            AuthResult.Failure(friendlyVerificationErrorMessage(e.message))
-        }
-    }
-
     @Suppress("DEPRECATION")
     suspend fun fetchSignInMethodsForEmail(email: String): List<String> {
         val auth = firebaseAuth ?: return emptyList()
@@ -391,5 +156,3 @@ class FirebaseAuthService(private val context: Context) {
         }
     }
 }
-
-private val sharedResendTokens = java.util.concurrent.ConcurrentHashMap<String, PhoneAuthProvider.ForceResendingToken>()

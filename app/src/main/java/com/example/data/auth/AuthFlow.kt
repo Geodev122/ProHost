@@ -125,10 +125,9 @@ suspend fun completeGoogleRegistration(
     repository = repository,
     functionsClient = functionsClient,
     firebaseUser = firebaseUser,
-    // firebaseUser.phoneNumber is always null for Google Sign-In — Google's Auth
-    // API exposes no phone number at all, so this fallback is a no-op for Google
-    // users and phone correctly stays blank until real phone OTP KYC verification
-    // (linkKycPhone) writes it. Never treat a Google account as phone-verified.
+    // firebaseUser.phoneNumber is only set for legacy phone-auth accounts; everyone
+    // else keeps the WhatsApp number typed on the registration form (or blank until
+    // they add it in the WhatsApp-number step).
     details = details.copy(phone = details.phone.ifBlank { firebaseUser.phoneNumber ?: "" }),
     integrityToken = integrityToken
 )

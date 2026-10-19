@@ -201,7 +201,7 @@ fun SpaceDetailsScreenContent(
     var sentRequest by remember { mutableStateOf<RentalBookingRequest?>(null) }
     fun requestWithRequirements() {
         val user = currentUser ?: return
-        if (user.canTransact(com.example.data.auth.PhoneLink.isLinked())) showSendConfirm = true else showRequirements = true
+        if (user.canTransact()) showSendConfirm = true else showRequirements = true
     }
     var selectedSubdivisionId by remember { mutableStateOf<String?>(null) }
     val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
@@ -890,7 +890,7 @@ fun SpaceDetailsScreenContent(
     ) {
         val user = currentUser
         if (user == null) return
-        if (!user.canTransact(com.example.data.auth.PhoneLink.isLinked())) {
+        if (!user.canTransact()) {
             showRequirements = true
             return
         }

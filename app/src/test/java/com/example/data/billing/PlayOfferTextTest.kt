@@ -93,15 +93,26 @@ class PlayOfferTextTest {
     }
 
     @Test
-    fun `marketing headline summarises the offers on screen`() {
-        val m = PlayOfferText.summarize("m", listOf(usd(4_990_000, "P1M"), usd(9_990_000, "P1M")))!!
-        val y = PlayOfferText.summarize("y", listOf(usd(49_990_000, "P1Y"), usd(99_990_000, "P1Y")))!!
-        assertEquals("50% off your first month or first year", PlayOfferText.offerHeadline(listOf(m, y)))
-        val y30 = PlayOfferText.summarize("y", listOf(usd(69_990_000, "P1Y"), usd(99_990_000, "P1Y")))!!
-        assertEquals("Up to 50% off your first month", PlayOfferText.offerHeadline(listOf(m, y30)))
-        val t = PlayOfferText.summarize("t", listOf(usd(0, "P7D"), usd(9_990_000, "P1M")))!!
-        assertEquals("Try ProHost Premium free for 7 days", PlayOfferText.offerHeadline(listOf(t)))
-        val plain = PlayOfferText.summarize(null, listOf(usd(9_990_000, "P1M")))!!
-        assertNull(PlayOfferText.offerHeadline(listOf(plain)))
+    fun `a renamed monthly plan wins over the retired one and plans with offers win`() {
+        val m = PlayCatalog.PlanKind.MONTHLY
+        val y = PlayCatalog.PlanKind.YEARLY
+        // pro-month1 (new, with offers) next to the still-active retired pro-montly (no offers).
+        val chosen = PlayOfferText.chooseByKind(listOf(
+            PlayOfferText.PlanCandidate("pro-montly", m, 0),
+            PlayOfferText.PlanCandidate("pro-month1", m, 2),
+            PlayOfferText.PlanCandidate("pro-yearly", y, 1)
+        ))
+        assertEquals("pro-month1", chosen[m]); assertEquals("pro-yearly", chosen[y])
+        // Same offers: a current id beats a retired one, whatever order Play returned them in.
+        val tie = PlayOfferText.chooseByKind(listOf(
+            PlayOfferText.PlanCandidate("pro-montly", m, 1),
+            PlayOfferText.PlanCandidate("pro-month1", m, 1)
+        ))
+        assertEquals("pro-month1", tie[m])
+        // A lone plan is always used, even with no offers (the card still shows its price).
+        assertEquals("pro-month1", PlayOfferText.chooseByKind(listOf(PlayOfferText.PlanCandidate("pro-month1", m, 0)))[m])
+        assertEquals(PlayCatalog.PlanKind.MONTHLY, PlayCatalog.kindOf("pro-month1"))
+        assertEquals(PlayCatalog.PlanKind.MONTHLY, PlayCatalog.kindOf("pro-monthly1")) // the plan Play now returns
+        assertNull(PlayOfferText.chooseByKind(emptyList())[m])
     }
 }

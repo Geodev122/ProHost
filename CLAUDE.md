@@ -3,7 +3,7 @@
 ## Google Play Billing
 
 **Google Play is the only billing authority.** One subscription, `package_pro_mrr`, with a monthly and a yearly
-base plan (known ids `pro-montly`/`pro-monthly` and `pro-yearly`) — `data/billing/PlayCatalog.kt` (app) and
+base plan (known ids `pro-montly`/`pro-monthly`/`pro-month1`, live `pro-monthly1`, and `pro-yearly`) — `data/billing/PlayCatalog.kt` (app) and
 `functions/src/billing/playCatalog.ts` (server). Plans are told apart by **kind** (`PlayCatalog.PlanKind`): the app
 classifies Play's ProductDetails by recurring billing period (`PlayOfferText.kindOf` / `plansByKind`, P1M/P1Y), stored ids
 by `kindOf`/`planInterval` (known ids, then "month"/"year" in the id). Never compare against an exact id list again —
@@ -23,19 +23,23 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   Checkout always passes the chosen base plan's offer token — picking one offer per product made the yearly plan
   unbuyable. Plan cards render `PlayOfferText.summary()` (`OfferSummary`, pure `summarize`, unit-tested in
   `PlayOfferTextTest`): with an offer the headline is the price paid now, the regular price struck through,
-  "% OFF" ribbon, "for your first month/year", "then $X / month"; `OfferBanner` markets it and `OfferExplainer`
-  states today's price, the date the regular price starts (`regularPriceStartsAt`) and how to cancel. Members
+  "% OFF" ribbon, "for your first month/year", "then $X / month"; `PlanExplainer` (box under the CTA for the
+  selected tile, either plan) states today's price, the date the regular price starts (`regularPriceStartsAt`) and how
+  to cancel — "HOW YOUR OFFER WORKS" with an offer, "HOW IT WORKS" (plain renewal terms) without one. Members
   switching plans never see offers. An offer edited in Play Console that "doesn't show" is almost always
   eligibility: Play returns "new customers" offers only to accounts that never had the subscription — check the live
   catalog with Maintenance task `playcatalog` or Admin › Packages › Billing health (offers listed per base plan).
-  Only the selected plan card is orange (ribbon, price); the other card, the offer banner and the explainer use steel.
-  Promo card (e.g. PROHOST2026, first month free) is **Play config only**: an offer tagged `promo` + `code-…` (+ `ends-YYYYMMDD`,
+  Only the selected plan card is orange (ribbon, price); the other card and the explainer use steel.
+  Promo card (e.g. PROHOST2026) is **Play config only**: an offer tagged `promo` + `code-…` (+ `ends-YYYYMMDD`,
   `early-launch`) — `data/billing/PlayPromo.kt` (unit-tested) reads it from ProductDetails; no Firestore doc, no server counter
   (`promo_campaigns` is retired, rules deny all; `playcatalog` deletes the old doc). "Redeem code" (red dot while live) opens a
-  sheet with `PromoCountdownCard` + the one-time-code field. Checkout offer = `OfferChoice` (`PlayBillingManager`): plan cards
+  sheet with `PromoCountdownCard` + the one-time-code field. A promo offer must sit on an ACTIVE base plan: Play Console
+  can't resume an offer whose base plan is inactive ("An unexpected error has occurred … (5A39FA1E)"); Maintenance
+  `playofferfix` (dry run; code `apply`) copies it onto the live monthly plan and widens claimed offers from "any
+  subscription in this app" to "this subscription" (`billing/playOfferFix.ts`; lint flags both). Checkout offer = `OfferChoice` (`PlayBillingManager`): plan cards
   `Preferred` (`preferredOffer` skips `promo` offers), switches `BasePlanOnly` (regular prices shown ⇒ charged), promo
   `Specific(offerId)`; a missing offer aborts with a billing message. `lintOffers` (`playCatalogLive.ts`, Maintenance
-  `playcatalog` step `playOfferLint`) flags Play Console slips (≥ 90 % off, promo tags, website 50 % promise). Monthly ↔ yearly passes the old token
+  `playcatalog` step `playOfferLint`) flags Play Console slips (≥ 90 % off, promo tags, the website's offer claims in `offerClaims.ts`: monthly 4 months free, yearly 50 % off year one — the static pages, `public/admin.html` email template, marketing README/voiceover scripts and videos must state them; `offerClaims.test.ts` enforces it). Monthly ↔ yearly passes the old token
   (`SubscriptionUpdateParams`). The screen is "ProHost Premium" (`OwnerSubscriptionsScreen.kt`).
 - Product queries use the Billing 8+ callback `queryProductDetailsAsync(params) { billingResult,
   queryProductDetailsResult -> }` (`productDetailsList` / `unfetchedProductList`). Never cast the callback
@@ -150,15 +154,19 @@ plan + recurring price + date;
   (`adminCounts` / `adminSearch` / `adminUserDossier` / `adminExportUsers`; query classifier `adminQuery.ts`,
   unit-tested). Name/title prefix search uses the server-only `searchName` field kept by triggers
   (`backfillSearchNames` fills old docs). Never re-add admin collection listeners or client-side admin lists.
-- Verification rules (the only two): `AppUser.canTransact(phoneLinked)` = photo + verified phone, checked
-  in place when a specialist sends a booking request; `AppUser.canHost(phoneLinked)` = that + country and
-  city, checked at Premium checkout and after a plan activates. `hasVerifiedPhone` alone gates the Pro Host
-  workspaces. My Rentals, browsing and Saved are never gated; there is no `isKycComplete` and email is never
-  a requirement. "Verified phone" = `hasVerifiedPhone(PhoneLink.isLinked())` (phone linked in Firebase
-  Auth) — never `isVerified`, which email verification also sets. Missing steps are collected by the one
-  shared `RequirementsSheet` (photo, `PhoneVerificationSection` — the same body `KycScreen` uses — and the
-  address step with `requireAddress`), opened over the booking page, Premium or Profile's
-  `KycCompletionBanner`.
+- Verification rules (the only two): `AppUser.canTransact()` = photo + WhatsApp number, checked in place when a
+  specialist sends a booking request; `AppUser.canHost()` = that + country and city, checked at Premium checkout and after
+  a plan activates. `hasWhatsAppNumber()` (profile `phone` in international form, `isPlausibleE164`) alone gates the Pro
+  Host workspaces. My Rentals, browsing and Saved are never gated; there is no `isKycComplete` and email is never a
+  requirement. **There is no SMS code anywhere** (owner, Oct 2026: Firebase phone verification never delivered, in any
+  country): the number is self-declared, entered on the registration form or in `WhatsAppNumberSection` (`KycScreen.kt`,
+  saved by `ProHostViewModel.saveWhatsAppNumber`; it always prefills from the profile's `phone`). The registration form
+  requires it and offers Android's Phone Number Hint (`ui/components/PhoneNumberHint.kt`: system SIM-number picker, no
+  permission; opened once when the form appears, and "Use this phone's number" in both places) — a Google account never
+  exposes a phone number. Never reintroduce `verifyPhoneNumber`/phone sign-in, and never use
+  `isVerified` (phone-auth claim, legacy accounts only) as the phone check. Missing steps are collected by the one shared
+  `RequirementsSheet` (photo, `WhatsAppNumberSection`, and the address step with `requireAddress`), opened over the booking
+  page, Premium or Profile's `KycCompletionBanner`.
 - Email verification is server-mirrored: `assignInitialRole` sets `emailVerified` on every sign-in when
   `emailVerifiedByToken` (email_verified claim or Google provider, `auth/emailVerifiedRule.ts`); the email
   code path marks the Auth user verified; `backfillEmailVerified` (admin) fixes existing profiles.
@@ -177,9 +185,9 @@ plan + recurring price + date;
   faint dot texture in light theme only (one shader tile, not per-dot drawing). The shell Scaffold is transparent over it;
   drawer and app bars use `surface` with tonal elevation 0 (no blue tint); cards keep their 1 dp outline. Never
   `.background(premiumBackgroundBrush())` a screen directly.
-- Phone verification (`FirebaseAuthService`): never fake a "code sent"; failures map by type
-  (`verificationFailureMessage`); resend reuses the `ForceResendingToken`; re-verifying an account that already has a
-  phone uses `updatePhoneNumber`. Instant verification (`onVerificationCompleted`) links and finishes KYC.
+- Sign-in is email (magic link, 6-digit code fallback) or Google only; `FirebaseAuthService` has no phone methods. Legacy
+  phone-auth accounts keep their Firebase `phone_number` claim (rules still tie `isVerified` to it); maintenance `smsauth`
+  remains only as a diagnostic.
 - Email sign-in links are handled every time (`AuthViewModel.onEmailLinkArrived`; never a session-long "consumed" flag —
   that blocked every returning user's link after the first sign-in). The saved address (`pending_email_link`) is read with
   `peekPendingEmailLink` and cleared only after a successful sign-in; a link without one asks for the email
@@ -206,11 +214,15 @@ plan + recurring price + date;
 - Explore filters: country matching uses `effectiveCountry` (blank = Lebanon, legacy listings) and the
   Country dropdown is always shown. "Pricing formula" options are `PricingFormulaFilter` (four strategies
   + PER_ATTENDEE, priced per person from the cheapest tier); never list `RentalStrategyType.entries` there.
-- Explore draws its own header (`ExploreOverlayHeader`; no app bar for specialists): Map|List segmented toggle
-  top-left, logo + name centre, notifications top-right, search (draft applied only on ✓ / IME Search) under the
-  toggle and filters under the bell. Transparent with floating controls on the map; on the list it has the list
-  background and sits above it in the layout (never overlapping). Map results follow `searchedBounds`, updated
-  only by the "Search this area" pill after a gesture pan/zoom.
+- Explore draws its own header (`ExploreOverlayHeader`; no app bar for specialists), one row: search top-left, the
+  Map|List toggle top-centre wrapped in one pill with the brand logo (`showBrand`, specialists only — Pro Host/Admin keep the
+  app bar's brand) and filters top-right. No notification bell on Explore (notifications are the bell of the other tabs'
+  app bar). Search is a draft applied only on ✓ / IME Search and opens a full-width field under the row. Transparent with
+  floating controls on the map; on the list it has the list background and sits above it in the layout (never
+  overlapping). Map results follow `searchedBounds`, updated only by the "Search this area" pill after a gesture pan/zoom.
+- Profile identity card (`DrawerIdentityCard`): one-word 3D role tag (Specialist steel blue · Host orange · Admin gold,
+  `RoleTag3D`), no separate "phone verified" tag (verification shows as the avatar and name checks). The specialist's
+  "Become a Pro Host" button carries a "FOR SPACE OWNERS" tag.
 - The listing page's bottom bar is `DetailsBookingBar` (`RoomCards.kt`): room chip + live availability, price and the
   Availability action (Preview mode for hosts/admins) — no Message button. WhatsApp is the host card's "Ask the host on
   WhatsApp" button under the photos (general inquiry via `launchWhatsAppInquiry(context, space)`; the number is never
@@ -283,6 +295,11 @@ plan + recurring price + date;
   filled soft green (free) / soft red (booked) with no status words.
 - Per-attendee Shift rooms: shifts carry `AVAILABILITY_MARKER_PRICE` (`RentalPricingConfigEditor` in availability mode
   and `AttendeePricing.markShifts` when the room is built) — otherwise `hasRealPrice()` fails and Save never enables.
+- Permission prompts look native: runtime permissions are the system dialogs; every in-app pre/post prompt or consent uses
+  `SystemStylePermissionDialog` (`ui/components/PermissionPrompts.kt`, Android 12+ permission-dialog look: centred icon,
+  "Allow **ProHost** to …?", stacked equal-weight choices). Location goes through `rememberLocationAccess` (rationale →
+  system prompt → "Open settings" when blocked for good → Play services' "turn on location" dialog), never a toast.
+  The notification prompt waits for the first-launch analytics choice (`MainActivity`), so prompts never stack.
 - No camera / photo-library permissions (Play Photo & Video Permissions policy): the manifest strips CAMERA,
   READ_MEDIA_IMAGES/VIDEO and READ_EXTERNAL_STORAGE (`tools:node="remove"`); photos come from `PickVisualMedia` /
   `GetContent`, "Take Photo" hands off via `TakePicture` (needs no permission when CAMERA isn't declared — declaring it
@@ -409,7 +426,7 @@ plan + recurring price + date;
 - The "Activating your subscription" banner shows only after Play returns PURCHASED and clears on any
   billing message (cancel, pending, error) or server answer. `toUserMessage` passes a function's own
   UNAVAILABLE message through; only transport failures get the generic connection text.
-- NIGHTHAWK's "Orphaned Module" MEDIUMs (billingHelpers, purchaseLinks, playCatalog, playCatalogLive, sitemapXml, priceChange, …) and "compileSdk below 34" are
+- NIGHTHAWK's "Orphaned Module" MEDIUMs (billingHelpers, purchaseLinks, playCatalog, playCatalogLive, offerClaims, sitemapXml, priceChange, …) and "compileSdk below 34" are
   false positives (both are imported by other modules; compileSdk is 37).
 - `main` history shows NIGHTHAWK checks are sometimes extended directly on `main` (not always
   routed through a feature-branch PR) — before adding new checks or fixing findings on a

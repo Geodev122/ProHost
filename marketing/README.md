@@ -1,8 +1,8 @@
 # ProHost marketing kit
 
 Ten Instagram videos telling one story in the second person: *You're a… / You run a…* → the problem → *With ProHost /
-Now you can / Finally…* → the solution in the app → **Download ProHost** + **50% off your first ProHost Premium
-subscription, monthly or yearly**. Videos aimed at professionals add "Booking is free · Premium is for listing your space".
+Now you can / Finally…* → the solution in the app → **Download ProHost** + **the first 4 months of ProHost Premium free
+(monthly plan; 50% off the first year on the yearly plan)**. Videos aimed at professionals add "Booking is free · Premium is for listing your space".
 
 ## Folders
 
@@ -23,9 +23,9 @@ Every file is numbered the same way in every folder: `01-space-owners`, `02-the-
 
 **Audio mix:** voiceover on top; the post's own Lyria music is dimmed and dips a further ~4 dB whenever the voice speaks;
 UI sounds (whoosh on scene changes, pop on cards, click on taps, chime for a new request, sparkle on send/accept, impact
-on the 50% badge) follow the animation. Everything is levelled to -14 LUFS.
+on the "4 months free" badge) follow the animation. Everything is levelled to -14 LUFS.
 
-**Before posting:** the yearly 50% offer must be live in Play Console (the videos say "monthly or yearly"). The download
+**Before posting:** the monthly `free-4-months` offer must be live in Play Console (the videos say "4 months free"; the yearly 50% offer is only the caption/pill). The download
 link goes in your bio: **pro-host.tech/ig** (tagged for Instagram; `/fb`, `/wa`, `/li`, `/qr` for other channels).
 
 ## Captions, hashtags and scripts
@@ -33,7 +33,7 @@ link goes in your bio: **pro-host.tech/ig** (tagged for Instagram; `/fb`, `/wa`,
 ### 01-space-owners · Space owners (general)
 **Caption:**
 Your space, earning even on its quiet days. 🗝️ Rent it by the hour, shift, day or month with ProHost.
-🎉 Your first Premium subscription is 50% off. Link in bio.
+🎉 Your first 4 months of Premium are free. Link in bio.
 
 **Hashtags:** #ProHost #OfficeForRent #ClinicForRent #LebanonBusiness #PassiveIncome
 
@@ -41,7 +41,7 @@ Your space, earning even on its quiet days. 🗝️ Rent it by the hour, shift, 
 > Got an office, a clinic or a studio… sitting empty half the week?  
 > With ProHost, rent it by the hour, the shift, the day or the month.  
 > Requests, bookings and prices, all in one app.  
-> Download ProHost today. Your first Premium subscription is half price.  
+> Download ProHost today. Your first four months of Premium are free.  
 
 **Arabic voiceover** (Achird, male):
 > عِنْدَك office، clinic أو studio… وقاعِد فاضي نُصّ الجِمْعَة؟  
@@ -61,7 +61,7 @@ Download ProHost, it's free to book.
 > Clinics, offices and studios, all on one map.  
 > Book by the hour, and chat to the host on WhatsApp.  
 > Got a space? Rent it out from the same app.  
-> Download ProHost today. Your first Premium subscription is half price.  
+> Download ProHost today. Your first four months of Premium are free.  
 
 **Arabic voiceover** (Sulafat, female):
 > بَدَّك مَحَل تِشْتِغِل فيه… مِش عَقْد؟  
@@ -80,7 +80,7 @@ Download ProHost, free to book.
 **English voiceover** (Algieba, male):
 > You're a psychologist. You don't need a clinic all week, just two mornings?  
 > Now you can book the morning shift on Tuesdays and Thursdays with ProHost, and only pay for your time.  
-> Download ProHost, booking's free. Got a space? Premium's half price.  
+> Download ProHost, booking's free. Got a space? Premium's first four months are free.  
 
 **Arabic voiceover** (Algieba, male):
 > إنتَ psychologist، وما بْتِحْتاج clinic كِل الجِمْعَة… بَس يومين؟  
@@ -97,7 +97,7 @@ Download ProHost and book in a minute.
 **English voiceover** (Despina, female):
 > You're a trainer with eighteen people on Saturday… and no proper room?  
 > With ProHost, conference rooms are priced per seat. Set the headcount, add a coffee break, and send your request.  
-> Download ProHost, booking's free. Got a space? Premium's half price.  
+> Download ProHost, booking's free. Got a space? Premium's first four months are free.  
 
 **Arabic voiceover** (Despina, female):
 > إنتَ trainer، وعِنْدَك workshop لَتْمَنْطَعْش شَخْص… وما في قاعَة؟  
@@ -114,7 +114,7 @@ Download ProHost, free to book.
 **English voiceover** (Umbriel, male):
 > You're a life coach with two sessions today. Why pay a whole month's rent?  
 > Finally, you can book a room by the hour. See what's free, pick your time, and you're done.  
-> Download ProHost, booking's free. Got a space? Premium's half price.  
+> Download ProHost, booking's free. Got a space? Premium's first four months are free.  
 
 **Arabic voiceover** (Umbriel, male):
 > إنتَ life coach، وعِنْدَك جَلْسْتَيْن اليوم… ليش تِدْفَع إيجار شَهِر؟  
@@ -131,7 +131,7 @@ Download ProHost.
 **English voiceover** (Callirrhoe, female):
 > You're a dietitian, ready for your own clinic… but not a long lease?  
 > With ProHost, rent a ready-made clinic month to month, and grow whenever you like.  
-> Download ProHost, booking's free. Got a space? Premium's half price.  
+> Download ProHost, booking's free. Got a space? Premium's first four months are free.  
 
 **Arabic voiceover** (Callirrhoe, female):
 > إنتَ dietitian وجاهِز لَـ clinic إِلَك… بَس بلا عَقْد طَويل؟  
@@ -141,14 +141,14 @@ Download ProHost.
 ### 07-hotel · Hotel (meeting rooms, per attendee)
 **Caption:**
 Empty meeting rooms on weekdays? Fill them. 🏨 Rent by the day or per attendee and accept requests in a tap.
-🎉 50% off your first Premium subscription.
+🎉 First 4 months of Premium free (or 50% off year one on the yearly plan).
 
 **Hashtags:** #HotelLebanon #MeetingRooms #ConferenceVenue #HospitalityBusiness #ProHost
 
 **English voiceover** (Charon, male):
 > You run a hotel, and your meeting rooms sit empty most weekdays?  
 > With ProHost, rent them by the day or per attendee, and accept requests in a single tap.  
-> Download ProHost today. Your first Premium subscription is half price.  
+> Download ProHost today. Your first four months of Premium are free.  
 
 **Arabic voiceover** (Charon, male):
 > عِنْدَك hotel، والـ meeting rooms فاضْيِة أَغْلَب أيّام الجِمْعَة؟  
@@ -158,14 +158,14 @@ Empty meeting rooms on weekdays? Fill them. 🏨 Rent by the day or per attendee
 ### 08-medical-center · Medical center (by the shift)
 **Caption:**
 Free clinic rooms every afternoon = lost income. 🩺 Rent them by the shift to doctors and specialists.
-🎉 50% off your first Premium subscription.
+🎉 First 4 months of Premium free (or 50% off year one on the yearly plan).
 
 **Hashtags:** #MedicalCenter #ClinicForRent #HealthcareLebanon #DoctorsLebanon #ProHost
 
 **English voiceover** (Achernar, female):
 > You run a medical centre, and your clinic rooms are free every afternoon?  
 > Now you can rent them by the shift to doctors and specialists, and approve every request yourself.  
-> Download ProHost today. Your first Premium subscription is half price.  
+> Download ProHost today. Your first four months of Premium are free.  
 
 **Arabic voiceover** (Achernar, female):
 > عِنْدَك medical center، والـ clinics فاضْيِة كِل بَعْد الضُّهِر؟  
@@ -175,14 +175,14 @@ Free clinic rooms every afternoon = lost income. 🩺 Rent them by the shift to 
 ### 09-training-center · Training center (per attendee)
 **Caption:**
 Empty classrooms every evening and weekend? Let them earn. 🎓 Rent by the hour or per attendee.
-🎉 50% off your first Premium subscription.
+🎉 First 4 months of Premium free (or 50% off year one on the yearly plan).
 
 **Hashtags:** #TrainingCenter #ClassroomRental #EducationLebanon #WorkshopSpace #ProHost
 
 **English voiceover** (Iapetus, male):
 > You run a training centre, and your classrooms are empty every evening and weekend?  
 > Finally, they can earn. Rent them by the hour or per attendee, with every request in the app.  
-> Download ProHost today. Your first Premium subscription is half price.  
+> Download ProHost today. Your first four months of Premium are free.  
 
 **Arabic voiceover** (Iapetus, male):
 > عِنْدَك training center، والصُّفوف فاضْيِة كِل مَسا وكِل weekend؟  
@@ -192,14 +192,14 @@ Empty classrooms every evening and weekend? Let them earn. 🎓 Rent by the hour
 ### 10-yoga-studio · Yoga studio (by the hour)
 **Caption:**
 Quiet until 6 PM? Your free hours can pay. 🧘 Instructors book them every week.
-🎉 50% off your first Premium subscription.
+🎉 First 4 months of Premium free (or 50% off year one on the yearly plan).
 
 **Hashtags:** #YogaStudio #StudioRental #PilatesLebanon #FitnessBusiness #ProHost
 
 **English voiceover** (Vindemiatrix, female):
 > You run a yoga studio, and it's quiet until six?  
 > Now your free hours can pay. Instructors book them every week, right in ProHost.  
-> Download ProHost today. Your first Premium subscription is half price.  
+> Download ProHost today. Your first four months of Premium are free.  
 
 **Arabic voiceover** (Vindemiatrix, female):
 > عِنْدَك yoga studio، وما بْيِمْتِلي قَبِل السِّتّة؟  

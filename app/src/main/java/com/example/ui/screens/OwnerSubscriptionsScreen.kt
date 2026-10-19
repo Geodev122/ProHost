@@ -375,11 +375,7 @@ fun OwnerSubscriptionsScreen(
                 val selectedKind = PlayOfferText.kindOf(premiumProduct, selectedPlan)
                 val selectedBadge = selectedKind?.let(PlayCatalog::badge) ?: "Premium"
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    // Offers are for new subscriptions; members switching plans see the regular prices.
-                    // Granted (admin) accounts still see what Play offers, so the owner can preview it.
-                    val offerHeadline = if (hasLivePlaySubscription) null
-                        else PlayOfferText.offerHeadline(offerSummaries.values.filterNotNull())
-                    offerHeadline?.let { OfferBanner(it) }
+                    // Offers show on the plan cards (new subscriptions only); members switching plans see regular prices.
                     // Always exactly two tiles: Monthly and Yearly. A kind Play didn't return is a placeholder.
                     Row(
                         modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
@@ -432,7 +428,7 @@ fun OwnerSubscriptionsScreen(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             // KYC gate before Google Play (photo, verified phone, address).
-                            if (currentUser?.canHost(com.example.data.auth.PhoneLink.isLinked()) == false) {
+                            if (currentUser?.canHost() == false) {
                                 pendingBasePlanId = selectedPlan
                                 showKycDialog = true
                             } else if (activity != null) {
@@ -453,8 +449,11 @@ fun OwnerSubscriptionsScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(actionLabel, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     }
-                    // How the offer works: today's price, the date the regular price starts, how to cancel.
-                    if (enabled) selectedSummary?.let { OfferExplainer(it) }
+                    // How it works for the selected plan (either tile): with an offer today's price, the date
+                    // the regular price starts and how to cancel; without one the plain renewal terms.
+                    if (enabled && !hasLivePlaySubscription) {
+                        (selectedSummary ?: selectedKind?.let { offerSummaries[it] })?.let { PlanExplainer(it, hasOffer = selectedSummary != null) }
+                    }
                     // Terms right under the purchase button (Play policy), switch timing, trial terms.
                     // A plan switch is charged the plain base plan (OfferChoice.BasePlanOnly), so its terms are too.
                     val terms = PlayOfferText.describe(premiumProduct, selectedPlan, basePlanOnly = hasLivePlaySubscription)
@@ -548,7 +547,7 @@ fun OwnerSubscriptionsScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showPromoHowTo = false
-                    if (currentUser?.canHost(com.example.data.auth.PhoneLink.isLinked()) == false) {
+                    if (currentUser?.canHost() == false) {
                         pendingBasePlanId = livePromo.basePlanId
                         pendingPromoCheckout = true
                         showKycDialog = true
@@ -780,8 +779,10 @@ private fun PlanTile(
             val ribbon: Pair<String, Boolean>? = when {
                 isCurrent -> "YOUR PLAN" to false
                 hasOffer && summary?.discountPercent != null -> "${summary.discountPercent}% OFF" to true
-                hasOffer && summary?.trialSpan != null -> "FREE ${summary.trialSpan.uppercase()}" to true
+                hasOffer && summary?.trialSpan != null -> "${summary.trialSpan.uppercase()} FREE" to true
                 kind == PlayCatalog.PlanKind.YEARLY && savingsPercent != null -> "BEST VALUE" to true
+                // Both cards always carry a ribbon so they line up and read as a pair.
+                kind == PlayCatalog.PlanKind.MONTHLY -> "FLEXIBLE" to false
                 else -> null
             }
             // Only the selected card is orange; the other stays neutral (steel tint) so the screen isn't all orange.
@@ -854,7 +855,8 @@ private fun PlanTile(
                             color = if (selected) accent else scheme.onSurface,
                             maxLines = 1
                         )
-                        summary.original?.let { was ->
+                        // A free trial strikes through the regular price it replaces.
+                        (summary.original ?: summary.recurring.takeIf { summary.trialSpan != null && summary.introSpan == null })?.let { was ->
                             Text(
                                 was,
                                 style = MaterialTheme.typography.titleSmall,
@@ -895,53 +897,27 @@ private fun PlanTile(
                     summary.headlinePerMonth?.let {
                         Text(it, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = if (selected) accent else scheme.primary)
                     }
+                    if (kind == PlayCatalog.PlanKind.MONTHLY) {
+                        Text("Billed monthly", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = if (selected) accent else scheme.primary)
+                    }
                 }
                 Spacer(modifier = Modifier.weight(1f))
-                if (kind == PlayCatalog.PlanKind.YEARLY && savingsPercent != null && !isCurrent) {
-                    PlanChip("SAVE $savingsPercent% VS MONTHLY", scheme.tertiaryContainer, scheme.onTertiaryContainer)
+                // Bottom chip: the plan's second reason, so both cards end on the same line.
+                val chip: String? = when {
+                    isCurrent -> null
+                    kind == PlayCatalog.PlanKind.YEARLY && savingsPercent != null -> "SAVE $savingsPercent% VS MONTHLY"
+                    hasOffer && summary?.trialSpan != null && summary.introSpan == null -> "NOTHING TO PAY TODAY"
+                    kind == PlayCatalog.PlanKind.MONTHLY -> "CANCEL ANYTIME"
+                    else -> null
                 }
-            }
-        }
-    }
-}
-
-/**
- * The offers Play returned for this account, marketed in one card: what it is, that Google Play offers it
- * to this account (Play returns only offers whose eligibility the account meets), and that Play shows the price.
- */
-@Composable
-private fun OfferBanner(headline: String) {
-    val on = MaterialTheme.proColors.onBrandHeader
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        color = Color.Transparent,
-        shadowElevation = 4.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .background(
-                    androidx.compose.ui.graphics.Brush.linearGradient(
-                        listOf(MaterialTheme.proColors.brandHeaderStart, MaterialTheme.proColors.brandHeaderEnd)
+                chip?.let {
+                    val strong = hasOffer || kind == PlayCatalog.PlanKind.YEARLY
+                    PlanChip(
+                        it,
+                        if (strong) scheme.tertiaryContainer else scheme.surfaceVariant,
+                        if (strong) scheme.onTertiaryContainer else scheme.onSurfaceVariant
                     )
-                )
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(42.dp)) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.LocalOffer, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondary, modifier = Modifier.size(22.dp))
                 }
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text("WELCOME OFFER", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, letterSpacing = 1.sp, color = on.copy(alpha = 0.85f))
-                Text(headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = on)
-                Text(
-                    "Offered to your Google Play account. Google Play confirms the exact price before you pay.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = on.copy(alpha = 0.9f)
-                )
             }
         }
     }
@@ -953,8 +929,11 @@ private fun OfferBanner(headline: String) {
  * offer terms, renewal price and timing visible before purchase.
  */
 @Composable
-private fun OfferExplainer(summary: PlayOfferText.OfferSummary) {
-    val scheme = MaterialTheme.colorScheme
+private fun PlanExplainer(summary: PlayOfferText.OfferSummary, hasOffer: Boolean) {
+    if (!hasOffer) {
+        RenewalExplainer(summary)
+        return
+    }
     val startsAt = remember(summary) {
         java.text.SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
             .format(Date(PlayOfferText.regularPriceStartsAt(System.currentTimeMillis(), summary.introPeriods)))
@@ -971,7 +950,7 @@ private fun OfferExplainer(summary: PlayOfferText.OfferSummary) {
         }
         else -> "Free for ${summary.trialSpan}. Nothing to pay today."
     }
-    val steps = listOf(
+    ExplainerSteps("HOW YOUR OFFER WORKS", listOf(
         Triple(Icons.Default.LocalOffer, "Today", today),
         Triple(Icons.Default.Autorenew, "From $startsAt", "${summary.recurring} / ${summary.recurringPeriod}, renewing automatically."),
         Triple(
@@ -980,7 +959,28 @@ private fun OfferExplainer(summary: PlayOfferText.OfferSummary) {
                 "Cancel in Google Play before $startsAt and you won't be charged."
             else "Cancel in Google Play before $startsAt to avoid the renewal; Premium stays until then."
         )
-    )
+    ))
+}
+
+/** No offer for this account: the plain terms, all from Play (price, period) plus the first renewal date. */
+@Composable
+private fun RenewalExplainer(summary: PlayOfferText.OfferSummary) {
+    val renewsAt = remember(summary) {
+        // The plain base plan has a single (recurring) phase: the first renewal is one period from today.
+        val period = when (summary.recurringPeriod) { "year" -> "P1Y"; "week" -> "P1W"; "day" -> "P1D"; else -> "P1M" }
+        java.text.SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
+            .format(Date(PlayOfferText.regularPriceStartsAt(System.currentTimeMillis(), listOf(period to 1))))
+    }
+    ExplainerSteps("HOW IT WORKS", listOf(
+        Triple(Icons.Default.Payments, "Today", "${summary.recurring} for your first ${summary.recurringPeriod}, paid through Google Play."),
+        Triple(Icons.Default.Autorenew, "From $renewsAt", "${summary.recurring} / ${summary.recurringPeriod}, renewing automatically."),
+        Triple(Icons.Default.EventBusy, "Cancel anytime", "Cancel in Google Play before $renewsAt to avoid the renewal; Premium stays until then.")
+    ))
+}
+
+@Composable
+private fun ExplainerSteps(heading: String, steps: List<Triple<androidx.compose.ui.graphics.vector.ImageVector, String, String>>) {
+    val scheme = MaterialTheme.colorScheme
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
@@ -988,7 +988,7 @@ private fun OfferExplainer(summary: PlayOfferText.OfferSummary) {
         border = BorderStroke(1.dp, scheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("HOW YOUR OFFER WORKS", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, letterSpacing = 0.8.sp, color = scheme.primary)
+            Text(heading, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, letterSpacing = 0.8.sp, color = scheme.primary)
             steps.forEach { (icon, title, body) ->
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
                     Surface(shape = CircleShape, color = scheme.primaryContainer, modifier = Modifier.size(28.dp)) {

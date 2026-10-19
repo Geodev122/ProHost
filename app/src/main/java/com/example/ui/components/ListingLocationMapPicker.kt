@@ -82,17 +82,8 @@ fun ListingLocationMapPicker(
         }
     }
 
-    val requestPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val fineGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
-        val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
-        if (fineGranted || coarseGranted) {
-            requestHighAccuracyLocation()
-        } else {
-            Toast.makeText(context, "Location permission declined.", Toast.LENGTH_SHORT).show()
-        }
-    }
+    // Permission, blocked-permission and location-off prompts are all native (PermissionPrompts.kt).
+    val requestLocation = rememberLocationAccess { requestHighAccuracyLocation() }
 
     @Suppress("DEPRECATION")
     suspend fun resolveLocationAndConfirm(latLng: LatLng) {
@@ -187,20 +178,7 @@ fun ListingLocationMapPicker(
 
         // GPS Locate FAB (Bottom Right inside bounds)
         FloatingActionButton(
-            onClick = {
-                val finePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-                val coarsePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-                if (finePerm == PackageManager.PERMISSION_GRANTED || coarsePerm == PackageManager.PERMISSION_GRANTED) {
-                    requestHighAccuracyLocation()
-                } else {
-                    requestPermissionLauncher.launch(
-                        arrayOf(
-                            Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION
-                        )
-                    )
-                }
-            },
+            onClick = { requestLocation() },
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
             shape = CircleShape,

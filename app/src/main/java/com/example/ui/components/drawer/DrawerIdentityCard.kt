@@ -2,6 +2,9 @@ package com.example.ui.components.drawer
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -22,18 +25,16 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.data.model.AppUser
 import com.example.data.model.publicCode
-import com.example.data.billing.PlayCatalog
 import com.example.data.model.UserRole
 import com.example.ui.theme.*
 
 /**
- * The rich role-tailored identity card shown at the top of every role's side drawer.
+ * The compact identity card at the top of the Profile page: a one-word 3D role tag, avatar, name and credentials,
+ * and one meta line. Verification shows on the avatar and name checks (no separate "phone verified" tag).
  */
 @Composable
 fun DrawerIdentityCard(
     user: AppUser?,
-    /** The user's ownerPackageId (base plan or forced upgrade); null = no Pro Host access. */
-    currentPlanId: String? = null,
     onCloseDrawer: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -56,87 +57,16 @@ fun DrawerIdentityCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(heroGradient)
-                .padding(Spacing.xl)
+                .padding(horizontal = Spacing.lg, vertical = Spacing.md)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 // Top row: Active Plan Tag + Close Drawer Arrow
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f, fill = false)
-                    ) {
-                        if (role == UserRole.PRO_HOST && user != null) {
-                            Surface(
-                                color = primaryAccent.copy(alpha = 0.35f),
-                                shape = MaterialTheme.shapes.medium,
-                                border = BorderStroke(1.dp, primaryAccent.copy(alpha = 0.8f))
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.WorkspacePremium,
-                                        contentDescription = null,
-                                        tint = pro.headerWarning,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        text = PlayCatalog.planBadge(currentPlanId),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = pro.onBrandHeader,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-                        } else {
-                            Surface(
-                                color = when (role) {
-                                    UserRole.ADMIN -> primaryAccent.copy(alpha = 0.25f)
-                                    else -> pro.onBrandHeader.copy(alpha = 0.18f)
-                                },
-                                shape = MaterialTheme.shapes.medium,
-                                border = BorderStroke(1.dp, primaryAccent.copy(alpha = 0.6f))
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = when (role) {
-                                            UserRole.ADMIN -> Icons.Default.Shield
-                                            else -> Icons.Default.VerifiedUser
-                                        },
-                                        contentDescription = null,
-                                        tint = when (role) {
-                                            UserRole.ADMIN -> pro.headerWarning
-                                            else -> pro.onBrandHeader
-                                        },
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = when (role) {
-                                            UserRole.ADMIN -> "Super Administrator Node"
-                                            else -> "Practitioner / Specialist"
-                                        },
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = pro.onBrandHeader,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    RoleTag3D(role)
 
                     if (onCloseDrawer != null) {
                         IconButton(
@@ -158,7 +88,7 @@ fun DrawerIdentityCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Box(modifier = Modifier.size(64.dp)) {
+                    Box(modifier = Modifier.size(56.dp)) {
                         val picUrl = user?.profilePictureUrl
                         if (picUrl != null) {
                             AsyncImage(
@@ -186,7 +116,7 @@ fun DrawerIdentityCard(
                                             .ifEmpty { "PS" },
                                         color = MaterialTheme.colorScheme.onSecondary,
                                         fontWeight = FontWeight.ExtraBold,
-                                        style = MaterialTheme.typography.headlineMedium
+                                        style = MaterialTheme.typography.titleLarge
                                     )
                                 }
                             }
@@ -295,22 +225,51 @@ fun DrawerIdentityCard(
                         )
                     }
                 }
-
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    Surface(
-                        color = pro.onBrandHeader.copy(alpha = 0.15f),
-                        shape = MaterialTheme.shapes.small
-                    ) {
-                        Text(
-                            text = if (user?.isVerified == true) "🛡️ Phone Verified" else "Phone Unverified",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = pro.onBrandHeader,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                }
             }
+        }
+    }
+}
+
+private data class RoleLook(val label: String, val top: Color, val bottom: Color, val edge: Color, val text: Color, val icon: androidx.compose.ui.graphics.vector.ImageVector)
+
+/**
+ * One-word role tag with a raised, 3D look: a vertical gradient face with a light top rim, sitting on a darker
+ * "edge" that shows below it, plus a soft shadow. Steel Blue for Specialist, orange for Host, gold for Admin.
+ */
+@Composable
+private fun RoleTag3D(role: UserRole) {
+    val look = when (role) {
+        UserRole.ADMIN -> RoleLook("ADMIN", Color(0xFFFFDC7A), Color(0xFFE2A82A), Color(0xFF8A6410), Color(0xFF2A1E04), Icons.Default.Shield)
+        UserRole.PRO_HOST -> RoleLook("HOST", Color(0xFFFF8F63), Color(0xFFD2432F), Color(0xFF8C2819), Color.White, Icons.Default.WorkspacePremium)
+        else -> RoleLook("SPECIALIST", Color(0xFF6C9FD6), Color(0xFF3A72AE), Color(0xFF1F4268), Color.White, Icons.Default.VerifiedUser)
+    }
+    val shape = RoundedCornerShape(12.dp)
+    Box(modifier = Modifier.padding(bottom = 3.dp)) {
+        // Edge: the darker slab under the face.
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .offset(y = 3.dp)
+                .background(look.edge, shape)
+        )
+        Row(
+            modifier = Modifier
+                .shadow(4.dp, shape, ambientColor = look.edge, spotColor = look.edge)
+                .background(Brush.verticalGradient(listOf(look.top, look.bottom)), shape)
+                .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.75f), Color.White.copy(alpha = 0.1f))), shape)
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(look.icon, contentDescription = null, tint = look.text, modifier = Modifier.size(14.dp))
+            Text(
+                text = look.label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 1.sp,
+                color = look.text,
+                maxLines = 1
+            )
         }
     }
 }

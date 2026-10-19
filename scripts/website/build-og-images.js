@@ -65,7 +65,7 @@ ${lead ? `<p class="lead">${esc(lead)}</p>` : ""}
 </body></html>`;
 }
 
-const jobs = [{ out: "img/og-hero.jpg", pill: "<b>50% OFF</b> first Premium subscription", h1: "Turn empty rooms<br>into <em>steady income.</em>",
+const jobs = [{ out: "img/og-hero.jpg", pill: "<b>4 MONTHS FREE</b> or 50% off your first year", h1: "Turn empty rooms<br>into <em>steady income.</em>",
   lead: "List your clinic, therapy room, office, studio or meeting room and rent it to verified professionals.", photo: "hotel" }];
 jobs.push({ out: "img/og/partner.jpg", pill: "Strategic partnership", h1: "Become ProHost's<br><em>strategic partner</em>", lead: "One partner. A share of app revenue and your logo in the app.", photo: "meeting" });
 for (const p of PAGES) {

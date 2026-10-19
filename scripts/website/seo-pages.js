@@ -191,7 +191,7 @@ const PAGES = [
     who: ["Hotels", "Medical centers & polyclinics", "Private clinics", "Training centers & institutes", "Yoga & dance studios", "Coworking spaces", "Business centers", "Office owners"],
     modes: ["Hourly", "Shift", "Daily", "Monthly", "Per attendee"],
     faq: [
-      ["How much does it cost to list my space?", "Publishing and managing listings is part of ProHost Premium, a monthly or yearly subscription billed by Google Play. New subscribers get 50% off their first subscription period, and the exact price is shown in Google Play before you confirm."],
+      ["How much does it cost to list my space?", "Publishing and managing listings is part of ProHost Premium, a monthly or yearly subscription billed by Google Play. New subscribers get their first 4 months free on the monthly plan, or 50% off their first year on the yearly plan, and the exact price and billing start date are shown in Google Play before you confirm."],
       ["Does ProHost take a commission on bookings?", "No. ProHost doesn't charge booking fees or process payments between you and the professional. You agree and settle payment directly."],
       ["Can I list several rooms with different prices?", "Yes. Add every room in your space, each with its own pricing method, schedule and photos."],
       ["Can I decline a request?", "Yes. You see every request before it is confirmed and you accept or decline it, optionally with a reason."],

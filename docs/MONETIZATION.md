@@ -162,15 +162,22 @@ promo-code claim plumbing. It reads Play with the functions' own service account
 so it works even though the CI account isn't invited in Play Console. Admin › Packages › Billing health shows the
 same offers per base plan.
 
-## 2c. PROHOST2026 — early launch promo (first month free), configured only in Play Console
+## 2c. Launch offers and the PROHOST2026 promo, configured only in Play Console
+
+**Live catalog (2026-10-18) and what the website, email templates and videos promise** (`functions/src/billing/offerClaims.ts`):
+monthly base plan `pro-monthly1` has offer `free-4-months` (first **4 months free**, new customers); yearly `pro-yearly` has
+`launch-50-first-year` (**50 % off the first year**). The old `pro-monthly` plan and its "50 % off the first month" offer are inactive.
+Change an offer in Play, then `offerClaims.ts`, then the pages: `playcatalog` (`playOfferLint`) warns when Play stops matching the
+claims and `offerClaims.test.ts` fails CI when a page, the admin email template, the marketing README or the voiceover
+scripts state them differently or still state a retired claim.
 
 The promo card is a **Play subscription offer with tags**: no Firestore document, no server counter, no Maintenance task.
 Google Play decides who sees it (eligibility, regions, active/inactive) and what it costs; the app only reads the offer.
 
 1. **Play Console › Monetize with Play › Products › Subscriptions › ProHost Premium (`package_pro_mrr`) › base plan
-   `pro-monthly` › Add offer.** Offer ID **`prohost2026`**.
+   `pro-monthly1` › Add offer.** Offer ID **`prohost2026`** (recreate it there; offers do not carry over from the retired plan).
 2. Eligibility: **New customer acquisition** (never had this subscription). Regions: all, including Lebanon.
-3. Phase: **Free trial, 1 month** (P1M). Activate the offer.
+3. Phase: a free trial of your choice (the card reads the length from Play). Activate the offer.
 4. **Offer tags** (lowercase, ≤ 20 characters each) — these drive the app's card (`PlayPromo`):
 
    | Tag | Effect |
@@ -189,8 +196,23 @@ Google Play decides who sees it (eligibility, regions, active/inactive) and what
 7. Optional: a Play **custom promo code** `PROHOST2026` (Monetize › Promotions, min. 2,000) lets people outside the app
    redeem it in Play's checkout (payment method ▾ › Redeem). The in-app card doesn't need it.
 8. Check with Maintenance task `playcatalog`: step `playOfferLint` warns about a promo offer without `code-`/`ends-`, an
-   ended promo still active, more than one promo, a phase ≥ 90 % off or free > 3 months, a base plan without an LB price,
-   and the website's "50 % off the first month / year" promise not matching Play.
+   ended promo still active, more than one promo, a phase ≥ 90 % off or free > 4 months, a base plan without an LB price,
+   two ACTIVE base plans with the same period, and the website's claims (4 months free monthly, 50 % off year one) not matching Play.
+
+### Runbook: a promo or launch offer won't resume / doesn't show (Oct 2026)
+- **"An unexpected error has occurred. Please try again. (5A39FA1E)" when resuming PROHOST2026 in Play Console.**
+  The offer was created on `pro-monthly`, which is INACTIVE. Play can't activate an offer on an inactive base plan.
+- **`free-4-months` hidden from anyone who ever subscribed.** Its eligibility was "never had any subscription in this app".
+- **Fix:** Actions › Maintenance › `playofferfix`.
+  1. Run it with an empty code first (dry run) and read the planned steps.
+  2. Run it again with code `apply`. It copies the promo (phases, tags, regions, eligibility) onto the live monthly plan
+     and activates it. It turns a claimed monthly phase set to ≥ 90% off (e.g. 99%, which charges cents) into a free
+     phase, sets claimed offers to "never had this subscription", then re-runs `playcatalog`.
+  3. Writes use Play's latest regions version (`2022/02`; the API rejects others). Old offers still list regions Play
+     has stopped billing (ET, MN in Oct 2026), and Play refuses any write containing them, so the task drops those
+     regions and reports which.
+  4. If it reports HTTP 403, the functions service account can't edit subscriptions; do the printed Play Console steps instead.
+- **Promo-code campaigns** (Monetize › Promo codes) point at a specific offer: recreate the campaign on the new offer.
 
 ### Strict Play configuration — where every billing decision comes from
 

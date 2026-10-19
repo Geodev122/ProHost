@@ -38,15 +38,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.model.AppUser
 import com.example.data.model.findCountryByName
-import com.example.ui.screens.PhoneVerificationSection
+import com.example.ui.screens.WhatsAppNumberSection
 import com.example.ui.theme.Spacing
 import com.example.ui.theme.proColors
 import com.example.ui.viewmodel.ProHostViewModel
 import kotlinx.coroutines.launch
 
 /**
- * The one verification flow. Booking ([AppUser.canTransact]): a profile photo and a verified
- * phone. Hosting ([AppUser.canHost], [requireAddress]): the same plus country and city.
+ * The one verification flow. Booking ([AppUser.canTransact]): a profile photo and a WhatsApp
+ * number. Hosting ([AppUser.canHost], [requireAddress]): the same plus country and city.
  * Opened in place over the screen that asked, showing only the missing steps; [onReady]
  * fires once all are done so the caller resumes exactly where the person was (their
  * selected slots or chosen plan are never lost).
@@ -63,7 +63,7 @@ fun RequirementsSheet(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val needsPhoto = user.profilePictureUrl.isNullOrBlank()
-    val needsPhone = !user.hasVerifiedPhone(com.example.data.auth.PhoneLink.isLinked())
+    val needsPhone = !user.hasWhatsAppNumber()
     val needsAddress = requireAddress && (user.country.isBlank() || user.city.isBlank())
     var uploading by remember { mutableStateOf(false) }
     var photoError by remember { mutableStateOf<String?>(null) }
@@ -131,11 +131,15 @@ fun RequirementsSheet(
 
             RequirementRow(
                 done = !needsPhone,
-                title = "Verified phone",
-                detail = "For booking updates and so the host can reach you."
+                title = "WhatsApp number",
+                detail = "So the host can reach you about your booking."
             )
             if (needsPhone) {
-                PhoneVerificationSection(onVerified = { /* the profile listener flips needsPhone */ })
+                WhatsAppNumberSection(
+                    currentPhone = user.phone,
+                    onSave = { viewModel.saveWhatsAppNumber(it) },
+                    onSaved = { /* the profile listener flips needsPhone */ }
+                )
             }
 
             if (requireAddress) {

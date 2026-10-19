@@ -530,6 +530,20 @@ class ProHostViewModel(
      * Uploads [uri] as the signed-in user's profile photo and saves it. Returns null on success,
      * else a message to show (RequirementsSheet keeps the booking selection either way).
      */
+    /** Saves the WhatsApp number (the phone step of RequirementsSheet / KycScreen); null on success, else a message. */
+    suspend fun saveWhatsAppNumber(e164Phone: String): String? = try {
+        if (repository.saveWhatsAppNumber(e164Phone)) {
+            com.example.analytics.AnalyticsTracker.kycComplete()
+            null
+        } else "The number couldn't be saved. Check your connection and try again."
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        android.util.Log.e("ProHostVM", "saveWhatsAppNumber failed", e)
+        com.example.analytics.AnalyticsTracker.appError("whatsapp_number_save", com.example.analytics.AnalyticsTracker.errorCode(e))
+        e.toUserMessage("The number couldn't be saved. Please try again.")
+    }
+
     suspend fun updateProfilePhoto(context: Context, uri: android.net.Uri): String? {
         val uid = currentUser.value?.id ?: return "Your session expired — please sign in again."
         return try {
@@ -788,10 +802,10 @@ class ProHostViewModel(
             return
         }
         // The one transact rule (CLAUDE.md): profile photo + phone verified in Firebase Auth.
-        if (!user.canTransact(com.example.data.auth.PhoneLink.isLinked())) {
+        if (!user.canTransact()) {
             Toast.makeText(
                 context,
-                "Add a profile photo and verify your phone number in Profile before sending booking requests.",
+                "Add a profile photo and your WhatsApp number in Profile before sending booking requests.",
                 Toast.LENGTH_LONG
             ).show()
             return

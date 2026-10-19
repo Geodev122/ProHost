@@ -317,17 +317,8 @@ fun LebanonMapCanvas(
         }
     }
 
-    val requestPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val fineGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
-        val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
-        if (fineGranted || coarseGranted) {
-            requestHighAccuracyLocation()
-        } else {
-            Toast.makeText(context, "Location permission declined.", Toast.LENGTH_SHORT).show()
-        }
-    }
+    // Permission, blocked-permission and location-off prompts are all native (PermissionPrompts.kt).
+    val requestLocation = rememberLocationAccess { requestHighAccuracyLocation() }
 
     fun calculateDistanceKm(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Double {
         val r = 6371.0
@@ -567,20 +558,7 @@ fun LebanonMapCanvas(
 
         // FLOATING HIGH-ACCURACY GPS CONTROLLER (Bottom Right)
         FloatingActionButton(
-            onClick = {
-                val finePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-                val coarsePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-                if (finePerm == PackageManager.PERMISSION_GRANTED || coarsePerm == PackageManager.PERMISSION_GRANTED) {
-                    requestHighAccuracyLocation()
-                } else {
-                    requestPermissionLauncher.launch(
-                        arrayOf(
-                            Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION
-                        )
-                    )
-                }
-            },
+            onClick = { requestLocation() },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = 16.dp, bottom = (if (!isStripCollapsed) 135.dp else 24.dp) + bottomInset)

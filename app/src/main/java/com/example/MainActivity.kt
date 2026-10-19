@@ -13,6 +13,9 @@ import com.example.ui.navigation.ProHostAppRoot
 import com.example.ui.theme.ProHostTheme
 import com.example.util.InAppUpdateManager
 import com.example.util.NotificationPermissionManager
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private var targetTab by mutableStateOf<String?>(null)
@@ -47,8 +50,15 @@ class MainActivity : ComponentActivity() {
 
         // Only POST_NOTIFICATIONS is asked up front. Location is requested in context by the map
         // picker; photos use the system pickers and the camera app, which need no permission.
+        // The system prompt waits until the first-launch analytics choice is made, so the two
+        // prompts never stack on top of each other.
         try {
-            NotificationPermissionManager(this).requestIfNeeded()
+            val notificationPermission = NotificationPermissionManager(this)
+            lifecycleScope.launch {
+                com.example.analytics.AnalyticsConsent.state
+                    .first { it != com.example.analytics.ConsentState.UNKNOWN }
+                notificationPermission.requestIfNeeded()
+            }
         } catch (e: Exception) {
             android.util.Log.w("MainActivity", "NotificationPermissionManager request failed: ${e.message}")
         }
