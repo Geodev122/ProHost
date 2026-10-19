@@ -208,7 +208,10 @@ Google Play decides who sees it (eligibility, regions, active/inactive) and what
   2. Run it again with code `apply`. It copies the promo (phases, tags, regions, eligibility) onto the live monthly plan
      and activates it. It turns a claimed monthly phase set to ≥ 90% off (e.g. 99%, which charges cents) into a free
      phase, sets claimed offers to "never had this subscription", then re-runs `playcatalog`.
-  3. If it reports HTTP 403, the functions service account can't edit subscriptions; do the printed Play Console steps instead.
+  3. Writes use Play's latest regions version (`2022/02`; the API rejects others). Old offers still list regions Play
+     has stopped billing (ET, MN in Oct 2026), and Play refuses any write containing them, so the task drops those
+     regions and reports which.
+  4. If it reports HTTP 403, the functions service account can't edit subscriptions; do the printed Play Console steps instead.
 - **Promo-code campaigns** (Monetize › Promo codes) point at a specific offer: recreate the campaign on the new offer.
 
 ### Strict Play configuration — where every billing decision comes from
