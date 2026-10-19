@@ -1,12 +1,12 @@
 package com.example.ui.screens
 
+import com.example.ui.util.UiMessages
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -74,19 +74,19 @@ fun AdminConsoleScreen(
         adminViewModel.events.collectLatest { event ->
             when (event) {
                 is AdminUiEvent.ShowToast -> {
-                    Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                    UiMessages.show(context, event.message)
                 }
                 is AdminUiEvent.PricingUpdated -> {
-                    Toast.makeText(context, "Subscription fee updated to $${event.newFee} USD", Toast.LENGTH_SHORT).show()
+                    UiMessages.show(context, "Subscription fee updated to $${event.newFee} USD")
                 }
                 is AdminUiEvent.DataExportReady -> {
-                    Toast.makeText(context, "${event.title} ready for download", Toast.LENGTH_SHORT).show()
+                    UiMessages.show(context, "${event.title} ready for download")
                 }
                 is AdminUiEvent.OpenUrl -> {
                     try {
                         context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(event.url)))
                     } catch (e: Exception) {
-                        Toast.makeText(context, "No app can open this document.", Toast.LENGTH_SHORT).show()
+                        UiMessages.show(context, "No app can open this document.")
                     }
                 }
             }

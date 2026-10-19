@@ -1,12 +1,12 @@
 package com.example.ui.screens
 
+import com.example.ui.util.UiMessages
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -338,7 +338,7 @@ internal fun AdminExportDataDialog(
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             val clip = ClipData.newPlainText(title, content)
                             clipboard.setPrimaryClip(clip)
-                            Toast.makeText(context, "Copied to clipboard!", Toast.LENGTH_SHORT).show()
+                            UiMessages.show(context, "Copied to clipboard!")
                         },
                         modifier = Modifier.weight(1f),
                         variant = CustomButtonVariant.OUTLINED,

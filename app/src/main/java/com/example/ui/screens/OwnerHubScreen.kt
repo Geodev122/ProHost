@@ -1,5 +1,6 @@
 ﻿package com.example.ui.screens
 
+import com.example.ui.util.UiMessages
 import android.content.Context
 import android.content.ContextWrapper
 import android.media.AudioAttributes
@@ -213,7 +214,7 @@ fun OwnerHubScreen(
         val saved = viewModel.saveListingDraft(newListing.copy(status = ListingStatus.DRAFT))
         showCreateListingDialog = false
         draftToEdit = null
-        android.widget.Toast.makeText(context, if (saved) successMessage else failureMessage, android.widget.Toast.LENGTH_LONG).show()
+        UiMessages.show(context, if (saved) successMessage else failureMessage, long = true)
         if (saved) {
             viewModel.setPendingAutoPublishDraft(newListing.id)
             onOpenSubscriptions?.invoke()
@@ -241,11 +242,9 @@ fun OwnerHubScreen(
                     val success = viewModel.saveListingDraft(updatedDraft)
                     showCreateListingDialog = false
                     draftToEdit = null
-                    android.widget.Toast.makeText(
-                        context,
+                    UiMessages.show(context,
                         if (success) "Draft saved — continue it anytime from My Listings." else "Couldn't save this draft — please try again.",
-                        android.widget.Toast.LENGTH_SHORT
-                    ).show()
+                        long = false)
                 }
             },
             // Silent — unlike onSaveDraft above, never closes the dialog or toasts;
@@ -259,7 +258,7 @@ fun OwnerHubScreen(
                         is ListingCreateResult.Success -> {
                             showCreateListingDialog = false
                             draftToEdit = null
-                            android.widget.Toast.makeText(context, "Workspace listing published successfully!", android.widget.Toast.LENGTH_SHORT).show()
+                            UiMessages.show(context, "Workspace listing published successfully!")
                         }
                         is ListingCreateResult.NoActivePackage -> {
                             redirectBlockedListingToPayment(
@@ -269,11 +268,9 @@ fun OwnerHubScreen(
                             )
                         }
                         is ListingCreateResult.Failed -> {
-                            android.widget.Toast.makeText(
-                                context,
+                            UiMessages.show(context,
                                 "Couldn't publish this listing — check your connection and try again.",
-                                android.widget.Toast.LENGTH_LONG
-                            ).show()
+                                long = true)
                         }
                     }
                 }
@@ -306,11 +303,9 @@ fun OwnerHubScreen(
                 coroutineScope.launch {
                     val success = viewModel.updateOwnerListing(updated)
                     editingSpace = null
-                    android.widget.Toast.makeText(
-                        context,
+                    UiMessages.show(context,
                         if (success) "Listing updated successfully!" else "Failed to update listing — please try again",
-                        android.widget.Toast.LENGTH_SHORT
-                    ).show()
+                        long = false)
                 }
             }
         )
@@ -325,11 +320,9 @@ fun OwnerHubScreen(
                 coroutineScope.launch {
                     val success = viewModel.deleteOwnerListing(space.id)
                     deletingSpace = null
-                    android.widget.Toast.makeText(
-                        context,
+                    UiMessages.show(context,
                         if (success) "Listing removed" else "Failed to remove listing — please try again",
-                        android.widget.Toast.LENGTH_SHORT
-                    ).show()
+                        long = false)
                 }
             }
         )

@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.UiMessages
 import android.app.Activity
 import android.net.Uri
 import androidx.compose.foundation.Image
@@ -185,20 +186,16 @@ fun LoginAuthScreen(
                 } catch (e2: GetCredentialException) {
                     android.util.Log.w("LoginAuthScreen", "Google sign-in unavailable: ${e2.type}")
                     com.example.analytics.AnalyticsTracker.authError("google", "unavailable")
-                    android.widget.Toast.makeText(
-                        context,
+                    UiMessages.show(context,
                         "Google sign-in isn't available on this device. Please sign in with email.",
-                        android.widget.Toast.LENGTH_LONG
-                    ).show()
+                        long = true)
                 }
             } catch (e: GetCredentialException) {
                 android.util.Log.w("LoginAuthScreen", "Google sign-in error: ${e.type}")
                 com.example.analytics.AnalyticsTracker.authError("google", "credential_error")
-                android.widget.Toast.makeText(
-                    context,
+                UiMessages.show(context,
                     "Google sign-in isn't available right now. Please sign in with email.",
-                    android.widget.Toast.LENGTH_LONG
-                ).show()
+                    long = true)
             }
         }
     }

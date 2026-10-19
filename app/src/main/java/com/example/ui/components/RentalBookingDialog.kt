@@ -1,6 +1,6 @@
 package com.example.ui.components
 
-import android.widget.Toast
+import com.example.ui.util.UiMessages
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -1218,7 +1218,7 @@ private fun BookingSlotSelectorDialog(
                         onClick = {
                             val formula = buildFormulaForSubmission()
                             if (formula == null) {
-                                Toast.makeText(context, "Please select an available slot first.", Toast.LENGTH_SHORT).show()
+                                UiMessages.show(context, "Please select an available slot first.")
                                 return@ProOutlinedButton
                             }
                             viewModel.submitBookingRequest(
@@ -1263,7 +1263,7 @@ private fun BookingSlotSelectorDialog(
                         text = secondaryButtonText,
                         onClick = {
                             val formula = buildFormulaForSubmission() ?: run {
-                                Toast.makeText(context, "Please select a time slot before sending via WhatsApp.", Toast.LENGTH_SHORT).show()
+                                UiMessages.show(context, "Please select a time slot before sending via WhatsApp.")
                                 return@CustomButton
                             }
                             viewModel.submitBookingRequest(

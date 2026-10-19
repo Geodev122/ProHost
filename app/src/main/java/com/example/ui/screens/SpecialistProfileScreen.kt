@@ -1,6 +1,6 @@
 package com.example.ui.screens
 
-import android.widget.Toast
+import com.example.ui.util.UiMessages
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -799,16 +799,16 @@ fun SpecialistProfileScreen(
                                         // saved; only the new picture didn't, and that needs its own
                                         // message rather than a blanket "Updated Successfully!".
                                         when {
-                                            !success -> Toast.makeText(context, "Failed to update profile — please try again", Toast.LENGTH_SHORT).show()
+                                            !success -> UiMessages.show(context, "Failed to update profile — please try again")
                                             pictureUploadFailed -> {
                                                 profilePicUploadError = "Profile saved, but the new photo couldn't be uploaded. Check your connection and try again."
-                                                Toast.makeText(context, "Profile saved — photo upload failed, please retry", Toast.LENGTH_LONG).show()
+                                                UiMessages.show(context, "Profile saved — photo upload failed, please retry", long = true)
                                             }
-                                            else -> Toast.makeText(context, "Profile Updated Successfully!", Toast.LENGTH_SHORT).show()
+                                            else -> UiMessages.show(context, "Profile Updated Successfully!")
                                         }
                                     } catch (e: Exception) {
                                         isSavingProfile = false
-                                        Toast.makeText(context, "An error occurred — please try again", Toast.LENGTH_SHORT).show()
+                                        UiMessages.show(context, "An error occurred — please try again")
                                     }
                                 }
                             },
@@ -871,9 +871,9 @@ fun SpecialistProfileScreen(
                                 onClick = {
                                     if (inAppUpdateManager != null) {
                                         inAppUpdateManager.checkForAppUpdate(preferImmediate = false)
-                                        Toast.makeText(context, "Checking Google Play for updates...", Toast.LENGTH_SHORT).show()
+                                        UiMessages.show(context, "Checking Google Play for updates...")
                                     } else {
-                                        Toast.makeText(context, "ProHost v${com.example.BuildConfig.VERSION_NAME} is up to date", Toast.LENGTH_SHORT).show()
+                                        UiMessages.show(context, "ProHost v${com.example.BuildConfig.VERSION_NAME} is up to date")
                                     }
                                 },
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
@@ -1022,14 +1022,12 @@ fun SpecialistProfileScreen(
                                 isDeletingAccount = false
                                 showDeleteConfirmation = false
                                 result.exceptionOrNull()?.let { error ->
-                                    Toast.makeText(
-                                        context,
+                                    UiMessages.show(context,
                                         com.example.util.friendlyErrorMessage(
                                             error,
                                             "Couldn't delete your account. Please try again, or contact support."
                                         ),
-                                        Toast.LENGTH_LONG
-                                    ).show()
+                                        long = true)
                                 }
                                 // On success the screen unmounts on its own: currentUser
                                 // becomes null once repository.logout() runs inside

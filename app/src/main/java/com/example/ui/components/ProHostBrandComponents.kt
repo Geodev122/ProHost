@@ -89,6 +89,7 @@ import com.example.ui.navigation.AppNavTab
 import com.example.ui.theme.DrawerShape
 import com.example.ui.theme.SheetShape
 import com.example.ui.theme.Spacing
+import com.example.ui.theme.Radius
 import com.example.ui.theme.proColors
 
 /**
@@ -699,5 +700,43 @@ fun ProHostDrawerHighlight(
             }
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = pro.onBrandHeader)
         }
+    }
+}
+
+/**
+ * Shows [com.example.ui.util.UiMessages] as Snackbars (inverse surface, optional action such as Undo). While one is
+ * on screen, messages go here instead of a Toast.
+ */
+@Composable
+fun ProHostSnackbarHost(modifier: Modifier = Modifier) {
+    val state = remember { androidx.compose.material3.SnackbarHostState() }
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        com.example.ui.util.UiMessages.hosts++
+        onDispose { com.example.ui.util.UiMessages.hosts-- }
+    }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        com.example.ui.util.UiMessages.messages.collect { message ->
+            val result = state.showSnackbar(
+                message = message.text,
+                actionLabel = message.actionLabel,
+                withDismissAction = message.actionLabel == null && message.long,
+                duration = when {
+                    message.actionLabel != null -> androidx.compose.material3.SnackbarDuration.Long
+                    message.long -> androidx.compose.material3.SnackbarDuration.Long
+                    else -> androidx.compose.material3.SnackbarDuration.Short
+                }
+            )
+            if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) message.onAction?.invoke()
+        }
+    }
+    androidx.compose.material3.SnackbarHost(state, modifier = modifier.padding(horizontal = Spacing.md)) { data ->
+        androidx.compose.material3.Snackbar(
+            snackbarData = data,
+            shape = Radius.Sm,
+            containerColor = MaterialTheme.colorScheme.inverseSurface,
+            contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+            actionColor = MaterialTheme.colorScheme.inversePrimary,
+            dismissActionContentColor = MaterialTheme.colorScheme.inverseOnSurface
+        )
     }
 }

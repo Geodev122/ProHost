@@ -1,11 +1,11 @@
 package com.example.ui.viewmodel
 
+import com.example.ui.util.UiMessages
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.auth.toUserMessage
@@ -272,7 +272,7 @@ class ProHostViewModel(
                     result.exceptionOrNull()?.toUserMessage("Couldn't send the verification email. Please try again.")
                         ?: "Couldn't send the verification email. Please try again."
                 }
-                android.widget.Toast.makeText(appContext, msg, android.widget.Toast.LENGTH_LONG).show()
+                UiMessages.show(appContext, msg, long = true)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -427,7 +427,7 @@ class ProHostViewModel(
                     result.affected == 1 -> "Price updated. The tenant/requester was notified."
                     else -> "Price updated. ${result.affected} tenants/requesters were notified."
                 }
-                Toast.makeText(appContext, note, Toast.LENGTH_LONG).show()
+                UiMessages.show(appContext, note, long = true)
                 onDone(true)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -614,7 +614,7 @@ class ProHostViewModel(
         val specialty = user?.specialty?.takeIf { it.isNotBlank() } ?: "Independent Specialist"
         val cleanPhone = formatWhatsAppNumber(space.ownerPhone)
         if (cleanPhone.isBlank()) {
-            Toast.makeText(context, "This host hasn't added a WhatsApp number yet.", Toast.LENGTH_SHORT).show()
+            UiMessages.show(context, "This host hasn't added a WhatsApp number yet.")
             return
         }
 
@@ -686,7 +686,7 @@ class ProHostViewModel(
                 severity = "INFO"
             )
         } catch (e: Exception) {
-            Toast.makeText(context, "Could not launch WhatsApp. Showing copied message.", Toast.LENGTH_SHORT).show()
+            UiMessages.show(context, "Could not launch WhatsApp. Showing copied message.")
         }
     }
 
@@ -708,7 +708,7 @@ class ProHostViewModel(
 
         val cleanPhone = formatWhatsAppNumber(request.practitionerPhone)
         if (cleanPhone.isBlank()) {
-            Toast.makeText(context, "This professional hasn't added a WhatsApp number yet.", Toast.LENGTH_SHORT).show()
+            UiMessages.show(context, "This professional hasn't added a WhatsApp number yet.")
             return
         }
         try {
@@ -723,7 +723,7 @@ class ProHostViewModel(
                 severity = "INFO"
             )
         } catch (e: Exception) {
-            Toast.makeText(context, "Could not launch WhatsApp.", Toast.LENGTH_SHORT).show()
+            UiMessages.show(context, "Could not launch WhatsApp.")
         }
     }
 
@@ -808,16 +808,14 @@ class ProHostViewModel(
         val attendeePackagePriceUsd = submission.attendeePackagePriceUsd
         val user = currentUser.value
         if (user == null) {
-            Toast.makeText(context, "Please log in to submit a rental request", Toast.LENGTH_SHORT).show()
+            UiMessages.show(context, "Please log in to submit a rental request")
             return
         }
         // The one transact rule (CLAUDE.md): profile photo + phone verified in Firebase Auth.
         if (!user.canTransact()) {
-            Toast.makeText(
-                context,
+            UiMessages.show(context,
                 "Add a profile photo and your WhatsApp number in Profile before sending booking requests.",
-                Toast.LENGTH_LONG
-            ).show()
+                long = true)
             return
         }
 
@@ -863,8 +861,7 @@ class ProHostViewModel(
                     com.example.analytics.AnalyticsTracker.bookingRequestFailed("not_synced")
                 }
 
-                Toast.makeText(
-                    appContext,
+                UiMessages.show(appContext,
                     if (synced) {
                         if (replacesBookingId != null) {
                             "Edit request sent! Your current booking stays active until the host approves this change."
@@ -874,8 +871,7 @@ class ProHostViewModel(
                     } else {
                         "Couldn't reach the server to send your request — check your connection and try again. The host has not been notified."
                     },
-                    Toast.LENGTH_LONG
-                ).show()
+                    long = true)
 
                 if (alsoOpenWhatsApp) {
                     launchWhatsAppInquiry(context, space, formula, request)
@@ -886,7 +882,7 @@ class ProHostViewModel(
                 com.example.analytics.AnalyticsTracker.bookingRequestFailed(com.example.analytics.AnalyticsTracker.errorCode(e))
                 // "You already have a pending booking request for this space." is meant for the user.
                 if ((e is IllegalStateException || e is IllegalArgumentException) && !e.message.isNullOrBlank()) {
-                    Toast.makeText(appContext, e.message, Toast.LENGTH_LONG).show()
+                    UiMessages.show(appContext, e.message, long = true)
                 } else {
                     reportFailure(appContext, e, "Failed to send request — please check your connection and try again.")
                 }
@@ -912,12 +908,10 @@ class ProHostViewModel(
                 val requestCode = bookingRequests.value.firstOrNull { it.id == requestId }?.publicCode
                     ?: publicCode("", requestId)
                 repository.findAcceptConflict(requestId)?.let { clash ->
-                    Toast.makeText(
-                        appContext,
+                    UiMessages.show(appContext,
                         "Can't accept $requestCode — it overlaps accepted booking ${clash.publicCode} " +
                             "(${clash.practitionerName}, ${clash.selectedDateTimeRange}).",
-                        Toast.LENGTH_LONG
-                    ).show()
+                        long = true)
                     return@launch
                 }
                 val agreementUrl = if (agreementUri != null) {
@@ -925,7 +919,7 @@ class ProHostViewModel(
                     val ext = guessFileExtension(context, agreementUri, "pdf")
                     storageService.uploadBookingAgreement(requestId, agreementUri, ext).also {
                         if (it == null) {
-                            Toast.makeText(appContext, "Could not upload space rules. Please try again.", Toast.LENGTH_LONG).show()
+                            UiMessages.show(appContext, "Could not upload space rules. Please try again.", long = true)
                             return@launch
                         }
                     }
@@ -938,15 +932,15 @@ class ProHostViewModel(
                         )
                     }
                     val msg = if (agreementUrl != null) "Booking accepted! Space rules shared." else "Booking accepted."
-                    Toast.makeText(appContext, "$requestCode — $msg", Toast.LENGTH_LONG).show()
+                    UiMessages.show(appContext, "$requestCode — $msg", long = true)
                 } else {
-                    Toast.makeText(appContext, "Could not finalize acceptance. Please try again.", Toast.LENGTH_LONG).show()
+                    UiMessages.show(appContext, "Could not finalize acceptance. Please try again.", long = true)
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
                 android.util.Log.e("ProHostVM", "acceptBookingRequest error", e)
-                Toast.makeText(appContext, "Failed to accept booking — please check your connection and try again.", Toast.LENGTH_LONG).show()
+                UiMessages.show(appContext, "Failed to accept booking — please check your connection and try again.", long = true)
             }
         }
     }
@@ -963,15 +957,15 @@ class ProHostViewModel(
                 val result = functionsClient.sendPaymentReminder(bookingId)
                 if (result.isSuccess) {
                     com.example.analytics.AnalyticsTracker.paymentReminderSent()
-                    Toast.makeText(appContext, "Payment Reminder Sent to $practitionerName!", Toast.LENGTH_LONG).show()
+                    UiMessages.show(appContext, "Payment Reminder Sent to $practitionerName!", long = true)
                 } else {
-                    Toast.makeText(appContext, "Could not send the reminder. Please try again.", Toast.LENGTH_LONG).show()
+                    UiMessages.show(appContext, "Could not send the reminder. Please try again.", long = true)
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
                 android.util.Log.e("ProHostVM", "sendPaymentReminder error", e)
-                Toast.makeText(appContext, "Failed to send reminder — please check your connection and try again.", Toast.LENGTH_LONG).show()
+                UiMessages.show(appContext, "Failed to send reminder — please check your connection and try again.", long = true)
             }
         }
     }
@@ -983,15 +977,15 @@ class ProHostViewModel(
                 val success = repository.rejectBookingRequest(requestId, note)
                 if (success) {
                     com.example.analytics.AnalyticsTracker.bookingRejected(bookingRequests.value.firstOrNull { it.id == requestId }?.formula?.type?.name)
-                    Toast.makeText(appContext, "Booking Request #${requestId} Declined. Space hours remain available.", Toast.LENGTH_SHORT).show()
+                    UiMessages.show(appContext, "Booking Request #${requestId} Declined. Space hours remain available.")
                 } else {
-                    Toast.makeText(appContext, "Could not decline the request — check your connection and try again.", Toast.LENGTH_LONG).show()
+                    UiMessages.show(appContext, "Could not decline the request — check your connection and try again.", long = true)
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
                 android.util.Log.e("ProHostVM", "rejectBookingRequest error", e)
-                Toast.makeText(appContext, "Failed to decline request — please check your connection and try again.", Toast.LENGTH_LONG).show()
+                UiMessages.show(appContext, "Failed to decline request — please check your connection and try again.", long = true)
             }
         }
     }
@@ -1003,15 +997,15 @@ class ProHostViewModel(
                 val success = repository.cancelBookingRequest(requestId)
                 if (success) {
                     com.example.analytics.AnalyticsTracker.bookingCancelled(by = "specialist", reasonCode = "pending_withdrawn")
-                    Toast.makeText(appContext, "Booking Request #${requestId} Cancelled", Toast.LENGTH_SHORT).show()
+                    UiMessages.show(appContext, "Booking Request #${requestId} Cancelled")
                 } else {
-                    Toast.makeText(appContext, "Could not cancel the request — check your connection and try again.", Toast.LENGTH_LONG).show()
+                    UiMessages.show(appContext, "Could not cancel the request — check your connection and try again.", long = true)
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
                 android.util.Log.e("ProHostVM", "cancelBookingRequest error", e)
-                Toast.makeText(appContext, "Failed to cancel request — please check your connection and try again.", Toast.LENGTH_LONG).show()
+                UiMessages.show(appContext, "Failed to cancel request — please check your connection and try again.", long = true)
             }
         }
     }
@@ -1049,16 +1043,14 @@ class ProHostViewModel(
                     },
                     reasonCode = reasonCode.name
                 )
-                Toast.makeText(
-                    appContext,
+                UiMessages.show(appContext,
                     if (success) "Booking cancelled. The other party has been notified." else "Could not cancel this booking — please try again.",
-                    Toast.LENGTH_LONG
-                ).show()
+                    long = true)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
                 android.util.Log.e("ProHostVM", "cancelAcceptedBooking error", e)
-                Toast.makeText(appContext, "Failed to cancel booking — please check your connection and try again.", Toast.LENGTH_LONG).show()
+                UiMessages.show(appContext, "Failed to cancel booking — please check your connection and try again.", long = true)
             }
         }
     }
@@ -1074,7 +1066,7 @@ class ProHostViewModel(
                     com.example.analytics.AnalyticsTracker.paymentAcknowledged(amount)
                 }
                 if (!success) {
-                    Toast.makeText(appContext, "Couldn't save that — please try again.", Toast.LENGTH_SHORT).show()
+                    UiMessages.show(appContext, "Couldn't save that — please try again.")
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -1129,7 +1121,7 @@ class ProHostViewModel(
                 val success = repository.setListingStatus(spaceId, status)
                 if (success) com.example.analytics.AnalyticsTracker.listingStatusChange(previous?.name, status.name)
                 if (!success) {
-                    Toast.makeText(appContext, "Couldn't update this listing — please try again.", Toast.LENGTH_SHORT).show()
+                    UiMessages.show(appContext, "Couldn't update this listing — please try again.")
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -1154,11 +1146,9 @@ class ProHostViewModel(
             try {
                 val success = repository.addBlackoutSlot(spaceId, slot)
                 if (success) com.example.analytics.AnalyticsTracker.blackoutAdd()
-                Toast.makeText(
-                    appContext,
+                UiMessages.show(appContext,
                     if (success) "$dayOfWeek $startTime - $endTime is no longer offered" else "Couldn't switch that slot off — please try again",
-                    Toast.LENGTH_SHORT
-                ).show()
+                    long = false)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -1173,11 +1163,9 @@ class ProHostViewModel(
             try {
                 val success = repository.removeBlackoutSlot(spaceId, slotId)
                 if (success) com.example.analytics.AnalyticsTracker.blackoutRemove()
-                Toast.makeText(
-                    appContext,
+                UiMessages.show(appContext,
                     if (success) "Slot is back on offer" else "Couldn't switch that slot on — please try again",
-                    Toast.LENGTH_SHORT
-                ).show()
+                    long = false)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -1207,7 +1195,7 @@ class ProHostViewModel(
                 val success = repository.addSubdivision(spaceId, subdivision)
                 if (success) com.example.analytics.AnalyticsTracker.subdivisionAdd(subdivision)
                 if (!success) {
-                    Toast.makeText(appContext, "Couldn't add this room — please try again", Toast.LENGTH_SHORT).show()
+                    UiMessages.show(appContext, "Couldn't add this room — please try again")
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -1224,7 +1212,7 @@ class ProHostViewModel(
                 val success = repository.removeSubdivision(spaceId, subdivisionId)
                 if (success) com.example.analytics.AnalyticsTracker.subdivisionRemove()
                 if (!success) {
-                    Toast.makeText(appContext, "Couldn't remove this room — please try again", Toast.LENGTH_SHORT).show()
+                    UiMessages.show(appContext, "Couldn't remove this room — please try again")
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -1268,12 +1256,12 @@ class ProHostViewModel(
         space?.let { com.example.analytics.AnalyticsTracker.share(it, "copy_link") }
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText("ProHost Listing Link", url))
-        Toast.makeText(context, "Link copied to clipboard", Toast.LENGTH_SHORT).show()
+        UiMessages.show(context, "Link copied to clipboard")
     }
 
     private fun reportFailure(appContext: Context, e: Exception, fallback: String) {
         android.util.Log.e("ProHostVM", fallback, e)
         com.example.analytics.AnalyticsTracker.appError(com.example.analytics.AnalyticsTracker.areaKey(fallback), com.example.analytics.AnalyticsTracker.errorCode(e))
-        Toast.makeText(appContext, e.toUserMessage(fallback), Toast.LENGTH_LONG).show()
+        UiMessages.show(appContext, e.toUserMessage(fallback), long = true)
     }
 }

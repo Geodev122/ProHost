@@ -1,5 +1,6 @@
 package com.example.ui.navigation
 
+import com.example.ui.util.UiMessages
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -275,11 +276,9 @@ fun ProHostAppRoot(
     LaunchedEffect(emailVerifiedDeepLink, currentUser?.id) {
         if (emailVerifiedDeepLink && !emailVerifiedConsumed.value && currentUser != null) {
             emailVerifiedConsumed.value = true
-            android.widget.Toast.makeText(
-                appContext,
+            UiMessages.show(appContext,
                 "Email verified! Your account is now Level 2.",
-                android.widget.Toast.LENGTH_LONG
-            ).show()
+                long = true)
         }
     }
 
@@ -845,6 +844,10 @@ fun ProHostAppRoot(
                             modifier = Modifier.align(Alignment.BottomCenter)
                         )
                     }
+                    // App-wide feedback (UiMessages) above the floating nav.
+                    ProHostSnackbarHost(
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = bottomNavInset)
+                    )
                 }
             }
         }

@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.UiMessages
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -7,7 +8,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.location.Location
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -305,14 +305,14 @@ fun LebanonMapCanvas(
                                     cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(latLng, 14f))
                                 }
                             } else {
-                                Toast.makeText(context, "Cannot determine location.", Toast.LENGTH_SHORT).show()
+                                UiMessages.show(context, "Cannot determine location.")
                             }
                         }
                     }
                 }
                 .addOnFailureListener {
                     isLocating = false
-                    Toast.makeText(context, "GPS signal unavailable", Toast.LENGTH_SHORT).show()
+                    UiMessages.show(context, "GPS signal unavailable")
                 }
         }
     }

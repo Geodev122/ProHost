@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.UiMessages
 import kotlinx.coroutines.flow.first
 import android.content.ContextWrapper
 import android.media.AudioAttributes
@@ -27,7 +28,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.widget.Toast
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -135,7 +135,7 @@ fun OwnerSubscriptionsScreen(
     // The banners sit at the top of a scrolling screen, out of view from the plan
     // cards — also toast errors so a failed tap never looks like nothing happened.
     LaunchedEffect(billingError) {
-        billingError?.let { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
+        billingError?.let { UiMessages.show(context, it, long = true) }
     }
     LaunchedEffect(billingSuccess) {
         if (billingSuccess != null) {
@@ -443,7 +443,7 @@ fun OwnerSubscriptionsScreen(
                             } else if (activity != null) {
                                 viewModel.billing.launchGooglePaySubscription(activity, selectedPlan)
                             } else {
-                                Toast.makeText(context, "Cannot launch Google Play on this device", Toast.LENGTH_SHORT).show()
+                                UiMessages.show(context, "Cannot launch Google Play on this device")
                             }
                         },
                         enabled = enabled,
@@ -592,7 +592,7 @@ fun OwnerSubscriptionsScreen(
                         onCopy = {
                             val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                             clipboard.setPrimaryClip(android.content.ClipData.newPlainText("ProHost promo code", livePromo.code))
-                            Toast.makeText(context, "Code ${livePromo.code} copied", Toast.LENGTH_SHORT).show()
+                            UiMessages.show(context, "Code ${livePromo.code} copied")
                         },
                         onUse = { showRedeemDialog = false; redeemCodeInput = ""; showPromoHowTo = true }
                     )

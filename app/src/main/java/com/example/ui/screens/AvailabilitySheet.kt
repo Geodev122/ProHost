@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.UiMessages
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -559,7 +560,7 @@ internal fun AvailabilitySheet(
                                     )
                                     context.startActivity(intent)
                                 } catch (e: Exception) {
-                                    android.widget.Toast.makeText(context, "WhatsApp not installed", android.widget.Toast.LENGTH_SHORT).show()
+                                    UiMessages.show(context, "WhatsApp not installed")
                                 }
                             },
                             modifier = Modifier.weight(1f),

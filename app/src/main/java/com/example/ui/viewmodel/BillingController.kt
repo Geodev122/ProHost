@@ -1,5 +1,6 @@
 package com.example.ui.viewmodel
 
+import com.example.ui.util.UiMessages
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -311,7 +312,7 @@ class BillingController(
             _pendingRetryBasePlanId = basePlanId
             _pendingRetryActivity = java.lang.ref.WeakReference(activity)
             _pendingRetryAtMillis = System.currentTimeMillis()
-            Toast.makeText(activity, "Connecting to Google Play Store…", Toast.LENGTH_SHORT).show()
+            UiMessages.show(activity, "Connecting to Google Play Store…")
             // Merges into productDetailsList, whose collector above retries this launch.
             manager?.queryProductDetailsForId(productId) { found ->
                 if (found == null) {
@@ -357,7 +358,7 @@ class BillingController(
         try {
             activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)))
         } catch (e: android.content.ActivityNotFoundException) {
-            Toast.makeText(activity, "No app available to open this link.", Toast.LENGTH_SHORT).show()
+            UiMessages.show(activity, "No app available to open this link.")
         }
     }
 

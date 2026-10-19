@@ -4,7 +4,6 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.provider.CalendarContract
-import android.widget.Toast
 import com.example.data.model.BookingRequest
 import com.example.data.model.RentalFormulaType
 import java.text.NumberFormat
@@ -42,7 +41,7 @@ object PaymentCalendar {
     fun addPaymentReminders(context: Context, booking: BookingRequest, bookingRef: String) {
         val schedule = scheduleFor(booking)
         if (schedule == null) {
-            Toast.makeText(context, "This booking has no start date yet, so there's no due date to add.", Toast.LENGTH_LONG).show()
+            UiMessages.show(context, "This booking has no start date yet, so there's no due date to add.", long = true)
             return
         }
         val money = NumberFormat.getCurrencyInstance(Locale.US).format(schedule.amountPerPaymentUsd)
@@ -81,7 +80,7 @@ object PaymentCalendar {
             if (context !is android.app.Activity) chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(chooser)
         } catch (e: ActivityNotFoundException) {
-            Toast.makeText(context, "No calendar app found on this device.", Toast.LENGTH_LONG).show()
+            UiMessages.show(context, "No calendar app found on this device.", long = true)
         }
     }
 

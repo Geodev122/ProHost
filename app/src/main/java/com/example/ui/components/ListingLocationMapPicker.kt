@@ -1,10 +1,10 @@
 package com.example.ui.components
 
+import com.example.ui.util.UiMessages
 import android.Manifest
 import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.location.Location
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -77,7 +77,7 @@ fun ListingLocationMapPicker(
                 }
                 .addOnFailureListener {
                     isLocating = false
-                    Toast.makeText(context, "GPS signal unavailable", Toast.LENGTH_SHORT).show()
+                    UiMessages.show(context, "GPS signal unavailable")
                 }
         }
     }

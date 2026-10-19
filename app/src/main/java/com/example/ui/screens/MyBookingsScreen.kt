@@ -1,6 +1,6 @@
 package com.example.ui.screens
 
-import android.widget.Toast
+import com.example.ui.util.UiMessages
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -322,11 +322,9 @@ fun MyBookingsScreen(
                             // Only the booking's own workspace — never another listing (which
                             // would send the request to a different host).
                             if (space == null) {
-                                android.widget.Toast.makeText(
-                                    context,
+                                UiMessages.show(context,
                                     "This workspace is no longer available to book.",
-                                    android.widget.Toast.LENGTH_SHORT
-                                ).show()
+                                    long = false)
                             } else {
                                 rebookTargetSpaceId = space.id
                                 rebookSourceBooking = booking
@@ -348,7 +346,7 @@ fun MyBookingsScreen(
                                 try {
                                     context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)))
                                 } catch (e: Exception) {
-                                    Toast.makeText(context, "Could not open the agreement.", Toast.LENGTH_SHORT).show()
+                                    UiMessages.show(context, "Could not open the agreement.")
                                 }
                             }
                         },
@@ -421,7 +419,7 @@ fun MyBookingsScreen(
         // guards it explicitly rather than force-unwrapping.
         if (targetSpace == null) {
             LaunchedEffect(editTargetSpaceId) {
-                Toast.makeText(context, "This space is no longer available to edit.", Toast.LENGTH_SHORT).show()
+                UiMessages.show(context, "This space is no longer available to edit.")
                 editTargetSpaceId = null
                 editSourceBooking = null
             }

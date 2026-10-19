@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.UiMessages
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -165,7 +166,7 @@ fun DocumentPickerField(
                         cameraLauncher.launch(uri)
                     } catch (e: android.content.ActivityNotFoundException) {
                         pendingCameraUri = null
-                        android.widget.Toast.makeText(context, "No camera app found — choose a file instead.", android.widget.Toast.LENGTH_LONG).show()
+                        UiMessages.show(context, "No camera app found — choose a file instead.", long = true)
                     }
                 }
             )
