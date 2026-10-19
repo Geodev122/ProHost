@@ -24,6 +24,7 @@ import org.junit.runner.RunWith
 import org.robolectric.ParameterizedRobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import kotlinx.coroutines.runBlocking
 import java.io.File
 
 /**
@@ -45,7 +46,10 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         val out = File(OUT_DIR).apply { mkdirs() }
         val name = "${screen}_$variant"
         try {
-            compose.setContent { Variant(variant) { Screen(screen) } }
+            val vm = signedInViewModel(if (screen in HOST_SCREENS) UserRole.PRO_HOST else UserRole.SPECIALIST)
+            compose.setContent { Variant(variant) { Screen(screen, vm) } }
+            compose.waitForIdle()
+            Thread.sleep(400) // let async image decoding land before the capture
             compose.waitForIdle()
             compose.onRoot().captureRoboImage(filePath = "$OUT_DIR/$name.png")
         } catch (e: Throwable) {
@@ -68,8 +72,16 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         )
     }
 
+    /** Hermetic view model (never production Firebase) with the mock listings and a signed-in user. */
+    private fun signedInViewModel(role: UserRole): ProHostViewModel {
+        val repository = hermeticRepository()
+        repository.replaceSpacesForTest(listOf(mockSpace1, mockSpace2, mockSpace3))
+        runBlocking { repository.login(uid = "uid-design", email = "design@pro-host.tech", verifiedRole = role) }
+        return ProHostViewModel(repository)
+    }
+
     @Composable
-    private fun Screen(screen: String) {
+    private fun Screen(screen: String, vm: ProHostViewModel) {
         when (screen) {
             "explore_list" -> Preview01_DiscoveryScreen()
             "explore_map" -> Preview03_MapViewScreen()
@@ -77,7 +89,6 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             "renting_progress" -> Preview08_ActiveTenanciesScreen()
             "sign_in" -> Preview11_SignInScreen()
             else -> ProHostTheme {
-                val vm = ProHostViewModel(hermeticRepository())
                 when (screen) {
                     "space_details" -> SpaceDetailsScreenContent(
                         space = mockSpace1, viewModel = vm, acceptedBookings = emptyList(),
@@ -106,6 +117,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             "explore_list", "explore_map", "space_details", "saved", "my_rentals", "profile",
             "premium", "owner_hub", "renting_requests", "renting_progress", "owner_analytics", "sign_in"
         )
+        val HOST_SCREENS = setOf("renting_requests", "owner_analytics")
         val VARIANTS = listOf("light", "dark", "font130", "rtl")
 
         @JvmStatic
