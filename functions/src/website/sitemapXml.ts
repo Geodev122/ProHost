@@ -4,17 +4,21 @@
  */
 export const SITE = "https://pro-host.tech";
 
-/** Indexable static pages: path, change frequency, priority. Keep in sync with public/ and firebase.json. */
+/**
+ * Indexable static pages: path, change frequency, priority. Keep in sync with public/ and firebase.json.
+ * Slugs name no country or city (ProHost is open to every market); the retired "-lebanon" / "-beirut" slugs are
+ * 301-redirected in firebase.json and must never come back here.
+ */
 export const STATIC_PAGES: ReadonlyArray<[string, string, string]> = [
   ["/", "weekly", "1.0"],
   ["/ar", "weekly", "0.9"],
   ["/list-your-space", "weekly", "0.9"],
-  ["/clinic-room-rental-lebanon", "weekly", "0.9"],
-  ["/therapy-room-rental-beirut", "weekly", "0.9"],
-  ["/meeting-room-rental-beirut", "weekly", "0.9"],
-  ["/training-room-rental-lebanon", "weekly", "0.8"],
-  ["/studio-rental-beirut", "weekly", "0.8"],
-  ["/office-space-by-the-hour-lebanon", "weekly", "0.8"],
+  ["/clinic-room-rental", "weekly", "0.9"],
+  ["/therapy-room-rental", "weekly", "0.9"],
+  ["/meeting-room-rental", "weekly", "0.9"],
+  ["/training-room-rental", "weekly", "0.8"],
+  ["/studio-rental", "weekly", "0.8"],
+  ["/office-space-by-the-hour", "weekly", "0.8"],
   ["/privacy", "yearly", "0.3"],
   ["/terms", "yearly", "0.3"],
   ["/delete-account", "yearly", "0.2"],
@@ -34,13 +38,19 @@ function isoDay(ms: unknown): string | null {
   return Number.isFinite(n) && n > 0 ? new Date(n).toISOString().slice(0, 10) : null;
 }
 
+/** The English home page and the Arabic page are language alternates of each other (hreflang, per Google's sitemap format). */
+const ALTERNATES: Record<string, Array<[string, string]>> = {
+  "/": [["en", "/"], ["ar", "/ar"], ["x-default", "/"]],
+  "/ar": [["en", "/"], ["ar", "/ar"], ["x-default", "/"]],
+};
+
 export function buildSitemap(listings: Array<{ id: string; updatedAt?: unknown }>, today = new Date().toISOString().slice(0, 10)): string {
   const urls = STATIC_PAGES.map(([path, freq, prio]) =>
-    `<url><loc>${SITE}${path}</loc><lastmod>${today}</lastmod><changefreq>${freq}</changefreq><priority>${prio}</priority></url>`);
+    `<url><loc>${SITE}${path}</loc>${(ALTERNATES[path] || []).map(([hl, p]) => `<xhtml:link rel="alternate" hreflang="${hl}" href="${SITE}${p}"/>`).join("")}<lastmod>${today}</lastmod><changefreq>${freq}</changefreq><priority>${prio}</priority></url>`);
   for (const l of listings) {
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(l.id)) continue;
     const mod = isoDay(l.updatedAt);
     urls.push(`<url><loc>${SITE}/listing/${xmlEsc(l.id)}</loc>${mod ? `<lastmod>${mod}</lastmod>` : ""}<changefreq>weekly</changefreq><priority>0.7</priority></url>`);
   }
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls.join("\n")}\n</urlset>\n`;
 }

@@ -2,6 +2,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
 import "../lib/admin";
 import { isPublicListing } from "../website/sitemapXml";
+import { listingPlace } from "./listingLocation";
 
 // ProHost's own registered marketing/App-Link domain — a real custom domain
 // connected to this same Firebase Hosting site (already carrying the
@@ -115,7 +116,7 @@ function renderPage(opts: {
       </div>
     </div>${extraHtml}
   </main>
-  <footer><a href="${CANONICAL_HOST}/" style="color:inherit">ProHost</a> &mdash; rent clinics, offices, studios and meeting rooms in Lebanon by the hour, shift, day or month</footer>
+  <footer><a href="${CANONICAL_HOST}/" style="color:inherit">ProHost</a> &mdash; rent clinics, offices, studios and meeting rooms by the hour, shift, day or month</footer>
 </body>
 </html>`;
 }
@@ -174,12 +175,9 @@ export const listingShareLanding = onRequest(async (req, res) => {
 
     const title: string = typeof data.title === "string" && data.title.trim() ? data.title : "A ProHost Listing";
     const rawDescription: string = typeof data.description === "string" ? data.description.trim() : "";
-    const district: string = typeof data.district === "string" ? data.district : "";
-    const governorateLabel: string = typeof data.governorate === "string"
-      ? data.governorate.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())
-      : "";
+    const place = listingPlace(data);
     const category: string = typeof data.spaceCategoryName === "string" ? data.spaceCategoryName : "";
-    const location = [district, governorateLabel].filter(Boolean).join(", ");
+    const location = place.text;
     const description = rawDescription.length > 0
       ? rawDescription
       : [category, location].filter(Boolean).join(" in ") || "A workspace listing on ProHost.";
@@ -194,7 +192,7 @@ export const listingShareLanding = onRequest(async (req, res) => {
       }))
       .filter((r: { name: string }) => r.name)
       .slice(0, 30);
-    const where = location ? ` in ${location}` : " in Lebanon";
+    const where = location ? ` in ${location}` : "";
     const pageTitle = `${title}${category ? ` · ${category}` : ""} for rent${where} | ProHost`;
     const extraHtml = `
     <section class="more">
@@ -202,14 +200,14 @@ export const listingShareLanding = onRequest(async (req, res) => {
       ${rooms.length ? `<h2 style="margin-top:1rem">Rooms you can book</h2><ul>${rooms.map((r: { name: string; type: string }) =>
         `<li>${escapeHtml(r.name)}${r.type ? ` · ${escapeHtml(r.type)}` : ""}</li>`).join("")}</ul>` : ""}
       <p style="margin-top:1rem">Book by the hour, shift, day, month or per attendee and see live availability in the free ProHost app.</p>
-      <div class="links"><a href="${CANONICAL_HOST}/clinic-room-rental-lebanon">Clinic rooms</a><a href="${CANONICAL_HOST}/therapy-room-rental-beirut">Therapy rooms</a><a href="${CANONICAL_HOST}/meeting-room-rental-beirut">Meeting rooms</a><a href="${CANONICAL_HOST}/office-space-by-the-hour-lebanon">Offices</a><a href="${CANONICAL_HOST}/list-your-space">List your space</a></div>
+      <div class="links"><a href="${CANONICAL_HOST}/clinic-room-rental">Clinic rooms</a><a href="${CANONICAL_HOST}/therapy-room-rental">Therapy rooms</a><a href="${CANONICAL_HOST}/meeting-room-rental">Meeting rooms</a><a href="${CANONICAL_HOST}/office-space-by-the-hour">Offices</a><a href="${CANONICAL_HOST}/list-your-space">List your space</a></div>
     </section>`;
     const jsonLd = {
       "@context": "https://schema.org",
       "@graph": [
         {
           "@type": "Place", "@id": `${url}#place`, name: title, url, image, description: description.slice(0, 500),
-          address: { "@type": "PostalAddress", addressLocality: district || undefined, addressRegion: governorateLabel || undefined, addressCountry: "LB" },
+          address: { "@type": "PostalAddress", addressLocality: place.locality || undefined, addressRegion: place.region || undefined, addressCountry: place.countryCode },
           ...(rooms.length ? { containsPlace: rooms.map((r: { name: string; type: string }) => ({ "@type": "Room", name: r.name, ...(r.type ? { description: r.type } : {}) })) } : {}),
         },
         {

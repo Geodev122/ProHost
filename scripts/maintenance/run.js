@@ -612,7 +612,14 @@ async function prodcheck(db, auth) {
       if (!r.ok || !/rel="canonical"/.test(html) || /noindex/.test(html)) bad.push(`${u.replace("https://pro-host.tech", "")}=${r.status}`);
     }
     const robots = await (await fetch("https://pro-host.tech/robots.txt")).text();
-    return `sitemap urls=${locs.length} (listings=${locs.filter((l) => l.includes("/listing/")).length}) problems=[${bad.join(" ")}] robotsSitemap=${/Sitemap: https:\/\/pro-host.tech\/sitemap.xml/.test(robots)}`;
+    // Retired country-named slugs (-lebanon / -beirut) must still 301 to their country-neutral pages.
+    const { LEGACY_SLUGS } = require(path.join(__dirname, "../website/seo-pages"));
+    const lost = [];
+    for (const [oldSlug, newSlug] of Object.entries(LEGACY_SLUGS)) {
+      const r = await fetch(`https://pro-host.tech/${oldSlug}`, { redirect: "manual" });
+      if (r.status !== 301 || !(r.headers.get("location") || "").endsWith(`/${newSlug}`)) lost.push(`${oldSlug}=${r.status}`);
+    }
+    return `sitemap urls=${locs.length} (listings=${locs.filter((l) => l.includes("/listing/")).length}) problems=[${bad.join(" ")}] legacyRedirects=${lost.length ? `BROKEN[${lost.join(" ")}]` : `${Object.keys(LEGACY_SLUGS).length} ok`} robotsSitemap=${/Sitemap: https:\/\/pro-host.tech\/sitemap.xml/.test(robots)}`;
   });
   // 4. The Play catalog as this (CI) account sees it (needs the androidpublisher scope and the account
   //    invited in Play Console › Users and permissions). Read-only: base plans and their offers.

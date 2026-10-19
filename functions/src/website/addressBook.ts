@@ -31,7 +31,9 @@ export interface Contact {
   role?: string;
   message?: string;
   subscribe: boolean;     // true = opt in now; false = leave the current choice as it is
-  source: "contact" | "subscribe";
+  source: "contact" | "subscribe" | "partner";
+  /** Admin-side labels kept on the address-book entry and on the stored message, e.g. ["partner", "strategic-sponsor"]. */
+  tags?: string[];
 }
 
 /** Creates or updates the address-book entry; never downgrades an existing subscription. */
@@ -49,6 +51,7 @@ export async function upsertContact(c: Contact): Promise<{ id: string; subscribe
       email,
       updatedAt: now,
       sources: FieldValue.arrayUnion(c.source),
+      ...(c.tags?.length ? { tags: FieldValue.arrayUnion(...c.tags) } : {}),
       subscribed,
       unsubToken: cur.unsubToken ?? randomBytes(18).toString("base64url"),
     };
@@ -64,7 +67,7 @@ export async function upsertContact(c: Contact): Promise<{ id: string; subscribe
       update.messagesCount = FieldValue.increment(1);
       tx.set(db.collection(MESSAGES).doc(), {
         entryId: id, email, name: c.name ?? "", phone: c.phone ?? "", organization: c.organization ?? "",
-        role: c.role ?? "", message: c.message, createdAt: now,
+        role: c.role ?? "", message: c.message, createdAt: now, source: c.source, tags: c.tags ?? [],
       });
     }
     tx.set(ref, update, { merge: true });

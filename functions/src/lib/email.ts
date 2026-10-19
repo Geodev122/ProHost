@@ -20,6 +20,8 @@ export interface EmailPayload {
   html: string;
   text?: string;
   replyTo?: string;
+  /** Extra mail headers (the Trigger Email extension's top-level `headers`), e.g. X-ProHost-Tags for inbox filters. */
+  headers?: Record<string, string>;
 }
 
 /** "a***@example.com" — never log full addresses. */
@@ -38,6 +40,7 @@ export async function sendEmail(payload: EmailPayload): Promise<boolean> {
     const ref = await getFirestore().collection(MAIL_COLLECTION).add({
       to: payload.to,
       ...(payload.replyTo ? { replyTo: payload.replyTo } : {}),
+      ...(payload.headers && Object.keys(payload.headers).length ? { headers: payload.headers } : {}),
       message: {
         subject: payload.subject,
         html: payload.html,
