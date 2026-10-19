@@ -167,11 +167,14 @@ export async function playOfferFix(apply: boolean): Promise<{ apply: boolean; st
   }
 
   // 2. Claimed monthly offer charged a near-zero price instead of free → make the phase free.
-  for (const o of offers.filter((x) => x.basePlanId === target && !isPromo(x) && x.state === "ACTIVE" && isNearlyFreeClaimPhase(x.phases?.[0]))) {
+  // An INACTIVE one (taken down while it charged cents) is fixed and re-activated: the website promises it.
+  for (const o of offers.filter((x) => x.basePlanId === target && !isPromo(x) && x.state !== "ARCHIVED" && isNearlyFreeClaimPhase(x.phases?.[0]))) {
+    const wasInactive = o.state !== "ACTIVE";
+    const ids = { packageName: PACKAGE_NAME, productId: PLAY_PRODUCT_ID, basePlanId: target };
     const first = (o.phases ?? [])[0];
     const pct = Math.round(phaseMinDiscount(first) * 100);
     const phases = [freePhaseFrom(first), ...(o.phases ?? []).slice(1)];
-    const action = `${target}/${o.offerId}: phase 1 ${first.recurrenceCount ?? 1}x${first.duration} ${pct}% off → free`;
+    const action = `${target}/${o.offerId}${wasInactive ? " (INACTIVE)" : ""}: phase 1 ${first.recurrenceCount ?? 1}x${first.duration} ${pct}% off → free${wasInactive ? ", then activate" : ""}`;
     if (!apply) { steps.push({ step: "freePhase", action, result: "dry run" }); continue; }
     try {
       await withRegionsVersion((version) => publisher.monetization.subscriptions.basePlans.offers.patch({
@@ -179,7 +182,8 @@ export async function playOfferFix(apply: boolean): Promise<{ apply: boolean; st
         updateMask: "phases", "regionsVersion.version": version,
         requestBody: { ...copyOfferFor(o, target, o.offerId ?? ""), phases },
       }));
-      steps.push({ step: "freePhase", action, result: "updated in place" });
+      if (wasInactive) await publisher.monetization.subscriptions.basePlans.offers.activate({ ...ids, offerId: o.offerId ?? "", requestBody: { ...ids, offerId: o.offerId ?? "" } });
+      steps.push({ step: "freePhase", action, result: wasInactive ? "updated and ACTIVE" : "updated in place" });
     } catch (patchErr) {
       // Play may refuse to change an active offer's phases: publish a free twin, then retire the old one.
       const twin = `${o.offerId}-trial`;
@@ -188,9 +192,8 @@ export async function playOfferFix(apply: boolean): Promise<{ apply: boolean; st
           packageName: PACKAGE_NAME, productId: PLAY_PRODUCT_ID, basePlanId: target, offerId: twin,
           "regionsVersion.version": version, requestBody: { ...copyOfferFor(o, target, twin), phases },
         }));
-        const ids = { packageName: PACKAGE_NAME, productId: PLAY_PRODUCT_ID, basePlanId: target };
         await publisher.monetization.subscriptions.basePlans.offers.activate({ ...ids, offerId: twin, requestBody: { ...ids, offerId: twin } });
-        await publisher.monetization.subscriptions.basePlans.offers.deactivate({ ...ids, offerId: o.offerId ?? "", requestBody: { ...ids, offerId: o.offerId ?? "" } });
+        if (!wasInactive) await publisher.monetization.subscriptions.basePlans.offers.deactivate({ ...ids, offerId: o.offerId ?? "", requestBody: { ...ids, offerId: o.offerId ?? "" } });
         steps.push({ step: "freePhase", action, result: `patch refused (${reason(patchErr)}); created ${twin} (free, ACTIVE) and deactivated ${o.offerId}` });
       } catch (e) {
         steps.push({ step: "freePhase", action, result: `failed — ${reason(e)}. Play Console: open ${o.offerId} › phase 1 › Free trial, ${first.duration} › Save.` });
