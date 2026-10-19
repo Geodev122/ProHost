@@ -376,11 +376,11 @@ fun OwnerRequestDetailSheet(
     val chosenHours = if (request.selectedStartHour.isNotBlank() && request.selectedEndHour.isNotBlank())
         "${request.selectedStartHour}–${request.selectedEndHour}" else "${request.formula.startHour}–${request.formula.endHour}"
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    ProHostBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = Spacing.lg)
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {

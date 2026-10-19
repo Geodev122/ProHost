@@ -306,7 +306,7 @@ fun ProHostCountBadge(count: Int, modifier: Modifier = Modifier) {
 /** Plain "something new" dot badge for use inside `BadgedBox`. */
 @Composable
 fun ProHostDotBadge(modifier: Modifier = Modifier) {
-    Badge(modifier = modifier, containerColor = MaterialTheme.colorScheme.error)
+    Badge(modifier = modifier.size(9.dp), containerColor = MaterialTheme.colorScheme.error)
 }
 
 // ---------------------------------------------------------------------------
