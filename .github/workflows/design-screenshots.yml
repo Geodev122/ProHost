@@ -14,6 +14,11 @@ on:
       - "app/src/test/java/com/example/design/**"
       - ".github/workflows/design-screenshots.yml"
 
+# contents: write only to store the PNGs as a commit under refs/design-shots/ (not a branch), so the images can be
+# read through the GitHub API (git trees/blobs) where artifact downloads aren't reachable.
+permissions:
+  contents: write
+
 concurrency:
   group: design-screenshots-${{ github.ref }}
   cancel-in-progress: true
@@ -54,3 +59,18 @@ jobs:
           name: design-shots
           path: app/build/design-shots
           retention-days: 30
+
+      - name: Store screenshots as a git commit (refs/design-shots/<branch>)
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          [ -d app/build/design-shots ] || exit 0
+          cd app/build/design-shots
+          git init -q
+          git add -A
+          git -c user.name="design-shots" -c user.email="design-shots@users.noreply.github.com" \
+            commit -q -m "Design screenshots for ${GITHUB_SHA}"
+          ref="refs/design-shots/${GITHUB_REF_NAME//\//-}"
+          git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${ref}"
+          echo "::notice title=design-shots::$(git rev-parse HEAD) ${ref} for ${GITHUB_SHA}"
