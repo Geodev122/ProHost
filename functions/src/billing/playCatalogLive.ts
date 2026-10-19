@@ -181,7 +181,9 @@ export function lintOffers(basePlans: LiveBasePlan[], nowMillis: number): string
       const where = `${bp.basePlanId}/${o.offerId}`;
       if (o.state !== "ACTIVE") {
         // Play Console can't activate an offer whose base plan is inactive ("An unexpected error has occurred").
-        if (bp.state !== "ACTIVE" && o.tags.map((t) => t.toLowerCase()).includes(PROMO_TAG)) {
+        const code = o.tags.map((t) => t.toLowerCase()).find((t) => t.startsWith("code-"));
+        const liveTwin = basePlans.some((b2) => b2.state === "ACTIVE" && b2.offers.some((x) => x.state === "ACTIVE" && !!code && x.tags.map((t) => t.toLowerCase()).includes(code)));
+        if (bp.state !== "ACTIVE" && !liveTwin && o.tags.map((t) => t.toLowerCase()).includes(PROMO_TAG)) {
           out.push(`${where}: promo offer on a ${bp.state} base plan can't be resumed — recreate it on the live plan (maintenance task playofferfix)`);
         }
         continue;

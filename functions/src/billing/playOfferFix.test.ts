@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { copyOfferFor, isAnyAppScope, liveMonthlyPlan } from "./playOfferFix";
+import { copyOfferFor, freePhaseFrom, isAnyAppScope, isNearlyFreeClaimPhase, liveMonthlyPlan } from "./playOfferFix";
 
 test("liveMonthlyPlan picks the single ACTIVE monthly base plan", () => {
   const plans = [
@@ -25,4 +25,16 @@ test("copyOfferFor keeps phases, tags, regions and targeting, drops state", () =
   assert.deepEqual(copy.offerTags, src.offerTags);
   assert.ok(isAnyAppScope(copy));
   assert.ok(!isAnyAppScope({ targeting: { acquisitionRule: { scope: { thisSubscription: {} } } } }));
+});
+
+test("a 99%-off 4-month phase is turned into the promised free phase; real discounts are left alone", () => {
+  const nearly = { duration: "P4M", recurrenceCount: 1, regionalConfigs: [{ regionCode: "LB", relativeDiscount: 0.99 }, { regionCode: "US", relativeDiscount: 0.99 }], otherRegionsConfig: { relativeDiscount: 0.99 } };
+  assert.ok(isNearlyFreeClaimPhase(nearly));
+  assert.ok(!isNearlyFreeClaimPhase({ ...nearly, regionalConfigs: [{ regionCode: "LB", free: {} }] }));
+  assert.ok(!isNearlyFreeClaimPhase({ ...nearly, regionalConfigs: [{ regionCode: "LB", relativeDiscount: 0.5 }] }));
+  assert.ok(!isNearlyFreeClaimPhase({ ...nearly, duration: "P1M" }));
+  const free = freePhaseFrom(nearly);
+  assert.equal(free.duration, "P4M");
+  assert.deepEqual(free.regionalConfigs, [{ regionCode: "LB", free: {} }, { regionCode: "US", free: {} }]);
+  assert.deepEqual(free.otherRegionsConfig, { free: {} });
 });

@@ -6,7 +6,9 @@
  *     activate an offer whose base plan is inactive ("An unexpected error has occurred" when resuming),
  *     so the offer is copied — phases, tags, regions and eligibility — onto the live monthly plan and
  *     activated there. The app finds it by its `promo` tag on any base plan (PlayPromo).
- *  2. The monthly launch offer is limited to accounts that "never had any subscription in this app", so
+ *  2. The monthly launch offer's 4-month phase was set to 99% off (a few cents) instead of free, while the
+ *     website, emails and media promise "4 months free": the phase is made free (same duration, regions).
+ *  3. The monthly launch offer is limited to accounts that "never had any subscription in this app", so
  *     anyone who ever subscribed never sees it. It is widened to "never had this subscription", like the
  *     yearly offer.
  *
@@ -15,8 +17,10 @@
 import type { androidpublisher_v3 } from "googleapis";
 import { PACKAGE_NAME, getPlayPublisher } from "./billingHelpers";
 import { PLAY_PRODUCT_ID } from "./playCatalog";
+import { WEBSITE_OFFER_CLAIMS } from "./offerClaims";
 
 type Offer = androidpublisher_v3.Schema$SubscriptionOffer;
+type Phase = androidpublisher_v3.Schema$SubscriptionOfferPhase;
 type BasePlan = androidpublisher_v3.Schema$BasePlan;
 
 const PROMO_TAG = "promo";
@@ -55,6 +59,30 @@ export function copyOfferFor(source: Offer, basePlanId: string, offerId: string)
     regionalConfigs: source.regionalConfigs,
     otherRegionsConfig: source.otherRegionsConfig,
     offerTags: source.offerTags,
+  };
+}
+
+/** Pure: the smallest relative discount (0–1) a phase gives across its regions; 1 when every region is free. */
+export function phaseMinDiscount(p: Phase): number {
+  const cfgs = p.regionalConfigs ?? [];
+  if (!cfgs.length) return 0;
+  return Math.min(...cfgs.map((c) => (c.free ? 1 : typeof c.relativeDiscount === "number" ? c.relativeDiscount : 0)));
+}
+
+/** Pure: true for a claimed monthly phase that is "nearly free" (≥ 90 % off, not free) for at least the claimed months. */
+export function isNearlyFreeClaimPhase(p: Phase | undefined): boolean {
+  if (!p) return false;
+  const d = phaseMinDiscount(p);
+  return d >= 0.9 && d < 1 && months(p.duration) * (p.recurrenceCount ?? 1) >= WEBSITE_OFFER_CLAIMS.monthlyFreeMonths;
+}
+
+/** Pure: the same phase made free in every region it covers (duration and recurrence unchanged). */
+export function freePhaseFrom(p: Phase): Phase {
+  return {
+    duration: p.duration,
+    recurrenceCount: p.recurrenceCount,
+    regionalConfigs: (p.regionalConfigs ?? []).map((c) => ({ regionCode: c.regionCode, free: {} })),
+    ...(p.otherRegionsConfig ? { otherRegionsConfig: { free: {} } } : {}),
   };
 }
 
@@ -138,7 +166,40 @@ export async function playOfferFix(apply: boolean): Promise<{ apply: boolean; st
     }
   }
 
-  // 2. Claimed (non-promo) offers on the live monthly plan limited to "never had any subscription in this app".
+  // 2. Claimed monthly offer charged a near-zero price instead of free → make the phase free.
+  for (const o of offers.filter((x) => x.basePlanId === target && !isPromo(x) && x.state === "ACTIVE" && isNearlyFreeClaimPhase(x.phases?.[0]))) {
+    const first = (o.phases ?? [])[0];
+    const pct = Math.round(phaseMinDiscount(first) * 100);
+    const phases = [freePhaseFrom(first), ...(o.phases ?? []).slice(1)];
+    const action = `${target}/${o.offerId}: phase 1 ${first.recurrenceCount ?? 1}x${first.duration} ${pct}% off → free`;
+    if (!apply) { steps.push({ step: "freePhase", action, result: "dry run" }); continue; }
+    try {
+      await withRegionsVersion((version) => publisher.monetization.subscriptions.basePlans.offers.patch({
+        packageName: PACKAGE_NAME, productId: PLAY_PRODUCT_ID, basePlanId: target, offerId: o.offerId ?? "",
+        updateMask: "phases", "regionsVersion.version": version,
+        requestBody: { ...copyOfferFor(o, target, o.offerId ?? ""), phases },
+      }));
+      steps.push({ step: "freePhase", action, result: "updated in place" });
+    } catch (patchErr) {
+      // Play may refuse to change an active offer's phases: publish a free twin, then retire the old one.
+      const twin = `${o.offerId}-trial`;
+      try {
+        await withRegionsVersion((version) => publisher.monetization.subscriptions.basePlans.offers.create({
+          packageName: PACKAGE_NAME, productId: PLAY_PRODUCT_ID, basePlanId: target, offerId: twin,
+          "regionsVersion.version": version, requestBody: { ...copyOfferFor(o, target, twin), phases },
+        }));
+        const ids = { packageName: PACKAGE_NAME, productId: PLAY_PRODUCT_ID, basePlanId: target };
+        await publisher.monetization.subscriptions.basePlans.offers.activate({ ...ids, offerId: twin, requestBody: { ...ids, offerId: twin } });
+        await publisher.monetization.subscriptions.basePlans.offers.deactivate({ ...ids, offerId: o.offerId ?? "", requestBody: { ...ids, offerId: o.offerId ?? "" } });
+        steps.push({ step: "freePhase", action, result: `patch refused (${reason(patchErr)}); created ${twin} (free, ACTIVE) and deactivated ${o.offerId}` });
+      } catch (e) {
+        steps.push({ step: "freePhase", action, result: `failed — ${reason(e)}. Play Console: open ${o.offerId} › phase 1 › Free trial, ${first.duration} › Save.` });
+      }
+    }
+  }
+  if (!steps.some((s) => s.step === "freePhase")) steps.push({ step: "freePhase", action: "none", result: `no ${target} offer charging a near-zero price instead of free` });
+
+  // 3. Claimed (non-promo) offers on the live monthly plan limited to "never had any subscription in this app".
   for (const o of offers.filter((x) => x.basePlanId === target && !isPromo(x) && x.state === "ACTIVE" && isAnyAppScope(x))) {
     const action = `${target}/${o.offerId}: eligibility "never had any subscription in this app" → "never had this subscription"`;
     if (!apply) { steps.push({ step: "eligibility", action, result: "dry run" }); continue; }
