@@ -24,9 +24,20 @@
   - The notification prompt waits for that choice, so prompts never stack.
   - Location asks with a rationale when Android wants one, offers "Open settings" when it is blocked, and uses Play
     services' own dialog to turn device location on. No more toasts.
+- **Premium "How it works" box:** shows for whichever card is selected. With an offer it reads "HOW YOUR OFFER WORKS";
+  without one, "HOW IT WORKS" with the price, first renewal date and how to cancel, all from Play.
+- **Google Analytics routing** (consent-gated as before; catalogue in `docs/ANALYTICS.md`):
+  - Readable screen names for every page (`explore_map`/`explore_list`, `my_rentals`, `premium`, `admin_users`, …),
+    each login step, every sheet and dialog; the page underneath is re-reported when a sheet closes.
+  - `space_details` carries the listing code and where it was opened from (`listing_source`).
+  - Booking funnel: `begin_checkout`, slot select, requirements shown, confirm, request sent; `is_edit` split from
+    `is_rebook`.
+  - New events for auth errors on every path, registration, phone hint, KYC, profile photo/update, permissions,
+    consent, filters/search, Premium plan select, promo checkout and restore trigger.
+  - Noise removed (autosave drafts, map camera moves); price ranges and dates no longer dropped as "phone numbers".
 
 ## Files
-Artifact **`prohost-release-main-13`** (≈ 22 MB, kept until 2027-01-17): https://github.com/Geodev122/ProHost/actions/runs/39226785695 → Artifacts, built from `ef41178`. Upload `app-release.aab` (Production ›
+Artifact **`prohost-release-main-14`** (≈ 22 MB, kept until 2027-01-17): https://github.com/Geodev122/ProHost/actions/runs/39298104939 → Artifacts, built from `12c2d8b` (includes the GA4 routing). It replaces `prohost-release-main-13`, which is older; don't upload that one. Upload `app-release.aab` (Production ›
 Create new release), and `native-debug-symbols.zip` under App bundle explorer › version 42.
 
 ## Release details
@@ -34,14 +45,14 @@ Create new release), and `native-debug-symbols.zip` under App bundle explorer �
 - Staged rollout at 20%. Watch Crashlytics and Android vitals for 48 h, then go to 100%.
 - Optional: upload `play/store-listing/icon-512.png` as the listing icon.
 
-- **Premium "How it works" box:** shows for whichever card is selected. With an offer it reads "HOW YOUR OFFER WORKS";
-  without one, "HOW IT WORKS" with the price, first renewal date and how to cancel, all from Play.
-
 ## Play Console: monthly offer eligibility
-`free-4-months` (on `pro-monthly1`) is set to **"New customers: never had any subscription in this app"**. Any account that
-ever subscribed (your test accounts) never gets it, so the monthly card shows the regular price for them. To match the
-yearly offer, edit the offer: Eligibility → **"Never had this subscription"**. Brand-new accounts see it either way.
+Fixed (Maintenance `playofferfix`, 2026-10-19): `free-4-months` and `prohost2026` are ACTIVE on `pro-monthly1` with
+eligibility **"Never had this subscription"**; `playcatalog` lint reports no warnings. Accounts that already had the
+subscription (test accounts) still see the regular price — that is Play's eligibility, not a bug.
 
 ## Check on a Play-installed build
 - [ ] Sign in by email. Profile shows "Ready to book". Add the WhatsApp number; it saves at once with no SMS.
 - [ ] Send a booking request, then check Premium checkout for a host account.
+- [ ] Firebase › Analytics › DebugView (debug build, analytics consent granted): Explore list → map → filters → a
+      listing → Availability → Request → requirements → Request sent shows one readable `screen_view` per step plus
+      `begin_checkout` and `booking_request`.
