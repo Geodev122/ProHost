@@ -326,7 +326,7 @@ fun ProMetricTile(
 }
 
 /**
- * Standardized Surface Card with theme-compatible border and elevation.
+ * Outlined card (no shadow) — the flat variant of [ProCard].
  */
 @Composable
 fun ProSurfaceCard(
@@ -334,24 +334,10 @@ fun ProSurfaceCard(
     containerColor: Color = MaterialTheme.colorScheme.surface,
     borderColor: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
     shape: CornerBasedShape = MaterialTheme.shapes.large,
-    contentPadding: PaddingValues = PaddingValues(16.dp),
+    contentPadding: PaddingValues = PaddingValues(Spacing.lg),
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
-) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
-        shape = shape,
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        border = BorderStroke(1.dp, borderColor)
-    ) {
-        Column(
-            modifier = Modifier.padding(contentPadding),
-            content = content
-        )
-    }
-}
+) = ProCard(modifier, CardVariant.Outlined, containerColor, borderColor, shape, contentPadding, onClick, content)
 
 /**
  * Clean USD Currency Display Tag ($ USD only).
@@ -757,6 +743,13 @@ private fun ButtonInnerContent(
     }
 }
 
+/** Colours of the one primary action on a screen (orange). Use with a raw Button that needs custom content. */
+@Composable
+fun proPrimaryButtonColors() = ButtonDefaults.buttonColors(
+    containerColor = MaterialTheme.colorScheme.secondary,
+    contentColor = MaterialTheme.colorScheme.onSecondary
+)
+
 /**
  * Standard ProHost Primary Button (theme `secondary` Orange fill + `onSecondary` text, rounded 12dp, min 48dp height).
  */
@@ -940,7 +933,7 @@ fun InputField(
 // =========================================================================
 
 /**
- * Modern Elevated Card Container with clean 16dp radius and subtle border/shadow.
+ * Elevated card (level 1 shadow + hairline border) — the default variant of [ProCard].
  */
 @Composable
 fun ModernCard(
@@ -948,29 +941,11 @@ fun ModernCard(
     containerColor: Color = MaterialTheme.colorScheme.surface,
     borderColor: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
     shape: CornerBasedShape = MaterialTheme.shapes.large,
-    contentPadding: PaddingValues = PaddingValues(16.dp),
-    elevation: Dp = 2.dp,
+    contentPadding: PaddingValues = PaddingValues(Spacing.lg),
+    elevation: Dp = Elevation.level1,
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
-) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
-        shape = shape,
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = elevation,
-            pressedElevation = elevation + 2.dp
-        ),
-        border = BorderStroke(1.dp, borderColor)
-    ) {
-        Column(
-            modifier = Modifier.padding(contentPadding),
-            content = content
-        )
-    }
-}
+) = ProCard(modifier, CardVariant.Elevated, containerColor, borderColor, shape, contentPadding, onClick, content, elevation)
 
 /**
  * Standard WorkspaceCard Component
@@ -1266,30 +1241,35 @@ fun WorkspaceCard(
     }
 }
 
+/** Elevated: shadow level 1 + hairline · Outlined: hairline only · Filled: surfaceContainer, no border. */
+enum class CardVariant { Elevated, Outlined, Filled }
+
 /**
- * Standard ProHost Card Container (alias for ModernCard).
+ * The one ProHost card. A clickable card uses Card's own onClick, so the ripple follows the rounded shape and the
+ * card is announced as one button.
  */
 @Composable
 fun ProCard(
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surface,
+    variant: CardVariant = CardVariant.Elevated,
+    containerColor: Color = if (variant == CardVariant.Filled) MaterialTheme.colorScheme.surfaceContainer else MaterialTheme.colorScheme.surface,
     borderColor: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
     shape: CornerBasedShape = MaterialTheme.shapes.large,
-    contentPadding: PaddingValues = PaddingValues(16.dp),
+    contentPadding: PaddingValues = PaddingValues(Spacing.lg),
     onClick: (() -> Unit)? = null,
-    content: @Composable ColumnScope.() -> Unit
+    content: @Composable ColumnScope.() -> Unit,
+    elevation: Dp = if (variant == CardVariant.Elevated) Elevation.level1 else Elevation.level0
 ) {
-    ModernCard(
-        modifier = modifier,
-        containerColor = containerColor,
-        borderColor = borderColor,
-        shape = shape,
-        contentPadding = contentPadding,
-        onClick = onClick,
-        content = content
-    )
+    val colors = CardDefaults.cardColors(containerColor = containerColor)
+    val border = if (variant == CardVariant.Filled) null else BorderStroke(1.dp, borderColor)
+    val cardElevation = CardDefaults.cardElevation(defaultElevation = elevation, pressedElevation = elevation + Elevation.level1)
+    val body: @Composable ColumnScope.() -> Unit = { Column(modifier = Modifier.padding(contentPadding), content = content) }
+    if (onClick != null) {
+        Card(onClick = onClick, modifier = modifier.fillMaxWidth(), shape = shape, colors = colors, elevation = cardElevation, border = border, content = body)
+    } else {
+        Card(modifier = modifier.fillMaxWidth(), shape = shape, colors = colors, elevation = cardElevation, border = border, content = body)
+    }
 }
-
 
 // =========================================================================
 // REUSABLE CHIPS & SEGMENTED CONTROLS

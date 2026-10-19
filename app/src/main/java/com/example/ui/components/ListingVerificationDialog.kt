@@ -228,6 +228,7 @@ fun ListingVerificationDialog(
 
                 Spacer(modifier = Modifier.height(Spacing.md))
                 Button(
+                    colors = proPrimaryButtonColors(),
                     onClick = {
                         val docType = chosenPath ?: return@Button
                         val url = uploadedUrl ?: return@Button

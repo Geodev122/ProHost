@@ -327,7 +327,7 @@ internal fun SubdivisionRentalCard(
                             onClick = onCheckAvailability,
                             modifier = Modifier.fillMaxWidth(),
                             shape = MaterialTheme.shapes.small,
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            colors = proPrimaryButtonColors(),
                             contentPadding = PaddingValues(vertical = 8.dp)
                         ) {
                             Icon(Icons.Default.EventAvailable, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -594,6 +594,7 @@ internal fun DetailsBookingBar(
                 } else {
                     if (showAvailability && hasSchedule) {
                         Button(
+                            colors = proPrimaryButtonColors(),
                             onClick = onOpenAvailability,
                             shape = MaterialTheme.shapes.medium,
                             contentPadding = PaddingValues(horizontal = 16.dp),

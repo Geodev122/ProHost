@@ -518,6 +518,7 @@ internal fun AvailabilitySheet(
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(
+                            colors = proPrimaryButtonColors(),
                             onClick = { requestWithRequirements() },
                             modifier = Modifier.weight(1f),
                             shape = MaterialTheme.shapes.medium
@@ -651,6 +652,7 @@ internal fun AvailabilitySheet(
             },
             confirmButton = {
                 Button(
+                    colors = proPrimaryButtonColors(),
                     onClick = {
                         sendMultiSlotRequest(
                             slotsToSend = selectedSlots.toList(),

@@ -270,6 +270,7 @@ fun OwnerIncomingRequestsView(
             },
             confirmButton = {
                 Button(
+                    colors = proPrimaryButtonColors(),
                     onClick = {
                         viewModel.acceptBookingRequest(context, reqId, agreementDocState.uri)
                         acceptingRequestId = null

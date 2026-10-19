@@ -420,7 +420,7 @@ fun SubdivisionEditorSection(
                                     modifier = Modifier.fillMaxWidth(),
                                     enabled = isSubFormValid,
                                     shape = MaterialTheme.shapes.small,
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                    colors = proPrimaryButtonColors()
                                 ) {
                                     Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(Spacing.xs))
@@ -928,6 +928,7 @@ fun SubdivisionEditorSection(
         if (editingSubdivisionIndex != null) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
+                    colors = proPrimaryButtonColors(),
                     onClick = {
                         val editIndex = editingSubdivisionIndex
                         val updatedSub = buildCurrentSubdivision()
@@ -988,6 +989,7 @@ fun SubdivisionEditorSection(
             }
         } else {
             Button(
+                colors = proPrimaryButtonColors(),
                 onClick = {
                     val newSub = buildCurrentSubdivision()
                     onSubdivisionsChange(subdivisionsList + newSub)

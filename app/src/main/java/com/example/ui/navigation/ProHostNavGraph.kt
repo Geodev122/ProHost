@@ -906,7 +906,7 @@ fun ProHostAppRoot(
                     )
                 },
                 confirmButton = {
-                    Button(onClick = { showProHostWelcome = false }) {
+                    Button(onClick = { showProHostWelcome = false }, colors = proPrimaryButtonColors()) {
                         Text("Let's Go")
                     }
                 }

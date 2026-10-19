@@ -12,6 +12,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -143,7 +145,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             Modifier.fillMaxSize().proHostScreenBackground().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 PlanTile(PlayCatalog.PlanKind.MONTHLY, monthly, selected = false, isCurrent = false, savingsPercent = null,
                     modifier = Modifier.weight(1f), onClick = {})
                 PlanTile(PlayCatalog.PlanKind.YEARLY, yearly, selected = true, isCurrent = false, savingsPercent = 26,

@@ -770,6 +770,7 @@ private fun DiscoveryFilterSheet(
             }
 
             Button(
+                colors = proPrimaryButtonColors(),
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium,

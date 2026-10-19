@@ -299,6 +299,7 @@ fun SpecialistProfileScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Button(
+                                    colors = proPrimaryButtonColors(),
                                     onClick = { onNavigateToTab("search_map") },
                                     modifier = Modifier.weight(1f),
                                     shape = MaterialTheme.shapes.medium
