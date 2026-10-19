@@ -52,14 +52,10 @@ import kotlinx.coroutines.launch
  *  3. REGISTRATION_FORM — shown only when the verified identity turns out to be brand
  *     new (Firebase's own isNewUser decides, never a guess made before verification).
  *
- * Phone OTP is kept as a PARALLEL path for existing phone-only users — reachable via
- * "Use phone number instead" from EMAIL_ENTRY. No forced migration.
- *  PHONE_ENTRY → OTP_ENTRY → (brand-new number only) REGISTRATION_FORM
+ * There is no phone/SMS sign-in: the WhatsApp number typed on the registration form is saved to the
+ * profile as is (Firebase SMS never delivered reliably).
  */
-private enum class AuthStep { EMAIL_ENTRY, EMAIL_OTP, EMAIL_LINK_SENT, PHONE_ENTRY, OTP_ENTRY, REGISTRATION_FORM }
-
-/** Matches Firebase Phone Auth's own typical SMS-resend throttling window. */
-private const val OTP_RESEND_COOLDOWN_SECONDS = 30
+private enum class AuthStep { EMAIL_ENTRY, EMAIL_OTP, EMAIL_LINK_SENT, REGISTRATION_FORM }
 
 /** Email resend cooldown: slightly longer than OTP to match email-provider rate limits. */
 private const val EMAIL_RESEND_COOLDOWN_SECONDS = 60
@@ -200,9 +196,6 @@ fun LoginAuthScreen(
         }
     }
 
-    // --- Phone entry state (legacy parallel path) ---
-    var phoneCountry by rememberSaveable(stateSaver = CountrySaver) { mutableStateOf(findCountryByName("Lebanon")) }
-    var phoneNumber by rememberSaveable { mutableStateOf("") }
     var regWhatsAppCountry by rememberSaveable(stateSaver = CountrySaver) { mutableStateOf(findCountryByName("Lebanon")) }
 
     LaunchedEffect(Unit) {
@@ -215,19 +208,7 @@ fun LoginAuthScreen(
         ) step = AuthStep.EMAIL_ENTRY
         // MainActivity already requests all permissions; detect country using available signals
         // (SIM/locale — no duplicate permission request here).
-        val detected = PhoneCountryDetector.detectCountry(context)
-        phoneCountry = detected
-        regWhatsAppCountry = detected
-    }
-
-    // --- OTP entry state (phone SMS) ---
-    var otpCode by rememberSaveable { mutableStateOf("") }
-    var resendCountdownSeconds by rememberSaveable { mutableStateOf(0) }
-    LaunchedEffect(resendCountdownSeconds) {
-        if (resendCountdownSeconds > 0) {
-            kotlinx.coroutines.delay(1000)
-            resendCountdownSeconds -= 1
-        }
+        regWhatsAppCountry = PhoneCountryDetector.detectCountry(context)
     }
 
     // --- Email OTP entry state ---
@@ -249,8 +230,6 @@ fun LoginAuthScreen(
 
     var localErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var showLegalDocument by remember { mutableStateOf<com.example.legal.LegalDocument?>(null) }
-
-    val verifiedPhoneE164 = resumePhoneE164 ?: com.example.data.model.formatToE164(phoneCountry, phoneNumber)
 
     // Apply Google One Tap pre-fill when the registration form opens after Google sign-in.
     LaunchedEffect(step) {
@@ -298,13 +277,7 @@ fun LoginAuthScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Step indicator only for the phone-OTP flow
-        if (step == AuthStep.PHONE_ENTRY || step == AuthStep.OTP_ENTRY || step == AuthStep.REGISTRATION_FORM) {
-            AuthStepIndicator(step = step)
-            Spacer(modifier = Modifier.height(20.dp))
-        } else {
-            Spacer(modifier = Modifier.height(8.dp))
-        }
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Status or Error Banners
         val displayError = localErrorMessage ?: authErrorMessage
@@ -674,210 +647,6 @@ fun LoginAuthScreen(
                 }
             }
 
-            AuthStep.PHONE_ENTRY -> ModernCard(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-                contentPadding = PaddingValues(20.dp),
-                elevation = 3.dp
-            ) {
-                AuthStepHeader(
-                    icon = Icons.Default.Phone,
-                    title = "Login/Signup",
-                    subtitle = null,
-                    isBusy = isAuthenticating
-                )
-
-                Spacer(modifier = Modifier.height(Spacing.lg))
-
-                PhoneNumberField(
-                    country = phoneCountry,
-                    onCountryChange = { phoneCountry = it },
-                    number = phoneNumber,
-                    onNumberChange = {
-                        phoneNumber = it
-                        localErrorMessage = null
-                    },
-                    modifier = Modifier.fillMaxWidth().testTag("auth_phone_input")
-                )
-
-                Spacer(modifier = Modifier.height(Spacing.lg))
-
-                ProPrimaryButton(
-                    text = if (isAuthenticating) "Sending Code..." else "Send Verification Code",
-                    onClick = {
-                        val currentActivity = activity
-                        if (currentActivity == null) {
-                            localErrorMessage = "Unable to start phone verification right now."
-                            return@ProPrimaryButton
-                        }
-                        if (phoneNumber.isBlank() || phoneNumber.filter { it.isDigit() }.length < 6) {
-                            localErrorMessage = "Please enter a valid phone number"
-                            return@ProPrimaryButton
-                        }
-                        authViewModel.startPhoneVerification(
-                            activity = currentActivity,
-                            e164Phone = verifiedPhoneE164,
-                            onCodeSent = {
-                                otpCode = ""
-                                localErrorMessage = null
-                                resendCountdownSeconds = OTP_RESEND_COOLDOWN_SECONDS
-                                step = AuthStep.OTP_ENTRY
-                            },
-                            onVerified = { needsRegistration ->
-                                if (needsRegistration) goToRegistrationForm() else onLoginSuccess()
-                            }
-                        )
-                    },
-                    enabled = !isAuthenticating,
-                    icon = Icons.AutoMirrored.Filled.Login,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("submit_login_button")
-                )
-
-                Spacer(modifier = Modifier.height(Spacing.sm))
-
-                TextButton(
-                    onClick = {
-                        localErrorMessage = null
-                        authViewModel.clearAuthMessages()
-                        step = AuthStep.EMAIL_ENTRY
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text(
-                        "Back to email sign-in",
-                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-
-            AuthStep.OTP_ENTRY -> ModernCard(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-                contentPadding = PaddingValues(20.dp),
-                elevation = 3.dp
-            ) {
-                AuthStepHeader(
-                    icon = Icons.Default.Sms,
-                    title = "Enter Verification Code",
-                    subtitle = "ProHost mobile app code sent to ${phoneCountry.dialCode} $phoneNumber",
-                    isBusy = isAuthenticating
-                )
-
-                Spacer(modifier = Modifier.height(Spacing.lg))
-
-                InputField(
-                    value = otpCode,
-                    onValueChange = { otpCode = it.filter { c -> c.isDigit() }.take(6) },
-                    label = "6-Digit Code",
-                    leadingIcon = Icons.Default.Sms,
-                    modifier = Modifier.fillMaxWidth().testTag("otp_input"),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                    singleLine = true
-                )
-
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = MaterialTheme.shapes.medium,
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(Spacing.sm),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = null,
-                            tint = LebaneseCedarGreen,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Do not share this code with anyone.",
-                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(Spacing.lg))
-
-                ProPrimaryButton(
-                    text = if (isAuthenticating) "Verifying..." else "Verify Code",
-                    onClick = {
-                        val currentActivity = activity
-                        if (currentActivity == null) {
-                            localErrorMessage = "Unable to verify right now."
-                            return@ProPrimaryButton
-                        }
-                        if (otpCode.length < 6) {
-                            localErrorMessage = "Please enter the 6-digit code"
-                            return@ProPrimaryButton
-                        }
-                        authViewModel.submitPhoneVerificationCode(currentActivity, otpCode) { needsRegistration ->
-                            if (needsRegistration) goToRegistrationForm() else onLoginSuccess()
-                        }
-                    },
-                    enabled = !isAuthenticating,
-                    icon = Icons.Default.CheckCircle,
-                    modifier = Modifier.fillMaxWidth().testTag("submit_otp_button")
-                )
-
-                Spacer(modifier = Modifier.height(Spacing.sm))
-
-                if (resendCountdownSeconds > 0) {
-                    Text(
-                        text = "Resend code in ${resendCountdownSeconds}s",
-                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                } else {
-                    TextButton(
-                        onClick = {
-                            val currentActivity = activity
-                            if (currentActivity == null) {
-                                localErrorMessage = "Unable to resend the code right now."
-                                return@TextButton
-                            }
-                            localErrorMessage = null
-                            authViewModel.startPhoneVerification(
-                                activity = currentActivity,
-                                e164Phone = verifiedPhoneE164,
-                                onCodeSent = {
-                                    otpCode = ""
-                                    resendCountdownSeconds = OTP_RESEND_COOLDOWN_SECONDS
-                                },
-                                onVerified = { needsRegistration ->
-                                    if (needsRegistration) goToRegistrationForm() else onLoginSuccess()
-                                }
-                            )
-                        },
-                        enabled = !isAuthenticating,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Resend Code", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-
-                TextButton(onClick = {
-                    step = AuthStep.PHONE_ENTRY
-                    otpCode = ""
-                    localErrorMessage = null
-                    authViewModel.clearAuthMessages()
-                }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text("Change phone number", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
-                }
-            }
-
             AuthStep.REGISTRATION_FORM -> ModernCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
@@ -1146,12 +915,11 @@ fun LoginAuthScreen(
                             localErrorMessage = "Please agree to the Terms of Use and Privacy Policy to continue"
                             return@ProPrimaryButton
                         }
-                        // A phone-OTP sign-in already verified a number; otherwise use the
+                        // A legacy phone-auth account already has its number; otherwise use the
                         // WhatsApp number typed on this form (blank when left empty — never
                         // a bare dial code).
                         val registrationPhoneE164 = when {
                             !resumePhoneE164.isNullOrBlank() -> resumePhoneE164
-                            phoneNumber.isNotBlank() -> verifiedPhoneE164
                             regPhoneNumber.isNotBlank() ->
                                 com.example.data.model.formatToE164(regWhatsAppCountry, regPhoneNumber)
                             else -> ""
@@ -1184,8 +952,6 @@ fun LoginAuthScreen(
                 TextButton(
                     onClick = {
                         com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
-                        phoneNumber = ""
-                        otpCode = ""
                         emailInput = ""
                         localErrorMessage = null
                         authViewModel.clearAuthMessages()
@@ -1281,66 +1047,3 @@ private fun AuthStepHeader(
     }
 }
 
-@Composable
-private fun AuthStepIndicator(step: AuthStep) {
-    // Only renders for the phone-OTP flow steps
-    val steps = listOf(
-        Triple(AuthStep.PHONE_ENTRY, "Phone", Icons.Default.Phone),
-        Triple(AuthStep.OTP_ENTRY, "Verify", Icons.Default.Sms),
-        Triple(AuthStep.REGISTRATION_FORM, "Profile", Icons.Default.Person)
-    )
-    val currentIndex = steps.indexOfFirst { it.first == step }
-    if (currentIndex < 0) return // not in phone flow — don't render
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        steps.forEachIndexed { index, (_, label, icon) ->
-            val isDone = index < currentIndex
-            val isCurrent = index == currentIndex
-            val dotColor = when {
-                isDone -> LebaneseCedarGreen
-                isCurrent -> CarnationOrange
-                else -> MaterialTheme.colorScheme.outlineVariant
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Surface(
-                    color = dotColor,
-                    shape = CircleShape,
-                    modifier = Modifier.size(26.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        if (isDone) {
-                            Icon(
-                                Icons.Default.Check,
-                                contentDescription = null,
-                                tint = androidx.compose.ui.graphics.Color.White,
-                                modifier = Modifier.size(14.dp)
-                            )
-                        } else {
-                            Icon(icon, contentDescription = null, tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(13.dp))
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(Spacing.xs))
-                Text(
-                    text = label,
-                    fontSize = 10.sp,
-                    fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isCurrent) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            if (index < steps.size - 1) {
-                HorizontalDivider(
-                    modifier = Modifier
-                        .width(28.dp)
-                        .padding(horizontal = Spacing.xs)
-                        .padding(bottom = 14.dp),
-                    color = if (index < currentIndex) LebaneseCedarGreen else MaterialTheme.colorScheme.outlineVariant
-                )
-            }
-        }
-    }
-}

@@ -1,0 +1,56 @@
+<en-US>
+What's new in ProHost 1.0.42
+• No more waiting for SMS codes: just add your WhatsApp number to your profile
+• Sign in with your email or Google
+• Refreshed app icon
+• Stability improvements
+</en-US>
+<ar>
+الجديد في ProHost 1.0.42
+• لا انتظار لرموز الرسائل القصيرة بعد الآن: أضف رقم واتساب إلى ملفك الشخصي فقط
+• سجّل الدخول ببريدك الإلكتروني أو بحساب Google
+• أيقونة تطبيق محدّثة
+• تحسينات في الاستقرار
+</ar>
+<fr-FR>
+Nouveautés de ProHost 1.0.42
+• Plus d'attente de code SMS : ajoutez simplement votre numéro WhatsApp à votre profil
+• Connexion avec votre e-mail ou Google
+• Icône de l'application rafraîchie
+• Améliorations de stabilité
+</fr-FR>
+<es-ES>
+Novedades de ProHost 1.0.42
+• Sin esperar códigos SMS: solo añade tu número de WhatsApp a tu perfil
+• Inicia sesión con tu correo o con Google
+• Icono de la app renovado
+• Mejoras de estabilidad
+</es-ES>
+<de-DE>
+Neu in ProHost 1.0.42
+• Kein Warten mehr auf SMS-Codes: einfach die WhatsApp-Nummer im Profil hinterlegen
+• Anmeldung per E-Mail oder Google
+• Aufgefrischtes App-Symbol
+• Stabilitätsverbesserungen
+</de-DE>
+<it-IT>
+Novità di ProHost 1.0.42
+• Niente più attesa dei codici SMS: aggiungi semplicemente il tuo numero WhatsApp al profilo
+• Accedi con la tua email o con Google
+• Icona dell'app rinnovata
+• Miglioramenti di stabilità
+</it-IT>
+<pt-BR>
+Novidades do ProHost 1.0.42
+• Sem esperar códigos SMS: basta adicionar seu número de WhatsApp ao perfil
+• Entre com seu e-mail ou com o Google
+• Ícone do app renovado
+• Melhorias de estabilidade
+</pt-BR>
+<tr-TR>
+ProHost 1.0.42'deki yenilikler
+• Artık SMS kodu beklemek yok: profilinize WhatsApp numaranızı eklemeniz yeterli
+• E-posta veya Google ile giriş yapın
+• Yenilenen uygulama simgesi
+• Kararlılık iyileştirmeleri
+</tr-TR>

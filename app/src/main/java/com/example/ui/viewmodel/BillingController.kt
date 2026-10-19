@@ -227,7 +227,7 @@ class BillingController(
         } catch (e: Exception) {
             android.util.Log.w("BillingController", "Role refresh after activation failed; will catch up on the next sync", e)
         }
-        if (currentUser.value?.canHost(com.example.data.auth.PhoneLink.isLinked()) == false) {
+        if (currentUser.value?.canHost() == false) {
             _kycPromptAfterActivation.value = true
         }
     }

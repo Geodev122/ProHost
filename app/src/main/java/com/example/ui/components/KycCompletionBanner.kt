@@ -17,7 +17,7 @@ import com.example.ui.theme.Spacing
 import com.example.ui.theme.proColors
 
 /**
- * Profile progress card: the same items the app checks in place — photo and verified phone
+ * Profile progress card: the same items the app checks in place — photo and WhatsApp number
  * ([AppUser.canTransact]), plus country and city for Pro Hosts ([AppUser.canHost]). Email is
  * not a step: email and Google sign-ups are verified by signing in. [onComplete] opens the
  * shared RequirementsSheet. Hidden once everything is done.
@@ -25,18 +25,17 @@ import com.example.ui.theme.proColors
 @Composable
 fun KycCompletionBanner(
     user: AppUser,
-    phoneLinked: Boolean,
     onComplete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isHost = user.role == UserRole.PRO_HOST
-    if (if (isHost) user.canHost(phoneLinked) else user.canTransact(phoneLinked)) return
+    if (if (isHost) user.canHost() else user.canTransact()) return
 
     data class Step(val icon: ImageVector, val label: String, val done: Boolean)
 
     val steps = buildList {
         add(Step(Icons.Default.Photo, "Profile photo", !user.profilePictureUrl.isNullOrBlank()))
-        add(Step(Icons.Default.PhoneAndroid, "Verified phone", user.hasVerifiedPhone(phoneLinked)))
+        add(Step(Icons.Default.PhoneAndroid, "WhatsApp number", user.hasWhatsAppNumber()))
         if (isHost) add(Step(Icons.Default.LocationOn, "Country & city", user.country.isNotBlank() && user.city.isNotBlank()))
     }
     val next = steps.first { !it.done }

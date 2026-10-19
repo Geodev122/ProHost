@@ -161,7 +161,7 @@ fun ProHostAppRoot(
     var showKycGate by remember { mutableStateOf(false) }
     var kycReturnTab by remember { mutableStateOf<String?>(null) }
 
-    /** Pro Host workspaces that require a verified phone. My Rentals never does — viewing your
+    /** Pro Host workspaces that require a WhatsApp number. My Rentals never does — viewing your
      *  own bookings needs no verification; sending one is checked in place (canTransact). */
     val kycRequiredTabIds: Set<String> = setOf(
         AppNavTab.ManageListings.id,
@@ -200,7 +200,7 @@ fun ProHostAppRoot(
     // destination id gets shown, used by the drawer, FCM alert taps, deep
     // links, and initial role-based routing alike.
     //
-    // KYC gate: if the user has no verified phone and the target tab requires one,
+    // KYC gate: if the user has no WhatsApp number and the target tab requires one,
     // show the KYC screen instead and remember where to route after completion.
     fun navigateTo(targetTabId: String) {
         // Never route to a destination the current role can't use (e.g. a stale
@@ -209,7 +209,7 @@ fun ProHostAppRoot(
         if (role != null && targetTabId !in allowedTabIdsForRole(role)) return
         val needsKyc = targetTabId in kycRequiredTabIds &&
             currentUser?.role != UserRole.ADMIN &&
-            currentUser?.hasVerifiedPhone(com.example.data.auth.PhoneLink.isLinked()) != true
+            currentUser?.hasWhatsAppNumber() != true
         if (needsKyc) {
             kycReturnTab = targetTabId
             showKycGate = true
@@ -837,8 +837,8 @@ fun ProHostAppRoot(
             }
         }
 
-        // KYC gate overlay: full-screen phone-verification step shown when a user
-        // without a verified phone tries to access booking/listing features.
+        // KYC gate overlay: full-screen WhatsApp-number step shown when a user
+        // without one tries to access booking/listing features.
         // BackHandler here must fire BEFORE the outer NavGraph handler so pressing
         // back dismisses the KYC overlay rather than clearing detailedSpace.
         BackHandler(enabled = showKycGate) {
@@ -847,6 +847,8 @@ fun ProHostAppRoot(
         }
         if (showKycGate) {
             KycScreen(
+                currentPhone = currentUser?.phone.orEmpty(),
+                onSave = { viewModel.saveWhatsAppNumber(it) },
                 onKycComplete = {
                     showKycGate = false
                     val returnTo = kycReturnTab

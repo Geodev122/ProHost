@@ -130,3 +130,18 @@ fun formatToE164(country: Country, input: String): String {
 
     return "${country.dialCode}$numberWithoutDialCode"
 }
+
+/** A phone number in international form: "+" then 8–15 digits (spaces and dashes ignored). */
+fun isPlausibleE164(phone: String?): Boolean =
+    Regex("\\+\\d{8,15}").matches(phone.orEmpty().filterNot { it == ' ' || it == '-' })
+
+/** Splits a stored "+96170123456" into its country (longest matching dial code) and local number. */
+fun splitE164(phone: String?, fallback: Country): Pair<Country, String> {
+    val clean = phone.orEmpty().filterNot { it == ' ' || it == '-' }
+    if (!clean.startsWith("+")) return fallback to clean.filter { it.isDigit() }
+    // Shared dial codes (+1, +7): keep the fallback country when it matches.
+    val country = (if (clean.startsWith(fallback.dialCode)) fallback else null)
+        ?: COUNTRIES.filter { clean.startsWith(it.dialCode) }.maxByOrNull { it.dialCode.length }
+        ?: return fallback to clean.removePrefix("+")
+    return country to clean.removePrefix(country.dialCode)
+}

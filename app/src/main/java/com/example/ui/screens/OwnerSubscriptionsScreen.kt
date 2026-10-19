@@ -428,7 +428,7 @@ fun OwnerSubscriptionsScreen(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             // KYC gate before Google Play (photo, verified phone, address).
-                            if (currentUser?.canHost(com.example.data.auth.PhoneLink.isLinked()) == false) {
+                            if (currentUser?.canHost() == false) {
                                 pendingBasePlanId = selectedPlan
                                 showKycDialog = true
                             } else if (activity != null) {
@@ -544,7 +544,7 @@ fun OwnerSubscriptionsScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showPromoHowTo = false
-                    if (currentUser?.canHost(com.example.data.auth.PhoneLink.isLinked()) == false) {
+                    if (currentUser?.canHost() == false) {
                         pendingBasePlanId = livePromo.basePlanId
                         pendingPromoCheckout = true
                         showKycDialog = true

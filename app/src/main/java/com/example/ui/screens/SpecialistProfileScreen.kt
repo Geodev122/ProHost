@@ -155,7 +155,6 @@ fun SpecialistProfileScreen(
                 item {
                     com.example.ui.components.KycCompletionBanner(
                         user = user,
-                        phoneLinked = com.example.data.auth.PhoneLink.isLinked(),
                         onComplete = { showRequirementsSheet = true }
                     )
                 }
@@ -387,9 +386,9 @@ fun SpecialistProfileScreen(
                                             modifier = Modifier.weight(1f)
                                         )
                                         ProMetricTile(
-                                            title = "Phone Status",
-                                            value = if (user.isVerified) "Verified" else "Unverified",
-                                            subtitle = "SMS Verification Status",
+                                            title = "WhatsApp",
+                                            value = if (user.hasWhatsAppNumber()) "Added" else "Missing",
+                                            subtitle = "Hosts reach you here",
                                             icon = Icons.Default.VerifiedUser,
                                             iconTint = MaterialTheme.proColors.success,
                                             modifier = Modifier.weight(1f)

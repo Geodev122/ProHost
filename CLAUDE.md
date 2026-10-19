@@ -150,15 +150,16 @@ plan + recurring price + date;
   (`adminCounts` / `adminSearch` / `adminUserDossier` / `adminExportUsers`; query classifier `adminQuery.ts`,
   unit-tested). Name/title prefix search uses the server-only `searchName` field kept by triggers
   (`backfillSearchNames` fills old docs). Never re-add admin collection listeners or client-side admin lists.
-- Verification rules (the only two): `AppUser.canTransact(phoneLinked)` = photo + verified phone, checked
-  in place when a specialist sends a booking request; `AppUser.canHost(phoneLinked)` = that + country and
-  city, checked at Premium checkout and after a plan activates. `hasVerifiedPhone` alone gates the Pro Host
-  workspaces. My Rentals, browsing and Saved are never gated; there is no `isKycComplete` and email is never
-  a requirement. "Verified phone" = `hasVerifiedPhone(PhoneLink.isLinked())` (phone linked in Firebase
-  Auth) — never `isVerified`, which email verification also sets. Missing steps are collected by the one
-  shared `RequirementsSheet` (photo, `PhoneVerificationSection` — the same body `KycScreen` uses — and the
-  address step with `requireAddress`), opened over the booking page, Premium or Profile's
-  `KycCompletionBanner`.
+- Verification rules (the only two): `AppUser.canTransact()` = photo + WhatsApp number, checked in place when a
+  specialist sends a booking request; `AppUser.canHost()` = that + country and city, checked at Premium checkout and after
+  a plan activates. `hasWhatsAppNumber()` (profile `phone` in international form, `isPlausibleE164`) alone gates the Pro
+  Host workspaces. My Rentals, browsing and Saved are never gated; there is no `isKycComplete` and email is never a
+  requirement. **There is no SMS code anywhere** (owner, Oct 2026: Firebase phone verification never delivered, in any
+  country): the number is self-declared, entered on the registration form or in `WhatsAppNumberSection` (`KycScreen.kt`,
+  saved by `ProHostViewModel.saveWhatsAppNumber`). Never reintroduce `verifyPhoneNumber`/phone sign-in, and never use
+  `isVerified` (phone-auth claim, legacy accounts only) as the phone check. Missing steps are collected by the one shared
+  `RequirementsSheet` (photo, `WhatsAppNumberSection`, and the address step with `requireAddress`), opened over the booking
+  page, Premium or Profile's `KycCompletionBanner`.
 - Email verification is server-mirrored: `assignInitialRole` sets `emailVerified` on every sign-in when
   `emailVerifiedByToken` (email_verified claim or Google provider, `auth/emailVerifiedRule.ts`); the email
   code path marks the Auth user verified; `backfillEmailVerified` (admin) fixes existing profiles.
@@ -177,9 +178,9 @@ plan + recurring price + date;
   faint dot texture in light theme only (one shader tile, not per-dot drawing). The shell Scaffold is transparent over it;
   drawer and app bars use `surface` with tonal elevation 0 (no blue tint); cards keep their 1 dp outline. Never
   `.background(premiumBackgroundBrush())` a screen directly.
-- Phone verification (`FirebaseAuthService`): never fake a "code sent"; failures map by type
-  (`verificationFailureMessage`); resend reuses the `ForceResendingToken`; re-verifying an account that already has a
-  phone uses `updatePhoneNumber`. Instant verification (`onVerificationCompleted`) links and finishes KYC.
+- Sign-in is email (magic link, 6-digit code fallback) or Google only; `FirebaseAuthService` has no phone methods. Legacy
+  phone-auth accounts keep their Firebase `phone_number` claim (rules still tie `isVerified` to it); maintenance `smsauth`
+  remains only as a diagnostic.
 - Email sign-in links are handled every time (`AuthViewModel.onEmailLinkArrived`; never a session-long "consumed" flag —
   that blocked every returning user's link after the first sign-in). The saved address (`pending_email_link`) is read with
   `peekPendingEmailLink` and cleared only after a successful sign-in; a link without one asks for the email
