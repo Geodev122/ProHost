@@ -1174,7 +1174,7 @@ class ProHostViewModel(
 
     fun removeBlackoutSlot(spaceId: String, slotId: String, context: Context) {
         val appContext = context.applicationContext
-        val removed = spaces.value.firstOrNull { it.id == spaceId }?.blackoutSlots?.firstOrNull { it.id == slotId }
+        val removed = spaces.value.firstOrNull { it.id == spaceId }?.schedule?.blackoutSlots?.firstOrNull { it.id == slotId }
         viewModelScope.launch {
             try {
                 val success = repository.removeBlackoutSlot(spaceId, slotId)

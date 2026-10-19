@@ -337,7 +337,7 @@ fun ProSurfaceCard(
     contentPadding: PaddingValues = PaddingValues(Spacing.lg),
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
-) = ProCard(modifier, CardVariant.Outlined, containerColor, borderColor, shape, contentPadding, onClick, content)
+) = ProCard(modifier, CardVariant.Outlined, containerColor, borderColor, shape, contentPadding, onClick, content = content)
 
 /**
  * Clean USD Currency Display Tag ($ USD only).
@@ -945,7 +945,7 @@ fun ModernCard(
     elevation: Dp = Elevation.level1,
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
-) = ProCard(modifier, CardVariant.Elevated, containerColor, borderColor, shape, contentPadding, onClick, content, elevation)
+) = ProCard(modifier, CardVariant.Elevated, containerColor, borderColor, shape, contentPadding, onClick, elevation, content)
 
 /**
  * Standard WorkspaceCard Component
@@ -1257,8 +1257,8 @@ fun ProCard(
     shape: CornerBasedShape = MaterialTheme.shapes.large,
     contentPadding: PaddingValues = PaddingValues(Spacing.lg),
     onClick: (() -> Unit)? = null,
-    content: @Composable ColumnScope.() -> Unit,
-    elevation: Dp = if (variant == CardVariant.Elevated) Elevation.level1 else Elevation.level0
+    elevation: Dp = if (variant == CardVariant.Elevated) Elevation.level1 else Elevation.level0,
+    content: @Composable ColumnScope.() -> Unit
 ) {
     val colors = CardDefaults.cardColors(containerColor = containerColor)
     val border = if (variant == CardVariant.Filled) null else BorderStroke(1.dp, borderColor)
