@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Elevation
 import android.webkit.WebView
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -85,7 +86,7 @@ fun LegalDocumentDialog(
     ) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
             Column(modifier = Modifier.fillMaxSize()) {
-                Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
+                Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = Elevation.level2, modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -208,7 +209,7 @@ fun LegalDocumentsMenu(onDismiss: () -> Unit) {
                         shape = MaterialTheme.shapes.medium,
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp, pressedElevation = 0.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = Elevation.level2, pressedElevation = 0.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(

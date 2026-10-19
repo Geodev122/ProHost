@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.theme.Radius
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -367,7 +368,7 @@ private fun MonthlyAvailabilityTable(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface, Radius.Sm)
             .padding(Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
@@ -517,7 +518,7 @@ private fun OccupancyLegend() {
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
         listOf(false to "Free", true to "Booked").forEach { (booked, label) ->
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(12.dp).background(occupancyColor(booked), RoundedCornerShape(3.dp)))
+                Box(Modifier.size(12.dp).background(occupancyColor(booked), Radius.Xs))
                 Spacer(Modifier.width(4.dp))
                 Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -543,7 +544,7 @@ private fun WeeklyAvailabilityTable(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface, Radius.Sm)
             .padding(Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {

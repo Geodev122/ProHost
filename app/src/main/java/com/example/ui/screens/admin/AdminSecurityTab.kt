@@ -243,7 +243,7 @@ internal fun AdminSecurityAuditTab(
                         text = "Actor: ${log.actorEmail} • IP: ${log.ipAddress} • ID: ${log.id}",
                         style = MaterialTheme.typography.bodySmall,
                         fontFamily = FontFamily.Monospace,
-                        fontSize = 10.sp,
+                        fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }

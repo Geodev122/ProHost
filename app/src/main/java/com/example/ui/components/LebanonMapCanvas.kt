@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Elevation
 import com.example.ui.util.UiMessages
 import android.Manifest
 import android.content.Context
@@ -530,7 +531,7 @@ fun LebanonMapCanvas(
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                shadowElevation = 6.dp,
+                shadowElevation = Elevation.level3,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(top = if (topControls != null) 124.dp else 12.dp)
@@ -589,7 +590,7 @@ fun LebanonMapCanvas(
                     onClick = { isStripCollapsed = !isStripCollapsed },
                     shape = MaterialTheme.shapes.extraLarge,
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                    shadowElevation = 3.dp,
+                    shadowElevation = Elevation.level2,
                     modifier = Modifier.padding(bottom = 6.dp)
                 ) {
                     Row(
@@ -710,7 +711,7 @@ fun LebanonMapCanvas(
                                             Text(
                                                 text = typeBadge,
                                                 style = MaterialTheme.typography.labelSmall,
-                                                fontSize = 9.sp,
+                                                fontSize = 12.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.onPrimary,
                                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
@@ -726,7 +727,7 @@ fun LebanonMapCanvas(
                                             Text(
                                                 text = lowestPrice.unitLabel,
                                                 style = MaterialTheme.typography.labelSmall,
-                                                fontSize = 9.sp,
+                                                fontSize = 12.sp,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
@@ -744,7 +745,7 @@ fun LebanonMapCanvas(
                                         Text(
                                             text = space.title,
                                             style = MaterialTheme.typography.labelSmall,
-                                            fontSize = 9.sp,
+                                            fontSize = 12.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
@@ -763,7 +764,7 @@ fun LebanonMapCanvas(
                                         Text(
                                             text = "Select choices, and Request",
                                             style = MaterialTheme.typography.labelSmall,
-                                            fontSize = 9.sp,
+                                            fontSize = 12.sp,
                                             color = MaterialTheme.colorScheme.primary
                                         )
                                     }
@@ -816,8 +817,8 @@ private fun SearchThisAreaPill(visible: Boolean, onClick: () -> Unit) {
             shape = RoundedCornerShape(50),
             color = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            shadowElevation = 6.dp,
-            tonalElevation = 2.dp
+            shadowElevation = Elevation.level3,
+            tonalElevation = Elevation.level2
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,

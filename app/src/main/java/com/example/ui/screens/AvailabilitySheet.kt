@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.theme.Radius
 import com.example.ui.util.UiMessages
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -256,7 +257,7 @@ internal fun AvailabilitySheet(
                                         if (isFull) {
                                             Surface(
                                                 color = MaterialTheme.colorScheme.errorContainer,
-                                                shape = RoundedCornerShape(4.dp)
+                                                shape = Radius.Xs
                                             ) {
                                                 Text("FULL", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold,
                                                     color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))

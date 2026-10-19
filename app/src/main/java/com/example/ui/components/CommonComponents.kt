@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Radius
+import com.example.ui.theme.Elevation
 import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
@@ -201,7 +203,7 @@ fun ProSectionHeader(
                 modifier = Modifier
                     .width(3.dp)
                     .height(20.dp)
-                    .background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(2.dp))
+                    .background(MaterialTheme.colorScheme.secondary, Radius.Xs)
             )
             Spacer(modifier = Modifier.width(8.dp))
             if (icon != null) {
@@ -269,7 +271,7 @@ fun ProMetricTile(
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = containerColor),
         border = BorderStroke(1.dp, borderColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = Elevation.level2)
     ) {
         Column {
             Box(
@@ -1351,8 +1353,8 @@ fun ProHostTopAppBar(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp,
-        shadowElevation = 2.dp,
+        tonalElevation = Elevation.level0,
+        shadowElevation = Elevation.level2,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = modifier.fillMaxWidth()
     ) {
@@ -1506,8 +1508,8 @@ fun ProHostFullScreenTopAppBar(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp,
-        shadowElevation = 2.dp,
+        tonalElevation = Elevation.level0,
+        shadowElevation = Elevation.level2,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = modifier.fillMaxWidth()
     ) {

@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Radius
 import com.example.ui.theme.proColors
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -166,7 +167,7 @@ fun SpaceAvailabilityCalendarView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(10.dp)
-                        .clip(RoundedCornerShape(5.dp))
+                        .clip(Radius.Xs)
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     val rentedFraction = if (totalWeeklyOperatingHours > 0) {
@@ -290,7 +291,7 @@ fun SpaceAvailabilityCalendarView(
                                 ) {
                                     Text(
                                         text = "HIDDEN",
-                                        fontSize = 10.sp,
+                                        fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -315,7 +316,7 @@ private fun LegendItem(color: Color, text: String) {
                 .background(color)
         )
         Spacer(modifier = Modifier.width(Spacing.xs))
-        Text(text, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

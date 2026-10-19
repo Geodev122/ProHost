@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Radius
+import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -56,9 +58,9 @@ fun PromoCountdownCard(
     val left = promo.endsAtMillis?.let { PlayPromo.countdown(nowMillis, it) }
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
+        shape = Radius.Md,
         color = Color.Transparent,
-        shadowElevation = 6.dp
+        shadowElevation = Elevation.level3
     ) {
         Column(
             modifier = Modifier
@@ -81,7 +83,7 @@ fun PromoCountdownCard(
 
             // The code, copyable.
             Surface(
-                shape = RoundedCornerShape(14.dp),
+                shape = Radius.Sm,
                 color = on.copy(alpha = 0.1f),
                 border = BorderStroke(1.5.dp, on.copy(alpha = 0.45f))
             ) {
@@ -120,7 +122,7 @@ fun PromoCountdownCard(
                 onClick = onUse,
                 enabled = enabled,
                 modifier = Modifier.fillMaxWidth().height(50.dp),
-                shape = RoundedCornerShape(14.dp),
+                shape = Radius.Sm,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.secondary,
                     contentColor = MaterialTheme.colorScheme.onSecondary
@@ -145,7 +147,7 @@ fun PromoCountdownCard(
 @Composable
 private fun CountdownBox(value: Long, label: String, modifier: Modifier = Modifier) {
     val on = MaterialTheme.proColors.onBrandHeader
-    Surface(modifier = modifier, shape = RoundedCornerShape(12.dp), color = on.copy(alpha = 0.12f)) {
+    Surface(modifier = modifier, shape = Radius.Sm, color = on.copy(alpha = 0.12f)) {
         Column(modifier = Modifier.padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(value.toString().padStart(2, '0'), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = on)
             Text(label, style = MaterialTheme.typography.labelSmall, color = on.copy(alpha = 0.7f), letterSpacing = 1.sp)

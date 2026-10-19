@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.theme.Radius
+import com.example.ui.theme.Elevation
 import com.example.ui.util.UiMessages
 import kotlinx.coroutines.flow.first
 import android.content.ContextWrapper
@@ -448,7 +450,7 @@ fun OwnerSubscriptionsScreen(
                         },
                         enabled = enabled,
                         modifier = Modifier.fillMaxWidth().height(52.dp),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = Radius.Md,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.secondary,
                             contentColor = MaterialTheme.colorScheme.onSecondary
@@ -653,9 +655,9 @@ private fun PremiumHero(
     val on = MaterialTheme.proColors.onBrandHeader
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = Radius.Md,
         color = Color.Transparent,
-        shadowElevation = 6.dp
+        shadowElevation = Elevation.level3
     ) {
         Column(
             modifier = Modifier
@@ -722,7 +724,7 @@ private fun PremiumHero(
 @Composable
 private fun HeroStat(label: String, value: String, valueColor: Color, modifier: Modifier = Modifier) {
     val on = MaterialTheme.proColors.onBrandHeader
-    Surface(modifier = modifier, shape = RoundedCornerShape(12.dp), color = on.copy(alpha = 0.12f)) {
+    Surface(modifier = modifier, shape = Radius.Sm, color = on.copy(alpha = 0.12f)) {
         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = on.copy(alpha = 0.75f))
             Text(value, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = valueColor, maxLines = 1)
@@ -770,7 +772,7 @@ internal fun PlanTile(
 ) {
     val scheme = MaterialTheme.colorScheme
     val accent = scheme.secondary
-    val shape = RoundedCornerShape(22.dp)
+    val shape = Radius.Md
     val hasOffer = summary?.hasOffer == true && !isCurrent && showOffer
     val fill = when {
         selected -> androidx.compose.ui.graphics.Brush.verticalGradient(listOf(accent.copy(alpha = 0.18f), scheme.surface))
@@ -993,7 +995,7 @@ private fun ExplainerSteps(heading: String, steps: List<Triple<androidx.compose.
     val scheme = MaterialTheme.colorScheme
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = Radius.Md,
         color = scheme.surface,
         border = BorderStroke(1.dp, scheme.outlineVariant)
     ) {
@@ -1022,7 +1024,7 @@ private fun UnavailablePlanTile(kind: PlayCatalog.PlanKind, modifier: Modifier =
     val scheme = MaterialTheme.colorScheme
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
+        shape = Radius.Md,
         color = scheme.surfaceVariant.copy(alpha = 0.35f),
         border = BorderStroke(1.dp, scheme.outlineVariant)
     ) {
@@ -1040,7 +1042,7 @@ private fun UnavailablePlanTile(kind: PlayCatalog.PlanKind, modifier: Modifier =
 
 @Composable
 private fun PlanChip(text: String, container: Color, content: Color) {
-    Surface(color = container, shape = RoundedCornerShape(6.dp)) {
+    Surface(color = container, shape = Radius.Xs) {
         Text(
             text,
             style = MaterialTheme.typography.labelSmall,
@@ -1063,7 +1065,7 @@ private fun PremiumBenefits() {
     )
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = Radius.Md,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {

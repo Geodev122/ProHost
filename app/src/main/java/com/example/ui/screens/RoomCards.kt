@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -445,8 +446,8 @@ internal fun DetailsBookingBar(
     Surface(
         color = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-        shadowElevation = 12.dp,
-        tonalElevation = 2.dp,
+        shadowElevation = Elevation.level3,
+        tonalElevation = Elevation.level2,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
         modifier = Modifier.fillMaxWidth()
     ) {

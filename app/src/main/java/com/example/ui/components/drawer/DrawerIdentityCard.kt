@@ -1,5 +1,6 @@
 package com.example.ui.components.drawer
 
+import com.example.ui.theme.Radius
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -243,7 +244,7 @@ private fun RoleTag3D(role: UserRole) {
         UserRole.PRO_HOST -> RoleLook("HOST", Color(0xFFFF8F63), Color(0xFFD2432F), Color(0xFF8C2819), Color.White, Icons.Default.WorkspacePremium)
         else -> RoleLook("SPECIALIST", Color(0xFF6C9FD6), Color(0xFF3A72AE), Color(0xFF1F4268), Color.White, Icons.Default.VerifiedUser)
     }
-    val shape = RoundedCornerShape(12.dp)
+    val shape = Radius.Sm
     Box(modifier = Modifier.padding(bottom = 3.dp)) {
         // Edge: the darker slab under the face.
         Box(

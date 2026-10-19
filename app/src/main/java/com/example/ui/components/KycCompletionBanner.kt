@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -44,7 +45,7 @@ fun KycCompletionBanner(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.secondaryContainer,
-        tonalElevation = 1.dp
+        tonalElevation = Elevation.level1
     ) {
         Column(
             modifier = Modifier.padding(Spacing.lg),

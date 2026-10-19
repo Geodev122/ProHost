@@ -582,7 +582,7 @@ internal fun SchemaItemRow(
                             Text(
                                 "CUSTOM",
                                 style = MaterialTheme.typography.labelSmall,
-                                fontSize = 8.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = CarnationOrange,
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
@@ -595,7 +595,7 @@ internal fun SchemaItemRow(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontFamily = FontFamily.Monospace,
-                    fontSize = 10.sp
+                    fontSize = 12.sp
                 )
                 if (item.description.isNotBlank()) {
                     Text(item.description, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

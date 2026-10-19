@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.theme.Radius
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -507,7 +508,7 @@ private fun BadgedControl(badge: String?, modifier: Modifier = Modifier, content
 private fun ExploreControlSurface(
     floating: Boolean,
     modifier: Modifier = Modifier,
-    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(22.dp),
+    shape: androidx.compose.ui.graphics.Shape = Radius.Md,
     content: @Composable () -> Unit
 ) {
     Surface(
@@ -597,7 +598,7 @@ private fun ExploreSearchField(
             onFocusConsumed()
         }
     }
-    ExploreControlSurface(floating = floating, shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
+    ExploreControlSurface(floating = floating, shape = Radius.Md, modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp)) {
             Icon(
                 Icons.Default.Search,

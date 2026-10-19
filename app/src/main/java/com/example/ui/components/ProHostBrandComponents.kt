@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Elevation
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
@@ -185,7 +186,7 @@ fun ProHostBottomSheet(
         shape = shape,
         containerColor = container,
         contentColor = contentColorFor(surface),
-        tonalElevation = 4.dp,
+        tonalElevation = Elevation.level2,
         scrimColor = scrimColor,
         contentWindowInsets = contentWindowInsets,
         dragHandle = {
@@ -360,9 +361,9 @@ fun ProHostBottomNavBar(
             if (isCollapsed) {
                 Surface(
                     onClick = { onExpandChange?.invoke(true) },
-                    shape = RoundedCornerShape(16.dp),
+                    shape = Radius.Md,
                     color = MaterialTheme.colorScheme.surface,
-                    shadowElevation = 10.dp,
+                    shadowElevation = Elevation.level3,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     modifier = Modifier
                         .size(width = 56.dp, height = 32.dp)
@@ -382,9 +383,9 @@ fun ProHostBottomNavBar(
                 }
             } else {
                 Surface(
-                    shape = RoundedCornerShape(28.dp),
+                    shape = Radius.Lg,
                     color = MaterialTheme.colorScheme.surface,
-                    shadowElevation = 10.dp,
+                    shadowElevation = Elevation.level3,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     modifier = Modifier
                         .widthIn(max = 480.dp)

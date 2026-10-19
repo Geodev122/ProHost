@@ -1,5 +1,7 @@
 package com.example.ui.components.dialogs
 
+import com.example.ui.theme.Radius
+import com.example.ui.theme.Elevation
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -65,7 +67,7 @@ fun SystemDebuggerDialog(
                 .fillMaxHeight(0.90f),
             shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp
+            tonalElevation = Elevation.level3
         ) {
             Column(
                 modifier = Modifier
@@ -160,7 +162,7 @@ fun SystemDebuggerDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(6.dp)
-                                    .clip(RoundedCornerShape(3.dp)),
+                                    .clip(Radius.Xs),
                                 color = if (r.failedCount == 0) FreshGreen else CarnationOrange,
                                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
                             )
@@ -291,7 +293,7 @@ fun SystemDebuggerDialog(
                                             text = item.category,
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                            fontSize = 10.sp
+                                            fontSize = 12.sp
                                         )
                                     }
 

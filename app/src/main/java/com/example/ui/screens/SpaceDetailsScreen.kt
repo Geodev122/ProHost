@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -426,7 +427,7 @@ fun SpaceDetailsScreenContent(
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
                             contentColor = MaterialTheme.colorScheme.onSurface,
-                            shadowElevation = 4.dp,
+                            shadowElevation = Elevation.level2,
                             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1070,7 +1071,7 @@ private fun HeroGlassButton(onClick: () -> Unit, content: @Composable () -> Unit
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
         contentColor = MaterialTheme.colorScheme.onSurface,
-        shadowElevation = 4.dp,
+        shadowElevation = Elevation.level2,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
         modifier = Modifier.size(42.dp)
     ) {

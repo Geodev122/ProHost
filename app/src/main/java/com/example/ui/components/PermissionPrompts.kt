@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Radius
+import com.example.ui.theme.Elevation
 import android.Manifest
 import android.app.Activity
 import android.content.ContextWrapper
@@ -59,9 +61,9 @@ fun SystemStylePermissionDialog(
         properties = DialogProperties(dismissOnBackPress = dismissible, dismissOnClickOutside = dismissible)
     ) {
         Surface(
-            shape = RoundedCornerShape(28.dp),
+            shape = Radius.Lg,
             color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp,
+            tonalElevation = Elevation.level3,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
@@ -99,7 +101,7 @@ private fun PermissionChoice(label: String, onClick: () -> Unit) {
     FilledTonalButton(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-        shape = RoundedCornerShape(20.dp),
+        shape = Radius.Md,
         colors = ButtonDefaults.filledTonalButtonColors(
             containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
             contentColor = MaterialTheme.colorScheme.primary

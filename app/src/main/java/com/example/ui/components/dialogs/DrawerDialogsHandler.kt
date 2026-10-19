@@ -1,5 +1,6 @@
 package com.example.ui.components.dialogs
 
+import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -77,7 +78,7 @@ fun DrawerDialogsHandler(
         Surface(
             shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp,
+            tonalElevation = Elevation.level3,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = Spacing.md)
@@ -445,7 +446,7 @@ fun DrawerDialogsHandler(
                                                                         else onNavigateToTab?.invoke(resolvedTab)
                                                                     },
                                                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                                                    modifier = Modifier.height(28.dp)
+                                                                    modifier = Modifier.heightIn(min = 36.dp)
                                                                 ) {
                                                                     Icon(
                                                                         Icons.AutoMirrored.Filled.ArrowForward,
@@ -453,7 +454,7 @@ fun DrawerDialogsHandler(
                                                                         modifier = Modifier.size(12.dp)
                                                                     )
                                                                     Spacer(modifier = Modifier.width(Spacing.xs))
-                                                                    Text("Open", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                                                    Text("Open", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                                                 }
                                                             }
                                                             // A "WhatsApp" quick-reply button used to live here, but FCMAlert

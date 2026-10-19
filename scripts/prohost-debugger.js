@@ -854,6 +854,48 @@ function checkSecretHygiene() {
   if (issues === 0) pass('Secrets & Token Hygiene', 'No hard-coded secrets in functions/scripts; push tokens are never logged.');
 }
 
+// ─── NEW CHECK 34: Design system tokens (docs/design/UI_AUDIT.md) ─────────────
+
+function checkDesignTokens() {
+  const uiDir = path.join(KT_ROOT, 'ui') + path.sep;
+  const themeDir = path.join(KT_ROOT, 'ui/theme') + path.sep;
+  let issues = 0;
+  let rawRadius = 0, rawElevation = 0;
+  for (const f of walkFiles(KT_ROOT, '.kt')) {
+    if (!f.startsWith(uiDir) || f.startsWith(themeDir)) continue;
+    const content = readSafe(f) || '';
+    const rel = relPath(f);
+    if (/Toast\.makeText\(/.test(content) && !f.endsWith('UiMessages.kt')) {
+      issues++;
+      bug('MEDIUM', 'design', 'Toast Instead Of Snackbar', rel, null,
+        'Feedback shown with a Toast: no action/Undo, inconsistent look, easy to miss with TalkBack.',
+        'Use UiMessages.show(context, text[, actionLabel, onAction]) — the shell shows it as a Snackbar.');
+    }
+    const tiny = content.match(/fontSize\s*=\s*([0-9]|1[01])(\.\d+)?\.sp/g);
+    if (tiny) {
+      issues++;
+      bug('MEDIUM', 'design', 'Text Below 12 sp', rel, null,
+        `${tiny.length} text size(s) under the 12 sp floor.`,
+        'Use a MaterialTheme.typography style (labelSmall is the 12 sp floor).');
+    }
+    rawRadius += (content.match(/RoundedCornerShape\(\s*\d+(\.\d+)?\.dp\s*\)/g) || []).length;
+    rawElevation += (content.match(/(shadowElevation|tonalElevation|defaultElevation)\s*=\s*\d+(\.\d+)?\.dp/g) || []).length;
+  }
+  if (rawRadius > 0) {
+    issues++;
+    bug('LOW', 'design', 'Literal Corner Radii', 'app/src/main/java/com/example/ui', null,
+      `${rawRadius} RoundedCornerShape(n.dp) literals outside ui/theme.`,
+      'Use Radius.Xs/Sm/Md/Lg/Full or MaterialTheme.shapes.');
+  }
+  if (rawElevation > 0) {
+    issues++;
+    bug('LOW', 'design', 'Literal Elevations', 'app/src/main/java/com/example/ui', null,
+      `${rawElevation} elevation literals outside ui/theme.`,
+      'Use Elevation.level0..level3.');
+  }
+  if (issues === 0) pass('Design System Tokens', 'No Toasts in UI, no text under 12 sp, radii and elevations come from tokens.');
+}
+
 // ─── RUN ALL CHECKS ───────────────────────────────────────────────────────────
 
 process.stdout.write('\n');
@@ -895,6 +937,7 @@ const checks = [
   ['Code Style Enforcement',        checkCodeStyle],
   ['Analytics Hygiene',             checkAnalyticsHygiene],
   ['Secrets & Token Hygiene',       checkSecretHygiene],
+  ['Design System Tokens',          checkDesignTokens],
 ];
 
 for (const [label, fn] of checks) {

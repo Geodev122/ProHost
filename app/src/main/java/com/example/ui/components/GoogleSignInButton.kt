@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Radius
+import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -38,10 +40,10 @@ fun GoogleSignInButton(
         modifier = modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = 48.dp),
-        shape = RoundedCornerShape(4.dp),
+        shape = Radius.Xs,
         color = bgColor,
         border = BorderStroke(1.dp, borderColor),
-        tonalElevation = 0.dp
+        tonalElevation = Elevation.level0
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),

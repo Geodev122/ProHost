@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.theme.Elevation
 import com.example.ui.util.UiMessages
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -169,7 +170,7 @@ fun SpecialistProfileScreen(
                             shape = MaterialTheme.shapes.medium,
                             color = MaterialTheme.colorScheme.secondary,
                             contentColor = MaterialTheme.colorScheme.onSecondary,
-                            shadowElevation = 3.dp,
+                            shadowElevation = Elevation.level2,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -199,7 +200,7 @@ fun SpecialistProfileScreen(
                             color = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary,
                             border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.surface),
-                            shadowElevation = 2.dp,
+                            shadowElevation = Elevation.level2,
                             modifier = Modifier.align(Alignment.TopStart).padding(start = 14.dp).offset(y = (-10).dp)
                         ) {
                             Row(
@@ -210,7 +211,7 @@ fun SpecialistProfileScreen(
                                 Icon(Icons.Default.Storefront, contentDescription = null, modifier = Modifier.size(11.dp))
                                 Text(
                                     "FOR SPACE OWNERS",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                    style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Black,
                                     letterSpacing = 0.8.sp
                                 )

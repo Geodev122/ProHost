@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Elevation
 import com.example.ui.util.UiMessages
 import android.Manifest
 import android.content.pm.PackageManager
@@ -163,7 +164,7 @@ fun ListingLocationMapPicker(
                 shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
-                shadowElevation = 6.dp
+                shadowElevation = Elevation.level3
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),

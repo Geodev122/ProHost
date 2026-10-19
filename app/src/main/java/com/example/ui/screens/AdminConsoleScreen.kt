@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.theme.Elevation
 import com.example.ui.util.UiMessages
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -101,7 +102,7 @@ fun AdminConsoleScreen(
         // Admin Header Banner
         Surface(
             color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 2.dp,
+            tonalElevation = Elevation.level2,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {

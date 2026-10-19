@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.theme.Radius
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -486,7 +487,7 @@ private fun BarRow(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
+            .clip(Radius.Xs)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(vertical = 2.dp)
     ) {
@@ -499,7 +500,7 @@ private fun BarRow(
             Modifier
                 .fillMaxWidth()
                 .height(6.dp)
-                .clip(RoundedCornerShape(3.dp))
+                .clip(Radius.Xs)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             if (fraction > 0f) {
@@ -507,7 +508,7 @@ private fun BarRow(
                     Modifier
                         .fillMaxWidth(fraction)
                         .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp))
+                        .clip(Radius.Xs)
                         .background(MaterialTheme.colorScheme.primary)
                 )
             }

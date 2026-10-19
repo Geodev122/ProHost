@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.theme.Elevation
 import com.example.ui.util.UiMessages
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -177,7 +178,7 @@ fun MyBookingsScreen(
         // 3-tab segmented toggle: Active / Pending / Past
         Surface(
             color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 2.dp,
+            tonalElevation = Elevation.level2,
             modifier = Modifier.fillMaxWidth()
         ) {
             SingleChoiceSegmentedButtonRow(
@@ -517,7 +518,7 @@ fun BookingReservationCard(
             .testTag("booking_card_${booking.id}"),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = Elevation.level2)
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
             Box(
@@ -608,7 +609,7 @@ fun BookingReservationCard(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column {
-                            Text("FORMULA & TIMING", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("FORMULA & TIMING", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(
                                 text = booking.formula.type.displayName,
                                 style = MaterialTheme.typography.bodySmall,
@@ -633,7 +634,7 @@ fun BookingReservationCard(
                         }
 
                         Column(horizontalAlignment = Alignment.End) {
-                            Text("DURATION & LEASE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("DURATION & LEASE", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(
                                 text = "${booking.durationMonths} Month(s)",
                                 style = MaterialTheme.typography.bodySmall,
@@ -664,7 +665,7 @@ fun BookingReservationCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("Total Commitment", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Total Commitment", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         text = "${formatUsd(booking.totalAmountUsd)} USD",
                         style = MaterialTheme.typography.titleMedium,
@@ -682,7 +683,7 @@ fun BookingReservationCard(
                             Text(
                                 "Space Rules On File",
                                 color = MaterialTheme.proColors.onSuccessContainer,
-                                fontSize = 10.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
@@ -692,7 +693,7 @@ fun BookingReservationCard(
                             Text(
                                 "No space rules or access guidance provided",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 10.sp,
+                                fontSize = 12.sp,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
@@ -891,7 +892,7 @@ fun BookingStatusProgressStepper(
                         if (isCompleted) {
                             Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(10.dp))
                         } else {
-                            Text("${index + 1}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                            Text("${index + 1}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                         }
                     }
                     // Right connector (skip for last step)
