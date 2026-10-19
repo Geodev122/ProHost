@@ -9,19 +9,9 @@ import androidx.compose.ui.unit.sp
 import com.example.R
 
 /**
- * ProHost Typography System
- * App Title / Header: Semi-Bold 22–24 sp (#384152)
- * Section Title: Medium 18 sp (#283544)
- * Body Text: Regular 14–16 sp (#283544)
- * Secondary Text: Regular 13 sp (#384152 at 70% opacity)
- * Button Text: Medium 15 sp (#FFFFFF)
- */
-
-/**
- * Manrope, bundled only for the brand's two biggest headline moments
- * (displayLarge, headlineLarge) - splash screen, empty states, the login
- * screen's "ProHost" wordmark. Every other role stays on FontFamily.Default
- * deliberately, so this never touches the ~600 existing body-text call sites.
+ * Manrope carries the brand on every heading role (display, headline, titleLarge); reading text and labels stay on
+ * the system sans. Scale (docs/design/UI_AUDIT.md): headings shrink monotonically — titleLarge is never bigger than
+ * headlineSmall — and nothing goes below 12 sp.
  */
 val ManropeDisplay = FontFamily(
     Font(R.font.manrope_semibold, FontWeight.SemiBold),
@@ -29,110 +19,28 @@ val ManropeDisplay = FontFamily(
     Font(R.font.manrope_extrabold, FontWeight.ExtraBold)
 )
 
+private fun manrope(size: Int, line: Int, weight: FontWeight, tracking: Double = 0.0) = TextStyle(
+    fontFamily = ManropeDisplay, fontWeight = weight, fontSize = size.sp, lineHeight = line.sp, letterSpacing = tracking.sp
+)
+
+private fun system(size: Int, line: Int, weight: FontWeight, tracking: Double) = TextStyle(
+    fontFamily = FontFamily.Default, fontWeight = weight, fontSize = size.sp, lineHeight = line.sp, letterSpacing = tracking.sp
+)
+
 val Typography = Typography(
-    displayLarge = TextStyle(
-        fontFamily = ManropeDisplay,
-        fontWeight = FontWeight.Bold,
-        fontSize = 32.sp,
-        lineHeight = 40.sp,
-        letterSpacing = (-0.25).sp
-    ),
-    displayMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Bold,
-        fontSize = 28.sp,
-        lineHeight = 36.sp,
-        letterSpacing = 0.sp
-    ),
-    displaySmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 24.sp,
-        lineHeight = 32.sp,
-        letterSpacing = 0.sp
-    ),
-    headlineLarge = TextStyle(
-        fontFamily = ManropeDisplay,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 24.sp,
-        lineHeight = 32.sp,
-        letterSpacing = (-0.15).sp
-    ),
-    headlineMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
-    ),
-    headlineSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 18.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.sp
-    ),
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Bold,
-        fontSize = 20.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
-    ),
-    titleMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.1.sp
-    ),
-    titleSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.1.sp
-    ),
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.15.sp
-    ),
-    bodyMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-        lineHeight = 21.sp,
-        letterSpacing = 0.15.sp
-    ),
-    bodySmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 13.sp,
-        lineHeight = 19.sp,
-        letterSpacing = 0.2.sp
-    ),
-    labelLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 15.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.1.sp
-    ),
-    labelMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 12.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.4.sp
-    ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
-    )
+    displayLarge = manrope(36, 44, FontWeight.ExtraBold, -0.25),
+    displayMedium = manrope(32, 40, FontWeight.ExtraBold, -0.2),
+    displaySmall = manrope(28, 36, FontWeight.ExtraBold, -0.15),
+    headlineLarge = manrope(28, 36, FontWeight.Bold, -0.15),
+    headlineMedium = manrope(24, 32, FontWeight.Bold),
+    headlineSmall = manrope(20, 28, FontWeight.Bold),
+    titleLarge = manrope(18, 24, FontWeight.SemiBold),
+    titleMedium = system(16, 22, FontWeight.SemiBold, 0.1),
+    titleSmall = system(14, 20, FontWeight.Medium, 0.1),
+    bodyLarge = system(16, 24, FontWeight.Normal, 0.15),
+    bodyMedium = system(14, 20, FontWeight.Normal, 0.15),
+    bodySmall = system(13, 18, FontWeight.Normal, 0.2),
+    labelLarge = system(14, 20, FontWeight.SemiBold, 0.1),
+    labelMedium = system(12, 16, FontWeight.Medium, 0.4),
+    labelSmall = system(12, 16, FontWeight.Medium, 0.5)
 )

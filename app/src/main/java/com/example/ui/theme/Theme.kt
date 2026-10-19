@@ -32,7 +32,7 @@ import androidx.core.view.WindowCompat
  * Official ProHost Material 3 Light ColorScheme
  * Primary: Steel Blue (#2B5A8C) - navigation, focus, links, key actions (dark mode #93B8E0)
  * Secondary: Carnation Orange, action shade (#D2432F) - CTAs, highlights (white text 4.58:1)
- * Tertiary: Fresh Green (#4CAF72)
+ * Tertiary: success green (#2E7D4F, white text 5.05:1); Fresh Green (#4CAF72) for fills and icons
  * Surface: Pure White (#FFFFFF) / Light Gray (#E2E4E8)
  * OnSurface / Text: Cool Gray (#283544)
  */
@@ -48,7 +48,8 @@ private val LightColorScheme = lightColorScheme(
     secondaryContainer = CarnationOrangeContainer,
     onSecondaryContainer = CarnationOrangeDark,
 
-    tertiary = FreshGreen,
+    // FreshGreen with white text was 2.6:1; the strong shade passes (5.05:1). FreshGreen stays for fills/icons.
+    tertiary = StatusSuccessStrong,
     onTertiary = PureWhite,
     tertiaryContainer = StatusSuccessContainer,
     onTertiaryContainer = StatusOnSuccessContainer,
@@ -59,8 +60,17 @@ private val LightColorScheme = lightColorScheme(
     surface = SurfaceLight,
     onSurface = CoolGrayDark,
     surfaceVariant = SurfaceVariantLight,
-    onSurfaceVariant = ProHostSecondaryText,
+    onSurfaceVariant = SecondaryTextLight,
     surfaceTint = SteelBlue,
+    // Surface ladder tinted toward Steel Blue. Without these Material fell back to its own lavender
+    // defaults in menus, date pickers, sheets and chips.
+    surfaceContainerLowest = Color(0xFFFFFFFF),
+    surfaceContainerLow = Color(0xFFF6F8FB),
+    surfaceContainer = Color(0xFFF0F3F8),
+    surfaceContainerHigh = Color(0xFFEAEEF4),
+    surfaceContainerHighest = Color(0xFFE3E8F0),
+    surfaceBright = Color(0xFFFBFCFE),
+    surfaceDim = Color(0xFFDCE2EB),
     inverseSurface = DarkSurface,
     inverseOnSurface = DarkOnSurface,
 
@@ -101,8 +111,15 @@ private val DarkColorScheme = darkColorScheme(
     surface = DarkSurface,
     onSurface = DarkOnSurface,
     surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = DarkOnSurfaceVariant,
+    onSurfaceVariant = SecondaryTextDark,
     surfaceTint = BlueDarkMode,
+    surfaceContainerLowest = Color(0xFF0F1420),
+    surfaceContainerLow = Color(0xFF171E2C),
+    surfaceContainer = Color(0xFF1B2333),
+    surfaceContainerHigh = Color(0xFF222B3D),
+    surfaceContainerHighest = Color(0xFF2A3447),
+    surfaceBright = Color(0xFF303B50),
+    surfaceDim = Color(0xFF121824),
     inverseSurface = SurfaceLight,
     inverseOnSurface = CoolGrayDark,
 

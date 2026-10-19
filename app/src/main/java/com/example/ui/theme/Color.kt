@@ -49,6 +49,10 @@ val LightGraySurface = Color(0xFFF8F9FA)
 // Secondary Text Helper (#384152 at 70% opacity)
 val ProHostSecondaryText = OxfordBlue.copy(alpha = 0.70f)
 
+/** Opaque secondary text for `onSurfaceVariant`: alpha text stacked with more alpha fell under 4.5:1. */
+val SecondaryTextLight = Color(0xFF5A6372)
+val SecondaryTextDark = Color(0xFFB4BDCC)
+
 // Light page background: white, shading to a whisper of Steel Blue at the bottom. The fine
 // texture on top comes from Modifier.proHostScreenBackground() (Theme.kt).
 val PremiumBackgroundGradient = Brush.verticalGradient(
