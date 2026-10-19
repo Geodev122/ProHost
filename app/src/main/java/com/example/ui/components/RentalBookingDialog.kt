@@ -560,9 +560,9 @@ private fun BookingSlotSelectorDialog(
                             space.subdivisions.forEach { sub ->
                                 val isSelected = sub.id == selectedSubdivision?.id
                                 Card(
+                                    onClick = { selectedSubdivision = sub },
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { selectedSubdivision = sub },
+                                        .fillMaxWidth(),
                                     shape = MaterialTheme.shapes.medium,
                                     colors = CardDefaults.cardColors(
                                         containerColor = if (isSelected) {

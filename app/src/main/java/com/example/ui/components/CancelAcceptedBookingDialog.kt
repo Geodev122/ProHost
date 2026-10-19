@@ -37,7 +37,7 @@ fun CancelAcceptedBookingDialog(
     var note by remember { mutableStateOf("") }
 
     Dialog(onDismissRequest = onDismiss) {
-        Card(shape = MaterialTheme.shapes.large) {
+        Card(shape = MaterialTheme.shapes.extraLarge, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
             Column(
                 modifier = Modifier.padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)

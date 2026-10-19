@@ -300,7 +300,8 @@ fun OwnerBookingRequestCard(
         BookingRequestStatus.CANCELLED -> MaterialTheme.colorScheme.outlineVariant
     }
     Card(
-        modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = androidx.compose.foundation.BorderStroke(1.dp, borderColor)

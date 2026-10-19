@@ -200,7 +200,7 @@ fun LegalDocumentsMenu(onDismiss: () -> Unit) {
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = MaterialTheme.shapes.large) {
+        Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
             Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Legal", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 8.dp))
                 com.example.legal.LegalContent.all.forEach { doc ->

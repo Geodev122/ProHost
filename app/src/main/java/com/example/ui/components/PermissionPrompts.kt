@@ -62,7 +62,7 @@ fun SystemStylePermissionDialog(
     ) {
         Surface(
             shape = Radius.Lg,
-            color = MaterialTheme.colorScheme.surface,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
             tonalElevation = Elevation.level3,
             modifier = Modifier.fillMaxWidth()
         ) {

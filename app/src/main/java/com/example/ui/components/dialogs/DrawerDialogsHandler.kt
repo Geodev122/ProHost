@@ -77,7 +77,7 @@ fun DrawerDialogsHandler(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surface,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
             tonalElevation = Elevation.level3,
             modifier = Modifier
                 .fillMaxWidth()

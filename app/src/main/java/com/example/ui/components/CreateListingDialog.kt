@@ -163,7 +163,7 @@ fun CreateListingDialog(
     }
     if (currentUser == null) {
         Dialog(onDismissRequest = onDismiss) {
-            Card(shape = MaterialTheme.shapes.large) {
+            Card(shape = MaterialTheme.shapes.extraLarge, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
                 Column(modifier = Modifier.padding(Spacing.xl), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Sign In Required", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                     Text(
@@ -1319,7 +1319,7 @@ private fun FacilityPickerDialog(
     ) {
         Surface(
             shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surface,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
             modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.88f).padding(8.dp)
         ) {
             Column(
