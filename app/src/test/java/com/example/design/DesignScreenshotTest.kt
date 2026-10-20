@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -65,15 +67,19 @@ import java.io.File
 @Config(qualifiers = "w390dp-h844dp-xxhdpi", sdk = [34])
 class DesignScreenshotTest(private val screen: String, private val variant: String) {
 
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = androidx.compose.ui.test.junit4.createAndroidComposeRule<androidx.activity.ComponentActivity>()
 
     @Test
     fun capture() {
         Assume.assumeTrue(System.getProperty("roborazzi.test.record") == "true")
+        // -PdesignOnly=a,b renders just those screens (quick checks); empty = everything.
+        val only = System.getProperty("design.only").orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }
+        Assume.assumeTrue(only.isEmpty() || only.any { screen.startsWith(it) })
         val out = File(OUT_DIR).apply { mkdirs() }
         val name = "${screen}_$variant"
         try {
             val vm = signedInViewModel(if (screen in HOST_SCREENS) UserRole.PRO_HOST else UserRole.SPECIALIST)
+            applyVariantToActivity(variant)
             compose.setContent { Variant(variant) { Screen(screen, vm) } }
             compose.waitForIdle()
             Thread.sleep(400) // let async image decoding land before the capture
@@ -100,6 +106,30 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         compose.waitForIdle()
     }
 
+    /**
+     * Dark and Arabic go onto the activity's own resources: dialogs and sheets open in their own windows, which take
+     * their configuration (locale, night mode) from the activity, not from the composition.
+     */
+    private fun applyVariantToActivity(variant: String) {
+        if (variant != "dark" && variant != "ar") {
+            com.example.ui.util.UiText.init(compose.activity.resources)
+            return
+        }
+        compose.runOnUiThread {
+            val res = compose.activity.resources
+            val config = Configuration(res.configuration)
+            if (variant == "dark") {
+                config.uiMode = (config.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or Configuration.UI_MODE_NIGHT_YES
+            } else {
+                config.setLocale(java.util.Locale("ar"))
+                config.setLayoutDirection(java.util.Locale("ar"))
+            }
+            @Suppress("DEPRECATION")
+            res.updateConfiguration(config, res.displayMetrics)
+            com.example.ui.util.UiText.init(res, res)
+        }
+    }
+
     @Composable
     private fun Variant(variant: String, content: @Composable () -> Unit) {
         val config = Configuration(LocalConfiguration.current)
@@ -110,16 +140,8 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             config.setLocale(java.util.Locale("ar"))
             config.setLayoutDirection(java.util.Locale("ar"))
         }
-        val baseContext = androidx.compose.ui.platform.LocalContext.current
-        val registryOwner = androidx.activity.compose.LocalActivityResultRegistryOwner.current
-        // Dark and Arabic get a real configuration context, so -night / -ar resources (splash art, strings) resolve too.
-        val context = if (variant == "ar" || variant == "dark") baseContext.createConfigurationContext(config) else baseContext
-        com.example.ui.util.UiText.init(context.resources)
         val density = LocalDensity.current
         CompositionLocalProvider(
-            androidx.compose.ui.platform.LocalContext provides context,
-            // The Arabic context isn't the activity: keep its result registry for screens with launchers.
-            androidx.activity.compose.LocalActivityResultRegistryOwner provides registryOwner!!,
             LocalConfiguration provides config,
             LocalDensity provides Density(density.density, if (variant == "font130") 1.3f else density.fontScale),
             LocalLayoutDirection provides if (variant == "rtl" || variant == "ar") LayoutDirection.Rtl else LayoutDirection.Ltr,
@@ -136,6 +158,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             repository.login(uid = if (role == UserRole.PRO_HOST) "OWNER-01" else "uid-design", email = "design@pro-host.tech", verifiedRole = role)
             repository.toggleSavedSpace(mockSpace1.id)
         }
+        repository._hasLoadedBookingsOnce.value = true
         return ProHostViewModel(repository)
     }
 
@@ -210,6 +233,32 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             "listing_wizard_2", "listing_wizard_3" ->
                 CreateListingDialog(currentUser = user, onDismiss = {}, onListingCreated = {}, existingDraft = mockSpace1)
             "listing_verification" -> ListingVerificationDialog(space = mockSpace1, viewModel = vm, onDismiss = {})
+            "probe_dialog_input" -> ProbeDialog(lazy = false, raw = false)
+            "probe_dialog_raw" -> ProbeDialog(lazy = false, raw = true)
+            "probe_dialog_lazy_input" -> ProbeDialog(lazy = true, raw = false)
+            "probe_dialog_lazy_raw" -> ProbeDialog(lazy = true, raw = true)
+            "probe_dialog_lazy" -> ProbeDialog(lazy = true, raw = null)
+        }
+    }
+
+    /** Minimal dialogs isolating what keeps a dialog from settling (text field kind × a lazy list). */
+    @Composable
+    private fun ProbeDialog(lazy: Boolean, raw: Boolean?) {
+        androidx.compose.ui.window.Dialog(onDismissRequest = {}) {
+            androidx.compose.material3.Card {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (lazy) {
+                        androidx.compose.foundation.lazy.LazyColumn(Modifier.heightIn(max = 220.dp)) {
+                            items(8) { androidx.compose.material3.Text("Row $it", Modifier.padding(8.dp)) }
+                        }
+                    }
+                    when (raw) {
+                        true -> androidx.compose.material3.OutlinedTextField(value = "", onValueChange = {}, label = { androidx.compose.material3.Text("Raw") })
+                        false -> InputField(value = "", onValueChange = {}, label = "InputField")
+                        null -> Unit
+                    }
+                }
+            }
         }
     }
 
@@ -276,7 +325,8 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             "splash", "login_email", "registration", "filters", "availability_sheet", "request_sent", "requirements",
             "requirements_host", "rebook", "edit_booking", "cancel_booking", "country_picker", "legal_documents", "notifications",
             "analytics_consent", "delete_account", "redeem_code", "reject_request", "request_detail", "change_price",
-            "listing_wizard_1", "listing_wizard_2", "listing_wizard_3", "listing_verification"
+            "listing_wizard_1", "listing_wizard_2", "listing_wizard_3", "listing_verification",
+            "probe_dialog_input", "probe_dialog_raw", "probe_dialog_lazy_input", "probe_dialog_lazy_raw", "probe_dialog_lazy"
         )
         /** Overlays opened by tapping a control on their screen (string resources of the controls, in order). */
         val TAPS = mapOf(

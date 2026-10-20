@@ -5,7 +5,13 @@ name: Design Screenshots
 # a deploy.
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Comma-separated screen name prefixes to render (empty = all)"
+        required: false
+        default: ""
+
   push:
     branches: [main, "claude/**"]
     paths:
@@ -52,7 +58,7 @@ jobs:
       - name: Record screenshots
         run: |
           set -o pipefail
-          gradle :app:recordRoborazziDebug --tests "com.example.design.*" --no-daemon --stacktrace 2>&1 | tee gradle.log
+          gradle :app:recordRoborazziDebug --tests "com.example.design.*" -PdesignOnly="${{ inputs.only }}" --no-daemon --stacktrace 2>&1 | tee gradle.log
 
       # Logs aren't readable from every client; surface compile errors as annotations instead.
       - name: Report compile errors

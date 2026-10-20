@@ -235,6 +235,9 @@ dependencies {
 // hanging the CI job until GitHub's 6-hour limit. Recording the design screenshots (every screen,
 // sheet and dialog in five variants) legitimately takes longer.
 val recordingScreenshots = gradle.startParameter.taskNames.any { it.contains("recordRoborazzi") }
+val designOnly = providers.gradleProperty("designOnly").orElse("")
 tasks.withType<Test>().configureEach {
   timeout.set(Duration.ofMinutes(if (recordingScreenshots) 60 else 15))
+  // DesignScreenshotTest: -PdesignOnly=screen1,screen2 renders only those.
+  systemProperty("design.only", designOnly.get())
 }
