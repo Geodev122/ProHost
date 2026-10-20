@@ -58,7 +58,7 @@ jobs:
       - name: Report compile errors
         if: failure()
         run: |
-          grep -E "^e: |error:|FAILED" gradle.log | head -40 | while IFS= read -r line; do echo "::error title=build::${line}"; done
+          grep -iE "^e: |error|FAILED|aapt" gradle.log | head -40 | while IFS= read -r line; do echo "::error title=build::${line}"; done
 
       - name: Upload screenshots
         if: always()

@@ -346,7 +346,7 @@ fun LoginAuthScreen(
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
                 ProPrimaryButton(
-                    text = if (isAuthenticating) stringResource(R.string.sending) else stringResource(R.string.continue),
+                    text = if (isAuthenticating) stringResource(R.string.sending) else stringResource(R.string.action_continue),
                     onClick = {
                         val trimmedEmail = emailInput.trim().lowercase()
                         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches()) {

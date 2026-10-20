@@ -260,7 +260,7 @@ fun ChangePriceSheet(
                         }
                         Spacer(Modifier.height(Spacing.sm))
                         ProPrimaryButton(
-                            text = if (affected.isEmpty()) stringResource(R.string.save_new_price) else stringResource(R.string.continue),
+                            text = if (affected.isEmpty()) stringResource(R.string.save_new_price) else stringResource(R.string.action_continue),
                             onClick = {
                                 if (affected.isEmpty()) submit() else {
                                     affected.forEach { b ->

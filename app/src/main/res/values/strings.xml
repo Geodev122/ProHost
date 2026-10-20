@@ -148,7 +148,7 @@
     <string name="connecting_to_google_play_store">Connecting to Google Play Store…</string>
     <string name="contact_support">Contact Support</string>
     <string name="contact_verification_info">Contact &amp; verification info</string>
-    <string name="continue">Continue</string>
+    <string name="action_continue">Continue</string>
     <string name="continue_draft_listing">Continue Draft Listing</string>
     <string name="continue_editing">Continue Editing</string>
     <string name="continue_to_google_play">Continue to Google Play</string>
