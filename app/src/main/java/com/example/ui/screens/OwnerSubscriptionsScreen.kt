@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.role
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
@@ -782,7 +785,8 @@ internal fun PlanTile(
     }
     Surface(
         onClick = onClick,
-        modifier = modifier,
+        // Announced like a radio option: "Yearly, selected".
+        modifier = modifier.semantics { this.selected = selected; role = androidx.compose.ui.semantics.Role.RadioButton },
         shape = shape,
         color = scheme.surface, // under the gradient; keeps the elevation shadow solid
         border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) accent else scheme.outlineVariant),

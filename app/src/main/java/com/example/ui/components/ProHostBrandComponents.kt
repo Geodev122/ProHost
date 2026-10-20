@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.liveRegion
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
@@ -238,7 +240,8 @@ fun ProHostAlertBanner(
         contentColor = content,
         shape = if (fullBleed) RectangleShape else MaterialTheme.shapes.medium,
         border = if (fullBleed) null else BorderStroke(1.dp, accent.copy(alpha = 0.25f)),
-        modifier = modifier.fillMaxWidth()
+        // Banners appear on their own (errors, status): read them out politely.
+        modifier = modifier.fillMaxWidth().semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite }
     ) {
         Row(
             modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
