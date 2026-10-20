@@ -833,17 +833,21 @@ fun InputField(
     modifier: Modifier = Modifier,
     placeholder: String? = null,
     prefix: String? = null,
+    suffix: String? = null,
     leadingIcon: ImageVector? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
     isError: Boolean = false,
     errorMessage: String? = null,
     helperText: String? = null,
     singleLine: Boolean = true,
-    maxLines: Int = 1,
+    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
+    minLines: Int = 1,
     readOnly: Boolean = false,
     enabled: Boolean = true,
     keyboardOptions: androidx.compose.foundation.text.KeyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default,
+    keyboardActions: androidx.compose.foundation.text.KeyboardActions = androidx.compose.foundation.text.KeyboardActions.Default,
     visualTransformation: androidx.compose.ui.text.input.VisualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
+    textStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyLarge,
     shape: CornerBasedShape = MaterialTheme.shapes.medium
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -871,6 +875,9 @@ fun InputField(
                     )
                 }
             } else null,
+            suffix = if (suffix != null) {
+                { Text(suffix, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            } else null,
             leadingIcon = if (leadingIcon != null) {
                 {
                     Icon(
@@ -885,10 +892,13 @@ fun InputField(
             isError = isError,
             singleLine = singleLine,
             maxLines = maxLines,
+            minLines = minLines,
             readOnly = readOnly,
             enabled = enabled,
             keyboardOptions = keyboardOptions,
+            keyboardActions = keyboardActions,
             visualTransformation = visualTransformation,
+            textStyle = textStyle,
             shape = shape,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,

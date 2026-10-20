@@ -991,10 +991,10 @@ private fun BookingSlotSelectorDialog(
 
                             if (selectedDateOption == "Custom Date") {
                                 Spacer(modifier = Modifier.height(Spacing.sm))
-                                OutlinedTextField(
+                                InputField(
                                     value = customStartDate,
                                     onValueChange = { customStartDate = it },
-                                    label = { Text(stringResource(R.string.start_date_yyyy_mm_dd)) },
+                                    label = stringResource(R.string.start_date_yyyy_mm_dd),
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth()
                                 )

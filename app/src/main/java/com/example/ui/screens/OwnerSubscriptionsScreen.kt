@@ -44,6 +44,7 @@ import com.example.data.model.*
 import com.example.data.billing.PlayCatalog
 import com.example.data.billing.PlayOfferText
 import com.example.ui.components.CustomButton
+import com.example.ui.components.InputField
 import com.example.ui.components.CustomButtonVariant
 import com.example.ui.components.ProHostDialog
 import com.example.ui.components.ProHostAlertBanner
@@ -620,10 +621,10 @@ fun OwnerSubscriptionsScreen(
                         stringResource(R.string.your_pro_host_plan_activates_on_this_proho),
                     style = MaterialTheme.typography.bodySmall
                 )
-                OutlinedTextField(
+                InputField(
                     value = redeemCodeInput,
                     onValueChange = { redeemCodeInput = com.example.data.billing.PendingPromoCode.sanitize(it).orEmpty() },
-                    label = { Text(stringResource(R.string.promo_code)) },
+                    label = stringResource(R.string.promo_code),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )

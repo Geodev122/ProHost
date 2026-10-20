@@ -82,13 +82,14 @@ fun CancelAcceptedBookingDialog(
                     }
                 }
 
-                OutlinedTextField(
+                InputField(
                     value = note,
                     onValueChange = { note = it },
-                    label = { Text(stringResource(R.string.additional_note_optional)) },
+                    label = stringResource(R.string.additional_note_optional),
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2,
-                    maxLines = 4
+                    maxLines = 4,
+                    singleLine = false
                 )
 
                 Row(

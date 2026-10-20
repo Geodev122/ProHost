@@ -54,11 +54,12 @@ fun CountryPickerDialog(
         title = { Text(stringResource(R.string.choose_your_country)) },
         text = {
             Column {
-                OutlinedTextField(
+                InputField(
                     value = query,
                     onValueChange = { query = it },
-                    placeholder = { Text(stringResource(R.string.search_country_or_code)) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    label = "",
+                    placeholder = stringResource(R.string.search_country_or_code),
+                    leadingIcon = Icons.Default.Search,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                     modifier = Modifier.fillMaxWidth()

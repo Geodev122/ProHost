@@ -629,13 +629,13 @@ fun CreateListingDialog(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    OutlinedTextField(
+                                    InputField(
                                         value = hashtagInput,
                                         onValueChange = { hashtagInput = it },
-                                        placeholder = { Text(stringResource(R.string.discipline)) },
+                                        label = "",
+                                        placeholder = stringResource(R.string.discipline),
                                         modifier = Modifier.weight(1f),
-                                        singleLine = true,
-                                        shape = MaterialTheme.shapes.medium
+                                        singleLine = true
                                     )
                                     TextButton(shape = MaterialTheme.shapes.medium, onClick = {
                                         val tag = hashtagInput.trim().trimStart('#')
@@ -1339,14 +1339,14 @@ private fun FacilityPickerDialog(
                     IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close)) }
                 }
 
-                OutlinedTextField(
+                InputField(
                     value = query,
                     onValueChange = { query = it },
-                    placeholder = { Text(stringResource(R.string.search_facilities)) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    label = "",
+                    placeholder = stringResource(R.string.search_facilities),
+                    leadingIcon = Icons.Default.Search,
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = MaterialTheme.shapes.medium
+                    singleLine = true
                 )
 
                 LazyColumn(
@@ -1384,13 +1384,13 @@ private fun FacilityPickerDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    OutlinedTextField(
+                    InputField(
                         value = newFacilityInput,
                         onValueChange = { newFacilityInput = it },
-                        placeholder = { Text(stringResource(R.string.add_new_to_master_list)) },
+                        label = "",
+                        placeholder = stringResource(R.string.add_new_to_master_list),
                         modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        shape = MaterialTheme.shapes.medium
+                        singleLine = true
                     )
                     CustomButton(
                         text = stringResource(R.string.add_new),

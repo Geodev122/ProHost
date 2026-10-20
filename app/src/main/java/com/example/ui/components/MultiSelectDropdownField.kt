@@ -15,7 +15,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -47,12 +46,12 @@ fun <T> MultiSelectDropdownField(
         else -> "${selected.size} selected"
     }
     Box(modifier = modifier) {
-        OutlinedTextField(
+        InputField(
             value = summary,
             onValueChange = {},
             readOnly = true,
             singleLine = true,
-            label = { Text(label) },
+            label = label,
             trailingIcon = {
                 Icon(
                     if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,

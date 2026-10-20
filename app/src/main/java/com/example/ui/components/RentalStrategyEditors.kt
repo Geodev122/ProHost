@@ -126,10 +126,10 @@ fun MonthlyStrategyEditor(
     val monthNames = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        OutlinedTextField(
+        InputField(
             value = if (config.rateUsd == 0.0) "" else config.rateUsd.toInt().toString(),
             onValueChange = { onConfigChange(config.copy(rateUsd = it.toDoubleOrNull() ?: 0.0)) },
-            label = { Text(stringResource(R.string.rate_usd_mo)) },
+            label = stringResource(R.string.rate_usd_mo),
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -146,9 +146,10 @@ fun MonthlyStrategyEditor(
                     )
                 }
             }
-            OutlinedTextField(
+            InputField(
                 value = config.fromYear.toString(),
                 onValueChange = { onConfigChange(config.copy(fromYear = it.toIntOrNull() ?: currentYear)) },
+                label = "",
                 modifier = Modifier.width(90.dp),
                 singleLine = true
             )
@@ -189,9 +190,10 @@ fun MonthlyStrategyEditor(
                         )
                     }
                 }
-                OutlinedTextField(
+                InputField(
                     value = (config.toYear ?: currentYear).toString(),
                     onValueChange = { onConfigChange(config.copy(toYear = it.toIntOrNull() ?: currentYear)) },
+                    label = "",
                     modifier = Modifier.width(90.dp),
                     singleLine = true
                 )
@@ -253,13 +255,13 @@ fun HourlyStrategyEditor(
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(day, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(40.dp))
-                    if (!availabilityOnly) OutlinedTextField(
-                        value = bulkPriceByDay[day] ?: "",
-                        onValueChange = { bulkPriceByDay = bulkPriceByDay + (day to it) },
-                        label = { Text(stringResource(R.string.usd_hr)) },
-                        modifier = Modifier.width(110.dp),
-                        singleLine = true
-                    )
+                    if (!availabilityOnly) InputField(
+     value = bulkPriceByDay[day] ?: "",
+     onValueChange = { bulkPriceByDay = bulkPriceByDay + (day to it) },
+     label = stringResource(R.string.usd_hr),
+     modifier = Modifier.width(110.dp),
+     singleLine = true
+ )
                     TextButton(shape = MaterialTheme.shapes.medium, onClick = {
                         val price = if (availabilityOnly) marker else bulkPriceByDay[day]?.toDoubleOrNull() ?: return@TextButton
                         onConfigChange(config.copy(cellPrices = config.cellPrices + hours.associate { "$day|$it" to price }))
@@ -318,7 +320,7 @@ fun ShiftStrategyEditor(
                 }
                 if (!shift.isUnavailable) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(
+                        InputField(
                             value = shift.startHour.toString(),
                             onValueChange = { v ->
                                 onConfigChange(
@@ -329,11 +331,11 @@ fun ShiftStrategyEditor(
                                     )
                                 )
                             },
-                            label = { Text(stringResource(R.string.from_hr)) },
+                            label = stringResource(R.string.from_hr),
                             modifier = Modifier.weight(1f),
                             singleLine = true
                         )
-                        OutlinedTextField(
+                        InputField(
                             value = shift.endHour.toString(),
                             onValueChange = { v ->
                                 onConfigChange(
@@ -344,7 +346,7 @@ fun ShiftStrategyEditor(
                                     )
                                 )
                             },
-                            label = { Text(stringResource(R.string.to_hr)) },
+                            label = stringResource(R.string.to_hr),
                             modifier = Modifier.weight(1f),
                             singleLine = true
                         )
@@ -352,9 +354,9 @@ fun ShiftStrategyEditor(
                     // Single flat price per shift (item 7b) — the specialist
                     // configures occurrences (which dates, how many) at booking
                     // time instead of picking one of 3 pre-set commitment tiers.
-                    if (!availabilityOnly) OutlinedTextField(
-                        value = if (shift.price == 0.0) "" else shift.price.toInt().toString(),
-                        onValueChange = { v ->
+                    if (!availabilityOnly) InputField(
+     value = if (shift.price == 0.0) "" else shift.price.toInt().toString(),
+     onValueChange = { v ->
                             onConfigChange(
                                 config.copy(
                                     shifts = config.shifts.map {
@@ -363,10 +365,10 @@ fun ShiftStrategyEditor(
                                 )
                             )
                         },
-                        label = { Text(stringResource(R.string.price_per_shift_usd)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+     label = stringResource(R.string.price_per_shift_usd),
+     modifier = Modifier.fillMaxWidth(),
+     singleLine = true
+ )
                 }
                 HorizontalDivider()
             }
@@ -418,17 +420,17 @@ fun DayBasedStrategyEditor(
         }
         if (!config.useFacilityHours) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(
+                InputField(
                     value = (config.customStartHour ?: parseHourInt(openingHour)).toString(),
                     onValueChange = { v -> onConfigChange(config.copy(customStartHour = v.toIntOrNull())) },
-                    label = { Text(stringResource(R.string.from_hr)) },
+                    label = stringResource(R.string.from_hr),
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
-                OutlinedTextField(
+                InputField(
                     value = (config.customEndHour ?: parseHourInt(closingHour)).toString(),
                     onValueChange = { v -> onConfigChange(config.copy(customEndHour = v.toIntOrNull())) },
-                    label = { Text(stringResource(R.string.to_hr)) },
+                    label = stringResource(R.string.to_hr),
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
@@ -471,13 +473,13 @@ fun DayBasedStrategyEditor(
                 // rework, same request applied to Day-Based) — occurrence count and
                 // recurrence (one-time vs. weekly-recurring) are configured by the
                 // specialist at booking time, not pre-set here.
-                OutlinedTextField(
+                InputField(
                     value = if (dp.price == 0.0) "" else dp.price.toInt().toString(),
                     onValueChange = { v ->
                         val updated = dp.copy(price = v.toDoubleOrNull() ?: 0.0)
                         onConfigChange(config.copy(distribution = config.distribution + (day to updated)))
                     },
-                    label = { Text(stringResource(R.string.price_per_day_usd)) },
+                    label = stringResource(R.string.price_per_day_usd),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )

@@ -24,7 +24,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -167,10 +166,10 @@ fun RequirementsSheet(
                         onCountrySelected = { addressCountry = it },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    OutlinedTextField(
+                    InputField(
                         value = addressCity,
                         onValueChange = { addressCity = it },
-                        label = { Text(stringResource(R.string.city)) },
+                        label = stringResource(R.string.city),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )

@@ -213,13 +213,14 @@ fun OwnerIncomingRequestsView(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    OutlinedTextField(
+                    InputField(
                         value = rejectionReasonInput,
                         onValueChange = { rejectionReasonInput = it },
-                        label = { Text(stringResource(R.string.reason_optional)) },
-                        placeholder = { Text(stringResource(R.string.e_g_space_already_reserved_for_client_work)) },
+                        label = stringResource(R.string.reason_optional),
+                        placeholder = stringResource(R.string.e_g_space_already_reserved_for_client_work),
                         modifier = Modifier.fillMaxWidth(),
-                        maxLines = 3
+                        maxLines = 3,
+                        singleLine = false
                     )
                 }
             },

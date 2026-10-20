@@ -36,17 +36,17 @@ fun OperatingScheduleEditorSection(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            OutlinedTextField(
+            InputField(
                 value = openingHour,
                 onValueChange = onOpeningHourChange,
-                label = { Text(stringResource(R.string.opens_hh_mm)) },
+                label = stringResource(R.string.opens_hh_mm),
                 modifier = Modifier.weight(1f),
                 singleLine = true
             )
-            OutlinedTextField(
+            InputField(
                 value = closingHour,
                 onValueChange = onClosingHourChange,
-                label = { Text(stringResource(R.string.closes_hh_mm)) },
+                label = stringResource(R.string.closes_hh_mm),
                 modifier = Modifier.weight(1f),
                 singleLine = true
             )

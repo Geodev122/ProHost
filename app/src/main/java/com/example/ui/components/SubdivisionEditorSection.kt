@@ -531,14 +531,14 @@ fun SubdivisionEditorSection(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    OutlinedTextField(
+                    InputField(
                         value = hashtagInput,
                         onValueChange = { hashtagInput = it.trimStart('#').replace(" ", "") },
-                        placeholder = { Text(stringResource(R.string.e_g_dentalclinic)) },
-                        prefix = { Text("#") },
+                        label = "",
+                        placeholder = stringResource(R.string.e_g_dentalclinic),
+                        prefix = "#",
                         singleLine = true,
-                        modifier = Modifier.weight(1f),
-                        shape = MaterialTheme.shapes.medium
+                        modifier = Modifier.weight(1f)
                     )
                     IconButton(
                         onClick = {
@@ -713,33 +713,31 @@ fun SubdivisionEditorSection(
 
                 if (isPerAttendee) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(
+                        InputField(
                             value = subMinAttendeesInput,
                             onValueChange = { raw ->
                                 val digits = raw.filter { it.isDigit() }
                                 subMinAttendeesInput = digits
                                 subMinAttendees = digits.toIntOrNull()?.takeIf { it > 0 }
                             },
-                            label = { Text(stringResource(R.string.min_attendees)) },
-                            placeholder = { Text("1") },
+                            label = stringResource(R.string.min_attendees),
+                            placeholder = "1",
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f),
-                            shape = MaterialTheme.shapes.medium
+                            modifier = Modifier.weight(1f)
                         )
-                        OutlinedTextField(
+                        InputField(
                             value = subCapacityInput,
                             onValueChange = { raw ->
                                 val digits = raw.filter { it.isDigit() }
                                 subCapacityInput = digits
                                 subCapacity = digits.toIntOrNull()?.takeIf { it > 0 }
                             },
-                            label = { Text(stringResource(R.string.max_attendees)) },
-                            placeholder = { Text(stringResource(R.string.no_limit)) },
+                            label = stringResource(R.string.max_attendees),
+                            placeholder = stringResource(R.string.no_limit),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f),
-                            shape = MaterialTheme.shapes.medium
+                            modifier = Modifier.weight(1f)
                         )
                     }
                     AttendeeTierEditor(
@@ -884,26 +882,26 @@ fun SubdivisionEditorSection(
                             }
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            OutlinedTextField(
+                            InputField(
                                 value = blackoutStart,
                                 onValueChange = { blackoutStart = it },
-                                label = { Text(stringResource(R.string.from_hh_mm)) },
+                                label = stringResource(R.string.from_hh_mm),
                                 modifier = Modifier.weight(1f),
                                 singleLine = true
                             )
-                            OutlinedTextField(
+                            InputField(
                                 value = blackoutEnd,
                                 onValueChange = { blackoutEnd = it },
-                                label = { Text(stringResource(R.string.to_hh_mm)) },
+                                label = stringResource(R.string.to_hh_mm),
                                 modifier = Modifier.weight(1f),
                                 singleLine = true
                             )
                         }
-                        OutlinedTextField(
+                        InputField(
                             value = blackoutReason,
                             onValueChange = { blackoutReason = it },
-                            label = { Text(stringResource(R.string.reason_optional_2)) },
-                            placeholder = { Text(stringResource(R.string.e_g_weekly_maintenance)) },
+                            label = stringResource(R.string.reason_optional_2),
+                            placeholder = stringResource(R.string.e_g_weekly_maintenance),
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
@@ -1083,13 +1081,13 @@ private fun SearchablePickerDialog(
                     Text(title, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.titleMedium.fontSize)
                     IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close)) }
                 }
-                OutlinedTextField(
+                InputField(
                     value = query,
                     onValueChange = { query = it },
-                    placeholder = { Text(stringResource(R.string.search_or_type_new)) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    label = "",
+                    placeholder = stringResource(R.string.search_or_type_new),
+                    leadingIcon = Icons.Default.Search,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
                     singleLine = true
                 )
                 if (canAddCustom) {
@@ -1184,20 +1182,19 @@ private fun AttendeeTierEditor(
             ) {
                 Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedTextField(
+                        InputField(
                             value = tier.name,
                             onValueChange = { v -> update(index) { it.copy(name = v) } },
-                            label = { Text(stringResource(R.string.tier_name)) },
+                            label = stringResource(R.string.tier_name),
                             singleLine = true,
-                            modifier = Modifier.weight(1f),
-                            shape = MaterialTheme.shapes.medium
+                            modifier = Modifier.weight(1f)
                         )
                         IconButton(onClick = { onTiersChange(tiers.filterIndexed { i, _ -> i != index }) }) {
                             Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.remove_tier), tint = MaterialTheme.colorScheme.error)
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(
+                        InputField(
                             value = fromText,
                             onValueChange = { v ->
                                 // Empty is allowed while typing; the model keeps the last valid value.
@@ -1205,23 +1202,21 @@ private fun AttendeeTierEditor(
                                 fromText.toIntOrNull()?.takeIf { it >= 1 }?.let { n -> update(index) { it.copy(minAttendees = n) } }
                             },
                             isError = fromText.toIntOrNull()?.let { it < 1 } ?: true,
-                            label = { Text(stringResource(R.string.from)) },
+                            label = stringResource(R.string.from),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f),
-                            shape = MaterialTheme.shapes.medium
+                            modifier = Modifier.weight(1f)
                         )
-                        OutlinedTextField(
+                        InputField(
                             value = tier.maxAttendees?.toString() ?: "",
                             onValueChange = { v -> update(index) { it.copy(maxAttendees = v.filter(Char::isDigit).toIntOrNull()) } },
-                            label = { Text(stringResource(R.string.to)) },
-                            placeholder = { Text("∞") },
+                            label = stringResource(R.string.to),
+                            placeholder = "∞",
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f),
-                            shape = MaterialTheme.shapes.medium
+                            modifier = Modifier.weight(1f)
                         )
-                        OutlinedTextField(
+                        InputField(
                             value = priceText,
                             onValueChange = { v ->
                                 // Decimals allowed ("7.5"); at most one dot and two decimals.
@@ -1231,11 +1226,10 @@ private fun AttendeeTierEditor(
                                     update(index) { it.copy(pricePerAttendeeUsd = cleaned.toDoubleOrNull() ?: 0.0) }
                                 }
                             },
-                            label = { Text(stringResource(R.string.person)) },
+                            label = stringResource(R.string.person),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.weight(1.2f),
-                            shape = MaterialTheme.shapes.medium
+                            modifier = Modifier.weight(1.2f)
                         )
                     }
                     val max = tier.maxAttendees

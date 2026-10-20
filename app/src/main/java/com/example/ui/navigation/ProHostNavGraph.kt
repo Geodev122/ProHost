@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Celebration
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
@@ -314,11 +315,14 @@ fun ProHostAppRoot(
                         uiText(R.string.enter_the_email_address_the_sign_in_link_w),
                         style = androidx.compose.material3.MaterialTheme.typography.bodySmall
                     )
-                    androidx.compose.material3.OutlinedTextField(
+                    com.example.ui.components.InputField(
                         value = confirmEmail,
                         onValueChange = { confirmEmail = it.trim() },
-                        label = { androidx.compose.material3.Text(uiText(R.string.email)) },
-                        singleLine = true,
+                        label = uiText(R.string.email),
+                        leadingIcon = Icons.Default.Email,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Email
+                        ),
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                     )
                 }

@@ -241,10 +241,10 @@ fun ChangePriceSheet(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        OutlinedTextField(
+                        InputField(
                             value = priceText,
                             onValueChange = { v -> priceText = v.filter { it.isDigit() || it == '.' || it == ',' }.take(10) },
-                            label = { Text(stringResource(R.string.new_price_usdx, s.unit)) },
+                            label = stringResource(R.string.new_price_usdx, s.unit),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.fillMaxWidth()
