@@ -1219,4 +1219,6 @@
     <string name="ribbon_x_off">خصم %1$d%%</string>
     <string name="ribbon_best_value">الأفضل قيمة</string>
     <string name="ribbon_flexible">مرنة</string>
+    <string name="filter_any">الكل</string>
+    <string name="x_selected">%1$d محددة</string>
 </resources>

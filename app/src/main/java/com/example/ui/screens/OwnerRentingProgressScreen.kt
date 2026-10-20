@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.localizedLabel
 import com.example.ui.util.timeRange
 import com.example.ui.util.uiText
 import com.example.R
@@ -136,7 +137,7 @@ fun OwnerRentingProgressScreenContent(
             ((it - System.currentTimeMillis() + 86399999L) / (24 * 60 * 60 * 1000)).coerceAtLeast(1)
         }
         val daysLabel = if (daysLeft == 1L) uiText(R.string.t_1_day) else "$daysLeft days"
-        val planName = com.example.data.billing.PlayCatalog.planLabel(currentPlanId)
+        val planName = localizedLabel(com.example.data.billing.PlayCatalog.planLabel(currentPlanId))
         if (currentPlanId != null && daysLeft != null &&
             !com.example.data.billing.PlayCatalog.isLifetimeExpiry(ownerPackageExpiryMillis)) {
             if (daysLeft <= 7) {

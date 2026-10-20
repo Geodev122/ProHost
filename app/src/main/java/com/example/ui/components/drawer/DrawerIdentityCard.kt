@@ -267,7 +267,7 @@ private fun RoleTag3D(role: UserRole) {
         ) {
             Icon(look.icon, contentDescription = null, tint = look.text, modifier = Modifier.size(14.dp))
             Text(
-                text = look.label,
+                text = localizedLabel(look.label),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 1.sp,

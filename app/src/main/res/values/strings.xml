@@ -1218,4 +1218,6 @@
     <string name="ribbon_x_off">%1$d%% OFF</string>
     <string name="ribbon_best_value">BEST VALUE</string>
     <string name="ribbon_flexible">FLEXIBLE</string>
+    <string name="filter_any">Any</string>
+    <string name="x_selected">%1$d selected</string>
 </resources>

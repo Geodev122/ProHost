@@ -1,5 +1,6 @@
 package com.example.ui.components.drawer
 
+import com.example.ui.util.localizedLabel
 import com.example.ui.components.displayName
 import com.example.ui.util.uiText
 import com.example.R
@@ -109,7 +110,7 @@ fun SpecialistDrawerContent(
             .split(" ").take(2)
             .joinToString("") { it.firstOrNull()?.uppercaseChar()?.toString() ?: "" }
             .ifBlank { "P" }
-        val planName = currentUser?.ownerPackageId?.let { com.example.data.billing.PlayCatalog.planLabel(it) }
+        val planName = currentUser?.ownerPackageId?.let { localizedLabel(com.example.data.billing.PlayCatalog.planLabel(it)) }
         ProHostDrawerHeader(
             title = currentUser?.fullName ?: uiText(R.string.prohost_user),
             subtitle = if (planName != null) stringResource(R.string.plan_x, planName) else marketLabel(currentUser?.country),

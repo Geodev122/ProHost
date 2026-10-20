@@ -440,8 +440,8 @@ fun SpecialistProfileScreen(
                                         )
                                         ProMetricTile(
                                             title = stringResource(R.string.prohost_premium),
-                                            value = ownerActivePlanId?.let { com.example.data.billing.PlayCatalog.planBadge(it) } ?: uiText(R.string.no_plan),
-                                            subtitle = ownerActivePlanId?.let { com.example.data.billing.PlayCatalog.planLabel(it) } ?: uiText(R.string.no_active_subscription),
+                                            value = ownerActivePlanId?.let { localizedLabel(com.example.data.billing.PlayCatalog.planBadge(it)) } ?: uiText(R.string.no_plan),
+                                            subtitle = ownerActivePlanId?.let { localizedLabel(com.example.data.billing.PlayCatalog.planLabel(it)) } ?: uiText(R.string.no_active_subscription),
                                             icon = Icons.Default.Payment,
                                             iconTint = MaterialTheme.colorScheme.secondary,
                                             modifier = Modifier.weight(1f)
@@ -900,7 +900,7 @@ fun SpecialistProfileScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             ProSectionHeader(
                                 title = stringResource(R.string.prohost_premium),
-                                subtitle = user.ownerPackageId?.let { com.example.data.billing.PlayCatalog.planLabel(it) }
+                                subtitle = user.ownerPackageId?.let { localizedLabel(com.example.data.billing.PlayCatalog.planLabel(it)) }
                                     ?: uiText(R.string.not_subscribed),
                                 icon = Icons.Default.WorkspacePremium
                             )

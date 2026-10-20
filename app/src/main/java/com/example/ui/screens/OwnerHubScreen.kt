@@ -463,7 +463,7 @@ fun OwnerHubScreenContent(
                                         text = if (currentPlanId == null) {
                                             uiText(R.string.no_active_package)
                                         } else {
-                                            com.example.data.billing.PlayCatalog.planBadge(currentPlanId)
+                                            localizedLabel(com.example.data.billing.PlayCatalog.planBadge(currentPlanId))
                                         },
                                         color = MaterialTheme.colorScheme.onSecondary,
                                         style = MaterialTheme.typography.labelMedium,
@@ -495,11 +495,11 @@ fun OwnerHubScreenContent(
                                 text = if (currentPlanId == null) {
                                     uiText(R.string.no_active_package)
                                 } else if (com.example.data.billing.PlayCatalog.isLifetimeExpiry(ownerPackageExpiryMillis)) {
-                                    uiText(R.string.x_never_expires, com.example.data.billing.PlayCatalog.planLabel(currentPlanId))
+                                    uiText(R.string.x_never_expires, localizedLabel(com.example.data.billing.PlayCatalog.planLabel(currentPlanId)))
                                 } else if (daysRemaining != null) {
-                                    uiText(R.string.x_renews_in_x_days, com.example.data.billing.PlayCatalog.planLabel(currentPlanId), daysRemaining)
+                                    uiText(R.string.x_renews_in_x_days, localizedLabel(com.example.data.billing.PlayCatalog.planLabel(currentPlanId)), daysRemaining)
                                 } else {
-                                    com.example.data.billing.PlayCatalog.planLabel(currentPlanId)
+                                    localizedLabel(com.example.data.billing.PlayCatalog.planLabel(currentPlanId))
                                 },
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,

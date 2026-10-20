@@ -685,7 +685,7 @@ private fun PremiumHero(
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        if (currentPlanId != null) PlayCatalog.planLabel(currentPlanId) else stringResource(R.string.prohost_premium),
+                        if (currentPlanId != null) localizedLabel(PlayCatalog.planLabel(currentPlanId)) else stringResource(R.string.prohost_premium),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = on,

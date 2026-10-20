@@ -37,13 +37,13 @@ fun <T> MultiSelectDropdownField(
     optionLabel: (T) -> String,
     onSelectionChange: (Set<T>) -> Unit,
     modifier: Modifier = Modifier,
-    placeholder: String = "Any",
+    placeholder: String = stringResource(R.string.filter_any),
 ) {
     var expanded by remember { mutableStateOf(false) }
     val summary = when {
         selected.isEmpty() -> placeholder
         selected.size <= 2 -> options.filter { it in selected }.joinToString { optionLabel(it) }
-        else -> "${selected.size} selected"
+        else -> stringResource(R.string.x_selected, selected.size)
     }
     Box(modifier = modifier) {
         InputField(
