@@ -4,7 +4,9 @@ import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import com.example.ui.theme.Radius
+import com.example.ui.theme.Elevation
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -553,7 +555,7 @@ private fun ExploreControlSurface(
     Surface(
         shape = shape,
         color = if (floating) MaterialTheme.colorScheme.surface.copy(alpha = 0.94f) else MaterialTheme.colorScheme.surface,
-        shadowElevation = if (floating) 6.dp else 1.dp,
+        shadowElevation = if (floating) Elevation.level3 else Elevation.level1,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
         modifier = modifier,
         content = content
@@ -813,7 +815,7 @@ private fun DiscoveryFilterSheet(
                 shape = MaterialTheme.shapes.medium,
                 contentPadding = PaddingValues(vertical = 10.dp)
             ) {
-                Text("Show $resultCount Result${if (resultCount == 1) "" else "s"}")
+                Text(pluralStringResource(R.plurals.show_results, resultCount, resultCount))
             }
 
             Spacer(modifier = Modifier.navigationBarsPadding().height(12.dp))

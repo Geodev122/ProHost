@@ -211,7 +211,7 @@ fun LegalDocumentsMenu(onDismiss: () -> Unit) {
                         shape = MaterialTheme.shapes.medium,
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-                        elevation = CardDefaults.cardElevation(defaultElevation = Elevation.level2, pressedElevation = 0.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = Elevation.level2, pressedElevation = Elevation.level0),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(

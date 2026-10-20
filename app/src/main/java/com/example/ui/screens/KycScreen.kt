@@ -96,7 +96,7 @@ fun WhatsAppNumberSection(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         contentPadding = PaddingValues(20.dp),
-        elevation = 2.dp
+        elevation = Elevation.level2
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 16.dp)) {
             Surface(

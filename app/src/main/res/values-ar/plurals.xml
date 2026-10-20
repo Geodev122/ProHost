@@ -56,4 +56,12 @@
         <item quantity="many">%1$d طلبًا حسب نوع التأجير</item>
         <item quantity="other">%1$d طلب حسب نوع التأجير</item>
     </plurals>
+    <plurals name="show_results">
+        <item quantity="zero">لا توجد نتائج</item>
+        <item quantity="one">عرض نتيجة واحدة</item>
+        <item quantity="two">عرض نتيجتين</item>
+        <item quantity="few">عرض %1$d نتائج</item>
+        <item quantity="many">عرض %1$d نتيجة</item>
+        <item quantity="other">عرض %1$d نتيجة</item>
+    </plurals>
 </resources>

@@ -494,7 +494,7 @@ fun ProHostDrawerSheet(
         drawerShape = DrawerShape,
         // Plain white (no tonal tint) so the drawer matches the white pages and header.
         drawerContainerColor = MaterialTheme.colorScheme.surface,
-        drawerTonalElevation = 0.dp,
+        drawerTonalElevation = Elevation.level0,
         content = content
     )
 }

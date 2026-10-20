@@ -1208,4 +1208,8 @@
     <string name="save_draft_short">Save draft</string>
     <string name="get_x_off_x">Get %1$d%% off · %2$s</string>
     <string name="x_market">%1$s market</string>
+    <string name="full_badge">FULL</string>
+    <string name="start_x">Start: %1$s</string>
+    <string name="start_immediate">Immediate</string>
+    <string name="id_x">ID: %1$s</string>
 </resources>

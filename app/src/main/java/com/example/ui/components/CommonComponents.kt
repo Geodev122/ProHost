@@ -693,7 +693,7 @@ fun CustomButton(
                 ),
                 elevation = ButtonDefaults.buttonElevation(
                     defaultElevation = if (variant == CustomButtonVariant.PRIMARY) 2.dp else 0.dp,
-                    pressedElevation = 4.dp
+                    pressedElevation = Elevation.level3
                 ),
                 contentPadding = contentPadding
             ) {
@@ -1014,7 +1014,7 @@ fun WorkspaceCard(
         onClick = onClick,
         shape = MaterialTheme.shapes.large,
         contentPadding = PaddingValues(Spacing.lg),
-        elevation = 3.dp
+        elevation = Elevation.level2
     ) {
         // Boxed cover photo with favorite overlay icon & listing type tag
         Box(

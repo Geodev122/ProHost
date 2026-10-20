@@ -616,7 +616,7 @@ fun BookingReservationCard(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Start: ${booking.startDate.ifEmpty { "Immediate" }}",
+                                text = stringResource(R.string.start_x, booking.startDate.ifEmpty { stringResource(R.string.start_immediate) }),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

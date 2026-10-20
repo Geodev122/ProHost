@@ -320,7 +320,7 @@ fun LoginAuthScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
                 contentPadding = PaddingValues(20.dp),
-                elevation = 3.dp
+                elevation = Elevation.level2
             ) {
                 AuthStepHeader(
                     icon = Icons.Default.Email,
@@ -401,7 +401,7 @@ fun LoginAuthScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
                 contentPadding = PaddingValues(20.dp),
-                elevation = 3.dp
+                elevation = Elevation.level2
             ) {
                 AuthStepHeader(
                     icon = Icons.Default.MarkEmailRead,
@@ -502,7 +502,7 @@ fun LoginAuthScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
                 contentPadding = PaddingValues(20.dp),
-                elevation = 3.dp
+                elevation = Elevation.level2
             ) {
                 AuthStepHeader(
                     icon = Icons.Default.MarkEmailRead,
@@ -586,7 +586,7 @@ fun LoginAuthScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
                 contentPadding = PaddingValues(20.dp),
-                elevation = 3.dp
+                elevation = Elevation.level2
             ) {
                 AuthStepHeader(
                     icon = Icons.Default.AppRegistration,

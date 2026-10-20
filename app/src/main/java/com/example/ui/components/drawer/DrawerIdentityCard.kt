@@ -220,7 +220,7 @@ fun DrawerIdentityCard(
                     ) {
                         Icon(Icons.Default.Badge, contentDescription = null, tint = pro.onBrandHeader.copy(alpha = 0.8f), modifier = Modifier.size(14.dp))
                         Text(
-                            text = "ID: ${user?.publicCode ?: "—"}",
+                            text = stringResource(R.string.id_x, user?.publicCode ?: "—"),
                             style = MaterialTheme.typography.labelSmall,
                             color = pro.onBrandHeader.copy(alpha = 0.9f),
                             fontWeight = FontWeight.Medium,

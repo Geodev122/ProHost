@@ -263,7 +263,7 @@ internal fun AvailabilitySheet(
                                                 color = MaterialTheme.colorScheme.errorContainer,
                                                 shape = Radius.Xs
                                             ) {
-                                                Text("FULL", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold,
+                                                Text(stringResource(R.string.full_badge), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold,
                                                     color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                                             }
                                         } else {

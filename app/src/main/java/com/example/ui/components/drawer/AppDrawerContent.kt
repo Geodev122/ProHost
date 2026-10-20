@@ -191,7 +191,7 @@ fun SpecialistDrawerContent(
         // specialist reaches occasionally, not core daily workflow. Merged into one
         // "MORE" section (also now home to Contact Support, relocated from the
         // Profile screen) so the drawer reads as fewer, clearer groups.
-        ProHostDrawerSectionLabel(text = "MORE")
+        ProHostDrawerSectionLabel(text = stringResource(R.string.more).uppercase())
 
         // "Pending Requests" and "Payment Due Reminders" used to live here as their
         // own drawer shortcuts, routing to a pre-filtered view of My Bookings. My

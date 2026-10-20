@@ -1209,4 +1209,8 @@
     <string name="save_draft_short">حفظ مسودة</string>
     <string name="get_x_off_x">خصم %1$d%% · %2$s</string>
     <string name="x_market">سوق %1$s</string>
+    <string name="full_badge">ممتلئ</string>
+    <string name="start_x">البداية: %1$s</string>
+    <string name="start_immediate">فوراً</string>
+    <string name="id_x">المعرّف: %1$s</string>
 </resources>
