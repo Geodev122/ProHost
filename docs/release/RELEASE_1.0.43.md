@@ -21,6 +21,9 @@ The design audit (`docs/design/UI_AUDIT.md`, phases 0–3) in one release. App o
 - **Forms:** every text field is the shared `InputField` (same outline, label, colours in light/dark).
 - **Listing wizard** is a full-screen page with a three-step progress bar; Back goes to the previous step.
 - Error analytics report the same areas in Arabic as in English.
+- Arabic polish from the screenshot review: price units (/ساعة, /مناوبة, /يوم, /شهر, /شخص), day names, plan names
+  and role tags translated; time ranges stay left-to-right; Premium chips wrap instead of being cut off; with large
+  text a section badge moves under its subtitle.
 
 ## Files
 Artifact **`prohost-release-main-15`** (≈ 22 MB, kept until 2027-01-18):
