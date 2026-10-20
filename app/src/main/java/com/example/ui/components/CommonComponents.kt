@@ -974,7 +974,10 @@ fun WorkspaceCard(
     onToggleSave: (() -> Unit)? = null,
     onClick: () -> Unit,
     onWhatsAppClick: (() -> Unit)? = null,
-    onDetailsClick: (() -> Unit)? = null
+    onDetailsClick: (() -> Unit)? = null,
+    // "Availability" when the button opens the booking sheet; "Check Space" when it only opens the listing.
+    detailsLabel: String = "Check Space",
+    detailsIcon: ImageVector = Icons.Default.Visibility
 ) {
     val title = info.title
     val listingType = info.listingType
@@ -997,7 +1000,8 @@ fun WorkspaceCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(100.dp)
+                // The photo sells the space: a real 16:9 cover instead of a 100 dp strip.
+                .aspectRatio(16f / 9f)
                 .clip(MaterialTheme.shapes.medium)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
@@ -1088,7 +1092,7 @@ fun WorkspaceCard(
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f).padding(end = 8.dp)
             )
@@ -1220,10 +1224,10 @@ fun WorkspaceCard(
             ) {
                 if (onDetailsClick != null) {
                     CustomButton(
-                        text = "Check Space",
+                        text = detailsLabel,
                         onClick = onDetailsClick,
                         variant = CustomButtonVariant.OUTLINED,
-                        icon = Icons.Default.Visibility,
+                        icon = detailsIcon,
                         modifier = Modifier.weight(1f),
                         compact = true
                     )

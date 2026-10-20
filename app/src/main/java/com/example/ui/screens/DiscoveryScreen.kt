@@ -59,7 +59,9 @@ fun DiscoveryScreen(
     // Explore has no app bar: its floating header carries the logo next to the Map | List toggle.
     showBrand: Boolean = false,
     // Pro Host / Admin: a ☰ control in the header opens their drawer.
-    onOpenMenu: (() -> Unit)? = null
+    onOpenMenu: (() -> Unit)? = null,
+    // A card's Availability button: the listing opens with its availability sheet up.
+    onOpenAvailability: ((SpaceListing, String?) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val uiState by discoveryViewModel.uiState.collectAsState()
@@ -121,6 +123,17 @@ fun DiscoveryScreen(
         onMapCameraSaved = { discoveryViewModel.saveMapCamera(it) },
         showBrand = showBrand,
         onOpenMenu = onOpenMenu,
+        onOpenAvailability = onOpenAvailability?.let { open ->
+            { space: SpaceListing, subId: String? ->
+                com.example.analytics.AnalyticsTracker.selectItem(
+                    if (uiState.isMapViewActive) "explore_map" else "explore_list",
+                    space,
+                    space.subdivisions.firstOrNull { it.id == subId },
+                    uiState.filteredSpaces.indexOfFirst { it.id == space.id }.takeIf { it >= 0 }
+                )
+                open(space, subId)
+            }
+        },
         onMapGesture = { discoveryViewModel.setNavExpandedOnMap(false) }
     )
 }
@@ -171,6 +184,7 @@ fun DiscoveryScreenContent(
     onMapCameraSaved: (com.google.android.gms.maps.model.CameraPosition) -> Unit = {},
     showBrand: Boolean = false,
     onOpenMenu: (() -> Unit)? = null,
+    onOpenAvailability: ((SpaceListing, String?) -> Unit)? = null,
     onMapGesture: () -> Unit = {}
 ) {
     val bottomNavInset = LocalBottomNavInset.current
@@ -318,6 +332,7 @@ fun DiscoveryScreenContent(
                                 subdivision = sub,
                                 isSaved = savedSpaceIds.contains(space.id),
                                 onClick = { onSelectSpace(space, sub.id) },
+                                onAvailability = onOpenAvailability?.let { open -> { open(space, sub.id) } },
                                 onQuickWhatsApp = { onQuickWhatsApp(space, sub) },
                                 onToggleSave = { onToggleSavedSpace(space.id) }
                             )
@@ -326,6 +341,7 @@ fun DiscoveryScreenContent(
                                 space = space,
                                 isSaved = savedSpaceIds.contains(space.id),
                                 onClick = { onSelectSpace(space, null) },
+                                onAvailability = onOpenAvailability?.let { open -> { open(space, null) } },
                                 onQuickWhatsApp = { onQuickWhatsApp(space, null) },
                                 onToggleSave = { onToggleSavedSpace(space.id) }
                             )
@@ -629,7 +645,7 @@ private fun ExploreSearchField(
                 if (draft.isEmpty()) {
                     Text(
                         "Name, area, specialty, room type…",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -640,7 +656,7 @@ private fun ExploreSearchField(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = { submit() }),
-                    textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                     cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary)
                 )
             }
@@ -809,6 +825,9 @@ fun SubdivisionDiscoveryCard(
     onClick: () -> Unit,
     onQuickWhatsApp: () -> Unit,
     onToggleSave: (() -> Unit)? = null
+,
+    // Opens the listing with its availability sheet up; without it the button just opens the listing.
+    onAvailability: (() -> Unit)? = null
 ) {
     // This card is one division, so it shows that division's own price and photo.
     val lowestPrice = com.example.ui.util.SpaceCalculationUtils.findLowestPriceForSubdivision(subdivision)
@@ -828,8 +847,10 @@ fun SubdivisionDiscoveryCard(
         isSaved = isSaved,
         onToggleSave = onToggleSave,
         onClick = onClick,
-        onDetailsClick = onClick,
-        onWhatsAppClick = onQuickWhatsApp
+        onDetailsClick = onAvailability ?: onClick,
+        onWhatsAppClick = onQuickWhatsApp,
+        detailsLabel = if (onAvailability != null) "Availability" else "Check Space",
+        detailsIcon = if (onAvailability != null) Icons.Default.EventAvailable else Icons.Default.Visibility
     )
 }
 
@@ -840,6 +861,9 @@ fun SpaceListingCard(
     onQuickWhatsApp: () -> Unit,
     isSaved: Boolean = false,
     onToggleSave: (() -> Unit)? = null
+,
+    // Opens the listing with its availability sheet up; without it the button just opens the listing.
+    onAvailability: (() -> Unit)? = null
 ) {
     val formulaTypes = mutableSetOf<String>()
     formulaTypes.add(space.pricing.strategyType.displayName)
@@ -865,7 +889,9 @@ fun SpaceListingCard(
         isSaved = isSaved,
         onToggleSave = onToggleSave,
         onClick = onClick,
-        onDetailsClick = onClick,
-        onWhatsAppClick = onQuickWhatsApp
+        onDetailsClick = onAvailability ?: onClick,
+        onWhatsAppClick = onQuickWhatsApp,
+        detailsLabel = if (onAvailability != null) "Availability" else "Check Space",
+        detailsIcon = if (onAvailability != null) Icons.Default.EventAvailable else Icons.Default.Visibility
     )
 }

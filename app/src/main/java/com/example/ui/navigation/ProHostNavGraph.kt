@@ -767,7 +767,13 @@ fun ProHostAppRoot(
                                         // No app bar on Explore: its floating header carries the logo beside
                                         // the Map | List toggle, and ☰ for roles with a drawer.
                                         showBrand = true,
-                                        onOpenMenu = if (isSpecialistShell) null else ({ scope.launch { drawerState.open() }; Unit })
+                                        onOpenMenu = if (isSpecialistShell) null else ({ scope.launch { drawerState.open() }; Unit }),
+                                        onOpenAvailability = { space, subdivisionId ->
+                                            detailedSpaceSource = "explore"
+                                            detailedSpace = space
+                                            detailedSpaceSubdivisionId = subdivisionId
+                                            detailedSpaceOpenAvailability = true
+                                        }
                                     )
                                     AppNavTab.ManageListings.id -> OwnerHubScreen(
                                         viewModel = viewModel,
@@ -814,7 +820,13 @@ fun ProHostAppRoot(
                                         // No app bar on Explore: its floating header carries the logo beside
                                         // the Map | List toggle, and ☰ for roles with a drawer.
                                         showBrand = true,
-                                        onOpenMenu = if (isSpecialistShell) null else ({ scope.launch { drawerState.open() }; Unit })
+                                        onOpenMenu = if (isSpecialistShell) null else ({ scope.launch { drawerState.open() }; Unit }),
+                                        onOpenAvailability = { space, subdivisionId ->
+                                            detailedSpaceSource = "explore"
+                                            detailedSpace = space
+                                            detailedSpaceSubdivisionId = subdivisionId
+                                            detailedSpaceOpenAvailability = true
+                                        }
                                     )
                                 }
                                 }
