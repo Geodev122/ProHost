@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.activity.compose.setContent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -83,7 +84,12 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             // those overlays run on a manual clock instead of waiting for idle.
             val manualClock = screen in FIELD_DIALOGS
             if (manualClock) compose.mainClock.autoAdvance = false
-            compose.setContent { Variant(variant) { Screen(screen, vm) } }
+            if (manualClock) {
+                // The rule's setContent waits for idle, which a field in a Dialog never reaches: set it on the activity.
+                compose.runOnUiThread { compose.activity.setContent { Variant(variant) { Screen(screen, vm) } } }
+            } else {
+                compose.setContent { Variant(variant) { Screen(screen, vm) } }
+            }
             if (manualClock) {
                 compose.mainClock.advanceTimeBy(1_000)
             } else {

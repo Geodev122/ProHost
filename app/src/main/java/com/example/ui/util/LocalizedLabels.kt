@@ -40,6 +40,8 @@ private val AR_LABELS: Map<String, String> = mapOf(
     "Afternoon" to "بعد الظهر",
     "Evening" to "مسائية",
     "Night" to "ليلية",
+    "Morning shift" to "المناوبة الصباحية", "Afternoon shift" to "مناوبة بعد الظهر", "Evening shift" to "المناوبة المسائية",
+    "Night shift" to "المناوبة الليلية", "Days" to "الأيام",
     "Mid" to "منتصف اليوم",
     "Mount Lebanon" to "جبل لبنان",
     "Mutual Agreement Between Parties" to "اتفاق متبادل بين الطرفين",
