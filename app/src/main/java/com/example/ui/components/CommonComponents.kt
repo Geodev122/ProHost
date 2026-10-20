@@ -230,11 +230,12 @@ fun ProSectionHeader(
                 Spacer(modifier = Modifier.width(10.dp))
             }
             Column {
+                // Two lines before ellipsis: next to a trailing badge one line cut titles to "Incoming Req…".
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 if (!subtitle.isNullOrBlank()) {

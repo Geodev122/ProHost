@@ -14,8 +14,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -80,11 +78,20 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         try {
             val vm = signedInViewModel(if (screen in HOST_SCREENS) UserRole.PRO_HOST else UserRole.SPECIALIST)
             applyVariantToActivity(variant)
+            // A text field inside a Dialog window never reports idle under Robolectric (Material's own field included):
+            // those overlays run on a manual clock instead of waiting for idle.
+            val manualClock = screen in FIELD_DIALOGS
+            if (manualClock) compose.mainClock.autoAdvance = false
             compose.setContent { Variant(variant) { Screen(screen, vm) } }
-            compose.waitForIdle()
-            Thread.sleep(400) // let async image decoding land before the capture
-            compose.waitForIdle()
-            TAPS[screen]?.forEach { tap(it) }
+            if (manualClock) {
+                compose.mainClock.advanceTimeBy(1_000)
+            } else {
+                compose.waitForIdle()
+                Thread.sleep(400) // let async image decoding land before the capture
+                compose.waitForIdle()
+            }
+            TAPS[screen]?.forEach { tap(it, manualClock) }
+            if (manualClock) compose.mainClock.advanceTimeBy(1_000)
             if (screen in OVERLAYS) captureWithWindows("$OUT_DIR/$name.png")
             else compose.onRoot().captureRoboImage(filePath = "$OUT_DIR/$name.png")
         } catch (e: Throwable) {
@@ -96,14 +103,31 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
     @OptIn(ExperimentalRoborazziApi::class)
     private fun captureWithWindows(path: String) = captureScreenRoboImage(filePath = path)
 
-    /** Opens an overlay the way a person does: scrolls to the control with this text and taps it. */
-    private fun tap(res: Int) {
-        val matcher = hasText(com.example.ui.util.UiText.get(res), substring = true)
+    /** Opens an overlay the way a person does: scrolls to the control (its text or icon description) and taps it. */
+    private fun tap(target: Tap, manualClock: Boolean = false) {
+        val matcher = when (target) {
+            is Tap.Res -> hasText(com.example.ui.util.UiText.get(target.id), substring = true)
+            is Tap.Literal -> hasText(target.text, substring = true)
+            is Tap.Label -> hasText(com.example.ui.util.localizedLabel(target.english), substring = true)
+            is Tap.Desc -> androidx.compose.ui.test.hasContentDescription(com.example.ui.util.UiText.get(target.id))
+        }
         runCatching { compose.onAllNodes(hasScrollToNodeAction()).onFirst().performScrollToNode(matcher) }
         compose.onAllNodes(matcher, useUnmergedTree = true).onFirst().performClick()
-        compose.waitForIdle()
-        Thread.sleep(300)
-        compose.waitForIdle()
+        if (manualClock) {
+            compose.mainClock.advanceTimeBy(800)
+        } else {
+            compose.waitForIdle()
+            Thread.sleep(300)
+            compose.waitForIdle()
+        }
+    }
+
+    sealed interface Tap {
+        data class Res(val id: Int) : Tap
+        data class Literal(val text: String) : Tap
+        /** A data-layer English label, shown translated in the Arabic variant. */
+        data class Label(val english: String) : Tap
+        data class Desc(val id: Int) : Tap
     }
 
     /**
@@ -233,32 +257,20 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             "listing_wizard_2", "listing_wizard_3" ->
                 CreateListingDialog(currentUser = user, onDismiss = {}, onListingCreated = {}, existingDraft = mockSpace1)
             "listing_verification" -> ListingVerificationDialog(space = mockSpace1, viewModel = vm, onDismiss = {})
-            "probe_dialog_input" -> ProbeDialog(lazy = false, raw = false)
-            "probe_dialog_raw" -> ProbeDialog(lazy = false, raw = true)
-            "probe_dialog_lazy_input" -> ProbeDialog(lazy = true, raw = false)
-            "probe_dialog_lazy_raw" -> ProbeDialog(lazy = true, raw = true)
-            "probe_dialog_lazy" -> ProbeDialog(lazy = true, raw = null)
-        }
-    }
-
-    /** Minimal dialogs isolating what keeps a dialog from settling (text field kind × a lazy list). */
-    @Composable
-    private fun ProbeDialog(lazy: Boolean, raw: Boolean?) {
-        androidx.compose.ui.window.Dialog(onDismissRequest = {}) {
-            androidx.compose.material3.Card {
-                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (lazy) {
-                        androidx.compose.foundation.lazy.LazyColumn(Modifier.heightIn(max = 220.dp)) {
-                            items(8) { androidx.compose.material3.Text("Row $it", Modifier.padding(8.dp)) }
-                        }
-                    }
-                    when (raw) {
-                        true -> androidx.compose.material3.OutlinedTextField(value = "", onValueChange = {}, label = { androidx.compose.material3.Text("Raw") })
-                        false -> InputField(value = "", onValueChange = {}, label = "InputField")
-                        null -> Unit
-                    }
-                }
-            }
+            "location_prompt" -> SystemStylePermissionDialog(
+                icon = androidx.compose.material.icons.Icons.Default.LocationOn,
+                title = permissionTitle(com.example.ui.util.uiText(R.string.access_this_device_s_location)),
+                message = androidx.compose.ui.res.stringResource(R.string.used_only_to_centre_the_map_on_where_you_a),
+                onAllow = {}, onDeny = {}
+            )
+            "delete_listing" -> OwnerHubScreen(viewModel = vm, onSelectSpace = {})
+            "share_menu" -> SpaceDetailsScreenContent(
+                space = mockSpace1, viewModel = vm, acceptedBookings = emptyList(),
+                myRequestsForThisSpace = emptyList(), selectedFormula = mockFormula1,
+                currentUserRole = UserRole.SPECIALIST, onSelectFormula = {}, onWhatsAppClick = {},
+                onShareClick = {}, onBack = {}
+            )
+            "change_price_slots", "change_price_new" -> ChangePriceSheet(viewModel = vm, onDismiss = {}, initialSpaceId = mockSpace1.id)
         }
     }
 
@@ -325,20 +337,28 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             "splash", "login_email", "registration", "filters", "availability_sheet", "request_sent", "requirements",
             "requirements_host", "rebook", "edit_booking", "cancel_booking", "country_picker", "legal_documents", "notifications",
             "analytics_consent", "delete_account", "redeem_code", "reject_request", "request_detail", "change_price",
-            "listing_wizard_1", "listing_wizard_2", "listing_wizard_3", "listing_verification",
-            "probe_dialog_input", "probe_dialog_raw", "probe_dialog_lazy_input", "probe_dialog_lazy_raw", "probe_dialog_lazy"
+            "listing_wizard_1", "listing_wizard_2", "listing_wizard_3", "listing_verification", "location_prompt",
+            "delete_listing", "share_menu", "change_price_slots", "change_price_new"
         )
+        /** Dialogs holding a text field: rendered on a manual clock (see capture()). */
+        val FIELD_DIALOGS = setOf("cancel_booking", "country_picker", "reject_request")
         /** Overlays opened by tapping a control on their screen (string resources of the controls, in order). */
-        val TAPS = mapOf(
-            "delete_account" to listOf(R.string.delete_account),
-            "redeem_code" to listOf(R.string.redeem_code),
-            "reject_request" to listOf(R.string.reject),
-            "listing_wizard_2" to listOf(R.string.next),
-            "listing_wizard_3" to listOf(R.string.next, R.string.next)
+        val TAPS: Map<String, List<Tap>> = mapOf(
+            "delete_account" to listOf(Tap.Res(R.string.delete_account)),
+            "redeem_code" to listOf(Tap.Res(R.string.redeem_code)),
+            // The list opens the request's sheet; Reject there asks for an optional reason.
+            "reject_request" to listOf(Tap.Literal(mockBooking2.spaceTitle), Tap.Res(R.string.reject)),
+            "listing_wizard_2" to listOf(Tap.Res(R.string.next)),
+            "listing_wizard_3" to listOf(Tap.Res(R.string.next), Tap.Res(R.string.next)),
+            "delete_listing" to listOf(Tap.Desc(R.string.delete_listing_2)),
+            "share_menu" to listOf(Tap.Desc(R.string.share)),
+            "change_price_slots" to listOf(Tap.Literal(mockSpace1.title)),
+            "change_price_new" to listOf(Tap.Literal(mockSpace1.title), Tap.Label("Morning"))
         )
         val HOST_SCREENS = setOf(
             "renting_requests", "owner_analytics", "manage_listing", "requirements_host", "redeem_code", "reject_request",
-            "request_detail", "change_price", "listing_wizard_1", "listing_wizard_2", "listing_wizard_3", "listing_verification"
+            "request_detail", "change_price", "listing_wizard_1", "listing_wizard_2", "listing_wizard_3", "listing_verification",
+            "delete_listing", "change_price_slots", "change_price_new"
         )
         val VARIANTS = listOf("light", "dark", "font130", "rtl", "ar")
 

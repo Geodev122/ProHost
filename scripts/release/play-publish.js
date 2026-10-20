@@ -92,8 +92,15 @@ async function publish(track, aab, notesFile, fraction, mapping, symbols) {
     const listings = (await call(c, { url: `${API}/edits/${edit.id}/listings` })).listings || [];
     const details = await call(c, { url: `${API}/edits/${edit.id}/details` });
     const langs = new Set([details.defaultLanguage, ...listings.map((l) => l.language)]);
-    const releaseNotes = notes.filter((n) => langs.has(n.language));
-    const skipped = notes.filter((n) => !langs.has(n.language)).map((n) => n.language);
+    // A listing language without its exact note takes the note of the same base language (en-GB ← en-US).
+    const byLang = new Map(notes.map((n) => [n.language, n]));
+    const releaseNotes = [...langs].map((lang) => {
+      const exact = byLang.get(lang);
+      const base = notes.find((n) => n.language.split("-")[0] === lang.split("-")[0]);
+      return exact || base ? { language: lang, text: (exact || base).text } : null;
+    }).filter(Boolean);
+    const used = new Set(releaseNotes.map((n) => n.language.split("-")[0]));
+    const skipped = notes.filter((n) => !used.has(n.language.split("-")[0])).map((n) => n.language);
     if (!releaseNotes.length) throw new Error(`none of the notes' languages (${notes.map((n) => n.language)}) is in the listing (${[...langs]})`);
 
     // Play refuses a version code it has seen before ("already been used"): bump versionCode for a new upload.
