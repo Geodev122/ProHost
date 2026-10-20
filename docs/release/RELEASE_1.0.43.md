@@ -38,9 +38,9 @@ https://github.com/Geodev122/ProHost/actions/runs/39360632109.
 
 ## Release details
 - Release name `1.0.43 (43)`; notes: `docs/release/1.0.43-notes.txt` (8 languages, each ≤ 500 characters).
-- Staged rollout at 20%. Watch Crashlytics and Android vitals for 48 h, then go to 100%.
+- Full rollout (100%, owner's call). Watch Crashlytics and Android vitals for 48 h; halt from Play Console if needed.
 
-## Check before widening the rollout
+## Check after release
 - [ ] Phone language Arabic: sign-in, Explore (map + list), a listing, Availability sheet, My Rentals, Profile,
       Premium read right-to-left with no clipped text; prices and codes stay in Western digits.
 - [ ] Profile › Language (Android 13+) switches between English and Arabic without a restart loop.
