@@ -27,7 +27,7 @@ jobs:
   screenshots:
     name: Render design screenshots
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 75
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

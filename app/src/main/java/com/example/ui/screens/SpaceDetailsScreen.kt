@@ -1020,42 +1020,18 @@ fun SpaceDetailsScreenContent(
                 else android.view.HapticFeedbackConstants.CONTEXT_CLICK
             )
         }
-        ProHostBottomSheet(onDismissRequest = { sentRequest = null }) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = Spacing.lg)
-                    .padding(bottom = Spacing.xl),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md)
-            ) {
-                ProSectionHeader(
-                    title = stringResource(R.string.request_sent),
-                    subtitle = stringResource(R.string.the_host_has_been_notified_you_ll_get_a_pu),
-                    icon = Icons.Default.CheckCircle
-                )
-                ProPrimaryButton(
-                    text = stringResource(R.string.view_request),
-                    onClick = {
-                        sentRequest = null
-                        onViewRequest(request.id)
-                    },
-                    icon = Icons.AutoMirrored.Filled.ListAlt,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                if (liveSpace.ownerPhone.isNotBlank()) {
-                    ProOutlinedButton(
-                        text = stringResource(R.string.message_host_on_whatsapp),
-                        onClick = {
-                            sentRequest = null
-                            viewModel.launchWhatsAppInquiry(context, liveSpace, request.formula, request)
-                        },
-                        icon = Icons.AutoMirrored.Filled.Chat,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+        RequestSentSheet(
+            hasWhatsApp = liveSpace.ownerPhone.isNotBlank(),
+            onDismiss = { sentRequest = null },
+            onViewRequest = {
+                sentRequest = null
+                onViewRequest(request.id)
+            },
+            onWhatsApp = {
+                sentRequest = null
+                viewModel.launchWhatsAppInquiry(context, liveSpace, request.formula, request)
             }
-        }
+        )
     }
 
     // Email Inquiry Dialog
@@ -1073,6 +1049,41 @@ fun SpaceDetailsScreenContent(
         }
     }
 
+}
+
+/** "Request sent": the two next steps — see it in My Rentals, or message the host on WhatsApp. */
+@Composable
+internal fun RequestSentSheet(hasWhatsApp: Boolean, onDismiss: () -> Unit, onViewRequest: () -> Unit, onWhatsApp: () -> Unit) {
+    ProHostBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = Spacing.lg)
+                .padding(bottom = Spacing.xl),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        ) {
+            ProSectionHeader(
+                title = stringResource(R.string.request_sent),
+                subtitle = stringResource(R.string.the_host_has_been_notified_you_ll_get_a_pu),
+                icon = Icons.Default.CheckCircle
+            )
+            ProPrimaryButton(
+                text = stringResource(R.string.view_request),
+                onClick = onViewRequest,
+                icon = Icons.AutoMirrored.Filled.ListAlt,
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (hasWhatsApp) {
+                ProOutlinedButton(
+                    text = stringResource(R.string.message_host_on_whatsapp),
+                    onClick = onWhatsApp,
+                    icon = Icons.AutoMirrored.Filled.Chat,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
 }
 
 /** A frosted white circular button over the hero photo (readable on any image). */

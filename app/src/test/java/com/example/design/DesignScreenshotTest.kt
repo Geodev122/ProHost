@@ -28,7 +28,21 @@ import com.example.ui.preview.*
 import com.example.ui.screens.*
 import com.example.ui.theme.ProHostTheme
 import com.example.ui.viewmodel.ProHostViewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
+import com.example.R
+import com.example.data.model.COUNTRIES
+import com.example.ui.components.*
+import com.example.ui.components.dialogs.DrawerDialogsHandler
+import com.example.ui.viewmodel.AuthViewModel
+import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.captureScreenRoboImage
 import org.junit.Assume
 import org.junit.Rule
 import org.junit.Test
@@ -40,7 +54,8 @@ import kotlinx.coroutines.runBlocking
 import java.io.File
 
 /**
- * Design review screenshots: key screens × light / dark / font scale 1.3 / RTL, for checking design changes
+ * Design review screenshots: key screens, every sheet / dialog / form (OVERLAYS, captured with their own windows) ×
+ * light / dark / font scale 1.3 / RTL / Arabic, for checking design changes
  * (docs/design/UI_AUDIT.md) before and after. Runs only under `recordRoborazziDebug` (workflow "Design
  * Screenshots"); the normal unit-test run skips it, so it never gates CI. A screen that can't render here
  * writes `<name>.error.txt` instead of failing.
@@ -63,10 +78,26 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             compose.waitForIdle()
             Thread.sleep(400) // let async image decoding land before the capture
             compose.waitForIdle()
-            compose.onRoot().captureRoboImage(filePath = "$OUT_DIR/$name.png")
+            TAPS[screen]?.forEach { tap(it) }
+            if (screen in OVERLAYS) captureWithWindows("$OUT_DIR/$name.png")
+            else compose.onRoot().captureRoboImage(filePath = "$OUT_DIR/$name.png")
         } catch (e: Throwable) {
             File(out, "$name.error.txt").writeText(e.stackTraceToString())
         }
+    }
+
+    /** Dialogs and sheets live in their own windows: capture the whole screen, not just the activity's root. */
+    @OptIn(ExperimentalRoborazziApi::class)
+    private fun captureWithWindows(path: String) = captureScreenRoboImage(filePath = path)
+
+    /** Opens an overlay the way a person does: scrolls to the control with this text and taps it. */
+    private fun tap(res: Int) {
+        val matcher = hasText(com.example.ui.util.UiText.get(res), substring = true)
+        runCatching { compose.onAllNodes(hasScrollToNodeAction()).onFirst().performScrollToNode(matcher) }
+        compose.onAllNodes(matcher, useUnmergedTree = true).onFirst().performClick()
+        compose.waitForIdle()
+        Thread.sleep(300)
+        compose.waitForIdle()
     }
 
     @Composable
@@ -81,7 +112,8 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         }
         val baseContext = androidx.compose.ui.platform.LocalContext.current
         val registryOwner = androidx.activity.compose.LocalActivityResultRegistryOwner.current
-        val context = if (variant == "ar") baseContext.createConfigurationContext(config) else baseContext
+        // Dark and Arabic get a real configuration context, so -night / -ar resources (splash art, strings) resolve too.
+        val context = if (variant == "ar" || variant == "dark") baseContext.createConfigurationContext(config) else baseContext
         com.example.ui.util.UiText.init(context.resources)
         val density = LocalDensity.current
         CompositionLocalProvider(
@@ -100,7 +132,8 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         val repository = hermeticRepository()
         repository.replaceSpacesForTest(listOf(mockSpace1, mockSpace2, mockSpace3))
         runBlocking {
-            repository.login(uid = "uid-design", email = "design@pro-host.tech", verifiedRole = role)
+            // The host owns the mock listings (OWNER-01), so host sheets (Change price, verification) have data.
+            repository.login(uid = if (role == UserRole.PRO_HOST) "OWNER-01" else "uid-design", email = "design@pro-host.tech", verifiedRole = role)
             repository.toggleSavedSpace(mockSpace1.id)
         }
         return ProHostViewModel(repository)
@@ -134,9 +167,74 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
                     "premium_plans" -> PremiumPlans()
                     "whatsapp_number" -> KycScreen(currentPhone = "", onSave = { null }, onKycComplete = {})
                     "manage_listing" -> ManageListingScreen(space = mockSpace1, viewModel = vm, onBack = {})
+                    else -> Overlay(screen, vm)
                 }
             }
         }
+    }
+
+    /** Every sheet, dialog and form, opened directly or (TAPS) through the screen that owns it. */
+    @Composable
+    private fun Overlay(screen: String, vm: ProHostViewModel) {
+        val user by vm.currentUser.collectAsState()
+        when (screen) {
+            "splash" -> SplashScreen(onSplashCompleted = {})
+            "login_email" -> LoginAuthScreen(onLoginSuccess = {}, authViewModel = AuthViewModel(vm.repository))
+            "registration" -> LoginAuthScreen(onLoginSuccess = {}, resumeAtRegistration = true, authViewModel = AuthViewModel(vm.repository))
+            "filters" -> ExploreWithFilters()
+            "availability_sheet" -> SpaceDetailsScreenContent(
+                space = mockSpace1, viewModel = vm, acceptedBookings = emptyList(),
+                myRequestsForThisSpace = emptyList(), selectedFormula = mockFormula1,
+                currentUserRole = UserRole.SPECIALIST, onSelectFormula = {}, onWhatsAppClick = {},
+                onShareClick = {}, openAvailability = true, onBack = {}
+            )
+            "request_sent" -> RequestSentSheet(hasWhatsApp = true, onDismiss = {}, onViewRequest = {}, onWhatsApp = {})
+            "requirements" -> user?.let { RequirementsSheet(user = it, viewModel = vm, onDismiss = {}, onReady = {}) }
+            "requirements_host" -> user?.let { RequirementsSheet(user = it, viewModel = vm, onDismiss = {}, onReady = {}, requireAddress = true) }
+            "rebook" -> RebookDialog(space = mockSpace1, initialFormula = mockFormula1, viewModel = vm, onDismiss = {}, onRequestSubmitted = {})
+            "edit_booking" -> EditBookingDialog(space = mockSpace1, initialFormula = mockFormula1, replacesBookingId = mockBooking1.id,
+                viewModel = vm, onDismiss = {}, onRequestSubmitted = {})
+            "cancel_booking" -> CancelAcceptedBookingDialog(spaceTitle = mockSpace1.title, partyLabel = "host", onDismiss = {}, onConfirm = { _, _ -> })
+            "country_picker" -> CountryPickerDialog(selected = COUNTRIES.first(), onSelect = {}, onDismiss = {})
+            "legal_documents" -> DrawerDialogsHandler(dialogId = "legal_documents", viewModel = vm, onDismiss = {})
+            "notifications" -> DrawerDialogsHandler(dialogId = "fcm_alerts", viewModel = vm, onDismiss = {})
+            "analytics_consent" -> AnalyticsConsentDialog()
+            "delete_account" -> SpecialistProfileScreen(viewModel = vm)
+            "redeem_code" -> OwnerSubscriptionsScreen(viewModel = vm)
+            "reject_request" -> OwnerRentalRequestsScreenContent(
+                incomingRequests = listOf(mockBooking2, mockBooking1), spaces = listOf(mockSpace1, mockSpace2), viewModel = vm
+            )
+            "request_detail" -> OwnerRequestDetailSheet(request = mockBooking2, onDismiss = {}, onAccept = {}, onReject = {}, onWhatsApp = {}, onChangePrice = {})
+            "change_price" -> ChangePriceSheet(viewModel = vm, onDismiss = {}, initialSpaceId = mockSpace1.id)
+            "listing_wizard_1" -> CreateListingDialog(currentUser = user, onDismiss = {}, onListingCreated = {})
+            "listing_wizard_2", "listing_wizard_3" ->
+                CreateListingDialog(currentUser = user, onDismiss = {}, onListingCreated = {}, existingDraft = mockSpace1)
+            "listing_verification" -> ListingVerificationDialog(space = mockSpace1, viewModel = vm, onDismiss = {})
+        }
+    }
+
+    /** Explore list with the filter sheet open (same data as the explore_list preview). */
+    @Composable
+    private fun ExploreWithFilters() {
+        DiscoveryScreenContent(
+            spaces = listOf(mockSpace1, mockSpace2, mockSpace3),
+            filterState = com.example.ui.state.DiscoveryFilterState(),
+            savedSpaceIds = listOf(mockSpace1.id),
+            isMapView = false,
+            showFilterSheet = true,
+            onSearchQueryChange = {},
+            onToggleMapView = {},
+            onSetFilterSheetVisible = {},
+            onSelectCategories = {},
+            onSelectDivisionTypes = {},
+            onSelectStrategies = {},
+            onPriceRangeChange = {},
+            onToggleVerifiedOnly = {},
+            onToggleSavedSpace = {},
+            onResetFilters = {},
+            onSelectSpace = { _, _ -> },
+            onQuickWhatsApp = { _, _ -> }
+        )
     }
 
     /** Both plan tiles + the explainer with Play-shaped offers (Play itself isn't reachable in a unit test). */
@@ -173,11 +271,29 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             "explore_list", "explore_map", "space_details", "saved", "my_rentals", "profile",
             "premium", "premium_plans", "whatsapp_number", "owner_hub", "manage_listing", "renting_requests", "renting_progress", "owner_analytics", "sign_in"
         )
-        val HOST_SCREENS = setOf("renting_requests", "owner_analytics", "manage_listing")
+        /** Sheets, dialogs and forms (captured with their windows). */
+        val OVERLAYS = listOf(
+            "splash", "login_email", "registration", "filters", "availability_sheet", "request_sent", "requirements",
+            "requirements_host", "rebook", "edit_booking", "cancel_booking", "country_picker", "legal_documents", "notifications",
+            "analytics_consent", "delete_account", "redeem_code", "reject_request", "request_detail", "change_price",
+            "listing_wizard_1", "listing_wizard_2", "listing_wizard_3", "listing_verification"
+        )
+        /** Overlays opened by tapping a control on their screen (string resources of the controls, in order). */
+        val TAPS = mapOf(
+            "delete_account" to listOf(R.string.delete_account),
+            "redeem_code" to listOf(R.string.redeem_code),
+            "reject_request" to listOf(R.string.reject),
+            "listing_wizard_2" to listOf(R.string.next),
+            "listing_wizard_3" to listOf(R.string.next, R.string.next)
+        )
+        val HOST_SCREENS = setOf(
+            "renting_requests", "owner_analytics", "manage_listing", "requirements_host", "redeem_code", "reject_request",
+            "request_detail", "change_price", "listing_wizard_1", "listing_wizard_2", "listing_wizard_3", "listing_verification"
+        )
         val VARIANTS = listOf("light", "dark", "font130", "rtl", "ar")
 
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0}_{1}")
-        fun params(): List<Array<Any>> = SCREENS.flatMap { s -> VARIANTS.map { v -> arrayOf<Any>(s, v) } }
+        fun params(): List<Array<Any>> = (SCREENS + OVERLAYS).flatMap { s -> VARIANTS.map { v -> arrayOf<Any>(s, v) } }
     }
 }
