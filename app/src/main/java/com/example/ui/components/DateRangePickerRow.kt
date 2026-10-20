@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
@@ -59,12 +60,12 @@ fun DateRangePickerRow(
     ) {
         AssistChip(
             onClick = { showFromPicker = true },
-            label = { Text(fromMillis?.let { "From: ${sdfShort.format(Date(it))}" } ?: "From: Any", style = MaterialTheme.typography.labelSmall) },
+            label = { Text(fromMillis?.let { uiText(R.string.from_x, sdfShort.format(Date(it))) } ?: uiText(R.string.from_any), style = MaterialTheme.typography.labelSmall) },
             leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
         )
         AssistChip(
             onClick = { showToPicker = true },
-            label = { Text(toMillis?.let { "To: ${sdfShort.format(Date(it))}" } ?: "To: Any", style = MaterialTheme.typography.labelSmall) },
+            label = { Text(toMillis?.let { uiText(R.string.to_x, sdfShort.format(Date(it))) } ?: uiText(R.string.to_any), style = MaterialTheme.typography.labelSmall) },
             leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
         )
         if (fromMillis != null || toMillis != null) {

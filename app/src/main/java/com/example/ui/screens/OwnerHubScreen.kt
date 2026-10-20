@@ -1,5 +1,6 @@
 ﻿package com.example.ui.screens
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.util.UiMessages
@@ -265,8 +266,8 @@ fun OwnerHubScreen(
                         is ListingCreateResult.NoActivePackage -> {
                             redirectBlockedListingToPayment(
                                 newListing,
-                                "Saved as a Draft — you need an active subscription to publish. It publishes automatically once you subscribe.",
-                                "Couldn't save this as a Draft — check your connection and try Publish again once you've subscribed."
+                                uiText(R.string.saved_as_a_draft_you_need_an_active_subscr),
+                                uiText(R.string.couldn_t_save_this_as_a_draft_check_your_c)
                             )
                         }
                         is ListingCreateResult.Failed -> {
@@ -458,7 +459,7 @@ fun OwnerHubScreenContent(
                                 ) {
                                     Text(
                                         text = if (currentPlanId == null) {
-                                            "No Active Package"
+                                            uiText(R.string.no_active_package)
                                         } else {
                                             com.example.data.billing.PlayCatalog.planBadge(currentPlanId)
                                         },
@@ -490,11 +491,11 @@ fun OwnerHubScreenContent(
                             }
                             Text(
                                 text = if (currentPlanId == null) {
-                                    "No Active Package"
+                                    uiText(R.string.no_active_package)
                                 } else if (com.example.data.billing.PlayCatalog.isLifetimeExpiry(ownerPackageExpiryMillis)) {
-                                    "${com.example.data.billing.PlayCatalog.planLabel(currentPlanId)} — never expires"
+                                    uiText(R.string.x_never_expires, com.example.data.billing.PlayCatalog.planLabel(currentPlanId))
                                 } else if (daysRemaining != null) {
-                                    "${com.example.data.billing.PlayCatalog.planLabel(currentPlanId)} — renews in $daysRemaining days"
+                                    uiText(R.string.x_renews_in_x_days, com.example.data.billing.PlayCatalog.planLabel(currentPlanId), daysRemaining)
                                 } else {
                                     com.example.data.billing.PlayCatalog.planLabel(currentPlanId)
                                 },
@@ -504,9 +505,9 @@ fun OwnerHubScreenContent(
                             )
                             Text(
                                 text = if (currentPlanId == null) {
-                                    "Choose a package to start publishing workspace listings."
+                                    uiText(R.string.choose_a_package_to_start_publishing_works)
                                 } else {
-                                    "List your space, set subdivisions, choose renting modal, and keep your business active."
+                                    uiText(R.string.list_your_space_set_subdivisions_choose_re)
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f),
@@ -541,9 +542,9 @@ fun OwnerHubScreenContent(
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         when {
-                                            currentPlanId == null -> "Choose Plan"
-                                            isActiveSubscription -> "Manage"
-                                            else -> "Renew"
+                                            currentPlanId == null -> uiText(R.string.choose_plan)
+                                            isActiveSubscription -> uiText(R.string.manage)
+                                            else -> uiText(R.string.renew)
                                         },
                                         color = MaterialTheme.colorScheme.onSecondary,
                                         style = MaterialTheme.typography.labelMedium,
@@ -552,7 +553,7 @@ fun OwnerHubScreenContent(
                                 }
 
                                 val activeCount = ownerSpaces.count { it.status == ListingStatus.ACTIVE }
-                                val limitText = "$activeCount Active"
+                                val limitText = uiText(R.string.x_active, activeCount)
                                 Surface(
                                     color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.2f),
                                     shape = MaterialTheme.shapes.medium,
@@ -634,9 +635,9 @@ fun OwnerHubScreenContent(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             when (space.status) {
-                                ListingStatus.ACTIVE -> ProStatusBadge(ProBadgeType.CUSTOM_SUCCESS, customText = "Available")
-                                ListingStatus.DRAFT -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = "Draft")
-                                ListingStatus.PAUSED -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = "Paused")
+                                ListingStatus.ACTIVE -> ProStatusBadge(ProBadgeType.CUSTOM_SUCCESS, customText = uiText(R.string.available))
+                                ListingStatus.DRAFT -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = uiText(R.string.draft))
+                                ListingStatus.PAUSED -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = uiText(R.string.paused))
                             }
 
                             val lowestPrice = com.example.ui.util.SpaceCalculationUtils.findLowestConfiguredPrice(space)
@@ -684,9 +685,9 @@ fun OwnerHubScreenContent(
                                     Column {
                                         Text(
                                             text = if (space.status == ListingStatus.DRAFT) {
-                                                "Draft — not published yet"
+                                                uiText(R.string.draft_not_published_yet)
                                             } else {
-                                                "Paused — hidden from Discovery"
+                                                uiText(R.string.paused_hidden_from_discovery)
                                             },
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.SemiBold,
@@ -753,9 +754,9 @@ fun OwnerHubScreenContent(
                                     )
                                     Text(
                                         text = when {
-                                            space.isVerified -> "Verified Listing"
-                                            verificationPending -> "Pending Admin Review"
-                                            else -> "Earn Verified Badge"
+                                            space.isVerified -> uiText(R.string.verified_listing)
+                                            verificationPending -> uiText(R.string.pending_admin_review)
+                                            else -> uiText(R.string.earn_verified_badge)
                                         },
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Bold,

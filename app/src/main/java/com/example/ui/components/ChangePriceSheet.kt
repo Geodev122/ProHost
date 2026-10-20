@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
@@ -142,11 +143,11 @@ fun ChangePriceSheet(
                     Text(stringResource(R.string.change_price), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(
                         text = when (step) {
-                            PriceStep.LISTING -> "Step 1 of 3 · Choose a listing"
-                            PriceStep.DIVISION -> "Step 2 of 3 · Choose a division"
-                            PriceStep.SLOTS -> if (fromBooking) "Slots of this booking" else "Step 3 of 3 · Choose a slot"
-                            PriceStep.EDIT -> "New price"
-                            PriceStep.IMPACT -> "Tenants and requests on this slot"
+                            PriceStep.LISTING -> uiText(R.string.step_1_of_3_choose_a_listing)
+                            PriceStep.DIVISION -> uiText(R.string.step_2_of_3_choose_a_division)
+                            PriceStep.SLOTS -> if (fromBooking) uiText(R.string.slots_of_this_booking) else uiText(R.string.step_3_of_3_choose_a_slot)
+                            PriceStep.EDIT -> uiText(R.string.new_price)
+                            PriceStep.IMPACT -> uiText(R.string.tenants_and_requests_on_this_slot)
                         },
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -333,9 +334,9 @@ fun ChangePriceSheet(
 }
 
 private fun PriceChangeMode.shortLabel(): String = when (this) {
-    PriceChangeMode.KEEP -> "Keep"
-    PriceChangeMode.NOW -> "Now"
-    PriceChangeMode.NEXT_TERM -> "Next term"
+    PriceChangeMode.KEEP -> uiText(R.string.keep)
+    PriceChangeMode.NOW -> uiText(R.string.now)
+    PriceChangeMode.NEXT_TERM -> uiText(R.string.next_term)
 }
 
 @Composable
@@ -412,10 +413,10 @@ private fun ImpactRow(
         Spacer(Modifier.height(Spacing.xs))
         val old = booking.totalAmountUsd
         val summary = when {
-            mode == PriceChangeMode.KEEP -> "Keeps ${formatUsd(old)} — old price."
-            newTotal == old -> "Stays ${formatUsd(old)} for now — the new price applies when they renew."
-            else -> "Total ${formatUsd(old)} → ${formatUsd(newTotal)}" +
-                if (effectiveFrom.isNotBlank() && effectiveFrom > today) " from $effectiveFrom" else " from today"
+            mode == PriceChangeMode.KEEP -> uiText(R.string.keeps_x_old_price, formatUsd(old))
+            newTotal == old -> uiText(R.string.stays_x_for_now_the_new_price_applies_when, formatUsd(old))
+            else -> uiText(R.string.total_x_x, formatUsd(old), formatUsd(newTotal)) +
+                if (effectiveFrom.isNotBlank() && effectiveFrom > today) " from $effectiveFrom" else uiText(R.string.from_today)
         }
         Text(summary, style = MaterialTheme.typography.bodySmall)
     }
@@ -426,10 +427,10 @@ private fun ImpactRow(
 fun PriceChangeNote(change: com.example.data.model.BookingPriceChange, modifier: Modifier = Modifier) {
     val text = when {
         change.mode == PriceChangeMode.KEEP ->
-            "Host changed ${change.slotLabel} to ${formatUsd(change.newPrice)} — this booking keeps ${formatUsd(change.oldTotal)}."
+            uiText(R.string.host_changed_x_to_x_this_booking_keeps_x, change.slotLabel, formatUsd(change.newPrice), formatUsd(change.oldTotal))
         change.newTotal == change.oldTotal ->
-            "Host changed ${change.slotLabel} to ${formatUsd(change.newPrice)} — applies when this booking renews."
-        else -> "Price updated: ${formatUsd(change.oldTotal)} → ${formatUsd(change.newTotal)}" +
+            uiText(R.string.host_changed_x_to_x_applies_when_this_book, change.slotLabel, formatUsd(change.newPrice))
+        else -> uiText(R.string.price_updated_x_x, formatUsd(change.oldTotal), formatUsd(change.newTotal)) +
             (if (change.effectiveFrom.isNotBlank()) " from ${change.effectiveFrom}" else "") +
             " (${change.slotLabel} ${formatUsd(change.oldPrice)} → ${formatUsd(change.newPrice)})"
     }

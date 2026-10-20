@@ -1,5 +1,6 @@
 package com.example.ui.navigation
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.util.UiMessages
@@ -306,17 +307,17 @@ fun ProHostAppRoot(
         var confirmEmail by remember { mutableStateOf("") }
         com.example.ui.components.ProHostDialog(
             onDismissRequest = { authViewModelForEmailLink.dismissLinkAwaitingEmail() },
-            title = { androidx.compose.material3.Text("Finish signing in") },
+            title = { androidx.compose.material3.Text(uiText(R.string.finish_signing_in)) },
             text = {
                 androidx.compose.foundation.layout.Column {
                     androidx.compose.material3.Text(
-                        "Enter the email address the sign-in link was sent to.",
+                        uiText(R.string.enter_the_email_address_the_sign_in_link_w),
                         style = androidx.compose.material3.MaterialTheme.typography.bodySmall
                     )
                     androidx.compose.material3.OutlinedTextField(
                         value = confirmEmail,
                         onValueChange = { confirmEmail = it.trim() },
-                        label = { androidx.compose.material3.Text("Email") },
+                        label = { androidx.compose.material3.Text(uiText(R.string.email)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                     )
@@ -326,11 +327,11 @@ fun ProHostAppRoot(
                 androidx.compose.material3.TextButton(
                     enabled = android.util.Patterns.EMAIL_ADDRESS.matcher(confirmEmail).matches(),
                     onClick = { authViewModelForEmailLink.completeLinkWithEmail(activity, confirmEmail, onLinkVerified) }
-                ) { androidx.compose.material3.Text("Sign in") }
+                ) { androidx.compose.material3.Text(uiText(R.string.sign_in)) }
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { authViewModelForEmailLink.dismissLinkAwaitingEmail() }) {
-                    androidx.compose.material3.Text("Cancel")
+                    androidx.compose.material3.Text(uiText(R.string.cancel))
                 }
             }
         )
@@ -555,7 +556,7 @@ fun ProHostAppRoot(
                         if (safeFullScreenDrawerTab != null) {
                             val title = (PRO_HOST_FULLSCREEN_TABS + ADMIN_FULLSCREEN_TABS + SHARED_FULLSCREEN_TABS)
                                 .firstOrNull { it.id == safeFullScreenDrawerTab }?.title
-                                ?: "Pro Host"
+                                ?: uiText(R.string.pro_host_2)
                             ProHostFullScreenTopAppBar(
                                 title = title,
                                 // Specialists have no drawer: back to the screen they came from.

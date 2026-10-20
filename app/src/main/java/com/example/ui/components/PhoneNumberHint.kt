@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import com.example.ui.util.uiText
 import android.app.Activity
 import android.content.ContextWrapper
 import android.util.Log
@@ -85,6 +87,6 @@ fun UseDeviceNumberButton(
             modifier = androidx.compose.ui.Modifier.size(16.dp)
         )
         androidx.compose.foundation.layout.Spacer(androidx.compose.ui.Modifier.width(6.dp))
-        androidx.compose.material3.Text("Use this phone's number", style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
+        androidx.compose.material3.Text(uiText(R.string.use_this_phone_s_number), style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
     }
 }

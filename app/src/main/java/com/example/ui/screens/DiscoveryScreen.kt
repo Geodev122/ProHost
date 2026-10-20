@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
@@ -283,9 +284,9 @@ fun DiscoveryScreenContent(
                     ProEmptyState(
                         title = stringResource(R.string.no_workspaces_found),
                         description = if (searchQuery.isNotBlank()) {
-                            "Nothing matches \"${searchQuery.trim()}\" with the current filters."
+                            uiText(R.string.nothing_matches_x_with_the_current_filters, searchQuery.trim())
                         } else {
-                            "Try a different space type, division type or pricing formula."
+                            uiText(R.string.try_a_different_space_type_division_type_o)
                         },
                         icon = Icons.Default.SearchOff,
                         // Search and filters run over the loaded page: offer the next one
@@ -412,7 +413,7 @@ private fun SearchingMoreRow() {
 }
 
 private fun formulaLabel(formula: PricingFormulaFilter): String =
-    formula.strategy?.displayName ?: "Per attendee"
+    formula.strategy?.displayName ?: uiText(R.string.per_attendee)
 
 /** The price unit a formula's range slider is in: per person for per-attendee rooms. */
 private fun formulaUnitLabel(formula: PricingFormulaFilter): String =
@@ -472,9 +473,9 @@ private fun ExploreOverlayHeader(
                         Icon(
                             if (searchExpanded) Icons.Default.Close else Icons.Default.Search,
                             contentDescription = when {
-                                searchExpanded -> "Close search"
-                                searchQuery.isNotEmpty() -> "Search workspaces: $searchQuery"
-                                else -> "Search workspaces"
+                                searchExpanded -> uiText(R.string.close_search)
+                                searchQuery.isNotEmpty() -> uiText(R.string.search_workspaces_x, searchQuery)
+                                else -> uiText(R.string.search_workspaces)
                             },
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -577,7 +578,7 @@ private fun MapListToggle(
                 ProHostBrandLogo(size = 26.dp)
                 Spacer(Modifier.width(4.dp))
             }
-            listOf(true to "Map", false to "List").forEach { (isMapOption, label) ->
+            listOf(true to uiText(R.string.map), false to uiText(R.string.list)).forEach { (isMapOption, label) ->
                 val selected = isMapOption == isMapView
                 val container by androidx.compose.animation.animateColorAsState(
                     if (selected) MaterialTheme.colorScheme.primary else Color.Transparent, label = "mapListToggle"
@@ -851,7 +852,7 @@ fun SubdivisionDiscoveryCard(
         onClick = onClick,
         onDetailsClick = onAvailability ?: onClick,
         onWhatsAppClick = onQuickWhatsApp,
-        detailsLabel = if (onAvailability != null) "Availability" else "Check Space",
+        detailsLabel = if (onAvailability != null) uiText(R.string.availability) else uiText(R.string.check_space),
         detailsIcon = if (onAvailability != null) Icons.Default.EventAvailable else Icons.Default.Visibility
     )
 }
@@ -893,7 +894,7 @@ fun SpaceListingCard(
         onClick = onClick,
         onDetailsClick = onAvailability ?: onClick,
         onWhatsAppClick = onQuickWhatsApp,
-        detailsLabel = if (onAvailability != null) "Availability" else "Check Space",
+        detailsLabel = if (onAvailability != null) uiText(R.string.availability) else uiText(R.string.check_space),
         detailsIcon = if (onAvailability != null) Icons.Default.EventAvailable else Icons.Default.Visibility
     )
 }

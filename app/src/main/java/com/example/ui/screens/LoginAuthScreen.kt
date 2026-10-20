@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.uiText
 import androidx.compose.ui.res.stringResource
 import com.example.ui.util.UiMessages
 import android.app.Activity
@@ -350,7 +351,7 @@ fun LoginAuthScreen(
                     onClick = {
                         val trimmedEmail = emailInput.trim().lowercase()
                         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches()) {
-                            localErrorMessage = "Please enter a valid email address"
+                            localErrorMessage = uiText(R.string.please_enter_a_valid_email_address)
                             return@ProPrimaryButton
                         }
                         localErrorMessage = null
@@ -429,11 +430,11 @@ fun LoginAuthScreen(
                     onClick = {
                         val currentActivity = activity
                         if (currentActivity == null) {
-                            localErrorMessage = "Unable to verify right now."
+                            localErrorMessage = uiText(R.string.unable_to_verify_right_now)
                             return@ProPrimaryButton
                         }
                         if (emailOtpCode.length < 6) {
-                            localErrorMessage = "Please enter the 6-digit code"
+                            localErrorMessage = uiText(R.string.please_enter_the_6_digit_code)
                             return@ProPrimaryButton
                         }
                         authViewModel.verifyEmailOtpCode(
@@ -601,8 +602,8 @@ fun LoginAuthScreen(
                 val firebasePhone = firebaseUser?.phoneNumber ?: resumePhoneE164 ?: ""
 
                 val signedInAs = when {
-                    firebaseEmail.isNotBlank() -> "Signed in as: $firebaseEmail"
-                    firebasePhone.isNotBlank() -> "Phone verified: $firebasePhone"
+                    firebaseEmail.isNotBlank() -> uiText(R.string.signed_in_as_x, firebaseEmail)
+                    firebasePhone.isNotBlank() -> uiText(R.string.phone_verified_x, firebasePhone)
                     else -> null
                 }
                 if (signedInAs != null) {
@@ -790,11 +791,11 @@ fun LoginAuthScreen(
                     onClick = {
                         val currentActivity = activity
                         if (currentActivity == null) {
-                            localErrorMessage = "Unable to create your account right now."
+                            localErrorMessage = uiText(R.string.unable_to_create_your_account_right_now)
                             return@ProPrimaryButton
                         }
                         if (regFullName.isBlank()) {
-                            localErrorMessage = "Please enter your full name"
+                            localErrorMessage = uiText(R.string.please_enter_your_full_name)
                             return@ProPrimaryButton
                         }
                         // Email comes from Firebase Auth for email/Google users.
@@ -807,11 +808,11 @@ fun LoginAuthScreen(
                             ""
                         }
                         if (regGovernorateArea.isBlank()) {
-                            localErrorMessage = "Please enter your governorate / area"
+                            localErrorMessage = uiText(R.string.please_enter_your_governorate_area)
                             return@ProPrimaryButton
                         }
                         if (regCity.isBlank()) {
-                            localErrorMessage = "Please enter your city"
+                            localErrorMessage = uiText(R.string.please_enter_your_city)
                             return@ProPrimaryButton
                         }
                         // A legacy phone-auth account already has its number; everyone else gives
@@ -821,11 +822,11 @@ fun LoginAuthScreen(
                         if (regPhoneNumber.filter { it.isDigit() }.length < 6 && resumePhoneE164.isNullOrBlank() ||
                             !com.example.data.model.isPlausibleE164(registrationPhoneE164)
                         ) {
-                            localErrorMessage = "Please enter your WhatsApp number with its country code"
+                            localErrorMessage = uiText(R.string.please_enter_your_whatsapp_number_with_its)
                             return@ProPrimaryButton
                         }
                         if (!tosAccepted) {
-                            localErrorMessage = "Please agree to the Terms of Use and Privacy Policy to continue"
+                            localErrorMessage = uiText(R.string.please_agree_to_the_terms_of_use_and_priva)
                             return@ProPrimaryButton
                         }
                         authViewModel.completePendingRegistration(

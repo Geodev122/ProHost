@@ -1,5 +1,6 @@
 package com.example.ui.viewmodel
 
+import com.example.ui.util.uiText
 import com.example.R
 import com.example.ui.util.UiMessages
 import android.content.ClipData
@@ -112,7 +113,7 @@ class ProHostViewModel(
                     // Session restore took >15s — most likely a slow connection with no
                     // cached claim. currentUser stays null → ProHostNavGraph falls through
                     // to LoginAuthScreen, but we surface a banner so the user knows why.
-                    _sessionRestoreError.value = "Session restore timed out. Please sign in again."
+                    _sessionRestoreError.value = uiText(R.string.session_restore_timed_out_please_sign_in_a)
                 } catch (e: Exception) {
                     // Offline with no prior custom claim, or other transient failure.
                     // repository.currentUser stays null — LoginAuthScreen handles it.
@@ -268,16 +269,16 @@ class ProHostViewModel(
             try {
                 val result = functionsClient.resendEmailVerification()
                 val msg = if (result.isSuccess) {
-                    "Verification email sent. Check your inbox."
+                    uiText(R.string.verification_email_sent_check_your_inbox)
                 } else {
-                    result.exceptionOrNull()?.toUserMessage("Couldn't send the verification email. Please try again.")
-                        ?: "Couldn't send the verification email. Please try again."
+                    result.exceptionOrNull()?.toUserMessage(uiText(R.string.couldn_t_send_the_verification_email_pleas))
+                        ?: uiText(R.string.couldn_t_send_the_verification_email_pleas)
                 }
                 UiMessages.show(appContext, msg, long = true)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, "Couldn't send the verification email. Please try again.")
+                reportFailure(appContext, e, uiText(R.string.couldn_t_send_the_verification_email_pleas))
             }
         }
     }
@@ -424,16 +425,16 @@ class ProHostViewModel(
                     result.affected, result.now, result.nextTerm, result.keep
                 )
                 val note = when {
-                    result.affected == 0 -> "Price updated."
-                    result.affected == 1 -> "Price updated. The tenant/requester was notified."
-                    else -> "Price updated. ${result.affected} tenants/requesters were notified."
+                    result.affected == 0 -> uiText(R.string.price_updated)
+                    result.affected == 1 -> uiText(R.string.price_updated_the_tenant_requester_was_not)
+                    else -> uiText(R.string.price_updated_x_tenants_requesters_were_no, result.affected)
                 }
                 UiMessages.show(appContext, note, long = true)
                 onDone(true)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, "Couldn't change the price — please try again.")
+                reportFailure(appContext, e, uiText(R.string.couldn_t_change_the_price_please_try_again))
                 onDone(false)
             }
         }
@@ -539,30 +540,30 @@ class ProHostViewModel(
         if (repository.saveWhatsAppNumber(e164Phone)) {
             com.example.analytics.AnalyticsTracker.kycComplete(source)
             null
-        } else "The number couldn't be saved. Check your connection and try again."
+        } else uiText(R.string.the_number_couldn_t_be_saved_check_your_co)
     } catch (e: kotlinx.coroutines.CancellationException) {
         throw e
     } catch (e: Exception) {
         android.util.Log.e("ProHostVM", "saveWhatsAppNumber failed", e)
         com.example.analytics.AnalyticsTracker.appError("whatsapp_number_save", com.example.analytics.AnalyticsTracker.errorCode(e))
-        e.toUserMessage("The number couldn't be saved. Please try again.")
+        e.toUserMessage(uiText(R.string.the_number_couldn_t_be_saved_please_try_ag))
     }
 
     suspend fun updateProfilePhoto(context: Context, uri: android.net.Uri): String? {
-        val uid = currentUser.value?.id ?: return "Your session expired — please sign in again."
+        val uid = currentUser.value?.id ?: return uiText(R.string.your_session_expired_please_sign_in_again_2)
         return try {
             val url = com.example.data.storage.FirebaseStorageService.getInstance()
                 .uploadProfilePicture(uid, uri, context.applicationContext)
-                ?: return "The photo couldn't be uploaded. Check your connection and try again."
+                ?: return uiText(R.string.the_photo_couldn_t_be_uploaded_check_your)
             val saved = repository.updateProfilePicture(url)
             com.example.analytics.AnalyticsTracker.profilePhotoUpload(saved, "requirements")
-            if (saved) null else "The photo couldn't be saved. Please try again."
+            if (saved) null else uiText(R.string.the_photo_couldn_t_be_saved_please_try_aga)
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
             com.example.analytics.AnalyticsTracker.profilePhotoUpload(false, "requirements")
-            reportFailure(context.applicationContext, e, "The photo couldn't be uploaded. Please try again.")
-            "The photo couldn't be uploaded. Please try again."
+            reportFailure(context.applicationContext, e, uiText(R.string.the_photo_couldn_t_be_uploaded_please_try))
+            uiText(R.string.the_photo_couldn_t_be_uploaded_please_try)
         }
     }
 
@@ -571,12 +572,12 @@ class ProHostViewModel(
         if (repository.updateAddress(country, city)) {
             com.example.analytics.AnalyticsTracker.profileUpdate("address")
             null
-        } else "Your address couldn't be saved. Please try again."
+        } else uiText(R.string.your_address_couldn_t_be_saved_please_try)
     } catch (e: kotlinx.coroutines.CancellationException) {
         throw e
     } catch (e: Exception) {
-        reportFailure(context.applicationContext, e, "Your address couldn't be saved. Please try again.")
-        "Your address couldn't be saved. Please try again."
+        reportFailure(context.applicationContext, e, uiText(R.string.your_address_couldn_t_be_saved_please_try))
+        uiText(R.string.your_address_couldn_t_be_saved_please_try)
     }
 
     suspend fun updateProfile(
@@ -611,8 +612,8 @@ class ProHostViewModel(
         subdivision: Subdivision? = null
     ) {
         val user = currentUser.value
-        val professionalName = user?.fullName?.takeIf { it.isNotBlank() } ?: "a ProHost specialist"
-        val specialty = user?.specialty?.takeIf { it.isNotBlank() } ?: "Independent Specialist"
+        val professionalName = user?.fullName?.takeIf { it.isNotBlank() } ?: uiText(R.string.a_prohost_specialist)
+        val specialty = user?.specialty?.takeIf { it.isNotBlank() } ?: uiText(R.string.independent_specialist)
         val cleanPhone = formatWhatsAppNumber(space.ownerPhone)
         if (cleanPhone.isBlank()) {
             UiMessages.show(context, context.getString(R.string.this_host_hasn_t_added_a_whatsapp_number_y))
@@ -621,10 +622,10 @@ class ProHostViewModel(
 
         val attendeeLine = request?.let { com.example.ui.util.AttendeePricing.bookingSummary(it) }
         val priceLabel = when {
-            attendeeLine != null -> "Per attendee · $attendeeLine"
+            attendeeLine != null -> uiText(R.string.per_attendee_x, attendeeLine)
             subdivision != null -> {
                 val price = com.example.ui.util.SpaceCalculationUtils.findLowestPriceForSubdivision(subdivision)
-                if (price.amount > 0.0) "From \$${price.amount.toInt()}${price.unitLabel}" else subdivision.pricing.strategyType.displayName
+                if (price.amount > 0.0) uiText(R.string.from_xx, price.amount.toInt(), price.unitLabel) else subdivision.pricing.strategyType.displayName
             }
             selectedFormula != null -> {
                 val unit = com.example.ui.util.SpaceCalculationUtils.rateUnitLabel(selectedFormula.type)
@@ -632,7 +633,7 @@ class ProHostViewModel(
             }
             else -> {
                 val price = com.example.ui.util.SpaceCalculationUtils.findLowestConfiguredPrice(space)
-                "From \$${price.amount.toInt()}${price.unitLabel}"
+                uiText(R.string.from_xx, price.amount.toInt(), price.unitLabel)
             }
         }
         val roomLabel = subdivision?.name ?: selectedFormula?.scheduleDescription?.takeIf { it.isNotBlank() }
@@ -648,29 +649,29 @@ class ProHostViewModel(
             buildString {
                 appendLine()
                 appendLine()
-                appendLine("*Booking details:*")
-                if (request.displayCode.isNotBlank()) appendLine("• Request: ${request.displayCode}")
-                appendLine("• Schedule: $daysStr @ $timesStr$shiftStr")
-                appendLine("• Start: ${request.startDate}$durationStr")
-                if (attendeeLine != null) appendLine("• Attendees: $attendeeLine")
-                appendLine("• Total: \$${request.totalAmountUsd.toInt()} USD")
-                if (request.clinicalNotes.isNotBlank()) appendLine("• Notes: ${request.clinicalNotes}")
+                appendLine(uiText(R.string.booking_details))
+                if (request.displayCode.isNotBlank()) appendLine(uiText(R.string.request_x_2, request.displayCode))
+                appendLine(uiText(R.string.schedule_x_xx, daysStr, timesStr, shiftStr))
+                appendLine(uiText(R.string.start_xx, request.startDate, durationStr))
+                if (attendeeLine != null) appendLine(uiText(R.string.attendees_x, attendeeLine))
+                appendLine(uiText(R.string.total_x_usd_2, request.totalAmountUsd.toInt()))
+                if (request.clinicalNotes.isNotBlank()) appendLine(uiText(R.string.notes_x, request.clinicalNotes))
             }.trimEnd()
         } else ""
 
         val rawMessage = buildString {
-            appendLine("Hi ${space.ownerName} 👋")
+            appendLine(uiText(R.string.hi_x, space.ownerName))
             appendLine()
-            appendLine("I'm *$professionalName* ($specialty) and I found your space on ProHost.")
+            appendLine(uiText(R.string.i_m_x_x_and_i_found_your_space_on_prohost, professionalName, specialty))
             appendLine()
             appendLine("*Space:* ${space.title}")
-            appendLine("*Location:* ${space.district}, ${space.governorate.displayName}")
-            if (roomLabel != null) appendLine("*Room / Area:* $roomLabel")
+            appendLine(uiText(R.string.location_x_x, space.district, space.governorate.displayName))
+            if (roomLabel != null) appendLine(uiText(R.string.room_area_x, roomLabel))
             appendLine("*Price:* $priceLabel")
             append(bookingDetails)
             appendLine()
             appendLine()
-            append("I'd love to discuss availability and next steps. Listing ref: ProHost ${space.publicCode}")
+            append(uiText(R.string.i_d_love_to_discuss_availability_and_next, space.publicCode))
         }
 
         try {
@@ -693,7 +694,7 @@ class ProHostViewModel(
 
     fun launchWhatsAppToPractitioner(context: Context, request: RentalBookingRequest) {
         val user = currentUser.value
-        val ownerName = user?.fullName ?: "Workspace Host"
+        val ownerName = user?.fullName ?: uiText(R.string.workspace_host)
         val daysStr = if (request.selectedDays.isNotEmpty()) request.selectedDays.joinToString() else request.formula.daysOfWeek.joinToString()
         val timesStr = if (request.selectedStartHour.isNotBlank() && request.selectedEndHour.isNotBlank()) {
             "${request.selectedStartHour} - ${request.selectedEndHour}"
@@ -701,11 +702,11 @@ class ProHostViewModel(
             "${request.formula.startHour} - ${request.formula.endHour}"
         }
 
-        val rawMessage = "Hello ${request.practitionerName},\n\n" +
-                "I am $ownerName regarding your booking request (${request.publicCode}) for space \"${request.spaceTitle}\".\n" +
-                "Requested Schedule: $daysStr @ $timesStr (${request.formula.type.displayName}).\n" +
-                "Status: ${request.status.displayName}\n\n" +
-                "Let's discuss onboarding and walk-through details."
+        val rawMessage = uiText(R.string.hello_x, request.practitionerName) +
+                uiText(R.string.i_am_x_regarding_your_booking_request_x_fo, ownerName, request.publicCode, request.spaceTitle) +
+                uiText(R.string.requested_schedule_x_x_x, daysStr, timesStr, request.formula.type.displayName) +
+                uiText(R.string.status_x, request.status.displayName) +
+                uiText(R.string.let_s_discuss_onboarding_and_walk_through)
 
         val cleanPhone = formatWhatsAppNumber(request.practitionerPhone)
         if (cleanPhone.isBlank()) {
@@ -885,7 +886,7 @@ class ProHostViewModel(
                 if ((e is IllegalStateException || e is IllegalArgumentException) && !e.message.isNullOrBlank()) {
                     UiMessages.show(appContext, e.message, long = true)
                 } else {
-                    reportFailure(appContext, e, "Failed to send request — please check your connection and try again.")
+                    reportFailure(appContext, e, uiText(R.string.failed_to_send_request_please_check_your_c))
                 }
             }
         }
@@ -932,7 +933,7 @@ class ProHostViewModel(
                             b?.totalAmountUsd, b?.formula?.type?.name, isEdit = !b?.replacesBookingId.isNullOrBlank()
                         )
                     }
-                    val msg = if (agreementUrl != null) "Booking accepted! Space rules shared." else "Booking accepted."
+                    val msg = if (agreementUrl != null) uiText(R.string.booking_accepted_space_rules_shared) else uiText(R.string.booking_accepted)
                     UiMessages.show(appContext, "$requestCode — $msg", long = true)
                 } else {
                     UiMessages.show(appContext, appContext.getString(R.string.could_not_finalize_acceptance_please_try_a), long = true)
@@ -1056,7 +1057,7 @@ class ProHostViewModel(
         }
     }
 
-    /** "Mark as Paid" — record-keeping only; asHost decides which side's own flag gets set. */
+    /** uiText(R.string.mark_as_paid) — record-keeping only; asHost decides which side's own flag gets set. */
     fun acknowledgePayment(requestId: String, asHost: Boolean, context: Context) {
         val appContext = context.applicationContext
         viewModelScope.launch {
@@ -1072,7 +1073,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, "Couldn't save that — please try again.")
+                reportFailure(appContext, e, uiText(R.string.couldn_t_save_that_please_try_again))
             }
         }
     }
@@ -1098,7 +1099,7 @@ class ProHostViewModel(
                 repository.toggleSavedSpace(spaceId)
                 spaces.value.firstOrNull { it.id == spaceId }?.let { com.example.analytics.AnalyticsTracker.wishlist(it, added = !wasSaved) }
                 if (wasSaved && context != null) {
-                    UiMessages.show(context, context.getString(R.string.removed_from_saved), actionLabel = "Undo", onAction = { toggleSavedSpace(spaceId) })
+                    UiMessages.show(context, context.getString(R.string.removed_from_saved), actionLabel = uiText(R.string.undo), onAction = { toggleSavedSpace(spaceId) })
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -1129,7 +1130,7 @@ class ProHostViewModel(
                     UiMessages.show(
                         appContext,
                         if (status == ListingStatus.PAUSED) appContext.getString(R.string.listing_paused) else appContext.getString(R.string.listing_is_live_again),
-                        actionLabel = "Undo",
+                        actionLabel = uiText(R.string.undo),
                         onAction = { setListingStatus(spaceId, previous, appContext) }
                     )
                 }
@@ -1139,7 +1140,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, "Couldn't update this listing — please try again.")
+                reportFailure(appContext, e, uiText(R.string.couldn_t_update_this_listing_please_try_ag))
             }
         }
     }
@@ -1161,14 +1162,14 @@ class ProHostViewModel(
                 if (success) {
                     com.example.analytics.AnalyticsTracker.blackoutAdd()
                     UiMessages.show(appContext, appContext.getString(R.string.x_x_x_is_no_longer_offered, dayOfWeek, startTime, endTime),
-                        actionLabel = "Undo", onAction = { removeBlackoutSlot(spaceId, slot.id, appContext) })
+                        actionLabel = uiText(R.string.undo), onAction = { removeBlackoutSlot(spaceId, slot.id, appContext) })
                 } else {
                     UiMessages.show(appContext, appContext.getString(R.string.couldn_t_switch_that_slot_off_please_try_a))
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, "Couldn't switch that slot off — please try again.")
+                reportFailure(appContext, e, uiText(R.string.couldn_t_switch_that_slot_off_please_try_a_2))
             }
         }
     }
@@ -1181,7 +1182,7 @@ class ProHostViewModel(
                 val success = repository.removeBlackoutSlot(spaceId, slotId)
                 if (success) {
                     com.example.analytics.AnalyticsTracker.blackoutRemove()
-                    UiMessages.show(appContext, appContext.getString(R.string.slot_is_back_on_offer), actionLabel = removed?.let { "Undo" }, onAction = removed?.let { slot ->
+                    UiMessages.show(appContext, appContext.getString(R.string.slot_is_back_on_offer), actionLabel = removed?.let { uiText(R.string.undo) }, onAction = removed?.let { slot ->
                         { addBlackoutSlot(spaceId, slot.dayOfWeek, slot.startTime, slot.endTime, slot.reason, appContext) }
                     })
                 } else {
@@ -1190,7 +1191,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, "Couldn't switch that slot on — please try again.")
+                reportFailure(appContext, e, uiText(R.string.couldn_t_switch_that_slot_on_please_try_ag_2))
             }
         }
     }
@@ -1221,7 +1222,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, "Couldn't add this room — please try again.")
+                reportFailure(appContext, e, uiText(R.string.couldn_t_add_this_room_please_try_again_2))
             }
         }
     }
@@ -1238,7 +1239,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, "Couldn't remove this room — please try again.")
+                reportFailure(appContext, e, uiText(R.string.couldn_t_remove_this_room_please_try_again_2))
             }
         }
     }
@@ -1249,7 +1250,7 @@ class ProHostViewModel(
             putExtra(Intent.EXTRA_SUBJECT, "ProHost - $format Export")
             putExtra(Intent.EXTRA_TEXT, content)
         }
-        context.startActivity(Intent.createChooser(intent, "Export ProHost Data"))
+        context.startActivity(Intent.createChooser(intent, uiText(R.string.export_prohost_data)))
     }
 
     /**
@@ -1269,7 +1270,7 @@ class ProHostViewModel(
             putExtra(Intent.EXTRA_SUBJECT, title)
             putExtra(Intent.EXTRA_TEXT, content)
         }
-        context.startActivity(Intent.createChooser(intent, "Share Listing"))
+        context.startActivity(Intent.createChooser(intent, uiText(R.string.share_listing)))
     }
 
     /** Copies a listing's public share link (com.example.util.ShareLinks) to the clipboard. */

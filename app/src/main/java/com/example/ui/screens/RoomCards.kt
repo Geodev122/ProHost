@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
@@ -188,7 +189,7 @@ internal fun SubdivisionRentalCard(
 
                     // Pricing
                     Text(
-                        priceSummary + if (isPerAttendee) " / person" else "",
+                        priceSummary + if (isPerAttendee) uiText(R.string.person_2) else "",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.secondary
@@ -497,7 +498,7 @@ internal fun DetailsBookingBar(
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
-                                roomName ?: "Whole space",
+                                roomName ?: uiText(R.string.whole_space_2),
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -507,9 +508,9 @@ internal fun DetailsBookingBar(
                         }
                     }
                     val (dot, label) = when {
-                        !hasSchedule -> MaterialTheme.colorScheme.outline to "No schedule yet"
+                        !hasSchedule -> MaterialTheme.colorScheme.outline to uiText(R.string.no_schedule_yet)
                         openSlotCount > 0 -> pro.success to "$openSlotCount slot${if (openSlotCount == 1) "" else "s"} open"
-                        else -> MaterialTheme.colorScheme.error to "Fully booked"
+                        else -> MaterialTheme.colorScheme.error to uiText(R.string.fully_booked_2)
                     }
                     Row(
                         modifier = Modifier.weight(1f),

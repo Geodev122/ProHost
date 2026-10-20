@@ -1,5 +1,7 @@
 package com.example.ui.viewmodel
 
+import com.example.R
+import com.example.ui.util.uiText
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.analytics.AnalyticsTracker
@@ -242,7 +244,7 @@ class DiscoveryViewModel(
         space.subdivisions.forEach { sub ->
             add(sub.name); add(sub.type.displayName); addAll(sub.hashtags); addAll(sub.amenities)
             add(sub.pricing.strategyType.displayName)
-            if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) add("per attendee per person")
+            if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) add(uiText(R.string.per_attendee_per_person))
         }
         add(space.pricing.strategyType.displayName)
     }.joinToString(" ").lowercase()

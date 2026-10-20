@@ -1,5 +1,6 @@
 package com.example.ui.components.dialogs
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
@@ -97,15 +98,15 @@ fun DrawerDialogsHandler(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val title = when (dialogId) {
-                        "admin_audit" -> "Central Security Audits"
+                        "admin_audit" -> uiText(R.string.central_security_audits)
                         // One title carrying the live unread count — this used to be a
                         // separate chrome title ("Real-time Alerts Terminal") plus a
                         // second, redundant "Notifications" heading inside the content.
                         "fcm_alerts" -> {
                             val unreadCount = fcmAlerts.count { !it.isRead }
-                            if (unreadCount > 0) "Notifications ($unreadCount new)" else "Notifications"
+                            if (unreadCount > 0) uiText(R.string.notifications_x_new, unreadCount) else uiText(R.string.notifications)
                         }
-                        else -> "Information Sheet"
+                        else -> uiText(R.string.information_sheet)
                     }
                     Text(
                         text = title,
@@ -155,7 +156,7 @@ fun DrawerDialogsHandler(
                                         onClick = { showAuditFromPicker = true },
                                         label = {
                                             Text(
-                                                auditFromMillis?.let { "From: ${sdfShort.format(Date(it))}" } ?: "From: Any",
+                                                auditFromMillis?.let { uiText(R.string.from_x, sdfShort.format(Date(it))) } ?: uiText(R.string.from_any),
                                                 style = MaterialTheme.typography.labelSmall
                                             )
                                         },
@@ -165,7 +166,7 @@ fun DrawerDialogsHandler(
                                         onClick = { showAuditToPicker = true },
                                         label = {
                                             Text(
-                                                auditToMillis?.let { "To: ${sdfShort.format(Date(it))}" } ?: "To: Any",
+                                                auditToMillis?.let { uiText(R.string.to_x, sdfShort.format(Date(it))) } ?: uiText(R.string.to_any),
                                                 style = MaterialTheme.typography.labelSmall
                                             )
                                         },
@@ -192,7 +193,7 @@ fun DrawerDialogsHandler(
                                         text = stringResource(R.string.export_csv),
                                         onClick = {
                                             val csv = viewModel.repository.exportAuditLogsToCsv(auditFromMillis, auditToMillis)
-                                            viewModel.shareExportData(context, "Audit Logs", csv)
+                                            viewModel.shareExportData(context, uiText(R.string.audit_logs), csv)
                                         },
                                         variant = CustomButtonVariant.PRIMARY,
                                         icon = Icons.Default.Download,
@@ -496,10 +497,10 @@ private fun relativeTime(timestamp: Long, now: Long = System.currentTimeMillis()
     val yesterday = today.get(java.util.Calendar.YEAR) == then.get(java.util.Calendar.YEAR) &&
         today.get(java.util.Calendar.DAY_OF_YEAR) == then.get(java.util.Calendar.DAY_OF_YEAR)
     return when {
-        minutes < 1 -> "Just now"
-        minutes < 60 -> "$minutes min ago"
-        sameDay -> "${minutes / 60} h ago"
-        yesterday -> "Yesterday $time"
+        minutes < 1 -> uiText(R.string.just_now)
+        minutes < 60 -> uiText(R.string.x_min_ago, minutes)
+        sameDay -> uiText(R.string.x_h_ago, minutes / 60)
+        yesterday -> uiText(R.string.yesterday_x, time)
         else -> SimpleDateFormat("d MMM HH:mm", Locale.getDefault()).format(Date(timestamp))
     }
 }

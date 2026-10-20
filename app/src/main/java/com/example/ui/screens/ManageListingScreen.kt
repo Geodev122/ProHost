@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
@@ -205,7 +206,7 @@ private fun DivisionPerformanceCard(
     val cells = remember(division, acceptedBookings) { occupancyCells(division, spaceId, acceptedBookings) }
     val rentedCount = cells.count { it }
     val occupancyPct = if (cells.isEmpty()) 0 else (rentedCount * 100) / cells.size
-    val unitWord = if (division.pricing.strategyType == RentalStrategyType.MONTHLY) "months" else "slots this week"
+    val unitWord = if (division.pricing.strategyType == RentalStrategyType.MONTHLY) "months" else uiText(R.string.slots_this_week)
 
     // Real revenue booked this calendar month vs last, scoped to this exact
     // division — the only timestamp every strategy's ACCEPTED booking always
@@ -518,7 +519,7 @@ private fun onOccupancyColor(booked: Boolean): androidx.compose.ui.graphics.Colo
 @Composable
 private fun OccupancyLegend() {
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-        listOf(false to "Free", true to "Booked").forEach { (booked, label) ->
+        listOf(false to uiText(R.string.free), true to uiText(R.string.booked)).forEach { (booked, label) ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(12.dp).background(occupancyColor(booked), Radius.Xs))
                 Spacer(Modifier.width(4.dp))
@@ -585,7 +586,7 @@ private fun AvailabilitySlotCell(slot: RentableSlot, booked: Boolean) {
     val price = slot.pricesByRecurrence[com.example.ui.util.BookingRecurrence.FLAT] ?: 0.0
     val timingLabel = when (slot.strategyType) {
         RentalStrategyType.SHIFT_BASED -> slot.groupLabel.substringAfter("• ")
-        RentalStrategyType.DAY_BASED -> "Full Day"
+        RentalStrategyType.DAY_BASED -> uiText(R.string.full_day)
         else -> "${slot.startTime}-${slot.endTime}"
     }
     // Per-attendee rooms carry a 1.0 availability marker, not a price.

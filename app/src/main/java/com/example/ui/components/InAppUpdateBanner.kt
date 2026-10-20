@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
@@ -87,7 +88,7 @@ fun InAppUpdateBanner(
                         )
                         Text(
                             text = if (updateState == UpdateState.DOWNLOADED) {
-                                "Restart the app to apply the latest features and security patches."
+                                uiText(R.string.restart_the_app_to_apply_the_latest_featur)
                             } else {
                                 "Download in progress: ${(downloadProgress * 100).toInt()}%"
                             },

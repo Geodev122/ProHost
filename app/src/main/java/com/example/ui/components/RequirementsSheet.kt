@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import android.net.Uri
@@ -115,9 +116,9 @@ fun RequirementsSheet(
             ProSectionHeader(
                 title = stringResource(R.string.almost_there),
                 subtitle = if (requireAddress) {
-                    "Needed once before you host. Your chosen plan is kept."
+                    uiText(R.string.needed_once_before_you_host_your_chosen_pl)
                 } else {
-                    "Hosts need these once before your first request. Your selection is kept."
+                    uiText(R.string.hosts_need_these_once_before_your_first_re)
                 },
                 icon = Icons.Default.VerifiedUser
             )
@@ -125,7 +126,7 @@ fun RequirementsSheet(
             RequirementRow(
                 done = !needsPhoto,
                 title = stringResource(R.string.profile_photo),
-                detail = "Hosts use it to recognise who's coming."
+                detail = uiText(R.string.hosts_use_it_to_recognise_who_s_coming)
             )
             if (needsPhoto) {
                 photoError?.let { ProHostAlertBanner(message = it, severity = ProHostAlertSeverity.ERROR) }
@@ -144,7 +145,7 @@ fun RequirementsSheet(
             RequirementRow(
                 done = !needsPhone,
                 title = stringResource(R.string.whatsapp_number),
-                detail = "So the host can reach you about your booking."
+                detail = uiText(R.string.so_the_host_can_reach_you_about_your_booki)
             )
             if (needsPhone) {
                 WhatsAppNumberSection(
@@ -158,7 +159,7 @@ fun RequirementsSheet(
                 RequirementRow(
                     done = !needsAddress,
                     title = stringResource(R.string.country_and_city),
-                    detail = "Shown on your listings so specialists know where you host."
+                    detail = uiText(R.string.shown_on_your_listings_so_specialists_know)
                 )
                 if (needsAddress) {
                     CountryDropdownField(

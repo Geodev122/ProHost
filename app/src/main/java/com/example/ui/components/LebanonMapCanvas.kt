@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
@@ -608,9 +609,9 @@ fun LebanonMapCanvas(
                         )
                         Text(
                             text = if (isStripCollapsed) {
-                                "Show Workspaces (${sortedSpaces.sumOf { if (it.subdivisions.isNotEmpty()) it.subdivisions.size else 1 }})"
+                                uiText(R.string.show_workspaces_x, sortedSpaces.sumOf { if (it.subdivisions.isNotEmpty()) it.subdivisions.size else 1 })
                             } else {
-                                "Collapse Map List"
+                                uiText(R.string.collapse_map_list)
                             },
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,

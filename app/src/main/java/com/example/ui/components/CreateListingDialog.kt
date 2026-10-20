@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import android.net.Uri
@@ -226,7 +227,7 @@ fun CreateListingDialog(
                 }
                 if (fileSizeBytes != null && fileSizeBytes > 15 * 1024 * 1024) {
                     failureCount++
-                    photoUploadError = "One or more images exceed the 15 MB limit. Please choose smaller files."
+                    photoUploadError = uiText(R.string.one_or_more_images_exceed_the_15_mb_limit)
                     return@forEach
                 }
                 val bytes = withContext(Dispatchers.IO) {
@@ -247,11 +248,11 @@ fun CreateListingDialog(
                 }
             }
             if (failureCount > 0) {
-                val detail = FirebaseStorageService.lastUploadError ?: "Check your connection and try again."
+                val detail = FirebaseStorageService.lastUploadError ?: uiText(R.string.check_your_connection_and_try_again)
                 photoUploadError = if (failureCount == uris.size) {
                     "Couldn't upload ${if (uris.size == 1) "that photo" else "those photos"}: $detail"
                 } else {
-                    "$failureCount of ${uris.size} photos failed to upload: $detail"
+                    uiText(R.string.x_of_x_photos_failed_to_upload_x, failureCount, uris.size, detail)
                 }
             }
             isUploadingPhoto = false
@@ -385,7 +386,7 @@ fun CreateListingDialog(
     var foodAllowed by rememberSaveable { mutableStateOf(existingDraft?.rules?.foodAllowed ?: true) }
     var petsAllowed by rememberSaveable { mutableStateOf(existingDraft?.rules?.petsAllowed ?: false) }
     var offHoursAccess by rememberSaveable { mutableStateOf(existingDraft?.rules?.offHoursAccess ?: true) }
-    var visitorPolicy by rememberSaveable { mutableStateOf(existingDraft?.rules?.visitorPolicy ?: "Clients & visitors welcomed in reception lounge") }
+    var visitorPolicy by rememberSaveable { mutableStateOf(existingDraft?.rules?.visitorPolicy ?: uiText(R.string.clients_visitors_welcomed_in_reception_lou)) }
 
     // Subdivision States (Level 2 Rooms & Desks) — the "add a room" form fields
     // themselves now live inside SubdivisionEditorSection (see that file); this
@@ -795,12 +796,12 @@ fun CreateListingDialog(
                                 val firstFacility = selectedFacilities.firstOrNull()
                                 val facilitySummary = if (firstFacility != null) {
                                     if (selectedFacilities.size > 1) {
-                                        "$firstFacility (+${selectedFacilities.size - 1} more selected)"
+                                        uiText(R.string.x_x_more_selected, firstFacility, selectedFacilities.size - 1)
                                     } else {
                                         "$firstFacility selected"
                                     }
                                 } else {
-                                    "No facilities selected"
+                                    uiText(R.string.no_facilities_selected)
                                 }
                                 Surface(
                                     color = MaterialTheme.colorScheme.surfaceVariant,
@@ -916,7 +917,7 @@ fun CreateListingDialog(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            listOf(false to "Whole Space", true to "Has Divisions").forEach { (value, label) ->
+                                            listOf(false to uiText(R.string.whole_space), true to uiText(R.string.has_divisions)).forEach { (value, label) ->
                                                 FilterChip(
                                                     selected = hasSubdivisions == value,
                                                     onClick = { hasSubdivisions = value },
@@ -1087,7 +1088,7 @@ fun CreateListingDialog(
                         streetAddress = streetAddress.trim(),
                         country = country.trim(),
                         city = city.trim(),
-                        floorInfo = if (floorNumber == 0) "Ground Floor" else "Floor $floorNumber",
+                        floorInfo = if (floorNumber == 0) uiText(R.string.ground_floor) else uiText(R.string.floor_x, floorNumber),
                         lat = geocodedLat,
                         lng = geocodedLng,
                         isShared = isShared,

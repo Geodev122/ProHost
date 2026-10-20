@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import android.content.Intent
@@ -27,7 +28,7 @@ fun AnalyticsConsentDialog() {
     val context = LocalContext.current
     SystemStylePermissionDialog(
         icon = Icons.Default.Insights,
-        title = permissionTitle("share usage analytics"),
+        title = permissionTitle(uiText(R.string.share_usage_analytics_2)),
         message = stringResource(R.string.google_analytics_shows_us_which_screens_se) +
             stringResource(R.string.prohost_better_reports_carry_your_prohost) +
             stringResource(R.string.advertising_id_and_no_ads_you_can_change_t),

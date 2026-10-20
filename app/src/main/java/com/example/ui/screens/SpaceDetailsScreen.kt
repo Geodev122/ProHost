@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
@@ -311,7 +312,7 @@ fun SpaceDetailsScreenContent(
                     } else {
                         selectedFormula?.let { SpaceCalculationUtils.rateUnitLabel(it.type) } ?: fallbackUnit
                     },
-                    formulaName = selectedFormula?.type?.displayName ?: "Full Month",
+                    formulaName = selectedFormula?.type?.displayName ?: uiText(R.string.full_month_2),
                     isPreview = currentUserRole == UserRole.PRO_HOST || currentUserRole == UserRole.ADMIN,
                     onOpenAvailability = { availabilityPanelState = "full" }
                 )
@@ -489,7 +490,7 @@ fun SpaceDetailsScreenContent(
                             )
                         }
                         if (liveSpace.isVerified) {
-                            ProStatusBadge(type = ProBadgeType.VERIFIED_MEMBER, customText = "Verified")
+                            ProStatusBadge(type = ProBadgeType.VERIFIED_MEMBER, customText = uiText(R.string.verified))
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -580,9 +581,9 @@ fun SpaceDetailsScreenContent(
 
                             when (req.status) {
                                 BookingRequestStatus.ACCEPTED -> ProStatusBadge(ProBadgeType.ACCEPTED_LOCKED)
-                                BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = "Pending")
-                                BookingRequestStatus.REJECTED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = "Declined")
-                                BookingRequestStatus.CANCELLED -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = "Cancelled")
+                                BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = uiText(R.string.pending))
+                                BookingRequestStatus.REJECTED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = uiText(R.string.declined))
+                                BookingRequestStatus.CANCELLED -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = uiText(R.string.cancelled))
                             }
                         }
                     }
@@ -598,8 +599,8 @@ fun SpaceDetailsScreenContent(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             ProMemberAvatar(
-                                name = liveSpace.ownerName.ifBlank { "Space host" },
-                                specialty = if (liveSpace.isVerified) "Verified space host" else "Space host",
+                                name = liveSpace.ownerName.ifBlank { uiText(R.string.space_host) },
+                                specialty = if (liveSpace.isVerified) uiText(R.string.verified_space_host) else uiText(R.string.space_host),
                                 isVerified = liveSpace.isVerified,
                                 imageUrl = liveSpace.ownerProfilePictureUrl,
                                 size = 44.dp,
@@ -673,15 +674,15 @@ fun SpaceDetailsScreenContent(
                                 val st = strategyPreviewGroups.firstOrNull()?.first
                                 when (st) {
                                     RentalStrategyType.MONTHLY -> "$${liveSpace.pricing.monthly?.rateUsd?.toInt() ?: liveSpace.baseMonthlyRateUsd.toInt()}${SpaceCalculationUtils.strategyUnitLabel(RentalStrategyType.MONTHLY)}"
-                                    RentalStrategyType.HOURLY -> "from $${liveSpace.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0}/hr"
+                                    RentalStrategyType.HOURLY -> uiText(R.string.from_x_hr, liveSpace.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0)
                                     RentalStrategyType.SHIFT_BASED -> {
                                         val minPrice = liveSpace.pricing.shiftBased?.shifts
                                             ?.filter { !it.isUnavailable }?.minOfOrNull { it.price }?.toInt() ?: 0
-                                        "from $$minPrice/shift"
+                                        uiText(R.string.from_x_shift, minPrice)
                                     }
                                     RentalStrategyType.DAY_BASED -> {
                                         val minPrice = liveSpace.pricing.dayBased?.distribution?.values?.minOfOrNull { it.price }?.toInt() ?: 0
-                                        "from $$minPrice/day"
+                                        uiText(R.string.from_x_day, minPrice)
                                     }
                                     null -> SpaceCalculationUtils.lowestPriceSummary(liveSpace).let { (p, u) -> "$${p.toInt()}$u" }
                                 }
@@ -689,7 +690,7 @@ fun SpaceDetailsScreenContent(
                             SubdivisionRentalCard(
                                 info = SubdivisionRentalCardInfo(
                                     name = liveSpace.title,
-                                    typeBadge = "Whole Space",
+                                    typeBadge = uiText(R.string.whole_space),
                                     imageUrls = liveSpace.imageUrls,
                                     amenities = liveSpace.essentialFacilities,
                                     hashtags = emptyList(),
@@ -721,17 +722,17 @@ fun SpaceDetailsScreenContent(
                                     com.example.ui.util.AttendeePricing.lowestPricePerPerson(sub, architectureSchema.attendeePackages)
                                 } else null
                                 val priceSummary = if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) {
-                                    "from $${perAttendeeFrom?.toInt() ?: 0}/person"
+                                    uiText(R.string.from_x_person, perAttendeeFrom?.toInt() ?: 0)
                                 } else when (sub.pricing.strategyType) {
                                     RentalStrategyType.MONTHLY -> "$${sub.pricing.monthly?.rateUsd?.toInt() ?: 0}${SpaceCalculationUtils.strategyUnitLabel(RentalStrategyType.MONTHLY)}"
-                                    RentalStrategyType.HOURLY -> "from $${sub.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0}/hr"
+                                    RentalStrategyType.HOURLY -> uiText(R.string.from_x_hr, sub.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0)
                                     RentalStrategyType.SHIFT_BASED -> {
                                         val minPrice = sub.pricing.shiftBased?.shifts?.filter { !it.isUnavailable }?.minOfOrNull { it.price }?.toInt() ?: 0
-                                        "from $$minPrice/shift"
+                                        uiText(R.string.from_x_shift, minPrice)
                                     }
                                     RentalStrategyType.DAY_BASED -> {
                                         val minPrice = sub.pricing.dayBased?.distribution?.values?.minOfOrNull { it.price }?.toInt() ?: 0
-                                        "from $$minPrice/day"
+                                        uiText(R.string.from_x_day, minPrice)
                                     }
                                 }
                                 SubdivisionRentalCard(
@@ -742,7 +743,7 @@ fun SpaceDetailsScreenContent(
                                         amenities = sub.amenities,
                                         hashtags = sub.hashtags,
                                         priceSummary = if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) {
-                                            "Per attendee · ${sub.pricing.strategyType.displayName} slots · $priceSummary"
+                                            uiText(R.string.per_attendee_x_slots_x, sub.pricing.strategyType.displayName, priceSummary)
                                         } else "${sub.pricing.strategyType.displayName} · $priceSummary",
                                         isOccupied = isOccupied,
                                         capacity = sub.capacity,
@@ -890,7 +891,7 @@ fun SpaceDetailsScreenContent(
         val strategyType = primarySlot.strategyType ?: return
         val targetSub = liveSpace.subdivisions.find { it.id == primarySlot.sourceFormulaId }
         if (com.example.ui.util.AttendeePricing.isPerAttendee(targetSub) && attendeeQuote == null) {
-            coroutineScope.launch { snackbarHostState.showSnackbar("Choose a valid number of attendees first.") }
+            coroutineScope.launch { snackbarHostState.showSnackbar(uiText(R.string.choose_a_valid_number_of_attendees_first)) }
             return
         }
         isSendingSlotRequest = true
@@ -911,7 +912,7 @@ fun SpaceDetailsScreenContent(
             val shiftLabel = if (strategyType == RentalStrategyType.SHIFT_BASED) primarySlot.groupLabel.substringAfter("• ") else ""
             val slotSummary = allSlots.joinToString("; ") { it.label }
             val notes = buildString {
-                append("Requested via live slot selection")
+                append(uiText(R.string.requested_via_live_slot_selection))
                 if (allSlots.size > 1) append(" — $slotSummary")
                 if (isAttendeeMode) {
                     append(" | ${com.example.ui.util.AttendeePricing.describe(attendeeQuote!!)}")
@@ -952,7 +953,7 @@ fun SpaceDetailsScreenContent(
                 com.example.analytics.AnalyticsTracker.bookingRequestFailed(com.example.analytics.AnalyticsTracker.errorCode(e))
                 snackbarHostState.showSnackbar(
                     e.message?.takeIf { (e is IllegalStateException || e is IllegalArgumentException) && it.isNotBlank() }
-                        ?: "Couldn't send your request — check your connection and try again."
+                        ?: uiText(R.string.couldn_t_send_your_request_check_your_conn)
                 )
                 return@launch
             }
@@ -975,7 +976,7 @@ fun SpaceDetailsScreenContent(
                 sentRequest = request
             } else {
                 com.example.analytics.AnalyticsTracker.bookingRequestFailed("not_synced")
-                snackbarHostState.showSnackbar("Couldn't send your request — check your connection and try again.")
+                snackbarHostState.showSnackbar(uiText(R.string.couldn_t_send_your_request_check_your_conn))
             }
         }
     }

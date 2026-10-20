@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
@@ -142,7 +143,7 @@ fun WhatsAppNumberSection(
             text = if (saving) stringResource(R.string.saving) else stringResource(R.string.save_number),
             onClick = {
                 if (phoneNumber.filter { it.isDigit() }.length < 6 || !isPlausibleE164(e164Phone)) {
-                    errorMessage = "Please enter a valid number with its country code."
+                    errorMessage = uiText(R.string.please_enter_a_valid_number_with_its_count)
                     return@ProPrimaryButton
                 }
                 saving = true

@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.uiText
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.role
@@ -282,14 +283,14 @@ fun OwnerSubscriptionsScreen(
                 currentPrice = currentPlanId?.takeIf { it in enabledPlans }
                     ?.let { PlayOfferText.describe(premiumProduct, it) },
                 renewLabel = when {
-                    isLifetimeGrant -> "Expires"
-                    !isAutoRenewing && remainingDays != null -> "Ends"
-                    else -> "Renews"
+                    isLifetimeGrant -> uiText(R.string.expires)
+                    !isAutoRenewing && remainingDays != null -> uiText(R.string.ends)
+                    else -> uiText(R.string.renews)
                 },
                 renewValue = when {
-                    isLifetimeGrant -> "Never"
-                    remainingDays == null -> "Expired"
-                    remainingDays == 0 -> "< 1 day"
+                    isLifetimeGrant -> uiText(R.string.never)
+                    remainingDays == null -> uiText(R.string.expired)
+                    remainingDays == 0 -> uiText(R.string.t_1_day)
                     expiryDateString != null -> expiryDateString
                     else -> "$remainingDays days"
                 },
@@ -297,10 +298,10 @@ fun OwnerSubscriptionsScreen(
                 listingCount = ownerSpaces.size,
                 statusLine = when {
                     currentPlanId == null -> null
-                    isSubscriptionExpired -> HeroStatus(Icons.Default.Warning, "Expired — your listings are hidden until you renew", HeroTone.ERROR)
-                    isForcedUpgrade || isLifetimeGrant -> HeroStatus(Icons.Default.CardGiftcard, "Complimentary access granted by ProHost", HeroTone.SUCCESS)
-                    !isAutoRenewing && remainingDays != null -> HeroStatus(Icons.Default.EventBusy, "Cancelled — access continues until $expiryDateString", HeroTone.WARNING)
-                    remainingDays != null -> HeroStatus(Icons.Default.Autorenew, "Renews automatically via Google Play", HeroTone.SUCCESS)
+                    isSubscriptionExpired -> HeroStatus(Icons.Default.Warning, uiText(R.string.expired_your_listings_are_hidden_until_you), HeroTone.ERROR)
+                    isForcedUpgrade || isLifetimeGrant -> HeroStatus(Icons.Default.CardGiftcard, uiText(R.string.complimentary_access_granted_by_prohost), HeroTone.SUCCESS)
+                    !isAutoRenewing && remainingDays != null -> HeroStatus(Icons.Default.EventBusy, uiText(R.string.cancelled_access_continues_until_x, expiryDateString), HeroTone.WARNING)
+                    remainingDays != null -> HeroStatus(Icons.Default.Autorenew, uiText(R.string.renews_automatically_via_google_play), HeroTone.SUCCESS)
                     else -> null
                 }
             )
@@ -313,13 +314,13 @@ fun OwnerSubscriptionsScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (act != null) {
-                    PremiumActionChip(Icons.Default.Settings, "Manage") {
+                    PremiumActionChip(Icons.Default.Settings, uiText(R.string.manage)) {
                         viewModel.billing.openManageSubscriptions(act, PlayCatalog.PRODUCT_ID)
                     }
-                    PremiumActionChip(Icons.Default.CardGiftcard, "Redeem code", dot = livePromo != null) { showRedeemDialog = true }
-                    PremiumActionChip(Icons.Default.Receipt, "Orders") { viewModel.billing.openPlayOrderHistory(act) }
+                    PremiumActionChip(Icons.Default.CardGiftcard, uiText(R.string.redeem_code), dot = livePromo != null) { showRedeemDialog = true }
+                    PremiumActionChip(Icons.Default.Receipt, uiText(R.string.orders)) { viewModel.billing.openPlayOrderHistory(act) }
                 }
-                PremiumActionChip(Icons.Default.Sync, "Restore") {
+                PremiumActionChip(Icons.Default.Sync, uiText(R.string.restore)) {
                     viewModel.billing.refreshPlayPurchases(context, userInitiated = true)
                 }
             }
@@ -385,7 +386,7 @@ fun OwnerSubscriptionsScreen(
                     )
                 }
                 val selectedKind = PlayOfferText.kindOf(premiumProduct, selectedPlan)
-                val selectedBadge = selectedKind?.let(PlayCatalog::badge) ?: "Premium"
+                val selectedBadge = selectedKind?.let(PlayCatalog::badge) ?: uiText(R.string.premium)
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     // Offers show on the plan cards (new subscriptions only); members switching plans see regular prices.
                     // Always exactly two tiles: Monthly and Yearly. A kind Play didn't return is a placeholder.
@@ -431,13 +432,13 @@ fun OwnerSubscriptionsScreen(
                     // (to yearly) apply now with credit for unused time; downgrades start at renewal.
                     val isUpgrade = selectedKind == PlayCatalog.PlanKind.YEARLY
                     val actionLabel = when {
-                        isForcedUpgrade -> "Included in your access"
-                        isCurrent -> "Your current plan"
-                        hasLivePlaySubscription -> "Switch to $selectedBadge"
-                        isSubscriptionExpired -> "Renew · $selectedBadge"
-                        selectedSummary?.trialSpan != null && selectedSummary.introSpan == null -> "Start free trial · $selectedBadge"
+                        isForcedUpgrade -> uiText(R.string.included_in_your_access)
+                        isCurrent -> uiText(R.string.your_current_plan)
+                        hasLivePlaySubscription -> uiText(R.string.switch_to_x, selectedBadge)
+                        isSubscriptionExpired -> uiText(R.string.renew_x, selectedBadge)
+                        selectedSummary?.trialSpan != null && selectedSummary.introSpan == null -> uiText(R.string.start_free_trial_x, selectedBadge)
                         selectedSummary?.discountPercent != null -> "Get ${selectedSummary.discountPercent}% off · $selectedBadge"
-                        else -> "Subscribe · $selectedBadge"
+                        else -> uiText(R.string.subscribe_x, selectedBadge)
                     }
                     val enabled = !isForcedUpgrade && !isCurrent
                     Button(
@@ -474,15 +475,15 @@ fun OwnerSubscriptionsScreen(
                     // A plan switch is charged the plain base plan (OfferChoice.BasePlanOnly), so its terms are too.
                     val terms = PlayOfferText.describe(premiumProduct, selectedPlan, basePlanOnly = hasLivePlaySubscription)
                     val notes = buildList {
-                        if (enabled && terms != null) add("$terms · renews automatically until you cancel · via Google Play")
+                        if (enabled && terms != null) add(uiText(R.string.x_renews_automatically_until_you_cancel_vi, terms))
                         if (enabled && hasLivePlaySubscription) add(
-                            if (isUpgrade) "You pay the yearly price now and your year starts today. The unused days of " +
-                                "your current month are added to it by Google Play, so it renews in about a year plus those days."
+                            if (isUpgrade) uiText(R.string.you_pay_the_yearly_price_now_and_your_year) +
+                                uiText(R.string.your_current_month_are_added_to_it_by_goog)
                             else "Starts on your renewal date${expiryDateString?.let { " ($it)" }.orEmpty()}; your current plan runs until then."
                         )
                         if (enabled && !hasLivePlaySubscription && PlayOfferText.trialLabel(premiumProduct, selectedPlan) != null) add(
-                            "No charge during the free trial. Cancel in Google Play before it ends and you won't be charged. " +
-                                "Google Play may place a temporary verification hold on your payment method."
+                            uiText(R.string.no_charge_during_the_free_trial_cancel_in) +
+                                uiText(R.string.google_play_may_place_a_temporary_verifica)
                         )
                     }
                     notes.forEach { note ->
@@ -692,8 +693,8 @@ private fun PremiumHero(
                     Text(
                         when {
                             currentPrice != null -> currentPrice
-                            currentPlanId != null -> "Unlimited listings and booking requests"
-                            else -> playDescription ?: "Publish your workspaces and take bookings"
+                            currentPlanId != null -> uiText(R.string.unlimited_listings_and_booking_requests)
+                            else -> playDescription ?: uiText(R.string.publish_your_workspaces_and_take_bookings)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = on.copy(alpha = 0.82f),
@@ -708,7 +709,7 @@ private fun PremiumHero(
             if (currentPlanId != null) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     HeroStat(renewLabel, renewValue, if (renewOk) on else MaterialTheme.proColors.headerError, Modifier.weight(1f))
-                    HeroStat("Listings", "$listingCount · Unlimited", on, Modifier.weight(1f))
+                    HeroStat(uiText(R.string.listings), uiText(R.string.x_unlimited, listingCount), on, Modifier.weight(1f))
                 }
             }
             statusLine?.let { st ->
@@ -887,7 +888,7 @@ internal fun PlanTile(
                     }
                     Text(
                         when {
-                            summary.introSpan != null -> "for your ${summary.introSpan}"
+                            summary.introSpan != null -> uiText(R.string.for_your_x, summary.introSpan)
                             summary.trialSpan != null -> "for ${summary.trialSpan}"
                             else -> "per ${summary.recurringPeriod}"
                         },
@@ -924,8 +925,8 @@ internal fun PlanTile(
                 val chip: String? = when {
                     isCurrent -> null
                     kind == PlayCatalog.PlanKind.YEARLY && savingsPercent != null -> "SAVE $savingsPercent% VS MONTHLY"
-                    hasOffer && summary?.trialSpan != null && summary.introSpan == null -> "NOTHING TO PAY TODAY"
-                    kind == PlayCatalog.PlanKind.MONTHLY -> "CANCEL ANYTIME"
+                    hasOffer && summary?.trialSpan != null && summary.introSpan == null -> uiText(R.string.nothing_to_pay_today)
+                    kind == PlayCatalog.PlanKind.MONTHLY -> uiText(R.string.cancel_anytime)
                     else -> null
                 }
                 chip?.let {
@@ -958,17 +959,17 @@ internal fun PlanExplainer(summary: PlayOfferText.OfferSummary, hasOffer: Boolea
     }
     val today = when {
         summary.introSpan != null -> buildString {
-            summary.trialSpan?.let { append("Free for $it, then ") }
-            append(if (summary.trialSpan != null) "${summary.headline} for your ${summary.introSpan}" else "Pay ${summary.headline} for your ${summary.introSpan}")
+            summary.trialSpan?.let { append(uiText(R.string.free_for_x_then, it)) }
+            append(if (summary.trialSpan != null) uiText(R.string.x_for_your_x, summary.headline, summary.introSpan) else uiText(R.string.pay_x_for_your_x, summary.headline, summary.introSpan))
             if (summary.discountPercent != null) {
                 append(" — ${summary.discountPercent}% off")
-                summary.original?.let { append(" the regular $it") }
+                summary.original?.let { append(uiText(R.string.the_regular_x, it)) }
             }
             append(".")
         }
-        else -> "Free for ${summary.trialSpan}. Nothing to pay today."
+        else -> uiText(R.string.free_for_x_nothing_to_pay_today, summary.trialSpan)
     }
-    ExplainerSteps("HOW YOUR OFFER WORKS", listOf(
+    ExplainerSteps(uiText(R.string.how_your_offer_works), listOf(
         Triple(Icons.Default.LocalOffer, "Today", today),
         Triple(Icons.Default.Autorenew, "From $startsAt", "${summary.recurring} / ${summary.recurringPeriod}, renewing automatically."),
         Triple(
@@ -989,7 +990,7 @@ private fun RenewalExplainer(summary: PlayOfferText.OfferSummary) {
         java.text.SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
             .format(Date(PlayOfferText.regularPriceStartsAt(System.currentTimeMillis(), listOf(period to 1))))
     }
-    ExplainerSteps("HOW IT WORKS", listOf(
+    ExplainerSteps(uiText(R.string.how_it_works), listOf(
         Triple(Icons.Default.Payments, "Today", "${summary.recurring} for your first ${summary.recurringPeriod}, paid through Google Play."),
         Triple(Icons.Default.Autorenew, "From $renewsAt", "${summary.recurring} / ${summary.recurringPeriod}, renewing automatically."),
         Triple(Icons.Default.EventBusy, "Cancel anytime", "Cancel in Google Play before $renewsAt to avoid the renewal; Premium stays until then.")
@@ -1105,32 +1106,32 @@ private fun SubscriptionStatusBanner(
     val copy = when (billingStatus) {
         "GRACE_PERIOD" -> StatusCopy(
             com.example.ui.components.ProHostAlertSeverity.WARNING,
-            "Payment problem",
-            "Google Play couldn't renew your subscription. You still have Pro Host access for now — update your payment method to keep it.",
-            "Fix payment"
+            uiText(R.string.payment_problem),
+            uiText(R.string.google_play_couldn_t_renew_your_subscripti),
+            uiText(R.string.fix_payment)
         )
         "ON_HOLD" -> StatusCopy(
             com.example.ui.components.ProHostAlertSeverity.ERROR,
-            "Subscription on hold",
-            "Your payment didn't go through, so Pro Host access is paused and your listings are hidden. Fix your payment method in Google Play to restore them.",
-            "Fix payment"
+            uiText(R.string.subscription_on_hold),
+            uiText(R.string.your_payment_didn_t_go_through_so_pro_host),
+            uiText(R.string.fix_payment)
         )
         "PAUSED" -> StatusCopy(
             com.example.ui.components.ProHostAlertSeverity.INFO,
-            "Subscription paused",
-            "Pro Host access and your listings return when the subscription resumes. You can resume it now in Google Play.",
-            "Resume"
+            uiText(R.string.subscription_paused),
+            uiText(R.string.pro_host_access_and_your_listings_return_w),
+            uiText(R.string.resume)
         )
         "CANCELED" -> StatusCopy(
             com.example.ui.components.ProHostAlertSeverity.WARNING,
-            "Subscription canceled",
+            uiText(R.string.subscription_canceled),
             "It won't renew. You keep Pro Host access${expiryDate?.let { " until $it" } ?: " until the end of the paid period"}. Changed your mind? Resubscribe in Google Play.",
-            "Resubscribe"
+            uiText(R.string.resubscribe)
         )
         "PENDING" -> StatusCopy(
             com.example.ui.components.ProHostAlertSeverity.INFO,
-            "Payment processing",
-            "Google Play is still processing your payment. Pro Host access starts as soon as it completes — no need to pay again.",
+            uiText(R.string.payment_processing),
+            uiText(R.string.google_play_is_still_processing_your_payme),
             null
         )
         else -> null

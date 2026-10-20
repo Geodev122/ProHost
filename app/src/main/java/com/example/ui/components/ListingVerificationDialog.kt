@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.BorderStroke
@@ -167,7 +168,7 @@ fun ListingVerificationDialog(
                                             val ext = newState.fileName?.substringAfterLast('.', "pdf") ?: "pdf"
                                             uploadedUrl = storageService.uploadListingVerificationDocument(space.id, uri, ext)
                                             if (uploadedUrl == null) {
-                                                uploadError = "Couldn't upload that document. Check your connection and try again."
+                                                uploadError = uiText(R.string.couldn_t_upload_that_document_check_your_c)
                                             }
                                             isUploading = false
                                         }
@@ -200,7 +201,7 @@ fun ListingVerificationDialog(
                                             val ext = newState.fileName?.substringAfterLast('.', "pdf") ?: "pdf"
                                             uploadedUrl = storageService.uploadListingVerificationDocument(space.id, uri, ext)
                                             if (uploadedUrl == null) {
-                                                uploadError = "Couldn't upload that document. Check your connection and try again."
+                                                uploadError = uiText(R.string.couldn_t_upload_that_document_check_your_c)
                                             }
                                             isUploading = false
                                         }
@@ -241,7 +242,7 @@ fun ListingVerificationDialog(
                             if (success) {
                                 onDismiss()
                             } else {
-                                submitError = "Couldn't reach server. Your document is saved — tap Submit again to notify admins."
+                                submitError = uiText(R.string.couldn_t_reach_server_your_document_is_sav)
                                 isSubmitting = false
                             }
                         }

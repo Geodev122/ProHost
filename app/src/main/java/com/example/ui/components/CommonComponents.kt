@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiText
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.heading
 import com.example.R
@@ -141,15 +142,15 @@ fun StatusBadge(
     val pro = MaterialTheme.proColors
     val scheme = MaterialTheme.colorScheme
     val (bg, text, defaultIcon, defaultText) = when (status) {
-        StatusBadgeType.AVAILABLE -> Quad(pro.success, pro.onSuccess, Icons.Default.CheckCircle, "Available")
-        StatusBadgeType.OCCUPIED -> Quad(pro.locked, pro.onLocked, Icons.Default.Lock, "Occupied / Booked")
-        StatusBadgeType.VERIFIED -> Quad(pro.success, pro.onSuccess, Icons.Default.Verified, "License / ID Verified")
-        StatusBadgeType.PENDING -> Quad(pro.warning, pro.onWarning, Icons.Default.HourglassTop, "Pending Approval")
-        StatusBadgeType.MAINTENANCE -> Quad(scheme.onSurfaceVariant, scheme.surface, Icons.Default.Build, "Maintenance Slot")
-        StatusBadgeType.CANCELLED -> Quad(scheme.error, scheme.onError, Icons.Default.Cancel, "Cancelled / Unavailable")
-        StatusBadgeType.ADMIN -> Quad(scheme.primary, scheme.onPrimary, Icons.Default.Shield, "Super Admin")
-        StatusBadgeType.GOLD -> Quad(pro.warning, pro.onWarning, Icons.Default.WorkspacePremium, "Premium Tier")
-        StatusBadgeType.INFO -> Quad(pro.info, pro.onInfo, Icons.Default.Info, "Information")
+        StatusBadgeType.AVAILABLE -> Quad(pro.success, pro.onSuccess, Icons.Default.CheckCircle, uiText(R.string.available))
+        StatusBadgeType.OCCUPIED -> Quad(pro.locked, pro.onLocked, Icons.Default.Lock, uiText(R.string.occupied_booked))
+        StatusBadgeType.VERIFIED -> Quad(pro.success, pro.onSuccess, Icons.Default.Verified, uiText(R.string.license_id_verified))
+        StatusBadgeType.PENDING -> Quad(pro.warning, pro.onWarning, Icons.Default.HourglassTop, uiText(R.string.pending_approval))
+        StatusBadgeType.MAINTENANCE -> Quad(scheme.onSurfaceVariant, scheme.surface, Icons.Default.Build, uiText(R.string.maintenance_slot))
+        StatusBadgeType.CANCELLED -> Quad(scheme.error, scheme.onError, Icons.Default.Cancel, uiText(R.string.cancelled_unavailable))
+        StatusBadgeType.ADMIN -> Quad(scheme.primary, scheme.onPrimary, Icons.Default.Shield, uiText(R.string.super_admin))
+        StatusBadgeType.GOLD -> Quad(pro.warning, pro.onWarning, Icons.Default.WorkspacePremium, uiText(R.string.premium_tier))
+        StatusBadgeType.INFO -> Quad(pro.info, pro.onInfo, Icons.Default.Info, uiText(R.string.information))
     }
 
     Surface(
@@ -1411,9 +1412,9 @@ fun ProHostTopAppBar(
 
                         Text(
                             text = pageTitle ?: when (currentRole) {
-                                UserRole.ADMIN -> "Admin"
-                                UserRole.PRO_HOST -> "Host"
-                                UserRole.SPECIALIST -> "Member"
+                                UserRole.ADMIN -> uiText(R.string.admin)
+                                UserRole.PRO_HOST -> uiText(R.string.host)
+                                UserRole.SPECIALIST -> uiText(R.string.member)
                             },
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.SemiBold,

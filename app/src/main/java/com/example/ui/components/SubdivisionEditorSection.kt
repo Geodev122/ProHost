@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import android.net.Uri
@@ -206,11 +207,11 @@ fun SubdivisionEditorSection(
                 if (url != null) subImageUrls = subImageUrls + url else failureCount++
             }
             if (failureCount > 0) {
-                val detail = FirebaseStorageService.lastUploadError ?: "Check your connection and try again."
+                val detail = FirebaseStorageService.lastUploadError ?: uiText(R.string.check_your_connection_and_try_again)
                 subImageUploadError = if (failureCount == uris.size) {
                     "Couldn't upload ${if (uris.size == 1) "that photo" else "those photos"}: $detail"
                 } else {
-                    "$failureCount of ${uris.size} photos failed to upload: $detail"
+                    uiText(R.string.x_of_x_photos_failed_to_upload_x, failureCount, uris.size, detail)
                 }
             }
             isUploadingSubImage = false
@@ -239,11 +240,11 @@ fun SubdivisionEditorSection(
     val attendeeBlocker: String? = if (!isPerAttendee) null else {
         val built = buildCurrentSubdivision()
         when {
-            subAttendeeTiers.isEmpty() -> "Add at least one pricing tier."
-            com.example.ui.util.AttendeePricing.tiersFor(built).isEmpty() -> "Give at least one tier a price per person above $0."
-            subAttendeeTiers.any { t -> t.maxAttendees.let { it != null && it < t.minAttendees } } -> "A tier's “To” is below its “From”."
-            !built.pricing.hasRealPrice() -> "Pick at least one hour, shift or day this room is offered (Offered Times above)."
-            (subCapacity ?: Int.MAX_VALUE) < (subMinAttendees ?: 1) -> "Max attendees is below min attendees."
+            subAttendeeTiers.isEmpty() -> uiText(R.string.add_at_least_one_pricing_tier)
+            com.example.ui.util.AttendeePricing.tiersFor(built).isEmpty() -> uiText(R.string.give_at_least_one_tier_a_price_per_person)
+            subAttendeeTiers.any { t -> t.maxAttendees.let { it != null && it < t.minAttendees } } -> uiText(R.string.a_tier_s_to_is_below_its_from)
+            !built.pricing.hasRealPrice() -> uiText(R.string.pick_at_least_one_hour_shift_or_day_this_r)
+            (subCapacity ?: Int.MAX_VALUE) < (subMinAttendees ?: 1) -> uiText(R.string.max_attendees_is_below_min_attendees)
             else -> null
         }
     }
@@ -382,7 +383,7 @@ fun SubdivisionEditorSection(
                                 Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.extraSmall) {
                                     Text(
                                         if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) {
-                                            "${sub.pricing.strategyType.displayName} · per attendee"
+                                            uiText(R.string.x_per_attendee, sub.pricing.strategyType.displayName)
                                         } else sub.pricing.strategyType.displayName,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                         style = MaterialTheme.typography.labelSmall,
@@ -513,7 +514,7 @@ fun SubdivisionEditorSection(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 PickerTriggerRow(
-                    summary = subAmenitiesSelected.joinToString().ifBlank { "None selected" },
+                    summary = subAmenitiesSelected.joinToString().ifBlank { uiText(R.string.none_selected) },
                     placeholder = stringResource(R.string.choose_amenities),
                     onClick = { showAmenityPicker = true }
                 )
@@ -911,7 +912,7 @@ fun SubdivisionEditorSection(
                                     dayOfWeek = blackoutDay,
                                     startTime = blackoutStart,
                                     endTime = blackoutEnd,
-                                    reason = blackoutReason.ifBlank { "Blocked" }
+                                    reason = blackoutReason.ifBlank { uiText(R.string.blocked) }
                                 )
                                 blackoutReason = ""
                             },
@@ -1257,7 +1258,7 @@ private fun AttendeeTierEditor(
                     onTiersChange(
                         tiers + AttendeePackage(
                             id = "TIER-" + UUID.randomUUID().toString().take(6).uppercase(),
-                            name = "Tier ${tiers.size + 1}",
+                            name = uiText(R.string.tier_x, tiers.size + 1),
                             pricePerAttendeeUsd = 0.0,
                             minAttendees = nextMin,
                             isSystemDefault = false

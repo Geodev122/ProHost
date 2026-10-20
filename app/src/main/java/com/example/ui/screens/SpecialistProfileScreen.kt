@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
@@ -259,13 +260,13 @@ fun SpecialistProfileScreen(
                         nearestUpcomingBooking != null -> {
                             val (booking, days) = nearestUpcomingBooking
                             when {
-                                days == 0L -> "Your booking at ${booking.spaceTitle} starts today."
-                                days == 1L -> "Your booking at ${booking.spaceTitle} starts tomorrow."
-                                else -> "Your booking at ${booking.spaceTitle} starts in $days days."
+                                days == 0L -> uiText(R.string.your_booking_at_x_starts_today, booking.spaceTitle)
+                                days == 1L -> uiText(R.string.your_booking_at_x_starts_tomorrow, booking.spaceTitle)
+                                else -> uiText(R.string.your_booking_at_x_starts_in_x_days, booking.spaceTitle, days)
                             }
                         }
                         pendingCount > 0 -> "$pendingCount request${if (pendingCount != 1) "s" else ""} awaiting host response."
-                        else -> "No updates right now — explore available workspaces."
+                        else -> uiText(R.string.no_updates_right_now_explore_available_wor)
                     }
 
                     ProSurfaceCard(
@@ -336,20 +337,20 @@ fun SpecialistProfileScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             ProSectionHeader(
                                 title = when (user.role) {
-                                    UserRole.SPECIALIST -> "Practitioner Rental Activity"
-                                    UserRole.PRO_HOST -> "Host Performance & Yield"
-                                    UserRole.ADMIN -> "Central Platform Governance"
+                                    UserRole.SPECIALIST -> uiText(R.string.practitioner_rental_activity)
+                                    UserRole.PRO_HOST -> uiText(R.string.host_performance_yield)
+                                    UserRole.ADMIN -> uiText(R.string.central_platform_governance)
                                 },
                                 subtitle = when (user.role) {
-                                    UserRole.SPECIALIST -> "Active leases and pending bookings"
-                                    UserRole.PRO_HOST -> "Managed spaces, incoming tenant inquiries, and MRR yield"
-                                    UserRole.ADMIN -> "System spaces, cloud sync status, and transaction integrity"
+                                    UserRole.SPECIALIST -> uiText(R.string.active_leases_and_pending_bookings)
+                                    UserRole.PRO_HOST -> uiText(R.string.managed_spaces_incoming_tenant_inquiries_a)
+                                    UserRole.ADMIN -> uiText(R.string.system_spaces_cloud_sync_status_and_transa)
                                 },
                                 icon = Icons.Default.Analytics,
                                 trailingContent = {
                                     ProStatusBadge(
                                         type = if (user.isVerified) ProBadgeType.CUSTOM_SUCCESS else ProBadgeType.CUSTOM_WARNING,
-                                        customText = if (user.isVerified) "Verified Status" else "Pending Review"
+                                        customText = if (user.isVerified) uiText(R.string.verified_status) else uiText(R.string.pending_review)
                                     )
                                 }
                             )
@@ -391,7 +392,7 @@ fun SpecialistProfileScreen(
                                         )
                                         ProMetricTile(
                                             title = stringResource(R.string.whatsapp),
-                                            value = if (user.hasWhatsAppNumber()) "Added" else "Missing",
+                                            value = if (user.hasWhatsAppNumber()) uiText(R.string.added) else uiText(R.string.missing),
                                             subtitle = stringResource(R.string.hosts_reach_you_here),
                                             icon = Icons.Default.VerifiedUser,
                                             iconTint = MaterialTheme.proColors.success,
@@ -428,7 +429,7 @@ fun SpecialistProfileScreen(
                                     ) {
                                         ProMetricTile(
                                             title = stringResource(R.string.monthly_income),
-                                            value = "$${estimatedYieldUsd.toInt()} USD",
+                                            value = uiText(R.string.x_usd, estimatedYieldUsd.toInt()),
                                             subtitle = stringResource(R.string.from_accepted_bookings),
                                             icon = Icons.Default.AttachMoney,
                                             iconTint = MaterialTheme.proColors.success,
@@ -436,8 +437,8 @@ fun SpecialistProfileScreen(
                                         )
                                         ProMetricTile(
                                             title = stringResource(R.string.prohost_premium),
-                                            value = ownerActivePlanId?.let { com.example.data.billing.PlayCatalog.planBadge(it) } ?: "No Plan",
-                                            subtitle = ownerActivePlanId?.let { com.example.data.billing.PlayCatalog.planLabel(it) } ?: "No active subscription",
+                                            value = ownerActivePlanId?.let { com.example.data.billing.PlayCatalog.planBadge(it) } ?: uiText(R.string.no_plan),
+                                            subtitle = ownerActivePlanId?.let { com.example.data.billing.PlayCatalog.planLabel(it) } ?: uiText(R.string.no_active_subscription),
                                             icon = Icons.Default.Payment,
                                             iconTint = MaterialTheme.colorScheme.secondary,
                                             modifier = Modifier.weight(1f)
@@ -473,7 +474,7 @@ fun SpecialistProfileScreen(
                                     ) {
                                         ProMetricTile(
                                             title = stringResource(R.string.synced),
-                                            value = "Live",
+                                            value = uiText(R.string.live),
                                             subtitle = stringResource(R.string.up_to_date_on_all_devices),
                                             icon = Icons.Default.CloudDone,
                                             iconTint = MaterialTheme.proColors.success,
@@ -572,9 +573,9 @@ fun SpecialistProfileScreen(
 
                                                     when (req.status) {
                                                         BookingRequestStatus.ACCEPTED -> ProStatusBadge(ProBadgeType.ACCEPTED_LOCKED)
-                                                        BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = "Pending Host")
-                                                        BookingRequestStatus.REJECTED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = "Declined")
-                                                        BookingRequestStatus.CANCELLED -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = "Cancelled")
+                                                        BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = uiText(R.string.pending_host))
+                                                        BookingRequestStatus.REJECTED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = uiText(R.string.declined))
+                                                        BookingRequestStatus.CANCELLED -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = uiText(R.string.cancelled))
                                                     }
                                                 }
 
@@ -678,9 +679,9 @@ fun SpecialistProfileScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         ProSectionHeader(
                             title = when (user.role) {
-                                UserRole.SPECIALIST -> "Practitioner Details"
-                                UserRole.PRO_HOST -> "Host Business Details"
-                                UserRole.ADMIN -> "Super Administrator Identity"
+                                UserRole.SPECIALIST -> uiText(R.string.practitioner_details)
+                                UserRole.PRO_HOST -> uiText(R.string.host_business_details)
+                                UserRole.ADMIN -> uiText(R.string.super_administrator_identity)
                             },
                             subtitle = stringResource(R.string.contact_verification_info),
                             icon = Icons.Default.Badge
@@ -723,9 +724,9 @@ fun SpecialistProfileScreen(
                             value = specialty,
                             onValueChange = { specialty = it },
                             label = when (user.role) {
-                                UserRole.SPECIALIST -> "Profession / Job Title (Optional)"
-                                UserRole.PRO_HOST -> "Host Category (Commercial Real Estate, Coworking, Clinic)"
-                                UserRole.ADMIN -> "Super Administrator Role & Clearance"
+                                UserRole.SPECIALIST -> uiText(R.string.profession_job_title_optional)
+                                UserRole.PRO_HOST -> uiText(R.string.host_category_commercial_real_estate_cowor)
+                                UserRole.ADMIN -> uiText(R.string.super_administrator_role_clearance)
                             },
                             leadingIcon = Icons.Default.Work,
                             modifier = Modifier.fillMaxWidth(),
@@ -804,7 +805,7 @@ fun SpecialistProfileScreen(
                                         when {
                                             !success -> UiMessages.show(context, context.getString(R.string.failed_to_update_profile_please_try_again))
                                             pictureUploadFailed -> {
-                                                profilePicUploadError = "Profile saved, but the new photo couldn't be uploaded. Check your connection and try again."
+                                                profilePicUploadError = uiText(R.string.profile_saved_but_the_new_photo_couldn_t_b)
                                                 UiMessages.show(context, context.getString(R.string.profile_saved_photo_upload_failed_please_r), long = true)
                                             }
                                             else -> UiMessages.show(context, context.getString(R.string.profile_updated_successfully))
@@ -902,7 +903,7 @@ fun SpecialistProfileScreen(
                             ProSectionHeader(
                                 title = stringResource(R.string.prohost_premium),
                                 subtitle = user.ownerPackageId?.let { com.example.data.billing.PlayCatalog.planLabel(it) }
-                                    ?: "Not subscribed",
+                                    ?: uiText(R.string.not_subscribed),
                                 icon = Icons.Default.WorkspacePremium
                             )
                             TextButton(

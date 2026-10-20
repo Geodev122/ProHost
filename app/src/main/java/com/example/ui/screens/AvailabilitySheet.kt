@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
@@ -518,7 +519,7 @@ internal fun AvailabilitySheet(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 } else if (canSubmit) {
-                    val slotLabel = if (totalSelectedSlots == 1) "1 Slot" else "$totalSelectedSlots Slots"
+                    val slotLabel = if (totalSelectedSlots == 1) uiText(R.string.t_1_slot) else uiText(R.string.x_slots_2, totalSelectedSlots)
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(
@@ -548,12 +549,12 @@ internal fun AvailabilitySheet(
                                 }.trimEnd()
                                 val attendeeBlock = sheetAttendeeQuote?.let { q ->
                                     "\n\n👥 ${com.example.ui.util.AttendeePricing.describe(q)}" +
-                                        "\n💰 Total for the booking: \$${com.example.ui.util.AttendeePricing.formatUsd(q.totalUsd)} USD"
+                                        uiText(R.string.total_for_the_booking_x_usd, com.example.ui.util.AttendeePricing.formatUsd(q.totalUsd))
                                 } ?: ""
-                                val message = "Hello! I'm interested in booking *${liveSpace.title}*.\n\n📍" +
+                                val message = uiText(R.string.hello_i_m_interested_in_booking_x, liveSpace.title) +
                                     " ${liveSpace.district}, ${liveSpace.governorate.displayName}" +
-                                    "\n\n🗓 Selected Slots ($totalSelectedSlots):\n$slotLines${attendeeBlock}" +
-                                    "\n\nAre these slots still available?"
+                                    uiText(R.string.selected_slots_x_xx, totalSelectedSlots, slotLines, attendeeBlock) +
+                                    uiText(R.string.are_these_slots_still_available)
                                 try {
                                     val whatsappUrl = "https://wa.me/${viewModel.formatWhatsAppNumber(liveSpace.ownerPhone)}" +
                                         "?text=${java.net.URLEncoder.encode(message, "UTF-8")}"

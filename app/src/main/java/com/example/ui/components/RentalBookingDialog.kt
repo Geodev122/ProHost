@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiText
 import androidx.compose.ui.res.stringResource
 import com.example.ui.util.UiMessages
 import androidx.compose.animation.AnimatedVisibility
@@ -119,10 +120,10 @@ fun RebookDialog(
         target = BookingDialogTarget(space = space, initialFormula = initialFormula, replacesBookingId = null, initialAttendeeCount = initialAttendeeCount),
         viewModel = viewModel,
         copy = BookingDialogCopy(
-            headerTitle = "Re-book This Space",
-            headerBadgeText = "Real-Time Availability",
-            primaryButtonText = "Request",
-            secondaryButtonText = "Request and Contact"
+            headerTitle = uiText(R.string.re_book_this_space),
+            headerBadgeText = uiText(R.string.real_time_availability),
+            primaryButtonText = uiText(R.string.request),
+            secondaryButtonText = uiText(R.string.request_and_contact)
         ),
         onDismiss = onDismiss,
         onRequestSubmitted = onRequestSubmitted,
@@ -153,10 +154,10 @@ fun EditBookingDialog(
         target = BookingDialogTarget(space = space, initialFormula = initialFormula, replacesBookingId = replacesBookingId, initialAttendeeCount = initialAttendeeCount),
         viewModel = viewModel,
         copy = BookingDialogCopy(
-            headerTitle = "Propose a Booking Change",
-            headerBadgeText = "Replaces Your Current Booking",
-            primaryButtonText = "Submit Change",
-            secondaryButtonText = "Submit Change and Contact"
+            headerTitle = uiText(R.string.propose_a_booking_change),
+            headerBadgeText = uiText(R.string.replaces_your_current_booking),
+            primaryButtonText = uiText(R.string.submit_change),
+            secondaryButtonText = uiText(R.string.submit_change_and_contact)
         ),
         onDismiss = onDismiss,
         onRequestSubmitted = onRequestSubmitted,
@@ -466,24 +467,24 @@ private fun BookingSlotSelectorDialog(
         when (selectedStrategyType) {
             RentalStrategyType.MONTHLY -> {
                 val m = if (hasSubdivisions) selectedSubdivision?.pricing?.monthly else space.pricing.monthly
-                if (m?.isIndefinite == true) "Full month, indefinite" else "Full month"
+                if (m?.isIndefinite == true) uiText(R.string.full_month_indefinite) else uiText(R.string.full_month)
             }
             RentalStrategyType.HOURLY -> {
-                if (selectedSlotsForPricing.isEmpty()) "No hours selected yet"
+                if (selectedSlotsForPricing.isEmpty()) uiText(R.string.no_hours_selected_yet)
                 else selectedSlotsForPricing.sortedBy { it.startTime }
                     .joinToString(", ") { "${it.day} ${it.startTime}-${it.endTime}" }
             }
             RentalStrategyType.SHIFT_BASED -> {
                 val slot = selectedShiftSlot
                 when {
-                    slot == null -> "No shift selected yet"
+                    slot == null -> uiText(R.string.no_shift_selected_yet)
                     selectedCalendarDates.isEmpty() -> "${slot.groupLabel.substringAfter("• ")} • no dates selected yet"
                     else -> "${slot.groupLabel.substringAfter("• ")} • ${selectedCalendarDates.size} date${if (selectedCalendarDates.size == 1) "" else "s"}"
                 }
             }
             RentalStrategyType.DAY_BASED -> {
                 when {
-                    selectedDayBasedDays.isEmpty() -> "No days selected yet"
+                    selectedDayBasedDays.isEmpty() -> uiText(R.string.no_days_selected_yet)
                     dayBasedCalendarDates.isEmpty() -> "${selectedDayBasedDays.sorted().joinToString(", ")} • no dates selected yet"
                     else -> "${selectedDayBasedDays.sorted().joinToString(", ")} • " +
                         "${dayBasedCalendarDates.size} date${if (dayBasedCalendarDates.size == 1) "" else "s"}"
@@ -902,7 +903,7 @@ private fun BookingSlotSelectorDialog(
                                                     fontWeight = FontWeight.SemiBold
                                                 )
                                                 CustomButton(
-                                                    text = dayBasedUntilDate?.let { "Until $it" } ?: "Pick an end date",
+                                                    text = dayBasedUntilDate?.let { uiText(R.string.until_x, it) } ?: uiText(R.string.pick_an_end_date),
                                                     onClick = { showDayBasedUntilPicker = true },
                                                     variant = CustomButtonVariant.OUTLINED,
                                                     icon = Icons.Default.DateRange,
@@ -1149,7 +1150,7 @@ private fun BookingSlotSelectorDialog(
                                     selectedStrategyType == RentalStrategyType.SHIFT_BASED ||
                                         selectedStrategyType == RentalStrategyType.DAY_BASED
                                 ) {
-                                    "Your selected dates:"
+                                    uiText(R.string.your_selected_dates)
                                 } else {
                                     "Over $selectedDurationMonths month${if (selectedDurationMonths > 1) "s" else ""} from ${selectedDateOption.lowercase()}:"
                                 }

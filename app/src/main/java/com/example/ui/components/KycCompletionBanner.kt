@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
@@ -37,9 +38,9 @@ fun KycCompletionBanner(
     data class Step(val icon: ImageVector, val label: String, val done: Boolean)
 
     val steps = buildList {
-        add(Step(Icons.Default.Photo, "Profile photo", !user.profilePictureUrl.isNullOrBlank()))
-        add(Step(Icons.Default.PhoneAndroid, "WhatsApp number", user.hasWhatsAppNumber()))
-        if (isHost) add(Step(Icons.Default.LocationOn, "Country & city", user.country.isNotBlank() && user.city.isNotBlank()))
+        add(Step(Icons.Default.Photo, uiText(R.string.profile_photo), !user.profilePictureUrl.isNullOrBlank()))
+        add(Step(Icons.Default.PhoneAndroid, uiText(R.string.whatsapp_number), user.hasWhatsAppNumber()))
+        if (isHost) add(Step(Icons.Default.LocationOn, uiText(R.string.country_city), user.country.isNotBlank() && user.city.isNotBlank()))
     }
     val next = steps.first { !it.done }
 

@@ -10,6 +10,7 @@ import com.google.firebase.crashlytics.FirebaseCrashlytics
 class ProHostApplication : Application() {
     override fun onCreate() {
         super.onCreate()
+        com.example.ui.util.UiText.init(resources)
         try {
             if (FirebaseApp.getApps(this).isEmpty()) {
                 FirebaseApp.initializeApp(this)

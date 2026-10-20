@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
@@ -252,9 +253,9 @@ fun MyBookingsScreen(
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 ProEmptyState(
                     title = when (selectedMainTab) {
-                        0 -> "No active bookings"
-                        1 -> "No pending requests"
-                        else -> "No past bookings"
+                        0 -> uiText(R.string.no_active_bookings)
+                        1 -> uiText(R.string.no_pending_requests)
+                        else -> uiText(R.string.no_past_bookings)
                     },
                     description = stringResource(R.string.find_a_space_and_send_a_booking_request_it),
                     icon = Icons.AutoMirrored.Filled.ReceiptLong,
@@ -548,8 +549,8 @@ fun BookingReservationCard(
                 when (booking.status) {
                     BookingRequestStatus.ACCEPTED -> ProStatusBadge(ProBadgeType.ACCEPTED_LOCKED)
                     BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.PENDING)
-                    BookingRequestStatus.CANCELLED -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = "Cancelled")
-                    BookingRequestStatus.REJECTED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = "Declined")
+                    BookingRequestStatus.CANCELLED -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = uiText(R.string.cancelled))
+                    BookingRequestStatus.REJECTED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = uiText(R.string.declined))
                 }
             }
 

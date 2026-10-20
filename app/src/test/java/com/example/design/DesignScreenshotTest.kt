@@ -80,10 +80,14 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             config.setLayoutDirection(java.util.Locale("ar"))
         }
         val baseContext = androidx.compose.ui.platform.LocalContext.current
+        val registryOwner = androidx.activity.compose.LocalActivityResultRegistryOwner.current
         val context = if (variant == "ar") baseContext.createConfigurationContext(config) else baseContext
+        com.example.ui.util.UiText.init(context.resources)
         val density = LocalDensity.current
         CompositionLocalProvider(
             androidx.compose.ui.platform.LocalContext provides context,
+            // The Arabic context isn't the activity: keep its result registry for screens with launchers.
+            androidx.activity.compose.LocalActivityResultRegistryOwner provides registryOwner!!,
             LocalConfiguration provides config,
             LocalDensity provides Density(density.density, if (variant == "font130") 1.3f else density.fontScale),
             LocalLayoutDirection provides if (variant == "rtl" || variant == "ar") LayoutDirection.Rtl else LayoutDirection.Ltr,

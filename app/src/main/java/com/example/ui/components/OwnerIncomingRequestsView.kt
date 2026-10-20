@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
@@ -76,9 +77,9 @@ fun OwnerIncomingRequestsView(
                 icon = Icons.Default.Inbox,
                 trailingContent = {
                     if (pendingCount > 0) {
-                        ProStatusBadge(type = ProBadgeType.CUSTOM_WARNING, customText = "$pendingCount Action Needed")
+                        ProStatusBadge(type = ProBadgeType.CUSTOM_WARNING, customText = uiText(R.string.x_action_needed, pendingCount))
                     } else {
-                        ProStatusBadge(type = ProBadgeType.CUSTOM_INFO, customText = "${requests.size} Total")
+                        ProStatusBadge(type = ProBadgeType.CUSTOM_INFO, customText = uiText(R.string.x_total_2, requests.size))
                     }
                 }
             )
@@ -152,9 +153,9 @@ fun OwnerIncomingRequestsView(
                 ProEmptyState(
                     title = stringResource(R.string.no_x_requests, selectedFilter.lowercase().replaceFirstChar { it.uppercase() }),
                     description = if (selectedFilter == "PENDING") {
-                        "All incoming booking requests are processed. New professional inquiries will appear here immediately."
+                        uiText(R.string.all_incoming_booking_requests_are_processe)
                     } else {
-                        "No rental booking requests found under this filter."
+                        uiText(R.string.no_rental_booking_requests_found_under_thi)
                     },
                     icon = Icons.Default.Inbox,
                     modifier = Modifier.padding(vertical = Spacing.md)
@@ -228,7 +229,7 @@ fun OwnerIncomingRequestsView(
                     onClick = {
                         val reqId = rejectingRequestId
                         if (reqId != null) {
-                            viewModel.rejectBookingRequest(reqId, rejectionReasonInput.ifBlank { "Declined by space owner" }, context)
+                            viewModel.rejectBookingRequest(reqId, rejectionReasonInput.ifBlank { uiText(R.string.declined_by_space_owner) }, context)
                         }
                         rejectingRequestId = null
                     },
@@ -341,13 +342,13 @@ fun OwnerBookingRequestCard(
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 when (request.status) {
                     BookingRequestStatus.ACCEPTED -> ProStatusBadge(ProBadgeType.ACCEPTED_LOCKED)
-                    BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = "Pending")
-                    BookingRequestStatus.REJECTED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = "Declined")
-                    BookingRequestStatus.CANCELLED -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = "Cancelled")
+                    BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = uiText(R.string.pending))
+                    BookingRequestStatus.REJECTED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = uiText(R.string.declined))
+                    BookingRequestStatus.CANCELLED -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = uiText(R.string.cancelled))
                 }
                 // A change to a booking this specialist already has: accepting replaces the old one.
                 if (!request.replacesBookingId.isNullOrBlank() && request.status == BookingRequestStatus.PENDING) {
-                    ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = "Change request")
+                    ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = uiText(R.string.change_request_2))
                 }
                 Icon(
                     Icons.Default.ChevronRight,
@@ -399,9 +400,9 @@ fun OwnerRequestDetailSheet(
                 )
                 when (request.status) {
                     BookingRequestStatus.ACCEPTED -> ProStatusBadge(ProBadgeType.ACCEPTED_LOCKED)
-                    BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = "Pending Approval")
-                    BookingRequestStatus.REJECTED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = "Declined")
-                    BookingRequestStatus.CANCELLED -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = "Cancelled")
+                    BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = uiText(R.string.pending_approval))
+                    BookingRequestStatus.REJECTED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = uiText(R.string.declined))
+                    BookingRequestStatus.CANCELLED -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = uiText(R.string.cancelled))
                 }
             }
 
@@ -434,14 +435,14 @@ fun OwnerRequestDetailSheet(
                 }
             }
 
-            DetailRow(Icons.Default.Apartment, "Space", request.spaceTitle)
-            request.subdivisionName?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.Default.MeetingRoom, "Room / Area", it) }
-            DetailRow(Icons.Default.AccessTime, "Schedule", "${chosenDays.joinToString(", ")} · $chosenHours${if (request.selectedShift.isNotBlank()) " · ${request.selectedShift}" else ""}")
-            DetailRow(Icons.Default.CalendarToday, "Start Date", "${request.startDate}${if (request.durationMonths > 0) " · ${request.durationMonths} month term" else ""}")
-            DetailRow(Icons.Default.AttachMoney, "Total", "${formatUsd(request.totalAmountUsd)} USD${if (attendeeLine != null) " · $attendeeLine" else ""}")
+            DetailRow(Icons.Default.Apartment, uiText(R.string.space), request.spaceTitle)
+            request.subdivisionName?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.Default.MeetingRoom, uiText(R.string.room_area), it) }
+            DetailRow(Icons.Default.AccessTime, uiText(R.string.schedule), "${chosenDays.joinToString(", ")} · $chosenHours${if (request.selectedShift.isNotBlank()) " · ${request.selectedShift}" else ""}")
+            DetailRow(Icons.Default.CalendarToday, uiText(R.string.start_date), "${request.startDate}${if (request.durationMonths > 0) " · ${request.durationMonths} month term" else ""}")
+            DetailRow(Icons.Default.AttachMoney, uiText(R.string.total), "${formatUsd(request.totalAmountUsd)} USD${if (attendeeLine != null) " · $attendeeLine" else ""}")
             request.lastPriceChange?.let { PriceChangeNote(it, Modifier.fillMaxWidth()) }
-            DetailRow(Icons.Default.Schedule, "Submitted", formattedTime)
-            if (request.clinicalNotes.isNotBlank()) DetailRow(Icons.AutoMirrored.Filled.Notes, "Notes", request.clinicalNotes)
+            DetailRow(Icons.Default.Schedule, uiText(R.string.submitted), formattedTime)
+            if (request.clinicalNotes.isNotBlank()) DetailRow(Icons.AutoMirrored.Filled.Notes, uiText(R.string.notes), request.clinicalNotes)
 
             if (request.status == BookingRequestStatus.REJECTED && !request.rejectionReason.isNullOrBlank()) {
                 Surface(color = MaterialTheme.colorScheme.errorContainer, shape = MaterialTheme.shapes.small) {

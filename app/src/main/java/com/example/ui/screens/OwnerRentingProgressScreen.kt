@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
@@ -133,33 +134,33 @@ fun OwnerRentingProgressScreenContent(
         val daysLeft = ownerPackageExpiryMillis?.let {
             ((it - System.currentTimeMillis() + 86399999L) / (24 * 60 * 60 * 1000)).coerceAtLeast(1)
         }
-        val daysLabel = if (daysLeft == 1L) "< 1 day" else "$daysLeft days"
+        val daysLabel = if (daysLeft == 1L) uiText(R.string.t_1_day) else "$daysLeft days"
         val planName = com.example.data.billing.PlayCatalog.planLabel(currentPlanId)
         if (currentPlanId != null && daysLeft != null &&
             !com.example.data.billing.PlayCatalog.isLifetimeExpiry(ownerPackageExpiryMillis)) {
             if (daysLeft <= 7) {
-                list.add(Pair(true, "'$planName' renews in $daysLabel. Google Play renews it automatically; check your payment method in Google Play if needed."))
+                list.add(Pair(true, uiText(R.string.x_renews_in_x_google_play_renews_it_automa, planName, daysLabel)))
             } else {
-                list.add(Pair(false, "'$planName' is active. Renews in $daysLabel."))
+                list.add(Pair(false, uiText(R.string.x_is_active_renews_in_x, planName, daysLabel)))
             }
         }
 
         // 2. Outside payment reminders — only for bookings not yet acknowledged as paid
         activeBookings.filter { !it.paymentAcknowledgedByHost }.forEach { booking ->
-            list.add(Pair(true, "Outside-App Rent due from ${booking.practitionerName} fo" +
-                "r slot '${booking.selectedDateTimeRange.ifBlank { booking.formula.scheduleDescription }}" +
-                "' (Amount: $${booking.totalAmountUsd.toInt()} USD)."))
+            list.add(Pair(true, uiText(R.string.outside_app_rent_due_from_x_fo, booking.practitionerName) +
+                uiText(R.string.r_slot_x, booking.selectedDateTimeRange.ifBlank { booking.formula.scheduleDescription }) +
+                uiText(R.string.amount_x_usd, booking.totalAmountUsd.toInt())))
         }
 
         // 3. Scheduling checklist reminder
         activeBookings.forEach { booking ->
             val daysOfWeek = booking.selectedDays.ifEmpty { booking.formula.daysOfWeek }
-            list.add(Pair(false, "Practice Schedule: ${booking.practitionerName} has an upcoming shift on ${daysOfWeek.joinToString()}" +
-                " at '${booking.spaceTitle}'."))
+            list.add(Pair(false, uiText(R.string.practice_schedule_x_has_an_upcoming_shift, booking.practitionerName, daysOfWeek.joinToString()) +
+                uiText(R.string.at_x, booking.spaceTitle)))
         }
 
         if (list.isEmpty()) {
-            list.add(Pair(false, "All clear! No pending payments or active contract alerts right now."))
+            list.add(Pair(false, uiText(R.string.all_clear_no_pending_payments_or_active_co)))
         }
         list
     }
@@ -365,7 +366,7 @@ fun OwnerRentingProgressScreenContent(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            ProStatusBadge(type = ProBadgeType.CUSTOM_SUCCESS, customText = "$remainingDays Days Left")
+                            ProStatusBadge(type = ProBadgeType.CUSTOM_SUCCESS, customText = uiText(R.string.x_days_left, remainingDays))
                         }
 
                         // Shift details badge

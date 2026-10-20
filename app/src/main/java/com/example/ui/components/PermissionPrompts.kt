@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
@@ -113,9 +114,9 @@ private fun PermissionChoice(label: String, onClick: () -> Unit) {
 
 /** "Allow **ProHost** to …?" — the system dialog's title pattern. */
 fun permissionTitle(action: String): AnnotatedString = buildAnnotatedString {
-    append("Allow ")
+    append(uiText(R.string.allow))
     withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("ProHost") }
-    append(" to $action?")
+    append(uiText(R.string.to_x_2, action))
 }
 
 private fun Activity?.hasLocation(context: android.content.Context): Boolean =
@@ -186,10 +187,10 @@ fun rememberLocationAccess(onReady: () -> Unit): () -> Unit {
     if (showRationale) {
         SystemStylePermissionDialog(
             icon = Icons.Default.LocationOn,
-            title = permissionTitle("access this device's location"),
+            title = permissionTitle(uiText(R.string.access_this_device_s_location)),
             message = stringResource(R.string.used_only_to_centre_the_map_on_where_you_a),
-            allowLabel = "Continue",
-            denyLabel = "Not now",
+            allowLabel = uiText(R.string.action_continue),
+            denyLabel = uiText(R.string.not_now),
             onAllow = { showRationale = false; permissionLauncher.launch(locationPermissions) },
             onDeny = { showRationale = false }
         )
@@ -197,10 +198,10 @@ fun rememberLocationAccess(onReady: () -> Unit): () -> Unit {
     if (showSettings) {
         SystemStylePermissionDialog(
             icon = Icons.Default.LocationOn,
-            title = permissionTitle("access this device's location"),
+            title = permissionTitle(uiText(R.string.access_this_device_s_location)),
             message = stringResource(R.string.location_is_turned_off_for_prohost_open_se),
-            allowLabel = "Open settings",
-            denyLabel = "Not now",
+            allowLabel = uiText(R.string.open_settings),
+            denyLabel = uiText(R.string.not_now),
             onAllow = {
                 showSettings = false
                 runCatching {

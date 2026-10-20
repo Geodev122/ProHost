@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
@@ -107,7 +108,7 @@ fun OwnerAnalyticsScreen(
     val specialtyDemand = remember(bookingRequests, ownerSpaceIds) {
         bookingRequests
             .filter { it.spaceId in ownerSpaceIds }
-            .groupingBy { it.practitionerSpecialty.ifBlank { "Unspecified" } }
+            .groupingBy { it.practitionerSpecialty.ifBlank { uiText(R.string.unspecified) } }
             .eachCount()
             .toList()
             .sortedByDescending { it.second }
@@ -123,11 +124,11 @@ fun OwnerAnalyticsScreen(
     val bookingMix = remember(ownerBookings) {
         ownerBookings
             .groupBy { b ->
-                if (b.attendeeCount > 0) "Per attendee" else when (b.formula.type) {
-                    RentalFormulaType.HOURLY -> "Per-Hour"
-                    RentalFormulaType.SHIFT -> "Shift-Based"
-                    RentalFormulaType.DAY_PER_WEEK -> "Day-Based"
-                    RentalFormulaType.FULL_MONTH -> "Monthly"
+                if (b.attendeeCount > 0) uiText(R.string.per_attendee) else when (b.formula.type) {
+                    RentalFormulaType.HOURLY -> uiText(R.string.per_hour)
+                    RentalFormulaType.SHIFT -> uiText(R.string.shift_based)
+                    RentalFormulaType.DAY_PER_WEEK -> uiText(R.string.day_based)
+                    RentalFormulaType.FULL_MONTH -> uiText(R.string.monthly)
                 }
             }
             .map { (label, list) ->

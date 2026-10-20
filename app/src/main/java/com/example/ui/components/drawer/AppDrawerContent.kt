@@ -1,5 +1,6 @@
 package com.example.ui.components.drawer
 
+import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.BorderStroke
@@ -109,7 +110,7 @@ fun SpecialistDrawerContent(
             .ifBlank { "P" }
         val planName = currentUser?.ownerPackageId?.let { com.example.data.billing.PlayCatalog.planLabel(it) }
         ProHostDrawerHeader(
-            title = currentUser?.fullName ?: "ProHost User",
+            title = currentUser?.fullName ?: uiText(R.string.prohost_user),
             subtitle = if (planName != null) stringResource(R.string.plan_x, planName) else "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
             onClose = { onDrawerAction("close") },
             leading = { ProHostDrawerAvatar(initials = initials, imageUrl = currentUser?.profilePictureUrl) },
@@ -249,7 +250,7 @@ fun AdminDrawerContent(
     ) {
         // Brand gradient header (Admin variant)
         ProHostDrawerHeader(
-            title = currentUser?.fullName ?: "System Admin",
+            title = currentUser?.fullName ?: uiText(R.string.system_admin_2),
             subtitle = "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
             onClose = { onDrawerAction("close") },
             leading = {

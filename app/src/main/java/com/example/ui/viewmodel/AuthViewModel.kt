@@ -1,5 +1,7 @@
 package com.example.ui.viewmodel
 
+import com.example.R
+import com.example.ui.util.uiText
 import android.app.Activity
 import android.net.Uri
 import androidx.lifecycle.ViewModel
@@ -155,7 +157,7 @@ class AuthViewModel(
                 // sign-in disabled in the console) — the fallbacks below hide it otherwise.
                 com.example.analytics.AnalyticsTracker.authError("email_link_native", nativeErrorCode(nativeError))
                 if (nativeError.isNetworkFailure()) {
-                    _authErrorMessage.value = "Network error. Please check your connection and try again."
+                    _authErrorMessage.value = uiText(R.string.network_error_please_check_your_connection)
                     return@launch
                 }
 
@@ -177,27 +179,27 @@ class AuthViewModel(
                     com.example.analytics.AnalyticsTracker.authError("email", "send_failed")
                     val linkError = link.exceptionOrNull()
                     _authErrorMessage.value = (code.exceptionOrNull() ?: linkError)
-                        ?.toUserMessage("Couldn't send the sign-in email. Please try again.")
-                        ?: "Couldn't send the sign-in email. Please try again."
+                        ?.toUserMessage(uiText(R.string.couldn_t_send_the_sign_in_email_please_try))
+                        ?: uiText(R.string.couldn_t_send_the_sign_in_email_please_try)
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
                 com.example.analytics.AnalyticsTracker.authError(authMethod, com.example.analytics.AnalyticsTracker.errorCode(e))
-                _authErrorMessage.value = e.toUserMessage("Couldn't send the sign-in email. Please try again.")
+                _authErrorMessage.value = e.toUserMessage(uiText(R.string.couldn_t_send_the_sign_in_email_please_try))
             } finally {
                 _isAuthenticating.value = false
             }
         }
     }
 
-    /** Re-sends the magic link (used by the "Resend link" button). */
+    /** Re-sends the magic link (used by the uiText(R.string.resend_link) button). */
     fun sendEmailLinkViaFunction(emailArg: String, onSent: (Boolean) -> Unit) {
         authMethod = "email_link"
         com.example.analytics.AnalyticsTracker.authStart("email_link_resend")
         val email = emailArg.ifBlank { restorePendingEmail() }
         if (email.isBlank()) {
-            _authErrorMessage.value = "Enter your email address again to get a new sign-in email."
+            _authErrorMessage.value = uiText(R.string.enter_your_email_address_again_to_get_a_ne)
             onSent(false)
             return
         }
@@ -219,14 +221,14 @@ class AuthViewModel(
                 onSent(result.isSuccess)
                 if (result.isFailure) {
                     _authErrorMessage.value = result.exceptionOrNull()
-                        ?.toUserMessage("Failed to send sign-in link. Try \"Use a code instead\".")
-                        ?: "Failed to send sign-in link."
+                        ?.toUserMessage(uiText(R.string.failed_to_send_sign_in_link_try_use_a_code))
+                        ?: uiText(R.string.failed_to_send_sign_in_link)
                 }
             } catch (e: kotlinx.coroutines.CancellationException) { throw e }
             catch (e: Exception) {
                 com.example.analytics.AnalyticsTracker.authError(authMethod, com.example.analytics.AnalyticsTracker.errorCode(e))
                 _isAuthenticating.value = false
-                _authErrorMessage.value = e.toUserMessage("Failed to send sign-in link. Please try again.")
+                _authErrorMessage.value = e.toUserMessage(uiText(R.string.failed_to_send_sign_in_link_please_try_aga))
                 onSent(false)
             }
         }
@@ -327,7 +329,7 @@ class AuthViewModel(
                 lastHandledLink = null
                 linkErrorFresh = true
                 _isAuthenticating.value = false
-                _authErrorMessage.value = e.toUserMessage("Sign-in link verification failed. Try again.")
+                _authErrorMessage.value = e.toUserMessage(uiText(R.string.sign_in_link_verification_failed_try_again))
             }
         }
     }
@@ -338,7 +340,7 @@ class AuthViewModel(
         com.example.analytics.AnalyticsTracker.authStart("email_code")
         val email = emailArg.ifBlank { restorePendingEmail() }
         if (email.isBlank()) {
-            _authErrorMessage.value = "Enter your email address again to get a new sign-in email."
+            _authErrorMessage.value = uiText(R.string.enter_your_email_address_again_to_get_a_ne)
             onSent(false)
             return
         }
@@ -350,8 +352,8 @@ class AuthViewModel(
                 _isAuthenticating.value = false
                 if (result.isFailure) {
                     _authErrorMessage.value = result.exceptionOrNull()
-                        ?.toUserMessage("Failed to send code. Please try again.")
-                        ?: "Failed to send code. Please try again."
+                        ?.toUserMessage(uiText(R.string.failed_to_send_code_please_try_again))
+                        ?: uiText(R.string.failed_to_send_code_please_try_again)
                 }
                 onSent(result.isSuccess)
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -359,7 +361,7 @@ class AuthViewModel(
             } catch (e: Exception) {
                 com.example.analytics.AnalyticsTracker.authError(authMethod, com.example.analytics.AnalyticsTracker.errorCode(e))
                 _isAuthenticating.value = false
-                _authErrorMessage.value = e.toUserMessage("Failed to send code. Please check your connection.")
+                _authErrorMessage.value = e.toUserMessage(uiText(R.string.failed_to_send_code_please_check_your_conn))
                 onSent(false)
             }
         }
@@ -382,8 +384,8 @@ class AuthViewModel(
                     val code = tokenResult.exceptionOrNull()?.let { com.example.analytics.AnalyticsTracker.errorCode(it) }
                     com.example.analytics.AnalyticsTracker.authError("email_code", code)
                     _authErrorMessage.value = tokenResult.exceptionOrNull()
-                        ?.toUserMessage("Invalid or expired code. Please try again.")
-                        ?: "Invalid or expired code. Please try again."
+                        ?.toUserMessage(uiText(R.string.invalid_or_expired_code_please_try_again))
+                        ?: uiText(R.string.invalid_or_expired_code_please_try_again)
                     _isAuthenticating.value = false
                     return@launch
                 }
@@ -402,7 +404,7 @@ class AuthViewModel(
             } catch (e: Exception) {
                 com.example.analytics.AnalyticsTracker.authError(authMethod, com.example.analytics.AnalyticsTracker.errorCode(e))
                 _isAuthenticating.value = false
-                _authErrorMessage.value = e.toUserMessage("Code verification failed. Please try again.")
+                _authErrorMessage.value = e.toUserMessage(uiText(R.string.code_verification_failed_please_try_again))
             }
         }
     }
@@ -439,7 +441,7 @@ class AuthViewModel(
                 throw e
             } catch (e: Exception) {
                 com.example.analytics.AnalyticsTracker.authError(authMethod, com.example.analytics.AnalyticsTracker.errorCode(e))
-                _authErrorMessage.value = e.toUserMessage("An error occurred")
+                _authErrorMessage.value = e.toUserMessage(uiText(R.string.an_error_occurred))
                 _isAuthenticating.value = false
             }
         }
@@ -467,7 +469,7 @@ class AuthViewModel(
             } catch (e: Exception) {
                 com.example.analytics.AnalyticsTracker.authError(authMethod, com.example.analytics.AnalyticsTracker.errorCode(e))
                 _isAuthenticating.value = false
-                _authErrorMessage.value = e.toUserMessage("Google sign-in failed. Please try again.")
+                _authErrorMessage.value = e.toUserMessage(uiText(R.string.google_sign_in_failed_please_try_again))
             }
         }
     }
@@ -489,7 +491,7 @@ class AuthViewModel(
         val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
         if (firebaseUser == null) {
             _isAuthenticating.value = false
-            _authErrorMessage.value = "Verification did not return a valid session. Please try again."
+            _authErrorMessage.value = uiText(R.string.verification_did_not_return_a_valid_sessio)
             return
         }
         if (isNewUser) {
@@ -507,7 +509,7 @@ class AuthViewModel(
                 registerFcmTokenForCurrentUser(user.id)
                 com.example.analytics.AnalyticsTracker.login(authMethod)
                 _isAuthenticating.value = false
-                _authSuccessMessage.value = "Welcome back, ${user.fullName}!"
+                _authSuccessMessage.value = uiText(R.string.welcome_back_x_2, user.fullName)
                 onVerified(false)
             }
         } catch (e: com.example.data.auth.AccountSuspendedException) {
@@ -518,7 +520,7 @@ class AuthViewModel(
         } catch (e: Exception) {
             com.example.analytics.AnalyticsTracker.authError(authMethod, com.example.analytics.AnalyticsTracker.errorCode(e))
             _isAuthenticating.value = false
-            _authErrorMessage.value = e.toUserMessage("Sign-in failed. Please try again.")
+            _authErrorMessage.value = e.toUserMessage(uiText(R.string.sign_in_failed_please_try_again))
         }
     }
 
@@ -542,7 +544,7 @@ class AuthViewModel(
     ) {
         val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
         if (firebaseUser == null) {
-            _authErrorMessage.value = "Your verified session expired — please sign in again."
+            _authErrorMessage.value = uiText(R.string.your_verified_session_expired_please_sign)
             return
         }
         _isAuthenticating.value = true
@@ -585,10 +587,10 @@ class AuthViewModel(
                 registerFcmTokenForCurrentUser(user.id)
                 com.example.analytics.AnalyticsTracker.signUp(authMethod, user.role)
                 val missedUploads = buildList {
-                    if (registration.profilePictureUri != null && profilePictureUrl == null) add("profile photo")
+                    if (registration.profilePictureUri != null && profilePictureUrl == null) add(uiText(R.string.profile_photo_2))
                 }
                 _authSuccessMessage.value = if (missedUploads.isEmpty()) {
-                    "Account created successfully for ${user.fullName}!"
+                    uiText(R.string.account_created_successfully_for_x, user.fullName)
                 } else {
                     "Account created for ${user.fullName}! Your ${missedUploads.joinToString(" and ")} " +
                         "didn't upload — add ${if (missedUploads.size > 1) "them" else "it"} from your profile."
@@ -601,7 +603,7 @@ class AuthViewModel(
             } catch (e: Exception) {
                 com.example.analytics.AnalyticsTracker.authError("registration", com.example.analytics.AnalyticsTracker.errorCode(e))
                 _isAuthenticating.value = false
-                _authErrorMessage.value = e.toUserMessage("Registration failed. Please try again.")
+                _authErrorMessage.value = e.toUserMessage(uiText(R.string.registration_failed_please_try_again))
             }
         }
     }
