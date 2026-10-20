@@ -1,13 +1,46 @@
 name: ProHost - Build Play-Signed Official Release Bundle
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      play_track:
+        description: "none = build only | probe = read Play tracks (no build, no change) | internal | production (uploads and releases)"
+        required: true
+        default: none
+        type: choice
+        options: [none, probe, internal, production]
+      rollout:
+        description: "Share of users for a production release (0.2 = 20 % staged rollout, 1 = everyone)"
+        required: false
+        default: "0.2"
   push:
     tags: ["v*"]
 
 jobs:
+  # Read-only look at Play (tracks, uploaded version codes, listing languages) with the CI service account.
+  play-probe:
+    name: Read Play tracks
+    if: github.event_name == 'workflow_dispatch' && inputs.play_track == 'probe'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install google-auth-library
+        run: npm install --no-save --prefix "$RUNNER_TEMP/play" google-auth-library@9.15.1
+      - name: Probe
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json" NODE_PATH="$RUNNER_TEMP/play/node_modules" \
+            node scripts/release/play-publish.js probe
+          rm -f "$RUNNER_TEMP/sa.json"
+
   bundle-release:
     name: Build Signed Bundle & Upload Symbols
+    if: github.event_name != 'workflow_dispatch' || inputs.play_track != 'probe'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -96,3 +129,38 @@ jobs:
             app/build/outputs/bundle/release/app-release.aab
             app/build/outputs/mapping/release/mapping.txt
             app/build/outputs/native-debug-symbols/release/native-debug-symbols.zip
+
+  # Upload to Google Play and release on the chosen track — only when started by hand with a track.
+  play-publish:
+    name: Release on Google Play (${{ inputs.play_track }})
+    needs: bundle-release
+    if: github.event_name == 'workflow_dispatch' && (inputs.play_track == 'internal' || inputs.play_track == 'production')
+    runs-on: ubuntu-latest
+    concurrency: play-publish
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/download-artifact@v4
+        with:
+          name: prohost-release-${{ github.ref_name }}-${{ github.run_number }}
+          path: release
+      - name: Install google-auth-library
+        run: npm install --no-save --prefix "$RUNNER_TEMP/play" google-auth-library@9.15.1
+      - name: Upload and release
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          TRACK: ${{ inputs.play_track }}
+          ROLLOUT: ${{ inputs.play_track == 'production' && inputs.rollout || '1' }}
+        run: |
+          version=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          notes="docs/release/${version}-notes.txt"
+          [ -f "$notes" ] || { echo "::error title=play::$notes is missing"; exit 1; }
+          aab=$(find release -name app-release.aab | head -1)
+          mapping=$(find release -name mapping.txt | head -1)
+          symbols=$(find release -name native-debug-symbols.zip | head -1)
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json" NODE_PATH="$RUNNER_TEMP/play/node_modules" \
+            node scripts/release/play-publish.js publish "$TRACK" "$aab" "$notes" "$ROLLOUT" "$mapping" "$symbols"
+          rm -f "$RUNNER_TEMP/sa.json"
