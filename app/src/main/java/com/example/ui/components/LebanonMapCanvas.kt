@@ -550,7 +550,7 @@ fun LebanonMapCanvas(
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = stringResource(R.string.map_center_x, detectedCenterCountry),
+                        text = stringResource(R.string.map_center_x, detectedCenterCountry.toString()),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
