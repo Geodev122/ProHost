@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.ui.unit.dp
 import com.example.data.billing.PlayCatalog
 import com.example.data.billing.PlayOfferText
@@ -258,7 +259,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
                 CreateListingDialog(currentUser = user, onDismiss = {}, onListingCreated = {}, existingDraft = mockSpace1)
             "listing_verification" -> ListingVerificationDialog(space = mockSpace1, viewModel = vm, onDismiss = {})
             "location_prompt" -> SystemStylePermissionDialog(
-                icon = androidx.compose.material.icons.Icons.Default.LocationOn,
+                icon = androidx.compose.material.icons.Icons.Filled.LocationOn,
                 title = permissionTitle(com.example.ui.util.uiText(R.string.access_this_device_s_location)),
                 message = androidx.compose.ui.res.stringResource(R.string.used_only_to_centre_the_map_on_where_you_a),
                 onAllow = {}, onDeny = {}
