@@ -272,7 +272,7 @@ private fun RoleTag3D(role: UserRole) {
                 fontWeight = FontWeight.Black,
                 letterSpacing = 1.sp,
                 color = look.text,
-                maxLines = 1
+                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
         }
     }

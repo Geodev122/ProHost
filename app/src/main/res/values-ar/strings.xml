@@ -1220,4 +1220,6 @@
     <string name="outside_rent_due_x_slot_x_amount_x">إيجار خارج التطبيق مستحق من %1$s للفترة \'%2$s\' (المبلغ: %3$s$ دولار).</string>
     <string name="confirmed_space_hours_locked_x_x_x">تم التأكيد! ساعات المساحة (%1$s %2$s-%3$s) محجوزة.</string>
     <string name="save_draft_short">حفظ مسودة</string>
+    <string name="get_x_off_x">خصم %1$d%% · %2$s</string>
+    <string name="x_market">سوق %1$s</string>
 </resources>

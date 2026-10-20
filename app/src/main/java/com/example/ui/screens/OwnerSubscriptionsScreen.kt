@@ -439,7 +439,7 @@ fun OwnerSubscriptionsScreen(
                         hasLivePlaySubscription -> uiText(R.string.switch_to_x, selectedBadge)
                         isSubscriptionExpired -> uiText(R.string.renew_x, selectedBadge)
                         selectedSummary?.trialSpan != null && selectedSummary.introSpan == null -> uiText(R.string.start_free_trial_x, selectedBadge)
-                        selectedSummary?.discountPercent != null -> "Get ${selectedSummary.discountPercent}% off · $selectedBadge"
+                        selectedSummary?.discountPercent != null -> uiText(R.string.get_x_off_x, selectedSummary.discountPercent, selectedBadge)
                         else -> uiText(R.string.subscribe_x, selectedBadge)
                     }
                     val enabled = !isForcedUpgrade && !isCurrent
@@ -735,7 +735,7 @@ private fun HeroStat(label: String, value: String, valueColor: Color, modifier: 
     Surface(modifier = modifier, shape = Radius.Sm, color = on.copy(alpha = 0.12f)) {
         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = on.copy(alpha = 0.75f))
-            Text(value, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = valueColor, maxLines = 1)
+            Text(value, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = valueColor, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }
     }
 }
@@ -874,7 +874,7 @@ internal fun PlanTile(
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Black,
                             color = if (selected) accent else scheme.onSurface,
-                            maxLines = 1
+                            maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                         // A free trial strikes through the regular price it replaces.
                         (summary.original ?: summary.recurring.takeIf { summary.trialSpan != null && summary.introSpan == null })?.let { was ->
@@ -884,7 +884,7 @@ internal fun PlanTile(
                                 color = scheme.onSurfaceVariant,
                                 textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough,
                                 modifier = Modifier.padding(bottom = 4.dp),
-                                maxLines = 1
+                                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                             )
                         }
                     }
@@ -912,7 +912,7 @@ internal fun PlanTile(
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Black,
                         color = scheme.onSurface,
-                        maxLines = 1
+                        maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                     Text(stringResource(R.string.per_x, summary.recurringPeriod), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
                     summary.headlinePerMonth?.let {
@@ -1057,7 +1057,7 @@ private fun PlanChip(text: String, container: Color, content: Color) {
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Black,
             color = content,
-            maxLines = 1,
+            maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
         )
     }

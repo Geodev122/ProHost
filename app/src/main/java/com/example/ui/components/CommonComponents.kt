@@ -555,7 +555,7 @@ fun ProEmptyState(
         )
         if (actionButtonText != null && onActionClick != null) {
             Spacer(modifier = Modifier.height(Spacing.lg))
-            Button(
+            Button(colors = proPrimaryButtonColors(), 
                 onClick = onActionClick,
                 shape = MaterialTheme.shapes.medium
             ) {

@@ -246,7 +246,7 @@ internal fun SubdivisionRentalCard(
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                        maxLines = 1
+                                        maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                     )
                                 }
                             }
@@ -372,7 +372,9 @@ internal fun RoomFolderTabs(
     ) {
         rooms.forEach { room ->
             val selected = room.id == selectedId
+            // Selectable surface: TalkBack announces the active room tab as "selected".
             Surface(
+                selected = selected,
                 onClick = { onSelect(room) },
                 shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
                 color = if (selected) folderColor() else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
@@ -523,7 +525,7 @@ internal fun DetailsBookingBar(
                             label,
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
+                            maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                         if (hasSchedule) {
                             Icon(

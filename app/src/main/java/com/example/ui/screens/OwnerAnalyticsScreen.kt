@@ -632,7 +632,7 @@ fun ListingHealthCard(space: SpaceListing) {
                         text = space.title,
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1
+                        maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                     Text(
                         text = "${space.district} • $${lowestPrice.toInt()}$lowestUnit",

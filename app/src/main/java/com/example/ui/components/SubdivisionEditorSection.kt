@@ -973,7 +973,7 @@ fun SubdivisionEditorSection(
                 }
             }
             Spacer(modifier = Modifier.height(Spacing.sm))
-            Button(
+            Button(colors = proPrimaryButtonColors(), 
                 onClick = { resetSubdivisionForm(); justSaved = false },
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium
@@ -1136,7 +1136,7 @@ private fun SearchablePickerDialog(
                     }
                 }
                 if (multiSelect) {
-                    Button(
+                    Button(colors = proPrimaryButtonColors(), 
                         onClick = onDismiss,
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.small

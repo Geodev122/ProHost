@@ -606,7 +606,7 @@ private fun AvailabilitySlotCell(slot: RentableSlot, booked: Boolean) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(timingLabel, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold,
-                color = onOccupancyColor(booked), maxLines = 1)
+                color = onOccupancyColor(booked), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             if (showPrice) {
                 Text("$${price.toInt()}", style = MaterialTheme.typography.labelSmall, color = onOccupancyColor(booked))
             }

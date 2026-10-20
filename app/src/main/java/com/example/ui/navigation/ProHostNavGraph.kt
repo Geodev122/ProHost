@@ -1060,7 +1060,7 @@ private fun SuspendedAccountScreen(onSignOut: () -> Unit) {
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(28.dp))
-            Button(onClick = onSignOut) {
+            Button(colors = proPrimaryButtonColors(), onClick = onSignOut) {
                 Text(stringResource(R.string.sign_out))
             }
         }

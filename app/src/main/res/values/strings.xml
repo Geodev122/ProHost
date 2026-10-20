@@ -1219,4 +1219,6 @@
     <string name="outside_rent_due_x_slot_x_amount_x">Outside-app rent due from %1$s for slot \'%2$s\' (amount: $%3$s USD).</string>
     <string name="confirmed_space_hours_locked_x_x_x">Confirmed! Space hours (%1$s %2$s-%3$s) are locked.</string>
     <string name="save_draft_short">Save draft</string>
+    <string name="get_x_off_x">Get %1$d%% off · %2$s</string>
+    <string name="x_market">%1$s market</string>
 </resources>

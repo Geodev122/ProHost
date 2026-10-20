@@ -1,5 +1,6 @@
 package com.example.ui.components.drawer
 
+import com.example.ui.components.displayName
 import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -111,7 +112,7 @@ fun SpecialistDrawerContent(
         val planName = currentUser?.ownerPackageId?.let { com.example.data.billing.PlayCatalog.planLabel(it) }
         ProHostDrawerHeader(
             title = currentUser?.fullName ?: uiText(R.string.prohost_user),
-            subtitle = if (planName != null) stringResource(R.string.plan_x, planName) else "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
+            subtitle = if (planName != null) stringResource(R.string.plan_x, planName) else marketLabel(currentUser?.country),
             onClose = { onDrawerAction("close") },
             leading = { ProHostDrawerAvatar(initials = initials, imageUrl = currentUser?.profilePictureUrl) },
             pill = { ProHostRolePill(text = if (isProHost) stringResource(R.string.pro_host) else stringResource(R.string.specialist), emphasized = isProHost) }
@@ -251,7 +252,7 @@ fun AdminDrawerContent(
         // Brand gradient header (Admin variant)
         ProHostDrawerHeader(
             title = currentUser?.fullName ?: uiText(R.string.system_admin_2),
-            subtitle = "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
+            subtitle = marketLabel(currentUser?.country),
             onClose = { onDrawerAction("close") },
             leading = {
                 Box(
@@ -462,4 +463,14 @@ fun DrawerSignOutButton(userEmail: String?, onSignOut: () -> Unit) {
             }
         )
     }
+}
+
+/** "Lebanon market" in the app language; a blank (legacy) profile country counts as Lebanon, like Explore's filter. */
+@Composable
+private fun marketLabel(country: String?): String {
+    val name = country?.takeIf { it.isNotBlank() } ?: "Lebanon"
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+    val display = com.example.data.model.COUNTRIES.firstOrNull { it.name == name }
+        ?.displayName(locale) ?: name
+    return stringResource(R.string.x_market, display)
 }

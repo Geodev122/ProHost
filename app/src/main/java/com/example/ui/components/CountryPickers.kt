@@ -165,9 +165,8 @@ fun CountryDropdownField(
     val locale = LocalConfiguration.current.locales[0]
     Box(modifier = modifier) {
         OutlinedCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = true },
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.medium
         ) {
             Row(

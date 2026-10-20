@@ -538,7 +538,7 @@ fun ProHostDrawerHeader(
                     text = subtitle,
                     style = MaterialTheme.typography.labelMedium,
                     color = pro.onBrandHeader.copy(alpha = 0.85f),
-                    maxLines = 1
+                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
             }
             IconButton(onClick = onClose, modifier = Modifier.size(40.dp)) {

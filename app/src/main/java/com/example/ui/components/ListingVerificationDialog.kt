@@ -79,7 +79,7 @@ fun ListingVerificationDialog(
                 .fillMaxWidth(0.94f)
                 .fillMaxHeight(0.85f),
             shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surface
+            color = MaterialTheme.colorScheme.surfaceContainerHigh
         ) {
             Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
                 Row(
