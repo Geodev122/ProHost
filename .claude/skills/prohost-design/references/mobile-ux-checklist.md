@@ -22,7 +22,7 @@ screenshots and code prove, not what you expect.
 - [ ] Information is never colour-only (booked/free cells get a legend or icon; errors get text).
 - [ ] Contrast: text ≥ 4.5:1 (large ≥ 3:1) in light **and** dark. Orange text uses `secondary`; green text uses
       the strong success role, not FreshGreen.
-- [ ] Font scale 1.3 screenshot: nothing clipped, nothing overlapping, buttons grow (`heightIn(min=)`).
+- [ ] `small` screenshot (360 dp phone at the 1.15 text cap): nothing clipped, nothing overlapping, buttons grow (`heightIn(min=)`).
 - [ ] Merged semantics for cards so TalkBack reads one sentence per card (`Modifier.semantics(mergeDescendants = true)`
       or Card's `onClick`).
 

@@ -343,7 +343,10 @@ plan + recurring price + date;
 ## Design system and languages (1.0.43)
 
 - Follow `.claude/skills/prohost-design/` for any UI change; verify with the Design Screenshots workflow (light, dark,
-  font 1.3, RTL, Arabic) via `.claude/skills/prohost-design/scripts/fetch_shots.py`. Plan: `docs/design/UI_AUDIT.md`.
+  small = 360 dp phone at the text cap, RTL, Arabic) via `.claude/skills/prohost-design/scripts/fetch_shots.py`. Plan:
+  `docs/design/UI_AUDIT.md`.
+- Text size follows the phone only up to Android's "Large" step: `FontScaleCap` (1.15, `MainActivity.attachBaseContext`,
+  owner's choice — text stays adequate and fits small phones). Never remove the cap or design for larger scales.
 - Tokens only: `MaterialTheme.colorScheme` (surface ladder defined), `Radius.Xs/Sm/Md/Lg/Full`, `Elevation.level0–3`,
   `Spacing`, typography (Manrope headings, 12 sp floor). NIGHTHAWK "Design System Tokens" flags Toasts in UI, text under
   12 sp and literal radii/elevations.

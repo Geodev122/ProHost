@@ -21,6 +21,7 @@ The design audit (`docs/design/UI_AUDIT.md`, phases 0–3) in one release. App o
 - **Forms:** every text field is the shared `InputField` (same outline, label, colours in light/dark).
 - **Listing wizard** is a full-screen page with a three-step progress bar; Back goes to the previous step.
 - Error analytics report the same areas in Arabic as in English.
+- Text grows with the phone's font setting only up to Android's "Large" step, so every screen fits small phones.
 - Arabic polish from the screenshot review: price units (/ساعة, /مناوبة, /يوم, /شهر, /شخص), day names, plan names
   and role tags translated; time ranges stay left-to-right; Premium chips wrap instead of being cut off; with large
   text a section badge moves under its subtitle.

@@ -346,3 +346,8 @@ Screenshots harness: 15 screens + every sheet, dialog and form, in light, dark, 
 
 Intentionally unchanged: Google Play's own offer wording ("first year", "4 months") and Admin-only tools stay English.
 Re-score (owner review pending on device): ≈ 8.8 / 10.
+
+
+**Text size cap (owner, Oct 2026).** The app follows the phone's text size only up to Android's "Large" step (1.15,
+`FontScaleCap`). The screenshot harness's `small` variant replaces font 1.3: a 360 dp phone at that cap, the worst case
+the app can now show.

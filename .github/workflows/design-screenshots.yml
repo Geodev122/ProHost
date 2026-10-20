@@ -1,6 +1,6 @@
 name: Design Screenshots
 
-# Renders key screens in light, dark, font scale 1.3 and RTL (app/src/test/.../design/DesignScreenshotTest.kt)
+# Renders key screens in light, dark, a 360 dp phone at the 1.15 text cap, RTL and Arabic (app/src/test/.../design/DesignScreenshotTest.kt)
 # and uploads them, for reviewing design changes (docs/design/UI_AUDIT.md). Separate from CI/CD: it never gates
 # a deploy.
 

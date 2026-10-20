@@ -136,7 +136,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
      * their configuration (locale, night mode) from the activity, not from the composition.
      */
     private fun applyVariantToActivity(variant: String) {
-        if (variant != "dark" && variant != "ar") {
+        if (variant != "dark" && variant != "ar" && variant != SMALL) {
             com.example.ui.util.UiText.init(compose.activity.resources)
             return
         }
@@ -145,6 +145,12 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             val config = Configuration(res.configuration)
             if (variant == "dark") {
                 config.uiMode = (config.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or Configuration.UI_MODE_NIGHT_YES
+            } else if (variant == SMALL) {
+                // A 360 dp phone at the largest text the app allows (FontScaleCap): same pixels, higher density.
+                config.densityDpi = (res.displayMetrics.densityDpi * SMALL_SCALE).toInt()
+                config.screenWidthDp = SMALL_WIDTH_DP
+                config.screenHeightDp = (844 / SMALL_SCALE).toInt()
+                config.fontScale = com.example.ui.theme.FontScaleCap.MAX_FONT_SCALE
             } else {
                 config.setLocale(java.util.Locale("ar"))
                 config.setLayoutDirection(java.util.Locale("ar"))
@@ -165,10 +171,17 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             config.setLocale(java.util.Locale("ar"))
             config.setLayoutDirection(java.util.Locale("ar"))
         }
-        val density = LocalDensity.current
+        if (variant == SMALL) {
+            config.screenWidthDp = SMALL_WIDTH_DP
+            config.fontScale = com.example.ui.theme.FontScaleCap.MAX_FONT_SCALE
+        }
         CompositionLocalProvider(
             LocalConfiguration provides config,
-            LocalDensity provides Density(density.density, if (variant == "font130") 1.3f else density.fontScale),
+            LocalDensity provides if (variant == SMALL) {
+                Density(BASE_DENSITY * SMALL_SCALE, com.example.ui.theme.FontScaleCap.MAX_FONT_SCALE)
+            } else {
+                Density(BASE_DENSITY, 1f)
+            },
             LocalLayoutDirection provides if (variant == "rtl" || variant == "ar") LayoutDirection.Rtl else LayoutDirection.Ltr,
             content = content
         )
@@ -361,7 +374,12 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             "request_detail", "change_price", "listing_wizard_1", "listing_wizard_2", "listing_wizard_3", "listing_verification",
             "delete_listing", "change_price_slots", "change_price_new"
         )
-        val VARIANTS = listOf("light", "dark", "font130", "rtl", "ar")
+        /** Smallest common phone (360 dp wide) at the largest text the app allows. */
+        const val SMALL = "small"
+        const val SMALL_WIDTH_DP = 360
+        const val SMALL_SCALE = 390f / SMALL_WIDTH_DP
+        const val BASE_DENSITY = 3f // xxhdpi, as in @Config
+        val VARIANTS = listOf("light", "dark", SMALL, "rtl", "ar")
 
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0}_{1}")

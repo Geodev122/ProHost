@@ -21,7 +21,7 @@ Precedence: the owner's words → `CLAUDE.md` (hard product rules, many are UI r
 4. **Keep APIs stable.** Rename by adding the new thing and leaving the old name as a `@Deprecated` alias for one
    release. Never change a composable's parameters and its look in the same commit.
 5. **Verify visually** with the Design Screenshots workflow (see `references/verify.md`): before and after, light,
-   dark, font 1.3, RTL. Look at the PNGs yourself (Read shows images). No screenshot, no claim that it looks right.
+   dark, small phone at the text cap, RTL, Arabic. Look at the PNGs yourself (Read shows images). No screenshot, no claim that it looks right.
 6. **Run the gates**: `node scripts/prohost-debugger.js` (NIGHTHAWK, 0 critical/high), Android CI green (unit tests
    + compile; there is no local Android SDK in the cloud sandbox — CI compiles).
 7. **One theme/component change or one screen per commit**, message says what changed visually.

@@ -1,5 +1,6 @@
 package com.example
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -10,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.activity.ComponentActivity
 import com.example.ui.navigation.ProHostAppRoot
+import com.example.ui.theme.FontScaleCap
 import com.example.ui.theme.ProHostTheme
 import com.example.util.InAppUpdateManager
 import com.example.util.NotificationPermissionManager
@@ -26,6 +28,11 @@ class MainActivity : ComponentActivity() {
     // One-click email OTP magic link: `prohost://emailotp/verified?token=<customToken>`
     private var emailOtpToken by mutableStateOf<String?>(null)
     private var inAppUpdateManager: InAppUpdateManager? = null
+
+    // Text grows with the phone's setting only up to "Large" (FontScaleCap), dialogs and sheets included.
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(FontScaleCap.wrap(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Must run before super.onCreate() — installs the real, consistently-themed
