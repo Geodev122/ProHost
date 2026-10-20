@@ -25,7 +25,7 @@ import kotlinx.coroutines.delay
  * splash.png artwork appears, so the two together read as one continuous launch image
  * instead of two different-looking screens. No separate "second screen" with its own
  * icon/wordmark/loading text exists anymore — this single screen carries the loading state
- * for however long onSplashCompleted takes to fire. Dark mode uses drawable-night-*/splash.png on the matching
+ * for however long onSplashCompleted takes to fire. Dark mode uses drawable-night (all densities) splash.png on the matching
  * values-night splash_background.
  */
 @Composable
