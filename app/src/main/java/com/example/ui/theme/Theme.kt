@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Canvas
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -134,11 +135,13 @@ private val DarkColorScheme = darkColorScheme(
     scrim = Color.Black
 )
 
+// Opaque stops (tints composited over the dark background): translucent ones let a light window background show
+// through at the top and bottom of dark pages.
 private val PremiumDarkBackgroundGradient = Brush.verticalGradient(
     colors = listOf(
-        DarkPrimaryContainer.copy(alpha = 0.35f),
+        DarkPrimaryContainer.copy(alpha = 0.35f).compositeOver(DarkBackground),
         DarkBackground,
-        DarkSurfaceVariant.copy(alpha = 0.55f)
+        DarkSurfaceVariant.copy(alpha = 0.55f).compositeOver(DarkBackground)
     )
 )
 
