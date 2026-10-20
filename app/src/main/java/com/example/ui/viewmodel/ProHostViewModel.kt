@@ -279,7 +279,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, uiText(R.string.couldn_t_send_the_verification_email_pleas))
+                reportFailure(appContext, e, R.string.couldn_t_send_the_verification_email_pleas)
             }
         }
     }
@@ -435,7 +435,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, uiText(R.string.couldn_t_change_the_price_please_try_again))
+                reportFailure(appContext, e, R.string.couldn_t_change_the_price_please_try_again)
                 onDone(false)
             }
         }
@@ -563,7 +563,7 @@ class ProHostViewModel(
             throw e
         } catch (e: Exception) {
             com.example.analytics.AnalyticsTracker.profilePhotoUpload(false, "requirements")
-            reportFailure(context.applicationContext, e, uiText(R.string.the_photo_couldn_t_be_uploaded_please_try))
+            reportFailure(context.applicationContext, e, R.string.the_photo_couldn_t_be_uploaded_please_try)
             uiText(R.string.the_photo_couldn_t_be_uploaded_please_try)
         }
     }
@@ -577,7 +577,7 @@ class ProHostViewModel(
     } catch (e: kotlinx.coroutines.CancellationException) {
         throw e
     } catch (e: Exception) {
-        reportFailure(context.applicationContext, e, uiText(R.string.your_address_couldn_t_be_saved_please_try))
+        reportFailure(context.applicationContext, e, R.string.your_address_couldn_t_be_saved_please_try)
         uiText(R.string.your_address_couldn_t_be_saved_please_try)
     }
 
@@ -887,7 +887,7 @@ class ProHostViewModel(
                 if ((e is IllegalStateException || e is IllegalArgumentException) && !e.message.isNullOrBlank()) {
                     UiMessages.show(appContext, e.message, long = true)
                 } else {
-                    reportFailure(appContext, e, uiText(R.string.failed_to_send_request_please_check_your_c))
+                    reportFailure(appContext, e, R.string.failed_to_send_request_please_check_your_c)
                 }
             }
         }
@@ -1074,7 +1074,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, uiText(R.string.couldn_t_save_that_please_try_again))
+                reportFailure(appContext, e, R.string.couldn_t_save_that_please_try_again)
             }
         }
     }
@@ -1141,7 +1141,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, uiText(R.string.couldn_t_update_this_listing_please_try_ag))
+                reportFailure(appContext, e, R.string.couldn_t_update_this_listing_please_try_ag)
             }
         }
     }
@@ -1170,7 +1170,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, uiText(R.string.couldn_t_switch_that_slot_off_please_try_a_2))
+                reportFailure(appContext, e, R.string.couldn_t_switch_that_slot_off_please_try_a_2)
             }
         }
     }
@@ -1192,7 +1192,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, uiText(R.string.couldn_t_switch_that_slot_on_please_try_ag_2))
+                reportFailure(appContext, e, R.string.couldn_t_switch_that_slot_on_please_try_ag_2)
             }
         }
     }
@@ -1223,7 +1223,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, uiText(R.string.couldn_t_add_this_room_please_try_again_2))
+                reportFailure(appContext, e, R.string.couldn_t_add_this_room_please_try_again_2)
             }
         }
     }
@@ -1240,7 +1240,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, uiText(R.string.couldn_t_remove_this_room_please_try_again_2))
+                reportFailure(appContext, e, R.string.couldn_t_remove_this_room_please_try_again_2)
             }
         }
     }
@@ -1282,9 +1282,11 @@ class ProHostViewModel(
         UiMessages.show(context, context.getString(R.string.link_copied_to_clipboard))
     }
 
-    private fun reportFailure(appContext: Context, e: Exception, fallback: String) {
-        android.util.Log.e("ProHostVM", fallback, e)
-        com.example.analytics.AnalyticsTracker.appError(com.example.analytics.AnalyticsTracker.areaKey(fallback), com.example.analytics.AnalyticsTracker.errorCode(e))
-        UiMessages.show(appContext, e.toUserMessage(fallback), long = true)
+    /** [fallback] is a string resource: shown in the app language, while app_error's area comes from its English text. */
+    private fun reportFailure(appContext: Context, e: Exception, @androidx.annotation.StringRes fallback: Int) {
+        val english = com.example.ui.util.UiText.english(fallback)
+        android.util.Log.e("ProHostVM", english, e)
+        com.example.analytics.AnalyticsTracker.appError(com.example.analytics.AnalyticsTracker.areaKey(english), com.example.analytics.AnalyticsTracker.errorCode(e))
+        UiMessages.show(appContext, e.toUserMessage(uiText(fallback)), long = true)
     }
 }

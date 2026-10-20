@@ -10,7 +10,10 @@ import com.google.firebase.crashlytics.FirebaseCrashlytics
 class ProHostApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        com.example.ui.util.UiText.init(resources)
+        val english = createConfigurationContext(
+            android.content.res.Configuration(resources.configuration).apply { setLocale(java.util.Locale.ENGLISH) }
+        ).resources
+        com.example.ui.util.UiText.init(resources, english)
         try {
             if (FirebaseApp.getApps(this).isEmpty()) {
                 FirebaseApp.initializeApp(this)

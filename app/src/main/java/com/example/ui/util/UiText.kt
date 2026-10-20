@@ -12,12 +12,22 @@ object UiText {
     @Volatile
     internal var resources: Resources? = null
 
-    fun init(resources: Resources) { this.resources = resources }
+    /** English resources, for stable analytics keys that must not change with the app language. */
+    @Volatile
+    private var englishResources: Resources? = null
+
+    fun init(resources: Resources, english: Resources? = null) {
+        this.resources = resources
+        this.englishResources = english
+    }
 
     fun get(@StringRes id: Int, vararg args: Any?): String {
         val res = resources ?: return ""
         return if (args.isEmpty()) res.getString(id) else res.getString(id, *args)
     }
+
+    /** The English text of [id] whatever the app language (falls back to the current language before init). */
+    fun english(@StringRes id: Int): String = (englishResources ?: resources)?.getString(id).orEmpty()
 }
 
 /** Shorthand for [UiText.get]. */
