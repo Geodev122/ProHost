@@ -73,7 +73,9 @@ fun MyFavoritesScreen(
         // top inset a second time, producing extra blank space above this TopAppBar.
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { innerPadding ->
-        if (isLoading) {
+        // Loading fades into the content instead of popping.
+        androidx.compose.animation.Crossfade(targetState = isLoading, label = "savedLoading") { loadingNow ->
+        if (loadingNow) {
             ShimmerLoadingList(modifier = Modifier.padding(innerPadding), itemHeight = 200.dp)
         } else if (errorMessage != null) {
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(Spacing.lg)) {
@@ -107,6 +109,8 @@ fun MyFavoritesScreen(
                         )
                     }
                     items(spacesInCategory, key = { it.id }) { space ->
+                        // Inserted/removed rows slide and fade instead of jumping.
+                        Box(Modifier.animateItem()) {
                         SpaceListingCard(
                             space = space,
                             onClick = { onSelectSpace(space) },
@@ -115,6 +119,7 @@ fun MyFavoritesScreen(
                             onToggleSave = { viewModel.toggleSavedSpace(space.id, context) }
                         )
                     }
+}
                 }
                 if (unavailableIds.isNotEmpty()) {
                     item(key = "header_unavailable") {
@@ -126,12 +131,16 @@ fun MyFavoritesScreen(
                         )
                     }
                     items(unavailableIds.toList(), key = { it }) { spaceId ->
+                        // Inserted/removed rows slide and fade instead of jumping.
+                        Box(Modifier.animateItem()) {
                         UnavailableFavoriteCard(
                             onRemove = { viewModel.toggleSavedSpace(spaceId, context) }
                         )
                     }
+}
                 }
             }
+        }
         }
     }
 }

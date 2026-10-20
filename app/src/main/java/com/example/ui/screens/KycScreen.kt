@@ -59,7 +59,7 @@ fun KycScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(20.dp),
+                .padding(Spacing.lg),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             WhatsAppNumberSection(currentPhone = currentPhone, onSave = onSave, onSaved = onKycComplete)
@@ -108,7 +108,7 @@ fun WhatsAppNumberSection(
                     Icon(Icons.Default.Phone, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                 }
             }
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(Spacing.md))
             Column {
                 Text(stringResource(R.string.your_whatsapp_number), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text(

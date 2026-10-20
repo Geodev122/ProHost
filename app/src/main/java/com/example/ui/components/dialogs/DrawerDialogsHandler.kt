@@ -145,11 +145,11 @@ fun DrawerDialogsHandler(
                                 }
                             }
 
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md), modifier = Modifier.fillMaxWidth()) {
                                 // Date-range filter bar
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     AssistChip(
@@ -202,7 +202,7 @@ fun DrawerDialogsHandler(
                                 }
 
                                 LazyColumn(
-                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                                     modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
                                 ) {
                                     items(filteredAuditLogs, key = { it.id }) { log ->
@@ -277,7 +277,7 @@ fun DrawerDialogsHandler(
                         "fcm_alerts" -> {
                             Column(
                                 modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                                verticalArrangement = Arrangement.spacedBy(Spacing.md)
                             ) {
                                 if (fcmAlerts.isEmpty()) {
                                     Column(
@@ -320,11 +320,13 @@ fun DrawerDialogsHandler(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     LazyColumn(
-                                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                                         modifier = Modifier.fillMaxWidth()
                                             .heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.6f).dp)
                                     ) {
                                         items(fcmAlerts, key = { it.id }) { alert ->
+                                            // Inserted/removed rows slide and fade instead of jumping.
+                                            Box(Modifier.animateItem()) {
                                             Card(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 colors = CardDefaults.cardColors(
@@ -346,7 +348,7 @@ fun DrawerDialogsHandler(
                                                     ) {
                                                         Row(
                                                             verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                                                         ) {
                                                             Icon(
                                                                 imageVector = when (alert.category) {
@@ -384,7 +386,7 @@ fun DrawerDialogsHandler(
                                                             TextButton(
                                                                 onClick = { viewModel.markAlertAsRead(alert.id) },
                                                                 contentPadding = PaddingValues(0.dp),
-                                                                modifier = Modifier.height(24.dp)
+                                                                modifier = Modifier.heightIn(min = 48.dp)
                                                             ) {
                                                                 Text(
                                                                     stringResource(R.string.mark_read),
@@ -424,7 +426,7 @@ fun DrawerDialogsHandler(
                                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                                         )
 
-                                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                                             if (onNavigateToTab != null || onOpenNotification != null) {
                                                                 FilledTonalButton(
                                                                     onClick = {
@@ -457,7 +459,7 @@ fun DrawerDialogsHandler(
                                                                         modifier = Modifier.size(12.dp)
                                                                     )
                                                                     Spacer(modifier = Modifier.width(Spacing.xs))
-                                                                    Text(stringResource(R.string.open), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                                                    Text(stringResource(R.string.open), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                                                                 }
                                                             }
                                                             // A "WhatsApp" quick-reply button used to live here, but FCMAlert
@@ -471,6 +473,7 @@ fun DrawerDialogsHandler(
                                                 }
                                             }
                                         }
+}
                                     }
                                 }
                             }

@@ -135,7 +135,7 @@ fun LegalDocumentDialog(
                                     } else {
                                         Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
                                     }
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.sm))
                                     Text(stringResource(R.string.download_pdf_a5), style = MaterialTheme.typography.labelMedium)
                                 }
                             }
@@ -203,7 +203,7 @@ fun LegalDocumentsMenu(onDismiss: () -> Unit) {
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
-            Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Text(stringResource(R.string.legal), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 8.dp))
                 com.example.legal.LegalContent.all.forEach { doc ->
                     Card(
@@ -230,7 +230,7 @@ fun LegalDocumentsMenu(onDismiss: () -> Unit) {
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(Spacing.sm))
                 }
                 TextButton(shape = MaterialTheme.shapes.medium, onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
                     Text(stringResource(R.string.close))

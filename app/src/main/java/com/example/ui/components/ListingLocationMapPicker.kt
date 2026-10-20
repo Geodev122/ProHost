@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Spacing
+
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
@@ -171,7 +173,7 @@ fun ListingLocationMapPicker(
                 Row(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
                     Text(stringResource(R.string.mark_pin_location), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)

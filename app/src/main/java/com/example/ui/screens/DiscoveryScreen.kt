@@ -315,7 +315,7 @@ fun DiscoveryScreenContent(
                             .fillMaxWidth()
                             .widthIn(max = 840.dp),
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp + bottomNavInset),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                        verticalArrangement = Arrangement.spacedBy(Spacing.lg)
                     ) {
                     // Flatten: one card per (matching) subdivision, or one card for a
                     // whole-space listing.
@@ -404,7 +404,7 @@ private fun SearchingMoreRow() {
         verticalAlignment = Alignment.CenterVertically
     ) {
         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(Spacing.sm))
         Text(
             stringResource(R.string.searching_more_listings),
             style = MaterialTheme.typography.bodySmall,
@@ -450,7 +450,7 @@ private fun ExploreOverlayHeader(
             .fillMaxWidth()
             .then(if (isMapView) Modifier else Modifier.proHostScreenBackground())
             .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         // One row: search · logo + Map|List · filters
         Box(modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp)) {
@@ -573,11 +573,11 @@ private fun MapListToggle(
         Row(
             modifier = Modifier.padding(start = if (showBrand) 8.dp else 4.dp, top = 4.dp, end = 4.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(2.dp)
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
             if (showBrand) {
                 ProHostBrandLogo(size = 26.dp)
-                Spacer(Modifier.width(4.dp))
+                Spacer(Modifier.width(Spacing.xs))
             }
             listOf(true to uiText(R.string.map), false to uiText(R.string.list)).forEach { (isMapOption, label) ->
                 val selected = isMapOption == isMapView
@@ -592,7 +592,7 @@ private fun MapListToggle(
                         .heightIn(min = 36.dp)
                         .padding(horizontal = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                 ) {
                     // Icon only; the label stays for TalkBack.
                     Icon(
@@ -707,7 +707,7 @@ private fun DiscoveryFilterSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 10.dp),
+                .padding(horizontal = Spacing.lg, vertical = Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             Row(
@@ -767,7 +767,7 @@ private fun DiscoveryFilterSheet(
                 val current = (filterState.priceRange ?: priceBounds).let { range ->
                     range.start.coerceIn(priceBounds)..range.endInclusive.coerceIn(priceBounds)
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -795,7 +795,7 @@ private fun DiscoveryFilterSheet(
                 )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 FilterChip(
                     selected = filterState.onlyVerified,
                     onClick = { onToggleVerifiedOnly(!filterState.onlyVerified) },

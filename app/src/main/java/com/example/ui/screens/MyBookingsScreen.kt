@@ -217,7 +217,9 @@ fun MyBookingsScreen(
             UserRole.ADMIN -> MaterialTheme.proColors.warning
             else -> MaterialTheme.colorScheme.primary
         }
-        if (!hasLoadedBookingsOnce && !isOffline) {
+        // Loading fades into the content instead of popping.
+        androidx.compose.animation.Crossfade(targetState = !hasLoadedBookingsOnce && !isOffline, label = "rentalsLoading") { loadingNow ->
+        if (loadingNow) {
             // The first Firestore snapshot hasn't arrived yet — without this, an
             // account with real bookings briefly showed "No bookings" before the
             // real list streamed in, indistinguishable from actually having none.
@@ -229,7 +231,7 @@ fun MyBookingsScreen(
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md)
                 ) {
                     Icon(
                         Icons.Default.WifiOff,
@@ -272,9 +274,11 @@ fun MyBookingsScreen(
                 // bottom = 24.dp (rather than Spacing.md) so the last card always
                 // clears the bottom nav bar with real breathing room.
                 contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, top = Spacing.md, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.lg)
             ) {
                 items(filteredBookings, key = { it.id }) { booking ->
+                    // Inserted/removed rows slide and fade instead of jumping.
+                    Box(Modifier.animateItem()) {
                     val space = allSpaces.find { it.id == booking.spaceId }
 
                     BookingReservationCard(
@@ -298,7 +302,8 @@ fun MyBookingsScreen(
                                 rebookTargetSpaceId = space.id
                                 rebookSourceBooking = booking
                             }
-                        },
+                        }
+        },
                         onEditBooking = {
                             // Never fall back to firstOrNull: an edit request must reference
                             // the booking's own space (replacesBookingId ties them together),
@@ -335,6 +340,7 @@ fun MyBookingsScreen(
                         }
                     )
                 }
+}
             }
         }
     }
@@ -499,7 +505,7 @@ fun BookingReservationCard(
             modifier = Modifier
                 .weight(1f)
                 .padding(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             // Header Row: Space Title, District, Status Badge
             Row(
@@ -534,7 +540,7 @@ fun BookingReservationCard(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(12.dp)
                         )
-                        Spacer(modifier = Modifier.width(3.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
                         Text(
                             text = stringResource(R.string.x_x_ref_x, booking.spaceDistrict, localizedLabel(booking.governorate.displayName), booking.publicCode),
                             style = MaterialTheme.typography.bodySmall,
@@ -570,14 +576,14 @@ fun BookingReservationCard(
             ) {
                 Column(
                     modifier = Modifier.padding(Spacing.md),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column {
-                            Text(stringResource(R.string.formula_timing), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.formula_timing), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(
                                 text = localizedLabel(booking.formula.type.displayName),
                                 style = MaterialTheme.typography.bodySmall,
@@ -602,7 +608,7 @@ fun BookingReservationCard(
                         }
 
                         Column(horizontalAlignment = Alignment.End) {
-                            Text(stringResource(R.string.duration_lease), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.duration_lease), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(
                                 text = stringResource(R.string.x_month_s, booking.durationMonths),
                                 style = MaterialTheme.typography.bodySmall,
@@ -633,7 +639,7 @@ fun BookingReservationCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text(stringResource(R.string.total_commitment), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.total_commitment), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         text = stringResource(R.string.x_usd_2, formatUsd(booking.totalAmountUsd)),
                         style = MaterialTheme.typography.titleMedium,
@@ -651,7 +657,7 @@ fun BookingReservationCard(
                             Text(
                                 stringResource(R.string.space_rules_on_file),
                                 color = MaterialTheme.proColors.onSuccessContainer,
-                                fontSize = 12.sp,
+                                style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
@@ -661,7 +667,7 @@ fun BookingReservationCard(
                             Text(
                                 stringResource(R.string.no_space_rules_or_access_guidance_provided),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 12.sp,
+                                style = MaterialTheme.typography.labelMedium,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
@@ -680,7 +686,7 @@ fun BookingReservationCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (booking.paymentAcknowledgedBySpecialist) {
                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.proColors.success, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                         }
                         Text(
                             text = if (booking.paymentAcknowledgedBySpecialist) stringResource(R.string.you_marked_this_paid) else stringResource(R.string.not_marked_paid_yet),
@@ -706,7 +712,7 @@ fun BookingReservationCard(
             var showMoreMenu by remember { mutableStateOf(false) }
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Re-book / Extend Button (Prominent)
@@ -715,7 +721,7 @@ fun BookingReservationCard(
                     shape = MaterialTheme.shapes.medium,
                     modifier = Modifier
                         .weight(1f)
-                        .height(40.dp)
+                        .heightIn(min = 48.dp)
                         .testTag("rebook_button_${booking.id}"),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -723,7 +729,7 @@ fun BookingReservationCard(
                     )
                 ) {
                     Icon(Icons.Default.Repeat, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(Spacing.sm))
                     Text(
                         text = if (booking.status == BookingRequestStatus.ACCEPTED) stringResource(R.string.extend_re_book) else stringResource(R.string.re_book_space),
                         fontWeight = FontWeight.Bold,
@@ -860,7 +866,7 @@ fun BookingStatusProgressStepper(
                         if (isCompleted) {
                             Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(10.dp))
                         } else {
-                            Text("${index + 1}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                            Text("${index + 1}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                         }
                     }
                     // Right connector (skip for last step)
@@ -873,7 +879,7 @@ fun BookingStatusProgressStepper(
                         )
                     }
                 }
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(Spacing.xs))
                 Text(
                     text = stepName,
                     style = MaterialTheme.typography.labelSmall,

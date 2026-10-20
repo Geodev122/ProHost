@@ -56,13 +56,13 @@ fun RentalPricingConfigEditor(
     } else {
         RentalStrategyType.values().toList()
     }
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Text(
             if (availabilityOnly) stringResource(R.string.offered_times_hourly_shifts_or_days) else stringResource(R.string.renting_strategy),
             fontWeight = FontWeight.Bold,
             style = MaterialTheme.typography.labelMedium
         )
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             items(strategyChoices) { type ->
                 FilterChip(
                     selected = config.strategyType == type,
@@ -125,7 +125,7 @@ fun MonthlyStrategyEditor(
     val currentYear = nowCal.get(Calendar.YEAR)
     val monthNames = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         InputField(
             value = if (config.rateUsd == 0.0) "" else config.rateUsd.toInt().toString(),
             onValueChange = { onConfigChange(config.copy(rateUsd = it.toDoubleOrNull() ?: 0.0)) },
@@ -135,8 +135,8 @@ fun MonthlyStrategyEditor(
         )
 
         Text(stringResource(R.string.available_from), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            LazyRow(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
+            LazyRow(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 items(monthNames) { m ->
                     val idx = monthNames.indexOf(m) + 1
                     FilterChip(
@@ -179,8 +179,8 @@ fun MonthlyStrategyEditor(
 
         if (!config.isIndefinite) {
             Text(stringResource(R.string.available_to), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                LazyRow(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
+                LazyRow(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     items(monthNames) { m ->
                         val idx = monthNames.indexOf(m) + 1
                         FilterChip(
@@ -244,7 +244,7 @@ fun HourlyStrategyEditor(
     val hours = (openH until closeH).toList()
     var bulkPriceByDay by remember { mutableStateOf(mapOf<String, String>()) }
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Text(
             if (availabilityOnly) stringResource(R.string.tap_an_hour_to_offer_it_on_that_day_untouc)
             else stringResource(R.string.tap_an_hour_to_toggle_it_on_off_for_that_d),
@@ -252,8 +252,8 @@ fun HourlyStrategyEditor(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         operatingDays.forEach { day ->
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Text(localizedLabel(day), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(64.dp))
                     if (!availabilityOnly) InputField(
      value = bulkPriceByDay[day] ?: "",
@@ -267,7 +267,7 @@ fun HourlyStrategyEditor(
                         onConfigChange(config.copy(cellPrices = config.cellPrices + hours.associate { "$day|$it" to price }))
                     }) { Text(stringResource(R.string.fill_all_hours)) }
                 }
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     items(hours) { hour ->
                         val key = "$day|$hour"
                         val isOn = config.cellPrices.containsKey(key)
@@ -299,12 +299,12 @@ fun ShiftStrategyEditor(
     modifier: Modifier = Modifier,
     availabilityOnly: Boolean = false
 ) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         Text(stringResource(R.string.t_1_shift_configuration), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         config.shifts.forEach { shift ->
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                     Text(localizedLabel(shift.name.displayName), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
@@ -319,7 +319,7 @@ fun ShiftStrategyEditor(
                     }
                 }
                 if (!shift.isUnavailable) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
                         InputField(
                             value = shift.startHour.toString(),
                             onValueChange = { v ->
@@ -382,9 +382,9 @@ fun ShiftStrategyEditor(
         )
         val availableShifts = config.shifts.filterNot { it.isUnavailable }
         operatingDays.forEach { day ->
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text(localizedLabel(day), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(64.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     items(availableShifts) { shift ->
                         val offeredToday = config.distribution[day] ?: emptyList()
                         val isOn = offeredToday.contains(shift.name.name)
@@ -413,13 +413,13 @@ fun DayBasedStrategyEditor(
     modifier: Modifier = Modifier,
     availabilityOnly: Boolean = false
 ) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.use_facility_operating_hours_x_x, openingHour, closingHour), style = MaterialTheme.typography.bodySmall)
             Switch(checked = config.useFacilityHours, onCheckedChange = { onConfigChange(config.copy(useFacilityHours = it)) })
         }
         if (!config.useFacilityHours) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
                 InputField(
                     value = (config.customStartHour ?: parseHourInt(openingHour)).toString(),
                     onValueChange = { v -> onConfigChange(config.copy(customStartHour = v.toIntOrNull())) },
@@ -467,7 +467,7 @@ fun DayBasedStrategyEditor(
         )
         operatingDays.forEach { day ->
             val dp = config.distribution[day] ?: DayPricing()
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Text(localizedLabel(day), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                 // Single flat price per day (mirrors ShiftStrategyEditor's item 7b
                 // rework, same request applied to Day-Based) — occurrence count and

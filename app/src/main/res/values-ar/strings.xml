@@ -1161,12 +1161,8 @@
     <string name="sign_out_confirm_email">هل تريد تسجيل الخروج من حسابك (%1$s)؟</string>
     <string name="download_in_progress_x">جارٍ التنزيل: %1$d%%</string>
     <string name="x_no_dates_selected_yet">%1$s • لم تُختر تواريخ بعد</string>
-    <string name="x_one_date">%1$s • تاريخ واحد</string>
-    <string name="x_n_dates">%1$s • %2$d تواريخ</string>
     <string name="no_availability_room_yet">لم يُضبط توفّر لهذه الغرفة بعد</string>
     <string name="no_availability_space_yet">لم يُضبط توفّر لهذه المساحة بعد</string>
-    <string name="one_slot_booked_hidden">فترة واحدة محجوزة لمهني آخر ولا تظهر.</string>
-    <string name="n_slots_booked_hidden">%1$d فترات محجوزة لمهنيين آخرين ولا تظهر.</string>
     <string name="room_no_bookable_yet">لا يوجد توفّر قابل للحجز لهذه الغرفة بعد.</string>
     <string name="space_no_bookable_yet">لا يوجد توفّر قابل للحجز لهذه المساحة بعد.</string>
     <string name="room_all_booked">كل فترات هذه الغرفة محجوزة.</string>
@@ -1174,9 +1170,6 @@
     <string name="choose_commitment_same_x_shift">اختر الالتزام — أي الأيام تقدّم المناوبة نفسها (%1$s):</string>
     <string name="no_days_priced_room">لا أيام مسعّرة لهذه الغرفة.</string>
     <string name="no_days_priced_space">لا أيام مسعّرة لهذه المساحة.</string>
-    <string name="x_divisions">%1$d أقسام</string>
-    <string name="one_booking_uses_slot">حجز واحد يستخدم هذه الفترة —</string>
-    <string name="n_bookings_use_slot">%1$d حجوزات تستخدم هذه الفترة —</string>
     <string name="pending_request">طلب قيد الانتظار</string>
     <string name="current_tenant">المستأجر الحالي</string>
     <string name="this_booking">هذا الحجز</string>
@@ -1194,14 +1187,10 @@
     <string name="calendar_no_app">لا يوجد تطبيق تقويم على هذا الجهاز.</string>
     <string name="no_email_app_reach_us_x">لا يوجد تطبيق بريد — يمكنك أيضًا مراسلتنا على %1$s</string>
     <string name="account_created_photo_missing_x">تم إنشاء حساب %1$s! لم تُرفع صورتك الشخصية — أضفها من ملفك الشخصي.</string>
-    <string name="one_space_pick_tab">مساحة واحدة — اختر التبويب لعرضها وعرض توفّرها</string>
-    <string name="n_spaces_pick_tab">%1$d مساحات — اختر تبويبًا لعرض المساحة وتوفّرها</string>
     <string name="benefit_publish_listings">انشر عددًا غير محدود من إعلانات المساحات</string>
     <string name="benefit_manage_requests">استقبل طلبات الحجز وأدِرها</string>
     <string name="benefit_dashboard">لوحة المضيف والإشغال والتحليلات</string>
     <string name="benefit_explore">الظهور في قائمة الاستكشاف وخريطته</string>
-    <string name="one_request_awaiting_host">طلب واحد بانتظار رد المضيف.</string>
-    <string name="n_requests_awaiting_host">%1$d طلبات بانتظار رد المضيف.</string>
     <string name="update_checking">جارٍ البحث عن تحديثات…</string>
     <string name="update_available_short">يتوفر تحديث</string>
     <string name="update_downloading">جارٍ تنزيل التحديث…</string>
@@ -1209,8 +1198,6 @@
     <string name="update_check_failed">تعذّر البحث عن تحديث</string>
     <string name="prohost_up_to_date">ProHost محدَّث</string>
     <string name="vs_x_last_month">مقابل %1$s الشهر الماضي</string>
-    <string name="one_request_by_strategy">طلب واحد حسب نوع التأجير</string>
-    <string name="n_requests_by_strategy">%1$d طلبات حسب نوع التأجير</string>
     <string name="x_accepted_x_value">%1$d مقبولة · قيمة مقبولة %2$s</string>
     <string name="average_group_x">متوسط المجموعة %1$s</string>
     <string name="phone_number_label">رقم الهاتف</string>

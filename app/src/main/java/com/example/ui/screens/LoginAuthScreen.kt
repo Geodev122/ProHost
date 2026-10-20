@@ -301,9 +301,9 @@ fun LoginAuthScreen(
             modifier = Modifier.size(width = 220.dp, height = 144.dp)
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(Spacing.xxl))
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(Spacing.sm))
 
         // Status or Error Banners
         val displayError = localErrorMessage ?: authErrorMessage
@@ -456,7 +456,7 @@ fun LoginAuthScreen(
                 if (emailResendCountdownSeconds > 0) {
                     Text(
                         text = stringResource(R.string.resend_code_in_xs, emailResendCountdownSeconds),
-                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -475,7 +475,7 @@ fun LoginAuthScreen(
                         enabled = !isAuthenticating,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(stringResource(R.string.resend_code), fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.resend_code), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                     }
                 }
 
@@ -492,7 +492,7 @@ fun LoginAuthScreen(
                     Spacer(modifier = Modifier.width(Spacing.xs))
                     Text(
                         stringResource(R.string.use_a_different_email),
-                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                        style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -520,13 +520,13 @@ fun LoginAuthScreen(
                 if (emailResendCountdownSeconds > 0) {
                     Text(
                         text = stringResource(R.string.resend_link_in_xs, emailResendCountdownSeconds),
-                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                 } else {
-                    OutlinedButton(
+                    TextButton(
                         onClick = {
                             localErrorMessage = null
                             authViewModel.sendEmailLinkViaFunction(emailArg = pendingEmail) { sent ->
@@ -536,11 +536,11 @@ fun LoginAuthScreen(
                         enabled = !isAuthenticating,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(stringResource(R.string.resend_link), fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.resend_link), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                     }
                 }
 
-                OutlinedButton(
+                TextButton(
                     onClick = {
                         localErrorMessage = null
                         authViewModel.clearAuthMessages()
@@ -559,7 +559,7 @@ fun LoginAuthScreen(
                     Spacer(modifier = Modifier.width(Spacing.xs))
                     Text(
                         stringResource(R.string.use_a_code_instead),
-                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                        style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -576,7 +576,7 @@ fun LoginAuthScreen(
                     Spacer(modifier = Modifier.width(Spacing.xs))
                     Text(
                         stringResource(R.string.use_a_different_email),
-                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                        style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -595,7 +595,7 @@ fun LoginAuthScreen(
                     isBusy = isAuthenticating
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 // Show the verified identity (email or phone) as a non-editable badge
                 val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
@@ -613,7 +613,7 @@ fun LoginAuthScreen(
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     ProfilePicturePickerField(
                         pictureUri = regProfilePicUri,
                         onPictureSelected = { regProfilePicUri = it }
@@ -624,7 +624,7 @@ fun LoginAuthScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 InputField(
                     value = regFullName,
@@ -639,7 +639,7 @@ fun LoginAuthScreen(
                     singleLine = true
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 // Email is read-only from Firebase Auth (populated via email/Google sign-in).
                 // For legacy phone-auth users, this chip will be empty — they can add
@@ -660,7 +660,7 @@ fun LoginAuthScreen(
                                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
                                 modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(Spacing.sm))
                             Text(
                                 text = firebaseEmail,
                                 style = MaterialTheme.typography.bodyMedium,
@@ -670,7 +670,7 @@ fun LoginAuthScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 InputField(
                     value = regSpecialty,
@@ -685,7 +685,7 @@ fun LoginAuthScreen(
                     singleLine = true
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 CountryDropdownField(
                     selectedCountry = regCountry,
@@ -693,7 +693,7 @@ fun LoginAuthScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 InputField(
                     value = regGovernorateArea,
@@ -708,7 +708,7 @@ fun LoginAuthScreen(
                     singleLine = true
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 InputField(
                     value = regCity,
@@ -723,7 +723,7 @@ fun LoginAuthScreen(
                     singleLine = true
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 PhoneNumberField(
                     country = regWhatsAppCountry,
@@ -743,12 +743,12 @@ fun LoginAuthScreen(
                     )
                     TextButton(onClick = pickDeviceNumber) {
                         Icon(Icons.Default.SimCard, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
                         Text(stringResource(R.string.use_this_phone_s_number), style = MaterialTheme.typography.labelMedium)
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 Row(
                     modifier = Modifier
@@ -761,22 +761,22 @@ fun LoginAuthScreen(
                         Row {
                             Text(
                                 text = stringResource(R.string.i_agree_to_the),
-                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = stringResource(R.string.terms_of_use),
-                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.clickable { showLegalDocument = com.example.legal.LegalContent.termsOfUse }
                             )
                         }
                         Row {
-                            Text(text = stringResource(R.string.and), fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(text = stringResource(R.string.and), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(
                                 text = stringResource(R.string.privacy_policy),
-                                fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.clickable { showLegalDocument = com.example.legal.LegalContent.privacyPolicy }
@@ -785,7 +785,7 @@ fun LoginAuthScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(Spacing.sm))
 
                 ProPrimaryButton(
                     text = if (isAuthenticating) stringResource(R.string.creating_account) else stringResource(R.string.create_account),
@@ -868,7 +868,7 @@ fun LoginAuthScreen(
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text(stringResource(R.string.start_over_with_a_different_account), fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.start_over_with_a_different_account), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -891,10 +891,10 @@ fun LoginAuthScreen(
                     tint = LebaneseCedarGreen,
                     modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(Spacing.md))
                 Text(
                     text = stringResource(R.string.sign_in_securely_with_a_magic_email_link_o),
-                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -930,7 +930,7 @@ private fun AuthStepHeader(
                     Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                 }
             }
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(Spacing.md))
             Column {
                 Text(
                     text = title,

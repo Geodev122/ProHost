@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiPlural
+import androidx.compose.ui.res.pluralStringResource
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import androidx.compose.ui.res.stringResource
@@ -480,8 +482,7 @@ private fun BookingSlotSelectorDialog(
                 when {
                     slot == null -> uiText(R.string.no_shift_selected_yet)
                     selectedCalendarDates.isEmpty() -> uiText(R.string.x_no_dates_selected_yet, localizedLabel(slot.groupLabel.substringAfter("• ")))
-                    else -> if (selectedCalendarDates.size == 1) uiText(R.string.x_one_date, localizedLabel(slot.groupLabel.substringAfter("• ")))
-                        else uiText(R.string.x_n_dates, localizedLabel(slot.groupLabel.substringAfter("• ")), selectedCalendarDates.size)
+                    else -> uiPlural(R.plurals.x_dates, selectedCalendarDates.size, localizedLabel(slot.groupLabel.substringAfter("• ")), selectedCalendarDates.size)
                 }
             }
             RentalStrategyType.DAY_BASED -> {
@@ -489,7 +490,7 @@ private fun BookingSlotSelectorDialog(
                     selectedDayBasedDays.isEmpty() -> uiText(R.string.no_days_selected_yet)
                     dayBasedCalendarDates.isEmpty() -> uiText(R.string.x_no_dates_selected_yet, selectedDayBasedDays.sorted().joinToString(", ") { localizedLabel(it) })
                     else -> selectedDayBasedDays.sorted().joinToString(", ") { localizedLabel(it) }.let { days ->
-                        if (dayBasedCalendarDates.size == 1) uiText(R.string.x_one_date, days) else uiText(R.string.x_n_dates, days, dayBasedCalendarDates.size)
+                        uiPlural(R.plurals.x_dates, dayBasedCalendarDates.size, days, dayBasedCalendarDates.size)
                     }
                 }
             }
@@ -510,7 +511,7 @@ private fun BookingSlotSelectorDialog(
                     .fillMaxWidth()
                     .fillMaxHeight(0.92f)
                     .navigationBarsPadding()
-                    .padding(horizontal = 20.dp)
+                    .padding(horizontal = Spacing.lg)
                     .padding(bottom = 20.dp)
             ) {
                 // Header
@@ -548,11 +549,11 @@ private fun BookingSlotSelectorDialog(
                     modifier = Modifier
                         .weight(1f)
                         .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(Spacing.lg)
                 ) {
                     // 1. Choose Subdivision (if any)
                     if (hasSubdivisions) {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                             Text(
                                 text = stringResource(R.string.t_1_choose_subdivision_room_to_rent),
                                 style = MaterialTheme.typography.bodyMedium,
@@ -584,7 +585,7 @@ private fun BookingSlotSelectorDialog(
                                             onClick = { selectedSubdivision = sub },
                                             colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
                                         )
-                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Spacer(modifier = Modifier.width(Spacing.sm))
                                         Column {
                                             Text(
                                                 text = sub.name,
@@ -613,7 +614,7 @@ private fun BookingSlotSelectorDialog(
 
                     // 2a. Attendee-mode UI — shown instead of strategy/pricing when pricingMode = PER_ATTENDEE
                     if (isAttendeeMode) {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                             Text(
                                 text = "${if (hasSubdivisions) "2" else "1"}. Attendees & Package",
                                 style = MaterialTheme.typography.bodyMedium,
@@ -641,7 +642,7 @@ private fun BookingSlotSelectorDialog(
                     }
 
                     // 2. Choose Renting Strategy / Availability Slot Strategy
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                         Text(
                             text = "${if (hasSubdivisions) "2" else "1"}. " +
                                 "${if (isAttendeeMode) "Select Availability Slot Type" else "Select Renting Strategy"}",
@@ -651,8 +652,7 @@ private fun BookingSlotSelectorDialog(
                         )
                         if (hiddenLockedCount > 0) {
                             Text(
-                                text = if (hiddenLockedCount == 1) stringResource(R.string.one_slot_booked_hidden)
-                                    else stringResource(R.string.n_slots_booked_hidden, hiddenLockedCount),
+                                text = pluralStringResource(R.plurals.slots_booked_hidden, hiddenLockedCount, hiddenLockedCount),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -668,7 +668,7 @@ private fun BookingSlotSelectorDialog(
                                 color = MaterialTheme.colorScheme.error
                             )
                         } else {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                 availableStrategyTypes.forEach { strategy ->
                                     FilterChip(
                                         selected = selectedStrategyType == strategy,
@@ -692,7 +692,7 @@ private fun BookingSlotSelectorDialog(
                         ) {
                             Column(
                                 modifier = Modifier.padding(14.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                                verticalArrangement = Arrangement.spacedBy(Spacing.md)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
@@ -730,7 +730,7 @@ private fun BookingSlotSelectorDialog(
                                         // forced into equal fractions of the dialog's
                                         // width squeezed each label down to its bare
                                         // 3-letter abbreviation with no breathing room.
-                                        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                             hourlyDayOptions.forEach { day ->
                                                 FilterChip(
                                                     selected = hourlyDay == day,
@@ -747,7 +747,7 @@ private fun BookingSlotSelectorDialog(
                                                 color = MaterialTheme.colorScheme.error
                                             )
                                         }
-                                        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                             hourlyCellsForDay.forEach { cell ->
                                                 val isSelected = cell in selectedHourlyCells
                                                 val price = cell.pricesByRecurrence[BookingRecurrence.FLAT] ?: 0.0
@@ -764,7 +764,7 @@ private fun BookingSlotSelectorDialog(
 
                                     RentalStrategyType.SHIFT_BASED -> {
                                         Text(stringResource(R.string.choose_a_day), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
-                                        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                             shiftDayOptions.forEach { day ->
                                                 FilterChip(
                                                     selected = shiftDay == day,
@@ -781,7 +781,7 @@ private fun BookingSlotSelectorDialog(
                                                 color = MaterialTheme.colorScheme.error
                                             )
                                         }
-                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                             shiftsForDay.forEach { slot ->
                                                 FilterChip(
                                                     selected = selectedShiftSlot == slot,
@@ -802,7 +802,7 @@ private fun BookingSlotSelectorDialog(
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontWeight = FontWeight.SemiBold
                                             )
-                                            androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                                 commitmentDayOptions.forEach { day ->
                                                     val isOn = day in selectedCommitmentDays
                                                     FilterChip(
@@ -829,7 +829,7 @@ private fun BookingSlotSelectorDialog(
                                                 fontWeight = FontWeight.SemiBold
                                             )
                                             if (selectedCalendarDates.isNotEmpty()) {
-                                                androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                                     selectedCalendarDates.sorted().forEach { dateStr ->
                                                         FilterChip(
                                                             selected = true,
@@ -863,7 +863,7 @@ private fun BookingSlotSelectorDialog(
                                                 color = MaterialTheme.colorScheme.error
                                             )
                                         }
-                                        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                             strategySlots.forEach { slot ->
                                                 val isSelected = slot.day in selectedDayBasedDays
                                                 val price = slot.pricesByRecurrence[BookingRecurrence.FLAT] ?: 0.0
@@ -883,7 +883,7 @@ private fun BookingSlotSelectorDialog(
 
                                         if (selectedDayBasedDays.isNotEmpty()) {
                                             Text(stringResource(R.string.commitment), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
-                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                                 FilterChip(
                                                     selected = !dayBasedIsRecurring,
                                                     onClick = { dayBasedIsRecurring = false },
@@ -924,7 +924,7 @@ private fun BookingSlotSelectorDialog(
                                                     fontWeight = FontWeight.SemiBold
                                                 )
                                                 if (dayBasedManualDates.isNotEmpty()) {
-                                                    androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                    androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                                         dayBasedManualDates.sorted().forEach { dateStr ->
                                                             FilterChip(
                                                                 selected = true,
@@ -946,7 +946,7 @@ private fun BookingSlotSelectorDialog(
                                                     modifier = Modifier.fillMaxWidth()
                                                 ) {
                                                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Spacer(modifier = Modifier.width(Spacing.sm))
                                                     Text(stringResource(R.string.add_a_date), style = MaterialTheme.typography.labelSmall)
                                                 }
                                             }
@@ -974,7 +974,7 @@ private fun BookingSlotSelectorDialog(
                             )
                             Spacer(modifier = Modifier.height(Spacing.sm))
 
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                 items(dateOptions) { option ->
                                     val isSelected = selectedDateOption == option
                                     FilterChip(
@@ -1015,7 +1015,7 @@ private fun BookingSlotSelectorDialog(
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                             ) {
                                 durationOptions.forEach { months ->
                                     val isSelected = selectedDurationMonths == months
@@ -1105,7 +1105,7 @@ private fun BookingSlotSelectorDialog(
                         shape = MaterialTheme.shapes.large,
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                     ) {
-                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1137,7 +1137,7 @@ private fun BookingSlotSelectorDialog(
                                 Text(
                                     text = if (isAttendeeMode) stringResource(R.string.x_usd, com.example.ui.util.AttendeePricing.formatUsd(attendeeTotalUsd))
                                         else stringResource(R.string.x_usd, totalCalculatedUsd.toInt()),
-                                    fontSize = 20.sp,
+                                    style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -1169,7 +1169,7 @@ private fun BookingSlotSelectorDialog(
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(14.dp)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text(
                                     text = stringResource(R.string.selected_slot_x, chosenSlotSummary),
                                     style = MaterialTheme.typography.labelSmall,
@@ -1186,7 +1186,7 @@ private fun BookingSlotSelectorDialog(
                 // Bottom Action Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                 ) {
                     // Shift-Based and Day-Based have no abstract "start date" preset
                     // anymore — the earliest real calendar date picked is the most
@@ -1448,10 +1448,10 @@ fun AttendeeCountAndTiers(
     quote: com.example.ui.util.AttendeePricing.Quote?,
     onCountChange: (Int) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {

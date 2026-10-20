@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Spacing
+
 import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -55,7 +57,7 @@ fun DateRangePickerRow(
 
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
         AssistChip(

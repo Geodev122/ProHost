@@ -90,7 +90,7 @@ fun DrawerIdentityCard(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.lg)
                 ) {
                     Box(modifier = Modifier.size(56.dp)) {
                         val picUrl = user?.profilePictureUrl
@@ -149,7 +149,7 @@ fun DrawerIdentityCard(
                     Column(modifier = Modifier.weight(1f)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             Text(
                                 text = user?.fullName ?: stringResource(R.string.prohost_member),
@@ -177,7 +177,7 @@ fun DrawerIdentityCard(
                             overflow = TextOverflow.Ellipsis
                         )
 
-                        Spacer(modifier = Modifier.height(2.dp))
+                        Spacer(modifier = Modifier.height(Spacing.xs))
 
                         Text(
                             text = user?.email ?: "",
@@ -194,13 +194,13 @@ fun DrawerIdentityCard(
                 // Bottom Meta: Location + Member ID
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
                         modifier = Modifier.weight(1f),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                     ) {
                         Icon(Icons.Default.LocationOn, contentDescription = null, tint = pro.onBrandHeader.copy(alpha = 0.8f), modifier = Modifier.size(14.dp))
                         Text(
@@ -216,7 +216,7 @@ fun DrawerIdentityCard(
                     Row(
                         modifier = Modifier.weight(1f),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                     ) {
                         Icon(Icons.Default.Badge, contentDescription = null, tint = pro.onBrandHeader.copy(alpha = 0.8f), modifier = Modifier.size(14.dp))
                         Text(
@@ -263,13 +263,13 @@ private fun RoleTag3D(role: UserRole) {
                 .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.75f), Color.White.copy(alpha = 0.1f))), shape)
                 .padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             Icon(look.icon, contentDescription = null, tint = look.text, modifier = Modifier.size(14.dp))
             Text(
                 text = look.label,
                 style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Black,
+                fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 1.sp,
                 color = look.text,
                 maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis

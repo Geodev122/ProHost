@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Spacing
+
 import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -72,7 +74,7 @@ fun SystemStylePermissionDialog(
             Column(
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.lg)
             ) {
                 Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
                 Text(
@@ -90,7 +92,7 @@ fun SystemStylePermissionDialog(
                     )
                 }
                 extra?.invoke(this)
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
                     PermissionChoice(allowLabel, onAllow)
                     PermissionChoice(denyLabel, onDeny)
                 }

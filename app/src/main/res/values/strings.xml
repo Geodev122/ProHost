@@ -1160,12 +1160,8 @@
     <string name="sign_out_confirm_email">Are you sure you want to sign out of your account (%1$s)?</string>
     <string name="download_in_progress_x">Download in progress: %1$d%%</string>
     <string name="x_no_dates_selected_yet">%1$s • no dates selected yet</string>
-    <string name="x_one_date">%1$s • 1 date</string>
-    <string name="x_n_dates">%1$s • %2$d dates</string>
     <string name="no_availability_room_yet">No availability configured for this room yet</string>
     <string name="no_availability_space_yet">No availability configured for this space yet</string>
-    <string name="one_slot_booked_hidden">1 slot is already booked by another professional and not shown.</string>
-    <string name="n_slots_booked_hidden">%1$d slots are already booked by other professionals and not shown.</string>
     <string name="room_no_bookable_yet">This room has no bookable availability configured yet.</string>
     <string name="space_no_bookable_yet">This space has no bookable availability configured yet.</string>
     <string name="room_all_booked">Every slot for this room is already booked.</string>
@@ -1173,9 +1169,6 @@
     <string name="choose_commitment_same_x_shift">Choose commitment — which days offer the same %1$s shift:</string>
     <string name="no_days_priced_room">No days priced for this room.</string>
     <string name="no_days_priced_space">No days priced for this space.</string>
-    <string name="x_divisions">%1$d divisions</string>
-    <string name="one_booking_uses_slot">1 booking uses this slot —</string>
-    <string name="n_bookings_use_slot">%1$d bookings use this slot —</string>
     <string name="pending_request">Pending request</string>
     <string name="current_tenant">Current tenant</string>
     <string name="this_booking">this booking</string>
@@ -1193,14 +1186,10 @@
     <string name="calendar_no_app">No calendar app found on this device.</string>
     <string name="no_email_app_reach_us_x">No email app found — you can also reach us at %1$s</string>
     <string name="account_created_photo_missing_x">Account created for %1$s! Your profile photo didn\'t upload — add it from your profile.</string>
-    <string name="one_space_pick_tab">1 space — pick a tab to see that space and its availability</string>
-    <string name="n_spaces_pick_tab">%1$d spaces — pick a tab to see that space and its availability</string>
     <string name="benefit_publish_listings">Publish unlimited workspace listings</string>
     <string name="benefit_manage_requests">Receive and manage booking requests</string>
     <string name="benefit_dashboard">Host dashboard, occupancy and analytics</string>
     <string name="benefit_explore">Shown on Explore\'s list and map</string>
-    <string name="one_request_awaiting_host">1 request awaiting host response.</string>
-    <string name="n_requests_awaiting_host">%1$d requests awaiting host response.</string>
     <string name="update_checking">Checking for updates…</string>
     <string name="update_available_short">Update available</string>
     <string name="update_downloading">Downloading update…</string>
@@ -1208,8 +1197,6 @@
     <string name="update_check_failed">Update check failed</string>
     <string name="prohost_up_to_date">ProHost is up to date</string>
     <string name="vs_x_last_month">vs %1$s last month</string>
-    <string name="one_request_by_strategy">1 request by renting strategy</string>
-    <string name="n_requests_by_strategy">%1$d requests by renting strategy</string>
     <string name="x_accepted_x_value">%1$d accepted · %2$s accepted value</string>
     <string name="average_group_x">average group %1$s</string>
     <string name="phone_number_label">Phone number</string>

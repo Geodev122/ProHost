@@ -1,5 +1,7 @@
 package com.example.ui.navigation
 
+import com.example.ui.theme.Spacing
+
 import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -429,7 +431,7 @@ fun ProHostAppRoot(
                     Row(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
                         Text(
                             sessionRestoreError!!,
@@ -1051,7 +1053,7 @@ private fun SuspendedAccountScreen(onSignOut: () -> Unit) {
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(Spacing.sm))
             Text(
                 text = stringResource(R.string.your_account_has_been_suspended_by_prohost) +
                     stringResource(R.string.or_manage_listings_while_suspended_contact),

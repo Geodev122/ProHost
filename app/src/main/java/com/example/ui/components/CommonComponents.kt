@@ -211,7 +211,7 @@ fun ProSectionHeader(
                     .height(20.dp)
                     .background(MaterialTheme.colorScheme.secondary, Radius.Xs)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(Spacing.sm))
             if (icon != null) {
                 Surface(
                     color = MaterialTheme.colorScheme.primaryContainer,
@@ -227,7 +227,7 @@ fun ProSectionHeader(
                         )
                     }
                 }
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(Spacing.md))
             }
             Column {
                 // Two lines before ellipsis: next to a trailing badge one line cut titles to "Incoming Req…".
@@ -289,7 +289,7 @@ fun ProMetricTile(
             )
         Column(
             modifier = Modifier.padding(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -374,7 +374,7 @@ fun ProCurrencyTag(
         Row(
             modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
             Text(
                 text = stringResource(R.string.x_usdx, finalUsd.toInt(), suffix),
@@ -387,14 +387,17 @@ fun ProCurrencyTag(
 }
 
 /**
- * Standard Member / Professional Avatar with initials and verification badge.
+ * The one avatar: profile photo, or initials on [containerColor] when there is none (or it fails to load), with an
+ * optional verification tick. Member rows, cards and the drawer header all use it at their own [size].
  */
 @Composable
-private fun AvatarCircle(
+fun ProAvatar(
     initials: String,
-    isVerified: Boolean,
     size: Dp,
     imageUrl: String? = null,
+    isVerified: Boolean = false,
+    containerColor: Color = MaterialTheme.colorScheme.primary,
+    contentColor: Color = MaterialTheme.colorScheme.onPrimary,
     modifier: Modifier = Modifier
 ) {
     // A blank URL or a photo that fails to load falls back to the initials.
@@ -410,14 +413,14 @@ private fun AvatarCircle(
             )
         } else {
             Surface(
-                color = MaterialTheme.colorScheme.primary,
+                color = containerColor,
                 shape = CircleShape,
                 modifier = Modifier.fillMaxSize()
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
                         text = initials,
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        color = contentColor,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = (size.value * 0.38f).sp
                     )
@@ -466,9 +469,9 @@ fun ProMemberAvatar(
         Row(
             modifier = modifier,
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            AvatarCircle(initials = initials, isVerified = isVerified, size = size, imageUrl = imageUrl, modifier = Modifier)
+            ProAvatar(initials = initials, isVerified = isVerified, size = size, imageUrl = imageUrl, modifier = Modifier)
 
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -496,7 +499,7 @@ fun ProMemberAvatar(
             }
         }
     } else {
-        AvatarCircle(
+        ProAvatar(
             initials = initials,
             isVerified = isVerified,
             size = size,
@@ -546,7 +549,7 @@ fun ProEmptyState(
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(Spacing.sm))
         Text(
             text = description,
             style = MaterialTheme.typography.bodySmall,
@@ -1042,7 +1045,7 @@ fun WorkspaceCard(
                     Row(
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Verified,
@@ -1096,7 +1099,7 @@ fun WorkspaceCard(
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(Spacing.md))
 
         // Title & Price row
         Row(
@@ -1128,7 +1131,7 @@ fun WorkspaceCard(
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(Spacing.xs))
 
         // Location
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1138,7 +1141,7 @@ fun WorkspaceCard(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(14.dp)
             )
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.width(Spacing.xs))
             Text(
                 text = location,
                 style = MaterialTheme.typography.bodySmall,
@@ -1148,12 +1151,12 @@ fun WorkspaceCard(
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(Spacing.sm))
 
         // Operating hours & Days open badge
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (operatingHours != null) {
@@ -1164,7 +1167,7 @@ fun WorkspaceCard(
                     Row(
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                     ) {
                         Icon(
                             imageVector = Icons.Default.AccessTime,
@@ -1188,7 +1191,7 @@ fun WorkspaceCard(
                     Row(
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                     ) {
                         Icon(
                             imageVector = Icons.Default.CalendarMonth,
@@ -1208,9 +1211,9 @@ fun WorkspaceCard(
 
         // Configured Formula Types chips
         if (formulaTypes.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(Spacing.sm))
             Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 formulaTypes.take(3).forEach { formula ->
@@ -1231,13 +1234,13 @@ fun WorkspaceCard(
 
         // Footer: Check Space + WhatsApp buttons
         if (onDetailsClick != null || onWhatsAppClick != null) {
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(Spacing.md))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(Spacing.sm))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 if (onDetailsClick != null) {
                     CustomButton(
@@ -1337,7 +1340,7 @@ fun ProHostCedarBadge(
                 vertical = if (isCompact) 2.dp else 3.dp
             ),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
             Icon(
                 imageVector = Icons.Default.Shield,
@@ -1390,7 +1393,7 @@ fun ProHostTopAppBar(
             // Left: Hamburger Menu + Logo + Brand Title
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 modifier = Modifier.weight(1f)
             ) {
                 if (showMenu) {
@@ -1405,7 +1408,7 @@ fun ProHostTopAppBar(
                         )
                     }
                 } else {
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(Spacing.xs))
                 }
 
                 if (showBrand) {
@@ -1506,7 +1509,7 @@ fun ShimmerLoadingList(
 ) {
     Column(
         modifier = modifier.fillMaxWidth().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
         repeat(count) { ShimmerLoadingCard(height = itemHeight) }
     }
@@ -1540,7 +1543,7 @@ fun ProHostFullScreenTopAppBar(
                 .statusBarsPadding()
                 .padding(horizontal = Spacing.sm, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             IconButton(
                 onClick = onMenuClick,
@@ -1555,7 +1558,7 @@ fun ProHostFullScreenTopAppBar(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Black,
+                fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
         }

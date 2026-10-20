@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Spacing
+
 import com.example.ui.util.localizedLabel
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -32,10 +34,10 @@ fun OperatingScheduleEditorSection(
     weekDayOptions: List<String> = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             InputField(
                 value = openingHour,
@@ -54,7 +56,7 @@ fun OperatingScheduleEditorSection(
         }
 
         Text(stringResource(R.string.operating_days), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             items(weekDayOptions) { day ->
                 val isSelected = selectedDays.contains(day)
                 FilterChip(

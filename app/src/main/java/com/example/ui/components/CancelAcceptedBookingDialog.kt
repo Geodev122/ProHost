@@ -43,7 +43,7 @@ fun CancelAcceptedBookingDialog(
         Card(shape = MaterialTheme.shapes.extraLarge, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
             Column(
                 modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.EventBusy, contentDescription = null, tint = MaterialTheme.colorScheme.error)
@@ -60,7 +60,7 @@ fun CancelAcceptedBookingDialog(
                 Text(stringResource(R.string.reason), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                 LazyColumn(
                     modifier = Modifier.heightIn(max = 220.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     items(CancellationReasonCode.entries) { reason ->
                         Surface(
@@ -93,7 +93,7 @@ fun CancelAcceptedBookingDialog(
                 )
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     CustomButton(

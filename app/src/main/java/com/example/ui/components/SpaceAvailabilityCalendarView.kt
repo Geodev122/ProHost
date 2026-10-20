@@ -76,7 +76,7 @@ fun SpaceAvailabilityCalendarView(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
             // Title Header
             Row(
@@ -145,7 +145,7 @@ fun SpaceAvailabilityCalendarView(
             }
 
             // Live Visual Capacity Breakdown Bar
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -213,7 +213,7 @@ fun SpaceAvailabilityCalendarView(
                 // Legend
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                 ) {
                     LegendItem(color = MaterialTheme.colorScheme.primary, text = stringResource(R.string.rented_x_h, totalRentedWeeklyHours))
                     LegendItem(color = MaterialTheme.colorScheme.outline, text = stringResource(R.string.blackout_closed_x_h, totalBlackoutHours))
@@ -251,7 +251,7 @@ fun SpaceAvailabilityCalendarView(
 
             // Blackout / Non-Operating Slots (if any)
             if (schedule.blackoutSlots.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                         Icon(Icons.Default.Block, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
@@ -293,7 +293,7 @@ fun SpaceAvailabilityCalendarView(
                                 ) {
                                     Text(
                                         text = stringResource(R.string.hidden),
-                                        fontSize = 12.sp,
+                                        style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -318,7 +318,7 @@ private fun LegendItem(color: Color, text: String) {
                 .background(color)
         )
         Spacer(modifier = Modifier.width(Spacing.xs))
-        Text(text, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

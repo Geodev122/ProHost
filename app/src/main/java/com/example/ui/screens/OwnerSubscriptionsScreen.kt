@@ -225,7 +225,7 @@ fun OwnerSubscriptionsScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg)
     ) {
         if (pendingAutoPublishDraftId != null) {
             item {
@@ -313,7 +313,7 @@ fun OwnerSubscriptionsScreen(
             val act = activity
             Row(
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 if (act != null) {
                     PremiumActionChip(Icons.Default.Settings, uiText(R.string.manage)) {
@@ -362,7 +362,7 @@ fun OwnerSubscriptionsScreen(
         }
         item {
             if (enabledPlans.isEmpty() && pricesLoading) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     repeat(2) { ShimmerLoadingCard(height = 132.dp, modifier = Modifier.weight(1f)) }
                 }
             } else if (enabledPlans.isEmpty()) {
@@ -389,12 +389,12 @@ fun OwnerSubscriptionsScreen(
                 }
                 val selectedKind = PlayOfferText.kindOf(premiumProduct, selectedPlan)
                 val selectedBadge = selectedKind?.let(PlayCatalog::badge) ?: uiText(R.string.premium)
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     // Offers show on the plan cards (new subscriptions only); members switching plans see regular prices.
                     // Always exactly two tiles: Monthly and Yearly. A kind Play didn't return is a placeholder.
                     Row(
                         modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
                         PlayCatalog.PlanKind.entries.forEach { kind ->
                             val plan = plansByKind[kind]
@@ -457,7 +457,7 @@ fun OwnerSubscriptionsScreen(
                             }
                         },
                         enabled = enabled,
-                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                         shape = Radius.Md,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.secondary,
@@ -465,7 +465,7 @@ fun OwnerSubscriptionsScreen(
                         )
                     ) {
                         Icon(if (enabled) Icons.Default.WorkspacePremium else Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(Spacing.sm))
                         Text(actionLabel, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     }
                     // How it works for the selected plan (either tile): with an offer today's price, the date
@@ -549,14 +549,14 @@ fun OwnerSubscriptionsScreen(
             icon = { Icon(Icons.Default.Redeem, contentDescription = null) },
             title = { Text(stringResource(R.string.use_x, livePromo.code)) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     listOf(
                         "Google Play's checkout opens with the ${livePromo.code} offer: ${livePromo.benefit.replaceFirstChar { it.lowercase() }}.",
                         "A payment method is required. Google Play shows today's price and the date the regular price starts before you confirm.",
                         "From $promoPaidFrom it renews automatically at ${livePromo.summary.recurring} / ${livePromo.summary.recurringPeriod}. " +
                             "Cancel in Google Play › Payments & subscriptions before $promoPaidFrom and you won't be charged."
                     ).forEachIndexed { i, line ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             Text("${i + 1}.", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
                             Text(line, style = MaterialTheme.typography.bodySmall)
                         }
@@ -592,7 +592,7 @@ fun OwnerSubscriptionsScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = Spacing.lg)
                     .padding(bottom = Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 if (livePromo != null) {
                     PromoCountdownCard(
@@ -607,7 +607,7 @@ fun OwnerSubscriptionsScreen(
                         onUse = { showRedeemDialog = false; redeemCodeInput = ""; showPromoHowTo = true }
                     )
                 }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Icon(Icons.Default.CardGiftcard, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Text(
                         if (livePromo != null) stringResource(R.string.have_another_code) else stringResource(R.string.redeem_a_code),
@@ -675,9 +675,9 @@ private fun PremiumHero(
                     )
                 )
                 .padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 Surface(shape = CircleShape, color = on.copy(alpha = 0.16f), modifier = Modifier.size(40.dp)) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = on, modifier = Modifier.size(22.dp))
@@ -687,7 +687,7 @@ private fun PremiumHero(
                     Text(
                         if (currentPlanId != null) PlayCatalog.planLabel(currentPlanId) else stringResource(R.string.prohost_premium),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Black,
+                        fontWeight = FontWeight.Bold,
                         color = on,
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
@@ -699,7 +699,7 @@ private fun PremiumHero(
                             else -> playDescription ?: uiText(R.string.publish_your_workspaces_and_take_bookings)
                         },
                         style = MaterialTheme.typography.bodySmall,
-                        color = on.copy(alpha = 0.82f),
+                        color = on,
                         maxLines = 2,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
@@ -709,7 +709,7 @@ private fun PremiumHero(
                 }
             }
             if (currentPlanId != null) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     HeroStat(renewLabel, renewValue, if (renewOk) on else MaterialTheme.proColors.headerError, Modifier.weight(1f))
                     HeroStat(uiText(R.string.listings), uiText(R.string.x_unlimited, listingCount), on, Modifier.weight(1f))
                 }
@@ -720,7 +720,7 @@ private fun PremiumHero(
                     HeroTone.WARNING -> MaterialTheme.proColors.headerWarning
                     HeroTone.ERROR -> MaterialTheme.proColors.headerError
                 }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Icon(st.icon, contentDescription = null, tint = tint, modifier = Modifier.size(14.dp))
                     Text(st.text, style = MaterialTheme.typography.labelSmall, color = tint)
                 }
@@ -734,7 +734,7 @@ private fun HeroStat(label: String, value: String, valueColor: Color, modifier: 
     val on = MaterialTheme.proColors.onBrandHeader
     Surface(modifier = modifier, shape = Radius.Sm, color = on.copy(alpha = 0.12f)) {
         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = on.copy(alpha = 0.75f))
+            Text(label, style = MaterialTheme.typography.labelSmall, color = on)
             Text(value, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = valueColor, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }
     }
@@ -817,7 +817,7 @@ internal fun PlanTile(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(28.dp)
+                    .heightIn(min = 28.dp)
                     .background(
                         when {
                             ribbon == null -> Color.Transparent
@@ -828,7 +828,7 @@ internal fun PlanTile(
                 contentAlignment = Alignment.Center
             ) {
                 if (ribbon != null) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                         Icon(
                             if (ribbon.second) Icons.Default.LocalOffer else Icons.Default.Verified,
                             contentDescription = null,
@@ -838,7 +838,7 @@ internal fun PlanTile(
                         Text(
                             ribbon.first,
                             style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Black,
+                            fontWeight = FontWeight.ExtraBold,
                             letterSpacing = 0.6.sp,
                             color = ribbonContent
                         )
@@ -847,7 +847,7 @@ internal fun PlanTile(
             }
             Column(
                 modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -868,7 +868,7 @@ internal fun PlanTile(
                     Text("—", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
                 } else if (hasOffer) {
                     // Offer: price paid now, the regular price struck through, how long, then what it renews at.
-                    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         Text(
                             summary.headline,
                             style = MaterialTheme.typography.headlineMedium,
@@ -1008,10 +1008,10 @@ private fun ExplainerSteps(heading: String, steps: List<Triple<androidx.compose.
         color = scheme.surface,
         border = BorderStroke(1.dp, scheme.outlineVariant)
     ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(heading, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, letterSpacing = 0.8.sp, color = scheme.primary)
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Text(heading, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.8.sp, color = scheme.primary)
             steps.forEach { (icon, title, body) ->
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.Top) {
                     Surface(shape = CircleShape, color = scheme.primaryContainer, modifier = Modifier.size(28.dp)) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(icon, contentDescription = null, tint = scheme.onPrimaryContainer, modifier = Modifier.size(15.dp))
@@ -1037,7 +1037,7 @@ private fun UnavailablePlanTile(kind: PlayCatalog.PlanKind, modifier: Modifier =
         color = scheme.surfaceVariant.copy(alpha = 0.35f),
         border = BorderStroke(1.dp, scheme.outlineVariant)
     ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Text(localizedLabel(PlayCatalog.badge(kind)), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = scheme.onSurfaceVariant)
             Text(stringResource(R.string.not_available_yet), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = scheme.onSurfaceVariant)
             Text(
@@ -1055,7 +1055,7 @@ private fun PlanChip(text: String, container: Color, content: Color) {
         Text(
             text,
             style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Black,
+            fontWeight = FontWeight.ExtraBold,
             color = content,
             maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -1078,9 +1078,9 @@ private fun PremiumBenefits() {
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             items.forEach { line ->
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.proColors.success, modifier = Modifier.size(16.dp))
                     Text(line, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
                 }
@@ -1158,7 +1158,7 @@ private fun SubscriptionTermsFooter(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         Text(
             stringResource(R.string.browsing_and_booking_workspaces_is_free_pr),

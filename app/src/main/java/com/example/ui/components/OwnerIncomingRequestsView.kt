@@ -68,7 +68,7 @@ fun OwnerIncomingRequestsView(
     ProSurfaceCard(modifier = modifier) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
             // Header with badge
             ProSectionHeader(
@@ -89,7 +89,7 @@ fun OwnerIncomingRequestsView(
             // screens, since "Declined (N)" was the one getting squeezed last.
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 items(
                     listOf(
@@ -115,12 +115,7 @@ fun OwnerIncomingRequestsView(
                 // The first Firestore snapshot hasn't arrived yet — without this,
                 // an owner with real incoming requests briefly saw "No Requests"
                 // before the real list streamed in.
-                Box(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.lg),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+                ShimmerLoadingList(count = 2, itemHeight = 96.dp)
             } else if (!hasLoadedBookingsOnce && isOffline) {
                 Box(
                     modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.xl),
@@ -161,7 +156,7 @@ fun OwnerIncomingRequestsView(
                     modifier = Modifier.padding(vertical = Spacing.md)
                 )
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     filteredRequests.forEach { request ->
                         OwnerBookingRequestCard(
                             request = request,
@@ -207,7 +202,7 @@ fun OwnerIncomingRequestsView(
             icon = { Icon(Icons.Default.Cancel, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
             title = { Text(stringResource(R.string.decline_booking_request), style = MaterialTheme.typography.titleMedium) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Text(
                         text = stringResource(R.string.provide_a_note_or_scheduling_reason_for_th),
                         style = MaterialTheme.typography.bodySmall,
@@ -254,7 +249,7 @@ fun OwnerIncomingRequestsView(
             icon = { Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
             title = { Text(stringResource(R.string.accept_booking), style = MaterialTheme.typography.titleMedium) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     Text(
                         text = stringResource(R.string.optionally_share_your_space_rules_entry_in) +
                             stringResource(R.string.you_can_skip_this_the_specialist_will_be_i),
@@ -315,9 +310,9 @@ fun OwnerBookingRequestCard(
                 .fillMaxWidth()
                 .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Text(
                     text = request.spaceTitle,
                     style = MaterialTheme.typography.titleSmall,
@@ -340,7 +335,7 @@ fun OwnerBookingRequestCard(
                     fontWeight = FontWeight.Bold
                 )
             }
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 when (request.status) {
                     BookingRequestStatus.ACCEPTED -> ProStatusBadge(ProBadgeType.ACCEPTED_LOCKED)
                     BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = uiText(R.string.pending))
@@ -386,7 +381,7 @@ fun OwnerRequestDetailSheet(
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.lg)
                 .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
             // Header
             Row(
@@ -427,7 +422,7 @@ fun OwnerRequestDetailSheet(
             // Details
             @Composable
             fun DetailRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String) {
-                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp).padding(top = 2.dp))
                     Column {
                         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -472,7 +467,7 @@ fun OwnerRequestDetailSheet(
             if (request.status == BookingRequestStatus.PENDING) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     CustomButton(
                         text = stringResource(R.string.accept),

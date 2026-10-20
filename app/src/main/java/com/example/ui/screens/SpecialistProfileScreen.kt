@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.uiPlural
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
@@ -146,7 +147,7 @@ fun SpecialistProfileScreen(
                 .fillMaxWidth()
                 .widthIn(max = 840.dp)
                 .padding(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
             item {
                 // =========================================================================
@@ -180,7 +181,7 @@ fun SpecialistProfileScreen(
                             Row(
                                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                             ) {
                                 Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondary)
                                 Column(modifier = Modifier.weight(1f)) {
@@ -210,13 +211,13 @@ fun SpecialistProfileScreen(
                             Row(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                             ) {
                                 Icon(Icons.Default.Storefront, contentDescription = null, modifier = Modifier.size(11.dp))
                                 Text(
                                     stringResource(R.string.for_space_owners),
                                     style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Black,
+                                    fontWeight = FontWeight.ExtraBold,
                                     letterSpacing = 0.8.sp
                                 )
                             }
@@ -266,7 +267,7 @@ fun SpecialistProfileScreen(
                                 else -> uiText(R.string.your_booking_at_x_starts_in_x_days, booking.spaceTitle, days)
                             }
                         }
-                        pendingCount > 0 -> if (pendingCount == 1) uiText(R.string.one_request_awaiting_host) else uiText(R.string.n_requests_awaiting_host, pendingCount)
+                        pendingCount > 0 -> uiPlural(R.plurals.requests_awaiting_host, pendingCount, pendingCount)
                         else -> uiText(R.string.no_updates_right_now_explore_available_wor)
                     }
 
@@ -275,10 +276,10 @@ fun SpecialistProfileScreen(
                         shape = MaterialTheme.shapes.extraLarge,
                         contentPadding = PaddingValues(Spacing.lg)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                             ) {
                                 Icon(
                                     Icons.Default.WavingHand,
@@ -301,7 +302,7 @@ fun SpecialistProfileScreen(
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                             ) {
                                 Button(
                                     colors = proPrimaryButtonColors(),
@@ -310,7 +311,7 @@ fun SpecialistProfileScreen(
                                     shape = MaterialTheme.shapes.medium
                                 ) {
                                     Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.sm))
                                     Text(stringResource(R.string.find_space), style = MaterialTheme.typography.labelMedium)
                                 }
 
@@ -320,7 +321,7 @@ fun SpecialistProfileScreen(
                                     shape = MaterialTheme.shapes.medium
                                 ) {
                                     Icon(Icons.AutoMirrored.Filled.EventNote, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.sm))
                                     Text(stringResource(R.string.view_rentals), style = MaterialTheme.typography.labelMedium)
                                 }
                             }
@@ -335,7 +336,7 @@ fun SpecialistProfileScreen(
             if (user.role != UserRole.SPECIALIST) {
                 item {
                     ProSurfaceCard {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                             ProSectionHeader(
                                 title = when (user.role) {
                                     UserRole.SPECIALIST -> uiText(R.string.practitioner_rental_activity)
@@ -360,7 +361,7 @@ fun SpecialistProfileScreen(
                                 UserRole.SPECIALIST -> {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                                     ) {
                                         ProMetricTile(
                                             title = stringResource(R.string.active_leases),
@@ -381,7 +382,7 @@ fun SpecialistProfileScreen(
                                     }
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                                     ) {
                                         ProMetricTile(
                                             title = stringResource(R.string.total_bookings),
@@ -405,7 +406,7 @@ fun SpecialistProfileScreen(
                                 UserRole.PRO_HOST -> {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                                     ) {
                                         ProMetricTile(
                                             title = stringResource(R.string.active_listings),
@@ -426,7 +427,7 @@ fun SpecialistProfileScreen(
                                     }
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                                     ) {
                                         ProMetricTile(
                                             title = stringResource(R.string.monthly_income),
@@ -450,7 +451,7 @@ fun SpecialistProfileScreen(
                                 UserRole.ADMIN -> {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                                     ) {
                                         ProMetricTile(
                                             title = stringResource(R.string.spaces_on_prohost),
@@ -471,7 +472,7 @@ fun SpecialistProfileScreen(
                                     }
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                                     ) {
                                         ProMetricTile(
                                             title = stringResource(R.string.synced),
@@ -507,7 +508,7 @@ fun SpecialistProfileScreen(
                     ProSurfaceCard(
                         modifier = Modifier.shadow(2.dp, MaterialTheme.shapes.large)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                             // Title/subtitle dropped here on purpose — this same summary
                             // (count + status) already lives on the My Rentals screen, so
                             // this card keeps just the count badge and the list itself.
@@ -519,7 +520,7 @@ fun SpecialistProfileScreen(
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(18.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.sm))
                                     ProStatusBadge(type = ProBadgeType.CUSTOM_INFO, customText = "${practitionerBookings.size} total")
                                 }
                             }
@@ -532,7 +533,7 @@ fun SpecialistProfileScreen(
                                     modifier = Modifier.padding(vertical = Spacing.sm)
                                 )
                             } else {
-                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                                     practitionerBookings.forEach { req ->
                                         val targetSpace = spaces.find { it.id == req.spaceId }
                                         Card(
@@ -558,7 +559,7 @@ fun SpecialistProfileScreen(
                                         ) {
                                             Column(
                                                 modifier = Modifier.padding(14.dp),
-                                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                                             ) {
                                                 Row(
                                                     modifier = Modifier.fillMaxWidth(),
@@ -599,7 +600,7 @@ fun SpecialistProfileScreen(
                                                         tint = MaterialTheme.colorScheme.primary,
                                                         modifier = Modifier.size(14.dp)
                                                     )
-                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Spacer(modifier = Modifier.width(Spacing.sm))
                                                     Text(
                                                         text = stringResource(R.string.formula_x_x_xx, localizedLabel(req.formula.type.displayName), chosenDaysStr, chosenHoursStr, shiftDetail),
                                                         style = MaterialTheme.typography.bodySmall,
@@ -614,7 +615,7 @@ fun SpecialistProfileScreen(
                                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                         modifier = Modifier.size(14.dp)
                                                     )
-                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Spacer(modifier = Modifier.width(Spacing.sm))
                                                     Text(
                                                         text = stringResource(R.string.starting_x_x_mo_term, req.startDate, req.durationMonths) +
                                                             stringResource(R.string.total_x_usd, req.totalAmountUsd.toInt()),
@@ -624,7 +625,7 @@ fun SpecialistProfileScreen(
 
                                                 Row(
                                                     modifier = Modifier.fillMaxWidth(),
-                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                                                 ) {
                                                     if (targetSpace != null) {
                                                         Button(
@@ -677,7 +678,7 @@ fun SpecialistProfileScreen(
                 // 6. EDIT PROFILE & MEMBER DETAILS FORM
                 // =========================================================================
                 ProSurfaceCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                         ProSectionHeader(
                             title = when (user.role) {
                                 UserRole.SPECIALIST -> uiText(R.string.practitioner_details)
@@ -689,7 +690,7 @@ fun SpecialistProfileScreen(
                         )
 
                         var pendingProfilePicUri by remember { mutableStateOf<android.net.Uri?>(null) }
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                             ProfilePicturePickerField(
                                 pictureUri = pendingProfilePicUri,
                                 existingUrl = user.profilePictureUrl,
@@ -839,7 +840,7 @@ fun SpecialistProfileScreen(
                         Row(
                             modifier = Modifier.weight(1f),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             Icon(
                                 Icons.Default.SystemUpdate,
@@ -861,20 +862,15 @@ fun SpecialistProfileScreen(
                             )
                         }
 
+                        // Proper compact buttons (the audit's update-row fix): Install is the main action, Check update secondary.
                         if (updateState == UpdateState.DOWNLOADED) {
-                            Button(
-                                onClick = { inAppUpdateManager?.completeUpdate() },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.proColors.success,
-                                    contentColor = MaterialTheme.proColors.onSuccess
-                                ),
-                                shape = MaterialTheme.shapes.small,
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Text(stringResource(R.string.install), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                            }
+                            ProPrimaryButton(
+                                text = stringResource(R.string.install),
+                                onClick = { inAppUpdateManager?.completeUpdate() }
+                            )
                         } else {
-                            TextButton(
+                            ProOutlinedButton(
+                                text = stringResource(R.string.check_update),
                                 onClick = {
                                     if (inAppUpdateManager != null) {
                                         inAppUpdateManager.checkForAppUpdate(preferImmediate = false)
@@ -883,10 +879,8 @@ fun SpecialistProfileScreen(
                                         UiMessages.show(context, context.getString(R.string.prohost_vx_is_up_to_date, com.example.BuildConfig.VERSION_NAME))
                                     }
                                 },
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                            ) {
-                                Text(stringResource(R.string.check_update), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
-                            }
+                                compact = true
+                            )
                         }
                     }
                 }
@@ -902,7 +896,7 @@ fun SpecialistProfileScreen(
                 item {
                     val settingsActivity = androidx.activity.compose.LocalActivity.current
                     ProSurfaceCard {
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             ProSectionHeader(
                                 title = stringResource(R.string.prohost_premium),
                                 subtitle = user.ownerPackageId?.let { com.example.data.billing.PlayCatalog.planLabel(it) }
@@ -925,7 +919,7 @@ fun SpecialistProfileScreen(
             }
             item {
                 ProSurfaceCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                         ProSectionHeader(
                             title = stringResource(R.string.privacy),
                             subtitle = stringResource(R.string.choose_what_usage_data_you_share),
@@ -939,7 +933,7 @@ fun SpecialistProfileScreen(
             if (onOpenLegal != null || onSignOut != null) {
                 item {
                     ProSurfaceCard {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             ProSectionHeader(
                                 title = stringResource(R.string.more),
                                 subtitle = stringResource(R.string.help_legal_and_your_session),
@@ -1014,7 +1008,7 @@ fun SpecialistProfileScreen(
                 icon = { Icon(Icons.Default.DeleteForever, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
                 title = { Text(stringResource(R.string.delete_account)) },
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         Text(
                             if (user.role == UserRole.PRO_HOST) stringResource(R.string.your_profile_and_listings_are_deleted_perm)
                             else stringResource(R.string.your_profile_is_deleted_permanently),
@@ -1111,7 +1105,7 @@ private fun ProfileMoreRow(
             .heightIn(min = 48.dp)
             .padding(horizontal = 4.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
         Column(modifier = Modifier.weight(1f)) {

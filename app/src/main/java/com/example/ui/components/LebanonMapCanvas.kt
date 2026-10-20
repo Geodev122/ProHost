@@ -543,7 +543,7 @@ fun LebanonMapCanvas(
                 Row(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     Icon(
                         Icons.Default.Public,
@@ -600,7 +600,7 @@ fun LebanonMapCanvas(
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                     ) {
                         Icon(
                             imageVector = if (isStripCollapsed) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
@@ -631,7 +631,7 @@ fun LebanonMapCanvas(
                     state = listState,
                     flingBehavior = rememberSnapFlingBehavior(lazyListState = listState),
                     contentPadding = PaddingValues(horizontal = Spacing.md),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 8.dp)
@@ -681,7 +681,7 @@ fun LebanonMapCanvas(
                             Row(
                                 modifier = Modifier.padding(10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                             ) {
                                 Box(
                                     modifier = Modifier
@@ -715,7 +715,6 @@ fun LebanonMapCanvas(
                                             Text(
                                                 text = typeBadge,
                                                 style = MaterialTheme.typography.labelSmall,
-                                                fontSize = 12.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.onPrimary,
                                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
@@ -731,12 +730,11 @@ fun LebanonMapCanvas(
                                             Text(
                                                 text = lowestPrice.unitLabel,
                                                 style = MaterialTheme.typography.labelSmall,
-                                                fontSize = 12.sp,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
-                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Spacer(modifier = Modifier.height(Spacing.xs))
                                     Text(
                                         text = displayName,
                                         style = MaterialTheme.typography.bodySmall,
@@ -749,7 +747,6 @@ fun LebanonMapCanvas(
                                         Text(
                                             text = space.title,
                                             style = MaterialTheme.typography.labelSmall,
-                                            fontSize = 12.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
@@ -757,7 +754,7 @@ fun LebanonMapCanvas(
                                     }
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                                     ) {
                                         Icon(
                                             Icons.Default.KeyboardArrowUp,
@@ -768,7 +765,6 @@ fun LebanonMapCanvas(
                                         Text(
                                             text = stringResource(R.string.select_choices_and_request),
                                             style = MaterialTheme.typography.labelSmall,
-                                            fontSize = 12.sp,
                                             color = MaterialTheme.colorScheme.primary
                                         )
                                     }
@@ -826,7 +822,7 @@ private fun SearchThisAreaPill(visible: Boolean, onClick: () -> Unit) {
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp)
             ) {
                 Icon(Icons.Default.TravelExplore, contentDescription = null, modifier = Modifier.size(18.dp))

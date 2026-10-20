@@ -255,7 +255,7 @@ fun SubdivisionEditorSection(
         subPricing.hasRealPrice()
     }
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         // Intro header
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Icon(Icons.Default.Apartment, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
@@ -284,7 +284,7 @@ fun SubdivisionEditorSection(
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 subdivisionsList.forEachIndexed { index, sub ->
                     val isEditingThis = editingSubdivisionIndex == index
                     Card(
@@ -304,13 +304,13 @@ fun SubdivisionEditorSection(
                         ),
                         shape = MaterialTheme.shapes.medium
                     ) {
-                        Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                     Text(sub.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                                     if (isEditingThis) {
                                         Surface(color = MaterialTheme.colorScheme.primary, shape = MaterialTheme.shapes.extraSmall) {
@@ -372,7 +372,7 @@ fun SubdivisionEditorSection(
                                 }
                             }
 
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                 Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.extraSmall) {
                                     Text(
                                         localizedLabel(sub.type.displayName),
@@ -400,7 +400,7 @@ fun SubdivisionEditorSection(
                                 )
                             }
                             if (sub.imageUrls.isNotEmpty()) {
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                                     items(sub.imageUrls) { url ->
                                         AsyncImage(
                                             model = url,
@@ -412,7 +412,7 @@ fun SubdivisionEditorSection(
                                 }
                             }
                             if (isEditingThis) {
-                                Spacer(modifier = Modifier.height(6.dp))
+                                Spacer(modifier = Modifier.height(Spacing.sm))
                                 Button(
                                     onClick = {
                                         val updatedSub = buildCurrentSubdivision()
@@ -475,7 +475,7 @@ fun SubdivisionEditorSection(
             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.extraSmall) {
                         Text(
@@ -578,7 +578,7 @@ fun SubdivisionEditorSection(
             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.extraSmall) {
                         Text(
@@ -591,7 +591,7 @@ fun SubdivisionEditorSection(
                     }
                     Text(stringResource(R.string.room_photos), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 }
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     items(subImageUrls) { url ->
                         Box(modifier = Modifier.size(72.dp)) {
                             AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
@@ -643,7 +643,7 @@ fun SubdivisionEditorSection(
             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.extraSmall) {
                         Text(
@@ -673,7 +673,7 @@ fun SubdivisionEditorSection(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     Column(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
                     ) {
                         Text(stringResource(R.string.pricing_mode), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                         @OptIn(ExperimentalMaterial3Api::class)
@@ -712,7 +712,7 @@ fun SubdivisionEditorSection(
                 }
 
                 if (isPerAttendee) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
                         InputField(
                             value = subMinAttendeesInput,
                             onValueChange = { raw ->
@@ -776,7 +776,7 @@ fun SubdivisionEditorSection(
             ),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -840,7 +840,7 @@ fun SubdivisionEditorSection(
                     // Room-specific blocked time — independent of the whole space's blackout slots.
                     Text(stringResource(R.string.blocked_times_optional), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                     if (subOverrideBlackouts.isNotEmpty()) {
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             subOverrideBlackouts.forEach { slot ->
                                 Surface(
                                     color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
@@ -872,7 +872,7 @@ fun SubdivisionEditorSection(
                     val blackoutDayOptions = (subOverrideDays + if (subOverrideSundayOperating) setOf("Sun") else emptySet())
                         .let { days -> weekDayOrder.filter { it in days } }
                     if (blackoutDayOptions.isNotEmpty()) {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             items(blackoutDayOptions) { day ->
                                 FilterChip(
                                     selected = blackoutDay == day,
@@ -881,7 +881,7 @@ fun SubdivisionEditorSection(
                                 )
                             }
                         }
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             InputField(
                                 value = blackoutStart,
                                 onValueChange = { blackoutStart = it },
@@ -918,7 +918,7 @@ fun SubdivisionEditorSection(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(Spacing.sm))
                             Text(stringResource(R.string.add_blocked_time), style = MaterialTheme.typography.labelSmall)
                         }
                     }
@@ -928,7 +928,7 @@ fun SubdivisionEditorSection(
 
         // ── Action buttons ──────────────────────────────────────────────────
         if (editingSubdivisionIndex != null) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Button(
                     colors = proPrimaryButtonColors(),
                     onClick = {
@@ -1071,7 +1071,7 @@ private fun SearchablePickerDialog(
         ) {
             Column(
                 modifier = Modifier.padding(Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1102,7 +1102,7 @@ private fun SearchablePickerDialog(
                             }
                             .padding(vertical = Spacing.xs),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                         Text(stringResource(R.string.add_x, query.trim()), fontSize = MaterialTheme.typography.bodySmall.fontSize, color = MaterialTheme.colorScheme.primary)
@@ -1163,7 +1163,7 @@ private fun AttendeeTierEditor(
     fun update(index: Int, transform: (AttendeePackage) -> AttendeePackage) =
         onTiersChange(tiers.mapIndexed { i, t -> if (i == index) transform(t) else t })
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text(stringResource(R.string.attendee_tiers), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
         Text(
             stringResource(R.string.e_g_1_20_people_at_8_per_person_21_60_at_6),
@@ -1180,7 +1180,7 @@ private fun AttendeeTierEditor(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         InputField(
                             value = tier.name,
@@ -1193,7 +1193,7 @@ private fun AttendeeTierEditor(
                             Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.remove_tier), tint = MaterialTheme.colorScheme.error)
                         }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
                         InputField(
                             value = fromText,
                             onValueChange = { v ->
@@ -1246,7 +1246,7 @@ private fun AttendeeTierEditor(
                 }
             }
         } }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
             OutlinedButton(
                 onClick = {
                     val nextMin = (tiers.mapNotNull { it.maxAttendees }.maxOrNull() ?: 0) + 1

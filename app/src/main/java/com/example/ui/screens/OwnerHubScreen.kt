@@ -398,7 +398,7 @@ fun OwnerHubScreenContent(
                 .fillMaxWidth()
                 .widthIn(max = 840.dp),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
         // Top Space Owner Subscription & Entitlement Banner
         item {
@@ -432,7 +432,7 @@ fun OwnerHubScreenContent(
                     )
                     Column(
                         modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -517,7 +517,7 @@ fun OwnerHubScreenContent(
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 val isActiveSubscription = ownerPackageExpiryMillis != null && ownerPackageExpiryMillis > System.currentTimeMillis()
@@ -540,7 +540,7 @@ fun OwnerHubScreenContent(
                                         tint = MaterialTheme.colorScheme.onSecondary,
                                         modifier = Modifier.size(16.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.sm))
                                     Text(
                                         when {
                                             currentPlanId == null -> uiText(R.string.choose_plan)
@@ -558,7 +558,7 @@ fun OwnerHubScreenContent(
                                 Surface(
                                     color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.2f),
                                     shape = MaterialTheme.shapes.medium,
-                                    modifier = Modifier.weight(1f).height(40.dp)
+                                    modifier = Modifier.weight(1f).heightIn(min = 40.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                                         Text(
@@ -628,7 +628,7 @@ fun OwnerHubScreenContent(
                         )
                         Column(
                             modifier = Modifier.weight(1f).padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                            verticalArrangement = Arrangement.spacedBy(Spacing.md)
                         ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -682,7 +682,7 @@ fun OwnerHubScreenContent(
                                         },
                                         modifier = Modifier.size(14.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.sm))
                                     Column {
                                         Text(
                                             text = if (space.status == ListingStatus.DRAFT) {
@@ -741,7 +741,7 @@ fun OwnerHubScreenContent(
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                                 ) {
                                     Icon(
                                         when {
@@ -802,7 +802,7 @@ fun OwnerHubScreenContent(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 10.dp, vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -856,7 +856,7 @@ fun OwnerHubScreenContent(
                         // Engagement metrics snapshot
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             Surface(
                                 color = MaterialTheme.colorScheme.surfaceVariant,
@@ -873,7 +873,7 @@ fun OwnerHubScreenContent(
                                         modifier = Modifier.size(14.dp),
                                         tint = MaterialTheme.colorScheme.primary
                                     )
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.sm))
                                     Text(stringResource(R.string.x_views, space.avatarEngagementViews), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                                 }
                             }
@@ -888,7 +888,7 @@ fun OwnerHubScreenContent(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.size(14.dp), tint = WhatsAppGreen)
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.sm))
                                     Text(
                                         stringResource(R.string.x_inquiries, space.avatarInquiryClicks),
                                         style = MaterialTheme.typography.labelSmall,
@@ -904,7 +904,7 @@ fun OwnerHubScreenContent(
                         if (space.status == ListingStatus.DRAFT) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                             ) {
                                 CustomButton(
                                     text = stringResource(R.string.details),
@@ -934,7 +934,7 @@ fun OwnerHubScreenContent(
                         } else {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                             ) {
                                 // Manage Button — opens the real performance + availability
                                 // page (ManageListingScreen) for this listing: per-division

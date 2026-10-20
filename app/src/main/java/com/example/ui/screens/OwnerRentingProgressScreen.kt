@@ -177,7 +177,7 @@ fun OwnerRentingProgressScreenContent(
                 .fillMaxWidth()
                 .widthIn(max = 840.dp),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
             item {
                 Surface(
@@ -193,7 +193,7 @@ fun OwnerRentingProgressScreenContent(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             Icon(
                                 Icons.Default.EventAvailable,
@@ -225,7 +225,7 @@ fun OwnerRentingProgressScreenContent(
             ProSurfaceCard {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md)
                 ) {
                     ProSectionHeader(
                         title = stringResource(R.string.alerts),
@@ -233,7 +233,7 @@ fun OwnerRentingProgressScreenContent(
                         icon = Icons.Default.NotificationsActive
                     )
 
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         reminders.forEach { (isUrgent, reminderText) ->
                             Surface(
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -250,7 +250,7 @@ fun OwnerRentingProgressScreenContent(
                                         tint = if (isUrgent) MaterialTheme.proColors.warning else MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.md))
                                     Text(
                                         text = reminderText,
                                         style = MaterialTheme.typography.bodySmall,
@@ -340,7 +340,7 @@ fun OwnerRentingProgressScreenContent(
                 ) {
                     Column(
                         modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -375,7 +375,7 @@ fun OwnerRentingProgressScreenContent(
                             shape = MaterialTheme.shapes.small,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column(modifier = Modifier.padding(Spacing.sm), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Column(modifier = Modifier.padding(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                                 val chosenDaysStr = if (booking.selectedDays.isNotEmpty()) {
                                     booking.selectedDays.joinToString(", ")
                                 } else {
@@ -429,7 +429,7 @@ fun OwnerRentingProgressScreenContent(
                         booking.lastPriceChange?.let { PriceChangeNote(it, Modifier.fillMaxWidth()) }
 
                         // Progress Bar & Percentage
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             LinearProgressIndicator(
                                 progress = { progressFraction },
                                 modifier = Modifier
@@ -465,7 +465,7 @@ fun OwnerRentingProgressScreenContent(
                         // Action Buttons
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             CustomButton(

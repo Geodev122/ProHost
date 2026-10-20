@@ -57,12 +57,12 @@ fun InAppUpdateBanner(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                 ) {
                     Box(
                         modifier = Modifier

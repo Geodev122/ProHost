@@ -456,7 +456,7 @@ private fun BottomNavPillItem(
             .padding(horizontal = if (selected) Spacing.lg else Spacing.md)
             .testTag("nav_item_${tab.id}"),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         Icon(
             imageVector = if (selected) tab.selectedIcon else tab.unselectedIcon,
@@ -552,34 +552,17 @@ fun ProHostDrawerHeader(
     }
 }
 
-/** Drawer header avatar: the profile photo, or initials (secondary accent) when there is none. */
+/** Drawer header avatar: the shared [ProAvatar] at 52 dp on the secondary accent. */
 @Composable
 fun ProHostDrawerAvatar(initials: String, modifier: Modifier = Modifier, imageUrl: String? = null) {
-    var photoFailed by remember(imageUrl) { mutableStateOf(false) }
-    Box(
+    ProAvatar(
+        initials = initials,
+        size = 52.dp,
+        imageUrl = imageUrl,
+        containerColor = MaterialTheme.colorScheme.secondary,
+        contentColor = MaterialTheme.colorScheme.onSecondary,
         modifier = modifier
-            .size(52.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.secondary),
-        contentAlignment = Alignment.Center
-    ) {
-        if (!imageUrl.isNullOrBlank() && !photoFailed) {
-            coil.compose.AsyncImage(
-                model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
-                    .data(imageUrl).size(200).build(),
-                contentDescription = null,
-                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-                onError = { photoFailed = true }
-            )
-        } else {
-            Text(
-                text = initials,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSecondary
-            )
-        }
-    }
+    )
 }
 
 /** Compact role chip for the drawer header: filled when [emphasized], translucent otherwise. */

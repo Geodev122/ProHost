@@ -240,7 +240,7 @@ private fun DivisionPerformanceCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(division.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(Spacing.xs))
                     Surface(
                         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
                         shape = MaterialTheme.shapes.small
@@ -309,7 +309,7 @@ private fun DivisionPerformanceCard(
                                 tint = if (delta >= 0) MaterialTheme.proColors.success else MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(12.dp)
                             )
-                            Spacer(modifier = Modifier.width(3.dp))
+                            Spacer(modifier = Modifier.width(Spacing.xs))
                             Text(
                                 stringResource(R.string.vs_x_last_month, "$" + String.format(java.util.Locale.US, "%,.0f", lastMonthYield)),
                                 style = MaterialTheme.typography.labelSmall,
@@ -367,14 +367,14 @@ private fun MonthlyAvailabilityTable(
         return
     }
     OccupancyLegend()
-    Spacer(modifier = Modifier.height(6.dp))
+    Spacer(modifier = Modifier.height(Spacing.sm))
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface, Radius.Sm)
             .padding(Spacing.sm),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         monthRows.forEach { cell ->
             Row(
@@ -524,7 +524,7 @@ private fun OccupancyLegend() {
         listOf(false to uiText(R.string.free), true to uiText(R.string.booked)).forEach { (booked, label) ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(12.dp).background(occupancyColor(booked), Radius.Xs))
-                Spacer(Modifier.width(4.dp))
+                Spacer(Modifier.width(Spacing.xs))
                 Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -545,7 +545,7 @@ private fun WeeklyAvailabilityTable(
     }
 
     OccupancyLegend()
-    Spacer(modifier = Modifier.height(6.dp))
+    Spacer(modifier = Modifier.height(Spacing.sm))
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -566,7 +566,7 @@ private fun WeeklyAvailabilityTable(
                     modifier = Modifier
                         .weight(1f)
                         .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     day.slots.forEach { slot ->
                         AvailabilitySlotCell(

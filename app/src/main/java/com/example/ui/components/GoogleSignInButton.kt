@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Spacing
+
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
 import com.example.ui.theme.Elevation
@@ -57,7 +59,7 @@ fun GoogleSignInButton(
                 modifier = Modifier.size(20.dp),
                 tint = Color.Unspecified
             )
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(Spacing.md))
             Text(
                 text = stringResource(R.string.continue_with_google),
                 color = textColor,

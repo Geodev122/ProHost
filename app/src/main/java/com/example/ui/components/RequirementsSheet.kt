@@ -192,7 +192,7 @@ fun RequirementsSheet(
             }
 
             if (uploading) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                     Text(stringResource(R.string.saving_your_photo), style = MaterialTheme.typography.bodySmall)
                 }
@@ -203,7 +203,7 @@ fun RequirementsSheet(
 
 @Composable
 private fun RequirementRow(done: Boolean, title: String, detail: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Icon(
             Icons.Default.CheckCircle,
             contentDescription = if (done) stringResource(R.string.done) else stringResource(R.string.to_do),

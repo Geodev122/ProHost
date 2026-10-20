@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.ui.res.pluralStringResource
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
@@ -165,12 +166,12 @@ fun OwnerAnalyticsScreen(
             .proHostScreenBackground()
             .testTag("owner_analytics_screen"),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg)
     ) {
         // Header
         item {
             ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                     ProSectionHeader(
                         title = stringResource(R.string.analytics_revenue),
                         subtitle = stringResource(R.string.live_telemetry),
@@ -180,7 +181,7 @@ fun OwnerAnalyticsScreen(
                     // 4 Quick Metric Cards
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
                         ProMetricTile(
                             title = stringResource(R.string.listings),
@@ -201,7 +202,7 @@ fun OwnerAnalyticsScreen(
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
                         ProMetricTile(
                             title = stringResource(R.string.est_mrr),
@@ -262,7 +263,7 @@ fun OwnerAnalyticsScreen(
                             }
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                             ) {
                                 Icon(
                                     if (revenueDelta >= 0) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
@@ -290,7 +291,7 @@ fun OwnerAnalyticsScreen(
                     // Bookings + Pending side by side
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
                         ProMetricTile(
                             title = stringResource(R.string.bookings),
@@ -318,7 +319,7 @@ fun OwnerAnalyticsScreen(
         // that never changed, badged "Live Telemetry" as if real).
         item {
             ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     ProSectionHeader(
                         title = stringResource(R.string.attracted_discipline),
                         icon = Icons.Default.LocalHospital
@@ -353,10 +354,10 @@ fun OwnerAnalyticsScreen(
 
         item {
             ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     ProSectionHeader(
                         title = stringResource(R.string.booking_mix),
-                        subtitle = if (ownerBookings.size == 1) stringResource(R.string.one_request_by_strategy) else stringResource(R.string.n_requests_by_strategy, ownerBookings.size),
+                        subtitle = pluralStringResource(R.plurals.requests_by_strategy, ownerBookings.size, ownerBookings.size),
                         icon = Icons.Default.Analytics
                     )
                     if (bookingMix.isEmpty()) {
@@ -375,7 +376,7 @@ fun OwnerAnalyticsScreen(
                         )
                         val maxRequests = bookingMix.first().requests
                         bookingMix.forEachIndexed { index, row ->
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                                 DisciplineDemandBar(
                                     name = "${row.label} · ${row.requests}",
                                     percentage = if (maxRequests > 0) row.requests * 100 / maxRequests else 0,
@@ -418,7 +419,7 @@ fun OwnerAnalyticsScreen(
         // Listings Yield — per-space (and per-division) accepted revenue, current vs prior month
         item {
             ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     ProSectionHeader(
                         title = stringResource(R.string.listings_yield),
                         subtitle = stringResource(R.string.confirmed_revenue_this_month_vs_last),
@@ -444,7 +445,7 @@ fun OwnerAnalyticsScreen(
 
                             Column(
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-                                verticalArrangement = Arrangement.spacedBy(3.dp)
+                                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
                             ) {
                                 // Space header row
                                 Row(
@@ -506,7 +507,7 @@ fun OwnerAnalyticsScreen(
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 modifier = Modifier.weight(1f),
-                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                                             ) {
                                                 Surface(
                                                     color = MaterialTheme.colorScheme.secondaryContainer,
@@ -563,7 +564,7 @@ fun OwnerAnalyticsScreen(
 
 @Composable
 fun DisciplineDemandBar(name: String, percentage: Int, color: Color) {
-    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -650,7 +651,7 @@ fun ListingHealthCard(space: SpaceListing) {
 
             Spacer(modifier = Modifier.width(Spacing.sm))
 
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Surface(
                     color = MaterialTheme.colorScheme.primaryContainer,
                     shape = MaterialTheme.shapes.small
@@ -668,7 +669,7 @@ fun ListingHealthCard(space: SpaceListing) {
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Icon(Icons.Default.Favorite, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(12.dp))
                     Text(
                         text = stringResource(R.string.x_saved, space.favoriteCount),

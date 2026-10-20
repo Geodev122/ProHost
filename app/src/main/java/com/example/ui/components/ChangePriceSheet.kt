@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.ui.res.pluralStringResource
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
@@ -184,7 +185,7 @@ fun ChangePriceSheet(
                         ownSpaces.forEach { s ->
                             PickRow(
                                 title = s.title,
-                                subtitle = "${s.publicCode} · ${if (s.subdivisions.isEmpty()) stringResource(R.string.whole_space_2) else stringResource(R.string.x_divisions, s.subdivisions.size)}",
+                                subtitle = "${s.publicCode} · ${if (s.subdivisions.isEmpty()) stringResource(R.string.whole_space_2) else pluralStringResource(R.plurals.divisions_count, s.subdivisions.size, s.subdivisions.size)}",
                                 highlighted = s.id == spaceId,
                                 onClick = {
                                     spaceId = s.id
@@ -254,7 +255,7 @@ fun ChangePriceSheet(
                             PriceChange.round2(newPrice) != PriceChange.round2(s.price)
                         if (affected.isNotEmpty()) {
                             Text(
-                                (if (affected.size == 1) stringResource(R.string.one_booking_uses_slot) else stringResource(R.string.n_bookings_use_slot, affected.size)) +
+                                pluralStringResource(R.plurals.bookings_use_slot, affected.size, affected.size) +
                                     " " + stringResource(R.string.you_ll_choose_how_the_change_applies_to_ea),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -446,7 +447,7 @@ fun PriceChangeNote(change: com.example.data.model.BookingPriceChange, modifier:
     ) {
         Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.LocalOffer, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSecondaryContainer)
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(Spacing.sm))
             Text(text, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
         }
     }

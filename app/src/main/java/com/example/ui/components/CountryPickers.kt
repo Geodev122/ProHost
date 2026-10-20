@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Spacing
+
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
@@ -67,7 +69,7 @@ fun CountryPickerDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Spacing.sm))
                 LazyColumn(modifier = Modifier.heightIn(max = 360.dp)) {
                     items(filtered) { country ->
                         Row(
@@ -78,7 +80,7 @@ fun CountryPickerDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(country.flagEmoji, style = MaterialTheme.typography.bodyLarge)
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Spacer(modifier = Modifier.width(Spacing.md))
                             Text(
                                 country.displayName(locale),
                                 modifier = Modifier.weight(1f),
@@ -174,7 +176,7 @@ fun CountryDropdownField(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Icon(Icons.Default.Public, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                     Column {
                         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

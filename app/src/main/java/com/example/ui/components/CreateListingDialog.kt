@@ -173,7 +173,7 @@ fun CreateListingDialog(
     if (currentUser == null) {
         Dialog(onDismissRequest = onDismiss) {
             Card(shape = MaterialTheme.shapes.extraLarge, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
-                Column(modifier = Modifier.padding(Spacing.xl), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(modifier = Modifier.padding(Spacing.xl), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     Text(stringResource(R.string.sign_in_required), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                     Text(
                         stringResource(R.string.your_account_couldn_t_be_loaded_please_sig),
@@ -527,7 +527,7 @@ fun CreateListingDialog(
                     when (currentStep) {
                         0 -> {
                             // Step 1: Space Definition & Ownership Verification
-                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                                 Text(
                                     stringResource(R.string.space_identification),
                                     fontWeight = FontWeight.Bold,
@@ -543,7 +543,7 @@ fun CreateListingDialog(
                                 )
 
                                 Text(stringResource(R.string.space_category), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                     items(categoryOptions) { category ->
                                         FilterChip(
                                             selected = selectedCategoryId == category.id,
@@ -625,7 +625,7 @@ fun CreateListingDialog(
                                 )
 
                                 Text(stringResource(R.string.floor), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                                     IconButton(onClick = { if (floorNumber > -5) floorNumber-- }) {
                                         Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.decrease_floor))
                                     }
@@ -652,7 +652,7 @@ fun CreateListingDialog(
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                     InputField(
                                         value = hashtagInput,
                                         onValueChange = { hashtagInput = it },
@@ -674,7 +674,7 @@ fun CreateListingDialog(
                                         !selectedSpecialties.contains(it)
                                 }.take(6)
                                 if (matchingSuggestions.isNotEmpty()) {
-                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                         items(matchingSuggestions) { suggestion ->
                                             AssistChip(
                                                 onClick = { selectedSpecialties = selectedSpecialties + suggestion; hashtagInput = "" },
@@ -684,7 +684,7 @@ fun CreateListingDialog(
                                     }
                                 }
                                 if (selectedSpecialties.isNotEmpty()) {
-                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                         items(selectedSpecialties.toList()) { tag ->
                                             InputChip(
                                                 selected = true,
@@ -707,7 +707,7 @@ fun CreateListingDialog(
                                     style = MaterialTheme.typography.labelSmall,
                                     color = if (uploadedPhotoUrls.isEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                     items(uploadedPhotoUrls) { url ->
                                         Box(
                                             modifier = Modifier
@@ -769,7 +769,7 @@ fun CreateListingDialog(
 
                         1 -> {
                             // Step 2: Operational Parameters & Facility Rules
-                            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                                 Text(
                                     stringResource(R.string.communication_setup),
                                     fontWeight = FontWeight.Bold,
@@ -909,7 +909,7 @@ fun CreateListingDialog(
 
                         2 -> {
                             // Step 3: Availability Control Logic
-                            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                                 // Mode selector card
                                 Surface(
                                     color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
@@ -917,7 +917,7 @@ fun CreateListingDialog(
                                     border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                             Icon(
                                                 Icons.Default.Tune,
@@ -940,7 +940,7 @@ fun CreateListingDialog(
                                         )
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                                         ) {
                                             listOf(false to uiText(R.string.whole_space), true to uiText(R.string.has_divisions)).forEach { (value, label) ->
                                                 FilterChip(
@@ -1017,7 +1017,7 @@ fun CreateListingDialog(
                                         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                                 Icon(
                                                     Icons.Default.Payments,
@@ -1043,7 +1043,7 @@ fun CreateListingDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 // Builds the SpaceListing from the wizard's current field state — shared
                 // by both "Publish Listing" (status ACTIVE) and "Save as Draft" (status
@@ -1221,7 +1221,7 @@ fun CreateListingDialog(
                 // Bottom Navigation Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                 ) {
                     if (currentStep > 0) {
                         // A compact arrow, not a full-width "Back" button — this row
@@ -1349,7 +1349,7 @@ private fun WizardStepBar(steps: List<String>, current: Int, onStepClick: (Int) 
                         stateDescription = name
                     }
                     .padding(vertical = Spacing.xs),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 Box(
                     modifier = Modifier
@@ -1401,7 +1401,7 @@ private fun FacilityPickerDialog(
         ) {
             Column(
                 modifier = Modifier.fillMaxSize().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1424,7 +1424,7 @@ private fun FacilityPickerDialog(
 
                 LazyColumn(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xs)
                 ) {
                     items(filtered, key = { it }) { facility ->
                         val isChecked = currentSelected.contains(facility)
@@ -1444,7 +1444,7 @@ private fun FacilityPickerDialog(
                                     currentSelected = if (checked) currentSelected + facility else currentSelected - facility
                                 }
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(Spacing.sm))
                             Text(facility, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
@@ -1454,7 +1454,7 @@ private fun FacilityPickerDialog(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     InputField(

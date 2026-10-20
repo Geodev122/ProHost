@@ -128,7 +128,7 @@ internal fun SubdivisionRentalCard(
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)
                                     .padding(bottom = 6.dp),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                             ) {
                                 repeat(imageUrls.size) { index ->
                                     Box(
@@ -160,12 +160,12 @@ internal fun SubdivisionRentalCard(
 
                 Column(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     // Name + type badge
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
                         Text(
                             name,
@@ -199,7 +199,7 @@ internal fun SubdivisionRentalCard(
                     // Capacity / custom-hours / per-attendee badges — surfaced here so
                     // a user isn't left to discover them only after opening the sheet.
                     if (capacity != null || hasCustomHours || isPerAttendee) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             if (capacity != null) {
                                 Surface(
                                     color = MaterialTheme.colorScheme.tertiaryContainer,
@@ -210,7 +210,7 @@ internal fun SubdivisionRentalCard(
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
                                         Icon(Icons.Default.Groups, contentDescription = null, modifier = Modifier.size(12.dp))
-                                        Spacer(modifier = Modifier.width(2.dp))
+                                        Spacer(modifier = Modifier.width(Spacing.xs))
                                         Text(stringResource(R.string.up_to_x, capacity), style = MaterialTheme.typography.labelSmall)
                                     }
                                 }
@@ -232,7 +232,7 @@ internal fun SubdivisionRentalCard(
 
                     // Amenities chips (first 3 + overflow)
                     if (amenities.isNotEmpty()) {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             val visible = amenities.take(3)
                             val overflow = amenities.size - visible.size
                             items(visible) { a ->
@@ -270,7 +270,7 @@ internal fun SubdivisionRentalCard(
 
                     // Hashtag chips (first 2 + overflow)
                     if (hashtags.isNotEmpty()) {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             val visible = hashtags.take(2)
                             val overflow = hashtags.size - visible.size
                             items(visible) { tag ->
@@ -316,7 +316,7 @@ internal fun SubdivisionRentalCard(
                             contentPadding = PaddingValues(vertical = 8.dp)
                         ) {
                             Icon(Icons.Default.EventAvailable, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(Spacing.sm))
                             Text(stringResource(R.string.check_availability), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                         }
                     }
@@ -334,7 +334,7 @@ internal fun SubdivisionRentalCard(
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
                         Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
                         Text(
@@ -367,7 +367,7 @@ internal fun RoomFolderTabs(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         verticalAlignment = Alignment.Bottom
     ) {
         rooms.forEach { room ->
@@ -492,7 +492,7 @@ internal fun DetailsBookingBar(
                         Row(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             Icon(
                                 Icons.Default.MeetingRoom,
@@ -588,7 +588,7 @@ internal fun DetailsBookingBar(
                             modifier = Modifier.heightIn(min = 48.dp)
                         ) {
                             Icon(Icons.Default.EventAvailable, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(Spacing.sm))
                             Text(stringResource(R.string.availability), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                         }
                     }

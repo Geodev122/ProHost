@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.ui.res.pluralStringResource
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
@@ -386,7 +387,7 @@ fun SpaceDetailsScreenContent(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
                                 .padding(bottom = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                         ) {
                             repeat(liveSpace.imageUrls.size) { index ->
                                 Box(
@@ -481,7 +482,7 @@ fun SpaceDetailsScreenContent(
                         .align(Alignment.BottomStart)
                         .padding(14.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         // The category chip gives way (ellipsis) so the Verified badge always fits, even at large font sizes.
                         Surface(
                             color = Color(0x33FFFFFF),
@@ -503,7 +504,7 @@ fun SpaceDetailsScreenContent(
                             ProStatusBadge(type = ProBadgeType.VERIFIED_MEMBER, customText = uiText(R.string.verified))
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(Spacing.sm))
                     Text(
                         text = liveSpace.title,
                         style = MaterialTheme.typography.headlineSmall,
@@ -520,7 +521,7 @@ fun SpaceDetailsScreenContent(
                             tint = Color(0xCCFFFFFF),
                             modifier = Modifier.size(14.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
                         Text(
                             text = "${liveSpace.district}, ${localizedLabel(liveSpace.governorate.displayName)} • ${liveSpace.floorInfo}",
                             style = MaterialTheme.typography.bodySmall,
@@ -603,7 +604,7 @@ fun SpaceDetailsScreenContent(
                 // Host card: who runs this space, and a WhatsApp button for general questions
                 // (the number itself is never printed; the button opens a ready-made inquiry).
                 ProSurfaceCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
@@ -631,7 +632,7 @@ fun SpaceDetailsScreenContent(
                                 )
                             ) {
                                 Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.width(Spacing.sm))
                                 Text(stringResource(R.string.ask_the_host_on_whatsapp), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                             }
                         }
@@ -642,7 +643,7 @@ fun SpaceDetailsScreenContent(
                 // rendered anywhere on this screen.
                 if (liveSpace.description.isNotBlank()) {
                     ProSurfaceCard {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             ProSectionHeader(
                                 title = stringResource(R.string.description),
                                 icon = Icons.Default.Description
@@ -666,11 +667,11 @@ fun SpaceDetailsScreenContent(
                 // "Whole Space" card when no subdivisions are set up). Tapping an
                 // available card pre-selects that subdivision and opens the availability sheet.
                 ProSurfaceCard(modifier = Modifier.bringIntoViewRequester(roomsRequester)) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                         ProSectionHeader(
                             title = stringResource(R.string.rental_options),
                             subtitle = if (liveSpace.subdivisions.isNotEmpty())
-                                if (liveSpace.subdivisions.size == 1) stringResource(R.string.one_space_pick_tab) else stringResource(R.string.n_spaces_pick_tab, liveSpace.subdivisions.size)
+                                pluralStringResource(R.plurals.spaces_pick_tab, liveSpace.subdivisions.size, liveSpace.subdivisions.size)
                             else
                                 stringResource(R.string.tap_the_card_to_check_live_availability),
                             icon = Icons.Default.Tune
@@ -771,14 +772,14 @@ fun SpaceDetailsScreenContent(
 
                 // Facilities & Utilities
                 ProSurfaceCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         ProSectionHeader(
                             title = stringResource(R.string.facilities_utilities),
                             subtitle = stringResource(R.string.x_amenities_included, liveSpace.essentialFacilities.size),
                             icon = Icons.Default.Business
                         )
 
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             liveSpace.essentialFacilities.forEach { facility ->
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -809,7 +810,7 @@ fun SpaceDetailsScreenContent(
                 }
                 if (liveSpace.complementarySpecialties.isNotEmpty() || residentSpecialties.isNotEmpty()) {
                     ProSurfaceCard {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             ProSectionHeader(
                                 title = stringResource(R.string.co_working_synergy),
                                 subtitle = "${residentSpecialties.size} peer${if (residentSpecialties.size == 1) "" else "s"} on premises",
@@ -824,7 +825,7 @@ fun SpaceDetailsScreenContent(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 LazyRow(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                                     modifier = Modifier.padding(top = 4.dp)
                                 ) {
                                     items(residentSpecialties) { spec ->
@@ -851,7 +852,7 @@ fun SpaceDetailsScreenContent(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                                 modifier = Modifier.padding(top = 4.dp)
                             ) {
                                 items(liveSpace.complementarySpecialties) { spec ->

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="x_dates">
+        <item quantity="zero">%1$s • لا تواريخ</item>
+        <item quantity="one">%1$s • تاريخ واحد</item>
+        <item quantity="two">%1$s • تاريخان</item>
+        <item quantity="few">%1$s • %2$d تواريخ</item>
+        <item quantity="many">%1$s • %2$d تاريخًا</item>
+        <item quantity="other">%1$s • %2$d تاريخ</item>
+    </plurals>
+    <plurals name="slots_booked_hidden">
+        <item quantity="zero">لا فترات محجوزة.</item>
+        <item quantity="one">فترة واحدة محجوزة لمهني آخر ولا تظهر.</item>
+        <item quantity="two">فترتان محجوزتان لمهنيين آخرين ولا تظهران.</item>
+        <item quantity="few">%1$d فترات محجوزة لمهنيين آخرين ولا تظهر.</item>
+        <item quantity="many">%1$d فترة محجوزة لمهنيين آخرين ولا تظهر.</item>
+        <item quantity="other">%1$d فترة محجوزة لمهنيين آخرين ولا تظهر.</item>
+    </plurals>
+    <plurals name="divisions_count">
+        <item quantity="zero">لا أقسام</item>
+        <item quantity="one">قسم واحد</item>
+        <item quantity="two">قسمان</item>
+        <item quantity="few">%1$d أقسام</item>
+        <item quantity="many">%1$d قسمًا</item>
+        <item quantity="other">%1$d قسم</item>
+    </plurals>
+    <plurals name="bookings_use_slot">
+        <item quantity="zero">لا حجوزات تستخدم هذه الفترة —</item>
+        <item quantity="one">حجز واحد يستخدم هذه الفترة —</item>
+        <item quantity="two">حجزان يستخدمان هذه الفترة —</item>
+        <item quantity="few">%1$d حجوزات تستخدم هذه الفترة —</item>
+        <item quantity="many">%1$d حجزًا يستخدم هذه الفترة —</item>
+        <item quantity="other">%1$d حجز يستخدم هذه الفترة —</item>
+    </plurals>
+    <plurals name="requests_awaiting_host">
+        <item quantity="zero">لا طلبات بانتظار رد المضيف.</item>
+        <item quantity="one">طلب واحد بانتظار رد المضيف.</item>
+        <item quantity="two">طلبان بانتظار رد المضيف.</item>
+        <item quantity="few">%1$d طلبات بانتظار رد المضيف.</item>
+        <item quantity="many">%1$d طلبًا بانتظار رد المضيف.</item>
+        <item quantity="other">%1$d طلب بانتظار رد المضيف.</item>
+    </plurals>
+    <plurals name="spaces_pick_tab">
+        <item quantity="zero">لا مساحات</item>
+        <item quantity="one">مساحة واحدة — اختر التبويب لعرضها وعرض توفّرها</item>
+        <item quantity="two">مساحتان — اختر تبويبًا لعرض المساحة وتوفّرها</item>
+        <item quantity="few">%1$d مساحات — اختر تبويبًا لعرض المساحة وتوفّرها</item>
+        <item quantity="many">%1$d مساحة — اختر تبويبًا لعرض المساحة وتوفّرها</item>
+        <item quantity="other">%1$d مساحة — اختر تبويبًا لعرض المساحة وتوفّرها</item>
+    </plurals>
+    <plurals name="requests_by_strategy">
+        <item quantity="zero">لا طلبات حسب نوع التأجير</item>
+        <item quantity="one">طلب واحد حسب نوع التأجير</item>
+        <item quantity="two">طلبان حسب نوع التأجير</item>
+        <item quantity="few">%1$d طلبات حسب نوع التأجير</item>
+        <item quantity="many">%1$d طلبًا حسب نوع التأجير</item>
+        <item quantity="other">%1$d طلب حسب نوع التأجير</item>
+    </plurals>
+</resources>

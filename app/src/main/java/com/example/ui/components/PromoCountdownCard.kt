@@ -1,11 +1,14 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Spacing
+
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
 import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -68,20 +71,20 @@ fun PromoCountdownCard(
             modifier = Modifier
                 .background(Brush.linearGradient(listOf(MaterialTheme.proColors.brandHeaderStart, MaterialTheme.proColors.brandHeaderEnd)))
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Icon(Icons.Default.Bolt, contentDescription = null, tint = MaterialTheme.proColors.headerWarning, modifier = Modifier.size(18.dp))
                 Text(
                     promo.title.uppercase(),
                     style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Black,
+                    fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 1.sp,
                     color = on.copy(alpha = 0.9f),
                     modifier = Modifier.weight(1f)
                 )
             }
-            Text(promo.benefit, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, color = on)
+            Text(promo.benefit, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = on)
 
             // The code, copyable.
             Surface(
@@ -91,12 +94,12 @@ fun PromoCountdownCard(
             ) {
                 Row(modifier = Modifier.padding(start = 14.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Redeem, contentDescription = null, tint = on, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(Spacing.sm))
                     Text(
                         promo.code,
                         style = MaterialTheme.typography.titleMedium,
                         fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Black,
+                        fontWeight = FontWeight.ExtraBold,
                         letterSpacing = 2.sp,
                         color = on,
                         modifier = Modifier.weight(1f)
@@ -109,9 +112,9 @@ fun PromoCountdownCard(
 
             // Live countdown to the offer's `ends-` tag (none when Play's offer has no end date).
             if (left != null) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Text(stringResource(R.string.offer_ends_in), style = MaterialTheme.typography.labelSmall, color = on.copy(alpha = 0.8f))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         CountdownBox(left.days, "DAYS", Modifier.weight(1f))
                         CountdownBox(left.hours, "HRS", Modifier.weight(1f))
                         CountdownBox(left.minutes, "MIN", Modifier.weight(1f))
@@ -123,7 +126,7 @@ fun PromoCountdownCard(
             Button(
                 onClick = onUse,
                 enabled = enabled,
-                modifier = Modifier.fillMaxWidth().height(50.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
                 shape = Radius.Sm,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.secondary,
@@ -131,7 +134,7 @@ fun PromoCountdownCard(
                 )
             ) {
                 Icon(Icons.Default.Redeem, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(Spacing.sm))
                 Text(if (enabled) stringResource(R.string.use_promo_code) else stringResource(R.string.for_new_subscribers), fontWeight = FontWeight.Bold)
             }
             Text(

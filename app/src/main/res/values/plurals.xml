@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="x_dates">
+        <item quantity="one">%1$s • 1 date</item>
+        <item quantity="other">%1$s • %2$d dates</item>
+    </plurals>
+    <plurals name="slots_booked_hidden">
+        <item quantity="one">1 slot is already booked by another professional and not shown.</item>
+        <item quantity="other">%1$d slots are already booked by other professionals and not shown.</item>
+    </plurals>
+    <plurals name="divisions_count">
+        <item quantity="one">1 division</item>
+        <item quantity="other">%1$d divisions</item>
+    </plurals>
+    <plurals name="bookings_use_slot">
+        <item quantity="one">1 booking uses this slot —</item>
+        <item quantity="other">%1$d bookings use this slot —</item>
+    </plurals>
+    <plurals name="requests_awaiting_host">
+        <item quantity="one">1 request awaiting host response.</item>
+        <item quantity="other">%1$d requests awaiting host response.</item>
+    </plurals>
+    <plurals name="spaces_pick_tab">
+        <item quantity="one">1 space — pick a tab to see that space and its availability</item>
+        <item quantity="other">%1$d spaces — pick a tab to see that space and its availability</item>
+    </plurals>
+    <plurals name="requests_by_strategy">
+        <item quantity="one">1 request by renting strategy</item>
+        <item quantity="other">%1$d requests by renting strategy</item>
+    </plurals>
+</resources>

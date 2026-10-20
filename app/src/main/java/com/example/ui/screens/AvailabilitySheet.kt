@@ -156,7 +156,7 @@ internal fun AvailabilitySheet(
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.lg)
                 .padding(bottom = Spacing.xl),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             // Same folder tabs as the page: switching here switches the room the
             // sheet shows (and drops slots picked for the previous room).
@@ -176,7 +176,7 @@ internal fun AvailabilitySheet(
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth().padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
                         Text(
                             stringResource(R.string.attendee_details),
@@ -213,7 +213,7 @@ internal fun AvailabilitySheet(
                     val slotsByDay = slots.groupBy { it.day }.toList()
                         .sortedBy { (day, _) -> dayOrder.indexOfFirst { it.equals(day, ignoreCase = true) }.let { if (it >= 0) it else 99 } }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         slotsByDay.forEach { (day, daySlots) ->
                             val lockedInDay = daySlots.count { SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
                             val availInDay = daySlots.size - lockedInDay
@@ -255,7 +255,7 @@ internal fun AvailabilitySheet(
                                     )
                                     // Badges row
                                     Row(
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         if (isFull) {
@@ -270,7 +270,7 @@ internal fun AvailabilitySheet(
                                             // Green available badge
                                             Surface(color = MaterialTheme.proColors.success.copy(alpha = 0.15f), shape = CircleShape) {
                                                 Row(modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                                                    horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
                                                     Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(MaterialTheme.proColors.success))
                                                     Text(
                                                         "$availInDay",
@@ -285,7 +285,7 @@ internal fun AvailabilitySheet(
                                                 Surface(color = MaterialTheme.colorScheme.error.copy(alpha = 0.12f), shape = CircleShape) {
                                                     Row(
                                                         modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                                                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                                                         verticalAlignment = Alignment.CenterVertically
                                                     ) {
                                                         Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(MaterialTheme.colorScheme.error))
@@ -320,7 +320,7 @@ internal fun AvailabilitySheet(
                                     shape = RoundedCornerShape(bottomStart = 10.dp, bottomEnd = 10.dp),
                                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                                 ) {
-                                    Column(modifier = Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Column(modifier = Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                         val availableSlots = daySlots.filter { !SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
                                         when (strategyType) {
                                             RentalStrategyType.MONTHLY -> {
@@ -340,7 +340,7 @@ internal fun AvailabilitySheet(
                                                                 tint = if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success,
                                                                 modifier = Modifier.size(18.dp)
                                                             )
-                                                            Spacer(modifier = Modifier.width(8.dp))
+                                                            Spacer(modifier = Modifier.width(Spacing.sm))
                                                             Column {
                                                                 Text(
                                                                     if (isSelected) stringResource(R.string.selected_monthly_lease) else stringResource(R.string.available_monthly_lease),
@@ -364,7 +364,7 @@ internal fun AvailabilitySheet(
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
-                                                LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                                                     items(availableSlots.sortedBy { it.startTime }) { slot ->
                                                         val isSelected = selectedHoursPerDay[day]?.contains(slot.startTime) == true
                                                         Surface(
@@ -424,7 +424,7 @@ internal fun AvailabilitySheet(
                                                         ) {
                                                             Row(
                                                                 verticalAlignment = Alignment.CenterVertically,
-                                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                                                             ) {
                                                                 Box(
                                                                     modifier = Modifier.size(8.dp).clip(CircleShape)
@@ -437,7 +437,7 @@ internal fun AvailabilitySheet(
                                                                 )
                                                             }
                                                             Row(
-                                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                                                                 verticalAlignment = Alignment.CenterVertically
                                                             ) {
                                                                 Text(
@@ -475,7 +475,7 @@ internal fun AvailabilitySheet(
                                                         ) {
                                                             Row(
                                                                 verticalAlignment = Alignment.CenterVertically,
-                                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                                                             ) {
                                                                 Box(
                                                                     modifier = Modifier.size(8.dp).clip(CircleShape)
@@ -484,7 +484,7 @@ internal fun AvailabilitySheet(
                                                                 Text(slot.day, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                                                             }
                                                             Row(
-                                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                                                                 verticalAlignment = Alignment.CenterVertically
                                                             ) {
                                                                 Text(
@@ -521,8 +521,8 @@ internal fun AvailabilitySheet(
                     )
                 } else if (canSubmit) {
                     val slotLabel = if (totalSelectedSlots == 1) uiText(R.string.t_1_slot) else uiText(R.string.x_slots_2, totalSelectedSlots)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Spacer(modifier = Modifier.height(Spacing.xs))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         Button(
                             colors = proPrimaryButtonColors(),
                             onClick = { requestWithRequirements() },
@@ -530,7 +530,7 @@ internal fun AvailabilitySheet(
                             shape = MaterialTheme.shapes.medium
                         ) {
                             Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(Spacing.sm))
                             Text(stringResource(R.string.request_x, slotLabel), fontWeight = FontWeight.Bold)
                         }
                         // WhatsApp: compose structured message listing all selected slots
@@ -573,7 +573,7 @@ internal fun AvailabilitySheet(
                             shape = MaterialTheme.shapes.medium
                         ) {
                             Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(Spacing.sm))
                             Text(stringResource(R.string.whatsapp), fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     }
@@ -604,7 +604,7 @@ internal fun AvailabilitySheet(
             icon = { Icon(Icons.Default.EventAvailable, contentDescription = null) },
             title = { Text(stringResource(R.string.confirm_your_request)) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     // Space / location / room summary
                     listOf(
                         "Space" to liveSpace.title,
