@@ -23,6 +23,15 @@ const UPLOAD = `https://androidpublisher.googleapis.com/upload/androidpublisher/
 function notice(msg) { console.log(`::notice title=play::${msg.replace(/\n/g, " ")}`); }
 function fail(msg) { console.log(`::error title=play::${msg.replace(/\n/g, " ")}`); process.exit(1); }
 
+/** The account's email (not a secret) — the one to invite in Play Console. */
+function serviceAccountEmail() {
+  try {
+    return JSON.parse(fs.readFileSync(process.env.GOOGLE_APPLICATION_CREDENTIALS, "utf8")).client_email || "the CI service account";
+  } catch {
+    return "the CI service account";
+  }
+}
+
 async function client() {
   const { GoogleAuth } = require("google-auth-library");
   return new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/androidpublisher"] }).getClient();
@@ -35,7 +44,7 @@ async function call(c, opts) {
     const st = e.response?.status;
     const msg = e.response?.data?.error?.message || e.message;
     const hint = st === 401 || st === 403
-      ? " — the CI service account needs release permission for ProHost in Play Console › Users and permissions"
+      ? ` — invite ${serviceAccountEmail()} in Play Console › Users and permissions with "Release to production, exclude devices, and use Play App Signing" (and "Release apps to testing tracks") for ProHost`
       : "";
     throw new Error(`${opts.method || "GET"} ${opts.url.replace(API, "").replace(UPLOAD, "upload")} → HTTP ${st}: ${String(msg).slice(0, 300)}${hint}`);
   }
