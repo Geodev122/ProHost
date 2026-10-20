@@ -1008,6 +1008,14 @@ fun SpaceDetailsScreenContent(
     // message the host right away (same WhatsApp text as the My Rentals card).
     sentRequest?.let { request ->
         com.example.ui.components.TrackScreen("request_sent")
+        // A confirming tick under the finger when the request lands (API 30+ has a dedicated CONFIRM pattern).
+        val confirmView = androidx.compose.ui.platform.LocalView.current
+        LaunchedEffect(request.id) {
+            confirmView.performHapticFeedback(
+                if (android.os.Build.VERSION.SDK_INT >= 30) android.view.HapticFeedbackConstants.CONFIRM
+                else android.view.HapticFeedbackConstants.CONTEXT_CLICK
+            )
+        }
         ProHostBottomSheet(onDismissRequest = { sentRequest = null }) {
             Column(
                 modifier = Modifier

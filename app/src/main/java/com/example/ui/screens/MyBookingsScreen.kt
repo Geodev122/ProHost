@@ -247,55 +247,19 @@ fun MyBookingsScreen(
                 }
             }
         } else if (filteredBookings.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = CircleShape,
-                        modifier = Modifier.size(72.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ReceiptLong,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(36.dp)
-                            )
-                        }
-                    }
-                    Text(
-                        text = when (selectedMainTab) {
-                            0 -> "No active reservations found"
-                            1 -> "No pending requests"
-                            else -> "No past reservation history"
-                        },
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "Browse verified professional workspaces and send a booking request to get started.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                    TextButton(
-                        onClick = onNavigateToDiscovery,
-                        modifier = Modifier.testTag("empty_state_browse_button")
-                    ) {
-                        Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(Spacing.sm))
-                        Text("Browse Workspaces", fontWeight = FontWeight.Bold)
-                    }
-                }
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                ProEmptyState(
+                    title = when (selectedMainTab) {
+                        0 -> "No active bookings"
+                        1 -> "No pending requests"
+                        else -> "No past bookings"
+                    },
+                    description = "Find a space and send a booking request — it shows up here.",
+                    icon = Icons.AutoMirrored.Filled.ReceiptLong,
+                    actionButtonText = "Explore spaces",
+                    onActionClick = onNavigateToDiscovery,
+                    modifier = Modifier.testTag("empty_state_browse_button")
+                )
             }
         } else {
             LazyColumn(
