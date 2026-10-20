@@ -291,3 +291,26 @@ The first baseline confirms the audit and adds three findings:
 - **Warning colour used for a to-do.** Profile's "Ready to book" checklist uses the error/warning container (salmon)
   for a normal next step; it reads as an error. Use `surfaceContainerHigh` with a steel accent, keep red for real
   problems.
+
+## Implementation status (1.0.43, Oct 20, 2026)
+
+All four phases shipped in one release, verified with the Design Screenshots workflow (15 screens × light, dark, font
+1.3, RTL, Arabic) and green CI.
+
+| Phase | Done |
+| --- | --- |
+| 0 — Tokens | Surface container ladder (light/dark), tertiary #2E7D4F, opaque secondary text, Manrope headings with a monotonic scale and 12 sp floor, `Radius` and `Elevation` tokens |
+| 1 — Components | One `ProCard`, orange main actions, `UiMessages` Snackbar (75 Toasts) with Undo, 48 dp targets + one `PhotoCarouselArrow`, shared badges/banners, dialogs on the Material spec, literal radii/elevations → tokens, NIGHTHAWK check 34 |
+| 2 — Shell and screens | Pro Host bottom bar Listings · Explore · Rentals · Profile (Progress in the drawer); one header on Explore for every role; nav pill restyled (behaviour unchanged); one top bar per page; plain-language labels; page-change motion; Explore 16:9 cards + Availability button; neutral to-do checklist; My Rentals empty state; confirm haptic |
+| 3 — Reach | ~1,340 UI strings in resources with a full Arabic translation, per-app language (Profile › Language), data labels localized at display sites, heading / live-region / selected semantics |
+
+Re-score (owner review pending on device): ≈ 8.4 / 10.
+
+Deferred, with reasons:
+- Dark splash: `splash.png` carries a light backdrop; a dark system splash needs dark artwork first.
+- Mass `OutlinedTextField` → `InputField`: small visual gain, different API; do per screen when a form is touched.
+- Listing wizard as a full-screen destination with a step bar: a navigation change to the 1,400-line wizard; schedule it
+  as its own release.
+- Google Play period words ("first year", "4 months") and Admin-only tools stay English (Play data / internal tools).
+- Error analytics (`app_error.area`) for Arabic users fall back to "unknown" because the area key is derived from the
+  English message.

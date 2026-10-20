@@ -40,9 +40,9 @@ Files: `ui/theme/Color.kt`, `ProHostColors.kt` (`MaterialTheme.proColors` status
   headline and titleLarge; system sans for reading text. Weights: Black only for the Premium price/hero numbers.
 - **Spacing**: `Spacing.xs 4 · sm 8 · md 12 · lg 16 · xl 24 · xxl 32`; screen gutter 16 dp. Round off-scale
   2/6/10/14 dp to the nearest step.
-- **Radius** (Phase 0 `Radius.kt`): xs 6 chips/badges · sm 12 cards/fields · md 20 tiles/hero · lg 28
+- **Radius** (`Radius.kt`): xs 6 chips/badges · sm 12 cards/fields · md 20 tiles/hero · lg 28
   sheets/dialogs/nav pill · full.
-- **Elevation** (Phase 0 `Elevation.kt`): 0 · 1 cards on page · 3 selected tile / scrolled bar · 6 floating nav,
+- **Elevation** (`Elevation.kt`): 0 · 1 cards on page · 3 selected tile / scrolled bar · 6 floating nav,
   FAB, sheets. Prefer tonal surface steps over shadows.
 
 ## One of each (components)
@@ -57,10 +57,17 @@ Files: `ui/theme/Color.kt`, `ProHostColors.kt` (`MaterialTheme.proColors` status
 | Permission/consent prompt | `SystemStylePermissionDialog` | anything else (CLAUDE.md) |
 | Status / info strip | `ProHostAlertBanner` | hand-made banners |
 | Empty / loading | `ProEmptyState` (with a next step) / `ShimmerLoadingList` | spinners for first load, plain text |
-| Feedback after an action | Snackbar host in the shell (Phase 1; supports Undo) | new `Toast.makeText` in UI |
+| Feedback after an action | `UiMessages.show(...)` → shell Snackbar (supports Undo) | new `Toast.makeText` in UI |
 | Count / dot | `ProHostCountBadge` / `ProHostDotBadge` | `AttentionDot`, `BadgedControl` |
 | Text input | `InputField` | raw `OutlinedTextField` |
 | Sheet/dialog analytics | `TrackScreen(name)` | nothing (every overlay reports itself) |
+
+## Strings and Arabic
+
+Every user-facing string is a resource with an Arabic twin (`values-ar`). Composable: `stringResource(R.string.x, args)`;
+non-composable (remember, builders, view models): `uiText(R.string.x, args)`; data-layer English labels at display sites:
+`localizedLabel(enum.displayName)`. Never translate values that are stored, compared or sent to analytics. Check the `ar`
+screenshot variant for every changed screen.
 
 ## Product UI rules that must not regress (from CLAUDE.md)
 

@@ -175,6 +175,8 @@ plan + recurring price + date;
   (`ui/util/SupportContact.kt`) and Sign out live in Profile › More; full-screen destinations (Premium) get a
   back arrow (`ProHostFullScreenTopAppBar(isBackNavigation)`), other tabs a bar without ☰ (`showMenu = false`).
   Pro Host / Admin keep header + drawer. There is no "Saved only" filter and no drawer Billing dialog.
+- Pro Host bottom tabs: Listings · Explore · Rentals · Profile (`PRO_HOST_BOTTOM_TABS`); Renting Progress is a drawer
+  destination (`PRO_HOST_FULLSCREEN_TABS`, still reachable by id from pushes and notifications).
 - Bottom nav is a floating pill (`ProHostBottomNavBar`): active tab = filled pill in the role accent (Steel Blue
   specialist, orange Pro Host) with its one-word `AppNavTab.shortLabel` (never truncated; the other tabs are icons).
   It overlays the content (not `Scaffold.bottomBar`); screens leave `LocalBottomNavInset` free at their bottom (the
@@ -214,9 +216,10 @@ plan + recurring price + date;
 - Explore filters: country matching uses `effectiveCountry` (blank = Lebanon, legacy listings) and the
   Country dropdown is always shown. "Pricing formula" options are `PricingFormulaFilter` (four strategies
   + PER_ATTENDEE, priced per person from the cheapest tier); never list `RentalStrategyType.entries` there.
-- Explore draws its own header (`ExploreOverlayHeader`; no app bar for specialists), one row: search top-left, the
-  Map|List toggle top-centre wrapped in one pill with the brand logo (`showBrand`, specialists only — Pro Host/Admin keep the
-  app bar's brand) and filters top-right. No notification bell on Explore (notifications are the bell of the other tabs'
+- Explore draws its own header (`ExploreOverlayHeader`; no shell app bar for any role), one row: search top-left (Pro Host /
+  Admin get a ☰ control before it, `onOpenMenu`), the Map|List toggle top-centre wrapped in one pill with the brand logo and
+  filters top-right. Explore cards: 16:9 photo, two-line title, "Availability" opens the listing with its sheet up
+  (`onOpenAvailability`). No notification bell on Explore (notifications are the bell of the other tabs'
   app bar). Search is a draft applied only on ✓ / IME Search and opens a full-width field under the row. Transparent with
   floating controls on the map; on the list it has the list background and sits above it in the layout (never
   overlapping). Map results follow `searchedBounds`, updated only by the "Search this area" pill after a gesture pan/zoom.
@@ -335,6 +338,26 @@ plan + recurring price + date;
   Play screenshots: `play/screenshots/` (rendered from `source/shots.html`); listing text: `play/store-listing/`.
 - Payment reminders go to the user's own calendar via `PaymentCalendar` (insert intent, monthly
   RRULE) — no calendar permission, no Google Calendar API.
+
+## Design system and languages (1.0.43)
+
+- Follow `.claude/skills/prohost-design/` for any UI change; verify with the Design Screenshots workflow (light, dark,
+  font 1.3, RTL, Arabic) via `.claude/skills/prohost-design/scripts/fetch_shots.py`. Plan: `docs/design/UI_AUDIT.md`.
+- Tokens only: `MaterialTheme.colorScheme` (surface ladder defined), `Radius.Xs/Sm/Md/Lg/Full`, `Elevation.level0–3`,
+  `Spacing`, typography (Manrope headings, 12 sp floor). NIGHTHAWK "Design System Tokens" flags Toasts in UI, text under
+  12 sp and literal radii/elevations.
+- One of each: `ProCard(variant, onClick)` (ModernCard/ProSurfaceCard delegate to it), main action colours
+  `proPrimaryButtonColors()` / `ProPrimaryButton` (orange), `ProHostAlertBanner`, `ProHostCountBadge`/`ProHostDotBadge`,
+  `PhotoCarouselArrow` (48 dp), dialogs on 28 dp `surfaceContainerHigh`.
+- Feedback goes through `UiMessages.show(context, text, actionLabel?, onAction?)` → Snackbar above the nav pill
+  (`ProHostSnackbarHost`; Toast only when no shell is on screen). Reversible actions offer Undo.
+- Page changes fade/rise in the shell (`rememberReducedMotion()` snaps when animations are off).
+- Strings: user-facing text lives in `res/values/strings.xml` with Arabic in `res/values-ar/strings.xml` (keep keys and
+  placeholders identical). In composables use `stringResource`; elsewhere `uiText(R.string.x, args)` (`ui/util/UiText.kt`,
+  initialised in `ProHostApplication`). Fixed English labels from the data layer (enum `displayName`, Play badges, shift and
+  day names) are translated only at display sites with `localizedLabel()` — stored values, comparisons and analytics stay
+  English. New strings: add both languages; `scripts/i18n/` re-runs the extraction passes. Admin-only tools stay English.
+- Per-app language: `res/xml/locales_config.xml` (en, ar) + Profile › More › Language.
 
 ## Jetpack Compose hygiene
 

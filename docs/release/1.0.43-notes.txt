@@ -1,0 +1,72 @@
+<en-US>
+What's new in ProHost 1.0.43
+• ProHost now speaks Arabic: it follows your phone's language, or pick it in Profile › Language
+• A fresh, calmer look: new headings, consistent cards and buttons, clearer dark mode
+• Hosts: Explore is in the bottom bar; Renting Progress is in the menu
+• Undo when you pause a listing, switch a slot off or remove a saved space
+• Bigger photos on Explore, and an Availability button that opens booking straight away
+• Larger tap targets and better screen-reader labels
+</en-US>
+<ar>
+الجديد في ProHost 1.0.43
+• ProHost يتحدث العربية الآن: يتبع لغة هاتفك، أو اخترها من الملف الشخصي › اللغة
+• مظهر جديد وأهدأ: عناوين جديدة وبطاقات وأزرار موحّدة ووضع داكن أوضح
+• للمضيفين: الاستكشاف في الشريط السفلي، وتقدّم الإيجارات في القائمة
+• تراجع عند إيقاف إعلان أو إيقاف فترة أو إزالة مساحة محفوظة
+• صور أكبر في الاستكشاف وزر للتوفّر يفتح الحجز مباشرة
+• مساحات لمس أكبر وتسميات أفضل لقارئ الشاشة
+</ar>
+<fr-FR>
+Nouveautés de ProHost 1.0.43
+• ProHost parle arabe : il suit la langue du téléphone, ou choisissez-la dans Profil › Langue
+• Nouveau look : titres, cartes et boutons harmonisés, mode sombre plus net
+• Hôtes : Explorer est dans la barre du bas ; Suivi des locations est dans le menu
+• Annuler après une pause d'annonce, un créneau coupé ou un favori retiré
+• Photos plus grandes et bouton Disponibilité qui ouvre la réservation
+• Zones tactiles plus grandes, meilleur lecteur d’écran
+</fr-FR>
+<es-ES>
+Novedades de ProHost 1.0.43
+• ProHost ahora habla árabe: sigue el idioma del teléfono o elígelo en Perfil › Idioma
+• Nuevo aspecto: títulos, tarjetas y botones coherentes, modo oscuro más claro
+• Anfitriones: Explorar está en la barra inferior; Progreso de alquileres, en el menú
+• Deshacer al pausar un anuncio, un horario o quitar un guardado
+• Fotos más grandes y botón Disponibilidad que abre la reserva
+• Zonas táctiles más grandes y mejores etiquetas para lectores de pantalla
+</es-ES>
+<de-DE>
+Neu in ProHost 1.0.43
+• ProHost spricht jetzt Arabisch: folgt der Telefonsprache oder wähle sie unter Profil › Sprache
+• Frischer Look: einheitliche Überschriften, Karten und Buttons, klarerer Dunkelmodus
+• Gastgeber: Entdecken ist in der unteren Leiste, Vermietungsfortschritt im Menü
+• Rückgängig beim Pausieren, Abschalten eines Slots oder Entfernen eines Favoriten
+• Größere Fotos und ein Verfügbarkeit-Button, der direkt bucht
+• Größere Tippflächen und bessere Screenreader-Beschriftungen
+</de-DE>
+<it-IT>
+Novità di ProHost 1.0.43
+• ProHost ora parla arabo: segue la lingua del telefono o sceglila in Profilo › Lingua
+• Nuovo aspetto: titoli, schede e pulsanti coerenti, modalità scura più chiara
+• Host: Esplora è nella barra in basso; Avanzamento affitti è nel menu
+• Annulla dopo una pausa, uno slot disattivato o uno spazio rimosso
+• Foto più grandi in Esplora e un pulsante Disponibilità che apre subito la prenotazione
+• Aree di tocco più grandi ed etichette migliori per gli screen reader
+</it-IT>
+<pt-BR>
+Novidades do ProHost 1.0.43
+• O ProHost agora fala árabe: segue o idioma do celular, ou escolha em Perfil › Idioma
+• Visual novo: títulos, cartões e botões consistentes, modo escuro mais nítido
+• Anfitriões: Explorar está na barra inferior; Progresso de aluguéis, no menu
+• Desfazer ao pausar um anúncio, desligar um horário ou remover um espaço salvo
+• Fotos maiores no Explorar e botão Disponibilidade que abre a reserva na hora
+• Áreas de toque maiores e rótulos melhores para leitores de tela
+</pt-BR>
+<tr-TR>
+ProHost 1.0.43'te yenilikler
+• ProHost artık Arapça konuşuyor: telefonun dilini izler ya da Profil › Dil'den seçin
+• Yeni ve daha sakin görünüm: tutarlı başlıklar, kartlar ve düğmeler, daha net karanlık mod
+• Ev sahipleri: Keşfet alt çubukta; Kiralama İlerlemesi menüde
+• İlan duraklatma, saat dilimi kapatma veya kayıtlı alanı kaldırmada Geri Al
+• Keşfet'te daha büyük fotoğraflar ve rezervasyonu hemen açan Müsaitlik düğmesi
+• Daha büyük dokunma alanları ve daha iyi ekran okuyucu etiketleri
+</tr-TR>
