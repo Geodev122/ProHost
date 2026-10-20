@@ -948,6 +948,22 @@ fun SpecialistProfileScreen(
                                     onClick = onOpenLegal
                                 )
                             }
+                            // App language: Android 13+ has a per-app language screen; older versions follow the
+                            // system language, so open the system language settings there.
+                            ProfileMoreRow(
+                                icon = Icons.Default.Language,
+                                label = stringResource(R.string.app_language),
+                                supporting = stringResource(R.string.app_language_options),
+                                onClick = {
+                                    val intent = if (android.os.Build.VERSION.SDK_INT >= 33) {
+                                        android.content.Intent(android.provider.Settings.ACTION_APP_LOCALE_SETTINGS)
+                                            .setData(android.net.Uri.fromParts("package", context.packageName, null))
+                                    } else {
+                                        android.content.Intent(android.provider.Settings.ACTION_LOCALE_SETTINGS)
+                                    }
+                                    runCatching { context.startActivity(intent) }
+                                }
+                            )
                             ProfileMoreRow(
                                 icon = Icons.AutoMirrored.Filled.Help,
                                 label = stringResource(R.string.contact_support),

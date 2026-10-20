@@ -82,7 +82,6 @@
     <string name="booking_request_x_cancelled">Booking Request #%1$s Cancelled</string>
     <string name="booking_request_x_declined_space_hours_rem">Booking Request #%1$s Declined. Space hours remain available.</string>
     <string name="bookings">Bookings</string>
-    <string name="bottomnavcollapse">BottomNavCollapse</string>
     <string name="browse_and_book_verified_spaces">Browse and book verified spaces</string>
     <string name="browsing_and_booking_workspaces_is_free_pr">Browsing and booking workspaces is free. ProHost Premium is needed only to publish listings.</string>
     <string name="by_specialists">By Specialists</string>
@@ -342,7 +341,6 @@
     <string name="manage_subscription">Manage subscription</string>
     <string name="manage_subscription_in_google_play">Manage subscription in Google Play</string>
     <string name="map_center_x">Map Center: %1$s</string>
-    <string name="maplisttoggle">mapListToggle</string>
     <string name="mark_all_read">Mark all read</string>
     <string name="mark_as_paid">Mark as Paid</string>
     <string name="mark_pin_location">Mark Pin Location</string>
@@ -360,8 +358,6 @@
     <string name="my_listings_x">My Listings (%1$s)</string>
     <string name="name_area_specialty_room_type">Name, area, specialty, room type…</string>
     <string name="name_id_and_sign_it_2_scan_or_photograph_t">name/ID and sign it. 2. Scan or photograph the signed document and upload it below.</string>
-    <string name="navitemcontainer">navItemContainer</string>
-    <string name="navitemcontent">navItemContent</string>
     <string name="needed_once_before_you_publish_listings">Needed once before you publish listings.</string>
     <string name="needed_once_before_your_first_booking_requ">Needed once before your first booking request.</string>
     <string name="new_price_usdx">New price (USD%1$s)</string>
@@ -810,4 +806,6 @@
     <string name="your_profile_is_deleted_permanently">Your profile is deleted permanently.</string>
     <string name="your_rental_request_for_x_will_be_withdraw">Your rental request for \"%1$s\" will be withdrawn. The host will no longer be able to accept it.</string>
     <string name="your_whatsapp_number">Your WhatsApp number</string>
+    <string name="app_language">Language</string>
+    <string name="app_language_options">English · العربية</string>
 </resources>

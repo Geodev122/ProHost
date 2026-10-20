@@ -580,7 +580,7 @@ private fun MapListToggle(
             listOf(true to "Map", false to "List").forEach { (isMapOption, label) ->
                 val selected = isMapOption == isMapView
                 val container by androidx.compose.animation.animateColorAsState(
-                    if (selected) MaterialTheme.colorScheme.primary else Color.Transparent, label = stringResource(R.string.maplisttoggle)
+                    if (selected) MaterialTheme.colorScheme.primary else Color.Transparent, label = "mapListToggle"
                 )
                 Row(
                     modifier = Modifier

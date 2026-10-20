@@ -11,7 +11,7 @@ annotations, then pulls each PNG through the git trees/blobs API (api.github.com
 import base64, json, os, subprocess, sys
 
 REPO = "geodev122/prohost"
-VARIANTS = ["light", "dark", "font130", "rtl"]
+VARIANTS = ["light", "dark", "font130", "rtl", "ar"]
 
 
 def gh(path):

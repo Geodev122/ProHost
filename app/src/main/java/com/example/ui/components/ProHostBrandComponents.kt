@@ -358,7 +358,7 @@ fun ProHostBottomNavBar(
             transitionSpec = {
                 (fadeIn() togetherWith fadeOut()).using(SizeTransform(clip = false))
             },
-            label = stringResource(R.string.bottomnavcollapse)
+            label = "BottomNavCollapse"
         ) { isCollapsed ->
             if (isCollapsed) {
                 Surface(
@@ -438,10 +438,10 @@ private fun BottomNavPillItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val container by animateColorAsState(if (selected) accent else Color.Transparent, label = stringResource(R.string.navitemcontainer))
+    val container by animateColorAsState(if (selected) accent else Color.Transparent, label = "navItemContainer")
     val content by animateColorAsState(
         if (selected) onAccent else MaterialTheme.colorScheme.onSurfaceVariant,
-        label = stringResource(R.string.navitemcontent)
+        label = "navItemContent"
     )
     Row(
         modifier = modifier

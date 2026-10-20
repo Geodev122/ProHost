@@ -75,11 +75,18 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         if (variant == "dark") {
             config.uiMode = (config.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or Configuration.UI_MODE_NIGHT_YES
         }
+        if (variant == "ar") {
+            config.setLocale(java.util.Locale("ar"))
+            config.setLayoutDirection(java.util.Locale("ar"))
+        }
+        val baseContext = androidx.compose.ui.platform.LocalContext.current
+        val context = if (variant == "ar") baseContext.createConfigurationContext(config) else baseContext
         val density = LocalDensity.current
         CompositionLocalProvider(
+            androidx.compose.ui.platform.LocalContext provides context,
             LocalConfiguration provides config,
             LocalDensity provides Density(density.density, if (variant == "font130") 1.3f else density.fontScale),
-            LocalLayoutDirection provides if (variant == "rtl") LayoutDirection.Rtl else LayoutDirection.Ltr,
+            LocalLayoutDirection provides if (variant == "rtl" || variant == "ar") LayoutDirection.Rtl else LayoutDirection.Ltr,
             content = content
         )
     }
@@ -163,7 +170,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             "premium", "premium_plans", "whatsapp_number", "owner_hub", "manage_listing", "renting_requests", "renting_progress", "owner_analytics", "sign_in"
         )
         val HOST_SCREENS = setOf("renting_requests", "owner_analytics", "manage_listing")
-        val VARIANTS = listOf("light", "dark", "font130", "rtl")
+        val VARIANTS = listOf("light", "dark", "font130", "rtl", "ar")
 
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0}_{1}")
