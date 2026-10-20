@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiPlural
+import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -433,9 +435,9 @@ fun OwnerRequestDetailSheet(
 
             DetailRow(Icons.Default.Apartment, uiText(R.string.space), request.spaceTitle)
             request.subdivisionName?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.Default.MeetingRoom, uiText(R.string.room_area), it) }
-            DetailRow(Icons.Default.AccessTime, uiText(R.string.schedule), "${chosenDays.joinToString(", ")} · $chosenHours${if (request.selectedShift.isNotBlank()) " · ${request.selectedShift}" else ""}")
-            DetailRow(Icons.Default.CalendarToday, uiText(R.string.start_date), "${request.startDate}${if (request.durationMonths > 0) " · ${request.durationMonths} month term" else ""}")
-            DetailRow(Icons.Default.AttachMoney, uiText(R.string.total), "${formatUsd(request.totalAmountUsd)} USD${if (attendeeLine != null) " · $attendeeLine" else ""}")
+            DetailRow(Icons.Default.AccessTime, uiText(R.string.schedule), "${chosenDays.joinToString(", ") { localizedLabel(it) }} · \u2066$chosenHours\u2069${if (request.selectedShift.isNotBlank()) " · ${localizedLabel(request.selectedShift)}" else ""}")
+            DetailRow(Icons.Default.CalendarToday, uiText(R.string.start_date), "\u2066${request.startDate}\u2069${if (request.durationMonths > 0) " · " + uiPlural(R.plurals.x_month_term, request.durationMonths, request.durationMonths) else ""}")
+            DetailRow(Icons.Default.AttachMoney, uiText(R.string.total), "\u2066${formatUsd(request.totalAmountUsd)} USD\u2069${if (attendeeLine != null) " · $attendeeLine" else ""}")
             request.lastPriceChange?.let { PriceChangeNote(it, Modifier.fillMaxWidth()) }
             DetailRow(Icons.Default.Schedule, uiText(R.string.submitted), formattedTime)
             if (request.clinicalNotes.isNotBlank()) DetailRow(Icons.AutoMirrored.Filled.Notes, uiText(R.string.notes), request.clinicalNotes)

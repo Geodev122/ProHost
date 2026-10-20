@@ -308,7 +308,7 @@ fun ShiftStrategyEditor(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                     Text(localizedLabel(shift.name.displayName), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         Text(stringResource(R.string.unavailable), style = MaterialTheme.typography.labelSmall)
                         Switch(
                             checked = shift.isUnavailable,

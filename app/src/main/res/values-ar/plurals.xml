@@ -72,4 +72,12 @@
         <item quantity="many">%1$d يومًا/أسبوع</item>
         <item quantity="other">%1$d يوم/أسبوع</item>
     </plurals>
+    <plurals name="x_month_term">
+        <item quantity="zero">مدة %1$d شهر</item>
+        <item quantity="one">مدة شهر واحد</item>
+        <item quantity="two">مدة شهرين</item>
+        <item quantity="few">مدة %1$d أشهر</item>
+        <item quantity="many">مدة %1$d شهرًا</item>
+        <item quantity="other">مدة %1$d شهر</item>
+    </plurals>
 </resources>

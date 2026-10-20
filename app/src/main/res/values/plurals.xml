@@ -36,4 +36,8 @@
         <item quantity="one">%1$d day/wk</item>
         <item quantity="other">%1$d days/wk</item>
     </plurals>
+    <plurals name="x_month_term">
+        <item quantity="one">%1$d month term</item>
+        <item quantity="other">%1$d month term</item>
+    </plurals>
 </resources>
