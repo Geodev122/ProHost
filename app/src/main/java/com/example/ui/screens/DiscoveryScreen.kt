@@ -56,8 +56,10 @@ fun DiscoveryScreen(
     viewModel: ProHostViewModel,
     onSelectSpace: (SpaceListing, String?) -> Unit,
     discoveryViewModel: DiscoveryViewModel = viewModel(),
-    // Specialists have no app bar on Explore: its floating header carries the logo next to the Map | List toggle.
-    showBrand: Boolean = false
+    // Explore has no app bar: its floating header carries the logo next to the Map | List toggle.
+    showBrand: Boolean = false,
+    // Pro Host / Admin: a ☰ control in the header opens their drawer.
+    onOpenMenu: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val uiState by discoveryViewModel.uiState.collectAsState()
@@ -118,6 +120,7 @@ fun DiscoveryScreen(
         initialMapCamera = discoveryViewModel.mapCamera,
         onMapCameraSaved = { discoveryViewModel.saveMapCamera(it) },
         showBrand = showBrand,
+        onOpenMenu = onOpenMenu,
         onMapGesture = { discoveryViewModel.setNavExpandedOnMap(false) }
     )
 }
@@ -167,6 +170,7 @@ fun DiscoveryScreenContent(
     initialMapCamera: com.google.android.gms.maps.model.CameraPosition? = null,
     onMapCameraSaved: (com.google.android.gms.maps.model.CameraPosition) -> Unit = {},
     showBrand: Boolean = false,
+    onOpenMenu: (() -> Unit)? = null,
     onMapGesture: () -> Unit = {}
 ) {
     val bottomNavInset = LocalBottomNavInset.current
@@ -216,6 +220,7 @@ fun DiscoveryScreenContent(
                         onSearchQueryChange = onSearchQueryChange,
                         onOpenFilters = { onSetFilterSheetVisible(true) },
                         showBrand = showBrand,
+                        onOpenMenu = onOpenMenu,
                         modifier = Modifier.align(Alignment.TopStart)
                     )
                 }
@@ -235,7 +240,8 @@ fun DiscoveryScreenContent(
                 onToggleMapView = onToggleMapView,
                 onSearchQueryChange = onSearchQueryChange,
                 onOpenFilters = { onSetFilterSheetVisible(true) },
-                showBrand = showBrand
+                showBrand = showBrand,
+                onOpenMenu = onOpenMenu
             )
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             // List View
@@ -414,6 +420,7 @@ private fun ExploreOverlayHeader(
     onOpenFilters: () -> Unit,
     showBrand: Boolean,
     modifier: Modifier = Modifier,
+    onOpenMenu: (() -> Unit)? = null,
     focusSearchOnOpen: Boolean = false,
     onSearchFocusConsumed: () -> Unit = {},
     belowControls: @Composable () -> Unit = {}
@@ -427,9 +434,20 @@ private fun ExploreOverlayHeader(
     ) {
         // One row: search · logo + Map|List · filters
         Box(modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp)) {
+            Row(
+                modifier = Modifier.align(Alignment.CenterStart),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+            if (onOpenMenu != null) {
+                ExploreControlSurface(floating = isMapView, shape = CircleShape) {
+                    IconButton(onClick = onOpenMenu, modifier = Modifier.size(44.dp)) {
+                        Icon(Icons.Default.Menu, contentDescription = "Open menu", tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                }
+            }
             BadgedControl(
-                badge = if (searchQuery.isNotEmpty()) "" else null,
-                modifier = Modifier.align(Alignment.CenterStart)
+                badge = if (searchQuery.isNotEmpty()) "" else null
             ) {
                 ExploreControlSurface(floating = isMapView, shape = CircleShape) {
                     IconButton(onClick = { onSearchExpandedChange(!searchExpanded) }, modifier = Modifier.size(44.dp)) {
@@ -444,6 +462,7 @@ private fun ExploreOverlayHeader(
                         )
                     }
                 }
+            }
             }
             MapListToggle(
                 isMapView = isMapView,

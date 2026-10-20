@@ -54,7 +54,8 @@ private val SPECIALIST_BOTTOM_TABS = listOf(
  */
 private val PRO_HOST_BOTTOM_TABS = listOf(
     AppNavTab.ManageListings,
-    AppNavTab.OwnerRentingProgress,
+    // Explore sits second for hosts (they browse to price their own spaces); Renting Progress moved to the drawer.
+    AppNavTab.SearchMap,
     AppNavTab.ProfessionalRentals,
     AppNavTab.ProfessionalProfile
 )
@@ -68,6 +69,7 @@ private val PRO_HOST_BOTTOM_TABS = listOf(
  * Admin's listing/booking capability is unconditional, never a purchased package.
  */
 private val PRO_HOST_FULLSCREEN_TABS = listOf(
+    AppNavTab.OwnerRentingProgress,
     AppNavTab.OwnerRentalRequests,
     AppNavTab.Stats,
     AppNavTab.OwnerSubscriptions
@@ -563,21 +565,9 @@ fun ProHostAppRoot(
                                 },
                                 isBackNavigation = isSpecialistShell
                             )
-                        } else if (isSpecialistShell && activeTabId == AppNavTab.SearchMap.id) {
-                            // Explore draws its own floating header (logo, map/list, search,
-                            // notifications) — no app bar above it.
                         } else if (activeTabId == AppNavTab.SearchMap.id) {
-                            // Explore tab — keep title for context but suppress brand/logo
-                            val alertsList = viewModel.fcmAlerts.collectAsState().value
-                            val unreadCount = alertsList.count { !it.isRead }
-                            ProHostTopAppBar(
-                                currentRole = currentRole,
-                                unreadAlertCount = unreadCount,
-                                onMenuClick = { scope.launch { drawerState.open() } },
-                                onAlertsClick = { activeDrawerTabDialog = "fcm_alerts" },
-                                pageTitle = "Explore",
-                                showBrand = true
-                            )
+                            // Explore draws its own floating header (logo, map/list, search, filters; ☰ for
+                            // roles with a drawer) — no app bar above it, for every role.
                         } else {
                             val alertsList = viewModel.fcmAlerts.collectAsState().value
                             val unreadCount = alertsList.count { !it.isRead }
@@ -722,6 +712,10 @@ fun ProHostAppRoot(
                                     AppNavTab.OwnerRentalRequests.id -> OwnerRentalRequestsScreen(
                                         viewModel = viewModel
                                     )
+                                    AppNavTab.OwnerRentingProgress.id -> OwnerRentingProgressScreen(
+                                        viewModel = viewModel,
+                                        onOpenRequests = { navigateTo(AppNavTab.OwnerRentalRequests.id) }
+                                    )
                                     AppNavTab.Stats.id -> if (currentUser?.role == UserRole.ADMIN) {
                                         AdminAnalyticsScreen()
                                     } else {
@@ -769,9 +763,10 @@ fun ProHostAppRoot(
                                             detailedSpaceOpenAvailability = false // a room tap lands on its card; the sheet opens only from Availability
                                         },
                                         discoveryViewModel = discoveryViewModel,
-                                        // Specialists have no app bar on Explore: its floating
-                                        // header carries the logo beside the Map | List toggle.
-                                        showBrand = isSpecialistShell
+                                        // No app bar on Explore: its floating header carries the logo beside
+                                        // the Map | List toggle, and ☰ for roles with a drawer.
+                                        showBrand = true,
+                                        onOpenMenu = if (isSpecialistShell) null else ({ scope.launch { drawerState.open() }; Unit })
                                     )
                                     AppNavTab.ManageListings.id -> OwnerHubScreen(
                                         viewModel = viewModel,
@@ -815,9 +810,10 @@ fun ProHostAppRoot(
                                             detailedSpaceOpenAvailability = false // a room tap lands on its card; the sheet opens only from Availability
                                         },
                                         discoveryViewModel = discoveryViewModel,
-                                        // Specialists have no app bar on Explore: its floating
-                                        // header carries the logo beside the Map | List toggle.
-                                        showBrand = isSpecialistShell
+                                        // No app bar on Explore: its floating header carries the logo beside
+                                        // the Map | List toggle, and ☰ for roles with a drawer.
+                                        showBrand = true,
+                                        onOpenMenu = if (isSpecialistShell) null else ({ scope.launch { drawerState.open() }; Unit })
                                     )
                                 }
                                 }

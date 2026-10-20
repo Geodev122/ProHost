@@ -138,6 +138,17 @@ fun SpecialistDrawerContent(
             )
             Spacer(modifier = Modifier.height(Spacing.xs))
 
+            // Was a bottom tab; Explore took its place there.
+            ProHostDrawerItem(
+                label = "Renting Progress",
+                icon = Icons.Default.Schedule,
+                selected = activeProHostTabId == "owner_progress",
+                onClick = { onTabSelected("owner_progress") },
+                selectedIconTint = MaterialTheme.proColors.success,
+                emphasized = true
+            )
+            Spacer(modifier = Modifier.height(Spacing.xs))
+
             ProHostDrawerItem(
                 label = "Financials",
                 icon = Icons.Default.Analytics,

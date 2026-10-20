@@ -361,12 +361,12 @@ fun ProHostBottomNavBar(
             if (isCollapsed) {
                 Surface(
                     onClick = { onExpandChange?.invoke(true) },
-                    shape = Radius.Md,
-                    color = MaterialTheme.colorScheme.surface,
+                    shape = Radius.Full,
+                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
                     shadowElevation = Elevation.level3,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
                     modifier = Modifier
-                        .size(width = 56.dp, height = 32.dp)
+                        .size(width = 64.dp, height = 32.dp)
                         .draggable(
                             orientation = Orientation.Vertical,
                             state = rememberDraggableState { delta -> if (delta < -6f) onExpandChange?.invoke(true) }
@@ -383,18 +383,19 @@ fun ProHostBottomNavBar(
                 }
             } else {
                 Surface(
-                    shape = Radius.Lg,
-                    color = MaterialTheme.colorScheme.surface,
+                    // A fully rounded floating pill on the lightest surface, soft hairline + level 3 shadow.
+                    shape = Radius.Full,
+                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
                     shadowElevation = Elevation.level3,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
                     modifier = Modifier
                         .widthIn(max = 480.dp)
                         .fillMaxWidth()
-                        .height(64.dp)
+                        .heightIn(min = 64.dp)
                         .testTag("bottom_navigation_bar")
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = Spacing.sm),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
@@ -445,9 +446,9 @@ private fun BottomNavPillItem(
             .clip(CircleShape)
             .selectable(selected = selected, onClick = onClick, role = Role.Tab)
             .background(container)
-            .animateContentSize()
+            .animateContentSize(androidx.compose.animation.core.spring(dampingRatio = 0.8f, stiffness = 500f))
             .heightIn(min = 48.dp)
-            .padding(horizontal = if (selected) 14.dp else 10.dp)
+            .padding(horizontal = if (selected) Spacing.lg else Spacing.md)
             .testTag("nav_item_${tab.id}"),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -461,8 +462,8 @@ private fun BottomNavPillItem(
         if (selected) {
             Text(
                 tab.shortLabel,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelLarge.copy(fontFamily = com.example.ui.theme.ManropeDisplay),
+                fontWeight = FontWeight.ExtraBold,
                 color = content,
                 maxLines = 1,
                 softWrap = false
