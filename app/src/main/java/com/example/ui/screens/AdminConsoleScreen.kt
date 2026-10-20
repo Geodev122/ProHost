@@ -155,7 +155,7 @@ fun AdminConsoleScreen(
                     // Status Badges Group
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
                         Surface(
                             color = if (isOffline) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f) else FreshGreen.copy(alpha = 0.12f),
@@ -164,7 +164,7 @@ fun AdminConsoleScreen(
                             Row(
                                 modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                             ) {
                                 Box(
                                     modifier = Modifier
@@ -186,7 +186,7 @@ fun AdminConsoleScreen(
 
                 // Cloud sync status — only shown on admin side; non-admin users never see this
                 if (isOffline) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(Spacing.sm))
                     Surface(
                         color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f),
                         shape = MaterialTheme.shapes.medium,
@@ -195,7 +195,7 @@ fun AdminConsoleScreen(
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             Icon(Icons.Default.CloudOff, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
                             Text(
@@ -208,7 +208,7 @@ fun AdminConsoleScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 ScrollableTabRow(
                     selectedTabIndex = uiState.selectedTab,
@@ -224,24 +224,12 @@ fun AdminConsoleScreen(
                     Tab(
                         selected = uiState.selectedTab == 1,
                         onClick = { adminViewModel.setSelectedTab(1) },
-                        text = {
-                            Text(
-                                "Users" + (uiState.counts?.let { " (${it.totalUsers})" } ?: ""),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                        text = { AdminTabLabel("Users", uiState.counts?.let { it.totalUsers }) }
                     )
                     Tab(
                         selected = uiState.selectedTab == 2,
                         onClick = { adminViewModel.setSelectedTab(2) },
-                        text = {
-                            Text(
-                                "Listings & Bookings" + (uiState.counts?.let { " (${it.totalListings})" } ?: ""),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                        text = { AdminTabLabel("Listings & Bookings", uiState.counts?.let { it.totalListings }) }
                     )
                     Tab(
                         selected = uiState.selectedTab == 3,
@@ -461,7 +449,7 @@ internal fun AdminMetricTile(label: String, value: String, modifier: Modifier = 
     ProSurfaceCard(modifier = modifier) {
         Column(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
             Text(
                 text = value,
@@ -474,6 +462,24 @@ internal fun AdminMetricTile(label: String, value: String, modifier: Modifier = 
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+/** An admin tab title with its total as a small badge (not "(123)" in the text). */
+@Composable
+private fun AdminTabLabel(label: String, count: Int?) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+        if (count != null) {
+            Surface(shape = com.example.ui.theme.Radius.Full, color = MaterialTheme.colorScheme.secondaryContainer) {
+                Text(
+                    count.toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
+                )
+            }
         }
     }
 }

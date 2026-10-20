@@ -67,7 +67,7 @@ internal fun AdminPackagesTab(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg)
     ) {
         item { AdminBillingRescueCard(uiState = uiState, adminViewModel = adminViewModel) }
         item { AdminPendingPaymentsCard(payments = uiState.pendingPayments, uiState = uiState, adminViewModel = adminViewModel) }
@@ -77,7 +77,7 @@ internal fun AdminPackagesTab(
 
         item {
             ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     ProSectionHeader(
                         title = "Google Play Billing",
                         subtitle = "Read-only — managed in Play Console",
@@ -92,7 +92,7 @@ internal fun AdminPackagesTab(
                     )
                     TextButton(onClick = { adminViewModel.runBillingSync() }) {
                         Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(Spacing.sm))
                         Text("Sync with Google Play now", style = MaterialTheme.typography.labelLarge)
                     }
 
@@ -121,7 +121,7 @@ internal fun AdminPackagesTab(
             val exportScope = rememberCoroutineScope()
 
             ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     ProSectionHeader(
                         title = "One-Click System Exports",
                         subtitle = "Every user, built on the server",

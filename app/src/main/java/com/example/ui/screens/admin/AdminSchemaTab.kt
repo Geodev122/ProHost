@@ -70,19 +70,19 @@ internal fun AdminSchemaArchitectureTab(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
         // Header: God Schema overview + stats + reset/add
         item {
             ProSurfaceCard(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         ProSectionHeader(title = "God Schema", subtitle = "Live admin-editable database", icon = Icons.Default.AccountTree)
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             CustomButton(
                                 text = "Reset",
                                 onClick = { adminViewModel.openResetSchemaDialog() },
@@ -108,7 +108,7 @@ internal fun AdminSchemaArchitectureTab(
                         compact = true,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         val tiles = listOf(
                             Triple("Space Types", schema.spaceTypes, Icons.Default.Apartment),
                             Triple("Division Types", schema.divisionTypes, Icons.Default.Category),
@@ -197,7 +197,7 @@ internal fun AdminSchemaArchitectureTab(
             val visibleAmenities = if (amenityGroupFilter == "All") schema.amenities
             else schema.amenities.filter { it.amenityGroup == amenityGroupFilter }
             ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -214,7 +214,7 @@ internal fun AdminSchemaArchitectureTab(
                     }
                     // Group filter chips
                     if (amenityGroups.size > 1) {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             items(amenityGroups) { group ->
                                 FilterChip(
                                     selected = amenityGroupFilter == group,
@@ -231,7 +231,7 @@ internal fun AdminSchemaArchitectureTab(
                             onDelete = { adminViewModel.deleteSchemaItem(item.id, item.category) },
                             onEdit = { editingItem = item }
                         ) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                                 if (item.amenityGroup.isNotBlank()) {
                                     Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.extraSmall) {
                                         Text(
@@ -274,7 +274,7 @@ internal fun AdminSchemaArchitectureTab(
         // Section 5: Rental Strategies
         item {
             ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -305,7 +305,7 @@ internal fun AdminSchemaArchitectureTab(
         // Section 6: Attendee Packages
         item {
             ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -338,7 +338,7 @@ internal fun AdminSchemaArchitectureTab(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
                                         Text(pkg.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                                         if (!pkg.isSystemDefault) {
                                             Surface(color = MaterialTheme.colorScheme.errorContainer, shape = MaterialTheme.shapes.extraSmall) {
@@ -395,7 +395,7 @@ internal fun AdminSchemaArchitectureTab(
         // Target Disciplines (hashtag analytics)
         item {
             ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         ProSectionHeader(title = "Target Disciplines Usage", subtitle = "Hashtags hosts attach to listings", icon = Icons.Default.Info)
                         IconButton(onClick = { adminViewModel.refreshHashtagAnalytics() }) { Icon(Icons.Default.Refresh, contentDescription = "Refresh") }
@@ -425,7 +425,7 @@ internal fun AdminSchemaArchitectureTab(
         // Firestore Database Schema Reference Card
         item {
             ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Storage, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(Spacing.sm))
@@ -516,7 +516,7 @@ internal fun GodSchemaSection(
     extraContent: (@Composable (SchemaItem) -> Unit)? = null
 ) {
     ProSurfaceCard {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -572,7 +572,7 @@ internal fun SchemaItemRow(
                     )
                 }
             }
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(Spacing.md))
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(item.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
@@ -636,7 +636,7 @@ internal fun AdminEditSchemaItemDialog(
         onDismissRequest = onDismiss,
         title = { Text("Edit Schema Item", fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 OutlinedTextField(
                     value = description,
@@ -655,7 +655,7 @@ internal fun AdminEditSchemaItemDialog(
                     )
                     // Marker color picker
                     Text("Map Marker Color", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
                         items(MARKER_COLOR_PRESETS) { hex ->
                             val selected = markerColorInput.equals(hex, ignoreCase = true)
                             Box(
@@ -768,7 +768,7 @@ internal fun AdminAddSchemaItemDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -780,7 +780,7 @@ internal fun AdminAddSchemaItemDialog(
                 }
 
                 Text("Target Schema Category:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     items(categories) { (catKey, catLabel) ->
                         FilterChip(
                             selected = selectedCategory == catKey,
@@ -816,7 +816,7 @@ internal fun AdminAddSchemaItemDialog(
                     )
                     // Map marker color picker
                     Text("Map Marker Color", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
                         items(MARKER_COLOR_PRESETS) { hex ->
                             val selected = markerColorInput.equals(hex, ignoreCase = true)
                             Box(
@@ -845,9 +845,9 @@ internal fun AdminAddSchemaItemDialog(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(Spacing.sm))
 
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     CustomButton(
                         text = "Cancel",
                         onClick = onDismiss,

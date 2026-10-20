@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Spacing
+
 import com.example.ui.util.localizedLabel
 import com.example.ui.theme.proColors
 import androidx.compose.foundation.layout.Arrangement
@@ -74,7 +76,7 @@ fun AdminGrantAccessCard(adminViewModel: AdminViewModel) {
     }
 
     ProSurfaceCard {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             ProSectionHeader(
                 title = "Force Upgrade → ProHost",
                 subtitle = "VIP access, customer-service recovery or internal testing. Permanent until revoked in Users.",
@@ -82,7 +84,7 @@ fun AdminGrantAccessCard(adminViewModel: AdminViewModel) {
             )
 
             // Step 1 — find
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
@@ -138,7 +140,7 @@ fun AdminGrantAccessCard(adminViewModel: AdminViewModel) {
                         CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                     } else {
                         Icon(Icons.Default.WorkspacePremium, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(Spacing.sm))
                         Text("Force Upgrade → ProHost", fontWeight = FontWeight.Bold)
                     }
                 }
@@ -147,7 +149,7 @@ fun AdminGrantAccessCard(adminViewModel: AdminViewModel) {
                     Surface(color = MaterialTheme.proColors.success.copy(alpha = 0.12f), shape = MaterialTheme.shapes.medium) {
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                             verticalAlignment = Alignment.Top
                         ) {
                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.proColors.success)
@@ -173,7 +175,7 @@ fun AdminGrantAccessCard(adminViewModel: AdminViewModel) {
             icon = { Icon(Icons.Default.WorkspacePremium, contentDescription = null) },
             title = { Text("Force upgrade to Pro Host?") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Text("${target.fullName.ifBlank { "(no name)" }} · ${target.email}")
                     Text("Account: ${target.displayCode.ifBlank { target.uid }}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
                     Text("Role: ${roleLabel(target.role)} → Pro Host, with no Google Play subscription and no expiry. Revoke it from the Users tab.")
@@ -193,7 +195,7 @@ fun AdminGrantAccessCard(adminViewModel: AdminViewModel) {
 @Composable
 private fun VerificationPanel(target: GrantLookupResult) {
     Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.medium) {
-        Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text("Verify this is the right person", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(target.fullName.ifBlank { "(no name on profile)" }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(target.email, style = MaterialTheme.typography.bodyMedium)
@@ -214,7 +216,7 @@ private fun VerificationPanel(target: GrantLookupResult) {
 
 @Composable
 private fun ErrorLine(message: String) {
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Top) {
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.Top) {
         Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
         Text(message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
     }

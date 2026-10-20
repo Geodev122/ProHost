@@ -61,12 +61,12 @@ internal fun AdminListingsCatalogTab(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
         // Real totals (adminCounts); rows come only from search or the live review queue.
         item {
             val counts = uiState.counts
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 AdminMetricTile("Listings", counts?.totalListings?.toString() ?: "…", modifier = Modifier.weight(1f))
                 AdminMetricTile("Published", counts?.activeListings?.toString() ?: "…", modifier = Modifier.weight(1f))
                 AdminMetricTile("To review", counts?.pendingReview?.toString() ?: "…", modifier = Modifier.weight(1f))
@@ -75,7 +75,7 @@ internal fun AdminListingsCatalogTab(
         }
         item {
             ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     ProSectionHeader(
                         title = "Listings & Bookings",
                         subtitle = "Search by title, L-/D-/B- code, id or the host's / renter's email",
@@ -103,7 +103,7 @@ internal fun AdminListingsCatalogTab(
                     val categoryFilterOptions = uiState.schema.spaceTypes.filter { it.isEnabled }.ifEmpty {
                         SpaceType.values().map { SchemaItem(id = it.name, name = it.displayName, category = "SPACE_TYPE") }
                     }
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         item {
                             FilterChip(
                                 selected = uiState.selectedListingTypeFilter == null,
@@ -119,7 +119,7 @@ internal fun AdminListingsCatalogTab(
                             )
                         }
                     }
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         items(
                             listOf(
                                 "ALL" to "All",
@@ -178,7 +178,7 @@ internal fun AdminListingsCatalogTab(
 
         items(uiState.filteredSpaces, key = { it.id }) { space ->
             ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -208,7 +208,7 @@ internal fun AdminListingsCatalogTab(
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
@@ -258,7 +258,7 @@ internal fun AdminListingsCatalogTab(
                     // Quick Action Buttons
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Toggle subscription active status — a plain admin override, no
@@ -378,7 +378,7 @@ internal fun AdminAttendeePackageDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (isEditing) "Edit Attendee Package" else "Add Attendee Package", fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -394,7 +394,7 @@ internal fun AdminAttendeePackageDialog(
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     OutlinedTextField(
                         value = priceText,
                         onValueChange = { priceText = it },
@@ -419,7 +419,7 @@ internal fun AdminAttendeePackageDialog(
                     singleLine = true
                 )
                 Text("Inclusions", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
                         value = inclusionInput,
                         onValueChange = { inclusionInput = it },
@@ -436,7 +436,7 @@ internal fun AdminAttendeePackageDialog(
                     }) { Icon(Icons.Default.Add, contentDescription = "Add") }
                 }
                 if (inclusions.isNotEmpty()) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                         items(inclusions) { inc ->
                             FilterChip(
                                 selected = false,
@@ -472,7 +472,7 @@ internal fun AdminAttendeePackageDialog(
 @Composable
 private fun AdminBookingResultCard(booking: RentalBookingRequest, onOpenPerson: (String) -> Unit) {
     ProSurfaceCard {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(booking.publicCode, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                 Text(booking.status.displayName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
@@ -484,7 +484,7 @@ private fun AdminBookingResultCard(booking: RentalBookingRequest, onOpenPerson: 
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 if (booking.practitionerId.isNotBlank()) {
                     CustomButton(
                         text = "Renter profile",

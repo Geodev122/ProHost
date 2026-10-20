@@ -71,7 +71,7 @@ internal fun AdminDossierSheet(
             )
 
             SelectionContainer {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Field("Display ID", user.publicCode)
                     Field("Firebase UID", user.id)
                     Field("Email", (dossier.authEmail ?: user.email).ifBlank { "—" } +
@@ -133,7 +133,7 @@ internal fun AdminDossierSheet(
                 Text("No Google Play subscriptions.", style = MaterialTheme.typography.bodySmall)
             }
             dossier.subscriptions.forEach { s ->
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Text(
                         "${s.basePlanId.ifBlank { "Premium" }} · ${s.status}" + if (s.autoRenewing) " · auto-renews" else "",
                         style = MaterialTheme.typography.bodyMedium,
@@ -166,7 +166,7 @@ internal fun AdminDossierSheet(
 
             HorizontalDivider()
             Section("Actions")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 CustomButton(
                     text = "Edit",
                     onClick = { adminViewModel.openEditUserDialog(user) },
@@ -204,7 +204,7 @@ private fun Section(title: String) {
 
 @Composable
 private fun Field(label: String, value: String) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("$label:", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
     }

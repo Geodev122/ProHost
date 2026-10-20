@@ -66,7 +66,7 @@ internal fun AdminSecurityAuditTab(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg)
     ) {
         item {
             var auditExportFromMillis by remember { mutableStateOf<Long?>(null) }
@@ -74,7 +74,7 @@ internal fun AdminSecurityAuditTab(
             val exportAuditCsvFile = rememberFileExportLauncher(mimeType = "text/csv")
 
             ProSurfaceCard(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     ProSectionHeader(
                         title = "Security & Audit",
                         icon = Icons.Default.Shield
@@ -110,7 +110,7 @@ internal fun AdminSecurityAuditTab(
         item {
             val context = LocalContext.current
             ProSurfaceCard(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     ProSectionHeader(
                         title = "Legal Documents",
                         subtitle = "Upload to publish new version",
@@ -195,9 +195,18 @@ internal fun AdminSecurityAuditTab(
             }
         }
 
+        if (uiState.auditLogs.isEmpty()) {
+            item(key = "audit_empty") {
+                ProEmptyState(
+                    title = "No audit entries yet",
+                    description = "Security and billing actions appear here as they happen.",
+                    icon = Icons.Default.Shield
+                )
+            }
+        }
         items(uiState.auditLogs, key = { it.id }) { log ->
             ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -283,7 +292,7 @@ internal fun AdminExportDataDialog(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -330,7 +339,7 @@ internal fun AdminExportDataDialog(
                 // Action Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     CustomButton(
                         text = "Copy Text",
