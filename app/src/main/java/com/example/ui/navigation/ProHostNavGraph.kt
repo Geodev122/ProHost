@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import com.example.ui.theme.proHostScreenBackground
 import androidx.compose.ui.platform.testTag
@@ -682,7 +683,25 @@ fun ProHostAppRoot(
                             syncStatusMessage = syncStatusMessage
                         )
 
-                        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                        // Page change: a short fade + rise of the new page (snaps when the system has animations off).
+                        // Animates one composition only — the old page is never kept alive alongside (the map is heavy).
+                        val pageKey = listOf(detailedSpace?.id, managingSpace?.id, safeFullScreenDrawerTab, activeTabId)
+                        val pageEnter = remember { androidx.compose.animation.core.Animatable(1f) }
+                        val reduceMotion = rememberReducedMotion()
+                        LaunchedEffect(pageKey) {
+                            if (reduceMotion) { pageEnter.snapTo(1f); return@LaunchedEffect }
+                            pageEnter.snapTo(0f)
+                            pageEnter.animateTo(1f, androidx.compose.animation.core.tween(220, easing = androidx.compose.animation.core.LinearOutSlowInEasing))
+                        }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .graphicsLayer {
+                                    alpha = 0.4f + 0.6f * pageEnter.value
+                                    translationY = (1f - pageEnter.value) * 12.dp.toPx()
+                                }
+                        ) {
                             if (managingSpace != null) {
                                 ManageListingScreen(
                                     space = managingSpace!!,
