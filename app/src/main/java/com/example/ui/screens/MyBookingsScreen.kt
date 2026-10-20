@@ -302,8 +302,7 @@ fun MyBookingsScreen(
                                 rebookTargetSpaceId = space.id
                                 rebookSourceBooking = booking
                             }
-                        }
-        },
+                        },
                         onEditBooking = {
                             // Never fall back to firstOrNull: an edit request must reference
                             // the booking's own space (replacesBookingId ties them together),
@@ -340,8 +339,9 @@ fun MyBookingsScreen(
                         }
                     )
                 }
-}
+                }
             }
+        }
         }
     }
 
