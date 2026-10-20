@@ -294,27 +294,55 @@ The first baseline confirms the audit and adds three findings:
 
 ## Implementation status (1.0.43, Oct 20, 2026)
 
-All four phases shipped in one release, verified with the Design Screenshots workflow (15 screens × light, dark, font
-1.3, RTL, Arabic) and green CI.
+Every suggestion above, with where it now lives. Verified by code search (outside Admin unless noted) and by the Design
+Screenshots harness: 15 screens + every sheet, dialog and form, in light, dark, font 1.3, RTL and Arabic.
 
-| Phase | Done |
-| --- | --- |
-| 0 — Tokens | Surface container ladder (light/dark), tertiary #2E7D4F, opaque secondary text, Manrope headings with a monotonic scale and 12 sp floor, `Radius` and `Elevation` tokens |
-| 1 — Components | One `ProCard`, orange main actions, `UiMessages` Snackbar (75 Toasts) with Undo, 48 dp targets + one `PhotoCarouselArrow`, shared badges/banners, dialogs on the Material spec, literal radii/elevations → tokens, NIGHTHAWK check 34 |
-| 2 — Shell and screens | Pro Host bottom bar Listings · Explore · Rentals · Profile (Progress in the drawer); one header on Explore for every role; nav pill restyled (behaviour unchanged); one top bar per page; plain-language labels; page-change motion; Explore 16:9 cards + Availability button; neutral to-do checklist; My Rentals empty state; confirm haptic |
-| 3 — Reach | ~1,340 UI strings in resources with a full Arabic translation, per-app language (Profile › Language), data labels localized at display sites, heading / live-region / selected semantics |
+| Area | Suggestion | Status |
+| --- | --- | --- |
+| Color | Surface container ladder, surfaceBright/Dim | Done — `Theme.kt` both schemes |
+| Color | Light tertiary contrast, opaque `onSurfaceVariant` | Done — #2E7D4F; `SecondaryTextLight/Dark` |
+| Color | No light-only brand constants in screens | Done — only Admin/debug tools keep them |
+| Color | Dark splash (`values-night`) | Done — night artwork `drawable-night-*` + `values-night/colors.xml` |
+| Color | Legacy aliases | Marked `@Deprecated` |
+| Type | Manrope headings, monotonic scale, 12 sp floor | Done — `Type.kt`; NIGHTHAWK check 34 |
+| Type | `maxLines = 1` always with ellipsis | Done — 0 left |
+| Type | No raw `fontSize` | Done — only the Google sign-in button (brand spec) and the dev debugger |
+| Type | Black weight only for prices / hero numbers | Done — Premium prices, promo countdown |
+| Type | Style instead of `fontSize = typography.X.fontSize` | Done — Login |
+| Spacing | Spacing tokens instead of literals, off-scale rounded | Done — ~380 `spacedBy`/`Spacer` literals → `Spacing.*` (Admin included) |
+| Spacing | One 16 dp gutter | Done — Login, KYC, filter sheet, booking sheet |
+| Shape | Radius and Elevation tokens; literal radii/elevations | Done — `Radius.kt`, `Elevation.kt`; NIGHTHAWK check 34 |
+| Components | Orange primary for every main action | Done — `ProPrimaryButton` / `proPrimaryButtonColors()` (empty states, room editor, picker "Done", suspended sign-out included) |
+| Components | One card, Card `onClick` (no clickable Card) | Done — `ProCard`; Country field uses `OutlinedCard(onClick)` |
+| Components | Dialog surfaces on the spec | Done — `ProHostDialog`, 28 dp `surfaceContainerHigh`; wizard full-screen |
+| Components | One bottom sheet | Done — `ProHostBottomSheet`, no raw `ModalBottomSheet` |
+| Components | One banner | Done — `ProHostAlertBanner` |
+| Components | Empty / loading trio | Done — shimmer + `ProEmptyState` + error banner; requests list shimmer; Admin audit log and billing rescue empty states |
+| Components | Count / dot badges | Done — `ProHostCountBadge` / `ProHostDotBadge` (`BadgedControl` is only their placement wrapper) |
+| Components | One text field | Done — `InputField` everywhere outside Admin |
+| Components | One avatar | Done — `ProAvatar(size)`; member and drawer avatars call it |
+| Components | Explore card "Check Space" | Done — "Availability" opens the sheet (whole-space listings too) |
+| Shell | One top bar; ☰ for the drawer; plain-language labels | Done |
+| Shell | Pro Host Explore tab; Explore header for every role | Done |
+| Shell | Transitions | Done — page fade/rise, `animateItem()` in Saved, My Rentals, notifications; loading crossfade |
+| Explore | 16:9 photos, bodyLarge search, IME Search | Done |
+| Details | Hero under the status bar, one carousel arrow, orange Availability | Done |
+| Premium | Tokens, Black only on price, `heightIn(min = 52)`, full-contrast hero text | Done |
+| Profile | People's words for tiles; proper update-row buttons | Done — `ProPrimaryButton` Install / `ProOutlinedButton` Check update |
+| Login | Insets, `ProHostAlertBanner`, one secondary style | Done — `TextButton` for all secondary actions |
+| My Rentals | 12 sp floor, `ProEmptyState`, status badge top-right | Done |
+| Owner Hub / Manage | One top bar, Free/Booked legend, full-screen wizard with step bar | Done |
+| Admin | Shimmer/empty states, tokens, tab counts as badges | Done (Admin stays English) |
+| Feedback | Snackbar host, Undo | Done — `UiMessages`; Undo on pause/resume, slot off/on, unsave |
+| Feedback | Haptics, sounds on the notification stream | Done — CONFIRM on request sent / plan activated; `USAGE_NOTIFICATION` |
+| A11y | 48 dp targets | Done — icon buttons, steppers, heart, carousel, "Mark read" |
+| A11y | heading / selected / liveRegion | Done — section headers, plan tiles, room tabs, wizard steps, nav tabs, banners |
+| A11y | `heightIn` instead of fixed heights holding text | Done |
+| A11y | Orange text uses `secondary` | Done |
+| L10n | Strings in resources, Arabic, per-app language | Done — ~1,400 strings, `values-ar`, `locales_config` |
+| L10n | Plurals | Done — `plurals.xml` with all six Arabic forms for counted sentences |
+| L10n | Mirrored arrows | Done — every directional icon is AutoMirrored |
+| L10n | Numbers and phone numbers | Prices stay Western digits; phone field always LTR |
 
-Re-score (owner review pending on device): ≈ 8.4 / 10.
-
-Previously deferred, completed in the same release:
-- Dark splash: night artwork (`drawable-night-*/splash.png`, lighter blue wordmark on #121824) and a matching
-  `values-night` system splash colour.
-- Every non-admin text field is `InputField` (34 call sites; `InputField` gained suffix, minLines, keyboard actions and
-  text style).
-- The listing wizard is a full-screen page: Close, "Step n of 3", a three-segment step bar (finished steps tappable),
-  system Back steps back before closing; the country name left the step label.
-- `app_error.area` comes from the English text of the fallback string resource, so Arabic sessions report the same areas.
-- The Design Screenshots harness renders every sheet, dialog and form (24 overlays, opened by tapping where a person
-  would) in all five variants.
-
-Stays English on purpose: Google Play's period words ("first year", "4 months") and Admin-only tools.
+Intentionally unchanged: Google Play's own offer wording ("first year", "4 months") and Admin-only tools stay English.
+Re-score (owner review pending on device): ≈ 8.8 / 10.

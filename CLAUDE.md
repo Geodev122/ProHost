@@ -359,6 +359,10 @@ plan + recurring price + date;
   day names) are translated only at display sites with `localizedLabel()` — stored values, comparisons and analytics stay
   English. New strings: add both languages; `scripts/i18n/` re-runs the extraction passes. Admin-only tools stay English.
 - Per-app language: `res/xml/locales_config.xml` (en, ar) + Profile › More › Language.
+- Counted sentences are `res/values*/plurals.xml` (Arabic needs zero/one/two/few/many/other): `pluralStringResource` in
+  composables, `uiPlural(R.plurals.x, count, args)` elsewhere. Resource strings that end or start with a space use
+  `\u0020` (aapt trims plain spaces, which glued joined sentences together: "AllowProHostto"). Never split a sentence into
+  two resources mid-word. One avatar: `ProAvatar(size)`. Phone numbers render LTR (`PhoneNumberField`).
 - Text fields are `InputField` (never a raw `OutlinedTextField` outside admin tools). The listing wizard
   (`CreateListingDialog`) is a full-screen page with `WizardStepBar`; Back steps back. Dark mode has its own splash art
   (`drawable-night-*`, `values-night/colors.xml`).
@@ -369,7 +373,8 @@ plan + recurring price + date;
 
 - `release-bundle.yml` (manual): `play_track` none = build only; probe = read Play tracks (no build, no change);
   internal / production = build, upload the `.aab` + R8 mapping + native symbols, release with
-  `docs/release/<version>-notes.txt` (languages not in the store listing are skipped) — production as a staged rollout
+  `docs/release/<version>-notes.txt` (a listing language without its exact note takes the same base language, e.g.
+  en-GB ← en-US; the store listing currently has only en-GB) — production as a staged rollout
   (`rollout`, default 0.2). Script: `scripts/release/play-publish.js`. It uses the CI service account, which must be invited
   in Play Console › Users and permissions with release permissions; a 403 names the account. A version code Play has
   seen before is refused: bump `versionCode` for every upload.
