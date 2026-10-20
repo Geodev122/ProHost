@@ -1378,8 +1378,8 @@ fun ProHostTopAppBar(
                         modifier = Modifier.testTag("hamburger_menu_button")
                     ) {
                         Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Open Side Navigation Drawer",
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Open menu",
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -1402,9 +1402,9 @@ fun ProHostTopAppBar(
 
                         Text(
                             text = pageTitle ?: when (currentRole) {
-                                UserRole.ADMIN -> "Super Admin Node"
-                                UserRole.PRO_HOST -> "Host & Owner Hub"
-                                UserRole.SPECIALIST -> "Practitioner Circle"
+                                UserRole.ADMIN -> "Admin"
+                                UserRole.PRO_HOST -> "Host"
+                                UserRole.SPECIALIST -> "Member"
                             },
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.SemiBold,

@@ -547,7 +547,8 @@ fun ProHostAppRoot(
                 modifier = Modifier.fillMaxSize().proHostScreenBackground(),
                 containerColor = Color.Transparent,
                 topBar = {
-                    if (detailedSpace == null) {
+                    // Listing details and Manage listing draw their own top bar: never two.
+                    if (detailedSpace == null && managingSpace == null) {
                         if (safeFullScreenDrawerTab != null) {
                             val title = (PRO_HOST_FULLSCREEN_TABS + ADMIN_FULLSCREEN_TABS + SHARED_FULLSCREEN_TABS)
                                 .firstOrNull { it.id == safeFullScreenDrawerTab }?.title

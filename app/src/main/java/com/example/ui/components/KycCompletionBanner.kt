@@ -44,20 +44,20 @@ fun KycCompletionBanner(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        tonalElevation = Elevation.level1
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
     ) {
         Column(
             modifier = Modifier.padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                 Text(
                     if (isHost) "Ready to host" else "Ready to book",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -70,7 +70,7 @@ fun KycCompletionBanner(
                     val color = if (step.done) {
                         MaterialTheme.proColors.onSuccessContainer
                     } else {
-                        MaterialTheme.colorScheme.onSecondaryContainer
+                        MaterialTheme.colorScheme.onSurfaceVariant
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
                         Icon(
@@ -79,7 +79,7 @@ fun KycCompletionBanner(
                             tint = color,
                             modifier = Modifier.size(20.dp)
                         )
-                        Text(step.label, style = MaterialTheme.typography.labelSmall, color = color, maxLines = 1)
+                        Text(step.label, style = MaterialTheme.typography.labelSmall, color = color, maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     }
                 }
             }
@@ -89,21 +89,21 @@ fun KycCompletionBanner(
                 "Next: ${next.label.lowercase()}",
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 if (isHost) "Needed once before you publish listings." else "Needed once before your first booking request.",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             OutlinedButton(
                 onClick = onComplete,
                 modifier = Modifier.fillMaxWidth(),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                 shape = MaterialTheme.shapes.medium,
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text("Complete now", style = MaterialTheme.typography.labelMedium)
+                Text("Complete now", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
             }
         }
     }

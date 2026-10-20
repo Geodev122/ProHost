@@ -425,9 +425,9 @@ fun SpecialistProfileScreen(
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         ProMetricTile(
-                                            title = "Potential Yield",
+                                            title = "Monthly income",
                                             value = "$${estimatedYieldUsd.toInt()} USD",
-                                            subtitle = "Monthly gross MRR",
+                                            subtitle = "From accepted bookings",
                                             icon = Icons.Default.AttachMoney,
                                             iconTint = MaterialTheme.proColors.success,
                                             modifier = Modifier.weight(1f)
@@ -449,17 +449,17 @@ fun SpecialistProfileScreen(
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         ProMetricTile(
-                                            title = "Catalog Spaces",
+                                            title = "Spaces on ProHost",
                                             value = "${allSpacesList.size}",
-                                            subtitle = "All active listings in Lebanon",
+                                            subtitle = "Listed and active",
                                             icon = Icons.Default.Layers,
                                             iconTint = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.weight(1f)
                                         )
                                         ProMetricTile(
-                                            title = "Governorates",
+                                            title = "Regions",
                                             value = "${Governorate.entries.size}",
-                                            subtitle = "National coverage",
+                                            subtitle = "Covered by ProHost",
                                             icon = Icons.Default.Map,
                                             iconTint = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.weight(1f)
@@ -470,9 +470,9 @@ fun SpecialistProfileScreen(
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         ProMetricTile(
-                                            title = "Firestore Sync",
+                                            title = "Synced",
                                             value = "Live",
-                                            subtitle = "Real-time bridge active",
+                                            subtitle = "Up to date on all devices",
                                             icon = Icons.Default.CloudDone,
                                             iconTint = MaterialTheme.proColors.success,
                                             modifier = Modifier.weight(1f)

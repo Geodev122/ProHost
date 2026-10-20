@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import com.example.ui.components.ShimmerLoadingList
 import com.example.data.model.SpaceListing
 import com.example.ui.components.ProEmptyState
+import com.example.ui.components.ProHostAlertBanner
+import com.example.ui.components.ProHostAlertSeverity
 import com.example.ui.theme.Spacing
 import com.example.ui.viewmodel.ProHostViewModel
 
@@ -67,47 +69,21 @@ fun MyFavoritesScreen(
         // Nested inside the app-shell Scaffold's already-inset content area — its
         // default contentWindowInsets would otherwise re-apply the status-bar-height
         // top inset a second time, producing extra blank space above this TopAppBar.
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = {
-            TopAppBar(
-                title = {
-                    if (savedSpaces.isNotEmpty()) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shape = androidx.compose.foundation.shape.CircleShape
-                        ) {
-                            Text(
-                                text = "${savedSpaces.size} Saved",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs)
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-            )
-        }
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { innerPadding ->
         if (isLoading) {
             ShimmerLoadingList(modifier = Modifier.padding(innerPadding), itemHeight = 200.dp)
         } else if (errorMessage != null) {
-            Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
-                Text(
-                    text = errorMessage ?: "",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(Spacing.lg)
-                )
+            Box(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(Spacing.lg)) {
+                ProHostAlertBanner(message = errorMessage ?: "", severity = ProHostAlertSeverity.ERROR)
             }
         } else if (savedSpaces.isEmpty() && unavailableIds.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
                 ProEmptyState(
-                    title = "No Favorites Yet",
-                    description = "Tap the heart icon on any workspace to save it here for quick access later.",
+                    title = "Nothing saved yet",
+                    description = "Tap the heart on any space to keep it here for later.",
                     icon = Icons.Filled.FavoriteBorder,
-                    actionButtonText = "Explore Workspaces",
+                    actionButtonText = "Explore spaces",
                     onActionClick = onNavigateToExplore
                 )
             }
@@ -120,7 +96,7 @@ fun MyFavoritesScreen(
                 verticalArrangement = Arrangement.spacedBy(Spacing.lg)
             ) {
                 groupedSavedSpaces.forEach { (category, spacesInCategory) ->
-                    item(key = "header_$category") {
+                    item(key = "header_$category", contentType = "header") {
                         Text(
                             text = "$category (${spacesInCategory.size})",
                             style = MaterialTheme.typography.titleLarge,

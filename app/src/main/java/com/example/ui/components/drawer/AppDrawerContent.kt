@@ -125,7 +125,7 @@ fun SpecialistDrawerContent(
         Spacer(modifier = Modifier.height(Spacing.md))
 
         if (isProHost) {
-            ProHostDrawerSectionLabel(text = "PRO HOST", color = MaterialTheme.proColors.success)
+            ProHostDrawerSectionLabel(text = "PRO HOST")
 
             ProHostDrawerItem(
                 label = "Renting Requests",
@@ -187,7 +187,7 @@ fun SpecialistDrawerContent(
         // specialist reaches occasionally, not core daily workflow. Merged into one
         // "MORE" section (also now home to Contact Support, relocated from the
         // Profile screen) so the drawer reads as fewer, clearer groups.
-        ProHostDrawerSectionLabel(text = "MORE", color = MaterialTheme.colorScheme.secondary)
+        ProHostDrawerSectionLabel(text = "MORE")
 
         // "Pending Requests" and "Payment Due Reminders" used to live here as their
         // own drawer shortcuts, routing to a pre-filtered view of My Bookings. My
@@ -279,7 +279,7 @@ fun AdminDrawerContent(
         )
         Spacer(modifier = Modifier.height(Spacing.md))
 
-        ProHostDrawerSectionLabel(text = "CENTRAL SECURITY CORES")
+        ProHostDrawerSectionLabel(text = "SECURITY")
 
         ProHostDrawerItem(
             label = "System Admin Console",
@@ -304,7 +304,7 @@ fun AdminDrawerContent(
         // Admin gets every Pro Host capability unconditionally — unlimited listings,
         // no package to buy (see ProHostRepository's admin bypass) — so these route
         // through the exact same screens a fully-entitled Pro Host uses.
-        ProHostDrawerSectionLabel(text = "PRO HOST ACCESS (UNLIMITED)", color = MaterialTheme.colorScheme.primary)
+        ProHostDrawerSectionLabel(text = "PRO HOST ACCESS")
 
         ProHostDrawerItem(
             label = "My Listings",
@@ -341,7 +341,7 @@ fun AdminDrawerContent(
 
         ProHostDrawerDivider()
 
-        ProHostDrawerSectionLabel(text = "SYSTEM AUDIT & PRICING", color = MaterialTheme.colorScheme.primary)
+        ProHostDrawerSectionLabel(text = "BILLING & AUDIT")
 
         ProHostDrawerItem(
             label = "System Audit Logs",
