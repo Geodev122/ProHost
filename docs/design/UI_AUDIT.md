@@ -306,11 +306,15 @@ All four phases shipped in one release, verified with the Design Screenshots wor
 
 Re-score (owner review pending on device): ≈ 8.4 / 10.
 
-Deferred, with reasons:
-- Dark splash: `splash.png` carries a light backdrop; a dark system splash needs dark artwork first.
-- Mass `OutlinedTextField` → `InputField`: small visual gain, different API; do per screen when a form is touched.
-- Listing wizard as a full-screen destination with a step bar: a navigation change to the 1,400-line wizard; schedule it
-  as its own release.
-- Google Play period words ("first year", "4 months") and Admin-only tools stay English (Play data / internal tools).
-- Error analytics (`app_error.area`) for Arabic users fall back to "unknown" because the area key is derived from the
-  English message.
+Previously deferred, completed in the same release:
+- Dark splash: night artwork (`drawable-night-*/splash.png`, lighter blue wordmark on #121824) and a matching
+  `values-night` system splash colour.
+- Every non-admin text field is `InputField` (34 call sites; `InputField` gained suffix, minLines, keyboard actions and
+  text style).
+- The listing wizard is a full-screen page: Close, "Step n of 3", a three-segment step bar (finished steps tappable),
+  system Back steps back before closing; the country name left the step label.
+- `app_error.area` comes from the English text of the fallback string resource, so Arabic sessions report the same areas.
+- The Design Screenshots harness renders every sheet, dialog and form (24 overlays, opened by tapping where a person
+  would) in all five variants.
+
+Stays English on purpose: Google Play's period words ("first year", "4 months") and Admin-only tools.
