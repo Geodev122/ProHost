@@ -196,6 +196,8 @@ fun ProSectionHeader(
     trailingContent: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    // With large text a trailing badge squeezes the title to one word per line: it moves under the subtitle.
+    val stackTrailing = trailingContent != null && androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.15f
     Row(
         // Announced as a heading, so TalkBack users can jump between sections.
         modifier = modifier.fillMaxWidth().semantics(mergeDescendants = true) { heading() },
@@ -246,9 +248,13 @@ fun ProSectionHeader(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                if (stackTrailing) {
+                    Spacer(modifier = Modifier.height(Spacing.xs))
+                    trailingContent?.invoke()
+                }
             }
         }
-        if (trailingContent != null) {
+        if (trailingContent != null && !stackTrailing) {
             Spacer(modifier = Modifier.width(Spacing.sm))
             trailingContent()
         }
