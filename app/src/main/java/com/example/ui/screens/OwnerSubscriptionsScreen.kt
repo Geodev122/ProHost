@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
@@ -849,7 +850,7 @@ internal fun PlanTile(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        PlayCatalog.badge(kind),
+                        localizedLabel(PlayCatalog.badge(kind)),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = scheme.onSurface,
@@ -1036,7 +1037,7 @@ private fun UnavailablePlanTile(kind: PlayCatalog.PlanKind, modifier: Modifier =
         border = BorderStroke(1.dp, scheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(PlayCatalog.badge(kind), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = scheme.onSurfaceVariant)
+            Text(localizedLabel(PlayCatalog.badge(kind)), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = scheme.onSurfaceVariant)
             Text(stringResource(R.string.not_available_yet), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = scheme.onSurfaceVariant)
             Text(
                 stringResource(R.string.google_play_doesn_t_offer_this_plan_in_you),

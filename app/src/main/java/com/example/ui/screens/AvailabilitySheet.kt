@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -202,7 +203,7 @@ internal fun AvailabilitySheet(
                 sheetSlotGroups.forEach { (strategyType, slots) ->
                     // Strategy section label
                     Text(
-                        if (isAttendeeMode) stringResource(R.string.availability_x, strategyType.displayName) else strategyType.displayName,
+                        if (isAttendeeMode) stringResource(R.string.availability_x, localizedLabel(strategyType.displayName)) else localizedLabel(strategyType.displayName),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.primary
@@ -552,7 +553,7 @@ internal fun AvailabilitySheet(
                                         uiText(R.string.total_for_the_booking_x_usd, com.example.ui.util.AttendeePricing.formatUsd(q.totalUsd))
                                 } ?: ""
                                 val message = uiText(R.string.hello_i_m_interested_in_booking_x, liveSpace.title) +
-                                    " ${liveSpace.district}, ${liveSpace.governorate.displayName}" +
+                                    " ${liveSpace.district}, ${localizedLabel(liveSpace.governorate.displayName)}" +
                                     uiText(R.string.selected_slots_x_xx, totalSelectedSlots, slotLines, attendeeBlock) +
                                     uiText(R.string.are_these_slots_still_available)
                                 try {
@@ -607,7 +608,7 @@ internal fun AvailabilitySheet(
                     // Space / location / room summary
                     listOf(
                         "Space" to liveSpace.title,
-                        "Location" to "${liveSpace.district}, ${liveSpace.governorate.displayName}",
+                        "Location" to "${liveSpace.district}, ${localizedLabel(liveSpace.governorate.displayName)}",
                         "Room" to (selectedSubdivisionForDialog?.name ?: "Whole Space")
                     ).forEach { (label, value) ->
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

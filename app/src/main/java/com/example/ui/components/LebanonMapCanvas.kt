@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -481,7 +482,7 @@ fun LebanonMapCanvas(
                         Marker(
                             state = markerState,
                             title = space.title,
-                            snippet = space.spaceType.displayName,
+                            snippet = localizedLabel(space.spaceType.displayName),
                             icon = markerIconFor(space, isSelected),
                             anchor = androidx.compose.ui.geometry.Offset(0.5f, 1.0f),
                             zIndex = if (isSelected) 2f else 1f,
@@ -644,7 +645,7 @@ fun LebanonMapCanvas(
                         )
                         val typePalette = getMarkerPalette(space, false, spaceTypeSchema)
                         val displayName = sub?.name ?: space.title
-                        val typeBadge = sub?.type?.displayName ?: space.spaceType.displayName
+                        val typeBadge = sub?.type?.displayName ?: localizedLabel(space.spaceType.displayName)
                         val lowestPrice = if (sub != null) {
                             com.example.ui.util.SpaceCalculationUtils.findLowestPriceForSubdivision(sub)
                         } else {

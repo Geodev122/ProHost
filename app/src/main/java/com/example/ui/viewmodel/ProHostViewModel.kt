@@ -1,5 +1,6 @@
 package com.example.ui.viewmodel
 
+import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
 import com.example.ui.util.UiMessages
@@ -625,7 +626,7 @@ class ProHostViewModel(
             attendeeLine != null -> uiText(R.string.per_attendee_x, attendeeLine)
             subdivision != null -> {
                 val price = com.example.ui.util.SpaceCalculationUtils.findLowestPriceForSubdivision(subdivision)
-                if (price.amount > 0.0) uiText(R.string.from_xx, price.amount.toInt(), price.unitLabel) else subdivision.pricing.strategyType.displayName
+                if (price.amount > 0.0) uiText(R.string.from_xx, price.amount.toInt(), price.unitLabel) else localizedLabel(subdivision.pricing.strategyType.displayName)
             }
             selectedFormula != null -> {
                 val unit = com.example.ui.util.SpaceCalculationUtils.rateUnitLabel(selectedFormula.type)
@@ -665,7 +666,7 @@ class ProHostViewModel(
             appendLine(uiText(R.string.i_m_x_x_and_i_found_your_space_on_prohost, professionalName, specialty))
             appendLine()
             appendLine("*Space:* ${space.title}")
-            appendLine(uiText(R.string.location_x_x, space.district, space.governorate.displayName))
+            appendLine(uiText(R.string.location_x_x, space.district, localizedLabel(space.governorate.displayName)))
             if (roomLabel != null) appendLine(uiText(R.string.room_area_x, roomLabel))
             appendLine("*Price:* $priceLabel")
             append(bookingDetails)
@@ -704,8 +705,8 @@ class ProHostViewModel(
 
         val rawMessage = uiText(R.string.hello_x, request.practitionerName) +
                 uiText(R.string.i_am_x_regarding_your_booking_request_x_fo, ownerName, request.publicCode, request.spaceTitle) +
-                uiText(R.string.requested_schedule_x_x_x, daysStr, timesStr, request.formula.type.displayName) +
-                uiText(R.string.status_x, request.status.displayName) +
+                uiText(R.string.requested_schedule_x_x_x, daysStr, timesStr, localizedLabel(request.formula.type.displayName)) +
+                uiText(R.string.status_x, localizedLabel(request.status.displayName)) +
                 uiText(R.string.let_s_discuss_onboarding_and_walk_through)
 
         val cleanPhone = formatWhatsAppNumber(request.practitionerPhone)

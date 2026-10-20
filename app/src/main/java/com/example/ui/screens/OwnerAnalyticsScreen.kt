@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -512,7 +513,7 @@ fun OwnerAnalyticsScreen(
                                                     shape = MaterialTheme.shapes.extraSmall
                                                 ) {
                                                     Text(
-                                                        text = sub.type.displayName,
+                                                        text = localizedLabel(sub.type.displayName),
                                                         style = MaterialTheme.typography.labelSmall,
                                                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                                                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
@@ -660,7 +661,7 @@ fun ListingHealthCard(space: SpaceListing) {
                         // genuinely new admin category has no legacy equivalent and would
                         // otherwise always show as "Private Office" here. Same fallback
                         // OwnerSubscriptionsScreen already uses.
-                        text = space.spaceCategoryName ?: space.spaceType.displayName,
+                        text = space.spaceCategoryName ?: localizedLabel(space.spaceType.displayName),
                         modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,

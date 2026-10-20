@@ -1,5 +1,6 @@
 ﻿package com.example.ui.screens
 
+import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -652,7 +653,7 @@ fun OwnerHubScreenContent(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "${space.district}, ${space.governorate.displayName}",
+                                text = "${space.district}, ${localizedLabel(space.governorate.displayName)}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import androidx.compose.ui.res.stringResource
 import com.example.ui.util.UiMessages
@@ -528,7 +529,7 @@ private fun BookingSlotSelectorDialog(
                             ProStatusBadge(type = ProBadgeType.CUSTOM_INFO, customText = headerBadgeText)
                         }
                         Text(
-                            text = "${space.title} • ${space.district}, ${space.governorate.displayName}",
+                            text = "${space.title} • ${space.district}, ${localizedLabel(space.governorate.displayName)}",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -593,7 +594,7 @@ private fun BookingSlotSelectorDialog(
                                                 color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
                                             )
                                             Text(
-                                                text = stringResource(R.string.type_x, sub.type.displayName),
+                                                text = stringResource(R.string.type_x, localizedLabel(sub.type.displayName)),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -673,7 +674,7 @@ private fun BookingSlotSelectorDialog(
                                     FilterChip(
                                         selected = selectedStrategyType == strategy,
                                         onClick = { selectedStrategyType = strategy },
-                                        label = { Text(strategy.displayName, style = MaterialTheme.typography.labelMedium) }
+                                        label = { Text(localizedLabel(strategy.displayName), style = MaterialTheme.typography.labelMedium) }
                                     )
                                 }
                             }

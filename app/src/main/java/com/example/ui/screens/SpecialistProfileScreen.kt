@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -600,7 +601,7 @@ fun SpecialistProfileScreen(
                                                     )
                                                     Spacer(modifier = Modifier.width(6.dp))
                                                     Text(
-                                                        text = stringResource(R.string.formula_x_x_xx, req.formula.type.displayName, chosenDaysStr, chosenHoursStr, shiftDetail),
+                                                        text = stringResource(R.string.formula_x_x_xx, localizedLabel(req.formula.type.displayName), chosenDaysStr, chosenHoursStr, shiftDetail),
                                                         style = MaterialTheme.typography.bodySmall,
                                                         color = MaterialTheme.colorScheme.primary,
                                                         fontWeight = FontWeight.SemiBold

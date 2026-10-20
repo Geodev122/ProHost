@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -71,7 +72,7 @@ fun DiscoveryScreen(
     val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
     val categoryOptions = remember(architectureSchema) {
         architectureSchema.spaceTypes.filter { it.isEnabled }.ifEmpty {
-            SpaceType.values().map { SchemaItem(id = it.name, name = it.displayName, category = "SPACE_TYPE") }
+            SpaceType.values().map { SchemaItem(id = it.name, name = localizedLabel(it.displayName), category = "SPACE_TYPE") }
         }
     }
 
@@ -149,7 +150,7 @@ fun DiscoveryScreen(
 fun DiscoveryScreenContent(
     spaces: List<SpaceListing>,
     filterState: DiscoveryFilterState,
-    categoryOptions: List<SchemaItem> = SpaceType.values().map { SchemaItem(id = it.name, name = it.displayName, category = "SPACE_TYPE") },
+    categoryOptions: List<SchemaItem> = SpaceType.values().map { SchemaItem(id = it.name, name = localizedLabel(it.displayName), category = "SPACE_TYPE") },
     divisionTypeOptions: List<Level2Type> = Level2Type.entries.toList(),
     availableCountries: List<String> = emptyList(),
     priceBounds: ClosedFloatingPointRange<Float>? = null,
@@ -733,7 +734,7 @@ private fun DiscoveryFilterSheet(
                 label = stringResource(R.string.division_type),
                 options = divisionTypeOptions,
                 selected = filterState.selectedDivisionTypes,
-                optionLabel = { it.displayName },
+                optionLabel = { localizedLabel(it.displayName) },
                 onSelectionChange = onSelectDivisionTypes,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -837,14 +838,14 @@ fun SubdivisionDiscoveryCard(
     WorkspaceCard(
         info = WorkspaceCardInfo(
             title = "${subdivision.name} · ${space.title}",
-            listingType = subdivision.type.displayName,
-            location = "${space.district}, ${space.governorate.displayName}",
+            listingType = localizedLabel(subdivision.type.displayName),
+            location = "${space.district}, ${localizedLabel(space.governorate.displayName)}",
             rateUsd = lowestPrice.amount,
             rateUnit = lowestPrice.unitLabel,
             imageUrl = subdivision.imageUrls.firstOrNull() ?: space.imageUrls.firstOrNull(),
             operatingHours = "${space.schedule.openingHour} - ${space.schedule.closingHour}",
             totalDaysOpen = "${space.schedule.operatingDays.size} days/wk",
-            formulaTypes = listOf(subdivision.pricing.strategyType.displayName),
+            formulaTypes = listOf(localizedLabel(subdivision.pricing.strategyType.displayName)),
             isVerified = space.isVerified
         ),
         isSaved = isSaved,
@@ -869,9 +870,9 @@ fun SpaceListingCard(
     onAvailability: (() -> Unit)? = null
 ) {
     val formulaTypes = mutableSetOf<String>()
-    formulaTypes.add(space.pricing.strategyType.displayName)
+    formulaTypes.add(localizedLabel(space.pricing.strategyType.displayName))
     space.subdivisions.forEach { sub ->
-        formulaTypes.add(sub.pricing.strategyType.displayName)
+        formulaTypes.add(localizedLabel(sub.pricing.strategyType.displayName))
     }
 
     val lowestPrice = com.example.ui.util.SpaceCalculationUtils.findLowestConfiguredPrice(space)
@@ -879,8 +880,8 @@ fun SpaceListingCard(
     WorkspaceCard(
         info = WorkspaceCardInfo(
             title = space.title,
-            listingType = space.spaceType.displayName,
-            location = "${space.district}, ${space.governorate.displayName}",
+            listingType = localizedLabel(space.spaceType.displayName),
+            location = "${space.district}, ${localizedLabel(space.governorate.displayName)}",
             rateUsd = lowestPrice.amount,
             rateUnit = lowestPrice.unitLabel,
             imageUrl = space.imageUrls.firstOrNull(),

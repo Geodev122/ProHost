@@ -68,9 +68,9 @@ object PriceChange {
     /** The space's divisions: one per room, or the whole space when it has none. */
     fun divisionsOf(space: SpaceListing): List<Division> =
         if (space.subdivisions.isEmpty()) {
-            listOf(Division(space.id, "Whole space", space.pricing.strategyType.displayName, null))
+            listOf(Division(space.id, "Whole space", localizedLabel(space.pricing.strategyType.displayName), null))
         } else {
-            space.subdivisions.map { Division(it.id, it.name, it.type.displayName, it) }
+            space.subdivisions.map { Division(it.id, it.name, localizedLabel(it.type.displayName), it) }
         }
 
     /** Every priced slot of a division (per-attendee rooms: their per-person packages). */

@@ -1,5 +1,6 @@
 package com.example.ui.viewmodel
 
+import com.example.ui.util.localizedLabel
 import com.example.R
 import com.example.ui.util.uiText
 import androidx.lifecycle.ViewModel
@@ -237,16 +238,18 @@ class DiscoveryViewModel(
     private fun searchText(space: SpaceListing): String = buildList {
         add(space.title); add(space.description); add(space.district); add(space.city)
         add(space.streetAddress); add(space.governorate.displayName); add(space.spaceType.displayName)
+        // Arabic users can search by the Arabic names too.
+        add(localizedLabel(space.governorate.displayName)); add(localizedLabel(space.spaceType.displayName))
         space.spaceCategoryName?.let { add(it) }
         addAll(space.complementarySpecialties)
         addAll(space.essentialFacilities)
         space.equipment.forEach { add(it.name) }
         space.subdivisions.forEach { sub ->
-            add(sub.name); add(sub.type.displayName); addAll(sub.hashtags); addAll(sub.amenities)
-            add(sub.pricing.strategyType.displayName)
+            add(sub.name); add(localizedLabel(sub.type.displayName)); addAll(sub.hashtags); addAll(sub.amenities)
+            add(localizedLabel(sub.pricing.strategyType.displayName))
             if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) add(uiText(R.string.per_attendee_per_person))
         }
-        add(space.pricing.strategyType.displayName)
+        add(localizedLabel(space.pricing.strategyType.displayName))
     }.joinToString(" ").lowercase()
 
     fun updateSearchQuery(query: String) {

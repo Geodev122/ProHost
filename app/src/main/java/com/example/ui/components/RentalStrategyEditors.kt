@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.localizedLabel
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
@@ -78,7 +79,7 @@ fun RentalPricingConfigEditor(
                             )
                         }
                     },
-                    label = { Text(type.displayName, style = MaterialTheme.typography.labelSmall) }
+                    label = { Text(localizedLabel(type.displayName), style = MaterialTheme.typography.labelSmall) }
                 )
             }
         }
@@ -304,7 +305,7 @@ fun ShiftStrategyEditor(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                    Text(shift.name.displayName, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                    Text(localizedLabel(shift.name.displayName), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.unavailable), style = MaterialTheme.typography.labelSmall)
                         Switch(
@@ -391,7 +392,7 @@ fun ShiftStrategyEditor(
                                 val updated = if (isOn) offeredToday - shift.name.name else offeredToday + shift.name.name
                                 onConfigChange(config.copy(distribution = config.distribution + (day to updated)))
                             },
-                            label = { Text(shift.name.displayName, style = MaterialTheme.typography.labelSmall) }
+                            label = { Text(localizedLabel(shift.name.displayName), style = MaterialTheme.typography.labelSmall) }
                         )
                     }
                 }

@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.localizedLabel
 import com.example.ui.theme.proColors
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -199,7 +200,7 @@ private fun VerificationPanel(target: GrantLookupResult) {
             SelectionContainer {
                 Text("Account: ${target.displayCode.ifBlank { target.uid }}", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
             }
-            val access = target.ownerPackageId?.let { PlayCatalog.planLabel(it) } ?: "None"
+            val access = target.ownerPackageId?.let { localizedLabel(PlayCatalog.planLabel(it)) } ?: "None"
             Text(
                 "Role: ${roleLabel(target.role)} · Access: $access" +
                     (if (target.ownerPackageId != null) " (${formatExpiry(target.ownerPackageExpiryMillis)})" else "") +

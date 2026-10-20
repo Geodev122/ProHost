@@ -127,9 +127,9 @@ object SpaceCalculationUtils {
                         val shift = shiftsByName[shiftNameStr] ?: return@mapNotNull null
                         if (shift.isUnavailable) return@mapNotNull null
                         RentableSlot(
-                            groupLabel = "Shift • ${shift.name.displayName}", day = day,
+                            groupLabel = "Shift • ${localizedLabel(shift.name.displayName)}", day = day,
                             startTime = hourLabel(shift.startHour), endTime = hourLabel(shift.endHour),
-                            label = "$day  ${shift.name.displayName} (${hourLabel(shift.startHour)}-${hourLabel(shift.endHour)})",
+                            label = "$day  ${localizedLabel(shift.name.displayName)} (${hourLabel(shift.startHour)}-${hourLabel(shift.endHour)})",
                             sourceFormulaId = sourceId,
                             // Single flat price per shift now (item 7b) — a single-
                             // entry map keyed FLAT, matching Monthly/Hourly's shape,

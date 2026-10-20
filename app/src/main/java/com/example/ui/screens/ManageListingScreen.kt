@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -245,7 +246,7 @@ private fun DivisionPerformanceCard(
                         shape = MaterialTheme.shapes.small
                     ) {
                         Text(
-                            division.pricing.strategyType.displayName,
+                            localizedLabel(division.pricing.strategyType.displayName),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,

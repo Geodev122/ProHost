@@ -1,5 +1,6 @@
 package com.example.ui.components.drawer
 
+import com.example.ui.util.localizedLabel
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
@@ -169,7 +170,7 @@ fun DrawerIdentityCard(
                         }
 
                         Text(
-                            text = user?.specialty?.ifBlank { role.displayName } ?: role.displayName,
+                            text = user?.specialty?.ifBlank { localizedLabel(role.displayName) } ?: localizedLabel(role.displayName),
                             style = MaterialTheme.typography.bodyMedium,
                             color = pro.onBrandHeader.copy(alpha = 0.85f),
                             maxLines = 1,

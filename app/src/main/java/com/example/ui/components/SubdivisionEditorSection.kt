@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -374,7 +375,7 @@ fun SubdivisionEditorSection(
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.extraSmall) {
                                     Text(
-                                        sub.type.displayName,
+                                        localizedLabel(sub.type.displayName),
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -383,8 +384,8 @@ fun SubdivisionEditorSection(
                                 Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.extraSmall) {
                                     Text(
                                         if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) {
-                                            uiText(R.string.x_per_attendee, sub.pricing.strategyType.displayName)
-                                        } else sub.pricing.strategyType.displayName,
+                                            uiText(R.string.x_per_attendee, localizedLabel(sub.pricing.strategyType.displayName))
+                                        } else localizedLabel(sub.pricing.strategyType.displayName),
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -441,11 +442,11 @@ fun SubdivisionEditorSection(
         if (showTypePicker) {
             SearchablePickerDialog(
                 title = stringResource(R.string.room_unit_type),
-                options = Level2Type.values().map { it.displayName },
-                selected = setOf(subType.displayName),
+                options = Level2Type.values().map { localizedLabel(it.displayName) },
+                selected = setOf(localizedLabel(subType.displayName)),
                 multiSelect = false,
                 onToggle = { label ->
-                    Level2Type.values().firstOrNull { it.displayName == label }?.let { subType = it }
+                    Level2Type.values().firstOrNull { localizedLabel(it.displayName) == label }?.let { subType = it }
                     showTypePicker = false
                 },
                 onDismiss = { showTypePicker = false }
@@ -502,7 +503,7 @@ fun SubdivisionEditorSection(
 
                 Text(stringResource(R.string.type), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 PickerTriggerRow(
-                    summary = subType.displayName,
+                    summary = localizedLabel(subType.displayName),
                     placeholder = stringResource(R.string.choose_a_room_type),
                     onClick = { showTypePicker = true }
                 )

@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.localizedLabel
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
@@ -75,7 +76,7 @@ fun CancelAcceptedBookingDialog(
                             ) {
                                 RadioButton(selected = selectedReason == reason, onClick = { selectedReason = reason })
                                 Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text(reason.displayName, style = MaterialTheme.typography.bodySmall)
+                                Text(localizedLabel(reason.displayName), style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }

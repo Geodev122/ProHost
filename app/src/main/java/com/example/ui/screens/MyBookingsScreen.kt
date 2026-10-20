@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -535,7 +536,7 @@ fun BookingReservationCard(
                         )
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
-                            text = stringResource(R.string.x_x_ref_x, booking.spaceDistrict, booking.governorate.displayName, booking.publicCode),
+                            text = stringResource(R.string.x_x_ref_x, booking.spaceDistrict, localizedLabel(booking.governorate.displayName), booking.publicCode),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -578,7 +579,7 @@ fun BookingReservationCard(
                         Column {
                             Text(stringResource(R.string.formula_timing), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(
-                                text = booking.formula.type.displayName,
+                                text = localizedLabel(booking.formula.type.displayName),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface

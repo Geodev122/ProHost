@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -129,7 +130,7 @@ fun SpaceDetailsScreen(
             val shareUrl = ShareLinks.forListing(liveSpace.id)
             val shareText = buildString {
                 append("🏢 ${liveSpace.title}")
-                append("\n📍 ${liveSpace.district}, ${liveSpace.governorate.displayName}")
+                append("\n📍 ${liveSpace.district}, ${localizedLabel(liveSpace.governorate.displayName)}")
                 if (liveSpace.description.isNotBlank()) {
                     append("\n${liveSpace.description}")
                 }
@@ -481,7 +482,7 @@ fun SpaceDetailsScreenContent(
                             shape = MaterialTheme.shapes.small
                         ) {
                             Text(
-                                text = "${liveSpace.spaceCategoryName ?: liveSpace.spaceType.displayName} • " +
+                                text = "${liveSpace.spaceCategoryName ?: localizedLabel(liveSpace.spaceType.displayName)} • " +
                                     "${if (liveSpace.isShared) "Shared Co-Working Space" else "Private Studio / Office"}",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
@@ -512,7 +513,7 @@ fun SpaceDetailsScreenContent(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "${liveSpace.district}, ${liveSpace.governorate.displayName} • ${liveSpace.floorInfo}",
+                            text = "${liveSpace.district}, ${localizedLabel(liveSpace.governorate.displayName)} • ${liveSpace.floorInfo}",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xCCFFFFFF),
                             maxLines = 1,
@@ -738,13 +739,13 @@ fun SpaceDetailsScreenContent(
                                 SubdivisionRentalCard(
                                     info = SubdivisionRentalCardInfo(
                                         name = sub.name,
-                                        typeBadge = sub.type.displayName,
+                                        typeBadge = localizedLabel(sub.type.displayName),
                                         imageUrls = sub.imageUrls,
                                         amenities = sub.amenities,
                                         hashtags = sub.hashtags,
                                         priceSummary = if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) {
-                                            uiText(R.string.per_attendee_x_slots_x, sub.pricing.strategyType.displayName, priceSummary)
-                                        } else "${sub.pricing.strategyType.displayName} · $priceSummary",
+                                            uiText(R.string.per_attendee_x_slots_x, localizedLabel(sub.pricing.strategyType.displayName), priceSummary)
+                                        } else "${localizedLabel(sub.pricing.strategyType.displayName)} · $priceSummary",
                                         isOccupied = isOccupied,
                                         capacity = sub.capacity,
                                         hasCustomHours = sub.scheduleOverride != null,
