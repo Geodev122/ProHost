@@ -457,7 +457,8 @@ private fun monthIsWithinBooking(booking: RentalBookingRequest, mm: Int, yy: Int
 private data class DayRow(val isoDate: String, val label: String, val slots: List<RentableSlot>)
 
 private val ISO_DATE = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
-private val DAY_LABEL = java.text.SimpleDateFormat("EEE d MMM", java.util.Locale.getDefault())
+// In the app language at the time of formatting (Arabic users see Arabic day and month names).
+private fun dayLabelFormat() = java.text.SimpleDateFormat("EEE d MMM", com.example.ui.util.UiText.resources?.configuration?.locales?.get(0) ?: java.util.Locale.getDefault())
 private val WEEKDAY_SHORT = java.text.SimpleDateFormat("EEE", java.util.Locale.US)
 
 /** The next 7 days (today first) with the division's slots for each weekday. */
@@ -469,7 +470,7 @@ private fun upcomingDays(division: DivisionInfo): List<DayRow> {
         val date = cal.time
         val row = DayRow(
             isoDate = ISO_DATE.format(date),
-            label = DAY_LABEL.format(date),
+            label = dayLabelFormat().format(date),
             slots = slotsByDay[WEEKDAY_SHORT.format(date)].orEmpty().sortedBy { s -> s.startTime }
         )
         cal.add(Calendar.DAY_OF_YEAR, 1)
