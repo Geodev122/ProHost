@@ -213,7 +213,6 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             "explore_map" -> Preview03_MapViewScreen()
             "owner_hub" -> Preview06_OwnerHubScreen()
             "renting_progress" -> Preview08_ActiveTenanciesScreen()
-            "sign_in" -> Preview11_SignInScreen()
             else -> ProHostTheme {
                 when (screen) {
                     "space_details" -> SpaceDetailsScreenContent(
@@ -350,7 +349,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
 
         val SCREENS = listOf(
             "explore_list", "explore_map", "space_details", "saved", "my_rentals", "profile",
-            "premium", "premium_plans", "whatsapp_number", "owner_hub", "manage_listing", "renting_requests", "renting_progress", "owner_analytics", "sign_in"
+            "premium", "premium_plans", "whatsapp_number", "owner_hub", "manage_listing", "renting_requests", "renting_progress", "owner_analytics"
         )
         /** Sheets, dialogs and forms (captured with their windows). */
         val OVERLAYS = listOf(

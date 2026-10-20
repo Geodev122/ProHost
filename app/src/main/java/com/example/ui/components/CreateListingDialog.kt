@@ -190,6 +190,9 @@ fun CreateListingDialog(
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    // "Save draft" sits in the header (the bottom row was too narrow on small phones); its action is built further
+    // down, next to buildListing, and read only when tapped.
+    val saveDraftAction = remember { arrayOf<() -> Unit>({}) }
     val storageService = remember { FirebaseStorageService.getInstance() }
 
     // Generated up front (not just at submit time) so photos can upload to their final
@@ -484,6 +487,8 @@ fun CreateListingDialog(
                             text = if (existingDraft != null) stringResource(R.string.continue_draft_listing) else stringResource(R.string.publish_workspace_listing),
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 2,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                             modifier = Modifier.semantics { heading() }
                         )
                         // Only ever true once the auto-save LaunchedEffect below has
@@ -497,6 +502,15 @@ fun CreateListingDialog(
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+                    // Save as Draft — bypasses the Publish button's requiredness gate (no pin/ownership-proof
+                    // requirement); available at any step so a host can save partial progress and come back later.
+                    // Hidden in admin-edit mode (onListingUpdated != null): demoting an existing ACTIVE/PAUSED listing
+                    // to Draft is not something "Edit" should ever do silently.
+                    if (onListingUpdated == null) {
+                        TextButton(onClick = { saveDraftAction[0]() }) {
+                            Text(stringResource(R.string.save_draft_short), style = MaterialTheme.typography.labelLarge)
+                        }
                     }
                 }
 
@@ -1236,25 +1250,12 @@ fun CreateListingDialog(
                         }
                     }
 
-                    // Save as Draft — bypasses the Publish button's requiredness gate
-                    // below entirely (no pin/ownership-proof requirement); available at
-                    // any step so a host can save partial progress and come back later.
-                    // Not part of the wizard's step-by-step flow — an explicit opt-out.
-                    // Hidden entirely in admin-edit mode (onListingUpdated != null):
-                    // demoting an already-existing ACTIVE/PAUSED listing to Draft is not
-                    // something "Edit" should ever do silently.
-                    if (onListingUpdated == null) {
-                        ProOutlinedButton(
-                            // Short label: next to Back and Next the longer "Save as Draft" was cut to "Save as D…".
-                            text = stringResource(R.string.save_draft_short),
-                            onClick = {
-                                coroutineScope.launch {
-                                    val fallback = resolveFallbackGeocode()
-                                    onSaveDraft(buildListing(ListingStatus.DRAFT, fallback))
-                                }
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
+                    // The header's "Save draft" runs this (it needs buildListing, declared in this scope).
+                    saveDraftAction[0] = {
+                        coroutineScope.launch {
+                            val fallback = resolveFallbackGeocode()
+                            onSaveDraft(buildListing(ListingStatus.DRAFT, fallback))
+                        }
                     }
 
                     ProPrimaryButton(
@@ -1280,7 +1281,7 @@ fun CreateListingDialog(
                                 }
                             }
                         },
-                        modifier = Modifier.weight(1.5f),
+                        modifier = Modifier.weight(1f),
                         enabled = if (currentStep < totalSteps - 1) {
                             if (currentStep == 0) {
                                 // pickedLatLng is required here too now, not just at the

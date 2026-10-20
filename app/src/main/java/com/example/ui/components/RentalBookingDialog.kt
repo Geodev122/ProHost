@@ -1184,10 +1184,10 @@ private fun BookingSlotSelectorDialog(
 
                 Spacer(modifier = Modifier.height(Spacing.md))
 
-                // Bottom Action Buttons
-                Row(
+                // Bottom Action Buttons — stacked full width: side by side, "Request and Contact" was cut off on small phones.
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     // Shift-Based and Day-Based have no abstract "start date" preset
                     // anymore — the earliest real calendar date picked is the most
@@ -1258,7 +1258,7 @@ private fun BookingSlotSelectorDialog(
                         icon = Icons.AutoMirrored.Filled.Send,
                         compact = true,
                         enabled = canSubmit,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.fillMaxWidth()
                     )
 
                     // Request + WhatsApp Connect Button
@@ -1304,7 +1304,7 @@ private fun BookingSlotSelectorDialog(
                         iconPainter = painterResource(id = R.drawable.ic_whatsapp),
                         compact = true,
                         enabled = canSubmit,
-                        modifier = Modifier.weight(1.3f)
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }

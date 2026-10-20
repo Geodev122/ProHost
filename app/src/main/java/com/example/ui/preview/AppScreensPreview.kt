@@ -484,13 +484,6 @@ fun Preview11_SignInScreen() {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Continue with Google")
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                TextButton(
-                    onClick = {},
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Sign in with Phone OTP instead")
-                }
             }
         }
     }
