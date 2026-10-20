@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
@@ -54,7 +56,7 @@ fun KycCompletionBanner(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Default.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                 Text(
-                    if (isHost) "Ready to host" else "Ready to book",
+                    if (isHost) stringResource(R.string.ready_to_host) else stringResource(R.string.ready_to_book),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -75,7 +77,7 @@ fun KycCompletionBanner(
                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
                         Icon(
                             imageVector = if (step.done) Icons.Default.CheckCircle else step.icon,
-                            contentDescription = if (step.done) "${step.label}: done" else "${step.label}: to do",
+                            contentDescription = if (step.done) stringResource(R.string.x_done, step.label) else stringResource(R.string.x_to_do, step.label),
                             tint = color,
                             modifier = Modifier.size(20.dp)
                         )
@@ -86,13 +88,13 @@ fun KycCompletionBanner(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
             Text(
-                "Next: ${next.label.lowercase()}",
+                stringResource(R.string.next_x, next.label.lowercase()),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                if (isHost) "Needed once before you publish listings." else "Needed once before your first booking request.",
+                if (isHost) stringResource(R.string.needed_once_before_you_publish_listings) else stringResource(R.string.needed_once_before_your_first_booking_requ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -103,7 +105,7 @@ fun KycCompletionBanner(
                 shape = MaterialTheme.shapes.medium,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text("Complete now", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.complete_now), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
             }
         }
     }

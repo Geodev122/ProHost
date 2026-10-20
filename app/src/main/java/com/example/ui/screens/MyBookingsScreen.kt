@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
 import com.example.ui.util.UiMessages
 import androidx.compose.animation.AnimatedVisibility
@@ -190,19 +192,19 @@ fun MyBookingsScreen(
                     selected = selectedMainTab == 0,
                     onClick = { selectedMainTab = 0 },
                     shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
-                    label = { Text("Active (${activeBookings.size})", style = MaterialTheme.typography.labelSmall) }
+                    label = { Text(stringResource(R.string.active_x, activeBookings.size), style = MaterialTheme.typography.labelSmall) }
                 )
                 SegmentedButton(
                     selected = selectedMainTab == 1,
                     onClick = { selectedMainTab = 1 },
                     shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
-                    label = { Text("Pending (${pendingBookings.size})", style = MaterialTheme.typography.labelSmall) }
+                    label = { Text(stringResource(R.string.pending_x, pendingBookings.size), style = MaterialTheme.typography.labelSmall) }
                 )
                 SegmentedButton(
                     selected = selectedMainTab == 2,
                     onClick = { selectedMainTab = 2 },
                     shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
-                    label = { Text("Past (${pastBookings.size})", style = MaterialTheme.typography.labelSmall) }
+                    label = { Text(stringResource(R.string.past_x, pastBookings.size), style = MaterialTheme.typography.labelSmall) }
                 )
             }
         }
@@ -234,12 +236,12 @@ fun MyBookingsScreen(
                         modifier = Modifier.size(48.dp)
                     )
                     Text(
-                        "Can't reach server",
+                        stringResource(R.string.can_t_reach_server),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        "Check your connection and try again.",
+                        stringResource(R.string.check_your_connection_and_try_again),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -254,9 +256,9 @@ fun MyBookingsScreen(
                         1 -> "No pending requests"
                         else -> "No past bookings"
                     },
-                    description = "Find a space and send a booking request — it shows up here.",
+                    description = stringResource(R.string.find_a_space_and_send_a_booking_request_it),
                     icon = Icons.AutoMirrored.Filled.ReceiptLong,
-                    actionButtonText = "Explore spaces",
+                    actionButtonText = stringResource(R.string.explore_spaces),
                     onActionClick = onNavigateToDiscovery,
                     modifier = Modifier.testTag("empty_state_browse_button")
                 )
@@ -288,7 +290,7 @@ fun MyBookingsScreen(
                             // would send the request to a different host).
                             if (space == null) {
                                 UiMessages.show(context,
-                                    "This workspace is no longer available to book.",
+                                    context.getString(R.string.this_workspace_is_no_longer_available_to_b),
                                     long = false)
                             } else {
                                 rebookTargetSpaceId = space.id
@@ -311,7 +313,7 @@ fun MyBookingsScreen(
                                 try {
                                     context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)))
                                 } catch (e: Exception) {
-                                    UiMessages.show(context, "Could not open the agreement.")
+                                    UiMessages.show(context, context.getString(R.string.could_not_open_the_agreement))
                                 }
                             }
                         },
@@ -384,7 +386,7 @@ fun MyBookingsScreen(
         // guards it explicitly rather than force-unwrapping.
         if (targetSpace == null) {
             LaunchedEffect(editTargetSpaceId) {
-                UiMessages.show(context, "This space is no longer available to edit.")
+                UiMessages.show(context, context.getString(R.string.this_space_is_no_longer_available_to_edit))
                 editTargetSpaceId = null
                 editSourceBooking = null
             }
@@ -417,20 +419,20 @@ fun MyBookingsScreen(
         ProHostDialog(
             onDismissRequest = { pendingCancelTarget = null },
             icon = { Icon(Icons.Default.Cancel, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-            title = { Text("Cancel this request?") },
-            text = { Text("Your rental request for \"${target.spaceTitle}\" will be withdrawn. The host will no longer be able to accept it.") },
+            title = { Text(stringResource(R.string.cancel_this_request)) },
+            text = { Text(stringResource(R.string.your_rental_request_for_x_will_be_withdraw, target.spaceTitle)) },
             confirmButton = {
                 TextButton(onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     viewModel.cancelBookingRequest(target.id, context)
                     pendingCancelTarget = null
                 }) {
-                    Text("Cancel Request", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.cancel_request), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { pendingCancelTarget = null }) {
-                    Text("Keep Request")
+                    Text(stringResource(R.string.keep_request))
                 }
             }
         )
@@ -517,7 +519,7 @@ fun BookingReservationCard(
                             Spacer(modifier = Modifier.width(Spacing.xs))
                             Icon(
                                 Icons.Default.Verified,
-                                contentDescription = "Verified Space",
+                                contentDescription = stringResource(R.string.verified_space),
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -532,7 +534,7 @@ fun BookingReservationCard(
                         )
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
-                            text = "${booking.spaceDistrict}, ${booking.governorate.displayName} • Ref ${booking.publicCode}",
+                            text = stringResource(R.string.x_x_ref_x, booking.spaceDistrict, booking.governorate.displayName, booking.publicCode),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -573,7 +575,7 @@ fun BookingReservationCard(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column {
-                            Text("FORMULA & TIMING", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.formula_timing), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(
                                 text = booking.formula.type.displayName,
                                 style = MaterialTheme.typography.bodySmall,
@@ -598,9 +600,9 @@ fun BookingReservationCard(
                         }
 
                         Column(horizontalAlignment = Alignment.End) {
-                            Text("DURATION & LEASE", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.duration_lease), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(
-                                text = "${booking.durationMonths} Month(s)",
+                                text = stringResource(R.string.x_month_s, booking.durationMonths),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -629,9 +631,9 @@ fun BookingReservationCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("Total Commitment", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.total_commitment), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        text = "${formatUsd(booking.totalAmountUsd)} USD",
+                        text = stringResource(R.string.x_usd_2, formatUsd(booking.totalAmountUsd)),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.primary
@@ -645,7 +647,7 @@ fun BookingReservationCard(
                     if (booking.agreementUrl != null) {
                         Surface(color = MaterialTheme.proColors.successContainer, shape = MaterialTheme.shapes.small) {
                             Text(
-                                "Space Rules On File",
+                                stringResource(R.string.space_rules_on_file),
                                 color = MaterialTheme.proColors.onSuccessContainer,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
@@ -655,7 +657,7 @@ fun BookingReservationCard(
                     } else {
                         Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.small) {
                             Text(
-                                "No space rules or access guidance provided",
+                                stringResource(R.string.no_space_rules_or_access_guidance_provided),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 12.sp,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -679,14 +681,14 @@ fun BookingReservationCard(
                             Spacer(modifier = Modifier.width(4.dp))
                         }
                         Text(
-                            text = if (booking.paymentAcknowledgedBySpecialist) "You marked this paid" else "Not marked paid yet",
+                            text = if (booking.paymentAcknowledgedBySpecialist) stringResource(R.string.you_marked_this_paid) else stringResource(R.string.not_marked_paid_yet),
                             style = MaterialTheme.typography.labelSmall,
                             color = if (booking.paymentAcknowledgedBySpecialist) MaterialTheme.proColors.success else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     if (!booking.paymentAcknowledgedBySpecialist) {
                         TextButton(onClick = onMarkPaid) {
-                            Text("Mark as Paid", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.mark_as_paid), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -721,7 +723,7 @@ fun BookingReservationCard(
                     Icon(Icons.Default.Repeat, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = if (booking.status == BookingRequestStatus.ACCEPTED) "Extend / Re-book" else "Re-book Space",
+                        text = if (booking.status == BookingRequestStatus.ACCEPTED) stringResource(R.string.extend_re_book) else stringResource(R.string.re_book_space),
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.labelMedium
                     )
@@ -734,7 +736,7 @@ fun BookingReservationCard(
                         .size(40.dp)
                         .background(WhatsAppGreen.copy(alpha = 0.15f), MaterialTheme.shapes.medium)
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "WhatsApp Host", tint = WhatsAppDarkGreen, modifier = Modifier.size(18.dp))
+                    Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = stringResource(R.string.whatsapp_host), tint = WhatsAppDarkGreen, modifier = Modifier.size(18.dp))
                 }
 
                 val hasMoreActions = booking.status == BookingRequestStatus.ACCEPTED || booking.status == BookingRequestStatus.PENDING
@@ -748,7 +750,7 @@ fun BookingReservationCard(
                         ) {
                             Icon(
                                 Icons.Default.MoreVert,
-                                contentDescription = "More Actions",
+                                contentDescription = stringResource(R.string.more_actions),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -758,13 +760,13 @@ fun BookingReservationCard(
                                 // Due dates go to the user's own calendar app, which
                                 // gives local reminders for each payment.
                                 DropdownMenuItem(
-                                    text = { Text("Add payment reminders") },
+                                    text = { Text(stringResource(R.string.add_payment_reminders)) },
                                     leadingIcon = { Icon(Icons.Default.EventAvailable, contentDescription = null) },
                                     onClick = { showMoreMenu = false; onAddPaymentReminders() }
                                 )
                                 if (booking.agreementUrl != null) {
                                     DropdownMenuItem(
-                                        text = { Text("View Space Rules & Access") },
+                                        text = { Text(stringResource(R.string.view_space_rules_access)) },
                                         leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
                                         onClick = { showMoreMenu = false; onViewAgreement() }
                                     )
@@ -773,14 +775,14 @@ fun BookingReservationCard(
                                 // replaces this booking if/when accepted, distinct from
                                 // Re-book/Extend (which creates an independent new lease).
                                 if (canCreateBookings) DropdownMenuItem(
-                                    text = { Text("Edit Booking") },
+                                    text = { Text(stringResource(R.string.edit_booking)) },
                                     leadingIcon = { Icon(Icons.Default.EditCalendar, contentDescription = null) },
                                     modifier = Modifier.testTag("edit_booking_button_${booking.id}"),
                                     onClick = { showMoreMenu = false; onEditBooking() }
                                 )
                                 // Cancel Accepted Booking (early termination)
                                 DropdownMenuItem(
-                                    text = { Text("Cancel Booking", color = MaterialTheme.colorScheme.error) },
+                                    text = { Text(stringResource(R.string.cancel_booking), color = MaterialTheme.colorScheme.error) },
                                     leadingIcon = { Icon(Icons.Default.EventBusy, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
                                     onClick = { showMoreMenu = false; onCancelAcceptedBooking() }
                                 )
@@ -788,7 +790,7 @@ fun BookingReservationCard(
                             if (booking.status == BookingRequestStatus.PENDING) {
                                 // Cancel Request — withdraws a not-yet-accepted request
                                 DropdownMenuItem(
-                                    text = { Text("Cancel Request", color = MaterialTheme.colorScheme.error) },
+                                    text = { Text(stringResource(R.string.cancel_request), color = MaterialTheme.colorScheme.error) },
                                     leadingIcon = { Icon(Icons.Default.Close, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
                                     onClick = { showMoreMenu = false; onCancelRequest() }
                                 )

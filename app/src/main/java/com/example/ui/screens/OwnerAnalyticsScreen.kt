@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -147,8 +149,8 @@ fun OwnerAnalyticsScreen(
 
     if (displayListings.isEmpty()) {
         ProEmptyState(
-            title = "No listings yet",
-            description = "Publish a workspace listing to start seeing real analytics here.",
+            title = stringResource(R.string.no_listings_yet),
+            description = stringResource(R.string.publish_a_workspace_listing_to_start_seein),
             icon = Icons.Default.Analytics,
             modifier = Modifier.fillMaxSize().testTag("owner_analytics_screen")
         )
@@ -168,8 +170,8 @@ fun OwnerAnalyticsScreen(
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     ProSectionHeader(
-                        title = "Analytics & Revenue",
-                        subtitle = "Live Telemetry",
+                        title = stringResource(R.string.analytics_revenue),
+                        subtitle = stringResource(R.string.live_telemetry),
                         icon = Icons.Default.Analytics
                     )
 
@@ -179,16 +181,16 @@ fun OwnerAnalyticsScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         ProMetricTile(
-                            title = "Listings",
+                            title = stringResource(R.string.listings),
                             value = "${activeListings.size}",
-                            subtitle = "Active spaces",
+                            subtitle = stringResource(R.string.active_spaces),
                             icon = Icons.Default.HomeWork,
                             modifier = Modifier.weight(1f)
                         )
                         ProMetricTile(
-                            title = "Inquiries",
+                            title = stringResource(R.string.inquiries),
                             value = "$totalInquiries",
-                            subtitle = "WhatsApp Leads",
+                            subtitle = stringResource(R.string.whatsapp_leads),
                             icon = Icons.AutoMirrored.Filled.Chat,
                             iconTint = WhatsAppGreen,
                             modifier = Modifier.weight(1f)
@@ -200,17 +202,17 @@ fun OwnerAnalyticsScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         ProMetricTile(
-                            title = "Est. MRR",
+                            title = stringResource(R.string.est_mrr),
                             value = "$${totalRevenuePotential.toInt()}",
-                            subtitle = "Monthly Potential",
+                            subtitle = stringResource(R.string.monthly_potential),
                             icon = Icons.Default.AttachMoney,
                             iconTint = MaterialTheme.proColors.success,
                             modifier = Modifier.weight(1f)
                         )
                         ProMetricTile(
-                            title = "Saved",
+                            title = stringResource(R.string.saved_2),
                             value = "$totalFavorites",
-                            subtitle = "By Specialists",
+                            subtitle = stringResource(R.string.by_specialists),
                             icon = Icons.Default.Favorite,
                             iconTint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.weight(1f)
@@ -244,13 +246,13 @@ fun OwnerAnalyticsScreen(
                                 )
                                 Column {
                                     Text(
-                                        text = "$${confirmedRevThisMonth.toInt()} USD",
+                                        text = stringResource(R.string.x_usd, confirmedRevThisMonth.toInt()),
                                         style = MaterialTheme.typography.headlineSmall,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = MaterialTheme.proColors.success
                                     )
                                     Text(
-                                        text = "Revenue this month",
+                                        text = stringResource(R.string.revenue_this_month),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -274,7 +276,7 @@ fun OwnerAnalyticsScreen(
                                         color = if (revenueDelta >= 0) MaterialTheme.proColors.success else MaterialTheme.colorScheme.error
                                     )
                                     Text(
-                                        text = "vs last month",
+                                        text = stringResource(R.string.vs_last_month),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -289,17 +291,17 @@ fun OwnerAnalyticsScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         ProMetricTile(
-                            title = "Bookings",
+                            title = stringResource(R.string.bookings),
                             value = "$bookingsThisMonth",
-                            subtitle = "Confirmed this mo.",
+                            subtitle = stringResource(R.string.confirmed_this_mo),
                             icon = Icons.Default.EventAvailable,
                             iconTint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f)
                         )
                         ProMetricTile(
-                            title = "Pending",
+                            title = stringResource(R.string.pending),
                             value = "$${pendingRevenue.toInt()}",
-                            subtitle = "Awaiting approval",
+                            subtitle = stringResource(R.string.awaiting_approval),
                             icon = Icons.Default.HourglassTop,
                             iconTint = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier.weight(1f)
@@ -316,7 +318,7 @@ fun OwnerAnalyticsScreen(
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     ProSectionHeader(
-                        title = "Attracted Discipline",
+                        title = stringResource(R.string.attracted_discipline),
                         icon = Icons.Default.LocalHospital
                     )
 
@@ -324,7 +326,7 @@ fun OwnerAnalyticsScreen(
 
                     if (specialtyDemand.isEmpty()) {
                         Text(
-                            text = "No booking requests yet — demand by discipline will appear here once practitioners start booking.",
+                            text = stringResource(R.string.no_booking_requests_yet_demand_by_discipli),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -351,13 +353,13 @@ fun OwnerAnalyticsScreen(
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     ProSectionHeader(
-                        title = "Booking Mix",
+                        title = stringResource(R.string.booking_mix),
                         subtitle = "${ownerBookings.size} request${if (ownerBookings.size == 1) "" else "s"} by renting strategy",
                         icon = Icons.Default.Analytics
                     )
                     if (bookingMix.isEmpty()) {
                         Text(
-                            text = "No booking requests yet — the mix of hourly, shift, day, monthly and per-attendee bookings will appear here.",
+                            text = stringResource(R.string.no_booking_requests_yet_the_mix_of_hourly),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -387,7 +389,7 @@ fun OwnerAnalyticsScreen(
                         if (acceptedAttendeeBookings.isNotEmpty()) {
                             val people = acceptedAttendeeBookings.sumOf { it.attendeeCount }
                             Text(
-                                "Per-attendee: ${acceptedAttendeeBookings.size} accepted · $people attendees · " +
+                                stringResource(R.string.per_attendee_x_accepted_x_attendees, acceptedAttendeeBookings.size, people) +
                                     "average group ${String.format(java.util.Locale.US, "%.1f", people.toDouble() / acceptedAttendeeBookings.size)}",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold
@@ -401,8 +403,8 @@ fun OwnerAnalyticsScreen(
         // Active Listings Health
         item {
             ProSectionHeader(
-                title = "My Listings",
-                subtitle = "Subscription & listing health",
+                title = stringResource(R.string.my_listings),
+                subtitle = stringResource(R.string.subscription_listing_health),
                 icon = Icons.Default.Shield
             )
         }
@@ -416,15 +418,15 @@ fun OwnerAnalyticsScreen(
             ProSurfaceCard {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     ProSectionHeader(
-                        title = "Listings Yield",
-                        subtitle = "Confirmed revenue · this month vs last",
+                        title = stringResource(R.string.listings_yield),
+                        subtitle = stringResource(R.string.confirmed_revenue_this_month_vs_last),
                         icon = Icons.AutoMirrored.Filled.TrendingUp
                     )
 
                     val yieldListings = activeListings.ifEmpty { displayListings }
                     if (yieldListings.isEmpty()) {
                         Text(
-                            text = "Publish an active listing to see yield data.",
+                            text = stringResource(R.string.publish_an_active_listing_to_see_yield_dat),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -469,12 +471,12 @@ fun OwnerAnalyticsScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = "This month: $${thisMonth.toInt()}",
+                                        text = stringResource(R.string.this_month_x, thisMonth.toInt()),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = if (thisMonth >= prevMonth) MaterialTheme.proColors.success else MaterialTheme.colorScheme.error
                                     )
                                     Text(
-                                        text = "Last month: $${prevMonth.toInt()}",
+                                        text = stringResource(R.string.last_month_x, prevMonth.toInt()),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -542,7 +544,7 @@ fun OwnerAnalyticsScreen(
 
                                 if (thisMonth == 0.0 && prevMonth == 0.0 && listing.subdivisions.isEmpty()) {
                                     Text(
-                                        text = "No accepted bookings yet this month",
+                                        text = stringResource(R.string.no_accepted_bookings_yet_this_month),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -572,7 +574,7 @@ fun DisciplineDemandBar(name: String, percentage: Int, color: Color) {
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = "$percentage% demand",
+                text = stringResource(R.string.x_demand, percentage),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 color = color
@@ -636,7 +638,7 @@ fun ListingHealthCard(space: SpaceListing) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = if (premiumActive) "Premium active" else "Premium lapsed — renew to publish",
+                        text = if (premiumActive) stringResource(R.string.premium_active) else stringResource(R.string.premium_lapsed_renew_to_publish),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = if (premiumActive) MaterialTheme.proColors.success else MaterialTheme.colorScheme.error
@@ -667,7 +669,7 @@ fun ListingHealthCard(space: SpaceListing) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                     Icon(Icons.Default.Favorite, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(12.dp))
                     Text(
-                        text = "${space.favoriteCount} saved",
+                        text = stringResource(R.string.x_saved, space.favoriteCount),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

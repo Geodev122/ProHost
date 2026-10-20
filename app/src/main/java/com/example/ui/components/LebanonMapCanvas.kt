@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
 import com.example.ui.util.UiMessages
 import android.Manifest
@@ -306,14 +308,14 @@ fun LebanonMapCanvas(
                                     cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(latLng, 14f))
                                 }
                             } else {
-                                UiMessages.show(context, "Cannot determine location.")
+                                UiMessages.show(context, context.getString(R.string.cannot_determine_location))
                             }
                         }
                     }
                 }
                 .addOnFailureListener {
                     isLocating = false
-                    UiMessages.show(context, "GPS signal unavailable")
+                    UiMessages.show(context, context.getString(R.string.gps_signal_unavailable))
                 }
         }
     }
@@ -504,7 +506,7 @@ fun LebanonMapCanvas(
                         val markerState = remember(centLat, centLng) { MarkerState(position = LatLng(centLat, centLng)) }
                         Marker(
                             state = markerState,
-                            title = "${group.size} workspaces here",
+                            title = stringResource(R.string.x_workspaces_here, group.size),
                             snippet = group.take(3).joinToString(", ") { it.title },
                             icon = clusterIconFor(group.size, hasSelected),
                             anchor = androidx.compose.ui.geometry.Offset(0.5f, 0.5f),
@@ -548,7 +550,7 @@ fun LebanonMapCanvas(
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Map Center: $detectedCenterCountry",
+                        text = stringResource(R.string.map_center_x, detectedCenterCountry),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -571,7 +573,7 @@ fun LebanonMapCanvas(
             if (isLocating) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = SteelBlue)
             } else {
-                Icon(Icons.Default.MyLocation, contentDescription = "High-Accuracy GPS Locate")
+                Icon(Icons.Default.MyLocation, contentDescription = stringResource(R.string.high_accuracy_gps_locate))
             }
         }
 
@@ -762,7 +764,7 @@ fun LebanonMapCanvas(
                                             tint = MaterialTheme.colorScheme.primary
                                         )
                                         Text(
-                                            text = "Select choices, and Request",
+                                            text = stringResource(R.string.select_choices_and_request),
                                             style = MaterialTheme.typography.labelSmall,
                                             fontSize = 12.sp,
                                             color = MaterialTheme.colorScheme.primary
@@ -826,7 +828,7 @@ private fun SearchThisAreaPill(visible: Boolean, onClick: () -> Unit) {
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp)
             ) {
                 Icon(Icons.Default.TravelExplore, contentDescription = null, modifier = Modifier.size(18.dp))
-                Text("Search this area", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.search_this_area), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
             }
         }
     }

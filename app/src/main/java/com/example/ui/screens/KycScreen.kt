@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -39,11 +41,11 @@ fun KycScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("WhatsApp number", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.whatsapp_number), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     if (onDismiss != null) {
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Dismiss")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.dismiss))
                         }
                     }
                 }
@@ -107,9 +109,9 @@ fun WhatsAppNumberSection(
             }
             Spacer(modifier = Modifier.width(10.dp))
             Column {
-                Text("Your WhatsApp number", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.your_whatsapp_number), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text(
-                    "Hosts and guests reach you on WhatsApp. It's never shown publicly.",
+                    stringResource(R.string.hosts_and_guests_reach_you_on_whatsapp_it),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -137,7 +139,7 @@ fun WhatsAppNumberSection(
         Spacer(modifier = Modifier.height(Spacing.lg))
 
         ProPrimaryButton(
-            text = if (saving) "Saving…" else "Save number",
+            text = if (saving) stringResource(R.string.saving) else stringResource(R.string.save_number),
             onClick = {
                 if (phoneNumber.filter { it.isDigit() }.length < 6 || !isPlausibleE164(e164Phone)) {
                     errorMessage = "Please enter a valid number with its country code."

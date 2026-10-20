@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
 import com.example.ui.theme.Elevation
 import android.Manifest
@@ -185,7 +187,7 @@ fun rememberLocationAccess(onReady: () -> Unit): () -> Unit {
         SystemStylePermissionDialog(
             icon = Icons.Default.LocationOn,
             title = permissionTitle("access this device's location"),
-            message = "Used only to centre the map on where you are. ProHost never tracks your location.",
+            message = stringResource(R.string.used_only_to_centre_the_map_on_where_you_a),
             allowLabel = "Continue",
             denyLabel = "Not now",
             onAllow = { showRationale = false; permissionLauncher.launch(locationPermissions) },
@@ -196,7 +198,7 @@ fun rememberLocationAccess(onReady: () -> Unit): () -> Unit {
         SystemStylePermissionDialog(
             icon = Icons.Default.LocationOn,
             title = permissionTitle("access this device's location"),
-            message = "Location is turned off for ProHost. Open Settings › Permissions › Location and choose \"Allow only while using the app\".",
+            message = stringResource(R.string.location_is_turned_off_for_prohost_open_se),
             allowLabel = "Open settings",
             denyLabel = "Not now",
             onAllow = {

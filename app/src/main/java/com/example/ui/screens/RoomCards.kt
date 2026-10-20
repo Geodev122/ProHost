@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -207,7 +209,7 @@ internal fun SubdivisionRentalCard(
                                     ) {
                                         Icon(Icons.Default.Groups, contentDescription = null, modifier = Modifier.size(12.dp))
                                         Spacer(modifier = Modifier.width(2.dp))
-                                        Text("Up to $capacity", style = MaterialTheme.typography.labelSmall)
+                                        Text(stringResource(R.string.up_to_x, capacity), style = MaterialTheme.typography.labelSmall)
                                     }
                                 }
                             }
@@ -217,7 +219,7 @@ internal fun SubdivisionRentalCard(
                                     shape = MaterialTheme.shapes.extraSmall
                                 ) {
                                     Text(
-                                        "Custom hours",
+                                        stringResource(R.string.custom_hours_2),
                                         style = MaterialTheme.typography.labelSmall,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
@@ -253,7 +255,7 @@ internal fun SubdivisionRentalCard(
                                         shape = MaterialTheme.shapes.extraSmall
                                     ) {
                                         Text(
-                                            "+$overflow more",
+                                            stringResource(R.string.x_more, overflow),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -289,7 +291,7 @@ internal fun SubdivisionRentalCard(
                                         shape = MaterialTheme.shapes.extraSmall
                                     ) {
                                         Text(
-                                            "[$overflow more]",
+                                            stringResource(R.string.x_more_2, overflow),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.proColors.onInfoContainer,
                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -313,7 +315,7 @@ internal fun SubdivisionRentalCard(
                         ) {
                             Icon(Icons.Default.EventAvailable, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Check Availability", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.check_availability), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -334,7 +336,7 @@ internal fun SubdivisionRentalCard(
                     ) {
                         Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
                         Text(
-                            "Currently Occupied",
+                            stringResource(R.string.currently_occupied),
                             color = Color.White,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold
@@ -524,7 +526,7 @@ internal fun DetailsBookingBar(
                         if (hasSchedule) {
                             Icon(
                                 Icons.Default.KeyboardArrowUp,
-                                contentDescription = "Open availability",
+                                contentDescription = stringResource(R.string.open_availability),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -548,7 +550,7 @@ internal fun DetailsBookingBar(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            " USD$priceUnit",
+                            stringResource(R.string.usdx, priceUnit),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 3.dp)
@@ -565,7 +567,7 @@ internal fun DetailsBookingBar(
                 if (isPreview) {
                     Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer) {
                         Text(
-                            "Preview mode",
+                            stringResource(R.string.preview_mode),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -583,7 +585,7 @@ internal fun DetailsBookingBar(
                         ) {
                             Icon(Icons.Default.EventAvailable, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Availability", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.availability), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

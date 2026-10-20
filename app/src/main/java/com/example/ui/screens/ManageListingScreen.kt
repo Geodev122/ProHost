@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -92,13 +94,13 @@ fun ManageListingScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Manage", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.manage), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Text(liveSpace.title, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -118,8 +120,8 @@ fun ManageListingScreen(
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 ProSectionHeader(
-                    title = "Division Performance",
-                    subtitle = if (divisions.size > 1) "${divisions.size} rentable divisions" else "Whole space rented as one unit",
+                    title = stringResource(R.string.division_performance),
+                    subtitle = if (divisions.size > 1) stringResource(R.string.x_rentable_divisions, divisions.size) else stringResource(R.string.whole_space_rented_as_one_unit),
                     icon = Icons.Default.Dashboard
                 )
 
@@ -149,9 +151,9 @@ fun ManageListingScreen(
                         Icon(Icons.Default.LocalOffer, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
                         Spacer(modifier = Modifier.width(Spacing.md))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Change price", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.change_price), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                             Text(
-                                "Update a slot's price — tenants and pending requests are asked about and notified",
+                                stringResource(R.string.update_a_slot_s_price_tenants_and_pending),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -161,8 +163,8 @@ fun ManageListingScreen(
                 }
 
                 ProSectionHeader(
-                    title = "Availability",
-                    subtitle = "Configured slots and their current booking state",
+                    title = stringResource(R.string.availability),
+                    subtitle = stringResource(R.string.configured_slots_and_their_current_booking),
                     icon = Icons.Default.CalendarMonth
                 )
 
@@ -251,7 +253,7 @@ private fun DivisionPerformanceCard(
                     }
                 }
                 IconButton(onClick = onJumpToSection) {
-                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Jump to ${division.name}'s availability")
+                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = stringResource(R.string.jump_to_x_s_availability, division.name))
                 }
             }
 
@@ -265,7 +267,7 @@ private fun DivisionPerformanceCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Column(modifier = Modifier.padding(Spacing.sm)) {
-                        Text("Occupancy", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.occupancy), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
                             "$occupancyPct%",
                             style = MaterialTheme.typography.titleMedium,
@@ -278,7 +280,7 @@ private fun DivisionPerformanceCard(
                             }
                         )
                         Text(
-                            if (cells.isEmpty()) "No slots configured" else "$rentedCount of ${cells.size} $unitWord booked",
+                            if (cells.isEmpty()) stringResource(R.string.no_slots_configured) else stringResource(R.string.x_of_x_x_booked, rentedCount, cells.size, unitWord),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -291,7 +293,7 @@ private fun DivisionPerformanceCard(
                     modifier = Modifier.weight(1.3f)
                 ) {
                     Column(modifier = Modifier.padding(Spacing.sm)) {
-                        Text("Yield This Month", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.yield_this_month), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
                             "$${"%,.0f".format(thisMonthYield)}",
                             style = MaterialTheme.typography.titleMedium,
@@ -345,7 +347,7 @@ private fun MonthlyAvailabilityTable(
 ) {
     val config = division.pricing.monthly
     if (config == null) {
-        Text("No monthly pricing configured.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.no_monthly_pricing_configured), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
 
@@ -359,7 +361,7 @@ private fun MonthlyAvailabilityTable(
     val monthRows = remember(config, divisionBookings) { monthlyCells(config, divisionBookings) }
 
     if (monthRows.isEmpty()) {
-        Text("No active or upcoming term configured.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.no_active_or_upcoming_term_configured), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
     OccupancyLegend()
@@ -535,7 +537,7 @@ private fun WeeklyAvailabilityTable(
     val days = remember(division) { upcomingDays(division) }
 
     if (days.isEmpty()) {
-        Text("No slots configured yet.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(R.string.no_slots_configured_yet), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
 

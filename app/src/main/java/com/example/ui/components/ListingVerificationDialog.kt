@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -85,18 +87,18 @@ fun ListingVerificationDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("Get Listing Verified", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.get_listing_verified), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                         Text(space.title, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
                     }
                 }
 
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(
-                    "Optional — submit a document for Admin review to earn the Listing Verified badge shown to Specialists. Not required to keep " +
-                    "this listing published.",
+                    stringResource(R.string.optional_submit_a_document_for_admin_revie) +
+                    stringResource(R.string.this_listing_published),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -109,8 +111,8 @@ fun ListingVerificationDialog(
                     // Path selector
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         PathCard(
-                            title = "I'm re-renting this space",
-                            subtitle = "The real owner signs an authorization",
+                            title = stringResource(R.string.i_m_re_renting_this_space),
+                            subtitle = stringResource(R.string.the_real_owner_signs_an_authorization),
                             icon = Icons.Default.Description,
                             selected = chosenPath == ListingVerificationDocType.RERENTAL_AUTHORIZATION,
                             modifier = Modifier.weight(1f)
@@ -120,8 +122,8 @@ fun ListingVerificationDialog(
                             uploadedUrl = null
                         }
                         PathCard(
-                            title = "I am the space owner",
-                            subtitle = "Upload your own proof of ownership",
+                            title = stringResource(R.string.i_am_the_space_owner),
+                            subtitle = stringResource(R.string.upload_your_own_proof_of_ownership),
                             icon = Icons.Default.HomeWork,
                             selected = chosenPath == ListingVerificationDocType.SELF_OWNERSHIP_PROOF,
                             modifier = Modifier.weight(1f)
@@ -140,20 +142,20 @@ fun ListingVerificationDialog(
                             ) {
                                 Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                     Text(
-                                        "1. Download the authorization template, print it, and have the real property owner fill in their " +
-                                        "name/ID and sign it. 2. Scan or photograph the signed document and upload it below.",
+                                        stringResource(R.string.t_1_download_the_authorization_template_prin) +
+                                        stringResource(R.string.name_id_and_sign_it_2_scan_or_photograph_t),
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                     OutlinedButton(onClick = { showTemplateDialog = true }, modifier = Modifier.fillMaxWidth()) {
                                         Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(Spacing.xs))
-                                        Text("Download Authorization Template")
+                                        Text(stringResource(R.string.download_authorization_template))
                                     }
                                 }
                             }
                             DocumentPickerField(
-                                label = "Signed Authorization Statement",
-                                helperText = "PDF, JPG, or PNG",
+                                label = stringResource(R.string.signed_authorization_statement),
+                                helperText = stringResource(R.string.pdf_jpg_or_png),
                                 state = docState,
                                 onStateChanged = { newState ->
                                     docState = newState
@@ -180,13 +182,13 @@ fun ListingVerificationDialog(
                         }
                         ListingVerificationDocType.SELF_OWNERSHIP_PROOF -> {
                             Text(
-                                "A title deed, lease contract, or other document showing you're the real owner of this space.",
+                                stringResource(R.string.a_title_deed_lease_contract_or_other_docum),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             DocumentPickerField(
-                                label = "Proof of Ownership",
-                                helperText = "PDF, JPG, or PNG",
+                                label = stringResource(R.string.proof_of_ownership),
+                                helperText = stringResource(R.string.pdf_jpg_or_png),
                                 state = docState,
                                 onStateChanged = { newState ->
                                     docState = newState
@@ -250,7 +252,7 @@ fun ListingVerificationDialog(
                 ) {
                     Icon(Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(Spacing.sm))
-                    Text("Submit for Admin Review")
+                    Text(stringResource(R.string.submit_for_admin_review))
                 }
                 if (submitError != null) {
                     Text(

@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedContent
@@ -356,7 +358,7 @@ fun ProHostBottomNavBar(
             transitionSpec = {
                 (fadeIn() togetherWith fadeOut()).using(SizeTransform(clip = false))
             },
-            label = "BottomNavCollapse"
+            label = stringResource(R.string.bottomnavcollapse)
         ) { isCollapsed ->
             if (isCollapsed) {
                 Surface(
@@ -376,7 +378,7 @@ fun ProHostBottomNavBar(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             Icons.Default.KeyboardArrowUp,
-                            contentDescription = "Show navigation",
+                            contentDescription = stringResource(R.string.show_navigation),
                             tint = accent
                         )
                     }
@@ -415,7 +417,7 @@ fun ProHostBottomNavBar(
                             IconButton(onClick = { onExpandChange(false) }, modifier = Modifier.size(40.dp)) {
                                 Icon(
                                     Icons.Default.KeyboardArrowDown,
-                                    contentDescription = "Hide navigation",
+                                    contentDescription = stringResource(R.string.hide_navigation),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -436,10 +438,10 @@ private fun BottomNavPillItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val container by animateColorAsState(if (selected) accent else Color.Transparent, label = "navItemContainer")
+    val container by animateColorAsState(if (selected) accent else Color.Transparent, label = stringResource(R.string.navitemcontainer))
     val content by animateColorAsState(
         if (selected) onAccent else MaterialTheme.colorScheme.onSurfaceVariant,
-        label = "navItemContent"
+        label = stringResource(R.string.navitemcontent)
     )
     Row(
         modifier = modifier
@@ -539,7 +541,7 @@ fun ProHostDrawerHeader(
             IconButton(onClick = onClose, modifier = Modifier.size(40.dp)) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Collapse Drawer",
+                    contentDescription = stringResource(R.string.collapse_drawer),
                     tint = pro.onBrandHeader
                 )
             }

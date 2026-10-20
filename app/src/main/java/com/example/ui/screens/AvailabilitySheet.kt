@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
 import com.example.ui.util.UiMessages
 import androidx.compose.foundation.BorderStroke
@@ -140,8 +142,8 @@ internal fun AvailabilitySheet(
         // Pinned title; the rest scrolls. The standard sheet handle moves it half ↔ full.
         header = {
             ProSectionHeader(
-                title = "Check Availability",
-                subtitle = if (isAttendeeMode) "Enter attendee count, then tap days to select slots." else "Tap a day to expand and select open slots.",
+                title = stringResource(R.string.check_availability),
+                subtitle = if (isAttendeeMode) stringResource(R.string.enter_attendee_count_then_tap_days_to_sele) else stringResource(R.string.tap_a_day_to_expand_and_select_open_slots),
                 icon = Icons.Default.EventAvailable,
                 modifier = Modifier.padding(horizontal = Spacing.lg).padding(bottom = Spacing.sm)
             )
@@ -175,7 +177,7 @@ internal fun AvailabilitySheet(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text(
-                            "Attendee Details",
+                            stringResource(R.string.attendee_details),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -193,13 +195,13 @@ internal fun AvailabilitySheet(
             }
 
             if (sheetSlotGroups.isEmpty()) {
-                Text("No slots configured for this space.", style = MaterialTheme.typography.bodyMedium,
+                Text(stringResource(R.string.no_slots_configured_for_this_space), style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
                 sheetSlotGroups.forEach { (strategyType, slots) ->
                     // Strategy section label
                     Text(
-                        if (isAttendeeMode) "Availability — ${strategyType.displayName}" else strategyType.displayName,
+                        if (isAttendeeMode) stringResource(R.string.availability_x, strategyType.displayName) else strategyType.displayName,
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.primary
@@ -339,7 +341,7 @@ internal fun AvailabilitySheet(
                                                             Spacer(modifier = Modifier.width(8.dp))
                                                             Column {
                                                                 Text(
-                                                                    if (isSelected) "Selected — Monthly Lease" else "Available — Monthly Lease",
+                                                                    if (isSelected) stringResource(R.string.selected_monthly_lease) else stringResource(R.string.available_monthly_lease),
                                                                     style = MaterialTheme.typography.bodySmall,
                                                                     fontWeight = FontWeight.Bold,
                                                                     color = if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success
@@ -356,7 +358,7 @@ internal fun AvailabilitySheet(
                                             }
                                             RentalStrategyType.HOURLY -> {
                                                 Text(
-                                                    "Select time slots for $day:",
+                                                    stringResource(R.string.select_time_slots_for_x, day),
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
@@ -384,7 +386,7 @@ internal fun AvailabilitySheet(
                                                                     color = if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success
                                                                 )
                                                                 Text(
-                                                                    if (isAttendeeMode) "Open" else "$${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}",
+                                                                    if (isAttendeeMode) stringResource(R.string.open) else "$${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}",
                                                                     style = MaterialTheme.typography.labelSmall,
                                                                     color = if (isSelected) {
                                                                         MaterialTheme.proColors.success.copy(alpha = 0.8f)
@@ -437,13 +439,13 @@ internal fun AvailabilitySheet(
                                                                 verticalAlignment = Alignment.CenterVertically
                                                             ) {
                                                                 Text(
-                                                                    if (isAttendeeMode) "Open" else "$${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}",
+                                                                    if (isAttendeeMode) stringResource(R.string.open) else "$${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}",
                                                                     style = MaterialTheme.typography.labelSmall,
                                                                     color = MaterialTheme.colorScheme.primary,
                                                                     fontWeight = FontWeight.SemiBold
                                                                 )
                                                                 Text(
-                                                                    if (isSelected) "Selected" else "Available",
+                                                                    if (isSelected) stringResource(R.string.selected) else stringResource(R.string.available),
                                                                     style = MaterialTheme.typography.labelSmall,
                                                                     fontWeight = FontWeight.Bold,
                                                                     color = if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success
@@ -484,13 +486,13 @@ internal fun AvailabilitySheet(
                                                                 verticalAlignment = Alignment.CenterVertically
                                                             ) {
                                                                 Text(
-                                                                    if (isAttendeeMode) "Open" else "$${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}",
+                                                                    if (isAttendeeMode) stringResource(R.string.open) else "$${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}",
                                                                     style = MaterialTheme.typography.labelSmall,
                                                                     color = MaterialTheme.colorScheme.primary,
                                                                     fontWeight = FontWeight.SemiBold
                                                                 )
                                                                 Text(
-                                                                    if (isSelected) "Selected" else "Available",
+                                                                    if (isSelected) stringResource(R.string.selected) else stringResource(R.string.available),
                                                                     style = MaterialTheme.typography.labelSmall,
                                                                     fontWeight = FontWeight.Bold,
                                                                     color = if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success
@@ -511,7 +513,7 @@ internal fun AvailabilitySheet(
                 // ── Action bar ───────────────────────────────────────────────
                 if (!isSpecialistViewer) {
                     Text(
-                        "Viewing as host — only professionals can request slots.",
+                        stringResource(R.string.viewing_as_host_only_professionals_can_req),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -527,7 +529,7 @@ internal fun AvailabilitySheet(
                         ) {
                             Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Request $slotLabel", fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.request_x, slotLabel), fontWeight = FontWeight.Bold)
                         }
                         // WhatsApp: compose structured message listing all selected slots
                         Button(
@@ -561,7 +563,7 @@ internal fun AvailabilitySheet(
                                     )
                                     context.startActivity(intent)
                                 } catch (e: Exception) {
-                                    UiMessages.show(context, "WhatsApp not installed")
+                                    UiMessages.show(context, context.getString(R.string.whatsapp_not_installed))
                                 }
                             },
                             modifier = Modifier.weight(1f),
@@ -570,7 +572,7 @@ internal fun AvailabilitySheet(
                         ) {
                             Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("WhatsApp", fontWeight = FontWeight.Bold, color = Color.White)
+                            Text(stringResource(R.string.whatsapp), fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     }
                 }
@@ -598,7 +600,7 @@ internal fun AvailabilitySheet(
         ProHostDialog(
             onDismissRequest = { if (!isSendingSlotRequest) showSendConfirm = false },
             icon = { Icon(Icons.Default.EventAvailable, contentDescription = null) },
-            title = { Text("Confirm Your Request") },
+            title = { Text(stringResource(R.string.confirm_your_request)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     // Space / location / room summary
@@ -618,26 +620,26 @@ internal fun AvailabilitySheet(
                         selectedSlots.forEach { add(it.label) }
                         selectedHoursPerDay.forEach { (day, hrs) -> hrs.forEach { hr -> add("$day $hr") } }
                     }
-                    Text("Selected Slots (${allSelectedSlotLabels.size})",
+                    Text(stringResource(R.string.selected_slots_x, allSelectedSlotLabels.size),
                         style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     allSelectedSlotLabels.take(5).forEach { label ->
                         Text("• $label", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
                     }
                     if (allSelectedSlotLabels.size > 5) {
-                        Text("+ ${allSelectedSlotLabels.size - 5} more slots", style = MaterialTheme.typography.labelSmall,
+                        Text(stringResource(R.string.x_more_slots, allSelectedSlotLabels.size - 5), style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     // Attendee block
                     if (dialogQuote != null) {
                         HorizontalDivider()
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Attendees", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("${dialogQuote.attendees} people", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.attendees), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.x_people, dialogQuote.attendees), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Price", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.price), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(
-                                "$${com.example.ui.util.AttendeePricing.formatUsd(dialogQuote.tier.pricePerAttendeeUsd)}/person" +
+                                stringResource(R.string.x_person, com.example.ui.util.AttendeePricing.formatUsd(dialogQuote.tier.pricePerAttendeeUsd)) +
                                     dialogQuote.tier.name.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty(),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold
@@ -646,7 +648,7 @@ internal fun AvailabilitySheet(
                     }
                     HorizontalDivider()
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Estimated Total", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.estimated_total), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("$${String.format("%.2f", totalCostForDialog)} USD",
                             style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
@@ -668,12 +670,12 @@ internal fun AvailabilitySheet(
                     if (isSendingSlotRequest) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                     } else {
-                        Text("Send")
+                        Text(stringResource(R.string.send))
                     }
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showSendConfirm = false }, enabled = !isSendingSlotRequest) { Text("Cancel") }
+                TextButton(onClick = { showSendConfirm = false }, enabled = !isSendingSlotRequest) { Text(stringResource(R.string.cancel)) }
             }
         )
     }

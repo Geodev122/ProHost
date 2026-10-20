@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -111,7 +113,7 @@ fun RequirementsSheet(
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             ProSectionHeader(
-                title = "Almost there",
+                title = stringResource(R.string.almost_there),
                 subtitle = if (requireAddress) {
                     "Needed once before you host. Your chosen plan is kept."
                 } else {
@@ -122,13 +124,13 @@ fun RequirementsSheet(
 
             RequirementRow(
                 done = !needsPhoto,
-                title = "Profile photo",
+                title = stringResource(R.string.profile_photo),
                 detail = "Hosts use it to recognise who's coming."
             )
             if (needsPhoto) {
                 photoError?.let { ProHostAlertBanner(message = it, severity = ProHostAlertSeverity.ERROR) }
                 ProPrimaryButton(
-                    text = if (uploading) "Uploading…" else "Add a photo",
+                    text = if (uploading) stringResource(R.string.uploading) else stringResource(R.string.add_a_photo),
                     onClick = {
                         pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     },
@@ -141,7 +143,7 @@ fun RequirementsSheet(
 
             RequirementRow(
                 done = !needsPhone,
-                title = "WhatsApp number",
+                title = stringResource(R.string.whatsapp_number),
                 detail = "So the host can reach you about your booking."
             )
             if (needsPhone) {
@@ -155,7 +157,7 @@ fun RequirementsSheet(
             if (requireAddress) {
                 RequirementRow(
                     done = !needsAddress,
-                    title = "Country and city",
+                    title = stringResource(R.string.country_and_city),
                     detail = "Shown on your listings so specialists know where you host."
                 )
                 if (needsAddress) {
@@ -167,13 +169,13 @@ fun RequirementsSheet(
                     OutlinedTextField(
                         value = addressCity,
                         onValueChange = { addressCity = it },
-                        label = { Text("City") },
+                        label = { Text(stringResource(R.string.city)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     addressError?.let { ProHostAlertBanner(message = it, severity = ProHostAlertSeverity.ERROR) }
                     ProPrimaryButton(
-                        text = if (savingAddress) "Saving…" else "Save address",
+                        text = if (savingAddress) stringResource(R.string.saving) else stringResource(R.string.save_address),
                         onClick = {
                             savingAddress = true
                             addressError = null
@@ -192,7 +194,7 @@ fun RequirementsSheet(
             if (uploading) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                    Text("Saving your photo…", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.saving_your_photo), style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
@@ -204,7 +206,7 @@ private fun RequirementRow(done: Boolean, title: String, detail: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Icon(
             Icons.Default.CheckCircle,
-            contentDescription = if (done) "Done" else "To do",
+            contentDescription = if (done) stringResource(R.string.done) else stringResource(R.string.to_do),
             tint = if (done) MaterialTheme.proColors.success else MaterialTheme.colorScheme.outlineVariant,
             modifier = Modifier.size(20.dp)
         )

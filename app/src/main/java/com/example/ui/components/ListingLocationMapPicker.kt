@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
 import com.example.ui.util.UiMessages
 import android.Manifest
@@ -78,7 +80,7 @@ fun ListingLocationMapPicker(
                 }
                 .addOnFailureListener {
                     isLocating = false
-                    UiMessages.show(context, "GPS signal unavailable")
+                    UiMessages.show(context, context.getString(R.string.gps_signal_unavailable))
                 }
         }
     }
@@ -138,7 +140,7 @@ fun ListingLocationMapPicker(
         // Custom Crosshair Center Pin Overlay
         Icon(
             imageVector = Icons.Default.MyLocation,
-            contentDescription = "Center Crosshair",
+            contentDescription = stringResource(R.string.center_crosshair),
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier
                 .align(Alignment.Center)
@@ -172,7 +174,7 @@ fun ListingLocationMapPicker(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Text("Mark Pin Location", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.mark_pin_location), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -191,7 +193,7 @@ fun ListingLocationMapPicker(
             if (isLocating) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
             } else {
-                Icon(Icons.Default.MyLocation, contentDescription = "Locate Me", modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.MyLocation, contentDescription = stringResource(R.string.locate_me), modifier = Modifier.size(20.dp))
             }
         }
     }

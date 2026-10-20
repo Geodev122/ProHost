@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import com.example.ui.util.UiMessages
 import android.content.Context
 import android.net.Uri
@@ -128,7 +130,7 @@ fun DocumentPickerField(
                 ) {
                     Icon(Icons.Default.AttachFile, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
                     Text(
-                        "Tap to Take a Photo or Upload a File",
+                        stringResource(R.string.tap_to_take_a_photo_or_upload_a_file),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -143,20 +145,20 @@ fun DocumentPickerField(
                 ) {
                     Icon(Icons.Default.Description, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
                     Text(
-                        text = state.fileName ?: "Document selected",
+                        text = state.fileName ?: stringResource(R.string.document_selected),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f)
                     )
                     IconButton(onClick = { onStateChanged(DocumentPickerState()) }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Remove file", tint = MaterialTheme.colorScheme.error)
+                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.remove_file), tint = MaterialTheme.colorScheme.error)
                     }
                 }
             }
         }
         DropdownMenu(expanded = showSourceMenu, onDismissRequest = { showSourceMenu = false }) {
             DropdownMenuItem(
-                text = { Text("Take Photo") },
+                text = { Text(stringResource(R.string.take_photo)) },
                 leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null) },
                 onClick = {
                     showSourceMenu = false
@@ -166,12 +168,12 @@ fun DocumentPickerField(
                         cameraLauncher.launch(uri)
                     } catch (e: android.content.ActivityNotFoundException) {
                         pendingCameraUri = null
-                        UiMessages.show(context, "No camera app found — choose a file instead.", long = true)
+                        UiMessages.show(context, context.getString(R.string.no_camera_app_found_choose_a_file_instead), long = true)
                     }
                 }
             )
             DropdownMenuItem(
-                text = { Text("Choose File") },
+                text = { Text(stringResource(R.string.choose_file)) },
                 leadingIcon = { Icon(Icons.Default.AttachFile, contentDescription = null) },
                 onClick = {
                     showSourceMenu = false
@@ -219,7 +221,7 @@ fun ProfilePicturePickerField(
         if (previewModel != null) {
             AsyncImage(
                 model = previewModel,
-                contentDescription = "Profile picture",
+                contentDescription = stringResource(R.string.profile_picture),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize().clip(CircleShape)
             )
@@ -227,7 +229,7 @@ fun ProfilePicturePickerField(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(
                     Icons.Default.AddAPhoto,
-                    contentDescription = "Add profile picture",
+                    contentDescription = stringResource(R.string.add_profile_picture),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(26.dp)
                 )

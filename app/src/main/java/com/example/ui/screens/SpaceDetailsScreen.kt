@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -418,7 +420,7 @@ fun SpaceDetailsScreenContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     HeroGlassButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.size(22.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), modifier = Modifier.size(22.dp))
                     }
                     Spacer(modifier = Modifier.weight(1f))
                     Box {
@@ -434,7 +436,7 @@ fun SpaceDetailsScreenContent(
                                 IconButton(onClick = onToggleSave, modifier = Modifier.size(42.dp)) {
                                     Icon(
                                         if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                        contentDescription = if (isSaved) "Remove from Saved" else "Save",
+                                        contentDescription = if (isSaved) stringResource(R.string.remove_from_saved) else stringResource(R.string.save),
                                         tint = if (isSaved) Color(0xFFE5484D) else MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.size(21.dp)
                                     )
@@ -446,7 +448,7 @@ fun SpaceDetailsScreenContent(
                                         .background(MaterialTheme.colorScheme.outlineVariant)
                                 )
                                 IconButton(onClick = { showShareMenu = true }, modifier = Modifier.size(42.dp)) {
-                                    Icon(Icons.Outlined.Share, contentDescription = "Share", modifier = Modifier.size(20.dp))
+                                    Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.share), modifier = Modifier.size(20.dp))
                                 }
                             }
                         }
@@ -455,12 +457,12 @@ fun SpaceDetailsScreenContent(
                             onDismissRequest = { showShareMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Share Listing") },
+                                text = { Text(stringResource(R.string.share_listing)) },
                                 onClick = { showShareMenu = false; onShareClick() },
                                 leadingIcon = { Icon(Icons.Default.Share, null) }
                             )
                             DropdownMenuItem(
-                                text = { Text("Copy Link") },
+                                text = { Text(stringResource(R.string.copy_link)) },
                                 onClick = { showShareMenu = false; onCopyLinkClick() },
                                 leadingIcon = { Icon(Icons.Default.ContentCopy, null) }
                             )
@@ -527,8 +529,8 @@ fun SpaceDetailsScreenContent(
             // they go looking for it again.
             if (liveSpace.isOwnerPackageLapsed) {
                 ProHostAlertBanner(
-                    message = "This host is on verification process — their listing is temporarily hidden from new searches, but your existing " +
-                        "access here is unaffected.",
+                    message = stringResource(R.string.this_host_is_on_verification_process_their) +
+                        stringResource(R.string.access_here_is_unaffected),
                     severity = ProHostAlertSeverity.INFO,
                     modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)
                 )
@@ -548,26 +550,26 @@ fun SpaceDetailsScreenContent(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Your In-App Rental Request ${req.publicCode}",
+                                    text = stringResource(R.string.your_in_app_rental_request_x, req.publicCode),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "Formula: ${req.formula.scheduleDescription} • Start: ${req.startDate} (${req.durationMonths} mo)",
+                                    text = stringResource(R.string.formula_x_start_x_x_mo, req.formula.scheduleDescription, req.startDate, req.durationMonths),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 if (req.status == BookingRequestStatus.PENDING) {
                                     Text(
-                                        text = "Awaiting owner acceptance. Space hours remain open to public until confirmed.",
+                                        text = stringResource(R.string.awaiting_owner_acceptance_space_hours_rema),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.proColors.warning,
                                         fontWeight = FontWeight.SemiBold
                                     )
                                 } else if (req.status == BookingRequestStatus.ACCEPTED) {
                                     Text(
-                                        text = "Confirmed! Space hours (${req.formula.daysOfWeek.joinToString()}" +
-                                            " ${req.formula.startHour}-${req.formula.endHour}) are locked" +
+                                        text = stringResource(R.string.confirmed_space_hours_x, req.formula.daysOfWeek.joinToString()) +
+                                            stringResource(R.string.x_x_are_locked, req.formula.startHour, req.formula.endHour) +
                                             ".",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.proColors.info,
@@ -618,7 +620,7 @@ fun SpaceDetailsScreenContent(
                             ) {
                                 Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Ask the host on WhatsApp", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.ask_the_host_on_whatsapp), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -630,7 +632,7 @@ fun SpaceDetailsScreenContent(
                     ProSurfaceCard {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             ProSectionHeader(
-                                title = "Description",
+                                title = stringResource(R.string.description),
                                 icon = Icons.Default.Description
                             )
                             Text(
@@ -654,11 +656,11 @@ fun SpaceDetailsScreenContent(
                 ProSurfaceCard(modifier = Modifier.bringIntoViewRequester(roomsRequester)) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         ProSectionHeader(
-                            title = "Rental Options",
+                            title = stringResource(R.string.rental_options),
                             subtitle = if (liveSpace.subdivisions.isNotEmpty())
                                 "${liveSpace.subdivisions.size} space${if (liveSpace.subdivisions.size == 1) "" else "s"} — pick a tab to see that space and its availability"
                             else
-                                "Tap the card to check live availability",
+                                stringResource(R.string.tap_the_card_to_check_live_availability),
                             icon = Icons.Default.Tune
                         )
 
@@ -759,8 +761,8 @@ fun SpaceDetailsScreenContent(
                 ProSurfaceCard {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         ProSectionHeader(
-                            title = "Facilities & Utilities",
-                            subtitle = "${liveSpace.essentialFacilities.size} amenities included",
+                            title = stringResource(R.string.facilities_utilities),
+                            subtitle = stringResource(R.string.x_amenities_included, liveSpace.essentialFacilities.size),
                             icon = Icons.Default.Business
                         )
 
@@ -797,14 +799,14 @@ fun SpaceDetailsScreenContent(
                     ProSurfaceCard {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             ProSectionHeader(
-                                title = "Co-Working Synergy",
+                                title = stringResource(R.string.co_working_synergy),
                                 subtitle = "${residentSpecialties.size} peer${if (residentSpecialties.size == 1) "" else "s"} on premises",
                                 icon = Icons.Default.Groups
                             )
 
                             if (residentSpecialties.isNotEmpty()) {
                                 Text(
-                                    text = "Residents:",
+                                    text = stringResource(R.string.residents),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -831,7 +833,7 @@ fun SpaceDetailsScreenContent(
                             }
 
                             Text(
-                                text = "Target Complementary Disciplines:",
+                                text = stringResource(R.string.target_complementary_disciplines),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1026,12 +1028,12 @@ fun SpaceDetailsScreenContent(
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 ProSectionHeader(
-                    title = "Request sent",
-                    subtitle = "The host has been notified. You'll get a push when they answer.",
+                    title = stringResource(R.string.request_sent),
+                    subtitle = stringResource(R.string.the_host_has_been_notified_you_ll_get_a_pu),
                     icon = Icons.Default.CheckCircle
                 )
                 ProPrimaryButton(
-                    text = "View request",
+                    text = stringResource(R.string.view_request),
                     onClick = {
                         sentRequest = null
                         onViewRequest(request.id)
@@ -1041,7 +1043,7 @@ fun SpaceDetailsScreenContent(
                 )
                 if (liveSpace.ownerPhone.isNotBlank()) {
                     ProOutlinedButton(
-                        text = "Message host on WhatsApp",
+                        text = stringResource(R.string.message_host_on_whatsapp),
                         onClick = {
                             sentRequest = null
                             viewModel.launchWhatsAppInquiry(context, liveSpace, request.formula, request)

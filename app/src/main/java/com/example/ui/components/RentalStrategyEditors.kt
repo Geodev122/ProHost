@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -55,7 +57,7 @@ fun RentalPricingConfigEditor(
     }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
-            if (availabilityOnly) "Offered Times (Hourly, Shifts or Days)" else "Renting Strategy",
+            if (availabilityOnly) stringResource(R.string.offered_times_hourly_shifts_or_days) else stringResource(R.string.renting_strategy),
             fontWeight = FontWeight.Bold,
             style = MaterialTheme.typography.labelMedium
         )
@@ -126,12 +128,12 @@ fun MonthlyStrategyEditor(
         OutlinedTextField(
             value = if (config.rateUsd == 0.0) "" else config.rateUsd.toInt().toString(),
             onValueChange = { onConfigChange(config.copy(rateUsd = it.toDoubleOrNull() ?: 0.0)) },
-            label = { Text("Rate (USD/mo)") },
+            label = { Text(stringResource(R.string.rate_usd_mo)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
 
-        Text("Available From", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.available_from), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             LazyRow(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 items(monthNames) { m ->
@@ -152,7 +154,7 @@ fun MonthlyStrategyEditor(
         }
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Text("Indefinite (no end date)", style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.indefinite_no_end_date), style = MaterialTheme.typography.bodySmall)
             Switch(
                 checked = config.isIndefinite,
                 onCheckedChange = { indefinite ->
@@ -174,7 +176,7 @@ fun MonthlyStrategyEditor(
         }
 
         if (!config.isIndefinite) {
-            Text("Available To", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.available_to), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 LazyRow(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     items(monthNames) { m ->
@@ -196,7 +198,7 @@ fun MonthlyStrategyEditor(
         }
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Text("Excluded ranges (${config.excludedRanges.size})", style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.excluded_ranges_x, config.excludedRanges.size), style = MaterialTheme.typography.bodySmall)
             TextButton(shape = MaterialTheme.shapes.medium, onClick = {
                 onConfigChange(
                     config.copy(
@@ -205,7 +207,7 @@ fun MonthlyStrategyEditor(
                         )
                     )
                 )
-            }) { Text("+ Add Excluded Range") }
+            }) { Text(stringResource(R.string.add_excluded_range)) }
         }
         config.excludedRanges.forEachIndexed { idx, range ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
@@ -214,7 +216,7 @@ fun MonthlyStrategyEditor(
                     style = MaterialTheme.typography.labelSmall
                 )
                 IconButton(onClick = { onConfigChange(config.copy(excludedRanges = config.excludedRanges.filterIndexed { i, _ -> i != idx })) }) {
-                    Icon(Icons.Default.Delete, contentDescription = "Remove excluded range", tint = MaterialTheme.colorScheme.error)
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.remove_excluded_range), tint = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -241,8 +243,8 @@ fun HourlyStrategyEditor(
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
-            if (availabilityOnly) "Tap an hour to offer it on that day. Untouched hours stay out of renting."
-            else "Tap an hour to toggle it on/off for that day at the day's current price. Leaving an hour untouched keeps it out of renting.",
+            if (availabilityOnly) stringResource(R.string.tap_an_hour_to_offer_it_on_that_day_untouc)
+            else stringResource(R.string.tap_an_hour_to_toggle_it_on_off_for_that_d),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -253,14 +255,14 @@ fun HourlyStrategyEditor(
                     if (!availabilityOnly) OutlinedTextField(
                         value = bulkPriceByDay[day] ?: "",
                         onValueChange = { bulkPriceByDay = bulkPriceByDay + (day to it) },
-                        label = { Text("USD/hr") },
+                        label = { Text(stringResource(R.string.usd_hr)) },
                         modifier = Modifier.width(110.dp),
                         singleLine = true
                     )
                     TextButton(shape = MaterialTheme.shapes.medium, onClick = {
                         val price = if (availabilityOnly) marker else bulkPriceByDay[day]?.toDoubleOrNull() ?: return@TextButton
                         onConfigChange(config.copy(cellPrices = config.cellPrices + hours.associate { "$day|$it" to price }))
-                    }) { Text("Fill all hours") }
+                    }) { Text(stringResource(R.string.fill_all_hours)) }
                 }
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     items(hours) { hour ->
@@ -277,7 +279,7 @@ fun HourlyStrategyEditor(
                                     )
                                 )
                             },
-                            label = { Text("%02d:00".format(hour), style = MaterialTheme.typography.labelSmall) }
+                            label = { Text(stringResource(R.string.t_02d_00).format(hour), style = MaterialTheme.typography.labelSmall) }
                         )
                     }
                 }
@@ -295,7 +297,7 @@ fun ShiftStrategyEditor(
     availabilityOnly: Boolean = false
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text("1. Shift Configuration", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        Text(stringResource(R.string.t_1_shift_configuration), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         config.shifts.forEach { shift ->
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -304,7 +306,7 @@ fun ShiftStrategyEditor(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                     Text(shift.name.displayName, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Unavailable", style = MaterialTheme.typography.labelSmall)
+                        Text(stringResource(R.string.unavailable), style = MaterialTheme.typography.labelSmall)
                         Switch(
                             checked = shift.isUnavailable,
                             onCheckedChange = { checked ->
@@ -326,7 +328,7 @@ fun ShiftStrategyEditor(
                                     )
                                 )
                             },
-                            label = { Text("From (hr)") },
+                            label = { Text(stringResource(R.string.from_hr)) },
                             modifier = Modifier.weight(1f),
                             singleLine = true
                         )
@@ -341,7 +343,7 @@ fun ShiftStrategyEditor(
                                     )
                                 )
                             },
-                            label = { Text("To (hr)") },
+                            label = { Text(stringResource(R.string.to_hr)) },
                             modifier = Modifier.weight(1f),
                             singleLine = true
                         )
@@ -360,7 +362,7 @@ fun ShiftStrategyEditor(
                                 )
                             )
                         },
-                        label = { Text("Price per shift ($ USD)") },
+                        label = { Text(stringResource(R.string.price_per_shift_usd)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -369,9 +371,9 @@ fun ShiftStrategyEditor(
             }
         }
 
-        Text("2. Shifts Distribution", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        Text(stringResource(R.string.t_2_shifts_distribution), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         Text(
-            "Which shifts are offered on which day.",
+            stringResource(R.string.which_shifts_are_offered_on_which_day),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -410,7 +412,7 @@ fun DayBasedStrategyEditor(
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Text("Use facility operating hours ($openingHour–$closingHour)", style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.use_facility_operating_hours_x_x, openingHour, closingHour), style = MaterialTheme.typography.bodySmall)
             Switch(checked = config.useFacilityHours, onCheckedChange = { onConfigChange(config.copy(useFacilityHours = it)) })
         }
         if (!config.useFacilityHours) {
@@ -418,14 +420,14 @@ fun DayBasedStrategyEditor(
                 OutlinedTextField(
                     value = (config.customStartHour ?: parseHourInt(openingHour)).toString(),
                     onValueChange = { v -> onConfigChange(config.copy(customStartHour = v.toIntOrNull())) },
-                    label = { Text("From (hr)") },
+                    label = { Text(stringResource(R.string.from_hr)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = (config.customEndHour ?: parseHourInt(closingHour)).toString(),
                     onValueChange = { v -> onConfigChange(config.copy(customEndHour = v.toIntOrNull())) },
-                    label = { Text("To (hr)") },
+                    label = { Text(stringResource(R.string.to_hr)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
@@ -434,7 +436,7 @@ fun DayBasedStrategyEditor(
 
         if (availabilityOnly) {
             Text(
-                "Switch on each day this room is offered.",
+                stringResource(R.string.switch_on_each_day_this_room_is_offered),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -454,9 +456,9 @@ fun DayBasedStrategyEditor(
             return@Column
         }
         Text(
-            "Per day: a single price. Leave blank to mark a day Not Available. The " +
-                "specialist picks real occurrences (one-time or weekly-recurring until " +
-                "a chosen date) at booking time.",
+            stringResource(R.string.per_day_a_single_price_leave_blank_to_mark) +
+                stringResource(R.string.specialist_picks_real_occurrences_one_time) +
+                stringResource(R.string.a_chosen_date_at_booking_time),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -474,7 +476,7 @@ fun DayBasedStrategyEditor(
                         val updated = dp.copy(price = v.toDoubleOrNull() ?: 0.0)
                         onConfigChange(config.copy(distribution = config.distribution + (day to updated)))
                     },
-                    label = { Text("Price per day ($ USD)") },
+                    label = { Text(stringResource(R.string.price_per_day_usd)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )

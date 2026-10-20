@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -74,7 +76,7 @@ fun <T> MultiSelectDropdownField(
         ) {
             if (selected.isNotEmpty()) {
                 DropdownMenuItem(
-                    text = { Text("Clear selection") },
+                    text = { Text(stringResource(R.string.clear_selection)) },
                     leadingIcon = { Icon(Icons.Default.Clear, contentDescription = null) },
                     onClick = { onSelectionChange(emptySet()) }
                 )

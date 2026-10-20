@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
 import com.example.ui.theme.Elevation
 import android.annotation.SuppressLint
@@ -370,7 +372,7 @@ fun ProCurrencyTag(
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text = "$${finalUsd.toInt()} USD$suffix",
+                text = stringResource(R.string.x_usdx, finalUsd.toInt(), suffix),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.primary
@@ -429,7 +431,7 @@ private fun AvatarCircle(
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         Icons.Default.Check,
-                        contentDescription = "Verified",
+                        contentDescription = stringResource(R.string.verified),
                         tint = MaterialTheme.proColors.onSuccess,
                         modifier = Modifier.size(size * 0.25f)
                     )
@@ -475,7 +477,7 @@ fun ProMemberAvatar(
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Icon(
                             Icons.Default.Verified,
-                            contentDescription = "Verified",
+                            contentDescription = stringResource(R.string.verified),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
@@ -1034,7 +1036,7 @@ fun WorkspaceCard(
                             modifier = Modifier.size(12.dp)
                         )
                         Text(
-                            text = "Verified",
+                            text = stringResource(R.string.verified),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.proColors.onSuccessContainer
@@ -1055,7 +1057,7 @@ fun WorkspaceCard(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = if (isSaved) "Remove from Saved" else "Save space",
+                            contentDescription = if (isSaved) stringResource(R.string.remove_from_saved) else stringResource(R.string.save_space),
                             tint = if (isSaved) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(18.dp)
                         )
@@ -1234,7 +1236,7 @@ fun WorkspaceCard(
                 }
                 if (onWhatsAppClick != null) {
                     CustomButton(
-                        text = "WhatsApp",
+                        text = stringResource(R.string.whatsapp),
                         onClick = onWhatsAppClick,
                         variant = CustomButtonVariant.WHATSAPP,
                         icon = Icons.AutoMirrored.Filled.Chat,
@@ -1293,7 +1295,7 @@ fun ProHostBrandLogo(
 ) {
     Image(
         painter = painterResource(id = com.example.R.drawable.ic_prohost_logo_brand),
-        contentDescription = "ProHost Logo",
+        contentDescription = stringResource(R.string.prohost_logo),
         contentScale = ContentScale.Fit,
         modifier = modifier.size(size)
     )
@@ -1383,7 +1385,7 @@ fun ProHostTopAppBar(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Menu,
-                            contentDescription = "Open menu",
+                            contentDescription = stringResource(R.string.open_menu),
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -1398,7 +1400,7 @@ fun ProHostTopAppBar(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "ProHost",
+                            text = stringResource(R.string.prohost),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -1428,7 +1430,7 @@ fun ProHostTopAppBar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Notifications,
-                        contentDescription = if (unreadAlertCount > 0) "Notifications, $unreadAlertCount unread" else "Notifications",
+                        contentDescription = if (unreadAlertCount > 0) stringResource(R.string.notifications_x_unread, unreadAlertCount) else stringResource(R.string.notifications),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -1531,7 +1533,7 @@ fun ProHostFullScreenTopAppBar(
             ) {
                 Icon(
                     imageVector = if (isBackNavigation) Icons.AutoMirrored.Filled.ArrowBack else Icons.Default.Menu,
-                    contentDescription = if (isBackNavigation) "Back" else "Open Side Navigation Drawer",
+                    contentDescription = if (isBackNavigation) stringResource(R.string.back) else stringResource(R.string.open_side_navigation_drawer),
                     tint = MaterialTheme.colorScheme.onSurface
                 )
             }
@@ -1572,7 +1574,7 @@ fun PhotoCarouselArrow(
         ) {
             Icon(
                 if (forward) Icons.AutoMirrored.Filled.ArrowForwardIos else Icons.AutoMirrored.Filled.ArrowBackIos,
-                contentDescription = if (forward) "Next photo" else "Previous photo",
+                contentDescription = if (forward) stringResource(R.string.next_photo) else stringResource(R.string.previous_photo),
                 tint = Color.White,
                 modifier = Modifier.size(visualSize / 2)
             )

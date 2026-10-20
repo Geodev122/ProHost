@@ -1,5 +1,7 @@
 package com.example.ui.navigation
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import com.example.ui.util.UiMessages
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -280,7 +282,7 @@ fun ProHostAppRoot(
         if (emailVerifiedDeepLink && !emailVerifiedConsumed.value && currentUser != null) {
             emailVerifiedConsumed.value = true
             UiMessages.show(appContext,
-                "Email verified! Your account is now Level 2.",
+                appContext.getString(R.string.email_verified_your_account_is_now_level_2),
                 long = true)
         }
     }
@@ -929,16 +931,16 @@ fun ProHostAppRoot(
             ProHostDialog(
                 onDismissRequest = { showProHostWelcome = false },
                 icon = { Icon(Icons.Default.Celebration, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                title = { Text("You're Now a Pro Host!") },
+                title = { Text(stringResource(R.string.you_re_now_a_pro_host)) },
                 text = {
                     Text(
-                        "Your package is active. Publish a workspace listing, respond to booking " +
-                            "requests, and track your rentals — all from the Pro Host tools in the drawer."
+                        stringResource(R.string.your_package_is_active_publish_a_workspace) +
+                            stringResource(R.string.requests_and_track_your_rentals_all_from_t)
                     )
                 },
                 confirmButton = {
                     Button(onClick = { showProHostWelcome = false }, colors = proPrimaryButtonColors()) {
-                        Text("Let's Go")
+                        Text(stringResource(R.string.let_s_go))
                     }
                 }
             )
@@ -1039,22 +1041,22 @@ private fun SuspendedAccountScreen(onSignOut: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(20.dp))
             Text(
-                text = "Account Suspended",
+                text = stringResource(R.string.account_suspended),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Your account has been suspended by ProHost. You can't book, publish, " +
-                    "or manage listings while suspended. Contact support if you believe this is a mistake.",
+                text = stringResource(R.string.your_account_has_been_suspended_by_prohost) +
+                    stringResource(R.string.or_manage_listings_while_suspended_contact),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(28.dp))
             Button(onClick = onSignOut) {
-                Text("Sign Out")
+                Text(stringResource(R.string.sign_out))
             }
         }
     }

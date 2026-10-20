@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -67,7 +69,7 @@ fun DateRangePickerRow(
         )
         if (fromMillis != null || toMillis != null) {
             IconButton(onClick = { onFromChange(null); onToChange(null) }, modifier = Modifier.size(40.dp)) {
-                Icon(Icons.Default.Close, contentDescription = "Clear date filter", modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.clear_date_filter), modifier = Modifier.size(16.dp))
             }
         }
     }
@@ -82,7 +84,7 @@ fun DateRangePickerRow(
                     showFromPicker = false
                 }) { Text("OK") }
             },
-            dismissButton = { TextButton(shape = MaterialTheme.shapes.medium, onClick = { showFromPicker = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(shape = MaterialTheme.shapes.medium, onClick = { showFromPicker = false }) { Text(stringResource(R.string.cancel)) } }
         ) {
             DatePicker(state = pickerState)
         }
@@ -99,7 +101,7 @@ fun DateRangePickerRow(
                     showToPicker = false
                 }) { Text("OK") }
             },
-            dismissButton = { TextButton(shape = MaterialTheme.shapes.medium, onClick = { showToPicker = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(shape = MaterialTheme.shapes.medium, onClick = { showToPicker = false }) { Text(stringResource(R.string.cancel)) } }
         ) {
             DatePicker(state = pickerState)
         }

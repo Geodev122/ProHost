@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.*
@@ -26,9 +28,9 @@ fun AnalyticsConsentDialog() {
     SystemStylePermissionDialog(
         icon = Icons.Default.Insights,
         title = permissionTitle("share usage analytics"),
-        message = "Google Analytics shows us which screens, searches and listings people use, so we can make " +
-            "ProHost better. Reports carry your ProHost code (U-…), never your name, email or phone. No " +
-            "advertising ID and no ads. You can change this any time in Profile › Privacy.",
+        message = stringResource(R.string.google_analytics_shows_us_which_screens_se) +
+            stringResource(R.string.prohost_better_reports_carry_your_prohost) +
+            stringResource(R.string.advertising_id_and_no_ads_you_can_change_t),
         onAllow = { AnalyticsConsent.grant(context) },
         onDeny = { AnalyticsConsent.deny(context) },
         dismissible = false,
@@ -42,7 +44,7 @@ fun AnalyticsConsentDialog() {
                         )
                     }
                 }
-            ) { Text("Read the privacy policy") }
+            ) { Text(stringResource(R.string.read_the_privacy_policy)) }
         }
     )
 }
@@ -54,9 +56,9 @@ fun AnalyticsConsentToggle(modifier: Modifier = Modifier) {
     val state by AnalyticsConsent.state.collectAsState()
     ListItem(
         modifier = modifier,
-        headlineContent = { Text("Share usage analytics") },
+        headlineContent = { Text(stringResource(R.string.share_usage_analytics)) },
         supportingContent = {
-            Text("Google Analytics usage data, tied to your ProHost code — never your name, email or phone. No ads.")
+            Text(stringResource(R.string.google_analytics_usage_data_tied_to_your_p))
         },
         trailingContent = {
             Switch(

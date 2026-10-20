@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.ui.res.stringResource
 import com.example.ui.util.UiMessages
 import android.app.Activity
 import android.net.Uri
@@ -187,14 +188,14 @@ fun LoginAuthScreen(
                     android.util.Log.w("LoginAuthScreen", "Google sign-in unavailable: ${e2.type}")
                     com.example.analytics.AnalyticsTracker.authError("google", "unavailable")
                     UiMessages.show(context,
-                        "Google sign-in isn't available on this device. Please sign in with email.",
+                        context.getString(R.string.google_sign_in_isn_t_available_on_this_dev),
                         long = true)
                 }
             } catch (e: GetCredentialException) {
                 android.util.Log.w("LoginAuthScreen", "Google sign-in error: ${e.type}")
                 com.example.analytics.AnalyticsTracker.authError("google", "credential_error")
                 UiMessages.show(context,
-                    "Google sign-in isn't available right now. Please sign in with email.",
+                    context.getString(R.string.google_sign_in_isn_t_available_right_now_p),
                     long = true)
             }
         }
@@ -293,7 +294,7 @@ fun LoginAuthScreen(
 
         Image(
             painter = painterResource(id = com.example.R.drawable.prohost_login_lockup),
-            contentDescription = "ProHost Login",
+            contentDescription = stringResource(R.string.prohost_login),
             contentScale = ContentScale.Fit,
             modifier = Modifier.size(width = 220.dp, height = 144.dp)
         )
@@ -321,8 +322,8 @@ fun LoginAuthScreen(
             ) {
                 AuthStepHeader(
                     icon = Icons.Default.Email,
-                    title = "Welcome to ProHost",
-                    subtitle = "Sign in or create your account",
+                    title = stringResource(R.string.welcome_to_prohost),
+                    subtitle = stringResource(R.string.sign_in_or_create_your_account),
                     isBusy = isAuthenticating
                 )
 
@@ -334,8 +335,8 @@ fun LoginAuthScreen(
                         emailInput = it
                         localErrorMessage = null
                     },
-                    label = "Email address",
-                    placeholder = "you@example.com",
+                    label = stringResource(R.string.email_address),
+                    placeholder = stringResource(R.string.you_example_com),
                     leadingIcon = Icons.Default.Email,
                     modifier = Modifier.fillMaxWidth().testTag("auth_email_input"),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -345,7 +346,7 @@ fun LoginAuthScreen(
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
                 ProPrimaryButton(
-                    text = if (isAuthenticating) "Sending..." else "Continue",
+                    text = if (isAuthenticating) stringResource(R.string.sending) else stringResource(R.string.continue),
                     onClick = {
                         val trimmedEmail = emailInput.trim().lowercase()
                         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches()) {
@@ -378,7 +379,7 @@ fun LoginAuthScreen(
                 ) {
                     HorizontalDivider(modifier = Modifier.weight(1f))
                     Text(
-                        text = "  OR  ",
+                        text = stringResource(R.string.or),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -402,8 +403,8 @@ fun LoginAuthScreen(
             ) {
                 AuthStepHeader(
                     icon = Icons.Default.MarkEmailRead,
-                    title = "Check your email",
-                    subtitle = "We sent a 6-digit code to $pendingEmail. Enter it below.",
+                    title = stringResource(R.string.check_your_email),
+                    subtitle = stringResource(R.string.we_sent_a_6_digit_code_to_x_enter_it_below, pendingEmail),
                     isBusy = isAuthenticating
                 )
 
@@ -412,19 +413,19 @@ fun LoginAuthScreen(
                 InputField(
                     value = emailOtpCode,
                     onValueChange = { emailOtpCode = it.filter { c -> c.isDigit() }.take(6) },
-                    label = "6-Digit Code",
+                    label = stringResource(R.string.t_6_digit_code),
                     leadingIcon = Icons.Default.Sms,
                     modifier = Modifier.fillMaxWidth().testTag("email_otp_input"),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                     singleLine = true
                 )
 
-                ProHostAlertBanner(message = "Do not share this code with anyone.", icon = Icons.Default.Lock, modifier = Modifier.padding(top = 8.dp))
+                ProHostAlertBanner(message = stringResource(R.string.do_not_share_this_code_with_anyone), icon = Icons.Default.Lock, modifier = Modifier.padding(top = 8.dp))
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
                 ProPrimaryButton(
-                    text = if (isAuthenticating) "Verifying..." else "Verify Code",
+                    text = if (isAuthenticating) stringResource(R.string.verifying) else stringResource(R.string.verify_code),
                     onClick = {
                         val currentActivity = activity
                         if (currentActivity == null) {
@@ -452,7 +453,7 @@ fun LoginAuthScreen(
 
                 if (emailResendCountdownSeconds > 0) {
                     Text(
-                        text = "Resend code in ${emailResendCountdownSeconds}s",
+                        text = stringResource(R.string.resend_code_in_xs, emailResendCountdownSeconds),
                         fontSize = MaterialTheme.typography.labelMedium.fontSize,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.fillMaxWidth(),
@@ -472,7 +473,7 @@ fun LoginAuthScreen(
                         enabled = !isAuthenticating,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Resend Code", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.resend_code), fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
                     }
                 }
 
@@ -488,7 +489,7 @@ fun LoginAuthScreen(
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(Spacing.xs))
                     Text(
-                        "Use a different email",
+                        stringResource(R.string.use_a_different_email),
                         fontSize = MaterialTheme.typography.labelMedium.fontSize,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -503,20 +504,20 @@ fun LoginAuthScreen(
             ) {
                 AuthStepHeader(
                     icon = Icons.Default.MarkEmailRead,
-                    title = "Check your email",
-                    subtitle = "We sent a sign-in link to $pendingEmail. Tap the link to sign in automatically.",
+                    title = stringResource(R.string.check_your_email),
+                    subtitle = stringResource(R.string.we_sent_a_sign_in_link_to_x_tap_the_link_t, pendingEmail),
                     isBusy = isAuthenticating
                 )
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
-                ProHostAlertBanner(message = "The link expires in 60 minutes. Check your spam folder if it doesn't arrive.")
+                ProHostAlertBanner(message = stringResource(R.string.the_link_expires_in_60_minutes_check_your))
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
                 if (emailResendCountdownSeconds > 0) {
                     Text(
-                        text = "Resend link in ${emailResendCountdownSeconds}s",
+                        text = stringResource(R.string.resend_link_in_xs, emailResendCountdownSeconds),
                         fontSize = MaterialTheme.typography.labelMedium.fontSize,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.fillMaxWidth(),
@@ -533,7 +534,7 @@ fun LoginAuthScreen(
                         enabled = !isAuthenticating,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Resend link", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.resend_link), fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
                     }
                 }
 
@@ -555,7 +556,7 @@ fun LoginAuthScreen(
                     Icon(Icons.Default.Sms, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(Spacing.xs))
                     Text(
-                        "Use a code instead",
+                        stringResource(R.string.use_a_code_instead),
                         fontSize = MaterialTheme.typography.labelMedium.fontSize,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -572,7 +573,7 @@ fun LoginAuthScreen(
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(Spacing.xs))
                     Text(
-                        "Use a different email",
+                        stringResource(R.string.use_a_different_email),
                         fontSize = MaterialTheme.typography.labelMedium.fontSize,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -587,8 +588,8 @@ fun LoginAuthScreen(
             ) {
                 AuthStepHeader(
                     icon = Icons.Default.AppRegistration,
-                    title = "Complete Your Profile",
-                    subtitle = "Your identity is verified — just a few more details to join ProHost",
+                    title = stringResource(R.string.complete_your_profile),
+                    subtitle = stringResource(R.string.your_identity_is_verified_just_a_few_more),
                     isBusy = isAuthenticating
                 )
 
@@ -616,8 +617,8 @@ fun LoginAuthScreen(
                         onPictureSelected = { regProfilePicUri = it }
                     )
                     Column {
-                        Text("Profile Picture", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                        Text("Optional", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.profile_picture_2), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.optional), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
 
@@ -629,8 +630,8 @@ fun LoginAuthScreen(
                         regFullName = it
                         localErrorMessage = null
                     },
-                    label = "Full Name",
-                    placeholder = "e.g. Maya Haddad",
+                    label = stringResource(R.string.full_name),
+                    placeholder = stringResource(R.string.e_g_maya_haddad),
                     leadingIcon = Icons.Default.Person,
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
@@ -675,8 +676,8 @@ fun LoginAuthScreen(
                         regSpecialty = it
                         localErrorMessage = null
                     },
-                    label = "Profession / Job Title (Optional)",
-                    placeholder = "e.g. Dermatologist, Architect, Coworking Manager",
+                    label = stringResource(R.string.profession_job_title_optional),
+                    placeholder = stringResource(R.string.e_g_dermatologist_architect_coworking_mana),
                     leadingIcon = Icons.Default.Badge,
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
@@ -698,8 +699,8 @@ fun LoginAuthScreen(
                         regGovernorateArea = it
                         localErrorMessage = null
                     },
-                    label = "Governorate / Area",
-                    placeholder = "e.g. Mount Lebanon",
+                    label = stringResource(R.string.governorate_area),
+                    placeholder = stringResource(R.string.e_g_mount_lebanon),
                     leadingIcon = Icons.Default.LocationOn,
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
@@ -713,8 +714,8 @@ fun LoginAuthScreen(
                         regCity = it
                         localErrorMessage = null
                     },
-                    label = "City",
-                    placeholder = "e.g. Beirut",
+                    label = stringResource(R.string.city),
+                    placeholder = stringResource(R.string.e_g_beirut),
                     leadingIcon = Icons.Default.LocationCity,
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
@@ -727,13 +728,13 @@ fun LoginAuthScreen(
                     onCountryChange = { regWhatsAppCountry = it },
                     number = regPhoneNumber,
                     onNumberChange = { regPhoneNumber = it; localErrorMessage = null },
-                    label = "WhatsApp Number",
+                    label = stringResource(R.string.whatsapp_number_2),
                     placeholder = "71 234 567",
                     modifier = Modifier.fillMaxWidth()
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "Hosts and guests reach you here. Never shown publicly.",
+                        stringResource(R.string.hosts_and_guests_reach_you_here_never_show),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f)
@@ -741,7 +742,7 @@ fun LoginAuthScreen(
                     TextButton(onClick = pickDeviceNumber) {
                         Icon(Icons.Default.SimCard, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Use this phone's number", style = MaterialTheme.typography.labelMedium)
+                        Text(stringResource(R.string.use_this_phone_s_number), style = MaterialTheme.typography.labelMedium)
                     }
                 }
 
@@ -757,12 +758,12 @@ fun LoginAuthScreen(
                     Column {
                         Row {
                             Text(
-                                text = "I agree to the ",
+                                text = stringResource(R.string.i_agree_to_the),
                                 fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "Terms of Use",
+                                text = stringResource(R.string.terms_of_use),
                                 fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary,
@@ -770,9 +771,9 @@ fun LoginAuthScreen(
                             )
                         }
                         Row {
-                            Text(text = "and ", fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(text = stringResource(R.string.and), fontSize = MaterialTheme.typography.labelSmall.fontSize, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(
-                                text = "Privacy Policy",
+                                text = stringResource(R.string.privacy_policy),
                                 fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary,
@@ -785,7 +786,7 @@ fun LoginAuthScreen(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 ProPrimaryButton(
-                    text = if (isAuthenticating) "Creating Account..." else "Create Account",
+                    text = if (isAuthenticating) stringResource(R.string.creating_account) else stringResource(R.string.create_account),
                     onClick = {
                         val currentActivity = activity
                         if (currentActivity == null) {
@@ -865,7 +866,7 @@ fun LoginAuthScreen(
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text("Start over with a different account", fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.start_over_with_a_different_account), fontSize = MaterialTheme.typography.labelMedium.fontSize, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -890,7 +891,7 @@ fun LoginAuthScreen(
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "Sign in securely with a magic email link or your Google account.",
+                    text = stringResource(R.string.sign_in_securely_with_a_magic_email_link_o),
                     fontSize = MaterialTheme.typography.labelSmall.fontSize,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

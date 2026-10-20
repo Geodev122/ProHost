@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
 import com.example.ui.theme.Elevation
 import com.example.ui.util.UiMessages
@@ -222,7 +224,7 @@ fun OwnerSubscriptionsScreen(
         if (pendingAutoPublishDraftId != null) {
             item {
                 ProHostAlertBanner(
-                    message = "You have a saved Draft waiting on a subscription. Subscribe below and it will publish automatically.",
+                    message = stringResource(R.string.you_have_a_saved_draft_waiting_on_a_subscr),
                     severity = ProHostAlertSeverity.INFO
                 )
             }
@@ -230,8 +232,8 @@ fun OwnerSubscriptionsScreen(
         if (billingActivationPending) {
             item {
                 ProHostAlertBanner(
-                    title = "Activating your subscription",
-                    message = "This usually takes a few seconds. Taking too long? Contact support via WhatsApp.",
+                    title = stringResource(R.string.activating_your_subscription),
+                    message = stringResource(R.string.this_usually_takes_a_few_seconds_taking_to),
                     severity = ProHostAlertSeverity.SUCCESS,
                     icon = Icons.Default.HourglassTop,
                     action = { BannerDismiss { viewModel.billing.dismissBillingActivationPending() } }
@@ -326,7 +328,7 @@ fun OwnerSubscriptionsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = if (currentPlanId != null && !isSubscriptionExpired) "YOUR PLAN" else "CHOOSE YOUR PLAN",
+                    text = if (currentPlanId != null && !isSubscriptionExpired) stringResource(R.string.your_plan) else stringResource(R.string.choose_your_plan),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 0.8.sp,
@@ -341,12 +343,12 @@ fun OwnerSubscriptionsScreen(
         if (billingConnected && !pricesLoading && premiumProduct == null) {
             item {
                 ProHostAlertBanner(
-                    title = "Plans couldn't be loaded from Google Play",
-                    message = "Make sure you're using the Play Store version of the app, then tap Retry.",
+                    title = stringResource(R.string.plans_couldn_t_be_loaded_from_google_play),
+                    message = stringResource(R.string.make_sure_you_re_using_the_play_store_vers),
                     severity = ProHostAlertSeverity.ERROR,
                     action = {
                         TextButton(onClick = { viewModel.billing.retryBillingQuery(context) }) {
-                            Text("Retry", fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.retry), fontWeight = FontWeight.Bold)
                         }
                     }
                 )
@@ -359,7 +361,7 @@ fun OwnerSubscriptionsScreen(
                 }
             } else if (enabledPlans.isEmpty()) {
                 Text(
-                    "ProHost Premium plans will appear here once Google Play responds.",
+                    stringResource(R.string.prohost_premium_plans_will_appear_here_onc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 4.dp)
@@ -445,7 +447,7 @@ fun OwnerSubscriptionsScreen(
                             } else if (activity != null) {
                                 viewModel.billing.launchGooglePaySubscription(activity, selectedPlan)
                             } else {
-                                UiMessages.show(context, "Cannot launch Google Play on this device")
+                                UiMessages.show(context, context.getString(R.string.cannot_launch_google_play_on_this_device))
                             }
                         },
                         enabled = enabled,
@@ -539,7 +541,7 @@ fun OwnerSubscriptionsScreen(
         ProHostDialog(
             onDismissRequest = { showPromoHowTo = false },
             icon = { Icon(Icons.Default.Redeem, contentDescription = null) },
-            title = { Text("Use ${livePromo.code}") },
+            title = { Text(stringResource(R.string.use_x, livePromo.code)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(
@@ -565,9 +567,9 @@ fun OwnerSubscriptionsScreen(
                     } else if (activity != null) {
                         viewModel.billing.launchPromoCheckout(activity, livePromo)
                     }
-                }) { Text("Continue to Google Play", fontWeight = FontWeight.Bold) }
+                }) { Text(stringResource(R.string.continue_to_google_play), fontWeight = FontWeight.Bold) }
             },
-            dismissButton = { TextButton(onClick = { showPromoHowTo = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { showPromoHowTo = false }) { Text(stringResource(R.string.cancel)) } }
         )
     }
 
@@ -594,7 +596,7 @@ fun OwnerSubscriptionsScreen(
                         onCopy = {
                             val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                             clipboard.setPrimaryClip(android.content.ClipData.newPlainText("ProHost promo code", livePromo.code))
-                            UiMessages.show(context, "Code ${livePromo.code} copied")
+                            UiMessages.show(context, context.getString(R.string.code_x_copied, livePromo.code))
                         },
                         onUse = { showRedeemDialog = false; redeemCodeInput = ""; showPromoHowTo = true }
                     )
@@ -602,21 +604,21 @@ fun OwnerSubscriptionsScreen(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Default.CardGiftcard, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Text(
-                        if (livePromo != null) "Have another code?" else "Redeem a code",
+                        if (livePromo != null) stringResource(R.string.have_another_code) else stringResource(R.string.redeem_a_code),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                 }
                 Text(
-                    "Enter a promo or gift code and we'll open Google Play with it pre-filled. " +
-                        "Redeem it with the same Google account as this phone — when you come back, " +
-                        "your Pro Host plan activates on this ProHost account automatically.",
+                    stringResource(R.string.enter_a_promo_or_gift_code_and_we_ll_open) +
+                        stringResource(R.string.redeem_it_with_the_same_google_account_as) +
+                        stringResource(R.string.your_pro_host_plan_activates_on_this_proho),
                     style = MaterialTheme.typography.bodySmall
                 )
                 OutlinedTextField(
                     value = redeemCodeInput,
                     onValueChange = { redeemCodeInput = com.example.data.billing.PendingPromoCode.sanitize(it).orEmpty() },
-                    label = { Text("Promo code") },
+                    label = { Text(stringResource(R.string.promo_code)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -630,7 +632,7 @@ fun OwnerSubscriptionsScreen(
                         }
                     },
                     modifier = Modifier.fillMaxWidth()
-                ) { Text(if (redeemCodeInput.isBlank()) "Open Google Play redeem" else "Redeem on Google Play") }
+                ) { Text(if (redeemCodeInput.isBlank()) stringResource(R.string.open_google_play_redeem) else stringResource(R.string.redeem_on_google_play)) }
             }
         }
     }
@@ -677,7 +679,7 @@ private fun PremiumHero(
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        if (currentPlanId != null) PlayCatalog.planLabel(currentPlanId) else "ProHost Premium",
+                        if (currentPlanId != null) PlayCatalog.planLabel(currentPlanId) else stringResource(R.string.prohost_premium),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Black,
                         color = on,
@@ -697,7 +699,7 @@ private fun PremiumHero(
                     )
                 }
                 if (currentPlanId != null) {
-                    Icon(Icons.Default.Verified, contentDescription = "Active", tint = MaterialTheme.proColors.headerSuccess, modifier = Modifier.size(22.dp))
+                    Icon(Icons.Default.Verified, contentDescription = stringResource(R.string.active), tint = MaterialTheme.proColors.headerSuccess, modifier = Modifier.size(22.dp))
                 }
             }
             if (currentPlanId != null) {
@@ -850,7 +852,7 @@ internal fun PlanTile(
                     )
                     Icon(
                         if (selected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                        contentDescription = if (selected) "Selected" else null,
+                        contentDescription = if (selected) stringResource(R.string.selected) else null,
                         tint = if (selected) accent else scheme.outline,
                         modifier = Modifier.size(22.dp)
                     )
@@ -893,7 +895,7 @@ internal fun PlanTile(
                         Text(it, style = MaterialTheme.typography.labelSmall, color = if (selected) accent else scheme.primary, fontWeight = FontWeight.SemiBold)
                     }
                     Text(
-                        "then ${summary.recurring} / ${summary.recurringPeriod}",
+                        stringResource(R.string.then_x_x, summary.recurring, summary.recurringPeriod),
                         style = MaterialTheme.typography.labelSmall,
                         color = scheme.onSurfaceVariant
                     )
@@ -905,12 +907,12 @@ internal fun PlanTile(
                         color = scheme.onSurface,
                         maxLines = 1
                     )
-                    Text("per ${summary.recurringPeriod}", style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
+                    Text(stringResource(R.string.per_x, summary.recurringPeriod), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
                     summary.headlinePerMonth?.let {
                         Text(it, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = if (selected) accent else scheme.primary)
                     }
                     if (kind == PlayCatalog.PlanKind.MONTHLY) {
-                        Text("Billed monthly", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = if (selected) accent else scheme.primary)
+                        Text(stringResource(R.string.billed_monthly), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = if (selected) accent else scheme.primary)
                     }
                 }
                 Spacer(modifier = Modifier.weight(1f))
@@ -1030,9 +1032,9 @@ private fun UnavailablePlanTile(kind: PlayCatalog.PlanKind, modifier: Modifier =
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(PlayCatalog.badge(kind), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = scheme.onSurfaceVariant)
-            Text("Not available yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = scheme.onSurfaceVariant)
+            Text(stringResource(R.string.not_available_yet), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = scheme.onSurfaceVariant)
             Text(
-                "Google Play doesn't offer this plan in your country or store yet.",
+                stringResource(R.string.google_play_doesn_t_offer_this_plan_in_you),
                 style = MaterialTheme.typography.labelSmall,
                 color = scheme.onSurfaceVariant
             )
@@ -1152,20 +1154,20 @@ private fun SubscriptionTermsFooter(
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Text(
-            "Browsing and booking workspaces is free. ProHost Premium is needed only to publish listings.",
+            stringResource(R.string.browsing_and_booking_workspaces_is_free_pr),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface
         )
         Text(
-            "Payment is charged to your Google Play account. Subscriptions renew automatically at the price and " +
-                "period shown until you cancel. Cancel anytime in Google Play › Payments & subscriptions; you keep " +
-                "access until the end of the paid period.",
+            stringResource(R.string.payment_is_charged_to_your_google_play_acc) +
+                stringResource(R.string.period_shown_until_you_cancel_cancel_anyti) +
+                stringResource(R.string.access_until_the_end_of_the_paid_period),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         TextButton(onClick = onOpenLegal, contentPadding = PaddingValues(horizontal = 8.dp)) {
-            Text("Terms & Privacy", style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.terms_privacy), style = MaterialTheme.typography.labelMedium)
         }
     }
 }
@@ -1174,6 +1176,6 @@ private fun SubscriptionTermsFooter(
 @Composable
 private fun BannerDismiss(onClick: () -> Unit) {
     IconButton(onClick = onClick, modifier = Modifier.size(40.dp)) {
-        Icon(Icons.Default.Close, contentDescription = "Dismiss", modifier = Modifier.size(16.dp))
+        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.dismiss), modifier = Modifier.size(16.dp))
     }
 }

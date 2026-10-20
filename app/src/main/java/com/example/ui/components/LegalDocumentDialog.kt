@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
 import android.webkit.WebView
 import androidx.compose.foundation.layout.*
@@ -134,11 +136,11 @@ fun LegalDocumentDialog(
                                         Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
                                     }
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Download PDF (A5)", style = MaterialTheme.typography.labelMedium)
+                                    Text(stringResource(R.string.download_pdf_a5), style = MaterialTheme.typography.labelMedium)
                                 }
                             }
                             IconButton(onClick = onDismiss) {
-                                Icon(Icons.Default.Close, contentDescription = "Close")
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
                             }
                         }
                     }
@@ -164,7 +166,7 @@ fun LegalDocumentDialog(
                     adminVersion == null -> {
                         Box(modifier = Modifier.fillMaxSize().padding(Spacing.lg), contentAlignment = Alignment.Center) {
                             Text(
-                                "This document hasn't been published yet — check back soon.",
+                                stringResource(R.string.this_document_hasn_t_been_published_yet_ch),
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -202,7 +204,7 @@ fun LegalDocumentsMenu(onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
             Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Legal", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 8.dp))
+                Text(stringResource(R.string.legal), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 8.dp))
                 com.example.legal.LegalContent.all.forEach { doc ->
                     Card(
                         onClick = { openDocument = doc },
@@ -231,7 +233,7 @@ fun LegalDocumentsMenu(onDismiss: () -> Unit) {
                     Spacer(modifier = Modifier.height(8.dp))
                 }
                 TextButton(shape = MaterialTheme.shapes.medium, onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
-                    Text("Close")
+                    Text(stringResource(R.string.close))
                 }
             }
         }

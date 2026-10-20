@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -49,8 +51,8 @@ fun OwnerRentalRequestsScreen(
         !isLoading && incomingRequests.isEmpty() -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 ProEmptyState(
-                    title = "No Rental Requests",
-                    description = "You have no incoming rental requests yet. Publish a listing to start receiving bookings.",
+                    title = stringResource(R.string.no_rental_requests),
+                    description = stringResource(R.string.you_have_no_incoming_rental_requests_yet_p),
                     icon = Icons.Default.Inbox
                 )
             }
@@ -91,7 +93,7 @@ fun OwnerRentalRequestsScreenContent(
                 ) {
                     Icon(Icons.Default.Inbox, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                     Text(
-                        text = "${incomingRequests.size} Total Requests",
+                        text = stringResource(R.string.x_total_requests, incomingRequests.size),
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer

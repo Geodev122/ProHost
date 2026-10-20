@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
 import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
@@ -100,7 +102,7 @@ fun PromoCountdownCard(
                         modifier = Modifier.weight(1f)
                     )
                     IconButton(onClick = onCopy) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = "Copy code", tint = on, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.ContentCopy, contentDescription = stringResource(R.string.copy_code), tint = on, modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -108,7 +110,7 @@ fun PromoCountdownCard(
             // Live countdown to the offer's `ends-` tag (none when Play's offer has no end date).
             if (left != null) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Offer ends in", style = MaterialTheme.typography.labelSmall, color = on.copy(alpha = 0.8f))
+                    Text(stringResource(R.string.offer_ends_in), style = MaterialTheme.typography.labelSmall, color = on.copy(alpha = 0.8f))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         CountdownBox(left.days, "DAYS", Modifier.weight(1f))
                         CountdownBox(left.hours, "HRS", Modifier.weight(1f))
@@ -130,11 +132,11 @@ fun PromoCountdownCard(
             ) {
                 Icon(Icons.Default.Redeem, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(if (enabled) "Use promo code" else "For new subscribers", fontWeight = FontWeight.Bold)
+                Text(if (enabled) stringResource(R.string.use_promo_code) else stringResource(R.string.for_new_subscribers), fontWeight = FontWeight.Bold)
             }
             Text(
-                "Google Play's checkout shows the offer before you pay. A payment method is needed; then it renews at " +
-                    "${promo.summary.recurring} / ${promo.summary.recurringPeriod} unless you cancel in Google Play before then.",
+                stringResource(R.string.google_play_s_checkout_shows_the_offer_bef) +
+                    stringResource(R.string.x_x_unless_you_cancel_in_google_play_befor, promo.summary.recurring, promo.summary.recurringPeriod),
                 style = MaterialTheme.typography.labelSmall,
                 color = on.copy(alpha = 0.75f),
                 textAlign = TextAlign.Center,

@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -134,10 +136,10 @@ fun ChangePriceSheet(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { back() }, enabled = !saving) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                 }
                 Column(Modifier.weight(1f)) {
-                    Text("Change price", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.change_price), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(
                         text = when (step) {
                             PriceStep.LISTING -> "Step 1 of 3 · Choose a listing"
@@ -175,7 +177,7 @@ fun ChangePriceSheet(
                 when (step) {
                     PriceStep.LISTING -> {
                         if (ownSpaces.isEmpty()) {
-                            Text("You have no listings yet.", style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.you_have_no_listings_yet), style = MaterialTheme.typography.bodyMedium)
                         }
                         ownSpaces.forEach { s ->
                             PickRow(
@@ -206,10 +208,10 @@ fun ChangePriceSheet(
                     }
                     PriceStep.SLOTS -> {
                         if (space == null || division == null) {
-                            Text("This listing or division is no longer available.", style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.this_listing_or_division_is_no_longer_avai), style = MaterialTheme.typography.bodyMedium)
                         } else if (slots.isEmpty()) {
                             Text(
-                                "No priced slots are configured here yet. Add them by editing the listing.",
+                                stringResource(R.string.no_priced_slots_are_configured_here_yet_ad),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         } else {
@@ -234,14 +236,14 @@ fun ChangePriceSheet(
                     PriceStep.EDIT -> slot?.let { s ->
                         Text(s.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                         Text(
-                            "Current price: ${formatUsd(s.price)}${s.unit}",
+                            stringResource(R.string.current_price_xx, formatUsd(s.price), s.unit),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         OutlinedTextField(
                             value = priceText,
                             onValueChange = { v -> priceText = v.filter { it.isDigit() || it == '.' || it == ',' }.take(10) },
-                            label = { Text("New price (USD${s.unit})") },
+                            label = { Text(stringResource(R.string.new_price_usdx, s.unit)) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.fillMaxWidth()
@@ -251,14 +253,14 @@ fun ChangePriceSheet(
                         if (affected.isNotEmpty()) {
                             Text(
                                 "${affected.size} ${if (affected.size == 1) "booking uses" else "bookings use"} this slot — " +
-                                    "you'll choose how the change applies to each next.",
+                                    stringResource(R.string.you_ll_choose_how_the_change_applies_to_ea),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         Spacer(Modifier.height(Spacing.sm))
                         ProPrimaryButton(
-                            text = if (affected.isEmpty()) "Save new price" else "Continue",
+                            text = if (affected.isEmpty()) stringResource(R.string.save_new_price) else stringResource(R.string.continue),
                             onClick = {
                                 if (affected.isEmpty()) submit() else {
                                     affected.forEach { b ->
@@ -282,8 +284,8 @@ fun ChangePriceSheet(
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                "Each person below is notified. \"Update now\" re-prices every remaining date or month from today; " +
-                                    "\"Next term\" from the next billing period (next month, or next Monday for dated bookings).",
+                                stringResource(R.string.each_person_below_is_notified_update_now_r) +
+                                    stringResource(R.string.next_term_from_the_next_billing_period_nex),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -291,7 +293,7 @@ fun ChangePriceSheet(
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Apply to all:", style = MaterialTheme.typography.labelMedium)
+                                Text(stringResource(R.string.apply_to_all), style = MaterialTheme.typography.labelMedium)
                                 PriceChangeMode.entries.forEach { mode ->
                                     AssistChip(
                                         onClick = { affected.forEach { decisions[it.id] = mode } },
@@ -315,7 +317,7 @@ fun ChangePriceSheet(
                             }
                             Spacer(Modifier.height(Spacing.sm))
                             ProPrimaryButton(
-                                text = "Apply new price",
+                                text = stringResource(R.string.apply_new_price),
                                 icon = Icons.Default.Check,
                                 onClick = { submit() },
                                 enabled = !saving,
@@ -369,7 +371,7 @@ private fun SlotPriceRow(slot: PriceChange.PriceSlot, onChange: () -> Unit) {
             TextButton(onClick = onChange) {
                 Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(Spacing.xs))
-                Text("Change")
+                Text(stringResource(R.string.change))
             }
         }
     }

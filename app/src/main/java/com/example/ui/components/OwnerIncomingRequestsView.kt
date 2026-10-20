@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -69,8 +71,8 @@ fun OwnerIncomingRequestsView(
         ) {
             // Header with badge
             ProSectionHeader(
-                title = "Incoming Requests",
-                subtitle = "Review and confirm professional rental contracts",
+                title = stringResource(R.string.incoming_requests),
+                subtitle = stringResource(R.string.review_and_confirm_professional_rental_con),
                 icon = Icons.Default.Inbox,
                 trailingContent = {
                     if (pendingCount > 0) {
@@ -134,12 +136,12 @@ fun OwnerIncomingRequestsView(
                             modifier = Modifier.size(40.dp)
                         )
                         Text(
-                            "Can't reach server",
+                            stringResource(R.string.can_t_reach_server),
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            "Check your connection — cached requests may be stale.",
+                            stringResource(R.string.check_your_connection_cached_requests_may),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -148,7 +150,7 @@ fun OwnerIncomingRequestsView(
                 }
             } else if (filteredRequests.isEmpty()) {
                 ProEmptyState(
-                    title = "No ${selectedFilter.lowercase().replaceFirstChar { it.uppercase() }} Requests",
+                    title = stringResource(R.string.no_x_requests, selectedFilter.lowercase().replaceFirstChar { it.uppercase() }),
                     description = if (selectedFilter == "PENDING") {
                         "All incoming booking requests are processed. New professional inquiries will appear here immediately."
                     } else {
@@ -202,19 +204,19 @@ fun OwnerIncomingRequestsView(
         ProHostDialog(
             onDismissRequest = { rejectingRequestId = null },
             icon = { Icon(Icons.Default.Cancel, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-            title = { Text("Decline Booking Request", style = MaterialTheme.typography.titleMedium) },
+            title = { Text(stringResource(R.string.decline_booking_request), style = MaterialTheme.typography.titleMedium) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "Provide a note or scheduling reason for the professional:",
+                        text = stringResource(R.string.provide_a_note_or_scheduling_reason_for_th),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     OutlinedTextField(
                         value = rejectionReasonInput,
                         onValueChange = { rejectionReasonInput = it },
-                        label = { Text("Reason (Optional)") },
-                        placeholder = { Text("e.g., Space already reserved for client workshops") },
+                        label = { Text(stringResource(R.string.reason_optional)) },
+                        placeholder = { Text(stringResource(R.string.e_g_space_already_reserved_for_client_work)) },
                         modifier = Modifier.fillMaxWidth(),
                         maxLines = 3
                     )
@@ -222,7 +224,7 @@ fun OwnerIncomingRequestsView(
             },
             confirmButton = {
                 CustomButton(
-                    text = "Confirm Decline",
+                    text = stringResource(R.string.confirm_decline),
                     onClick = {
                         val reqId = rejectingRequestId
                         if (reqId != null) {
@@ -236,7 +238,7 @@ fun OwnerIncomingRequestsView(
             },
             dismissButton = {
                 TextButton(onClick = { rejectingRequestId = null }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -248,18 +250,18 @@ fun OwnerIncomingRequestsView(
         ProHostDialog(
             onDismissRequest = { acceptingRequestId = null },
             icon = { Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-            title = { Text("Accept Booking", style = MaterialTheme.typography.titleMedium) },
+            title = { Text(stringResource(R.string.accept_booking), style = MaterialTheme.typography.titleMedium) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "Optionally share your space rules, entry instructions, or any special access info with your tenant. " +
-                            "You can skip this — the specialist will be informed if nothing is provided.",
+                        text = stringResource(R.string.optionally_share_your_space_rules_entry_in) +
+                            stringResource(R.string.you_can_skip_this_the_specialist_will_be_i),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     DocumentPickerField(
-                        label = "Space Rules & Access Guidance (Optional)",
-                        helperText = "PDF, JPG, or PNG — the specialist can view this from My Bookings",
+                        label = stringResource(R.string.space_rules_access_guidance_optional),
+                        helperText = stringResource(R.string.pdf_jpg_or_png_the_specialist_can_view_thi),
                         state = agreementDocState,
                         onStateChanged = { agreementDocState = it },
                         modifier = Modifier.fillMaxWidth(),
@@ -275,12 +277,12 @@ fun OwnerIncomingRequestsView(
                         acceptingRequestId = null
                     }
                 ) {
-                    Text(if (agreementDocState.isSelected) "Accept & Share Rules" else "Accept")
+                    Text(if (agreementDocState.isSelected) stringResource(R.string.accept_share_rules) else stringResource(R.string.accept))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { acceptingRequestId = null }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -330,7 +332,7 @@ fun OwnerBookingRequestCard(
                 )
                 val attendeeLine = com.example.ui.util.AttendeePricing.bookingSummary(request)
                 Text(
-                    text = if (attendeeLine != null) "$attendeeLine total" else "\$${request.totalAmountUsd.toInt()} USD",
+                    text = if (attendeeLine != null) stringResource(R.string.x_total, attendeeLine) else stringResource(R.string.x_usd, request.totalAmountUsd.toInt()),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
@@ -391,7 +393,7 @@ fun OwnerRequestDetailSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (request.replacesBookingId.isNullOrBlank()) "Booking Request" else "Change Request",
+                    text = if (request.replacesBookingId.isNullOrBlank()) stringResource(R.string.booking_request) else stringResource(R.string.change_request),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -411,8 +413,8 @@ fun OwnerRequestDetailSheet(
             )
             if (!request.replacesBookingId.isNullOrBlank() && request.status == BookingRequestStatus.PENDING) {
                 Text(
-                    "This specialist wants to change a booking they already have. Accepting confirms these new " +
-                        "details and releases the old booking.",
+                    stringResource(R.string.this_specialist_wants_to_change_a_booking) +
+                        stringResource(R.string.details_and_releases_the_old_booking),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -444,7 +446,7 @@ fun OwnerRequestDetailSheet(
             if (request.status == BookingRequestStatus.REJECTED && !request.rejectionReason.isNullOrBlank()) {
                 Surface(color = MaterialTheme.colorScheme.errorContainer, shape = MaterialTheme.shapes.small) {
                     Text(
-                        text = "Declined: ${request.rejectionReason}",
+                        text = stringResource(R.string.declined_x, request.rejectionReason),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(8.dp)
@@ -456,7 +458,7 @@ fun OwnerRequestDetailSheet(
 
             if (onChangePrice != null && (request.status == BookingRequestStatus.PENDING || request.status == BookingRequestStatus.ACCEPTED)) {
                 ProOutlinedButton(
-                    text = "Change price",
+                    text = stringResource(R.string.change_price),
                     onClick = onChangePrice,
                     icon = Icons.Default.LocalOffer,
                     compact = true,
@@ -471,7 +473,7 @@ fun OwnerRequestDetailSheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     CustomButton(
-                        text = "Accept",
+                        text = stringResource(R.string.accept),
                         onClick = onAccept,
                         variant = CustomButtonVariant.SUCCESS,
                         icon = Icons.Default.Check,
@@ -479,7 +481,7 @@ fun OwnerRequestDetailSheet(
                         modifier = Modifier.weight(1f)
                     )
                     CustomButton(
-                        text = "Reject",
+                        text = stringResource(R.string.reject),
                         onClick = onReject,
                         variant = CustomButtonVariant.DANGER,
                         icon = Icons.Default.Close,
@@ -487,7 +489,7 @@ fun OwnerRequestDetailSheet(
                         modifier = Modifier.weight(1f)
                     )
                     CustomButton(
-                        text = "WhatsApp",
+                        text = stringResource(R.string.whatsapp),
                         onClick = onWhatsApp,
                         variant = CustomButtonVariant.WHATSAPP,
                         icon = Icons.AutoMirrored.Filled.Chat,
@@ -497,7 +499,7 @@ fun OwnerRequestDetailSheet(
                 }
             } else {
                 CustomButton(
-                    text = "Message on WhatsApp",
+                    text = stringResource(R.string.message_on_whatsapp),
                     onClick = onWhatsApp,
                     variant = CustomButtonVariant.WHATSAPP,
                     icon = Icons.AutoMirrored.Filled.Chat,

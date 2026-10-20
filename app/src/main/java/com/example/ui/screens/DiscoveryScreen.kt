@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -264,10 +266,10 @@ fun DiscoveryScreenContent(
             } else if (loadError != null) {
                 Box(modifier = Modifier.fillMaxSize().padding(top = 8.dp, bottom = bottomNavInset)) {
                     ProEmptyState(
-                        title = "Couldn't Load Workspaces",
+                        title = stringResource(R.string.couldn_t_load_workspaces),
                         description = loadError,
                         icon = Icons.Default.WifiOff,
-                        actionButtonText = "Retry",
+                        actionButtonText = stringResource(R.string.retry),
                         onActionClick = onRetryLoad
                     )
                 }
@@ -279,7 +281,7 @@ fun DiscoveryScreenContent(
             } else if (spaces.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize().padding(top = 8.dp, bottom = bottomNavInset)) {
                     ProEmptyState(
-                        title = "No Workspaces Found",
+                        title = stringResource(R.string.no_workspaces_found),
                         description = if (searchQuery.isNotBlank()) {
                             "Nothing matches \"${searchQuery.trim()}\" with the current filters."
                         } else {
@@ -288,7 +290,7 @@ fun DiscoveryScreenContent(
                         icon = Icons.Default.SearchOff,
                         // Search and filters run over the loaded page: offer the next one
                         // before suggesting the person change their search.
-                        actionButtonText = if (hasMore) "Search More Listings" else "Reset All Filters",
+                        actionButtonText = if (hasMore) stringResource(R.string.search_more_listings) else stringResource(R.string.reset_all_filters),
                         onActionClick = {
                             if (hasMore) {
                                 onLoadMore()
@@ -357,7 +359,7 @@ fun DiscoveryScreenContent(
                             LaunchedEffect(listCards.size) { onLoadMore() }
                             Box(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
                                 TextButton(onClick = onLoadMore) {
-                                    Text("Load more workspaces", style = MaterialTheme.typography.labelLarge)
+                                    Text(stringResource(R.string.load_more_workspaces), style = MaterialTheme.typography.labelLarge)
                                 }
                             }
                         }
@@ -402,7 +404,7 @@ private fun SearchingMoreRow() {
         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            "Searching more listings…",
+            stringResource(R.string.searching_more_listings),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -458,7 +460,7 @@ private fun ExploreOverlayHeader(
             if (onOpenMenu != null) {
                 ExploreControlSurface(floating = isMapView, shape = CircleShape) {
                     IconButton(onClick = onOpenMenu, modifier = Modifier.size(44.dp)) {
-                        Icon(Icons.Default.Menu, contentDescription = "Open menu", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.open_menu), tint = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
@@ -495,7 +497,7 @@ private fun ExploreOverlayHeader(
                     IconButton(onClick = onOpenFilters, modifier = Modifier.size(44.dp)) {
                         Icon(
                             Icons.Default.Tune,
-                            contentDescription = if (activeFilterCount > 0) "Filters, $activeFilterCount active" else "Filters",
+                            contentDescription = if (activeFilterCount > 0) stringResource(R.string.filters_x_active, activeFilterCount) else stringResource(R.string.filters),
                             tint = if (activeFilterCount > 0) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -578,7 +580,7 @@ private fun MapListToggle(
             listOf(true to "Map", false to "List").forEach { (isMapOption, label) ->
                 val selected = isMapOption == isMapView
                 val container by androidx.compose.animation.animateColorAsState(
-                    if (selected) MaterialTheme.colorScheme.primary else Color.Transparent, label = "mapListToggle"
+                    if (selected) MaterialTheme.colorScheme.primary else Color.Transparent, label = stringResource(R.string.maplisttoggle)
                 )
                 Row(
                     modifier = Modifier
@@ -593,7 +595,7 @@ private fun MapListToggle(
                     // Icon only; the label stays for TalkBack.
                     Icon(
                         if (isMapOption) Icons.Default.Map else Icons.AutoMirrored.Filled.FormatListBulleted,
-                        contentDescription = "$label view",
+                        contentDescription = stringResource(R.string.x_view, label),
                         tint = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
@@ -644,7 +646,7 @@ private fun ExploreSearchField(
             Box(modifier = Modifier.weight(1f).padding(start = 8.dp, top = 10.dp, bottom = 10.dp)) {
                 if (draft.isEmpty()) {
                     Text(
-                        "Name, area, specialty, room type…",
+                        stringResource(R.string.name_area_specialty_room_type),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -661,7 +663,7 @@ private fun ExploreSearchField(
                 )
             }
             IconButton(onClick = onClose, modifier = Modifier.size(40.dp)) {
-                Icon(Icons.Default.Close, contentDescription = "Clear and close search", modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.clear_and_close_search), modifier = Modifier.size(18.dp))
             }
             FilledIconButton(
                 onClick = { submit() },
@@ -671,7 +673,7 @@ private fun ExploreSearchField(
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 )
             ) {
-                Icon(Icons.Default.Check, contentDescription = "Search", modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Check, contentDescription = stringResource(R.string.search), modifier = Modifier.size(18.dp))
             }
         }
     }
@@ -711,14 +713,14 @@ private fun DiscoveryFilterSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Filter Workspaces", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.filter_workspaces), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 TextButton(onClick = onResetFilters, contentPadding = PaddingValues(horizontal = 8.dp)) {
-                    Text("Reset", style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(R.string.reset), style = MaterialTheme.typography.labelMedium)
                 }
             }
 
             MultiSelectDropdownField(
-                label = "Space type",
+                label = stringResource(R.string.space_type),
                 options = categoryOptions.map { it.id },
                 selected = filterState.selectedCategoryIds,
                 optionLabel = { id -> categoryOptions.firstOrNull { it.id == id }?.name ?: id },
@@ -727,7 +729,7 @@ private fun DiscoveryFilterSheet(
             )
 
             MultiSelectDropdownField(
-                label = "Division type",
+                label = stringResource(R.string.division_type),
                 options = divisionTypeOptions,
                 selected = filterState.selectedDivisionTypes,
                 optionLabel = { it.displayName },
@@ -738,7 +740,7 @@ private fun DiscoveryFilterSheet(
             // Always offered: it used to hide unless listings spanned 2+ countries, which
             // (with legacy listings' blank country) meant it never appeared.
             MultiSelectDropdownField(
-                label = "Country",
+                label = stringResource(R.string.country),
                 options = (availableCountries + filterState.selectedCountries).distinct().sorted(),
                 selected = filterState.selectedCountries,
                 optionLabel = { it },
@@ -747,7 +749,7 @@ private fun DiscoveryFilterSheet(
             )
 
             MultiSelectDropdownField(
-                label = "Pricing formula",
+                label = stringResource(R.string.pricing_formula),
                 options = PricingFormulaFilter.entries.toList(),
                 selected = filterState.selectedStrategies,
                 optionLabel = { "${formulaLabel(it)} (${formulaUnitLabel(it).removePrefix("/")})" },
@@ -768,7 +770,7 @@ private fun DiscoveryFilterSheet(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Price range", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.price_range), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                         Text(
                             "$${current.start.toInt()} – $${current.endInclusive.toInt()}$unit",
                             style = MaterialTheme.typography.labelLarge,
@@ -785,7 +787,7 @@ private fun DiscoveryFilterSheet(
                 }
             } else if (filterState.selectedStrategies.size > 1) {
                 Text(
-                    "Choose a single pricing formula to filter by price.",
+                    stringResource(R.string.choose_a_single_pricing_formula_to_filter),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -798,7 +800,7 @@ private fun DiscoveryFilterSheet(
                     leadingIcon = if (filterState.onlyVerified) {
                         { Icon(Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(16.dp)) }
                     } else null,
-                    label = { Text("Verified only", style = MaterialTheme.typography.labelSmall) }
+                    label = { Text(stringResource(R.string.verified_only), style = MaterialTheme.typography.labelSmall) }
                 )
             }
 

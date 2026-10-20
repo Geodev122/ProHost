@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -37,20 +39,20 @@ fun OperatingScheduleEditorSection(
             OutlinedTextField(
                 value = openingHour,
                 onValueChange = onOpeningHourChange,
-                label = { Text("Opens (HH:mm)") },
+                label = { Text(stringResource(R.string.opens_hh_mm)) },
                 modifier = Modifier.weight(1f),
                 singleLine = true
             )
             OutlinedTextField(
                 value = closingHour,
                 onValueChange = onClosingHourChange,
-                label = { Text("Closes (HH:mm)") },
+                label = { Text(stringResource(R.string.closes_hh_mm)) },
                 modifier = Modifier.weight(1f),
                 singleLine = true
             )
         }
 
-        Text("Operating Days", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(R.string.operating_days), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             items(weekDayOptions) { day ->
                 val isSelected = selectedDays.contains(day)

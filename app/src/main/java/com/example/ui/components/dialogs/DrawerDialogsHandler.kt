@@ -1,5 +1,7 @@
 package com.example.ui.components.dialogs
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -112,7 +114,7 @@ fun DrawerDialogsHandler(
                         color = MaterialTheme.colorScheme.primary
                     )
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
                     }
                 }
 
@@ -171,7 +173,7 @@ fun DrawerDialogsHandler(
                                     )
                                     if (auditFromMillis != null || auditToMillis != null) {
                                         IconButton(onClick = { auditFromMillis = null; auditToMillis = null }, modifier = Modifier.size(40.dp)) {
-                                            Icon(Icons.Default.Close, contentDescription = "Clear date filter", modifier = Modifier.size(16.dp))
+                                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.clear_date_filter), modifier = Modifier.size(16.dp))
                                         }
                                     }
                                 }
@@ -182,12 +184,12 @@ fun DrawerDialogsHandler(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        "${filteredAuditLogs.size} of ${auditLogs.size} entries",
+                                        stringResource(R.string.x_of_x_entries, filteredAuditLogs.size, auditLogs.size),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     CustomButton(
-                                        text = "Export CSV",
+                                        text = stringResource(R.string.export_csv),
                                         onClick = {
                                             val csv = viewModel.repository.exportAuditLogsToCsv(auditFromMillis, auditToMillis)
                                             viewModel.shareExportData(context, "Audit Logs", csv)
@@ -227,7 +229,7 @@ fun DrawerDialogsHandler(
                                                 }
                                                 Text(log.details, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelSmall)
                                                 Text(
-                                                    "Actor: ${log.actorEmail} • " +
+                                                    stringResource(R.string.actor_x, log.actorEmail) +
                                                         "${SimpleDateFormat("MMM d, yyyy HH:mm", Locale.US).format(Date(log.timestamp))}",
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     style = MaterialTheme.typography.labelSmall
@@ -248,7 +250,7 @@ fun DrawerDialogsHandler(
                                             showAuditFromPicker = false
                                         }) { Text("OK") }
                                     },
-                                    dismissButton = { TextButton(onClick = { showAuditFromPicker = false }) { Text("Cancel") } }
+                                    dismissButton = { TextButton(onClick = { showAuditFromPicker = false }) { Text(stringResource(R.string.cancel)) } }
                                 ) {
                                     DatePicker(state = pickerState)
                                 }
@@ -265,7 +267,7 @@ fun DrawerDialogsHandler(
                                             showAuditToPicker = false
                                         }) { Text("OK") }
                                     },
-                                    dismissButton = { TextButton(onClick = { showAuditToPicker = false }) { Text("Cancel") } }
+                                    dismissButton = { TextButton(onClick = { showAuditToPicker = false }) { Text(stringResource(R.string.cancel)) } }
                                 ) {
                                     DatePicker(state = pickerState)
                                 }
@@ -291,13 +293,13 @@ fun DrawerDialogsHandler(
                                         )
                                         Spacer(modifier = Modifier.height(Spacing.sm))
                                         Text(
-                                            text = "No notifications yet.",
+                                            text = stringResource(R.string.no_notifications_yet),
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.outline,
                                             style = MaterialTheme.typography.bodyMedium
                                         )
                                         Text(
-                                            text = "Real-time updates received via push messaging will appear here.",
+                                            text = stringResource(R.string.real_time_updates_received_via_push_messag),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.outline,
                                             textAlign = TextAlign.Center,
@@ -309,10 +311,10 @@ fun DrawerDialogsHandler(
                                         TextButton(
                                             onClick = { viewModel.markAllAlertsRead() },
                                             modifier = Modifier.align(Alignment.End)
-                                        ) { Text("Mark all read", fontWeight = FontWeight.Bold) }
+                                        ) { Text(stringResource(R.string.mark_all_read), fontWeight = FontWeight.Bold) }
                                     }
                                     Text(
-                                        "Notifications are kept for 48 hours.",
+                                        stringResource(R.string.notifications_are_kept_for_48_hours),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.outline
                                     )
@@ -384,14 +386,14 @@ fun DrawerDialogsHandler(
                                                                 modifier = Modifier.height(24.dp)
                                                             ) {
                                                                 Text(
-                                                                    "Mark Read",
+                                                                    stringResource(R.string.mark_read),
                                                                     fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                                                     fontWeight = FontWeight.Bold
                                                                 )
                                                             }
                                                         } else {
                                                             Text(
-                                                                text = "Read",
+                                                                text = stringResource(R.string.read),
                                                                 style = MaterialTheme.typography.labelSmall,
                                                                 color = MaterialTheme.colorScheme.outline
                                                             )
@@ -454,7 +456,7 @@ fun DrawerDialogsHandler(
                                                                         modifier = Modifier.size(12.dp)
                                                                     )
                                                                     Spacer(modifier = Modifier.width(Spacing.xs))
-                                                                    Text("Open", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                                                    Text(stringResource(R.string.open), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                                                 }
                                                             }
                                                             // A "WhatsApp" quick-reply button used to live here, but FCMAlert

@@ -1,5 +1,7 @@
 package com.example.ui.components.drawer
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -76,7 +78,7 @@ fun DrawerIdentityCard(
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Collapse Side Drawer",
+                                contentDescription = stringResource(R.string.collapse_side_drawer),
                                 tint = pro.onBrandHeader
                             )
                         }
@@ -134,7 +136,7 @@ fun DrawerIdentityCard(
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         Icons.Default.Check,
-                                        contentDescription = "Verified",
+                                        contentDescription = stringResource(R.string.verified),
                                         tint = pro.brandHeaderStart,
                                         modifier = Modifier.size(13.dp)
                                     )
@@ -149,7 +151,7 @@ fun DrawerIdentityCard(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text(
-                                text = user?.fullName ?: "ProHost Member",
+                                text = user?.fullName ?: stringResource(R.string.prohost_member),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = pro.onBrandHeader,
@@ -159,7 +161,7 @@ fun DrawerIdentityCard(
                             if (user?.isVerified == true) {
                                 Icon(
                                     Icons.Default.Verified,
-                                    contentDescription = "Verified Member",
+                                    contentDescription = stringResource(R.string.verified_member),
                                     tint = if (role == UserRole.ADMIN) pro.headerWarning else pro.headerSuccess,
                                     modifier = Modifier.size(18.dp)
                                 )

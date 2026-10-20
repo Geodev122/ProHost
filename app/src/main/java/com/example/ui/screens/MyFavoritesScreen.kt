@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -80,10 +82,10 @@ fun MyFavoritesScreen(
         } else if (savedSpaces.isEmpty() && unavailableIds.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
                 ProEmptyState(
-                    title = "Nothing saved yet",
-                    description = "Tap the heart on any space to keep it here for later.",
+                    title = stringResource(R.string.nothing_saved_yet),
+                    description = stringResource(R.string.tap_the_heart_on_any_space_to_keep_it_here),
                     icon = Icons.Filled.FavoriteBorder,
-                    actionButtonText = "Explore spaces",
+                    actionButtonText = stringResource(R.string.explore_spaces),
                     onActionClick = onNavigateToExplore
                 )
             }
@@ -117,7 +119,7 @@ fun MyFavoritesScreen(
                 if (unavailableIds.isNotEmpty()) {
                     item(key = "header_unavailable") {
                         Text(
-                            text = "No Longer Available (${unavailableIds.size})",
+                            text = stringResource(R.string.no_longer_available_x, unavailableIds.size),
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = if (groupedSavedSpaces.isEmpty()) 0.dp else Spacing.sm)
@@ -151,19 +153,19 @@ private fun UnavailableFavoriteCard(onRemove: () -> Unit) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "No longer available",
+                    text = stringResource(R.string.no_longer_available),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "This saved listing was paused, unpublished, or removed by its host.",
+                    text = stringResource(R.string.this_saved_listing_was_paused_unpublished),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             TextButton(shape = MaterialTheme.shapes.medium, onClick = onRemove) {
-                Text("Remove", color = MaterialTheme.colorScheme.error, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                Text(stringResource(R.string.remove), color = MaterialTheme.colorScheme.error, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
             }
         }
     }

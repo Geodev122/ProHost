@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
@@ -78,7 +80,7 @@ fun InAppUpdateBanner(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (updateState == UpdateState.DOWNLOADED) "ProHost Update Ready" else "Downloading ProHost Update...",
+                            text = if (updateState == UpdateState.DOWNLOADED) stringResource(R.string.prohost_update_ready) else stringResource(R.string.downloading_prohost_update),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = onBanner
@@ -105,7 +107,7 @@ fun InAppUpdateBanner(
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
-                                text = "Restart",
+                                text = stringResource(R.string.restart),
                                 fontWeight = FontWeight.ExtraBold,
                                 style = MaterialTheme.typography.labelMedium
                             )

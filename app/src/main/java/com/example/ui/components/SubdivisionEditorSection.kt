@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -257,13 +259,13 @@ fun SubdivisionEditorSection(
             Icon(Icons.Default.Apartment, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
             Column {
                 Text(
-                    "Rooms & Workspace Divisions",
+                    stringResource(R.string.rooms_workspace_divisions),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    "Add each rentable room or desk separately — specialists will book them individually.",
+                    stringResource(R.string.add_each_rentable_room_or_desk_separately),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -274,7 +276,7 @@ fun SubdivisionEditorSection(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(16.dp))
                 Text(
-                    "Configured Rooms (${subdivisionsList.size})",
+                    stringResource(R.string.configured_rooms_x, subdivisionsList.size),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -311,7 +313,7 @@ fun SubdivisionEditorSection(
                                     if (isEditingThis) {
                                         Surface(color = MaterialTheme.colorScheme.primary, shape = MaterialTheme.shapes.extraSmall) {
                                             Text(
-                                                "EDITING",
+                                                stringResource(R.string.editing),
                                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontWeight = FontWeight.Bold,
@@ -348,7 +350,7 @@ fun SubdivisionEditorSection(
                                             pendingSubId = sub.id
                                             editingSubdivisionIndex = index
                                         }) {
-                                            Icon(Icons.Default.Edit, contentDescription = "Edit Division", tint = MaterialTheme.colorScheme.primary)
+                                            Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit_division), tint = MaterialTheme.colorScheme.primary)
                                         }
                                     }
                                     IconButton(onClick = {
@@ -363,7 +365,7 @@ fun SubdivisionEditorSection(
                                         }
                                         onSubdivisionsChange(subdivisionsList.filterIndexed { i, _ -> i != index })
                                     }) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Delete Division", tint = MaterialTheme.colorScheme.error)
+                                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_division), tint = MaterialTheme.colorScheme.error)
                                     }
                                 }
                             }
@@ -424,7 +426,7 @@ fun SubdivisionEditorSection(
                                 ) {
                                     Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(Spacing.xs))
-                                    Text("Save Subdivision Changes", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                    Text(stringResource(R.string.save_subdivision_changes), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -437,7 +439,7 @@ fun SubdivisionEditorSection(
         // Pickers declared up-front so they render on top of everything
         if (showTypePicker) {
             SearchablePickerDialog(
-                title = "Room / Unit Type",
+                title = stringResource(R.string.room_unit_type),
                 options = Level2Type.values().map { it.displayName },
                 selected = setOf(subType.displayName),
                 multiSelect = false,
@@ -450,7 +452,7 @@ fun SubdivisionEditorSection(
         }
         if (showAmenityPicker) {
             SearchablePickerDialog(
-                title = "Room Amenities",
+                title = stringResource(R.string.room_amenities),
                 options = amenityCatalog,
                 selected = subAmenitiesSelected,
                 multiSelect = true,
@@ -483,7 +485,7 @@ fun SubdivisionEditorSection(
                         )
                     }
                     Text(
-                        if (editingSubdivisionIndex != null) "Edit Room / Unit" else "Room / Unit Identity",
+                        if (editingSubdivisionIndex != null) stringResource(R.string.edit_room_unit) else stringResource(R.string.room_unit_identity),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -492,32 +494,32 @@ fun SubdivisionEditorSection(
                 InputField(
                     value = subName,
                     onValueChange = { subName = it },
-                    label = "Room Name / Desk ID (e.g. Treatment Room B)",
+                    label = stringResource(R.string.room_name_desk_id_e_g_treatment_room_b),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
 
-                Text("Type", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.type), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 PickerTriggerRow(
                     summary = subType.displayName,
-                    placeholder = "Choose a room type",
+                    placeholder = stringResource(R.string.choose_a_room_type),
                     onClick = { showTypePicker = true }
                 )
 
                 Text(
-                    "Amenities",
+                    stringResource(R.string.amenities),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 PickerTriggerRow(
                     summary = subAmenitiesSelected.joinToString().ifBlank { "None selected" },
-                    placeholder = "Choose amenities",
+                    placeholder = stringResource(R.string.choose_amenities),
                     onClick = { showAmenityPicker = true }
                 )
 
                 Text(
-                    "Hashtags",
+                    stringResource(R.string.hashtags),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -530,7 +532,7 @@ fun SubdivisionEditorSection(
                     OutlinedTextField(
                         value = hashtagInput,
                         onValueChange = { hashtagInput = it.trimStart('#').replace(" ", "") },
-                        placeholder = { Text("e.g. DentalClinic") },
+                        placeholder = { Text(stringResource(R.string.e_g_dentalclinic)) },
                         prefix = { Text("#") },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
@@ -546,7 +548,7 @@ fun SubdivisionEditorSection(
                         },
                         enabled = hashtagInput.trim().isNotBlank()
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add hashtag", tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_hashtag), tint = MaterialTheme.colorScheme.primary)
                     }
                 }
                 if (subHashtags.isNotEmpty()) {
@@ -559,7 +561,7 @@ fun SubdivisionEditorSection(
                                 selected = false,
                                 onClick = { subHashtags = subHashtags - tag },
                                 label = { Text("#$tag", style = MaterialTheme.typography.labelSmall) },
-                                trailingIcon = { Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(14.dp)) }
+                                trailingIcon = { Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove), modifier = Modifier.size(14.dp)) }
                             )
                         }
                     }
@@ -585,7 +587,7 @@ fun SubdivisionEditorSection(
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
-                    Text("Room Photos", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.room_photos), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 }
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(subImageUrls) { url ->
@@ -595,7 +597,7 @@ fun SubdivisionEditorSection(
                                 onClick = { subImageUrls = subImageUrls - url },
                                 modifier = Modifier.align(Alignment.TopEnd).size(32.dp)
                             ) {
-                                Icon(Icons.Default.Close, contentDescription = "Remove image", modifier = Modifier.size(14.dp))
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove_image), modifier = Modifier.size(14.dp))
                             }
                         }
                     }
@@ -615,11 +617,11 @@ fun SubdivisionEditorSection(
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Icon(
                                             Icons.Default.AddAPhoto,
-                                            contentDescription = "Add room image",
+                                            contentDescription = stringResource(R.string.add_room_image),
                                             modifier = Modifier.size(20.dp),
                                             tint = MaterialTheme.colorScheme.primary
                                         )
-                                        Text("Add", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                        Text(stringResource(R.string.add), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                                     }
                                 }
                             }
@@ -650,7 +652,7 @@ fun SubdivisionEditorSection(
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
-                    Text("Pricing Strategy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.pricing_strategy), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 }
 
                 // Step 1: when the room is offered (and, unless per-attendee, at what price).
@@ -671,7 +673,7 @@ fun SubdivisionEditorSection(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text("Pricing mode", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.pricing_mode), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                         @OptIn(ExperimentalMaterial3Api::class)
                         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                             SegmentedButton(
@@ -683,7 +685,7 @@ fun SubdivisionEditorSection(
                                     }
                                 },
                                 shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                                label = { Text("Per booking") }
+                                label = { Text(stringResource(R.string.per_booking)) }
                             )
                             SegmentedButton(
                                 selected = isPerAttendee,
@@ -694,12 +696,12 @@ fun SubdivisionEditorSection(
                                     }
                                 },
                                 shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                                label = { Text("Per attendee") }
+                                label = { Text(stringResource(R.string.per_attendee)) }
                             )
                         }
                         if (!isPerAttendee && !subPricing.hasRealPrice()) {
                             Text(
-                                "Enter a price for each offered slot.",
+                                stringResource(R.string.enter_a_price_for_each_offered_slot),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -716,7 +718,7 @@ fun SubdivisionEditorSection(
                                 subMinAttendeesInput = digits
                                 subMinAttendees = digits.toIntOrNull()?.takeIf { it > 0 }
                             },
-                            label = { Text("Min attendees") },
+                            label = { Text(stringResource(R.string.min_attendees)) },
                             placeholder = { Text("1") },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -730,8 +732,8 @@ fun SubdivisionEditorSection(
                                 subCapacityInput = digits
                                 subCapacity = digits.toIntOrNull()?.takeIf { it > 0 }
                             },
-                            label = { Text("Max attendees") },
-                            placeholder = { Text("No limit") },
+                            label = { Text(stringResource(R.string.max_attendees)) },
+                            placeholder = { Text(stringResource(R.string.no_limit)) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(1f),
@@ -751,7 +753,7 @@ fun SubdivisionEditorSection(
                         )
                     } else {
                         Text(
-                            "Tiers are saved with the room — tap Save below.",
+                            stringResource(R.string.tiers_are_saved_with_the_room_tap_save_bel),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.proColors.success
                         )
@@ -795,9 +797,9 @@ fun SubdivisionEditorSection(
                             )
                         }
                         Column {
-                            Text("Custom Hours", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.custom_hours), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                             Text(
-                                if (subScheduleOverrideEnabled) "This room has its own schedule." else "Off — follows the space's hours.",
+                                if (subScheduleOverrideEnabled) stringResource(R.string.this_room_has_its_own_schedule) else stringResource(R.string.off_follows_the_space_s_hours),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -831,12 +833,12 @@ fun SubdivisionEditorSection(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Open on Sundays", style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(R.string.open_on_sundays), style = MaterialTheme.typography.bodySmall)
                         Switch(checked = subOverrideSundayOperating, onCheckedChange = { subOverrideSundayOperating = it })
                     }
 
                     // Room-specific blocked time — independent of the whole space's blackout slots.
-                    Text("Blocked Times (optional)", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.blocked_times_optional), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                     if (subOverrideBlackouts.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             subOverrideBlackouts.forEach { slot ->
@@ -860,7 +862,7 @@ fun SubdivisionEditorSection(
                                             onClick = { subOverrideBlackouts = subOverrideBlackouts.filterNot { it.id == slot.id } },
                                             modifier = Modifier.size(40.dp)
                                         ) {
-                                            Icon(Icons.Default.Close, contentDescription = "Remove blocked time", modifier = Modifier.size(14.dp))
+                                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove_blocked_time), modifier = Modifier.size(14.dp))
                                         }
                                     }
                                 }
@@ -883,14 +885,14 @@ fun SubdivisionEditorSection(
                             OutlinedTextField(
                                 value = blackoutStart,
                                 onValueChange = { blackoutStart = it },
-                                label = { Text("From (HH:mm)") },
+                                label = { Text(stringResource(R.string.from_hh_mm)) },
                                 modifier = Modifier.weight(1f),
                                 singleLine = true
                             )
                             OutlinedTextField(
                                 value = blackoutEnd,
                                 onValueChange = { blackoutEnd = it },
-                                label = { Text("To (HH:mm)") },
+                                label = { Text(stringResource(R.string.to_hh_mm)) },
                                 modifier = Modifier.weight(1f),
                                 singleLine = true
                             )
@@ -898,8 +900,8 @@ fun SubdivisionEditorSection(
                         OutlinedTextField(
                             value = blackoutReason,
                             onValueChange = { blackoutReason = it },
-                            label = { Text("Reason (optional)") },
-                            placeholder = { Text("e.g. Weekly maintenance") },
+                            label = { Text(stringResource(R.string.reason_optional_2)) },
+                            placeholder = { Text(stringResource(R.string.e_g_weekly_maintenance)) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
@@ -917,7 +919,7 @@ fun SubdivisionEditorSection(
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Add Blocked Time", style = MaterialTheme.typography.labelSmall)
+                            Text(stringResource(R.string.add_blocked_time), style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
@@ -943,7 +945,7 @@ fun SubdivisionEditorSection(
                 ) {
                     Icon(Icons.Default.Check, contentDescription = null)
                     Spacer(modifier = Modifier.width(Spacing.sm))
-                    Text("Save Changes", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.save_changes), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 }
                 OutlinedButton(
                     onClick = { resetSubdivisionForm() },
@@ -952,7 +954,7 @@ fun SubdivisionEditorSection(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null)
                     Spacer(modifier = Modifier.width(Spacing.sm))
-                    Text("Cancel & Add New Room", style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(R.string.cancel_add_new_room), style = MaterialTheme.typography.labelMedium)
                 }
             }
         } else if (justSaved) {
@@ -967,7 +969,7 @@ fun SubdivisionEditorSection(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                 ) {
                     Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.proColors.success, modifier = Modifier.size(16.dp))
-                    Text("Room saved", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.proColors.success, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.room_saved), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.proColors.success, fontWeight = FontWeight.SemiBold)
                 }
             }
             Spacer(modifier = Modifier.height(Spacing.sm))
@@ -978,14 +980,14 @@ fun SubdivisionEditorSection(
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(modifier = Modifier.width(Spacing.sm))
-                Text("Add Another Room", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.add_another_room), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
             }
             OutlinedButton(
                 onClick = { resetSubdivisionForm(); justSaved = false },
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium
             ) {
-                Text("Done Adding Rooms", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.done_adding_rooms), style = MaterialTheme.typography.labelLarge)
             }
         } else {
             Button(
@@ -1002,7 +1004,7 @@ fun SubdivisionEditorSection(
             ) {
                 Icon(Icons.Default.Save, contentDescription = null)
                 Spacer(modifier = Modifier.width(Spacing.sm))
-                Text("Save Room", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.save_room), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -1033,7 +1035,7 @@ private fun PickerTriggerRow(
                 color = if (summary.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f)
             )
-            Icon(Icons.Default.Search, contentDescription = "Open picker", tint = MaterialTheme.colorScheme.primary)
+            Icon(Icons.Default.Search, contentDescription = stringResource(R.string.open_picker), tint = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -1077,12 +1079,12 @@ private fun SearchablePickerDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(title, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.titleMedium.fontSize)
-                    IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = "Close") }
+                    IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close)) }
                 }
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    placeholder = { Text("Search or type new…") },
+                    placeholder = { Text(stringResource(R.string.search_or_type_new)) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
@@ -1103,12 +1105,12 @@ private fun SearchablePickerDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                        Text("Add \"${query.trim()}\"", fontSize = MaterialTheme.typography.bodySmall.fontSize, color = MaterialTheme.colorScheme.primary)
+                        Text(stringResource(R.string.add_x, query.trim()), fontSize = MaterialTheme.typography.bodySmall.fontSize, color = MaterialTheme.colorScheme.primary)
                     }
                 }
                 if (filtered.isEmpty() && !canAddCustom) {
                     Text(
-                        "No matches.",
+                        stringResource(R.string.no_matches),
                         fontSize = MaterialTheme.typography.labelSmall.fontSize,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1139,7 +1141,7 @@ private fun SearchablePickerDialog(
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.small
                     ) {
-                        Text("Done (${selected.size} selected)")
+                        Text(stringResource(R.string.done_x_selected, selected.size))
                     }
                 }
             }
@@ -1162,9 +1164,9 @@ private fun AttendeeTierEditor(
         onTiersChange(tiers.mapIndexed { i, t -> if (i == index) transform(t) else t })
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Attendee tiers", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.attendee_tiers), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
         Text(
-            "e.g. 1–20 people at $8 per person, 21–60 at $6. Leave the last tier's max empty for no upper limit.",
+            stringResource(R.string.e_g_1_20_people_at_8_per_person_21_60_at_6),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -1183,13 +1185,13 @@ private fun AttendeeTierEditor(
                         OutlinedTextField(
                             value = tier.name,
                             onValueChange = { v -> update(index) { it.copy(name = v) } },
-                            label = { Text("Tier name") },
+                            label = { Text(stringResource(R.string.tier_name)) },
                             singleLine = true,
                             modifier = Modifier.weight(1f),
                             shape = MaterialTheme.shapes.medium
                         )
                         IconButton(onClick = { onTiersChange(tiers.filterIndexed { i, _ -> i != index }) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Remove tier", tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.remove_tier), tint = MaterialTheme.colorScheme.error)
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
@@ -1201,7 +1203,7 @@ private fun AttendeeTierEditor(
                                 fromText.toIntOrNull()?.takeIf { it >= 1 }?.let { n -> update(index) { it.copy(minAttendees = n) } }
                             },
                             isError = fromText.toIntOrNull()?.let { it < 1 } ?: true,
-                            label = { Text("From") },
+                            label = { Text(stringResource(R.string.from)) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(1f),
@@ -1210,7 +1212,7 @@ private fun AttendeeTierEditor(
                         OutlinedTextField(
                             value = tier.maxAttendees?.toString() ?: "",
                             onValueChange = { v -> update(index) { it.copy(maxAttendees = v.filter(Char::isDigit).toIntOrNull()) } },
-                            label = { Text("To") },
+                            label = { Text(stringResource(R.string.to)) },
                             placeholder = { Text("∞") },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -1227,7 +1229,7 @@ private fun AttendeeTierEditor(
                                     update(index) { it.copy(pricePerAttendeeUsd = cleaned.toDoubleOrNull() ?: 0.0) }
                                 }
                             },
-                            label = { Text("$ / person") },
+                            label = { Text(stringResource(R.string.person)) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.weight(1.2f),
@@ -1236,13 +1238,13 @@ private fun AttendeeTierEditor(
                     }
                     val max = tier.maxAttendees
                     if (max != null && max < tier.minAttendees) {
-                        Text("“To” must be at least “From”.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.to_must_be_at_least_from), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                     }
                     if (!tier.isEnabled) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("This tier is turned off.", style = MaterialTheme.typography.labelSmall,
+                            Text(stringResource(R.string.this_tier_is_turned_off), style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.error, modifier = Modifier.weight(1f))
-                            TextButton(onClick = { update(index) { it.copy(isEnabled = true) } }) { Text("Turn on") }
+                            TextButton(onClick = { update(index) { it.copy(isEnabled = true) } }) { Text(stringResource(R.string.turn_on)) }
                         }
                     }
                 }
@@ -1264,7 +1266,7 @@ private fun AttendeeTierEditor(
                 },
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.weight(1f)
-            ) { Text("Add tier") }
+            ) { Text(stringResource(R.string.add_tier)) }
             if (tiers.isEmpty() && templates.isNotEmpty()) {
                 OutlinedButton(
                     onClick = {
@@ -1276,7 +1278,7 @@ private fun AttendeeTierEditor(
                     },
                     shape = MaterialTheme.shapes.medium,
                     modifier = Modifier.weight(1f)
-                ) { Text("Use templates") }
+                ) { Text(stringResource(R.string.use_templates)) }
             }
         }
     }

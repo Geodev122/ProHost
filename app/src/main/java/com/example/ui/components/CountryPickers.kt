@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -49,13 +51,13 @@ fun CountryPickerDialog(
     }
     ProHostDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Choose your country") },
+        title = { Text(stringResource(R.string.choose_your_country)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    placeholder = { Text("Search country or code") },
+                    placeholder = { Text(stringResource(R.string.search_country_or_code)) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
@@ -85,7 +87,7 @@ fun CountryPickerDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) }
         }
     )
 }
@@ -118,7 +120,7 @@ fun PhoneNumberField(
         leadingIcon = androidx.compose.material.icons.Icons.Default.Phone,
         trailingIcon = {
             TextButton(onClick = { showPicker = true }) {
-                Text("Change", style = MaterialTheme.typography.labelSmall)
+                Text(stringResource(R.string.change), style = MaterialTheme.typography.labelSmall)
             }
         },
         modifier = modifier,
