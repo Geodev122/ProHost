@@ -470,7 +470,8 @@ plan + recurring price + date;
   billing message (cancel, pending, error) or server answer. `toUserMessage` passes a function's own
   UNAVAILABLE message through; only transport failures get the generic connection text.
 - NIGHTHAWK's "Orphaned Module" MEDIUMs (billingHelpers, purchaseLinks, playCatalog, playCatalogLive, offerClaims, sitemapXml, priceChange, …) and "compileSdk below 34" are
-  false positives (both are imported by other modules; compileSdk is 37).
+  false positives (both are imported by other modules; compileSdk is 37), as is "Screen Loading State" on
+  `SpaceDetailsScreen` (the nav graph opens it only with an already-loaded listing).
 - `main` history shows NIGHTHAWK checks are sometimes extended directly on `main` (not always
   routed through a feature-branch PR) — before adding new checks or fixing findings on a
   feature branch, `git fetch origin main` and check `git merge-base --is-ancestor <branch-tip>

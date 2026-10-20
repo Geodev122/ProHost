@@ -492,7 +492,7 @@ private fun bookingCoversDate(booking: RentalBookingRequest, isoDate: String): B
     if (start.length < 7) return true // no term recorded: treat as ongoing
     val startKey = if (start.length == 7) "$start-01" else start
     val end = runCatching {
-        val cal = Calendar.getInstance().apply { time = ISO_DATE.parse(startKey)!! }
+        val cal = Calendar.getInstance().apply { time = ISO_DATE.parse(startKey) ?: return true }
         cal.add(Calendar.MONTH, booking.durationMonths.coerceAtLeast(1))
         ISO_DATE.format(cal.time)
     }.getOrNull() ?: return true
