@@ -313,13 +313,13 @@ fun SpaceDetailsScreenContent(
                     hasSchedule = availableSlots.any { stripSub == null || it.sourceFormulaId == stripSub.id },
                     openSlotCount = openSlotCount,
                     priceUsd = stripPerPerson ?: selectedFormula?.rateUsd ?: fallbackPrice,
-                    pricePrefix = if (stripAttendeeSub != null) "from " else "",
+                    pricePrefix = if (stripAttendeeSub != null) stringResource(R.string.price_from_prefix) else "",
                     priceUnit = if (stripAttendeeSub != null) {
                         SpaceCalculationUtils.PER_PERSON_UNIT
                     } else {
                         selectedFormula?.let { SpaceCalculationUtils.rateUnitLabel(it.type) } ?: fallbackUnit
                     },
-                    formulaName = selectedFormula?.type?.displayName ?: uiText(R.string.full_month_2),
+                    formulaName = selectedFormula?.type?.displayName?.let { localizedLabel(it) } ?: uiText(R.string.full_month_2),
                     isPreview = currentUserRole == UserRole.PRO_HOST || currentUserRole == UserRole.ADMIN,
                     onOpenAvailability = { availabilityPanelState = "full" }
                 )

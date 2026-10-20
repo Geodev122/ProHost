@@ -81,6 +81,7 @@ private val AR_LABELS: Map<String, String> = mapOf(
     "Per person" to "لكل شخص",
     "Monthly rent" to "الإيجار الشهري",
     "Shifts" to "المناوبات",
+    "/hr" to "/ساعة", "/shift" to "/مناوبة", "/day" to "/يوم", "/mo" to "/شهر", "/person" to "/شخص",
     "Mon" to "الإثنين", "Tue" to "الثلاثاء", "Wed" to "الأربعاء", "Thu" to "الخميس",
     "Fri" to "الجمعة", "Sat" to "السبت", "Sun" to "الأحد",
     "Monday" to "الإثنين", "Tuesday" to "الثلاثاء", "Wednesday" to "الأربعاء", "Thursday" to "الخميس",
@@ -91,3 +92,6 @@ private fun isArabic(): Boolean = UiText.resources?.configuration?.locales?.get(
 
 /** The label in the app language (Arabic when the app runs in Arabic), else unchanged. */
 fun localizedLabel(english: String): String = if (isArabic()) AR_LABELS[english] ?: english else english
+
+/** "08:00 - 20:00" wrapped in a left-to-right isolate, so a time range never reads backwards inside Arabic text. */
+fun timeRange(from: Any?, to: Any?, separator: String = " - "): String = "⁦$from$separator$to⁩"

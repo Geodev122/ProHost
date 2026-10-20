@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.timeRange
 import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -382,9 +383,9 @@ fun OwnerRentingProgressScreenContent(
                                     booking.formula.daysOfWeek.joinToString(", ")
                                 }
                                 val chosenHoursStr = if (booking.selectedStartHour.isNotBlank() && booking.selectedEndHour.isNotBlank()) {
-                                    "${booking.selectedStartHour} - ${booking.selectedEndHour}"
+                                    timeRange(booking.selectedStartHour, booking.selectedEndHour)
                                 } else {
-                                    "${booking.formula.startHour} - ${booking.formula.endHour}"
+                                    timeRange(booking.formula.startHour, booking.formula.endHour)
                                 }
 
                                 Text(

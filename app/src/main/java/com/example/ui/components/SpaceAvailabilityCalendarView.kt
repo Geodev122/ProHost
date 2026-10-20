@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.ui.util.timeRange
+import com.example.ui.util.localizedLabel
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
@@ -136,7 +138,7 @@ fun SpaceAvailabilityCalendarView(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        text = schedule.operatingDays.joinToString(),
+                        text = schedule.operatingDays.joinToString { localizedLabel(it) },
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -275,7 +277,7 @@ fun SpaceAvailabilityCalendarView(
                             ) {
                                 Column {
                                     Text(
-                                        text = "${slot.dayOfWeek}: ${slot.startTime} - ${slot.endTime}",
+                                        text = "${localizedLabel(slot.dayOfWeek)}: ${timeRange(slot.startTime, slot.endTime)}",
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.onSurface

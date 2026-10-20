@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.timeRange
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
@@ -596,9 +597,9 @@ fun BookingReservationCard(
                                 booking.formula.daysOfWeek.joinToString(", ")
                             }
                             val timeStr = if (booking.selectedStartHour.isNotBlank()) {
-                                "${booking.selectedStartHour} - ${booking.selectedEndHour}"
+                                timeRange(booking.selectedStartHour, booking.selectedEndHour)
                             } else {
-                                "${booking.formula.startHour} - ${booking.formula.endHour}"
+                                timeRange(booking.formula.startHour, booking.formula.endHour)
                             }
                             Text(
                                 text = "$daysStr @ $timeStr",

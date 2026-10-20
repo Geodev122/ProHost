@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.uiPlural
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
@@ -420,7 +421,7 @@ private fun formulaLabel(formula: PricingFormulaFilter): String =
 
 /** The price unit a formula's range slider is in: per person for per-attendee rooms. */
 private fun formulaUnitLabel(formula: PricingFormulaFilter): String =
-    formula.strategy?.let { SpaceCalculationUtils.strategyUnitLabel(it) } ?: "/person"
+    formula.strategy?.let { SpaceCalculationUtils.strategyUnitLabel(it) } ?: SpaceCalculationUtils.PER_PERSON_UNIT
 
 /**
  * Explore's own header (specialists have no app bar), one row: search top-left, the Map | List toggle
@@ -845,8 +846,8 @@ fun SubdivisionDiscoveryCard(
             rateUsd = lowestPrice.amount,
             rateUnit = lowestPrice.unitLabel,
             imageUrl = subdivision.imageUrls.firstOrNull() ?: space.imageUrls.firstOrNull(),
-            operatingHours = "${space.schedule.openingHour} - ${space.schedule.closingHour}",
-            totalDaysOpen = "${space.schedule.operatingDays.size} days/wk",
+            operatingHours = "\u2066${space.schedule.openingHour} - ${space.schedule.closingHour}\u2069",
+            totalDaysOpen = uiPlural(R.plurals.days_per_week, space.schedule.operatingDays.size, space.schedule.operatingDays.size),
             formulaTypes = listOf(localizedLabel(subdivision.pricing.strategyType.displayName)),
             isVerified = space.isVerified
         ),
@@ -887,8 +888,8 @@ fun SpaceListingCard(
             rateUsd = lowestPrice.amount,
             rateUnit = lowestPrice.unitLabel,
             imageUrl = space.imageUrls.firstOrNull(),
-            operatingHours = "${space.schedule.openingHour} - ${space.schedule.closingHour}",
-            totalDaysOpen = "${space.schedule.operatingDays.size} days/wk",
+            operatingHours = "\u2066${space.schedule.openingHour} - ${space.schedule.closingHour}\u2069",
+            totalDaysOpen = uiPlural(R.plurals.days_per_week, space.schedule.operatingDays.size, space.schedule.operatingDays.size),
             formulaTypes = formulaTypes.toList(),
             isVerified = space.isVerified
         ),

@@ -1212,4 +1212,10 @@
     <string name="start_x">Start: %1$s</string>
     <string name="start_immediate">Immediate</string>
     <string name="id_x">ID: %1$s</string>
+    <string name="price_from_prefix">from\u0020</string>
+    <string name="save_x_vs_monthly">SAVE %1$d%% VS MONTHLY</string>
+    <string name="ribbon_your_plan">YOUR PLAN</string>
+    <string name="ribbon_x_off">%1$d%% OFF</string>
+    <string name="ribbon_best_value">BEST VALUE</string>
+    <string name="ribbon_flexible">FLEXIBLE</string>
 </resources>

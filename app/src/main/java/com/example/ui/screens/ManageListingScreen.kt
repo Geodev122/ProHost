@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.timeRange
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
@@ -589,7 +590,7 @@ private fun AvailabilitySlotCell(slot: RentableSlot, booked: Boolean) {
     val timingLabel = when (slot.strategyType) {
         RentalStrategyType.SHIFT_BASED -> slot.groupLabel.substringAfter("• ")
         RentalStrategyType.DAY_BASED -> uiText(R.string.full_day)
-        else -> "${slot.startTime}-${slot.endTime}"
+        else -> timeRange(slot.startTime, slot.endTime, "-")
     }
     // Per-attendee rooms carry a 1.0 availability marker, not a price.
     val showPrice = price > com.example.ui.util.AttendeePricing.AVAILABILITY_MARKER_PRICE

@@ -32,4 +32,8 @@
         <item quantity="one">Show %1$d result</item>
         <item quantity="other">Show %1$d results</item>
     </plurals>
+    <plurals name="days_per_week">
+        <item quantity="one">%1$d day/wk</item>
+        <item quantity="other">%1$d days/wk</item>
+    </plurals>
 </resources>

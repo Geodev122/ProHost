@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.heading
@@ -364,7 +365,7 @@ fun ProCurrencyTag(
     modifier: Modifier = Modifier
 ) {
     val finalUsd = if (usdAmount > 0.0) usdAmount else rateUsd
-    val suffix = unitLabel ?: if (isPerMonth) "/mo" else ""
+    val suffix = unitLabel ?: if (isPerMonth) localizedLabel("/mo") else ""
 
     Surface(
         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),

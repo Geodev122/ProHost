@@ -1,5 +1,6 @@
 ﻿package com.example.ui.screens
 
+import com.example.ui.util.timeRange
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
@@ -815,7 +816,7 @@ fun OwnerHubScreenContent(
                                             modifier = Modifier.size(12.dp),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
-                                        Text("${space.schedule.openingHour}-${space.schedule.closingHour}", style = MaterialTheme.typography.labelSmall)
+                                        Text(timeRange(space.schedule.openingHour, space.schedule.closingHour, "-"), style = MaterialTheme.typography.labelSmall)
                                     }
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                                         Icon(

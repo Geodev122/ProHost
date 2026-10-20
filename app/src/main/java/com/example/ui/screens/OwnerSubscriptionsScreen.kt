@@ -798,12 +798,12 @@ internal fun PlanTile(
         Column(modifier = Modifier.fillMaxSize().background(fill)) {
             // Ribbon: the strongest reason to pick this card.
             val ribbon: Pair<String, Boolean>? = when {
-                isCurrent -> "YOUR PLAN" to false
-                hasOffer && summary?.discountPercent != null -> "${summary.discountPercent}% OFF" to true
+                isCurrent -> uiText(R.string.ribbon_your_plan) to false
+                hasOffer && summary?.discountPercent != null -> uiText(R.string.ribbon_x_off, summary.discountPercent) to true
                 hasOffer && summary?.trialSpan != null -> "${summary.trialSpan.uppercase()} FREE" to true
-                kind == PlayCatalog.PlanKind.YEARLY && savingsPercent != null -> "BEST VALUE" to true
+                kind == PlayCatalog.PlanKind.YEARLY && savingsPercent != null -> uiText(R.string.ribbon_best_value) to true
                 // Both cards always carry a ribbon so they line up and read as a pair.
-                kind == PlayCatalog.PlanKind.MONTHLY -> "FLEXIBLE" to false
+                kind == PlayCatalog.PlanKind.MONTHLY -> uiText(R.string.ribbon_flexible) to false
                 else -> null
             }
             // Only the selected card is orange; the other stays neutral (steel tint) so the screen isn't all orange.
@@ -926,7 +926,7 @@ internal fun PlanTile(
                 // Bottom chip: the plan's second reason, so both cards end on the same line.
                 val chip: String? = when {
                     isCurrent -> null
-                    kind == PlayCatalog.PlanKind.YEARLY && savingsPercent != null -> "SAVE $savingsPercent% VS MONTHLY"
+                    kind == PlayCatalog.PlanKind.YEARLY && savingsPercent != null -> uiText(R.string.save_x_vs_monthly, savingsPercent)
                     hasOffer && summary?.trialSpan != null && summary.introSpan == null -> uiText(R.string.nothing_to_pay_today)
                     kind == PlayCatalog.PlanKind.MONTHLY -> uiText(R.string.cancel_anytime)
                     else -> null
@@ -1057,7 +1057,9 @@ private fun PlanChip(text: String, container: Color, content: Color) {
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.ExtraBold,
             color = content,
-            maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            // Two lines, centred: "NOTHING TO PAY TODAY" / "SAVE 26% VS MONTHLY" never get cut in a half-width tile.
+            maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
         )
     }

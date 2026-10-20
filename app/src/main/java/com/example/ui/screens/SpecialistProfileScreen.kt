@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.ui.util.timeRange
 import com.example.ui.util.uiPlural
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
@@ -587,9 +588,9 @@ fun SpecialistProfileScreen(
                                                     req.formula.daysOfWeek.joinToString(", ")
                                                 }
                                                 val chosenHoursStr = if (req.selectedStartHour.isNotBlank() && req.selectedEndHour.isNotBlank()) {
-                                                    "${req.selectedStartHour} - ${req.selectedEndHour}"
+                                                    timeRange(req.selectedStartHour, req.selectedEndHour)
                                                 } else {
-                                                    "${req.formula.startHour} - ${req.formula.endHour}"
+                                                    timeRange(req.formula.startHour, req.formula.endHour)
                                                 }
                                                 val shiftDetail = if (req.selectedShift.isNotBlank()) " (${req.selectedShift})" else ""
 

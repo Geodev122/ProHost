@@ -245,7 +245,7 @@ internal fun AvailabilitySheet(
                                 ) {
                                     // Day name
                                     Text(
-                                        day,
+                                        localizedLabel(day),
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = if (isFull) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
@@ -481,7 +481,7 @@ internal fun AvailabilitySheet(
                                                                     modifier = Modifier.size(8.dp).clip(CircleShape)
                                                                         .background(if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success)
                                                                 )
-                                                                Text(slot.day, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                                                                Text(localizedLabel(slot.day), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                                                             }
                                                             Row(
                                                                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),

@@ -395,7 +395,7 @@ object SpaceCalculationUtils {
         val candidates = mutableListOf<PriceDisplay>()
 
         if (space.baseMonthlyRateUsd > 0.0) {
-            candidates.add(PriceDisplay(space.baseMonthlyRateUsd, "/mo"))
+            candidates.add(PriceDisplay(space.baseMonthlyRateUsd, localizedLabel("/mo")))
         }
 
         // A whole-space listing (no rooms) prices from its own config.
@@ -410,28 +410,28 @@ object SpaceCalculationUtils {
             when (pricing.strategyType) {
                 RentalStrategyType.MONTHLY -> {
                     val rate = pricing.monthly?.rateUsd ?: 0.0
-                    if (rate > 0.0) candidates.add(PriceDisplay(rate, "/mo"))
+                    if (rate > 0.0) candidates.add(PriceDisplay(rate, localizedLabel("/mo")))
                 }
                 RentalStrategyType.HOURLY -> {
                     val rates = pricing.hourly?.cellPrices?.values?.filter { it > 0.0 } ?: emptyList()
-                    rates.minOrNull()?.let { candidates.add(PriceDisplay(it, "/hr")) }
+                    rates.minOrNull()?.let { candidates.add(PriceDisplay(it, localizedLabel("/hr"))) }
                 }
                 RentalStrategyType.SHIFT_BASED -> {
                     val shiftRates = pricing.shiftBased?.shifts?.map { it.price }?.filter { it > 0.0 } ?: emptyList()
-                    shiftRates.minOrNull()?.let { candidates.add(PriceDisplay(it, "/shift")) }
+                    shiftRates.minOrNull()?.let { candidates.add(PriceDisplay(it, localizedLabel("/shift"))) }
                 }
                 RentalStrategyType.DAY_BASED -> {
                     val dayRates = pricing.dayBased?.distribution?.values?.map { it.price }?.filter { it > 0.0 } ?: emptyList()
-                    dayRates.minOrNull()?.let { candidates.add(PriceDisplay(it, "/day")) }
+                    dayRates.minOrNull()?.let { candidates.add(PriceDisplay(it, localizedLabel("/day"))) }
                 }
             }
         }
 
-        return candidates.minByOrNull { it.amount } ?: PriceDisplay(space.baseMonthlyRateUsd.coerceAtLeast(0.0), "/mo")
+        return candidates.minByOrNull { it.amount } ?: PriceDisplay(space.baseMonthlyRateUsd.coerceAtLeast(0.0), localizedLabel("/mo"))
     }
 
     /** Unit for per-attendee rooms: one per-person price covers the whole booking. */
-    const val PER_PERSON_UNIT = "/person"
+    val PER_PERSON_UNIT: String get() = localizedLabel("/person")
 
     fun findLowestPriceForSubdivision(sub: com.example.data.model.Subdivision): PriceDisplay =
         if (AttendeePricing.isPerAttendee(sub)) {
@@ -463,10 +463,10 @@ object SpaceCalculationUtils {
      * monthly one would be inventing a figure the host never set.
      */
     fun rateUnitLabel(type: RentalFormulaType): String = when (type) {
-        RentalFormulaType.HOURLY -> "/hr"
-        RentalFormulaType.SHIFT -> "/shift"
-        RentalFormulaType.DAY_PER_WEEK -> "/day"
-        RentalFormulaType.FULL_MONTH -> "/mo"
+        RentalFormulaType.HOURLY -> localizedLabel("/hr")
+        RentalFormulaType.SHIFT -> localizedLabel("/shift")
+        RentalFormulaType.DAY_PER_WEEK -> localizedLabel("/day")
+        RentalFormulaType.FULL_MONTH -> localizedLabel("/mo")
     }
 
     /**
@@ -507,7 +507,7 @@ object SpaceCalculationUtils {
                 price to unit
             }
             .minByOrNull { (price, _) -> price }
-        return cheapest ?: (space.baseMonthlyRateUsd to "/mo")
+        return cheapest ?: (space.baseMonthlyRateUsd to localizedLabel("/mo"))
     }
 
     /**

@@ -422,7 +422,7 @@
     <string name="open_xh">مفتوح: %1$s س</string>
     <string name="opens_hh_mm">يفتح (HH:mm)</string>
     <string name="operating_days">أيام العمل</string>
-    <string name="operating_x_x">ساعات العمل: %1$s - %2$s</string>
+    <string name="operating_x_x">ساعات العمل: \u2066%1$s - %2$s\u2069</string>
     <string name="optional">اختياري</string>
     <string name="optional_submit_a_document_for_admin_revie">اختياري — أرسل مستندًا لمراجعة الإدارة للحصول على شارة الإعلان الموثّق التي يراها الأخصائيون. غير مطلوب لإبقاء\u0020</string>
     <string name="optionally_share_your_space_rules_entry_in">شارك اختياريًا قواعد مساحتك وتعليمات الدخول أو أي معلومات وصول خاصة مع المستأجر.\u0020</string>
@@ -782,7 +782,7 @@
     <string name="x_x_people">%1$s–%2$s أشخاص</string>
     <string name="x_x_ref_x">%1$s، %2$s • المرجع %3$s</string>
     <string name="x_x_unless_you_cancel_in_google_play_befor">%1$s / %2$s ما لم تُلغِ في Google Play قبل ذلك.</string>
-    <string name="x_x_x_is_no_longer_offered">%1$s %2$s - %3$s لم تعد معروضة</string>
+    <string name="x_x_x_is_no_longer_offered">%1$s \u2066%2$s - %3$s\u2069 لم تعد معروضة</string>
     <string name="yield_this_month">العائد هذا الشهر</string>
     <string name="you_can_skip_this_the_specialist_will_be_i">يمكنك تخطي هذا — سيُبلَّغ الأخصائي إذا لم يُقدَّم شيء.</string>
     <string name="you_don_t_have_any_workspace_listings_yet">لا توجد لديك إعلانات مساحات بعد. اضغط زر \'+\' أدناه لنشر أول مكتب أو عيادة لك.</string>
@@ -1205,7 +1205,7 @@
     <string name="private_studio_office">استوديو / مكتب خاص</string>
     <string name="active_tenancies_empty_description">عند موافقتك على طلبات الحجز، يظهر هنا تقدّم العقود والأيام المتبقية والتواصل مع الأخصائيين.</string>
     <string name="outside_rent_due_x_slot_x_amount_x">إيجار خارج التطبيق مستحق من %1$s للفترة \'%2$s\' (المبلغ: %3$s$ دولار).</string>
-    <string name="confirmed_space_hours_locked_x_x_x">تم التأكيد! ساعات المساحة (%1$s %2$s-%3$s) محجوزة.</string>
+    <string name="confirmed_space_hours_locked_x_x_x">تم التأكيد! ساعات المساحة (%1$s \u2066%2$s-%3$s\u2069) محجوزة.</string>
     <string name="save_draft_short">حفظ مسودة</string>
     <string name="get_x_off_x">خصم %1$d%% · %2$s</string>
     <string name="x_market">سوق %1$s</string>
@@ -1213,4 +1213,10 @@
     <string name="start_x">البداية: %1$s</string>
     <string name="start_immediate">فوراً</string>
     <string name="id_x">المعرّف: %1$s</string>
+    <string name="price_from_prefix">من\u0020</string>
+    <string name="save_x_vs_monthly">وفّر %1$d%% مقارنة بالشهري</string>
+    <string name="ribbon_your_plan">خطتك</string>
+    <string name="ribbon_x_off">خصم %1$d%%</string>
+    <string name="ribbon_best_value">الأفضل قيمة</string>
+    <string name="ribbon_flexible">مرنة</string>
 </resources>

@@ -64,4 +64,12 @@
         <item quantity="many">عرض %1$d نتيجة</item>
         <item quantity="other">عرض %1$d نتيجة</item>
     </plurals>
+    <plurals name="days_per_week">
+        <item quantity="zero">%1$d يوم/أسبوع</item>
+        <item quantity="one">يوم واحد/أسبوع</item>
+        <item quantity="two">يومان/أسبوع</item>
+        <item quantity="few">%1$d أيام/أسبوع</item>
+        <item quantity="many">%1$d يومًا/أسبوع</item>
+        <item quantity="other">%1$d يوم/أسبوع</item>
+    </plurals>
 </resources>

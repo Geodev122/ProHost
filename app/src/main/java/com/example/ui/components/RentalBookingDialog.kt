@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.timeRange
 import com.example.ui.util.uiPlural
 import androidx.compose.ui.res.pluralStringResource
 import com.example.ui.util.localizedLabel
@@ -475,7 +476,7 @@ private fun BookingSlotSelectorDialog(
             RentalStrategyType.HOURLY -> {
                 if (selectedSlotsForPricing.isEmpty()) uiText(R.string.no_hours_selected_yet)
                 else selectedSlotsForPricing.sortedBy { it.startTime }
-                    .joinToString(", ") { "${it.day} ${it.startTime}-${it.endTime}" }
+                    .joinToString(", ") { "${localizedLabel(it.day)} ${timeRange(it.startTime, it.endTime, "-")}" }
             }
             RentalStrategyType.SHIFT_BASED -> {
                 val slot = selectedShiftSlot
