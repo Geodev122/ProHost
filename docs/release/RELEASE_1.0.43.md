@@ -17,6 +17,10 @@ The design audit (`docs/design/UI_AUDIT.md`, phases 0–3) in one release. App o
   semantics, plain-language labels.
 - Saved and Manage listing no longer draw a second top bar; My Rentals has a proper empty state; confirm haptic after a
   request is sent; page-change motion that respects "Remove animations".
+- **Dark-mode splash** with its own artwork (no light flash on dark phones).
+- **Forms:** every text field is the shared `InputField` (same outline, label, colours in light/dark).
+- **Listing wizard** is a full-screen page with a three-step progress bar; Back goes to the previous step.
+- Error analytics report the same areas in Arabic as in English.
 
 ## Files
 Artifact **`prohost-release-main-15`** (≈ 22 MB, kept until 2027-01-18):
