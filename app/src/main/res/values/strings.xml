@@ -635,7 +635,6 @@
     <string name="start_date_yyyy_mm_dd">Start Date (YYYY-MM-DD)</string>
     <string name="start_over_with_a_different_account">Start over with a different account</string>
     <string name="starting_x_x_mo_term">Starting: %1$s (%2$s mo term) •</string>
-    <string name="step_x_of_x_lebanon_network">Step %1$s of %2$s • Lebanon Network</string>
     <string name="street_address_building_name">Street Address &amp; Building Name</string>
     <string name="submit_for_admin_review">Submit for Admin Review</string>
     <string name="subscription_listing_health">Subscription &amp; listing health</string>
@@ -1153,4 +1152,8 @@
     <string name="your_session_expired_please_sign_in_again">Your session expired — please sign in again to subscribe.</string>
     <string name="your_session_expired_please_sign_in_again_2">Your session expired — please sign in again.</string>
     <string name="your_verified_session_expired_please_sign">Your verified session expired — please sign in again.</string>
+    <string name="wizard_step_x_of_x">Step %1$s of %2$s</string>
+    <string name="wizard_step_space">Space</string>
+    <string name="wizard_step_details">Details</string>
+    <string name="wizard_step_availability">Availability</string>
 </resources>

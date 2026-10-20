@@ -636,7 +636,6 @@
     <string name="start_date_yyyy_mm_dd">تاريخ البدء (YYYY-MM-DD)</string>
     <string name="start_over_with_a_different_account">البدء من جديد بحساب آخر</string>
     <string name="starting_x_x_mo_term">البدء: %1$s (مدة %2$s شهر) •</string>
-    <string name="step_x_of_x_lebanon_network">الخطوة %1$s من %2$s • شبكة لبنان</string>
     <string name="street_address_building_name">عنوان الشارع واسم المبنى</string>
     <string name="submit_for_admin_review">إرسال لمراجعة الإدارة</string>
     <string name="subscription_listing_health">صحة الاشتراك والإعلانات</string>
@@ -1154,4 +1153,8 @@
     <string name="your_session_expired_please_sign_in_again">انتهت جلستك — يرجى تسجيل الدخول مجددًا للاشتراك.</string>
     <string name="your_session_expired_please_sign_in_again_2">انتهت جلستك — يرجى تسجيل الدخول مجددًا.</string>
     <string name="your_verified_session_expired_please_sign">انتهت جلستك الموثّقة — يرجى تسجيل الدخول مجددًا.</string>
+    <string name="wizard_step_x_of_x">الخطوة %1$s من %2$s</string>
+    <string name="wizard_step_space">المساحة</string>
+    <string name="wizard_step_details">التفاصيل</string>
+    <string name="wizard_step_availability">التوفّر</string>
 </resources>

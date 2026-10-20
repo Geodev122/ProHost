@@ -32,11 +32,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import coil.compose.AsyncImage
 import com.example.data.model.*
 import com.example.data.storage.FirebaseStorageService
@@ -437,55 +442,74 @@ fun CreateListingDialog(
     // blackout slots a listing already had before this removal are preserved as-is
     // (see buildListing() below) — there is just no UI here to add more.
 
+    // A full-screen page (not a floating card): edge-to-edge window, its own top bar with Close, a three-segment step
+    // bar, and system Back stepping back through the wizard before it closes.
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
     ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth(0.96f)
-                .fillMaxHeight(0.95f),
-            shape = MaterialTheme.shapes.extraLarge,
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        androidx.activity.compose.BackHandler(enabled = currentStep > 0) { currentStep-- }
+        // The dialog window draws under the system bars, so it sets their icon colour for its own surface.
+        val dialogView = androidx.compose.ui.platform.LocalView.current
+        val lightBars = MaterialTheme.colorScheme.surface.luminance() > 0.5f
+        SideEffect {
+            (dialogView.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window?.let { window ->
+                androidx.core.view.WindowCompat.getInsetsController(window, dialogView).apply {
+                    isAppearanceLightStatusBars = lightBars
+                    isAppearanceLightNavigationBars = lightBars
+                }
+            }
+        }
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.surface
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(20.dp)
+                    .windowInsetsPadding(WindowInsets.safeDrawing)
+                    .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
             ) {
                 // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Text(
-                            text = if (existingDraft != null) stringResource(R.string.continue_draft_listing) else stringResource(R.string.publish_workspace_listing),
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = stringResource(R.string.step_x_of_x_lebanon_network, currentStep + 1, totalSteps),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        // Only ever true once the auto-save LaunchedEffect below has
-                        // actually fired — never claims a save that didn't happen.
-                        if (lastAutoSavedAtMillis != null) {
-                            Text(
-                                text = stringResource(R.string.draft_auto_saved),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
                     IconButton(onClick = onDismiss) {
                         Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
                     }
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (existingDraft != null) stringResource(R.string.continue_draft_listing) else stringResource(R.string.publish_workspace_listing),
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.semantics { heading() }
+                        )
+                        // Only ever true once the auto-save LaunchedEffect below has
+                        // actually fired — never claims a save that didn't happen.
+                        Text(
+                            text = if (lastAutoSavedAtMillis != null) {
+                                stringResource(R.string.wizard_step_x_of_x, currentStep + 1, totalSteps) + " · " + stringResource(R.string.draft_auto_saved)
+                            } else {
+                                stringResource(R.string.wizard_step_x_of_x, currentStep + 1, totalSteps)
+                            },
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
+
+                Spacer(modifier = Modifier.height(Spacing.md))
+                WizardStepBar(
+                    steps = listOf(
+                        stringResource(R.string.wizard_step_space),
+                        stringResource(R.string.wizard_step_details),
+                        stringResource(R.string.wizard_step_availability)
+                    ),
+                    current = currentStep,
+                    onStepClick = { target -> if (target < currentStep) currentStep = target }
+                )
 
                 Spacer(modifier = Modifier.height(Spacing.md))
 
@@ -1196,7 +1220,7 @@ fun CreateListingDialog(
 
                 // Bottom Navigation Buttons
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     if (currentStep > 0) {
@@ -1298,6 +1322,54 @@ fun CreateListingDialog(
             )
         }
 
+    }
+}
+
+/**
+ * The wizard's progress: one segment per step (filled up to the current one) with its name under it. Finished steps are
+ * tappable to go back; later ones are not (each step's gate decides when Next unlocks).
+ */
+@Composable
+private fun WizardStepBar(steps: List<String>, current: Int, onStepClick: (Int) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        steps.forEachIndexed { index, name ->
+            val done = index < current
+            val active = index == current
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(MaterialTheme.shapes.extraSmall)
+                    .then(if (done) Modifier.clickable(role = androidx.compose.ui.semantics.Role.Tab) { onStepClick(index) } else Modifier)
+                    .semantics {
+                        selected = active
+                        stateDescription = name
+                    }
+                    .padding(vertical = Spacing.xs),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (done || active) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.surfaceContainerHighest
+                        )
+                )
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
+                    color = if (active) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+            }
+        }
     }
 }
 
