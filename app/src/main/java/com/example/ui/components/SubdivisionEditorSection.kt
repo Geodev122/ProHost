@@ -210,7 +210,7 @@ fun SubdivisionEditorSection(
             if (failureCount > 0) {
                 val detail = FirebaseStorageService.lastUploadError ?: uiText(R.string.check_your_connection_and_try_again)
                 subImageUploadError = if (failureCount == uris.size) {
-                    "Couldn't upload ${if (uris.size == 1) "that photo" else "those photos"}: $detail"
+                    if (uris.size == 1) uiText(R.string.couldnt_upload_that_photo_x, detail) else uiText(R.string.couldnt_upload_those_photos_x, detail)
                 } else {
                     uiText(R.string.x_of_x_photos_failed_to_upload_x, failureCount, uris.size, detail)
                 }
@@ -877,7 +877,7 @@ fun SubdivisionEditorSection(
                                 FilterChip(
                                     selected = blackoutDay == day,
                                     onClick = { blackoutDay = day },
-                                    label = { Text(day, style = MaterialTheme.typography.labelSmall) }
+                                    label = { Text(localizedLabel(day), style = MaterialTheme.typography.labelSmall) }
                                 )
                             }
                         }

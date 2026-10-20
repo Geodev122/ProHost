@@ -270,6 +270,11 @@ fun SpaceDetailsScreenContent(
             selectRoom(sub, if (openAvailability && isSpecialistViewer) "full" else "peek")
             kotlinx.coroutines.delay(150)
             roomsRequester.bringIntoView()
+        } else if (openAvailability && isSpecialistViewer) {
+            // Explore's "Availability" without a room (whole-space listing, or a listing card rather than a room card):
+            // the sheet opens straight away too, on the first room when there are rooms.
+            val first = liveSpace.subdivisions.firstOrNull()
+            if (first != null) selectRoom(first, "full") else availabilityPanelState = "full"
         }
     }
     // A space with rooms always has one active, so the sheet is never a mixed view of
@@ -477,16 +482,20 @@ fun SpaceDetailsScreenContent(
                         .padding(14.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        // The category chip gives way (ellipsis) so the Verified badge always fits, even at large font sizes.
                         Surface(
                             color = Color(0x33FFFFFF),
-                            shape = MaterialTheme.shapes.small
+                            shape = MaterialTheme.shapes.small,
+                            modifier = Modifier.weight(1f, fill = false)
                         ) {
                             Text(
                                 text = "${liveSpace.spaceCategoryName ?: localizedLabel(liveSpace.spaceType.displayName)} • " +
-                                    "${if (liveSpace.isShared) "Shared Co-Working Space" else "Private Studio / Office"}",
+                                    (if (liveSpace.isShared) stringResource(R.string.shared_co_working_space) else stringResource(R.string.private_studio_office)),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                 modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                             )
                         }
@@ -570,9 +579,10 @@ fun SpaceDetailsScreenContent(
                                     )
                                 } else if (req.status == BookingRequestStatus.ACCEPTED) {
                                     Text(
-                                        text = stringResource(R.string.confirmed_space_hours_x, req.formula.daysOfWeek.joinToString()) +
-                                            stringResource(R.string.x_x_are_locked, req.formula.startHour, req.formula.endHour) +
-                                            ".",
+                                        text = stringResource(
+                                            R.string.confirmed_space_hours_locked_x_x_x,
+                                            req.formula.daysOfWeek.joinToString { localizedLabel(it) }, req.formula.startHour, req.formula.endHour
+                                        ),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.proColors.info,
                                         fontWeight = FontWeight.Bold
@@ -660,7 +670,7 @@ fun SpaceDetailsScreenContent(
                         ProSectionHeader(
                             title = stringResource(R.string.rental_options),
                             subtitle = if (liveSpace.subdivisions.isNotEmpty())
-                                "${liveSpace.subdivisions.size} space${if (liveSpace.subdivisions.size == 1) "" else "s"} — pick a tab to see that space and its availability"
+                                if (liveSpace.subdivisions.size == 1) stringResource(R.string.one_space_pick_tab) else stringResource(R.string.n_spaces_pick_tab, liveSpace.subdivisions.size)
                             else
                                 stringResource(R.string.tap_the_card_to_check_live_availability),
                             icon = Icons.Default.Tune

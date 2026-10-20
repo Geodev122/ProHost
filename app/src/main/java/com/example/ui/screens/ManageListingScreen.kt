@@ -311,7 +311,7 @@ private fun DivisionPerformanceCard(
                             )
                             Spacer(modifier = Modifier.width(3.dp))
                             Text(
-                                "vs $${"%,.0f".format(lastMonthYield)} last month",
+                                stringResource(R.string.vs_x_last_month, "$" + String.format(java.util.Locale.US, "%,.0f", lastMonthYield)),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

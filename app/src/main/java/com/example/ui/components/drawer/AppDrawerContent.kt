@@ -440,7 +440,7 @@ fun DrawerSignOutButton(userEmail: String?, onSignOut: () -> Unit) {
         ProHostDialog(
             onDismissRequest = { showConfirmDialog = false },
             title = { Text(stringResource(R.string.sign_out_of_prohost), fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to sign out of your account${userEmail?.let { " ($it)" } ?: ""}?") },
+            text = { Text(userEmail?.let { stringResource(R.string.sign_out_confirm_email, it) } ?: stringResource(R.string.sign_out_confirm)) },
             confirmButton = {
                 Button(
                     onClick = {

@@ -1,5 +1,6 @@
 package com.example.ui.util
 
+import com.example.R
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -41,30 +42,33 @@ object PaymentCalendar {
     fun addPaymentReminders(context: Context, booking: BookingRequest, bookingRef: String) {
         val schedule = scheduleFor(booking)
         if (schedule == null) {
-            UiMessages.show(context, "This booking has no start date yet, so there's no due date to add.", long = true)
+            UiMessages.show(context, uiText(R.string.calendar_no_start_date), long = true)
             return
         }
         val money = NumberFormat.getCurrencyInstance(Locale.US).format(schedule.amountPerPaymentUsd)
         val description = buildString {
-            appendLine("ProHost booking $bookingRef — ${booking.spaceTitle}")
+            appendLine(uiText(R.string.calendar_booking_line, bookingRef, booking.spaceTitle))
             if (schedule.isMonthly) {
-                appendLine("Monthly rent: $money (${schedule.occurrences} payments)")
+                appendLine(uiText(R.string.calendar_monthly_rent, money, schedule.occurrences))
             } else {
-                appendLine("Payment due: $money")
+                appendLine(uiText(R.string.calendar_payment_due, money))
             }
             booking.lastPriceChange?.takeIf { it.changedTotal }?.let { change ->
                 val usd = NumberFormat.getCurrencyInstance(Locale.US)
                 appendLine(
-                    "Price updated by your host: total ${usd.format(change.oldTotal)} → ${usd.format(change.newTotal)}" +
-                        (if (change.effectiveFrom.isNotBlank()) " from ${change.effectiveFrom}" else "")
+                    if (change.effectiveFrom.isNotBlank()) {
+                        uiText(R.string.calendar_price_updated_from, usd.format(change.oldTotal), usd.format(change.newTotal), change.effectiveFrom)
+                    } else {
+                        uiText(R.string.calendar_price_updated, usd.format(change.oldTotal), usd.format(change.newTotal))
+                    }
                 )
             }
-            append("Pay your host directly, then tap \"Mark as Paid\" in ProHost → My Bookings.")
+            append(uiText(R.string.calendar_pay_directly))
         }
         // All-day events must start at UTC midnight (CalendarContract requirement).
         val insert = Intent(Intent.ACTION_INSERT)
             .setData(CalendarContract.Events.CONTENT_URI)
-            .putExtra(CalendarContract.Events.TITLE, "Rent due · ${booking.spaceTitle}")
+            .putExtra(CalendarContract.Events.TITLE, uiText(R.string.calendar_rent_due_x, booking.spaceTitle))
             .putExtra(CalendarContract.Events.DESCRIPTION, description)
             .putExtra(CalendarContract.EXTRA_EVENT_ALL_DAY, true)
             .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, schedule.firstDueUtcMillis)
@@ -76,11 +80,11 @@ object PaymentCalendar {
         }
         try {
             // A chooser lets people with several calendar apps pick the one they use.
-            val chooser = Intent.createChooser(insert, "Add payment reminders to…")
+            val chooser = Intent.createChooser(insert, uiText(R.string.calendar_add_reminders_to))
             if (context !is android.app.Activity) chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(chooser)
         } catch (e: ActivityNotFoundException) {
-            UiMessages.show(context, "No calendar app found on this device.", long = true)
+            UiMessages.show(context, uiText(R.string.calendar_no_app), long = true)
         }
     }
 

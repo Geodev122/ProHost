@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -157,7 +158,7 @@ fun ChangePriceSheet(
             }
             if (space != null && step != PriceStep.LISTING) {
                 Text(
-                    text = listOfNotNull(space.title, division?.name?.takeIf { step != PriceStep.DIVISION }).joinToString(" · "),
+                    text = listOfNotNull(space.title, division?.name?.takeIf { step != PriceStep.DIVISION }?.let { localizedLabel(it) }).joinToString(" · "),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -183,7 +184,7 @@ fun ChangePriceSheet(
                         ownSpaces.forEach { s ->
                             PickRow(
                                 title = s.title,
-                                subtitle = "${s.publicCode} · ${if (s.subdivisions.isEmpty()) "Whole space" else "${s.subdivisions.size} divisions"}",
+                                subtitle = "${s.publicCode} · ${if (s.subdivisions.isEmpty()) stringResource(R.string.whole_space_2) else stringResource(R.string.x_divisions, s.subdivisions.size)}",
                                 highlighted = s.id == spaceId,
                                 onClick = {
                                     spaceId = s.id
@@ -201,7 +202,7 @@ fun ChangePriceSheet(
                     }
                     PriceStep.DIVISION -> divisions.forEach { d ->
                         PickRow(
-                            title = d.name,
+                            title = localizedLabel(d.name),
                             subtitle = d.typeLabel,
                             highlighted = d.scopeId == scopeId,
                             onClick = { scopeId = d.scopeId; step = PriceStep.SLOTS }
@@ -218,7 +219,7 @@ fun ChangePriceSheet(
                         } else {
                             slots.groupBy { it.group }.forEach { (group, groupSlots) ->
                                 Text(
-                                    group.uppercase(Locale.US),
+                                    localizedLabel(group).uppercase(Locale.US),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(top = Spacing.xs)
@@ -253,8 +254,8 @@ fun ChangePriceSheet(
                             PriceChange.round2(newPrice) != PriceChange.round2(s.price)
                         if (affected.isNotEmpty()) {
                             Text(
-                                "${affected.size} ${if (affected.size == 1) "booking uses" else "bookings use"} this slot — " +
-                                    stringResource(R.string.you_ll_choose_how_the_change_applies_to_ea),
+                                (if (affected.size == 1) stringResource(R.string.one_booking_uses_slot) else stringResource(R.string.n_bookings_use_slot, affected.size)) +
+                                    " " + stringResource(R.string.you_ll_choose_how_the_change_applies_to_ea),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -361,7 +362,7 @@ private fun SlotPriceRow(slot: PriceChange.PriceSlot, onChange: () -> Unit) {
     ProSurfaceCard(contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.sm, top = Spacing.sm, bottom = Spacing.sm)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(slot.label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                Text(localizedLabel(slot.label), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                 Text(
                     "${formatUsd(slot.price)}${slot.unit}",
                     style = MaterialTheme.typography.titleSmall,
@@ -394,7 +395,11 @@ private fun ImpactRow(
         contentPadding = PaddingValues(Spacing.md)
     ) {
         Text(
-            "${booking.publicCode} · ${if (booking.isPending) "Pending request" else "Current tenant"}${if (isThisBooking) " · this booking" else ""}",
+            listOfNotNull(
+                booking.publicCode,
+                if (booking.isPending) stringResource(R.string.pending_request) else stringResource(R.string.current_tenant),
+                stringResource(R.string.this_booking).takeIf { isThisBooking }
+            ).joinToString(" · "),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

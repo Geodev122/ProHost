@@ -147,9 +147,10 @@ fun OwnerRentingProgressScreenContent(
 
         // 2. Outside payment reminders — only for bookings not yet acknowledged as paid
         activeBookings.filter { !it.paymentAcknowledgedByHost }.forEach { booking ->
-            list.add(Pair(true, uiText(R.string.outside_app_rent_due_from_x_fo, booking.practitionerName) +
-                uiText(R.string.r_slot_x, booking.selectedDateTimeRange.ifBlank { booking.formula.scheduleDescription }) +
-                uiText(R.string.amount_x_usd, booking.totalAmountUsd.toInt())))
+            list.add(Pair(true, uiText(
+                R.string.outside_rent_due_x_slot_x_amount_x, booking.practitionerName,
+                booking.selectedDateTimeRange.ifBlank { booking.formula.scheduleDescription }, booking.totalAmountUsd.toInt()
+            )))
         }
 
         // 3. Scheduling checklist reminder
@@ -320,8 +321,7 @@ fun OwnerRentingProgressScreenContent(
             item {
                 ProEmptyState(
                     title = stringResource(R.string.no_active_tenancies_yet),
-                    description = stringResource(R.string.when_you_approve_rental_booking_requests_c) +
-                        stringResource(R.string.ications_will_appear_here),
+                    description = stringResource(R.string.active_tenancies_empty_description),
                     icon = Icons.AutoMirrored.Filled.ReceiptLong
                 )
             }

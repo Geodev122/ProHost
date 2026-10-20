@@ -296,13 +296,13 @@ fun DrawerDialogsHandler(
                                         Text(
                                             text = stringResource(R.string.no_notifications_yet),
                                             fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.outline,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             style = MaterialTheme.typography.bodyMedium
                                         )
                                         Text(
                                             text = stringResource(R.string.real_time_updates_received_via_push_messag),
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.outline,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             textAlign = TextAlign.Center,
                                             modifier = Modifier.padding(horizontal = Spacing.lg)
                                         )
@@ -317,7 +317,7 @@ fun DrawerDialogsHandler(
                                     Text(
                                         stringResource(R.string.notifications_are_kept_for_48_hours),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.outline
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     LazyColumn(
                                         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -396,7 +396,7 @@ fun DrawerDialogsHandler(
                                                             Text(
                                                                 text = stringResource(R.string.read),
                                                                 style = MaterialTheme.typography.labelSmall,
-                                                                color = MaterialTheme.colorScheme.outline
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                                             )
                                                         }
                                                     }
@@ -421,7 +421,7 @@ fun DrawerDialogsHandler(
                                                         Text(
                                                             text = relativeTime(alert.timestamp),
                                                             style = MaterialTheme.typography.labelSmall,
-                                                            color = MaterialTheme.colorScheme.outline
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                                         )
 
                                                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {

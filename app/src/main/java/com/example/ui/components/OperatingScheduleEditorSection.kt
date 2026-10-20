@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.localizedLabel
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
@@ -61,7 +62,7 @@ fun OperatingScheduleEditorSection(
                     onClick = {
                         onDaysChange(if (isSelected) selectedDays - day else selectedDays + day)
                     },
-                    label = { Text(day, style = MaterialTheme.typography.labelMedium) }
+                    label = { Text(localizedLabel(day), style = MaterialTheme.typography.labelMedium) }
                 )
             }
         }

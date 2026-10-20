@@ -266,7 +266,7 @@ fun SpecialistProfileScreen(
                                 else -> uiText(R.string.your_booking_at_x_starts_in_x_days, booking.spaceTitle, days)
                             }
                         }
-                        pendingCount > 0 -> "$pendingCount request${if (pendingCount != 1) "s" else ""} awaiting host response."
+                        pendingCount > 0 -> if (pendingCount == 1) uiText(R.string.one_request_awaiting_host) else uiText(R.string.n_requests_awaiting_host, pendingCount)
                         else -> uiText(R.string.no_updates_right_now_explore_available_wor)
                     }
 
@@ -835,7 +835,9 @@ fun SpecialistProfileScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // The status text wraps; the button keeps its size (at large font it was cut to "Check Updat").
                         Row(
+                            modifier = Modifier.weight(1f),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
@@ -847,12 +849,12 @@ fun SpecialistProfileScreen(
                             )
                             Text(
                                 text = "v${com.example.BuildConfig.VERSION_NAME} • ${when (updateState) {
-                                UpdateState.CHECKING -> "Checking for updates…"
-                                UpdateState.UPDATE_AVAILABLE_FLEXIBLE, UpdateState.UPDATE_AVAILABLE_IMMEDIATE -> "Update available"
-                                UpdateState.DOWNLOADING -> "Downloading update…"
-                                UpdateState.DOWNLOADED -> "Ready to install"
-                                UpdateState.FAILED -> "Update check failed"
-                                else -> "ProHost is up to date"
+                                UpdateState.CHECKING -> stringResource(R.string.update_checking)
+                                UpdateState.UPDATE_AVAILABLE_FLEXIBLE, UpdateState.UPDATE_AVAILABLE_IMMEDIATE -> stringResource(R.string.update_available_short)
+                                UpdateState.DOWNLOADING -> stringResource(R.string.update_downloading)
+                                UpdateState.DOWNLOADED -> stringResource(R.string.update_ready_to_install)
+                                UpdateState.FAILED -> stringResource(R.string.update_check_failed)
+                                else -> stringResource(R.string.prohost_up_to_date)
                             }}",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold
@@ -883,7 +885,7 @@ fun SpecialistProfileScreen(
                                 },
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                             ) {
-                                Text(stringResource(R.string.check_update), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.check_update), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                             }
                         }
                     }

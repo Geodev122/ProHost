@@ -592,8 +592,7 @@ class AuthViewModel(
                 _authSuccessMessage.value = if (missedUploads.isEmpty()) {
                     uiText(R.string.account_created_successfully_for_x, user.fullName)
                 } else {
-                    "Account created for ${user.fullName}! Your ${missedUploads.joinToString(" and ")} " +
-                        "didn't upload — add ${if (missedUploads.size > 1) "them" else "it"} from your profile."
+                    uiText(R.string.account_created_photo_missing_x, user.fullName)
                 }
                 onSuccess()
             } catch (e: com.example.data.auth.AccountSuspendedException) {

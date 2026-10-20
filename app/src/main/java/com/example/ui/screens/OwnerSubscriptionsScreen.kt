@@ -1067,10 +1067,10 @@ private fun PlanChip(text: String, container: Color, content: Color) {
 @Composable
 private fun PremiumBenefits() {
     val items = listOf(
-        "Publish unlimited workspace listings",
-        "Receive and manage booking requests",
-        "Host dashboard, occupancy and analytics",
-        "Shown on Explore's list and map"
+        stringResource(R.string.benefit_publish_listings),
+        stringResource(R.string.benefit_manage_requests),
+        stringResource(R.string.benefit_dashboard),
+        stringResource(R.string.benefit_explore)
     )
     Surface(
         modifier = Modifier.fillMaxWidth(),

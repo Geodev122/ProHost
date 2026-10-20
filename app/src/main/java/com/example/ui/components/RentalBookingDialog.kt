@@ -479,19 +479,21 @@ private fun BookingSlotSelectorDialog(
                 val slot = selectedShiftSlot
                 when {
                     slot == null -> uiText(R.string.no_shift_selected_yet)
-                    selectedCalendarDates.isEmpty() -> "${slot.groupLabel.substringAfter("• ")} • no dates selected yet"
-                    else -> "${slot.groupLabel.substringAfter("• ")} • ${selectedCalendarDates.size} date${if (selectedCalendarDates.size == 1) "" else "s"}"
+                    selectedCalendarDates.isEmpty() -> uiText(R.string.x_no_dates_selected_yet, localizedLabel(slot.groupLabel.substringAfter("• ")))
+                    else -> if (selectedCalendarDates.size == 1) uiText(R.string.x_one_date, localizedLabel(slot.groupLabel.substringAfter("• ")))
+                        else uiText(R.string.x_n_dates, localizedLabel(slot.groupLabel.substringAfter("• ")), selectedCalendarDates.size)
                 }
             }
             RentalStrategyType.DAY_BASED -> {
                 when {
                     selectedDayBasedDays.isEmpty() -> uiText(R.string.no_days_selected_yet)
-                    dayBasedCalendarDates.isEmpty() -> "${selectedDayBasedDays.sorted().joinToString(", ")} • no dates selected yet"
-                    else -> "${selectedDayBasedDays.sorted().joinToString(", ")} • " +
-                        "${dayBasedCalendarDates.size} date${if (dayBasedCalendarDates.size == 1) "" else "s"}"
+                    dayBasedCalendarDates.isEmpty() -> uiText(R.string.x_no_dates_selected_yet, selectedDayBasedDays.sorted().joinToString(", ") { localizedLabel(it) })
+                    else -> selectedDayBasedDays.sorted().joinToString(", ") { localizedLabel(it) }.let { days ->
+                        if (dayBasedCalendarDates.size == 1) uiText(R.string.x_one_date, days) else uiText(R.string.x_n_dates, days, dayBasedCalendarDates.size)
+                    }
                 }
             }
-            null -> "No availability configured for this ${if (hasSubdivisions) "room" else "space"} yet"
+            null -> if (hasSubdivisions) uiText(R.string.no_availability_room_yet) else uiText(R.string.no_availability_space_yet)
         }
     }
 
@@ -517,17 +519,14 @@ private fun BookingSlotSelectorDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = headerTitle,
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.width(Spacing.sm))
-                            ProStatusBadge(type = ProBadgeType.CUSTOM_INFO, customText = headerBadgeText)
-                        }
+                    // Title, then the badge on its own line: side by side the badge was cut off ("Real-Time Av…").
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                        Text(
+                            text = headerTitle,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        ProStatusBadge(type = ProBadgeType.CUSTOM_INFO, customText = headerBadgeText)
                         Text(
                             text = "${space.title} • ${space.district}, ${localizedLabel(space.governorate.displayName)}",
                             style = MaterialTheme.typography.labelMedium,
@@ -652,8 +651,8 @@ private fun BookingSlotSelectorDialog(
                         )
                         if (hiddenLockedCount > 0) {
                             Text(
-                                text = "$hiddenLockedCount slot${if (hiddenLockedCount == 1) " is" else "s are"} already booked by another p" +
-                                    stringResource(R.string.rofessional_and_not_shown),
+                                text = if (hiddenLockedCount == 1) stringResource(R.string.one_slot_booked_hidden)
+                                    else stringResource(R.string.n_slots_booked_hidden, hiddenLockedCount),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -661,9 +660,9 @@ private fun BookingSlotSelectorDialog(
                         if (availableStrategyTypes.isEmpty()) {
                             Text(
                                 text = if (allSlots.isEmpty()) {
-                                    "This ${if (hasSubdivisions) "room" else "space"} has no bookable availability configured yet."
+                                    if (hasSubdivisions) stringResource(R.string.room_no_bookable_yet) else stringResource(R.string.space_no_bookable_yet)
                                 } else {
-                                    "Every slot for this ${if (hasSubdivisions) "room" else "space"} is already booked."
+                                    if (hasSubdivisions) stringResource(R.string.room_all_booked) else stringResource(R.string.space_all_booked)
                                 },
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.error
@@ -736,7 +735,7 @@ private fun BookingSlotSelectorDialog(
                                                 FilterChip(
                                                     selected = hourlyDay == day,
                                                     onClick = { hourlyDay = day },
-                                                    label = { Text(day, style = MaterialTheme.typography.labelMedium) }
+                                                    label = { Text(localizedLabel(day), style = MaterialTheme.typography.labelMedium) }
                                                 )
                                             }
                                         }
@@ -770,7 +769,7 @@ private fun BookingSlotSelectorDialog(
                                                 FilterChip(
                                                     selected = shiftDay == day,
                                                     onClick = { shiftDay = day },
-                                                    label = { Text(day, style = MaterialTheme.typography.labelMedium) }
+                                                    label = { Text(localizedLabel(day), style = MaterialTheme.typography.labelMedium) }
                                                 )
                                             }
                                         }
@@ -799,7 +798,7 @@ private fun BookingSlotSelectorDialog(
                                             // to just the day already browsed above; a specialist who
                                             // only wants a single one-time shift needs no extra tap.
                                             Text(
-                                                "Choose commitment — which days offer the same ${selectedShiftSlot?.groupLabel?.substringAfter("• ")} shift:",
+                                                stringResource(R.string.choose_commitment_same_x_shift, localizedLabel(selectedShiftSlot?.groupLabel?.substringAfter("• ").orEmpty())),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontWeight = FontWeight.SemiBold
                                             )
@@ -815,7 +814,7 @@ private fun BookingSlotSelectorDialog(
                                                                 selectedCommitmentDays + day
                                                             }
                                                         },
-                                                        label = { Text(day, style = MaterialTheme.typography.labelSmall) }
+                                                        label = { Text(localizedLabel(day), style = MaterialTheme.typography.labelSmall) }
                                                     )
                                                 }
                                             }
@@ -859,7 +858,7 @@ private fun BookingSlotSelectorDialog(
                                         Text(stringResource(R.string.choose_one_or_more_priced_days), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                                         if (strategySlots.isEmpty()) {
                                             Text(
-                                                "No days priced for this ${if (hasSubdivisions) "room" else "space"}.",
+                                                if (hasSubdivisions) stringResource(R.string.no_days_priced_room) else stringResource(R.string.no_days_priced_space),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.error
                                             )

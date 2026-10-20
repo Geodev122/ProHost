@@ -256,7 +256,7 @@ fun CreateListingDialog(
             if (failureCount > 0) {
                 val detail = FirebaseStorageService.lastUploadError ?: uiText(R.string.check_your_connection_and_try_again)
                 photoUploadError = if (failureCount == uris.size) {
-                    "Couldn't upload ${if (uris.size == 1) "that photo" else "those photos"}: $detail"
+                    if (uris.size == 1) uiText(R.string.couldnt_upload_that_photo_x, detail) else uiText(R.string.couldnt_upload_those_photos_x, detail)
                 } else {
                     uiText(R.string.x_of_x_photos_failed_to_upload_x, failureCount, uris.size, detail)
                 }
@@ -1245,7 +1245,8 @@ fun CreateListingDialog(
                     // something "Edit" should ever do silently.
                     if (onListingUpdated == null) {
                         ProOutlinedButton(
-                            text = stringResource(R.string.save_as_draft),
+                            // Short label: next to Back and Next the longer "Save as Draft" was cut to "Save as D…".
+                            text = stringResource(R.string.save_draft_short),
                             onClick = {
                                 coroutineScope.launch {
                                     val fallback = resolveFallbackGeocode()

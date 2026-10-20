@@ -111,10 +111,14 @@ fun PhoneNumberField(
     number: String,
     onNumberChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    label: String = "Phone Number",
+    label: String = stringResource(R.string.phone_number_label),
     placeholder: String = "3 123 456"
 ) {
     var showPicker by remember { mutableStateOf(false) }
+    // Phone numbers read left to right in every language: in Arabic the digit groups were reversed ("456 123 3").
+    androidx.compose.runtime.CompositionLocalProvider(
+        androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr
+    ) {
     InputField(
         value = number,
         onValueChange = onNumberChange,
@@ -131,6 +135,7 @@ fun PhoneNumberField(
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
         singleLine = true
     )
+    }
     if (showPicker) {
         CountryPickerDialog(
             selected = country,

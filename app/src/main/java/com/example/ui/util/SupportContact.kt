@@ -1,5 +1,6 @@
 package com.example.ui.util
 
+import com.example.R
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -25,6 +26,6 @@ fun launchSupportEmail(context: Context, user: AppUser?, roleName: String) {
     try {
         context.startActivity(intent)
     } catch (e: android.content.ActivityNotFoundException) {
-        UiMessages.show(context, "No email app found — you can also reach us at $SUPPORT_EMAIL", long = true)
+        UiMessages.show(context, uiText(R.string.no_email_app_reach_us_x, SUPPORT_EMAIL), long = true)
     }
 }

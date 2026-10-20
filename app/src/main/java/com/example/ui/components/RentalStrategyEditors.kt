@@ -254,7 +254,7 @@ fun HourlyStrategyEditor(
         operatingDays.forEach { day ->
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(day, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(40.dp))
+                    Text(localizedLabel(day), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(64.dp))
                     if (!availabilityOnly) InputField(
      value = bulkPriceByDay[day] ?: "",
      onValueChange = { bulkPriceByDay = bulkPriceByDay + (day to it) },
@@ -383,7 +383,7 @@ fun ShiftStrategyEditor(
         val availableShifts = config.shifts.filterNot { it.isUnavailable }
         operatingDays.forEach { day ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(day, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(40.dp))
+                Text(localizedLabel(day), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(64.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     items(availableShifts) { shift ->
                         val offeredToday = config.distribution[day] ?: emptyList()
@@ -446,7 +446,7 @@ fun DayBasedStrategyEditor(
             operatingDays.forEach { day ->
                 val offered = (config.distribution[day]?.price ?: 0.0) > 0.0
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                    Text(day, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                    Text(localizedLabel(day), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                     Switch(
                         checked = offered,
                         onCheckedChange = { on ->
@@ -468,7 +468,7 @@ fun DayBasedStrategyEditor(
         operatingDays.forEach { day ->
             val dp = config.distribution[day] ?: DayPricing()
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(day, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                Text(localizedLabel(day), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                 // Single flat price per day (mirrors ShiftStrategyEditor's item 7b
                 // rework, same request applied to Day-Based) — occurrence count and
                 // recurrence (one-time vs. weekly-recurring) are configured by the

@@ -90,7 +90,7 @@ fun InAppUpdateBanner(
                             text = if (updateState == UpdateState.DOWNLOADED) {
                                 uiText(R.string.restart_the_app_to_apply_the_latest_featur)
                             } else {
-                                "Download in progress: ${(downloadProgress * 100).toInt()}%"
+                                uiText(R.string.download_in_progress_x, (downloadProgress * 100).toInt())
                             },
                             style = MaterialTheme.typography.labelMedium,
                             color = onBanner.copy(alpha = 0.85f)

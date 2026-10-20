@@ -356,7 +356,7 @@ fun OwnerAnalyticsScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     ProSectionHeader(
                         title = stringResource(R.string.booking_mix),
-                        subtitle = "${ownerBookings.size} request${if (ownerBookings.size == 1) "" else "s"} by renting strategy",
+                        subtitle = if (ownerBookings.size == 1) stringResource(R.string.one_request_by_strategy) else stringResource(R.string.n_requests_by_strategy, ownerBookings.size),
                         icon = Icons.Default.Analytics
                     )
                     if (bookingMix.isEmpty()) {
@@ -382,7 +382,7 @@ fun OwnerAnalyticsScreen(
                                     color = mixColors[index % mixColors.size]
                                 )
                                 Text(
-                                    "${row.accepted} accepted · $${String.format(java.util.Locale.US, "%,.0f", row.acceptedValueUsd)} accepted value",
+                                    stringResource(R.string.x_accepted_x_value, row.accepted, "$" + String.format(java.util.Locale.US, "%,.0f", row.acceptedValueUsd)),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -391,8 +391,8 @@ fun OwnerAnalyticsScreen(
                         if (acceptedAttendeeBookings.isNotEmpty()) {
                             val people = acceptedAttendeeBookings.sumOf { it.attendeeCount }
                             Text(
-                                stringResource(R.string.per_attendee_x_accepted_x_attendees, acceptedAttendeeBookings.size, people) +
-                                    "average group ${String.format(java.util.Locale.US, "%.1f", people.toDouble() / acceptedAttendeeBookings.size)}",
+                                stringResource(R.string.per_attendee_x_accepted_x_attendees, acceptedAttendeeBookings.size, people) + " " +
+                                    stringResource(R.string.average_group_x, String.format(java.util.Locale.US, "%.1f", people.toDouble() / acceptedAttendeeBookings.size)),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold
                             )
