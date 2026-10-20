@@ -1053,6 +1053,7 @@ fun SpaceDetailsScreenContent(
 
 /** "Request sent": the two next steps — see it in My Rentals, or message the host on WhatsApp. */
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 internal fun RequestSentSheet(hasWhatsApp: Boolean, onDismiss: () -> Unit, onViewRequest: () -> Unit, onWhatsApp: () -> Unit) {
     ProHostBottomSheet(onDismissRequest = onDismiss) {
         Column(
