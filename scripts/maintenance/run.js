@@ -903,6 +903,12 @@ async function playofferfix(db, arg) {
   if (apply) await playcatalog(db);
 }
 
+async function aiquota(db) {
+  const res = await serverTask(db, "aiQuota");
+  notice(`Cloud Quotas: ${res.note}; ${res.rows.length} Claude/Anthropic row(s)`);
+  res.rows.slice(0, 40).forEach((r) => notice(`QUOTA ${r.quotaId} | ${r.name} | ${JSON.stringify(r.dimensions)} | value=${r.value} ${r.unit}`));
+}
+
 async function aiprobe(db) {
   const rows = await serverTask(db, "aiProbe");
   rows.forEach((r) => notice(`${r.ok ? "✓" : "✗"} ${r.model} @ ${r.region}: ${r.detail}`));
@@ -1076,6 +1082,7 @@ async function smsauth(db, arg) {
   else if (task === "igsmoke") await igsmoke(db);
   else if (task === "igtest") await igtest(db);
   else if (task === "aiprobe") await aiprobe(db);
+  else if (task === "aiquota") await aiquota(db);
   else if (task === "playcatalog") await playcatalog(db);
   else if (task === "smsauth") await smsauth(db, arg);
   else if (task === "playofferfix") await playofferfix(db, arg);

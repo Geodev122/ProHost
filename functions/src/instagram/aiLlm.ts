@@ -82,3 +82,32 @@ export async function probeVertex(f: Fetch = fetch): Promise<ProbeRow[]> {
   }
   return rows;
 }
+
+export interface QuotaRow { quotaId: string; name: string; dimensions: Record<string, string>; value: string; unit: string }
+
+/** Lists Vertex AI quota rows whose dimensions mention Claude/Haiku, via the Cloud Quotas API (Maintenance `aiquota`). */
+export async function listClaudeQuotas(f: Fetch = fetch): Promise<{ rows: QuotaRow[]; note: string }> {
+  const auth = new google.auth.GoogleAuth({ scopes: ["https://www.googleapis.com/auth/cloud-platform"] });
+  const token = await auth.getAccessToken();
+  const rows: QuotaRow[] = [];
+  let pageToken = "";
+  let scanned = 0;
+  for (let page = 0; page < 20; page++) {
+    const url = `https://cloudquotas.googleapis.com/v1/projects/${PROJECT}/locations/global/services/aiplatform.googleapis.com/quotaInfos?pageSize=500${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ""}`;
+    const res = await f(url, { headers: { Authorization: `Bearer ${token}` } });
+    const j = (await res.json().catch(() => ({}))) as { quotaInfos?: Array<Record<string, unknown>>; nextPageToken?: string; error?: { message?: string } };
+    if (!res.ok) return { rows, note: `Cloud Quotas API ${res.status}: ${(j.error?.message ?? "").slice(0, 300)}` };
+    for (const q of j.quotaInfos ?? []) {
+      scanned++;
+      const infos = (q.dimensionsInfos as Array<{ dimensions?: Record<string, string>; details?: { value?: string } }> | undefined) ?? [];
+      for (const di of infos) {
+        const dims = di.dimensions ?? {};
+        if (!/claude|anthropic/i.test(JSON.stringify(dims)) && !/claude|anthropic/i.test(String(q.quotaId))) continue;
+        rows.push({ quotaId: String(q.quotaId), name: String(q.quotaDisplayName ?? q.metricDisplayName ?? ""), dimensions: dims, value: String(di.details?.value ?? "?"), unit: String(q.unit ?? "") });
+      }
+    }
+    pageToken = j.nextPageToken ?? "";
+    if (!pageToken) break;
+  }
+  return { rows, note: `scanned ${scanned} quota definitions` };
+}
