@@ -203,6 +203,18 @@ describe("workspace_listings", () => {
   });
 });
 
+describe("instagram automation collections", () => {
+  test("rules, events, contacts, stats and its config are server-only", async () => {
+    for (const [col, id] of [["ig_rules", "r1"], ["ig_events", "c_1"], ["ig_contacts", "u1"], ["ig_stats", "errors"], ["app_config", "instagram"]]) {
+      await assertFails(getDoc(doc(specCtx(), col, id)));
+      await assertFails(setDoc(doc(specCtx(), col, id), { text: "x" }));
+      await assertFails(getDoc(doc(hostCtx(), col, id)));
+      await assertFails(setDoc(doc(hostCtx(), col, id), { text: "x" }));
+      await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), col, id)));
+    }
+  });
+});
+
 describe("in-app notifications", () => {
   beforeEach(async () => {
     await env.withSecurityRulesDisabled((ctx) =>

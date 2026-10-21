@@ -40,6 +40,7 @@
     ],
     "rewrites": [
       { "source": "/sitemap.xml", "function": { "functionId": "siteSitemap", "region": "europe-west1" } },
+      { "source": "/ig-webhook", "function": { "functionId": "igWebhook", "region": "europe-west1" } },
       {
         "source": "/privacy",
         "destination": "/privacy.html"

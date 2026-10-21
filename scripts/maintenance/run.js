@@ -19,6 +19,12 @@
 //                                                    address book, preview, a test campaign to admin@pro-host.tech
 //                                                    (waits for delivery), one contact-form request from
 //                                                    admin@pro-host.tech (waits for the email), /admin and /unsubscribe
+//   node scripts/maintenance/run.js igsetup [SHEET_ID] Instagram automation: stores IG_APP_SECRET / IG_ACCESS_TOKEN / IG_VERIFY_TOKEN
+//                                                    (GitHub secrets) in the server-only app_config/instagram, checks the token
+//                                                    belongs to the Instagram account, subscribes the webhook fields and
+//                                                    optionally stores the control-room Sheet id. Prints masked results only.
+//   node scripts/maintenance/run.js igsmoke          Instagram automation live check: webhook handshake, wrong token / bad
+//                                                    signature rejected, signed empty event accepted, config + health summary
 //   node scripts/maintenance/run.js prodcheck        production readiness (read-only apart from one RTDN self-test
 //                                                    message): deployed functions + indexes, public pages, Play catalog
 //                                                    as this account sees it, RTDN topic → function, then the audit
@@ -685,6 +691,80 @@ async function mailingcode(db, code) {
   notice(`mailing admin code set (${code.trim().length} digits); ${sessions.size} old admin session(s) signed out`);
 }
 
+const maskId = (v) => (v ? `${String(v).slice(0, 4)}…${String(v).slice(-3)}` : "(none)");
+
+async function igsetup(db, sheetId) {
+  const secret = process.env.IG_APP_SECRET || "";
+  const token = process.env.IG_ACCESS_TOKEN || "";
+  const verify = process.env.IG_VERIFY_TOKEN || "";
+  const missing = [["IG_APP_SECRET", secret], ["IG_ACCESS_TOKEN", token], ["IG_VERIFY_TOKEN", verify]].filter(([, v]) => !v).map(([k]) => k);
+  if (missing.length) throw new Error(`missing GitHub secrets: ${missing.join(", ")} (Settings › Secrets and variables › Actions)`);
+  const graph = require(`${LIB}/instagram/graph`);
+  const me = await graph.whoAmI(token);
+  if (!me.id) throw new Error("the access token did not return an Instagram account");
+  notice(`token belongs to @${me.username} (id ${maskId(me.id)})`);
+
+  let expiresAt = Date.now() + 60 * 86400000;
+  let accessToken = token;
+  try {
+    const r = await graph.refreshToken(token);
+    if (r.token) { accessToken = r.token; expiresAt = Date.now() + r.expiresInSec * 1000; notice(`token refreshed, valid ${Math.floor(r.expiresInSec / 86400)} days`); }
+  } catch (e) {
+    notice(`token not refreshed yet (${String(e.message).slice(0, 80)}); assuming 60 days from now`);
+  }
+
+  const ref = db.collection("app_config").doc("instagram");
+  const current = (await ref.get()).data() || {};
+  await ref.set({
+    appSecret: secret, verifyToken: verify, accessToken, igUserId: me.id, username: me.username, tokenExpiresAt: expiresAt,
+    mode: current.mode === "live" ? "live" : "dry-run", killSwitch: Boolean(current.killSwitch),
+    ...(sheetId ? { sheetId: sheetId.trim() } : {}),
+  }, { merge: true });
+  notice(`app_config/instagram saved (mode ${current.mode === "live" ? "live" : "dry-run"}${sheetId ? ", sheet linked" : current.sheetId ? ", sheet already linked" : ", NO sheet linked yet"})`);
+
+  try {
+    const ok = await graph.subscribeApp({ igUserId: me.id, token: accessToken });
+    notice(`webhook subscription for @${me.username}: ${ok ? "active" : "not confirmed"}`);
+  } catch (e) {
+    fail(`webhook subscription failed: ${String(e.message).slice(0, 200)} (set the callback URL in the Meta app first)`);
+  }
+  const sid = sheetId || current.sheetId;
+  if (sid) {
+    try {
+      const { google } = require(path.join(__dirname, "../../functions/node_modules/googleapis"));
+      const sheets = google.sheets({ version: "v4", auth: new google.auth.GoogleAuth({ scopes: ["https://www.googleapis.com/auth/spreadsheets"] }) });
+      await require(`${LIB}/instagram/sheetsBridge`).ensureTabs(sheets, sid);
+      notice("sheet tabs OK (Rules, Log, Contacts, Status)");
+    } catch (e) {
+      notice(`sheet not reachable from this account yet (${String(e.message).slice(0, 100)}); the runtime service account must be an Editor of the sheet`);
+    }
+  }
+}
+
+async function igsmoke(db) {
+  const BASE = "https://pro-host.tech/ig-webhook";
+  const verify = process.env.IG_VERIFY_TOKEN || "";
+  const secret = process.env.IG_APP_SECRET || "";
+  if (!verify || !secret) throw new Error("IG_VERIFY_TOKEN and IG_APP_SECRET GitHub secrets are required");
+  const check = (name, ok, extra) => (ok ? notice(`✓ ${name}${extra ? ` (${extra})` : ""}`) : fail(`✗ ${name}${extra ? ` (${extra})` : ""}`));
+  const g1 = await fetch(`${BASE}?hub.mode=subscribe&hub.verify_token=${encodeURIComponent(verify)}&hub.challenge=smoke123`);
+  check("handshake echoes the challenge", g1.status === 200 && (await g1.text()) === "smoke123", `HTTP ${g1.status}`);
+  const g2 = await fetch(`${BASE}?hub.mode=subscribe&hub.verify_token=wrong&hub.challenge=x`);
+  check("wrong verify token is refused", g2.status === 403, `HTTP ${g2.status}`);
+  const body = JSON.stringify({ object: "instagram", entry: [] });
+  const bad = await fetch(BASE, { method: "POST", headers: { "Content-Type": "application/json", "X-Hub-Signature-256": "sha256=00" }, body });
+  check("bad signature is refused", bad.status === 403, `HTTP ${bad.status}`);
+  const { sign } = require(`${LIB}/instagram/signature`);
+  const good = await fetch(BASE, { method: "POST", headers: { "Content-Type": "application/json", "X-Hub-Signature-256": sign(body, secret) }, body });
+  check("signed empty event is accepted", good.status === 200, `HTTP ${good.status}`);
+
+  const c = (await db.collection("app_config").doc("instagram").get()).data() || {};
+  const rules = await db.collection("ig_rules").get();
+  const last = await db.collection("ig_events").orderBy("createdAt", "desc").limit(1).get();
+  const left = c.tokenExpiresAt ? Math.floor((c.tokenExpiresAt - Date.now()) / 86400000) : null;
+  notice(`account @${c.username || "?"} · mode ${c.mode || "dry-run"}${c.killSwitch ? " · KILL SWITCH ON" : ""} · rules ${rules.size} · token ${left === null ? "?" : left + " days"} left · sheet ${c.sheetId ? "linked" : "NOT linked"} · last event ${last.empty ? "none yet" : new Date(last.docs[0].get("createdAt")).toISOString()}`);
+}
+
 async function mailingsmoke(db, code) {
   const FN = "https://europe-west1-prohost-f766f.cloudfunctions.net/";
   const call = async (name, data) => {
@@ -922,6 +1002,8 @@ async function smsauth(db, arg) {
   else if (task === "authorphans") await authorphans(db, auth);
   else if (task === "mailingcode") await mailingcode(db, arg);
   else if (task === "mailingsmoke") await mailingsmoke(db, arg);
+  else if (task === "igsetup") await igsetup(db, arg);
+  else if (task === "igsmoke") await igsmoke(db);
   else if (task === "playcatalog") await playcatalog(db);
   else if (task === "smsauth") await smsauth(db, arg);
   else if (task === "playofferfix") await playofferfix(db, arg);

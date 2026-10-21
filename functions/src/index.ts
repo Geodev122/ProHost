@@ -54,6 +54,9 @@ export { expirePackages } from "./packages/expirePackages";
 export { verifyEmailLink } from "./auth/emailVerification";
 export { sendEmailOtp, verifyEmailOtp, clickEmailOtpLink } from "./auth/emailOtp";
 export { websiteContact, websiteSubscribe, mailingUnsubscribe } from "./website/websiteForms";
+export { igWebhook } from "./instagram/webhook";
+export { igSheetSync } from "./instagram/sheetsBridge";
+export { igTokenRefresh } from "./instagram/tokenRefresh";
 export {
   mailingAdminLogin,
   mailingAdminData,

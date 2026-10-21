@@ -337,6 +337,11 @@ plan + recurring price + date;
   Utility pages (`/get`, `/admin`, `/redeem`, `/emaillink`) are noindex. Maintenance `prodcheck` step `seo` verifies the
   sitemap pages and the legacy 301s live.
   Play screenshots: `play/screenshots/` (rendered from `source/shots.html`); listing text: `play/store-listing/`.
+- Instagram automation (@prohost.app, `functions/src/instagram/`, `docs/INSTAGRAM.md`): `igWebhook` (`/ig-webhook`) → pure `engine.ts` →
+  `graph.ts` (Instagram login API, fixed version). Starts and stays `dry-run` until the sheet's Status `mode` is `live`; `kill_switch` stops sends.
+  Rules live in the Google Sheet "ProHost IG Automations" (`igSheetSync` mirrors Rules/Status in, Log/Contacts out); the IG Control Room artifact
+  edits that sheet (an artifact can't call functions). Secrets only via GitHub secrets + Maintenance `igsetup`/`igsmoke` — never in chat/code/logs;
+  collections `ig_*` are server-only. The engine's matching is mirrored in the artifact Simulator (keep both identical; `engine.test.ts` has the cases).
 - Payment reminders go to the user's own calendar via `PaymentCalendar` (insert intent, monthly
   RRULE) — no calendar permission, no Google Calendar API.
 

@@ -516,6 +516,20 @@ service cloud.firestore {
     match /mailing_admin_sessions/{id} {
       allow read, write: if false;
     }
+    // Instagram automation (functions/src/instagram/*): rules mirrored from the control-room sheet, webhook events,
+    // people who wrote to @prohost.app and counters. Functions only; the artifact reaches them through the sheet.
+    match /ig_rules/{id} {
+      allow read, write: if false;
+    }
+    match /ig_events/{id} {
+      allow read, write: if false;
+    }
+    match /ig_contacts/{id} {
+      allow read, write: if false;
+    }
+    match /ig_stats/{id} {
+      allow read, write: if false;
+    }
     // Server-only config (app_config/ga4 holds the GA4 Measurement Protocol API secret,
     // read by functions/src/lib/ga4.ts via the Admin SDK). Set in the Firebase console.
     match /app_config/{key} {
