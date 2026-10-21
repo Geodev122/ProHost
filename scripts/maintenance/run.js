@@ -28,6 +28,7 @@
 //   node scripts/maintenance/run.js igtest           Instagram pipeline test in dry-run: posts a signed synthetic comment ("link please"), a story reply, a text-less story reaction and a
 //                                                    STOP DM from a fake person to /ig-webhook, waits for the engine's decision
 //                                                    and prints what it would send. Refuses unless mode is dry-run. Sends nothing.
+//   node scripts/maintenance/run.js aiprobe         which Claude model/region the project can call on Vertex AI (functions service account)
 //   node scripts/maintenance/run.js prodcheck        production readiness (read-only apart from one RTDN self-test
 //                                                    message): deployed functions + indexes, public pages, Play catalog
 //                                                    as this account sees it, RTDN topic → function, then the audit
@@ -887,6 +888,13 @@ async function playofferfix(db, arg) {
   if (apply) await playcatalog(db);
 }
 
+async function aiprobe(db) {
+  const rows = await serverTask(db, "aiProbe");
+  rows.forEach((r) => notice(`${r.ok ? "✓" : "✗"} ${r.model} @ ${r.region}: ${r.detail}`));
+  const ok = rows.filter((r) => r.ok);
+  notice(ok.length ? `Vertex Claude works: first usable = ${ok[0].model} @ ${ok[0].region}` : "No Claude model answered on Vertex yet: enable Vertex AI API + Claude Haiku in Model Garden and grant the functions service account 'Vertex AI User' (see the errors above)");
+}
+
 async function playcatalog(db) {
   let cat = null;
   await step("playCatalogLive", async () => {
@@ -1052,6 +1060,7 @@ async function smsauth(db, arg) {
   else if (task === "igsetup") await igsetup(db, arg);
   else if (task === "igsmoke") await igsmoke(db);
   else if (task === "igtest") await igtest(db);
+  else if (task === "aiprobe") await aiprobe(db);
   else if (task === "playcatalog") await playcatalog(db);
   else if (task === "smsauth") await smsauth(db, arg);
   else if (task === "playofferfix") await playofferfix(db, arg);
