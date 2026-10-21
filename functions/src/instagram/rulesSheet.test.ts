@@ -50,3 +50,11 @@ test("status keys become engine settings; blanks and junk are dropped", () => {
   assert.deepEqual(settingsFromStatus(m), { hourlyCap: 30, activeFromHour: 9, activeToHour: 22, utcOffsetMinutes: 180, optOutWords: ["stop", "بطل"], handoffWords: ["agent"], vars: { link_play: "https://pro-host.tech/ig" } });
   assert.deepEqual(settingsFromStatus(new Map([["hourly_cap", "0"], ["active_from", "99"]])), {});
 });
+
+import { aiFromStatus } from "./rulesSheet";
+test("ai status keys: enabled flag, validated overrides, junk dropped", () => {
+  assert.deepEqual(aiFromStatus(new Map()), { enabled: false });
+  assert.deepEqual(aiFromStatus(new Map([["ai_enabled", "TRUE"], ["ai_provider", "anthropic"], ["ai_model", "claude-haiku-5-5"], ["ai_region", "europe-west1"], ["ai_daily_cap", "100"]])),
+    { enabled: true, provider: "anthropic", model: "claude-haiku-5-5", region: "europe-west1", dailyCap: 100 });
+  assert.deepEqual(aiFromStatus(new Map([["ai_enabled", "yes"], ["ai_provider", "evil"], ["ai_model", "bad model!"], ["ai_daily_cap", "999999"]])), { enabled: true });
+});

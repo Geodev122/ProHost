@@ -723,7 +723,9 @@ async function igsetup(db, sheetId) {
     appSecret: secret, verifyToken: verify, accessToken, igUserId: me.id, username: me.username, tokenExpiresAt: expiresAt,
     mode: current.mode === "live" ? "live" : "dry-run", killSwitch: Boolean(current.killSwitch),
     ...(sheetId ? { sheetId: sheetId.trim() } : {}),
+    ...(process.env.ANTHROPIC_API_KEY ? { anthropicKey: process.env.ANTHROPIC_API_KEY } : {}),
   }, { merge: true });
+  if (process.env.ANTHROPIC_API_KEY) notice("Anthropic API key stored (only used when ai_provider = anthropic)");
   notice(`app_config/instagram saved (mode ${current.mode === "live" ? "live" : "dry-run"}${sheetId ? ", sheet linked" : current.sheetId ? ", sheet already linked" : ", NO sheet linked yet"})`);
 
   try {
@@ -807,6 +809,19 @@ async function igtest(db) {
     show(`story ${label}`, await wait(`m_${sid}`));
     await db.collection("ig_contacts").doc(`${fake}${label}`).delete();
   };
+  const dmAi = async (label, text) => {
+    const sid = `${fake}a${label}`;
+    const sender = `${fake}ai${label}`;
+    const code = await post({ object: "instagram", entry: [{ id: cfg.igUserId, time: now, messaging: [{ sender: { id: sender }, recipient: { id: cfg.igUserId }, timestamp: now * 1000, message: { mid: sid, text } }] }] });
+    notice(`AI dm ${label} accepted: HTTP ${code}`);
+    show(`AI dm ${label} "${text}"`, await wait(`m_${sid}`));
+    await db.collection("ig_contacts").doc(sender).delete();
+    await db.collection("ig_threads").doc(sender).delete();
+  };
+  if ((cfg.ai || {}).enabled) {
+    await dmAi("en", "how can I list my clinic room and what does it cost?");
+    await dmAi("ar", "كيف أحمّل التطبيق وهل يوجد نسخة للآيفون؟");
+  } else notice("AI agent is off (Status ai_enabled): AI DM cases skipped");
   await story("reply", "love this!");
   await story("reaction", "");
   await db.collection("ig_contacts").doc(fake).delete();

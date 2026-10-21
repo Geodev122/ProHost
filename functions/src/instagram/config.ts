@@ -23,7 +23,20 @@ export interface IgConfig {
   adminEmail: string;
   /** Google Sheet "ProHost IG Automations" shared with the functions service account. */
   sheetId: string;
+  /** Only for provider "anthropic" (Vertex needs no key: the functions' service account is used). */
+  anthropicKey: string;
+  ai: AiSettings;
 }
+
+export interface AiSettings {
+  enabled: boolean;
+  provider: "vertex" | "anthropic";
+  model: string;
+  region: string;
+  dailyCap: number;
+  perPersonPerHour: number;
+}
+export const DEFAULT_AI: AiSettings = { enabled: false, provider: "vertex", model: "claude-haiku-4-5@20251001", region: "global", dailyCap: 300, perPersonPerHour: 6 };
 
 const TTL_MS = 60 * 1000;
 let cached: { config: IgConfig; at: number } | null = null;
@@ -36,7 +49,7 @@ export function parseConfig(d: Record<string, unknown> | undefined): IgConfig {
     igUserId: str(d?.igUserId), username: str(d?.username), tokenExpiresAt: Number(d?.tokenExpiresAt) || 0,
     mode: d?.mode === "live" ? "live" : "dry-run",
     killSwitch: Boolean(d?.killSwitch),
-    adminEmail: str(d?.adminEmail) || "admin@pro-host.tech", sheetId: str(d?.sheetId),
+    adminEmail: str(d?.adminEmail) || "admin@pro-host.tech", sheetId: str(d?.sheetId), anthropicKey: str(d?.anthropicKey), ai: { ...DEFAULT_AI, ...((d?.ai ?? {}) as Partial<AiSettings>) },
     settings: { ...DEFAULT_SETTINGS, ...s, vars: { ...DEFAULT_SETTINGS.vars, ...(s.vars ?? {}) } },
   };
 }

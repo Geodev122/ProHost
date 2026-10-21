@@ -76,7 +76,7 @@ export async function probeVertex(f: Fetch = fetch): Promise<ProbeRow[]> {
         const r = await complete({ provider: "vertex", model, region }, "Reply with the single word OK.", "", [{ role: "user", content: "ping" }], 8, f, 15000);
         rows.push({ region, model, ok: true, detail: `answered "${r.text.slice(0, 20)}" (in ${r.inputTokens}, out ${r.outputTokens})` });
       } catch (e) {
-        rows.push({ region, model, ok: false, detail: `${e instanceof LlmError ? e.status : "err"} ${(e as Error).message.slice(0, 140)}` });
+        rows.push({ region, model, ok: false, detail: `${e instanceof LlmError ? e.status : "err"} ${(e as Error).message.slice(0, 380)}` });
       }
     }
   }

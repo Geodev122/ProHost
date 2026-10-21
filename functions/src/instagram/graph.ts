@@ -31,6 +31,10 @@ async function call(f: Fetch, method: "GET" | "POST", url: string, token: string
 
 /** Message body for a DM / private reply: plain text, text + link button, or text + quick replies. */
 export function messagePayload(step: Extract<Step, { type: "dm" | "private_reply" }>): Record<string, unknown> {
+  if (step.type === "dm" && step.buttons?.length) {
+    return { attachment: { type: "template", payload: { template_type: "button", text: step.text.slice(0, 640),
+      buttons: step.buttons.slice(0, 3).map((b) => ({ type: "web_url", url: b.url, title: b.label.slice(0, 20) })) } } };
+  }
   if (step.buttonLabel && step.buttonUrl) {
     return { attachment: { type: "template", payload: { template_type: "button", text: step.text.slice(0, 640),
       buttons: [{ type: "web_url", url: step.buttonUrl, title: step.buttonLabel.slice(0, 20) }] } } };

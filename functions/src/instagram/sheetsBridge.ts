@@ -5,7 +5,7 @@ import * as logger from "firebase-functions/logger";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import "../lib/admin";
 import { clearConfigCache, loadConfig } from "./config";
-import { CONTACT_COLUMNS, LOG_COLUMNS, RULE_COLUMNS, isoTime, logRow, parseRulesSheet, settingsFromStatus } from "./rulesSheet";
+import { CONTACT_COLUMNS, LOG_COLUMNS, RULE_COLUMNS, isoTime, logRow, aiFromStatus, parseRulesSheet, settingsFromStatus } from "./rulesSheet";
 import { daysLeft } from "./tokenRefresh";
 
 /**
@@ -25,7 +25,7 @@ async function sheetsClient(): Promise<sheets_v4.Sheets> {
   return google.sheets({ version: "v4", auth });
 }
 
-export const TABS = ["Rules", "Log", "Contacts", "Status"] as const;
+export const TABS = ["Rules", "Log", "Contacts", "Status", "Knowledge", "Learn"] as const;
 
 /** Creates missing tabs and header rows; safe to run repeatedly. Used by `igsetup`. */
 export async function ensureTabs(sheets: sheets_v4.Sheets, sheetId: string): Promise<void> {
@@ -35,7 +35,7 @@ export async function ensureTabs(sheets: sheets_v4.Sheets, sheetId: string): Pro
   if (missing.length) {
     await sheets.spreadsheets.batchUpdate({ spreadsheetId: sheetId, requestBody: { requests: missing.map((title) => ({ addSheet: { properties: { title } } })) } });
   }
-  const headers: Record<string, readonly string[]> = { Rules: RULE_COLUMNS, Log: LOG_COLUMNS, Contacts: CONTACT_COLUMNS, Status: ["key", "value"] };
+  const headers: Record<string, readonly string[]> = { Rules: RULE_COLUMNS, Log: LOG_COLUMNS, Contacts: CONTACT_COLUMNS, Status: ["key", "value"], Knowledge: ["question", "answer"], Learn: ["time", "lang", "question", "times", "status", "id"] };
   for (const tab of missing) {
     await sheets.spreadsheets.values.update({ spreadsheetId: sheetId, range: `${tab}!A1`, valueInputOption: "RAW", requestBody: { values: [[...headers[tab]]] } });
   }
@@ -59,12 +59,13 @@ export async function runSheetSync(now = Date.now()): Promise<string> {
   const wantMode = status.get("mode")?.toLowerCase() === "live" ? "live" : "dry-run";
   const wantKill = /^(true|yes|1|on)$/i.test(status.get("kill_switch") ?? "");
   const wantSettings = settingsFromStatus(status);
-  const settingsHash = createHash("sha256").update(JSON.stringify(wantSettings)).digest("hex");
+  const wantAi = aiFromStatus(status);
+  const settingsHash = createHash("sha256").update(JSON.stringify([wantSettings, wantAi])).digest("hex");
   const settingsRef = db.collection("ig_stats").doc("settings");
   const settingsChanged = (await settingsRef.get()).data()?.hash !== settingsHash;
   if (wantMode !== config.mode || wantKill !== config.killSwitch || settingsChanged) {
     // settings is replaced as a whole (not merged) so removing a value in the sheet restores the default.
-    await db.collection("app_config").doc("instagram").update({ mode: wantMode, killSwitch: wantKill, settings: wantSettings });
+    await db.collection("app_config").doc("instagram").update({ mode: wantMode, killSwitch: wantKill, settings: wantSettings, ai: wantAi });
     await settingsRef.set({ hash: settingsHash, at: now });
     clearConfigCache();
     notes.push(`mode=${wantMode} kill=${wantKill}${settingsChanged ? " settings" : ""}`);
@@ -100,6 +101,32 @@ export async function runSheetSync(now = Date.now()): Promise<string> {
     await batch.commit();
     notes.push(`log+${pending.size}`);
     await trimLog(sheets, sid);
+  }
+
+  // 3b. Knowledge (artifact → agent): Q/A rows the owner approved; Learn (agent → artifact): questions it could not answer.
+  const kRows = await readTab(sheets, sid, "Knowledge!A2:B200").catch(() => [] as string[][]);
+  const items = kRows.filter((r) => (r[0] ?? "").trim() && (r[1] ?? "").trim()).map((r) => ({ q: r[0].trim().slice(0, 300), a: r[1].trim().slice(0, 900) }));
+  const kHash = createHash("sha256").update(JSON.stringify(items)).digest("hex");
+  const kRef = db.collection("ig_stats").doc("knowledge");
+  if ((await kRef.get()).data()?.hash !== kHash) {
+    await db.collection("app_config").doc("instagram_knowledge").set({ items, updatedAt: now });
+    await kRef.set({ hash: kHash, count: items.length, at: now });
+    notes.push(`knowledge=${items.length}`);
+  }
+  const learnPending = await db.collection("ig_learn").where("synced", "==", false).limit(50).get();
+  if (!learnPending.empty) {
+    try {
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: sid, range: "Learn!A1", valueInputOption: "RAW", insertDataOption: "INSERT_ROWS",
+        requestBody: { values: learnPending.docs.map((d) => [isoTime(Number(d.get("at")) || now), String(d.get("lang") ?? ""), String(d.get("question") ?? ""), String(d.get("asked") ?? "1"), "open", d.id]) },
+      });
+      const lb = db.batch();
+      learnPending.docs.forEach((d) => lb.update(d.ref, { synced: true }));
+      await lb.commit();
+      notes.push(`learn+${learnPending.size}`);
+    } catch (e) {
+      notes.push(`learn tab unavailable (${(e as Error).message.slice(0, 60)})`);
+    }
   }
 
   // 4. Contacts (backend → artifact): rewritten as a snapshot.

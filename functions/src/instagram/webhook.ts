@@ -3,6 +3,7 @@ import * as logger from "firebase-functions/logger";
 import { onRequest } from "firebase-functions/v2/https";
 import "../lib/admin";
 import { IgConfig, canSend, loadConfig } from "./config";
+import { aiDecide } from "./aiRuntime";
 import { decide } from "./engine";
 import { GraphError, sendStep } from "./graph";
 import { alertAdmin } from "./notify";
@@ -56,7 +57,16 @@ export async function handleEvent(config: IgConfig, event: IgEvent, now = Date.n
   const contact = ((await contactRef.get()).data() ?? {}) as ContactState & { tags?: string[]; username?: string };
   const stats = (await db.collection("ig_stats").doc("hour_" + Math.floor(now / HOUR)).get()).data();
   const settings = { ...config.settings, sentThisHour: Number(stats?.sent) || 0 };
-  const decision = decide(event, await loadRules(), contact, settings, now);
+  const rules = await loadRules();
+  let decision = decide(event, rules, contact, settings, now);
+  // The AI agent answers DMs no keyword rule handled, and replaces the generic welcome / catch-all DM rules.
+  if (event.kind === "dm") {
+    const generic = decision.kind === "replied" && rules.some((r) => r.id === decision.ruleId && (r.trigger === "dm_welcome" || r.trigger === "dm_default"));
+    if (generic || (decision.kind === "ignored" && decision.reason === "no rule matched")) {
+      const ai = await aiDecide(config, event, now);
+      if (ai && (ai.kind !== "ignored" || decision.kind === "ignored")) decision = ai;
+    }
+  }
 
   let status: string = decision.kind === "ignored" ? "ignored" : canSend(config) ? "sent" : "dry-run";
   let error = "";

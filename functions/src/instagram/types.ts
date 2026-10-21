@@ -80,7 +80,7 @@ export interface EngineSettings {
 export type Step =
   | { type: "comment_reply"; commentId: string; text: string }
   | { type: "private_reply"; commentId: string; text: string; buttonLabel?: string; buttonUrl?: string }
-  | { type: "dm"; recipientId: string; text: string; buttonLabel?: string; buttonUrl?: string; quickReplies?: string[] };
+  | { type: "dm"; recipientId: string; text: string; buttonLabel?: string; buttonUrl?: string; buttons?: Array<{ label: string; url: string }>; quickReplies?: string[] };
 
 export type DecisionKind = "ignored" | "opt_out" | "handoff" | "replied";
 

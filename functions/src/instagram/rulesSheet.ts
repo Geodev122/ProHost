@@ -99,3 +99,16 @@ export function settingsFromStatus(status: Map<string, string>): Record<string, 
   if (Object.keys(vars).length) out.vars = vars;
   return out;
 }
+
+/** Status keys for the DM agent (ai_enabled, ai_provider, ai_model, ai_region, ai_daily_cap, ai_per_person_per_hour). */
+export function aiFromStatus(status: Map<string, string>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  const t = (k: string) => (status.get(k) ?? "").trim();
+  out.enabled = /^(true|yes|1|on)$/i.test(t("ai_enabled"));
+  if (t("ai_provider") === "anthropic" || t("ai_provider") === "vertex") out.provider = t("ai_provider");
+  if (/^[A-Za-z0-9@._-]{3,80}$/.test(t("ai_model"))) out.model = t("ai_model");
+  if (/^[a-z0-9-]{3,30}$/.test(t("ai_region"))) out.region = t("ai_region");
+  const cap = Number(t("ai_daily_cap")); if (t("ai_daily_cap") && Number.isFinite(cap) && cap >= 1 && cap <= 5000) out.dailyCap = Math.round(cap);
+  const pp = Number(t("ai_per_person_per_hour")); if (t("ai_per_person_per_hour") && Number.isFinite(pp) && pp >= 1 && pp <= 60) out.perPersonPerHour = Math.round(pp);
+  return out;
+}
