@@ -25,6 +25,9 @@
 //                                                    optionally stores the control-room Sheet id. Prints masked results only.
 //   node scripts/maintenance/run.js igsmoke          Instagram automation live check: webhook handshake, wrong token / bad
 //                                                    signature rejected, signed empty event accepted, config + health summary
+//   node scripts/maintenance/run.js igtest           Instagram pipeline test in dry-run: posts a signed synthetic comment ("link please") and a
+//                                                    STOP DM from a fake person to /ig-webhook, waits for the engine's decision
+//                                                    and prints what it would send. Refuses unless mode is dry-run. Sends nothing.
 //   node scripts/maintenance/run.js prodcheck        production readiness (read-only apart from one RTDN self-test
 //                                                    message): deployed functions + indexes, public pages, Play catalog
 //                                                    as this account sees it, RTDN topic → function, then the audit
@@ -765,6 +768,39 @@ async function igsmoke(db) {
   notice(`account @${c.username || "?"} · mode ${c.mode || "dry-run"}${c.killSwitch ? " · KILL SWITCH ON" : ""} · rules ${rules.size} · token ${left === null ? "?" : left + " days"} left · sheet ${c.sheetId ? "linked" : "NOT linked"} · last event ${last.empty ? "none yet" : new Date(last.docs[0].get("createdAt")).toISOString()}`);
 }
 
+async function igtest(db) {
+  const secret = process.env.IG_APP_SECRET || "";
+  if (!secret) throw new Error("IG_APP_SECRET GitHub secret is required");
+  const cfg = (await db.collection("app_config").doc("instagram").get()).data() || {};
+  if (cfg.mode === "live" && !cfg.killSwitch) throw new Error("mode is LIVE: igtest only runs in dry-run (or with the kill switch on)");
+  if (!cfg.igUserId) throw new Error("run igsetup first");
+  const { sign } = require(`${LIB}/instagram/signature`);
+  const fake = `igtest${Date.now()}`;
+  const post = async (body) => {
+    const raw = JSON.stringify(body);
+    const r = await fetch("https://pro-host.tech/ig-webhook", { method: "POST", headers: { "Content-Type": "application/json", "X-Hub-Signature-256": sign(raw, secret) }, body: raw });
+    return r.status;
+  };
+  const wait = async (id) => {
+    for (let i = 0; i < 30; i++) {
+      const d = await db.collection("ig_events").doc(id).get();
+      if (d.exists && d.get("status") && d.get("status") !== "processing") return d.data();
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    return null;
+  };
+  const show = (label, d) => notice(d ? `${label}: status=${d.status} rule="${d.ruleName || "-"}" reason="${d.reason}" replies="${String(d.replies || "").slice(0, 160)}"` : `${label}: no result in 30 s`);
+  const now = Math.floor(Date.now() / 1000);
+  const cid = `${fake}c`;
+  notice(`comment accepted: HTTP ${await post({ object: "instagram", entry: [{ id: cfg.igUserId, time: now, changes: [{ field: "comments", value: { id: cid, text: "link please", from: { id: fake, username: "igtest_user" }, media: { id: "igtest_media" } } }] }] })}`);
+  show("comment 'link please'", await wait(`c_${cid}`));
+  const mid = `${fake}m`;
+  notice(`STOP dm accepted: HTTP ${await post({ object: "instagram", entry: [{ id: cfg.igUserId, time: now, messaging: [{ sender: { id: fake }, recipient: { id: cfg.igUserId }, timestamp: now * 1000, message: { mid, text: "STOP" } }] }] })}`);
+  show("DM 'STOP'", await wait(`m_${mid}`));
+  await db.collection("ig_contacts").doc(fake).delete();
+  notice("fake contact removed; the two test events stay in the log (they reach the sheet Log tab within a minute)");
+}
+
 async function mailingsmoke(db, code) {
   const FN = "https://europe-west1-prohost-f766f.cloudfunctions.net/";
   const call = async (name, data) => {
@@ -1004,6 +1040,7 @@ async function smsauth(db, arg) {
   else if (task === "mailingsmoke") await mailingsmoke(db, arg);
   else if (task === "igsetup") await igsetup(db, arg);
   else if (task === "igsmoke") await igsmoke(db);
+  else if (task === "igtest") await igtest(db);
   else if (task === "playcatalog") await playcatalog(db);
   else if (task === "smsauth") await smsauth(db, arg);
   else if (task === "playofferfix") await playofferfix(db, arg);
