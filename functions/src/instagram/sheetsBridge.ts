@@ -87,11 +87,13 @@ export async function runSheetSync(now = Date.now()): Promise<string> {
   }
 
   // 3. Log (backend → artifact).
-  const pending = await db.collection("ig_events").where("synced", "==", false).orderBy("createdAt").limit(200).get();
+  // Equality-only query (no orderBy) so it needs no composite index; sorted in memory.
+  const pending = await db.collection("ig_events").where("synced", "==", false).limit(200).get();
   if (!pending.empty) {
+    const ordered = pending.docs.slice().sort((a, b) => Number(a.get("createdAt")) - Number(b.get("createdAt")));
     await sheets.spreadsheets.values.append({
       spreadsheetId: sid, range: "Log!A1", valueInputOption: "RAW", insertDataOption: "INSERT_ROWS",
-      requestBody: { values: pending.docs.map((d) => logRow(d.id, d.data())) },
+      requestBody: { values: ordered.map((d) => logRow(d.id, d.data())) },
     });
     const batch = db.batch();
     pending.docs.forEach((d) => batch.update(d.ref, { synced: true }));
