@@ -21,7 +21,7 @@ import { lintOffers, readPlayCatalog } from "../billing/playCatalogLive";
 import { playOfferFix } from "../billing/playOfferFix";
 import { PACKAGE_NAME, getPlayPublisher } from "../billing/billingHelpers";
 import { classifyPlayError } from "../billing/playSubscription";
-import { probeVertex } from "../instagram/agent/llm";
+import { probeVertex } from "../instagram/aiLlm";
 
 async function playSubscriptions(): Promise<unknown> {
   const db = getFirestore();

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildBody, complete, vertexUrl } from "./llm";
+import { buildBody, complete, vertexUrl } from "./aiLlm";
 
 test("vertex url for a region and for global", () => {
   assert.equal(vertexUrl("m@1", "europe-west1", "p"), "https://europe-west1-aiplatform.googleapis.com/v1/projects/p/locations/europe-west1/publishers/anthropic/models/m@1:rawPredict");
