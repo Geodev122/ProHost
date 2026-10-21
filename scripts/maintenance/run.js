@@ -25,7 +25,7 @@
 //                                                    optionally stores the control-room Sheet id. Prints masked results only.
 //   node scripts/maintenance/run.js igsmoke          Instagram automation live check: webhook handshake, wrong token / bad
 //                                                    signature rejected, signed empty event accepted, config + health summary
-//   node scripts/maintenance/run.js igtest           Instagram pipeline test in dry-run: posts a signed synthetic comment ("link please") and a
+//   node scripts/maintenance/run.js igtest           Instagram pipeline test in dry-run: posts a signed synthetic comment ("link please"), a story reply, a text-less story reaction and a
 //                                                    STOP DM from a fake person to /ig-webhook, waits for the engine's decision
 //                                                    and prints what it would send. Refuses unless mode is dry-run. Sends nothing.
 //   node scripts/maintenance/run.js prodcheck        production readiness (read-only apart from one RTDN self-test
@@ -799,6 +799,15 @@ async function igtest(db) {
   const mid = `${fake}m`;
   notice(`STOP dm accepted: HTTP ${await post({ object: "instagram", entry: [{ id: cfg.igUserId, time: now, messaging: [{ sender: { id: fake }, recipient: { id: cfg.igUserId }, timestamp: now * 1000, message: { mid, text: "STOP" } }] }] })}`);
   show("DM 'STOP'", await wait(`m_${mid}`));
+  const story = async (label, text) => {
+    const sid = `${fake}s${label}`;
+    const code = await post({ object: "instagram", entry: [{ id: cfg.igUserId, time: now, messaging: [{ sender: { id: `${fake}${label}` }, recipient: { id: cfg.igUserId }, timestamp: now * 1000, message: { mid: sid, ...(text ? { text } : {}), reply_to: { story: { id: "igtest_story", url: "https://example.invalid" } } } }] }] });
+    notice(`story ${label} accepted: HTTP ${code}`);
+    show(`story ${label}`, await wait(`m_${sid}`));
+    await db.collection("ig_contacts").doc(`${fake}${label}`).delete();
+  };
+  await story("reply", "love this!");
+  await story("reaction", "");
   await db.collection("ig_contacts").doc(fake).delete();
   notice("fake contact removed; the two test events stay in the log (they reach the sheet Log tab within a minute)");
 }

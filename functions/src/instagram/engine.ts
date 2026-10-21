@@ -80,7 +80,8 @@ export function decide(
   if (contact.handoffUntil && contact.handoffUntil > now) return ignored("paused for a human reply");
   if (settings.sentThisHour >= settings.hourlyCap) return ignored(`hourly cap of ${settings.hourlyCap} replies reached`);
   if (!inActiveHours(now, settings)) return ignored("outside active hours");
-  if (!text.trim() && event.kind !== "story_mention") return ignored("empty message");
+  // A story mention or a text-less story reaction carries no text but is still an interaction to answer.
+  if (!text.trim() && event.kind !== "story_mention" && event.kind !== "story_reply") return ignored("empty message");
 
   if (isMessage) {
     if (settings.optOutWords.some((w) => matchesKeyword(text, w, "word"))) {

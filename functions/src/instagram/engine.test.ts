@@ -91,3 +91,10 @@ test("buttons and quick replies are carried on DM steps", () => {
 test("render fills known variables and drops unknown ones", () => {
   assert.equal(render("Hi {first_name} {nope}!", { first_name: "Rana" }), "Hi Rana !");
 });
+
+test("a text-less story reaction is answered, an empty DM or comment is not", () => {
+  const sr = rule({ id: "s", trigger: "story_reply", keywords: [], dm: "Thanks!", commentReplies: [], privateReply: undefined });
+  assert.equal(decide(ev({ kind: "story_reply", text: "" }), [sr], {}, S, NOW).kind, "replied");
+  assert.equal(decide(ev({ kind: "dm", text: "  " }), [rule({ trigger: "dm_default", keywords: [], dm: "x", commentReplies: [], privateReply: undefined })], { seenBefore: true }, S, NOW).kind, "ignored");
+  assert.equal(decide(ev({ text: "" }), [rule({})], {}, S, NOW).kind, "ignored");
+});
