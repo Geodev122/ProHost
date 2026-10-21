@@ -83,31 +83,60 @@ export async function probeVertex(f: Fetch = fetch): Promise<ProbeRow[]> {
   return rows;
 }
 
-export interface QuotaRow { quotaId: string; name: string; dimensions: Record<string, string>; value: string; unit: string }
+export interface QuotaRow { quotaId: string; name: string; dimensions: Record<string, string>; value: string; unit: string; raw?: unknown }
 
-/** Lists Vertex AI quota rows whose dimensions mention Claude/Haiku, via the Cloud Quotas API (Maintenance `aiquota`). */
-export async function listClaudeQuotas(f: Fetch = fetch): Promise<{ rows: QuotaRow[]; note: string }> {
+const HAIKU = "anthropic-claude-haiku-4-5";
+async function cloudToken(): Promise<string> {
   const auth = new google.auth.GoogleAuth({ scopes: ["https://www.googleapis.com/auth/cloud-platform"] });
-  const token = await auth.getAccessToken();
+  return (await auth.getAccessToken()) ?? "";
+}
+const quotaBase = () => `https://cloudquotas.googleapis.com/v1/projects/${PROJECT}/locations/global`;
+
+/** The GLOBAL Haiku 4.5 quota rows (requests / input tokens / output tokens per minute), with Google's raw limit data. */
+export async function listClaudeQuotas(f: Fetch = fetch): Promise<{ rows: QuotaRow[]; note: string }> {
+  const token = await cloudToken();
   const rows: QuotaRow[] = [];
   let pageToken = "";
   let scanned = 0;
   for (let page = 0; page < 20; page++) {
-    const url = `https://cloudquotas.googleapis.com/v1/projects/${PROJECT}/locations/global/services/aiplatform.googleapis.com/quotaInfos?pageSize=500${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ""}`;
+    const url = `${quotaBase()}/services/aiplatform.googleapis.com/quotaInfos?pageSize=500${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ""}`;
     const res = await f(url, { headers: { Authorization: `Bearer ${token}` } });
     const j = (await res.json().catch(() => ({}))) as { quotaInfos?: Array<Record<string, unknown>>; nextPageToken?: string; error?: { message?: string } };
     if (!res.ok) return { rows, note: `Cloud Quotas API ${res.status}: ${(j.error?.message ?? "").slice(0, 300)}` };
     for (const q of j.quotaInfos ?? []) {
       scanned++;
+      if (!/global/i.test(String(q.quotaId))) continue;
       const infos = (q.dimensionsInfos as Array<{ dimensions?: Record<string, string>; details?: { value?: string } }> | undefined) ?? [];
       for (const di of infos) {
-        const dims = di.dimensions ?? {};
-        if (!/claude|anthropic/i.test(JSON.stringify(dims)) && !/claude|anthropic/i.test(String(q.quotaId))) continue;
-        rows.push({ quotaId: String(q.quotaId), name: String(q.quotaDisplayName ?? q.metricDisplayName ?? ""), dimensions: dims, value: String(di.details?.value ?? "?"), unit: String(q.unit ?? "") });
+        if (di.dimensions?.base_model !== HAIKU) continue;
+        rows.push({ quotaId: String(q.quotaId), name: String(q.quotaDisplayName ?? q.metricDisplayName ?? ""), dimensions: di.dimensions ?? {}, value: String(di.details?.value ?? "?"), unit: String(q.unit ?? ""), raw: JSON.stringify(di).slice(0, 400) });
       }
     }
     pageToken = j.nextPageToken ?? "";
     if (!pageToken) break;
   }
   return { rows, note: `scanned ${scanned} quota definitions` };
+}
+
+/** Files quota increase requests for the global Haiku 4.5 rows. Returns Google's answer per quota. */
+export async function requestClaudeQuota(f: Fetch = fetch): Promise<{ results: string[] }> {
+  const { rows, note } = await listClaudeQuotas(f);
+  if (!rows.length) return { results: [`no global ${HAIKU} quota rows found (${note})`] };
+  const token = await cloudToken();
+  const results: string[] = [];
+  for (const r of rows) {
+    const preferred = /request/i.test(r.quotaId) ? 60 : /input/i.test(r.quotaId) ? 120000 : /output/i.test(r.quotaId) ? 30000 : 0;
+    if (!preferred) { results.push(`${r.quotaId}: skipped (not a requests/tokens quota)`); continue; }
+    const id = `prohost-${r.quotaId.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-haiku45`.slice(0, 60);
+    const res = await f(`${quotaBase()}/quotaPreferences?quotaPreferenceId=${encodeURIComponent(id)}`, {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        service: "aiplatform.googleapis.com", quotaId: r.quotaId, dimensions: r.dimensions, quotaConfig: { preferredValue: String(preferred) },
+        contactEmail: "admin@pro-host.tech", justification: "Instagram customer-support assistant for the ProHost app: a few hundred short replies per day.",
+      }),
+    });
+    const j = (await res.json().catch(() => ({}))) as { error?: { message?: string }; quotaConfig?: Record<string, string>; reconciling?: boolean };
+    results.push(res.ok ? `${r.quotaId}: requested ${preferred} (${JSON.stringify(j.quotaConfig ?? {})}${j.reconciling ? ", pending review" : ""})` : `${r.quotaId}: ${res.status} ${(j.error?.message ?? "").slice(0, 260)}`);
+  }
+  return { results };
 }

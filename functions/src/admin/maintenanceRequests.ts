@@ -21,7 +21,7 @@ import { lintOffers, readPlayCatalog } from "../billing/playCatalogLive";
 import { playOfferFix } from "../billing/playOfferFix";
 import { PACKAGE_NAME, getPlayPublisher } from "../billing/billingHelpers";
 import { classifyPlayError } from "../billing/playSubscription";
-import { listClaudeQuotas, probeVertex } from "../instagram/aiLlm";
+import { listClaudeQuotas, probeVertex, requestClaudeQuota } from "../instagram/aiLlm";
 
 async function playSubscriptions(): Promise<unknown> {
   const db = getFirestore();
@@ -75,7 +75,7 @@ export const onMaintenanceRequest = onDocumentCreated(
       const result = task === "playCatalog" ? await readPlayCatalog().then((c) => ({ ...c, lint: lintOffers(c.basePlans, Date.now()) }))
         : task === "playSubscriptions" ? await playSubscriptions()
         : task === "aiProbe" ? await probeVertex()
-        : task === "aiQuota" ? await listClaudeQuotas()
+        : task === "aiQuota" ? (event.data?.get("arg") === "request" ? await requestClaudeQuota() : await listClaudeQuotas())
         : task === "playOfferFix" ? await playOfferFix(event.data?.get("arg") === "apply")
         : { error: `unknown task ${String(task)}` };
       await ref.update({ status: "done", result: JSON.stringify(result), finishedAt: Date.now() });

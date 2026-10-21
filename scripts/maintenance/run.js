@@ -903,10 +903,11 @@ async function playofferfix(db, arg) {
   if (apply) await playcatalog(db);
 }
 
-async function aiquota(db) {
-  const res = await serverTask(db, "aiQuota");
-  notice(`Cloud Quotas: ${res.note}; ${res.rows.length} Claude/Anthropic row(s)`);
-  res.rows.slice(0, 40).forEach((r) => notice(`QUOTA ${r.quotaId} | ${r.name} | ${JSON.stringify(r.dimensions)} | value=${r.value} ${r.unit}`));
+async function aiquota(db, arg) {
+  const res = await serverTask(db, "aiQuota", arg === "request" ? "request" : null);
+  if (res.results) { res.results.forEach((r) => notice(`QUOTA REQUEST ${r}`)); return; }
+  notice(`Cloud Quotas: ${res.note}; ${res.rows.length} global Haiku 4.5 row(s)`);
+  res.rows.forEach((r) => notice(`QUOTA ${r.quotaId} | ${JSON.stringify(r.dimensions)} | value=${r.value} ${r.unit} | raw=${r.raw}`));
 }
 
 async function aiprobe(db) {
@@ -1082,7 +1083,7 @@ async function smsauth(db, arg) {
   else if (task === "igsmoke") await igsmoke(db);
   else if (task === "igtest") await igtest(db);
   else if (task === "aiprobe") await aiprobe(db);
-  else if (task === "aiquota") await aiquota(db);
+  else if (task === "aiquota") await aiquota(db, arg);
   else if (task === "playcatalog") await playcatalog(db);
   else if (task === "smsauth") await smsauth(db, arg);
   else if (task === "playofferfix") await playofferfix(db, arg);
