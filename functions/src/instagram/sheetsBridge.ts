@@ -5,7 +5,7 @@ import * as logger from "firebase-functions/logger";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import "../lib/admin";
 import { clearConfigCache, loadConfig } from "./config";
-import { CONTACT_COLUMNS, LOG_COLUMNS, RULE_COLUMNS, isoTime, logRow, parseRulesSheet } from "./rulesSheet";
+import { CONTACT_COLUMNS, LOG_COLUMNS, RULE_COLUMNS, isoTime, logRow, parseRulesSheet, settingsFromStatus } from "./rulesSheet";
 import { daysLeft } from "./tokenRefresh";
 
 /**
@@ -58,10 +58,16 @@ export async function runSheetSync(now = Date.now()): Promise<string> {
   const status = new Map(await readTab(sheets, sid, "Status!A2:B100").then((rows) => rows.map((r) => [r[0].trim().toLowerCase(), (r[1] ?? "").trim()] as [string, string])));
   const wantMode = status.get("mode")?.toLowerCase() === "live" ? "live" : "dry-run";
   const wantKill = /^(true|yes|1|on)$/i.test(status.get("kill_switch") ?? "");
-  if (wantMode !== config.mode || wantKill !== config.killSwitch) {
-    await db.collection("app_config").doc("instagram").set({ mode: wantMode, killSwitch: wantKill }, { merge: true });
+  const wantSettings = settingsFromStatus(status);
+  const settingsHash = createHash("sha256").update(JSON.stringify(wantSettings)).digest("hex");
+  const settingsRef = db.collection("ig_stats").doc("settings");
+  const settingsChanged = (await settingsRef.get()).data()?.hash !== settingsHash;
+  if (wantMode !== config.mode || wantKill !== config.killSwitch || settingsChanged) {
+    // settings is replaced as a whole (not merged) so removing a value in the sheet restores the default.
+    await db.collection("app_config").doc("instagram").update({ mode: wantMode, killSwitch: wantKill, settings: wantSettings });
+    await settingsRef.set({ hash: settingsHash, at: now });
     clearConfigCache();
-    notes.push(`mode=${wantMode} kill=${wantKill}`);
+    notes.push(`mode=${wantMode} kill=${wantKill}${settingsChanged ? " settings" : ""}`);
   }
 
   // 2. Rules (artifact → backend), only when the sheet content changed.
@@ -105,7 +111,7 @@ export async function runSheetSync(now = Date.now()): Promise<string> {
     await sheets.spreadsheets.values.update({ spreadsheetId: sid, range: "Contacts!A2", valueInputOption: "RAW", requestBody: { values: rows } });
   }
 
-  // 5. Health lines for the Dashboard (rows 10+ so the artifact's own cells stay put).
+  // 5. Health lines for the Dashboard (rows 40+: rows 2-39 belong to the artifact settings).
   const errDoc = (await db.collection("ig_stats").doc("errors").get()).data();
   const hourSent = Number((await db.collection("ig_stats").doc("hour_" + Math.floor(now / 3_600_000)).get()).data()?.sent) || 0;
   const health: string[][] = [
@@ -118,7 +124,7 @@ export async function runSheetSync(now = Date.now()): Promise<string> {
     ["health_last_api_error", errDoc ? `${isoTime(Number(errDoc.lastAt))} ${String(errDoc.lastError ?? "")}`.slice(0, 300) : ""],
     ["health_effective_mode", config.mode === "live" && !config.killSwitch ? "LIVE" : "dry-run"],
   ];
-  await sheets.spreadsheets.values.update({ spreadsheetId: sid, range: "Status!A10", valueInputOption: "RAW", requestBody: { values: health } });
+  await sheets.spreadsheets.values.update({ spreadsheetId: sid, range: "Status!A40", valueInputOption: "RAW", requestBody: { values: health } });
   return notes.join(" ") || "no changes";
 }
 

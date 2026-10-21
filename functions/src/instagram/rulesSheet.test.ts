@@ -42,3 +42,11 @@ test("log row has fixed order and falls back to the sender id", () => {
   assert.deepEqual(row.slice(0, 3), ["2026-10-21 12:00:00", "comment", "u1"]);
   assert.equal(row[9], "c_1");
 });
+
+import { settingsFromStatus } from "./rulesSheet";
+test("status keys become engine settings; blanks and junk are dropped", () => {
+  const m = new Map([["hourly_cap", "30"], ["active_from", "9"], ["active_to", "22"], ["utc_offset_minutes", "180"], ["opt_out_words", "stop, بطل"],
+    ["var_link_play", "https://pro-host.tech/ig"], ["var_bad key", "x"], ["handoff_hours", ""], ["hourly_cap_x", "1"], ["handoff_words", "agent"]]);
+  assert.deepEqual(settingsFromStatus(m), { hourlyCap: 30, activeFromHour: 9, activeToHour: 22, utcOffsetMinutes: 180, optOutWords: ["stop", "بطل"], handoffWords: ["agent"], vars: { link_play: "https://pro-host.tech/ig" } });
+  assert.deepEqual(settingsFromStatus(new Map([["hourly_cap", "0"], ["active_from", "99"]])), {});
+});

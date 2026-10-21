@@ -67,3 +67,35 @@ export function logRow(id: string, e: Record<string, unknown>): string[] {
   const s = (v: unknown) => (typeof v === "string" ? v : v == null ? "" : String(v));
   return [isoTime(Number(e.createdAt) || Date.now()), s(e.kind), s(e.username) || s(e.senderId), s(e.text), s(e.ruleName), s(e.status), s(e.reason), s(e.replies), s(e.error), id];
 }
+
+/**
+ * Status-tab keys the artifact's Settings page writes → engine settings overrides (merged into app_config/instagram.settings).
+ * Blank / invalid values are left out so the engine defaults apply.
+ */
+export function settingsFromStatus(status: Map<string, string>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  const num = (k: string, min: number, max: number): number | undefined => {
+    const raw = (status.get(k) ?? "").trim();
+    const n = Number(raw);
+    return raw !== "" && Number.isFinite(n) && n >= min && n <= max ? Math.round(n) : undefined;
+  };
+  const list = (k: string): string[] | undefined => {
+    const l = split(status.get(k) ?? "", /\s*,\s*/);
+    return l.length ? l : undefined;
+  };
+  const text = (k: string): string | undefined => (status.get(k) ?? "").trim() || undefined;
+  const set = (key: string, v: unknown) => { if (v !== undefined) out[key] = v; };
+  set("hourlyCap", num("hourly_cap", 1, 1000));
+  set("handoffHours", num("handoff_hours", 1, 168));
+  set("activeFromHour", num("active_from", 0, 23));
+  set("activeToHour", num("active_to", 0, 23));
+  set("utcOffsetMinutes", num("utc_offset_minutes", -720, 840));
+  set("optOutWords", list("opt_out_words"));
+  set("handoffWords", list("handoff_words"));
+  set("optOutReply", text("opt_out_reply"));
+  set("handoffReply", text("handoff_reply"));
+  const vars: Record<string, string> = {};
+  for (const [k, v] of status) if (k.startsWith("var_") && /^[a-z_]+$/.test(k.slice(4)) && v.trim()) vars[k.slice(4)] = v.trim();
+  if (Object.keys(vars).length) out.vars = vars;
+  return out;
+}

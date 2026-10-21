@@ -13,7 +13,7 @@ export const DEFAULT_SETTINGS: EngineSettings = {
   hourlyCap: 60,
   sentThisHour: 0,
   utcOffsetMinutes: 0,
-  vars: {},
+  vars: { link_play: "https://pro-host.tech/ig", link_ig: "https://www.instagram.com/prohost.app/" },
   optOutReply: "Done, you won't get any more automatic messages from us. Write to us any time if you change your mind.",
   handoffReply: "Thanks! A real person from the ProHost team will reply here soon.",
 };
