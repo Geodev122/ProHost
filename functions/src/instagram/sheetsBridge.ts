@@ -55,7 +55,7 @@ export async function runSheetSync(now = Date.now()): Promise<string> {
   const notes: string[] = [];
 
   // 1. Status (artifact → backend): mode + kill switch.
-  const status = new Map(await readTab(sheets, sid, "Status!A2:B100").then((rows) => rows.map((r) => [r[0].trim().toLowerCase(), (r[1] ?? "").trim()] as [string, string])));
+  const status = new Map(await readTab(sheets, sid, "Status!A2:B100").then((rows) => rows.filter((r) => (r[0] ?? "").trim()).map((r) => [r[0].trim().toLowerCase(), (r[1] ?? "").trim()] as [string, string])));
   const wantMode = status.get("mode")?.toLowerCase() === "live" ? "live" : "dry-run";
   const wantKill = /^(true|yes|1|on)$/i.test(status.get("kill_switch") ?? "");
   const wantSettings = settingsFromStatus(status);
