@@ -765,6 +765,8 @@ async function igsmoke(db) {
   const rules = await db.collection("ig_rules").get();
   const last = await db.collection("ig_events").orderBy("createdAt", "desc").limit(1).get();
   const left = c.tokenExpiresAt ? Math.floor((c.tokenExpiresAt - Date.now()) / 86400000) : null;
+  const sync = (await db.collection("ig_stats").doc("sync").get()).data();
+  notice(sync ? `sheet sync: ${sync.ok ? "ok" : "FAILING"} at ${new Date(sync.at).toISOString()} ${sync.ok ? `(${String(sync.note || "")})` : String(sync.error || "").slice(0, 300)}` : "sheet sync: never ran since this version deployed");
   notice(`account @${c.username || "?"} · mode ${c.mode || "dry-run"}${c.killSwitch ? " · KILL SWITCH ON" : ""} · rules ${rules.size} · token ${left === null ? "?" : left + " days"} left · sheet ${c.sheetId ? "linked" : "NOT linked"} · last event ${last.empty ? "none yet" : new Date(last.docs[0].get("createdAt")).toISOString()}`);
 }
 

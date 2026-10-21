@@ -139,10 +139,15 @@ async function trimLog(sheets: sheets_v4.Sheets, sheetId: string): Promise<void>
 }
 
 export const igSheetSync = onSchedule({ schedule: "every 1 minutes", timeoutSeconds: 120, memory: "256MiB" }, async () => {
+  const stats = getFirestore().collection("ig_stats").doc("sync");
   try {
     const out = await runSheetSync();
+    await stats.set({ at: Date.now(), ok: true, note: out, error: "" }).catch(() => undefined);
     if (out !== "no changes" && out !== "no sheetId configured") logger.info("igSheetSync: " + out);
   } catch (e) {
-    logger.error("igSheetSync failed", { message: (e as Error).message });
+    const message = (e as Error).message;
+    logger.error("igSheetSync failed", { message });
+    // Visible to Maintenance igsmoke, so a broken sync is diagnosable without the Cloud Logging console.
+    await stats.set({ at: Date.now(), ok: false, error: message.slice(0, 400) }).catch(() => undefined);
   }
 });
