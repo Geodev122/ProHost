@@ -140,3 +140,16 @@ export async function requestClaudeQuota(f: Fetch = fetch): Promise<{ results: s
   }
   return { results };
 }
+
+/** Quota requests we filed, with Google's own state and reason (`stateDetail`) — why one was granted or denied. */
+export async function listQuotaPreferences(f: Fetch = fetch): Promise<{ lines: string[] }> {
+  const token = await cloudToken();
+  const res = await f(`${quotaBase()}/quotaPreferences?pageSize=50`, { headers: { Authorization: `Bearer ${token}` } });
+  const j = (await res.json().catch(() => ({}))) as { quotaPreferences?: Array<Record<string, unknown>>; error?: { message?: string } };
+  if (!res.ok) return { lines: [`Cloud Quotas API ${res.status}: ${(j.error?.message ?? "").slice(0, 300)}`] };
+  const lines = (j.quotaPreferences ?? []).map((p) => {
+    const qc = (p.quotaConfig ?? {}) as Record<string, unknown>;
+    return `${String(p.name ?? "").split("/").pop()} | quota=${String(p.quotaId)} | dims=${JSON.stringify(p.dimensions ?? {})} | preferred=${String(qc.preferredValue)} granted=${String(qc.grantedValue)} | reconciling=${String(p.reconciling)} | stateDetail=${String(qc.stateDetail ?? "")} | annotations=${JSON.stringify(qc.annotations ?? {})} | updated=${String(p.updateTime ?? "")}`;
+  });
+  return { lines: lines.length ? lines : ["no quota preferences found"] };
+}

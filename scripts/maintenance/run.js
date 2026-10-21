@@ -904,7 +904,8 @@ async function playofferfix(db, arg) {
 }
 
 async function aiquota(db, arg) {
-  const res = await serverTask(db, "aiQuota", arg === "request" ? "request" : null);
+  const res = await serverTask(db, "aiQuota", arg === "request" || arg === "status" ? arg : null);
+  if (res.lines) { res.lines.forEach((l) => notice(`QUOTA STATUS ${l}`)); return; }
   if (res.results) { res.results.forEach((r) => notice(`QUOTA REQUEST ${r}`)); return; }
   notice(`Cloud Quotas: ${res.note}; ${res.rows.length} global Haiku 4.5 row(s)`);
   res.rows.forEach((r) => notice(`QUOTA ${r.quotaId} | ${JSON.stringify(r.dimensions)} | value=${r.value} ${r.unit} | raw=${r.raw}`));
