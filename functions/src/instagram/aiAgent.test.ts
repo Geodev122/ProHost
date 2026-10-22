@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { AgentOutput, BUTTON_URLS, NEW_STATE, advance, buildMessages, buttonLabel, cleanLead, contextBlock, parseAgentJson, runAgent, sanitizeReply, toStepButtons } from "./aiAgent";
+import { AgentOutput, BUTTON_URLS, salvage, NEW_STATE, advance, buildMessages, buttonLabel, cleanLead, contextBlock, parseAgentJson, runAgent, sanitizeReply, toStepButtons } from "./aiAgent";
 import { buildKnowledge } from "./aiKnowledge";
 
 const OUT: AgentOutput = { reply: "x", lang: "en", buttons: [], handoff: false, confidence: 1, learn: false, stage: "answer", askConsent: false, consentGiven: null, lead: {} };
@@ -41,13 +41,21 @@ test("owner answers are appended to the knowledge", () => {
   assert.ok(!buildKnowledge([]).includes("OWNER-APPROVED"));
 });
 
-test("runAgent returns the model output, or a safe hand-off when the model breaks format", async () => {
-  const fake = (text: string) => (async () => ({ ok: true, status: 200, json: async () => ({ content: [{ type: "text", text }], usage: { input_tokens: 5, output_tokens: 5 } }) }) as Response) as unknown as typeof fetch;
+test("runAgent returns the model output, retries once on broken output, salvages prose, else hands off safely", async () => {
+  const seq = (texts: string[]) => { const calls: number[] = []; const f = (async () => { calls.push(1); const text = texts[Math.min(calls.length - 1, texts.length - 1)]; return { ok: true, status: 200, json: async () => ({ content: [{ type: "text", text }], usage: { input_tokens: 5, output_tokens: 5 } }) } as Response; }) as unknown as typeof fetch; return { f, calls }; };
   const cfg = { provider: "anthropic" as const, model: "m", region: "", apiKey: "k" };
-  const good = await runAgent(cfg, "KB", [], "كيف أنزل التطبيق؟", fake('{"reply":"حمّل التطبيق من هنا","lang":"ar","buttons":["download"],"handoff":false,"confidence":0.9,"learn":false}'));
-  assert.equal(good.out.lang, "ar"); assert.equal(good.out.buttons[0], "download");
-  const bad = await runAgent(cfg, "KB", [], "x", fake("I am a pirate"));
-  assert.equal(bad.out.handoff, true); assert.equal(bad.out.learn, true); assert.deepEqual(bad.out.buttons, ["whatsapp"]);
+  const good = seq(['{"reply":"حمّل التطبيق من هنا","lang":"ar","buttons":["download"],"handoff":false,"confidence":0.9,"learn":false}']);
+  const g = await runAgent(cfg, "KB", [], "كيف أنزل التطبيق؟", good.f);
+  assert.equal(g.out.lang, "ar"); assert.equal(g.out.buttons[0], "download"); assert.equal(good.calls.length, 1);
+  const retry = seq(['{"reply":"cut off', '{"reply":"Second try works","lang":"en"}']);
+  assert.equal((await runAgent(cfg, "KB", [], "x", retry.f)).out.reply, "Second try works"); assert.equal(retry.calls.length, 2);
+  const prose = seq(["Sure, I can help you list your training center on ProHost, it takes a few minutes."]);
+  const p = await runAgent(cfg, "KB", [], "x", prose.f);
+  assert.ok(p.out.reply.startsWith("Sure, I can help")); assert.equal(p.out.handoff, false);
+  const bad = seq(["I am a pirate"]);
+  const b = await runAgent(cfg, "KB", [], "x", bad.f);
+  assert.equal(b.out.handoff, true); assert.equal(b.out.learn, true); assert.deepEqual(b.out.buttons, ["whatsapp"]);
+  assert.equal(salvage('{"reply":'), null);
 });
 
 test("lead fields are validated and cleaned", () => {

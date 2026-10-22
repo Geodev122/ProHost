@@ -26,7 +26,7 @@ CORE RULES
 5. Only mention web addresses that appear in the knowledge.
 
 TWO MODES - choose every turn
-A) DIRECT QUESTION (they ask for something specific: how to download, what a feature does, the launch offer, contact, a comparison): answer it fully and clearly right away in ONE message, with the right button (download for "how do I get the app", whatsapp/email for contact...). You may end with ONE light optional question, never a quiz.
+A) DIRECT QUESTION (they ask for something specific: how to download, what a feature does, the launch offer, contact, a comparison): answer it fully and clearly right away in ONE message, with the right button (download for "how do I get the app", whatsapp/email for contact...). End with a question only if it truly helps; never a quiz. After a direct answer do not start a long discovery.
 B) DISCOVERY (they only say hi / thanks / "info?", are vague, or you do not yet know what they need): hold a short, real conversation of about 2-3 exchanges before pitching. Ask ONE question per message, in this order: first what brings them (renting a room for their work, or listing a space they own); then what they do (their profession or kind of space) and what is hard today (finding rooms, empty hours, double bookings, chasing payments); only then connect ProHost to THAT need in one or two sentences (value first: what it does for them, how it works) and offer the next step with a button. Reflect their words back so they feel heard.
 
 PRODUCT QUESTIONS AND SELLING
@@ -34,8 +34,10 @@ PRODUCT QUESTIONS AND SELLING
 - Professionals (renters): the app is free; stress finding a room by the hour/shift/day on a live map and booking fast. Hosts (space owners): publishing needs Premium; mention the launch offer (first 4 months free on the monthly plan, or 50% off the first year; Google Play shows the exact price) and what earns them money (rent each room by hour, shift, day, month or per attendee, live availability, no double bookings).
 - Be honest: if ProHost is not a fit, say so kindly. Never pressure. One call to action per message, never more than 2 buttons unless asked.
 
-NAME AND EMAIL (consent first)
-- You may ask for their first name naturally in conversation. To SAVE their name or email you must first ask permission in a clear, friendly question, for example: "May I save your name and email so our team can follow up with you? You can say no." Set "askConsent" true in that message and do not claim anything is saved yet.
+NAME AND EMAIL (consent first, asked ONCE)
+- You may ask for their first name naturally. Do NOT ask permission to save details in your first reply, nor in the same message where you pitch; first give them something useful, and ask only when they are engaged or you understand their need.
+- To SAVE their name or email you must first ask permission once, in its own short message, for example: "May I save your name and email so our team can follow up with you? You can say no." Set "askConsent" true in that message and do not claim anything is saved yet.
+- NEVER ask for permission a second time. If the conversation state says you already asked, do not ask again; if they gave only a name, simply ask for their email in plain words without repeating the permission question.
 - Only after the person clearly says yes (in their reply to that question) set "consentGiven" true. If they decline, set "consentGiven" false, reassure them, never ask again, and keep helping. Use null for "consentGiven" when they have not answered the question yet.
 - Put what the person has told you in "lead" (name, email, role = their job or kind of space, need = their main need in a few words). Include only what they actually said. Never ask for phone numbers, ID or payment details.
 
@@ -138,8 +140,21 @@ export function advance(st: ConvState, out: AgentOutput): { state: ConvState; pe
 
 export interface AgentRun { out: AgentOutput; usage: Pick<LlmResult, "inputTokens" | "outputTokens" | "cacheReadTokens" | "model"> }
 
+/** The model sometimes returns text that is not the JSON we asked for (or truncated JSON): salvage plain prose, else give up. */
+export function salvage(raw: string): AgentOutput | null {
+  const t = raw.replace(/```(?:json)?/gi, "").trim();
+  if (t.length < 25 || /[{}]/.test(t)) return null;
+  return { reply: sanitizeReply(t), lang: "en", buttons: [], handoff: false, confidence: 0.4, learn: true, stage: "answer", askConsent: false, consentGiven: null, lead: {} };
+}
+
 export async function runAgent(cfg: AiConfig, knowledge: string, turns: Turn[], userText: string, f?: typeof fetch, state: ConvState = NEW_STATE): Promise<AgentRun> {
-  const res = await complete(cfg, SYSTEM_PROMPT, `KNOWLEDGE\n${knowledge}`, buildMessages(turns, userText), 420, f, 20000, contextBlock(state));
-  const out = parseAgentJson(res.text) ?? { reply: FALLBACK_REPLY, lang: "en", buttons: ["whatsapp"], handoff: true, confidence: 0, learn: true, stage: "answer" as Stage, askConsent: false, consentGiven: null, lead: {} };
-  return { out, usage: { inputTokens: res.inputTokens, outputTokens: res.outputTokens, cacheReadTokens: res.cacheReadTokens, model: res.model } };
+  let res = await complete(cfg, SYSTEM_PROMPT, `KNOWLEDGE\n${knowledge}`, buildMessages(turns, userText), 700, f, 20000, contextBlock(state));
+  let out = parseAgentJson(res.text);
+  if (!out) {
+    // one retry before falling back (truncated or non-JSON answers are usually one-off)
+    res = await complete(cfg, SYSTEM_PROMPT, `KNOWLEDGE\n${knowledge}`, buildMessages(turns, userText), 700, f, 20000, contextBlock(state) + "\nReturn ONLY the JSON object, complete and valid.");
+    out = parseAgentJson(res.text) ?? salvage(res.text);
+  }
+  const final = out ?? { reply: FALLBACK_REPLY, lang: "en", buttons: ["whatsapp"] as ButtonId[], handoff: true, confidence: 0, learn: true, stage: "answer" as Stage, askConsent: false, consentGiven: null, lead: {} };
+  return { out: final, usage: { inputTokens: res.inputTokens, outputTokens: res.outputTokens, cacheReadTokens: res.cacheReadTokens, model: res.model } };
 }
