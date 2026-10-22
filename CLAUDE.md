@@ -249,7 +249,8 @@ plan + recurring price + date;
   Auth users with **no provider** in the console are email 6-digit-code sign-ins (`verifyEmailOtp`/`clickEmailOtpLink`
   create them with the Admin SDK and sign in by custom token) — expected. Inspect one account with Maintenance `authuser`
   (uid in `code`): Auth record, profile, audit log, sign-in calls around creation and a verdict; `audit` lists sign-in
-  methods and any provider-less account that is not a verified-email code sign-in.
+  methods and any provider-less account that is not a verified-email code sign-in; `logerrors` (hours in `code`, default 48)
+  groups function errors and warnings. GitHub keeps only 10 notices per step, so keep each task under 10.
   A deploy failing with Secret Manager "requires billing to be enabled" means the GCP billing account lapsed — every
   function bound to a secret (`assignInitialRole`) then 500s; re-enable billing and redeploy.
 - Security rules are unit-tested in the emulator (`tests/rules`, CI job "Security Rules Tests"); add a test with

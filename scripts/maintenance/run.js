@@ -15,6 +15,7 @@
 //   node scripts/maintenance/run.js authuser UID     read-only: one account — Auth record, profile, audit log and the
 //                                                    sign-in calls around its creation, with a verdict on how it got in
 //                                                    (no provider = email 6-digit code: custom-token sign-in)
+//   node scripts/maintenance/run.js logerrors [HOURS] read-only: function errors and warnings over HOURS (default 48), grouped
 //   node scripts/maintenance/run.js mailingcode CODE set (or rotate) the pro-host.tech/admin access code; stores only a
 //                                                    salted scrypt hash in app_config/mailing_admin and signs out all
 //                                                    admin sessions. Without CODE: reports whether a code is set.
@@ -157,20 +158,6 @@ async function audit(db, auth) {
   }
   notice(`parkedPurchases=[${rows.join(", ")}]`);
 
-  await step("functionErrors48h", async () => {
-    const since = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
-    const entries = await logEntries(`severity>=ERROR AND (resource.type="cloud_run_revision" OR resource.type="cloud_function") ` +
-      `AND timestamp>="${since}"`, 500);
-    const groups = {};
-    for (const e of entries) {
-      const m = redact(e.textPayload || e.jsonPayload?.message || e.protoPayload?.status?.message ||
-        (e.httpRequest ? `HTTP ${e.httpRequest.status}` : "")).slice(0, 90);
-      const k = `${e.resource?.labels?.service_name || e.resource?.labels?.function_name || "?"}: ${m}`;
-      groups[k] = (groups[k] || 0) + 1;
-    }
-    return `${entries.length} error entries` + (entries.length ?
-      ` — ${Object.entries(groups).sort((x, y) => y[1] - x[1]).slice(0, 10).map(([k, v]) => `${v}x ${k}`).join(" || ")}` : "");
-  });
 }
 
 async function j8(db, auth) {
@@ -622,6 +609,31 @@ async function authuser(db, auth, uid) {
     notice(`verdict: ${verdict} | codeEmailedToThisAddress=${otpForThisAddress} magicLinkSent=${linkForThisAddress} codeVerifiedOk=${okVerify}`);
     return Object.entries(rows).map(([k, v]) => `${v.first.slice(11, 19)} ${v.n}x ${k}`).join(" | ") || "no sign-in calls in ±15 min";
   });
+}
+
+// Function logs over the last N hours (default 48), grouped. GitHub shows at most 10 notices per step, so this
+// is its own task: one notice per severity, the top groups in each.
+async function logerrors(arg) {
+  const hours = Math.min(Math.max(parseInt(arg, 10) || 48, 1), 720);
+  const since = new Date(Date.now() - hours * 3600 * 1000).toISOString();
+  for (const [label, sev] of [["errors", "severity>=ERROR"], ["warnings", "severity=WARNING"]]) {
+    await step(`${label}${hours}h`, async () => {
+      const entries = await logEntries(`${sev} AND (resource.type="cloud_run_revision" OR resource.type="cloud_function") ` +
+        `AND timestamp>="${since}"`, 1000);
+      const groups = {};
+      for (const e of entries) {
+        const m = redact(e.jsonPayload?.message || e.textPayload || e.protoPayload?.status?.message ||
+          (e.httpRequest ? `HTTP ${e.httpRequest.status} ${e.httpRequest.requestMethod}` : "")).slice(0, 80);
+        const k = `${e.resource?.labels?.service_name || e.resource?.labels?.function_name || "?"}: ${m}`;
+        groups[k] = groups[k] || { n: 0, last: e.timestamp };
+        groups[k].n++;
+        if (e.timestamp > groups[k].last) groups[k].last = e.timestamp;
+      }
+      return `${entries.length} entries${entries.length === 1000 ? "+" : ""}` + (entries.length ? " — " +
+        Object.entries(groups).sort((x, y) => y[1].n - x[1].n).slice(0, 14)
+          .map(([k, v]) => `${v.n}x ${k} (last ${v.last.slice(5, 16)})`).join(" || ") : "");
+    });
+  }
 }
 
 async function prodcheck(db, auth) {
@@ -1381,6 +1393,7 @@ async function smsauth(db, arg) {
   else if (task === "prodcheck") await prodcheck(db, auth);
   else if (task === "authorphans") await authorphans(db, auth);
   else if (task === "authuser") await authuser(db, auth, arg);
+  else if (task === "logerrors") await logerrors(arg);
   else if (task === "mailingcode") await mailingcode(db, arg);
   else if (task === "mailingsmoke") await mailingsmoke(db, arg);
   else if (task === "igsetup") await igsetup(db, arg);
