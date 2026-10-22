@@ -70,7 +70,7 @@ export async function aiDecide(config: IgConfig, event: IgEvent, now: number, f?
   }
 
   // Waiting for their registration email: an email in the reply is the permission for ONE read-only account lookup.
-  let extra = offersContext(await liveOffersText(now).catch(() => ""));
+  let extra = `LANGUAGE OF THEIR LAST MESSAGE (from the server): ${/[\u0600-\u06FF]/.test(event.text) ? "Arabic script, reply in Arabic" : "Latin script, reply in the language of their words (English unless they clearly write French, Spanish or Arabic in Latin letters); never switch to Arabic because of the name or the country"}.\n` + offersContext(await liveOffersText(now).catch(() => ""));
   let insightTagValue = String(thread.insight ?? "");
   const mail = prior.awaiting === "email" ? findEmail(event.text) : null;
   if (mail) {

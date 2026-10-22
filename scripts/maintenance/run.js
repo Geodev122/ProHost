@@ -974,7 +974,8 @@ async function aitest(arg, db) {
         break;
       }
       try {
-        const extra = (ctx ? ctx + "\n" : "") + offersContext(offers);
+        const lang = /[\u0600-\u06FF]/.test(line) ? "Arabic script, reply in Arabic" : "Latin script, reply in the language of their words (English unless they clearly write French, Spanish or Arabic in Latin letters); never switch to Arabic because of the name or the country";
+        const extra = `LANGUAGE OF THEIR LAST MESSAGE (from the server): ${lang}.\n` + (ctx ? ctx + "\n" : "") + offersContext(offers);
         const { out, usage } = await runAgent(cfg, knowledge, turns, line, undefined, state, extra);
         const adv = advance(state, out);
         state = adv.state;
