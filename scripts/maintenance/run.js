@@ -15,6 +15,13 @@
 //   node scripts/maintenance/run.js authuser UID     read-only: one account — Auth record, profile, audit log and the
 //                                                    sign-in calls around its creation, with a verdict on how it got in
 //                                                    (no provider = email 6-digit code: custom-token sign-in)
+//   node scripts/maintenance/run.js authconfig [apply|retire] email + password sign-in config: dry run prints it; apply sets
+//                                                    the password policy (8+, lowercase, number) and the authorized
+//                                                    domain; retire turns the old email code / magic link off
+//   node scripts/maintenance/run.js passwordinvites [send|resend] accounts from the retired email code / magic link:
+//                                                    dry run counts them; send mails each a 30-day "set your password" link
+//   node scripts/maintenance/run.js integrity [enable] Play Integrity: API state + a dummy decode with the functions'
+//                                                    own credentials (400 = OK, 403 = body says what's missing)
 //   node scripts/maintenance/run.js logerrors [HOURS] read-only: function errors and warnings over HOURS (default 48), grouped
 //   node scripts/maintenance/run.js mailingcode CODE set (or rotate) the pro-host.tech/admin access code; stores only a
 //                                                    salted scrypt hash in app_config/mailing_admin and signs out all
@@ -605,7 +612,7 @@ async function authuser(db, auth, uid) {
     const method = signInMethod(u);
     const verdict = method === "none(email-code)" && (okVerify || otpForThisAddress) ? "email 6-digit code (custom token) — expected" :
       method.includes("google.com") ? "Google sign-in" :
-      method === "password" ? "email magic link" : `UNEXPLAINED (${method}; no matching code verification in the logs)`;
+      method === "password" ? (u.passwordHash ? "email + password" : "email magic link (no password yet)") : `UNEXPLAINED (${method}; no matching code verification in the logs)`;
     notice(`verdict: ${verdict} | codeEmailedToThisAddress=${otpForThisAddress} magicLinkSent=${linkForThisAddress} codeVerifiedOk=${okVerify}`);
     return Object.entries(rows).map(([k, v]) => `${v.first.slice(11, 19)} ${v.n}x ${k}`).join(" | ") || "no sign-in calls in ±15 min";
   });
@@ -647,6 +654,124 @@ async function logerrors(arg) {
           .map(([k, v]) => `${v.n}x ${k} (last ${v.last.slice(5, 16)})`).join(" || ") : "");
     });
   }
+}
+
+// ─── Email + password sign-in (1.0.44) ───────────────────────────────────────────
+
+const PASSWORD_POLICY = {
+  enforcementState: "ENFORCE",
+  forceUpgradeOnSignin: false,
+  constraints: { requireLowercase: true, requireNumeric: true, minLength: 8, maxLength: 4096 },
+};
+
+async function authconfig(db, auth, arg) {
+  const project = process.env.GCLOUD_PROJECT;
+  const cfgUrl = `https://identitytoolkit.googleapis.com/admin/v2/projects/${project}/config`;
+  const read = async () => {
+    const r = await googleApi(cfgUrl);
+    if (!r.ok) throw new Error(`HTTP ${r.status} ${(await r.text()).slice(0, 200)}`);
+    return r.json();
+  };
+  if (arg === "apply") {
+    await step("passwordPolicy", async () => {
+      await auth.projectConfigManager().updateProjectConfig({ passwordPolicyConfig: PASSWORD_POLICY });
+      return "ENFORCE: min 8, a lowercase letter, a number";
+    });
+    await step("emailPasswordAndDomain", async () => {
+      const c = await read();
+      const domains = new Set(c.authorizedDomains || []);
+      domains.add("pro-host.tech");
+      const res = await googleApi(`${cfgUrl}?updateMask=signIn.email.enabled,authorizedDomains`, {
+        method: "PATCH",
+        body: JSON.stringify({ signIn: { email: { enabled: true } }, authorizedDomains: [...domains] }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
+      return `email/password enabled, authorizedDomains=${[...domains].join(",")}`;
+    });
+  } else if (arg === "retire") {
+    await step("retireLegacyEmail", async () => {
+      const res = await googleApi(`${cfgUrl}?updateMask=signIn.email.passwordRequired`, {
+        method: "PATCH", body: JSON.stringify({ signIn: { email: { enabled: true, passwordRequired: true } } }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
+      await db.doc("app_config/auth").set({ legacyEmailSignIn: false, retiredAt: Date.now() }, { merge: true });
+      return "magic link off (passwordRequired=true); app_config/auth.legacyEmailSignIn=false";
+    });
+  }
+  await step("authConfig", async () => {
+    const c = await read();
+    const pc = await auth.projectConfigManager().getProjectConfig();
+    const sw = (await db.doc("app_config/auth").get()).data() || {};
+    return `signIn.email=${JSON.stringify(c.signIn?.email || {}).replace(/[{}"]/g, "")} ` +
+      `authorizedDomains=${(c.authorizedDomains || []).join(",")} ` +
+      `enumerationProtection=${c.emailPrivacyConfig?.enableImprovedEmailPrivacy === true} ` +
+      `passwordPolicy=${JSON.stringify(pc.passwordPolicyConfig || "none").replace(/"/g, "")} ` +
+      `legacyEmailSignIn=${sw.legacyEmailSignIn !== false}${sw.retiredAt ? ` retiredAt=${new Date(sw.retiredAt).toISOString()}` : ""}`;
+  });
+}
+
+async function passwordinvites(db, auth, arg) {
+  const { needsPasswordSetup, factsOf, sendPasswordSetupInvite, INVITES } = require(`${LIB}/auth/passwordReset`);
+  const targets = [];
+  let page;
+  do {
+    const r = await auth.listUsers(1000, page);
+    for (const u of r.users) {
+      const cat = needsPasswordSetup(factsOf(u));
+      if (cat) targets.push({ uid: u.uid, email: u.email, cat, created: u.metadata.creationTime });
+    }
+    page = r.pageToken;
+  } while (page);
+  const invited = new Set((await db.collection(INVITES).select().get()).docs.map((d) => d.id));
+  const counts = {};
+  targets.forEach((t) => { counts[t.cat] = (counts[t.cat] || 0) + 1; });
+  notice(`needPassword=${targets.length} ${JSON.stringify(counts).replace(/[{}"]/g, "")} alreadyInvited=${targets.filter((t) => invited.has(t.uid)).length}`);
+  notice(`accounts: ${targets.map((t) => `${maskEmail(t.email)}(${t.cat}${invited.has(t.uid) ? ",invited" : ""})`).join(", ") || "none"}`);
+  if (arg !== "send" && arg !== "resend") { notice("dry run — run with code=send to mail them"); return; }
+  const sent = [];
+  for (const t of targets) {
+    if (invited.has(t.uid) && arg !== "resend") continue;
+    if (await sendPasswordSetupInvite(t.uid, t.email, t.cat)) sent.push(t.email);
+  }
+  notice(`invitesQueued=${sent.length}`);
+  await step("inviteDelivery", async () => {
+    const end = Date.now() + 120 * 1000;
+    let states = {};
+    while (Date.now() < end) {
+      states = {};
+      for (const email of sent) {
+        const m = await db.collection("mail").where("to", "==", email).orderBy("createdAt", "desc").limit(1).get()
+          .catch(() => db.collection("mail").where("to", "==", email).get());
+        const st = m.docs[0]?.data().delivery?.state ?? "NOT_PICKED_UP";
+        states[st] = (states[st] || 0) + 1;
+      }
+      if (!Object.keys(states).some((k) => ["NOT_PICKED_UP", "PENDING", "PROCESSING", "RETRY"].includes(k))) break;
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+    return JSON.stringify(states).replace(/[{}"]/g, "") || "nothing sent";
+  });
+}
+
+async function integrity(db, arg) {
+  const project = process.env.GCLOUD_PROJECT;
+  const svc = `https://serviceusage.googleapis.com/v1/projects/${project}/services/playintegrity.googleapis.com`;
+  if (arg === "enable") {
+    await step("enableApi", async () => {
+      const r = await googleApi(`${svc}:enable`, { method: "POST", body: "{}" });
+      return `HTTP ${r.status} ${(await r.text()).replace(/\s+/g, " ").slice(0, 160)}`;
+    });
+  }
+  await step("apiState", async () => {
+    const r = await googleApi(svc);
+    if (!r.ok) return `HTTP ${r.status} ${(await r.text()).replace(/\s+/g, " ").slice(0, 160)}`;
+    return (await r.json()).state;
+  });
+  await step("decodeProbe", async () => {
+    const r = await serverTask(db, "integrityProbe");
+    const verdict = r.status === 400 ? "OK — credentials, scope and Play Console link work (only the dummy token is rejected)" :
+      r.status === 403 ? "BLOCKED — see body (API off, Cloud project not linked in Play Console, or permission)" : "unexpected";
+    return `status=${r.status} ${verdict} body=${r.body}`;
+  });
 }
 
 async function prodcheck(db, auth) {
@@ -1407,6 +1532,9 @@ async function smsauth(db, arg) {
   else if (task === "authorphans") await authorphans(db, auth);
   else if (task === "authuser") await authuser(db, auth, arg);
   else if (task === "logerrors") await logerrors(arg);
+  else if (task === "authconfig") await authconfig(db, auth, arg);
+  else if (task === "passwordinvites") await passwordinvites(db, auth, arg);
+  else if (task === "integrity") await integrity(db, arg);
   else if (task === "mailingcode") await mailingcode(db, arg);
   else if (task === "mailingsmoke") await mailingsmoke(db, arg);
   else if (task === "igsetup") await igsetup(db, arg);

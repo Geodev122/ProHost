@@ -9,6 +9,8 @@
  *  - playOfferFix       moves a promo offer stranded on an inactive base plan onto the live monthly plan and
  *                       widens claimed offers limited to "any subscription in this app" (dry run unless arg "apply")
  *  - aiProbe            which Claude model/region this project can call on Vertex AI (Instagram DM agent)
+ *  - integrityProbe     decodes a dummy Play Integrity token with the runtime credentials: 400 = API, scope and
+ *                       Play Console link are fine (only the token is bad); 403 = the body says what's missing
  *  - playSubscriptions  every recorded Play subscription as Play sees it now: plan, offer, state,
  *                       bought in the app (tagged) or outside it (Play Store / promo code),
  *                       promotion type/code. Never returns purchase tokens or uids.
@@ -21,6 +23,7 @@ import { lintOffers, readPlayCatalog } from "../billing/playCatalogLive";
 import { playOfferFix } from "../billing/playOfferFix";
 import { PACKAGE_NAME, getPlayPublisher } from "../billing/billingHelpers";
 import { classifyPlayError } from "../billing/playSubscription";
+import { callDecodeIntegrityToken } from "../lib/playIntegrity";
 import { listClaudeQuotas, listQuotaPreferences, probeVertex, requestClaudeQuota } from "../instagram/aiLlm";
 
 async function playSubscriptions(): Promise<unknown> {
@@ -74,6 +77,7 @@ export const onMaintenanceRequest = onDocumentCreated(
     try {
       const result = task === "playCatalog" ? await readPlayCatalog().then((c) => ({ ...c, lint: lintOffers(c.basePlans, Date.now()) }))
         : task === "playSubscriptions" ? await playSubscriptions()
+        : task === "integrityProbe" ? await callDecodeIntegrityToken("maintenance-probe-not-a-real-token").then((r) => ({ status: r.status, body: r.body }))
         : task === "aiProbe" ? await probeVertex()
         : task === "aiQuota" ? (event.data?.get("arg") === "request" ? await requestClaudeQuota() : event.data?.get("arg") === "status" ? await listQuotaPreferences() : await listClaudeQuotas())
         : task === "playOfferFix" ? await playOfferFix(event.data?.get("arg") === "apply")
