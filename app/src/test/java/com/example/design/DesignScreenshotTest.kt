@@ -3,6 +3,7 @@ package com.example.design
 import android.content.res.Configuration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.activity.compose.setContent
 import androidx.compose.ui.platform.LocalDensity
@@ -245,7 +246,17 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         val user by vm.currentUser.collectAsState()
         when (screen) {
             "splash" -> SplashScreen(onSplashCompleted = {})
-            "login_email" -> LoginAuthScreen(onLoginSuccess = {}, authViewModel = AuthViewModel(vm.repository))
+            "login_signin" -> LoginAuthScreen(onLoginSuccess = {}, authViewModel = AuthViewModel(vm.repository))
+            "login_create" -> LoginAuthScreen(onLoginSuccess = {}, authViewModel = AuthViewModel(vm.repository),
+                initialStepName = "CREATE_ACCOUNT", initialEmail = "rana@example.com")
+            "login_forgot" -> LoginAuthScreen(onLoginSuccess = {}, authViewModel = AuthViewModel(vm.repository),
+                initialStepName = "FORGOT_PASSWORD", initialEmail = "rana@example.com")
+            "login_reset_sent" -> LoginAuthScreen(onLoginSuccess = {}, authViewModel = AuthViewModel(vm.repository),
+                initialStepName = "RESET_SENT", initialEmail = "rana@example.com")
+            "profile_verify_email" -> {
+                LaunchedEffect(Unit) { vm.showEmailVerificationReminderForTest() }
+                SpecialistProfileScreen(viewModel = vm)
+            }
             "registration" -> LoginAuthScreen(onLoginSuccess = {}, resumeAtRegistration = true, authViewModel = AuthViewModel(vm.repository))
             "filters" -> ExploreWithFilters()
             "availability_sheet" -> SpaceDetailsScreenContent(
@@ -353,7 +364,8 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         )
         /** Sheets, dialogs and forms (captured with their windows). */
         val OVERLAYS = listOf(
-            "splash", "login_email", "registration", "filters", "availability_sheet", "request_sent", "requirements",
+            "splash", "login_signin", "login_create", "login_forgot", "login_reset_sent", "registration",
+            "profile_verify_email", "filters", "availability_sheet", "request_sent", "requirements",
             "requirements_host", "rebook", "edit_booking", "cancel_booking", "country_picker", "legal_documents", "notifications",
             "analytics_consent", "delete_account", "redeem_code", "reject_request", "request_detail", "change_price",
             "listing_wizard_1", "listing_wizard_2", "listing_wizard_3", "listing_verification", "location_prompt",

@@ -360,9 +360,12 @@ function checkDeepLinks() {
     }
   }
 
+  // Retired in 1.0.44 (email + password): the server still builds this link only for 1.0.43 apps,
+  // which register it, until Maintenance `authconfig retire` switches legacy email sign-in off.
+  const LEGACY_HOSTS = new Set(['emailotp']);
   let missing = 0;
   for (const [host, site] of usedHosts) {
-    if (!registeredHosts.has(host)) {
+    if (!registeredHosts.has(host) && !LEGACY_HOSTS.has(host)) {
       missing++;
       bug('HIGH','consistency','Deep Link Registration', site.file, site.line,
         `Deep link "prohost://${host}" is used but host "${host}" is not registered in AndroidManifest.xml.`,

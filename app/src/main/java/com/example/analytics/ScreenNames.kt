@@ -37,9 +37,10 @@ object ScreenNames {
 
     /** Login steps (LoginAuthScreen.AuthStep names). */
     fun forAuthStep(step: String): String = when (step) {
-        "EMAIL_ENTRY" -> "auth_email"
-        "EMAIL_OTP" -> "auth_email_code"
-        "EMAIL_LINK_SENT" -> "auth_email_link_sent"
+        "SIGN_IN" -> "auth_sign_in"
+        "CREATE_ACCOUNT" -> "auth_create_account"
+        "FORGOT_PASSWORD" -> "auth_forgot_password"
+        "RESET_SENT" -> "auth_reset_sent"
         "REGISTRATION_FORM" -> "registration"
         else -> "auth_" + step.lowercase()
     }

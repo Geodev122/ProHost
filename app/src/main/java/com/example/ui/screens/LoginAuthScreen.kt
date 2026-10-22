@@ -27,6 +27,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -49,25 +51,24 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
 
 /**
- * Every ProHost account — new or returning — now goes through email/Google first:
- *  1. EMAIL_ENTRY — enter an email or tap "Continue with Google". The email is looked
- *     up to determine whether it's new, has a magic-link flow, or has Google.
- *  2. EMAIL_OTP — 6-digit code sent; user enters it in-app.
- *  3. REGISTRATION_FORM — shown only when the verified identity turns out to be brand
- *     new (Firebase's own isNewUser decides, never a guess made before verification).
+ * Sign in or create an account with email + password, or continue with Google (1.0.44):
+ *  - SIGN_IN — email, password, "Forgot password?", "Create an account", Google.
+ *  - CREATE_ACCOUNT — email and a new password checked live against the server policy.
+ *  - FORGOT_PASSWORD → RESET_SENT — branded reset email; the answer never says whether the
+ *    address has an account (email enumeration protection).
+ *  - REGISTRATION_FORM — shown only when the signed-in account has no completed profile.
  *
- * There is no phone/SMS sign-in: the WhatsApp number typed on the registration form is saved to the
- * profile as is (Firebase SMS never delivered reliably).
+ * There is no emailed code, magic link or SMS sign-in.
  */
-private enum class AuthStep { EMAIL_ENTRY, EMAIL_OTP, EMAIL_LINK_SENT, REGISTRATION_FORM }
+internal enum class AuthStep { SIGN_IN, CREATE_ACCOUNT, FORGOT_PASSWORD, RESET_SENT, REGISTRATION_FORM }
 
-/** Email resend cooldown: slightly longer than OTP to match email-provider rate limits. */
+/** "Send again" cooldown for the reset email (the server also limits 5 per hour per address). */
 private const val EMAIL_RESEND_COOLDOWN_SECONDS = 60
 
 // Savers for rememberSaveable — process death would otherwise lose all in-progress state.
 private val AuthStepSaver = Saver<AuthStep, String>(
     save = { it.name },
-    restore = { name -> AuthStep.entries.firstOrNull { it.name == name } ?: AuthStep.EMAIL_ENTRY }
+    restore = { name -> AuthStep.entries.firstOrNull { it.name == name } ?: AuthStep.SIGN_IN }
 )
 
 private val CountrySaver = Saver<com.example.data.model.Country, String>(
@@ -91,20 +92,30 @@ fun LoginAuthScreen(
     resumeAtRegistration: Boolean = false,
     resumePhoneE164: String? = null,
     onCancelResume: (() -> Unit)? = null,
-    authViewModel: AuthViewModel = viewModel()
+    authViewModel: AuthViewModel = viewModel(),
+    /** Screenshot tests only: open on a given step ("CREATE_ACCOUNT", "FORGOT_PASSWORD", "RESET_SENT") with an email filled in. */
+    initialStepName: String? = null,
+    initialEmail: String? = null
 ) {
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
     val coroutineScope = rememberCoroutineScope()
     var step by rememberSaveable(stateSaver = AuthStepSaver) {
-        mutableStateOf(if (resumeAtRegistration) AuthStep.REGISTRATION_FORM else AuthStep.EMAIL_ENTRY)
+        mutableStateOf(
+            when {
+                resumeAtRegistration -> AuthStep.REGISTRATION_FORM
+                else -> AuthStep.entries.firstOrNull { it.name == initialStepName } ?: AuthStep.SIGN_IN
+            }
+        )
     }
 
-    // Each sign-in step is its own GA4 screen (auth_email, auth_email_code, auth_email_link_sent, registration).
+    // Each sign-in step is its own GA4 screen (auth_sign_in, auth_create_account, auth_forgot_password, auth_reset_sent, registration).
     if (!LocalInspectionMode.current) com.example.ui.components.TrackScreen(com.example.analytics.ScreenNames.forAuthStep(step.name), "LoginAuthScreen")
 
-    // --- Email entry state ---
-    var emailInput by rememberSaveable { mutableStateOf("") }
+    // --- Email + password state (the password is never saved across process death) ---
+    var emailInput by rememberSaveable { mutableStateOf(initialEmail.orEmpty()) }
+    var passwordInput by remember { mutableStateOf("") }
+    var showPassword by rememberSaveable { mutableStateOf(false) }
     var emailResendCountdownSeconds by rememberSaveable { mutableStateOf(0) }
     LaunchedEffect(emailResendCountdownSeconds) {
         if (emailResendCountdownSeconds > 0) {
@@ -114,7 +125,6 @@ fun LoginAuthScreen(
     }
 
     val isPreview = LocalInspectionMode.current
-    val pendingEmail = if (!isPreview) authViewModel.pendingEmail.collectAsState().value else ""
 
     // Credential Manager for Google One Tap
     val credentialManager = remember(context, isPreview) { if (!isPreview) CredentialManager.create(context) else null }
@@ -143,11 +153,7 @@ fun LoginAuthScreen(
                     val googleName = googleIdTokenCredential.displayName
                         ?: "${googleIdTokenCredential.givenName.orEmpty()} ${googleIdTokenCredential.familyName.orEmpty()}".trim()
                     val googlePictureUri = googleIdTokenCredential.profilePictureUri
-                    val currentActivity = activity ?: return
-                    authViewModel.startGoogleSignIn(
-                        activity = currentActivity,
-                        googleIdToken = googleIdTokenCredential.idToken
-                    ) { needsRegistration ->
+                    authViewModel.startGoogleSignIn(googleIdToken = googleIdTokenCredential.idToken) { needsRegistration ->
                         if (needsRegistration) {
                             prefillGoogleName = googleName
                             prefillGooglePictureUri = googlePictureUri
@@ -207,19 +213,11 @@ fun LoginAuthScreen(
 
     LaunchedEffect(Unit) {
         if (isPreview) return@LaunchedEffect
-        // Keeps an error a tapped sign-in link just produced (the link can open the app cold).
         authViewModel.clearStaleAuthMessages()
-        // The address a link/code went to survives process death; without it, go back to entry.
-        if (authViewModel.restorePendingEmail().isBlank() &&
-            (step == AuthStep.EMAIL_LINK_SENT || step == AuthStep.EMAIL_OTP)
-        ) step = AuthStep.EMAIL_ENTRY
         // MainActivity already requests all permissions; detect country using available signals
         // (SIM/locale — no duplicate permission request here).
         regWhatsAppCountry = PhoneCountryDetector.detectCountry(context)
     }
-
-    // --- Email OTP entry state ---
-    var emailOtpCode by rememberSaveable { mutableStateOf("") }
 
     // --- Registration form state ---
     var regProfilePicUri by rememberSaveable { mutableStateOf<Uri?>(null) }
@@ -268,14 +266,72 @@ fun LoginAuthScreen(
         step = AuthStep.REGISTRATION_FORM
     }
 
-    // Email-link / one-click-code sign-ins finish in ProHostAppRoot, outside this
-    // screen's callbacks — follow the ViewModel's signal so a new user lands on the form.
-    val registrationRequested = if (!isPreview) authViewModel.registrationRequested.collectAsState().value else false
-    LaunchedEffect(registrationRequested) {
-        if (registrationRequested) {
-            if (step != AuthStep.REGISTRATION_FORM) goToRegistrationForm()
-            authViewModel.consumeRegistrationRequest()
+    // Offers the password manager to save what the person just signed in / signed up with
+    // (Credential Manager; they can dismiss it). Never blocks the sign-in.
+    fun offerToSavePassword(email: String, password: String) {
+        val cm = credentialManager ?: return
+        val act = activity ?: return
+        coroutineScope.launch {
+            runCatching { cm.createCredential(act, androidx.credentials.CreatePasswordRequest(email, password)) }
         }
+    }
+
+    fun afterPasswordAuth(email: String, password: String): (Boolean) -> Unit = { needsRegistration ->
+        offerToSavePassword(email, password)
+        passwordInput = ""
+        if (needsRegistration) goToRegistrationForm() else onLoginSuccess()
+    }
+
+    // Returning people: offer a saved password or an already-used Google account once when the
+    // sign-in step opens (Credential Manager). Nothing saved → nothing shows.
+    var savedCredentialOffered by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(step) {
+        if (isPreview || savedCredentialOffered || step != AuthStep.SIGN_IN || emailInput.isNotBlank()) return@LaunchedEffect
+        savedCredentialOffered = true
+        val cm = credentialManager ?: return@LaunchedEffect
+        val request = GetCredentialRequest.Builder()
+            .addCredentialOption(androidx.credentials.GetPasswordOption())
+            .addCredentialOption(
+                GetGoogleIdOption.Builder()
+                    .setFilterByAuthorizedAccounts(true)
+                    .setServerClientId(context.getString(R.string.default_web_client_id))
+                    .build()
+            )
+            .build()
+        val response = try {
+            cm.getCredential(context, request)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            null // nothing saved, dismissed, or no credential provider on this device
+        } ?: return@LaunchedEffect
+        when (val credential = response.credential) {
+            is androidx.credentials.PasswordCredential -> {
+                emailInput = credential.id
+                authViewModel.signIn(credential.id, credential.password) { needsRegistration ->
+                    if (needsRegistration) goToRegistrationForm() else onLoginSuccess()
+                }
+            }
+            is CustomCredential -> if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                val google = GoogleIdTokenCredential.createFrom(credential.data)
+                authViewModel.startGoogleSignIn(google.idToken) { needsRegistration ->
+                    if (needsRegistration) {
+                        prefillGoogleName = google.displayName.orEmpty()
+                        prefillGooglePictureUri = google.profilePictureUri
+                        step = AuthStep.REGISTRATION_FORM
+                    } else onLoginSuccess()
+                }
+            }
+            else -> Unit
+        }
+    }
+
+    fun goTo(next: AuthStep) {
+        localErrorMessage = null
+        authViewModel.clearAuthMessages()
+        passwordInput = ""
+        showPassword = false
+        step = next
     }
 
     val scrollState = rememberScrollState()
@@ -316,16 +372,17 @@ fun LoginAuthScreen(
         }
 
         when (step) {
-            AuthStep.EMAIL_ENTRY -> ModernCard(
+            AuthStep.SIGN_IN, AuthStep.CREATE_ACCOUNT -> ModernCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
                 contentPadding = PaddingValues(20.dp),
                 elevation = Elevation.level2
             ) {
+                val creating = step == AuthStep.CREATE_ACCOUNT
                 AuthStepHeader(
-                    icon = Icons.Default.Email,
-                    title = stringResource(R.string.welcome_to_prohost),
-                    subtitle = stringResource(R.string.sign_in_or_create_your_account),
+                    icon = if (creating) Icons.Default.PersonAdd else Icons.Default.Lock,
+                    title = stringResource(if (creating) R.string.auth_create_title else R.string.welcome_to_prohost),
+                    subtitle = stringResource(if (creating) R.string.auth_create_subtitle else R.string.auth_sign_in_subtitle),
                     isBusy = isAuthenticating
                 )
 
@@ -334,50 +391,115 @@ fun LoginAuthScreen(
                 InputField(
                     value = emailInput,
                     onValueChange = {
-                        emailInput = it
+                        emailInput = it.trim()
                         localErrorMessage = null
                     },
                     label = stringResource(R.string.email_address),
                     placeholder = stringResource(R.string.you_example_com),
                     leadingIcon = Icons.Default.Email,
-                    modifier = Modifier.fillMaxWidth().testTag("auth_email_input"),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .autofillHints(listOf(androidx.compose.ui.autofill.AutofillType.EmailAddress, androidx.compose.ui.autofill.AutofillType.Username)) { emailInput = it.trim() }
+                        .testTag("auth_email_input"),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = androidx.compose.ui.text.input.ImeAction.Next),
                     singleLine = true
                 )
 
-                Spacer(modifier = Modifier.height(Spacing.lg))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
-                ProPrimaryButton(
-                    text = if (isAuthenticating) stringResource(R.string.sending) else stringResource(R.string.action_continue),
-                    onClick = {
-                        val trimmedEmail = emailInput.trim().lowercase()
-                        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches()) {
-                            localErrorMessage = uiText(R.string.please_enter_a_valid_email_address)
-                            return@ProPrimaryButton
-                        }
+                fun submit() {
+                    localErrorMessage = null
+                    val email = emailInput.trim().lowercase()
+                    val password = passwordInput
+                    if (creating) authViewModel.createAccount(email, password, afterPasswordAuth(email, password))
+                    else authViewModel.signIn(email, password, afterPasswordAuth(email, password))
+                }
+
+                InputField(
+                    value = passwordInput,
+                    onValueChange = {
+                        passwordInput = it
                         localErrorMessage = null
-                        authViewModel.startEmailSignIn(trimmedEmail) { delivery ->
-                            emailResendCountdownSeconds = EMAIL_RESEND_COOLDOWN_SECONDS
-                            step = when (delivery) {
-                                AuthViewModel.EmailDelivery.LINK -> AuthStep.EMAIL_LINK_SENT
-                                AuthViewModel.EmailDelivery.CODE -> {
-                                    emailOtpCode = ""
-                                    AuthStep.EMAIL_OTP
-                                }
-                            }
+                    },
+                    label = stringResource(if (creating) R.string.new_password else R.string.password),
+                    leadingIcon = Icons.Default.Key,
+                    trailingIcon = {
+                        IconButton(onClick = { showPassword = !showPassword }) {
+                            Icon(
+                                if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = stringResource(if (showPassword) R.string.hide_password else R.string.show_password)
+                            )
                         }
                     },
+                    visualTransformation = if (showPassword) androidx.compose.ui.text.input.VisualTransformation.None
+                        else androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .autofillHints(listOf(if (creating) androidx.compose.ui.autofill.AutofillType.NewPassword else androidx.compose.ui.autofill.AutofillType.Password)) { passwordInput = it }
+                        .testTag("auth_password_input"),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = androidx.compose.ui.text.input.ImeAction.Done),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { if (!isAuthenticating) submit() }),
+                    singleLine = true
+                )
+
+                if (creating) {
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                    PasswordChecklist(passwordInput)
+                } else {
+                    TextButton(
+                        onClick = { goTo(AuthStep.FORGOT_PASSWORD) },
+                        modifier = Modifier.align(Alignment.End).testTag("forgot_password_button")
+                    ) {
+                        Text(stringResource(R.string.forgot_password), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.md))
+
+                ProPrimaryButton(
+                    text = when {
+                        isAuthenticating && creating -> stringResource(R.string.creating_account)
+                        isAuthenticating -> stringResource(R.string.signing_in)
+                        creating -> stringResource(R.string.action_create_account)
+                        else -> stringResource(R.string.sign_in)
+                    },
+                    onClick = { submit() },
                     enabled = !isAuthenticating,
-                    icon = Icons.AutoMirrored.Filled.Login,
+                    icon = if (creating) Icons.Default.PersonAdd else Icons.AutoMirrored.Filled.Login,
                     modifier = Modifier.fillMaxWidth().testTag("submit_email_button")
                 )
 
-                Spacer(modifier = Modifier.height(Spacing.lg))
+                Spacer(modifier = Modifier.height(Spacing.sm))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        stringResource(if (creating) R.string.have_an_account else R.string.new_to_prohost),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    TextButton(
+                        onClick = { goTo(if (creating) AuthStep.SIGN_IN else AuthStep.CREATE_ACCOUNT) },
+                        modifier = Modifier.testTag("switch_auth_mode_button")
+                    ) {
+                        Text(
+                            stringResource(if (creating) R.string.sign_in else R.string.create_an_account),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.sm))
 
                 // OR divider
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     HorizontalDivider(modifier = Modifier.weight(1f))
                     Text(
@@ -394,111 +516,59 @@ fun LoginAuthScreen(
                     onClick = { launchGoogleSignIn() },
                     enabled = !isAuthenticating
                 )
-
             }
 
-            AuthStep.EMAIL_OTP -> ModernCard(
+            AuthStep.FORGOT_PASSWORD -> ModernCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
                 contentPadding = PaddingValues(20.dp),
                 elevation = Elevation.level2
             ) {
                 AuthStepHeader(
-                    icon = Icons.Default.MarkEmailRead,
-                    title = stringResource(R.string.check_your_email),
-                    subtitle = stringResource(R.string.we_sent_a_6_digit_code_to_x_enter_it_below, pendingEmail),
+                    icon = Icons.Default.LockReset,
+                    title = stringResource(R.string.reset_title),
+                    subtitle = stringResource(R.string.reset_subtitle),
                     isBusy = isAuthenticating
                 )
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
                 InputField(
-                    value = emailOtpCode,
-                    onValueChange = { emailOtpCode = it.filter { c -> c.isDigit() }.take(6) },
-                    label = stringResource(R.string.t_6_digit_code),
-                    leadingIcon = Icons.Default.Sms,
-                    modifier = Modifier.fillMaxWidth().testTag("email_otp_input"),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    value = emailInput,
+                    onValueChange = {
+                        emailInput = it.trim()
+                        localErrorMessage = null
+                    },
+                    label = stringResource(R.string.email_address),
+                    placeholder = stringResource(R.string.you_example_com),
+                    leadingIcon = Icons.Default.Email,
+                    modifier = Modifier.fillMaxWidth().testTag("reset_email_input"),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     singleLine = true
                 )
-
-                ProHostAlertBanner(message = stringResource(R.string.do_not_share_this_code_with_anyone), icon = Icons.Default.Lock, modifier = Modifier.padding(top = 8.dp))
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
                 ProPrimaryButton(
-                    text = if (isAuthenticating) stringResource(R.string.verifying) else stringResource(R.string.verify_code),
+                    text = if (isAuthenticating) stringResource(R.string.sending) else stringResource(R.string.send_reset_link),
                     onClick = {
-                        val currentActivity = activity
-                        if (currentActivity == null) {
-                            localErrorMessage = uiText(R.string.unable_to_verify_right_now)
-                            return@ProPrimaryButton
-                        }
-                        if (emailOtpCode.length < 6) {
-                            localErrorMessage = uiText(R.string.please_enter_the_6_digit_code)
-                            return@ProPrimaryButton
-                        }
-                        authViewModel.verifyEmailOtpCode(
-                            activity = currentActivity,
-                            email = pendingEmail,
-                            code = emailOtpCode
-                        ) { needsRegistration ->
-                            if (needsRegistration) goToRegistrationForm() else onLoginSuccess()
+                        localErrorMessage = null
+                        authViewModel.requestPasswordReset(emailInput) {
+                            emailResendCountdownSeconds = EMAIL_RESEND_COOLDOWN_SECONDS
+                            step = AuthStep.RESET_SENT
                         }
                     },
                     enabled = !isAuthenticating,
-                    icon = Icons.Default.CheckCircle,
-                    modifier = Modifier.fillMaxWidth().testTag("submit_email_otp_button")
+                    icon = Icons.AutoMirrored.Filled.Send,
+                    modifier = Modifier.fillMaxWidth().testTag("send_reset_button")
                 )
 
                 Spacer(modifier = Modifier.height(Spacing.sm))
 
-                if (emailResendCountdownSeconds > 0) {
-                    Text(
-                        text = stringResource(R.string.resend_code_in_xs, emailResendCountdownSeconds),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                } else {
-                    TextButton(
-                        onClick = {
-                            localErrorMessage = null
-                            authViewModel.sendEmailOtp(emailArg = pendingEmail) { sent ->
-                                if (sent) {
-                                    emailOtpCode = ""
-                                    emailResendCountdownSeconds = EMAIL_RESEND_COOLDOWN_SECONDS
-                                }
-                            }
-                        },
-                        enabled = !isAuthenticating,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(R.string.resend_code), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-
-                TextButton(
-                    onClick = {
-                        localErrorMessage = null
-                        authViewModel.clearAuthMessages()
-                        emailOtpCode = ""
-                        step = AuthStep.EMAIL_ENTRY
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text(
-                        stringResource(R.string.use_a_different_email),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                BackToSignIn { goTo(AuthStep.SIGN_IN) }
             }
 
-            AuthStep.EMAIL_LINK_SENT -> ModernCard(
+            AuthStep.RESET_SENT -> ModernCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
                 contentPadding = PaddingValues(20.dp),
@@ -507,19 +577,19 @@ fun LoginAuthScreen(
                 AuthStepHeader(
                     icon = Icons.Default.MarkEmailRead,
                     title = stringResource(R.string.check_your_email),
-                    subtitle = stringResource(R.string.we_sent_a_sign_in_link_to_x_tap_the_link_t, pendingEmail),
+                    subtitle = stringResource(R.string.reset_sent_body_x, emailInput),
                     isBusy = isAuthenticating
                 )
 
                 Spacer(modifier = Modifier.height(Spacing.lg))
 
-                ProHostAlertBanner(message = stringResource(R.string.the_link_expires_in_60_minutes_check_your))
+                ProHostAlertBanner(message = stringResource(R.string.reset_sent_hint))
 
-                Spacer(modifier = Modifier.height(Spacing.lg))
+                Spacer(modifier = Modifier.height(Spacing.md))
 
                 if (emailResendCountdownSeconds > 0) {
                     Text(
-                        text = stringResource(R.string.resend_link_in_xs, emailResendCountdownSeconds),
+                        text = stringResource(R.string.resend_in_xs, emailResendCountdownSeconds),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.fillMaxWidth(),
@@ -528,58 +598,18 @@ fun LoginAuthScreen(
                 } else {
                     TextButton(
                         onClick = {
-                            localErrorMessage = null
-                            authViewModel.sendEmailLinkViaFunction(emailArg = pendingEmail) { sent ->
-                                if (sent) emailResendCountdownSeconds = EMAIL_RESEND_COOLDOWN_SECONDS
+                            authViewModel.requestPasswordReset(emailInput) {
+                                emailResendCountdownSeconds = EMAIL_RESEND_COOLDOWN_SECONDS
                             }
                         },
                         enabled = !isAuthenticating,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(stringResource(R.string.resend_link), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.resend_reset_link), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                     }
                 }
 
-                TextButton(
-                    onClick = {
-                        localErrorMessage = null
-                        authViewModel.clearAuthMessages()
-                        authViewModel.sendEmailOtp(emailArg = pendingEmail) { sent ->
-                            if (sent) {
-                                emailOtpCode = ""
-                                emailResendCountdownSeconds = EMAIL_RESEND_COOLDOWN_SECONDS
-                                step = AuthStep.EMAIL_OTP
-                            }
-                        }
-                    },
-                    enabled = !isAuthenticating,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.Sms, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text(
-                        stringResource(R.string.use_a_code_instead),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                TextButton(
-                    onClick = {
-                        localErrorMessage = null
-                        authViewModel.clearAuthMessages()
-                        step = AuthStep.EMAIL_ENTRY
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text(
-                        stringResource(R.string.use_a_different_email),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                BackToSignIn { goTo(AuthStep.SIGN_IN) }
             }
 
             AuthStep.REGISTRATION_FORM -> ModernCard(
@@ -790,11 +820,6 @@ fun LoginAuthScreen(
                 ProPrimaryButton(
                     text = if (isAuthenticating) stringResource(R.string.creating_account) else stringResource(R.string.create_account),
                     onClick = {
-                        val currentActivity = activity
-                        if (currentActivity == null) {
-                            localErrorMessage = uiText(R.string.unable_to_create_your_account_right_now)
-                            return@ProPrimaryButton
-                        }
                         if (regFullName.isBlank()) {
                             localErrorMessage = uiText(R.string.please_enter_your_full_name)
                             return@ProPrimaryButton
@@ -831,7 +856,6 @@ fun LoginAuthScreen(
                             return@ProPrimaryButton
                         }
                         authViewModel.completePendingRegistration(
-                            activity = currentActivity,
                             registration = AuthViewModel.PendingRegistration(
                                 fullName = regFullName,
                                 email = registrationEmail,
@@ -857,11 +881,9 @@ fun LoginAuthScreen(
 
                 TextButton(
                     onClick = {
-                        com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+                        authViewModel.signOut()
                         emailInput = ""
-                        localErrorMessage = null
-                        authViewModel.clearAuthMessages()
-                        step = AuthStep.EMAIL_ENTRY
+                        goTo(AuthStep.SIGN_IN)
                         onCancelResume?.invoke()
                     },
                     enabled = !isAuthenticating
@@ -893,7 +915,7 @@ fun LoginAuthScreen(
                 )
                 Spacer(modifier = Modifier.width(Spacing.md))
                 Text(
-                    text = stringResource(R.string.sign_in_securely_with_a_magic_email_link_o),
+                    text = stringResource(R.string.auth_footer_secure),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -905,6 +927,45 @@ fun LoginAuthScreen(
 
     showLegalDocument?.let { doc ->
         com.example.ui.components.LegalDocumentDialog(document = doc, onDismiss = { showLegalDocument = null })
+    }
+}
+
+/** Live checklist under the new-password field, mirroring the server's password policy. */
+@Composable
+private fun PasswordChecklist(password: String) {
+    val check = com.example.util.PasswordRules.check(password)
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs), modifier = Modifier.fillMaxWidth().testTag("password_rules")) {
+        PasswordRule(check.longEnough, stringResource(R.string.password_rule_length))
+        PasswordRule(check.hasLowercase, stringResource(R.string.password_rule_lowercase))
+        PasswordRule(check.hasNumber, stringResource(R.string.password_rule_number))
+    }
+}
+
+@Composable
+private fun PasswordRule(met: Boolean, label: String) {
+    val color = if (met) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Icon(
+            if (met) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(16.dp)
+        )
+        Text(
+            label,
+            style = MaterialTheme.typography.bodySmall,
+            color = color,
+            modifier = Modifier.semantics { stateDescription = if (met) "✓" else "" }
+        )
+    }
+}
+
+@Composable
+private fun BackToSignIn(onClick: () -> Unit) {
+    TextButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
+        Spacer(modifier = Modifier.width(Spacing.xs))
+        Text(stringResource(R.string.back_to_sign_in), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
     }
 }
 

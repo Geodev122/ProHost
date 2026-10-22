@@ -512,48 +512,15 @@ open class FirebaseFunctionsClient {
     }
 
     /**
-     * Generates a Firebase Auth sign-in link server-side and emails it to [email]
-     * (functions/src/auth/emailLinkAuth.ts). Replaces sendEmailOtp for new sign-ins.
-     * The client completes sign-in via signInWithEmailLink after tapping the link.
+     * "Forgot password": our branded reset email (functions/src/auth/passwordReset.ts). The server
+     * answers ok whether or not an account exists, so this never reveals who has one.
      */
-    suspend fun sendSignInEmailLink(email: String): Result<Unit> {
+    open suspend fun sendPasswordResetLink(email: String): Result<Unit> {
         return try {
-            functions.getHttpsCallable("sendSignInEmailLink").call(mapOf("email" to email)).await()
+            functions.getHttpsCallable("sendPasswordResetLink").call(mapOf("email" to email)).await()
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(tag, "sendSignInEmailLink failed: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
-
-    /** Send a 6-digit email OTP to [email] (functions/src/auth/emailOtp.ts). */
-    suspend fun sendEmailOtp(email: String): Result<Unit> {
-        return try {
-            functions.getHttpsCallable("sendEmailOtp").call(mapOf("email" to email)).await()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(tag, "sendEmailOtp failed: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
-
-    /**
-     * Verifies the OTP code the user entered and returns a Firebase custom token
-     * (functions/src/auth/emailOtp.ts). Sign in with the returned token via
-     * [FirebaseAuthService.signInWithCustomToken].
-     */
-    suspend fun verifyEmailOtp(email: String, code: String): Result<String> {
-        return try {
-            val result = functions.getHttpsCallable("verifyEmailOtp")
-                .call(mapOf("email" to email, "code" to code))
-                .await()
-            @Suppress("UNCHECKED_CAST")
-            val data = result.data as? Map<String, Any?>
-            val token = data?.get("customToken") as? String
-                ?: return Result.failure(IllegalStateException("verifyEmailOtp returned no token."))
-            Result.success(token)
-        } catch (e: Exception) {
-            Log.e(tag, "verifyEmailOtp failed: ${e.message}", e)
+            Log.w(tag, "sendPasswordResetLink failed: ${(e as? com.google.firebase.functions.FirebaseFunctionsException)?.code}")
             Result.failure(e)
         }
     }

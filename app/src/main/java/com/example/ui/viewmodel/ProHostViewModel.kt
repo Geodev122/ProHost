@@ -264,6 +264,39 @@ class ProHostViewModel(
         }
     }
 
+    // Email + password accounts whose address isn't confirmed yet (Profile shows a reminder).
+    private val _needsEmailVerification = MutableStateFlow(false)
+    val needsEmailVerification: StateFlow<Boolean> = _needsEmailVerification.asStateFlow()
+
+    /** Screenshot tests only: show Profile's "Verify your email" reminder. */
+    @androidx.annotation.VisibleForTesting
+    internal fun showEmailVerificationReminderForTest() { _needsEmailVerification.value = true }
+
+    /**
+     * On app resume: reloads the Firebase user; once the person tapped the verification link, the
+     * refreshed token carries email_verified and assignInitialRole mirrors it onto the profile.
+     * Never blocks anything — email is not a requirement.
+     */
+    fun refreshEmailVerification(context: android.content.Context) {
+        val appContext = context.applicationContext
+        viewModelScope.launch {
+            try {
+                val auth = com.example.data.auth.FirebaseAuthService(appContext)
+                if (!auth.usesPassword || currentUser.value?.emailVerified == true) {
+                    _needsEmailVerification.value = false
+                    return@launch
+                }
+                val verified = auth.refreshEmailVerified()
+                if (verified) functionsClient.ensureInitialRole()
+                _needsEmailVerification.value = !verified
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.w("ProHostViewModel", "email verification refresh failed: ${e.message}")
+            }
+        }
+    }
+
     fun resendEmailVerification(context: android.content.Context) {
         val appContext = context.applicationContext
         viewModelScope.launch {

@@ -1,0 +1,72 @@
+<en-US>
+What's new in ProHost 1.0.44
+• Sign in with your email and a password, or with Google
+• Forgot your password? Get a reset link by email in seconds
+• Used to sign in with an email code? Tap "Forgot password" to set a password: your account and listings stay the same
+• Android can save your password and fill it in next time
+• A reminder in Profile to confirm your email address
+• Stronger app-integrity checks to keep accounts safe
+</en-US>
+<ar>
+الجديد في ProHost 1.0.44
+• سجّل الدخول ببريدك الإلكتروني وكلمة مرور، أو بحساب Google
+• نسيت كلمة المرور؟ يصلك رابط لإعادة تعيينها بالبريد خلال ثوانٍ
+• كنت تدخل برمز يصلك بالبريد؟ اضغط "نسيت كلمة المرور" لتعيين كلمة مرور، ويبقى حسابك وإعلاناتك كما هي
+• يمكن لأندرويد حفظ كلمة المرور وملؤها في المرة القادمة
+• تذكير في الملف الشخصي لتأكيد بريدك الإلكتروني
+• فحوص أقوى لسلامة التطبيق لحماية الحسابات
+</ar>
+<fr-FR>
+Nouveautés de ProHost 1.0.44
+• Connexion avec e-mail et mot de passe, ou avec Google
+• Mot de passe oublié ? Recevez un lien de réinitialisation par e-mail
+• Vous utilisiez un code par e-mail ? Touchez « Mot de passe oublié » pour en créer un : compte et annonces inchangés
+• Android peut enregistrer et remplir votre mot de passe
+• Un rappel dans Profil pour confirmer votre e-mail
+• Contrôles d'intégrité renforcés pour protéger les comptes
+</fr-FR>
+<es-ES>
+Novedades de ProHost 1.0.44
+• Inicia sesión con tu correo y una contraseña, o con Google
+• ¿Olvidaste la contraseña? Recibe un enlace para restablecerla por correo
+• ¿Entrabas con un código por correo? Toca «¿Olvidaste la contraseña?» para crear una: tu cuenta y anuncios no cambian
+• Android puede guardar tu contraseña y rellenarla la próxima vez
+• Un recordatorio en Perfil para confirmar tu correo
+• Comprobaciones de integridad más fuertes para proteger las cuentas
+</es-ES>
+<de-DE>
+Neu in ProHost 1.0.44
+• Anmelden mit E-Mail und Passwort oder mit Google
+• Passwort vergessen? Ein Link zum Zurücksetzen kommt per E-Mail
+• Bisher mit E-Mail-Code angemeldet? Tippe auf „Passwort vergessen“, um eins festzulegen – Konto und Inserate bleiben
+• Android kann dein Passwort speichern und ausfüllen
+• Eine Erinnerung im Profil, deine E-Mail zu bestätigen
+• Stärkere App-Integritätsprüfungen zum Schutz der Konten
+</de-DE>
+<it-IT>
+Novità di ProHost 1.0.44
+• Accedi con email e password, oppure con Google
+• Password dimenticata? Ricevi via email un link per reimpostarla
+• Accedevi con un codice via email? Tocca «Password dimenticata» per crearne una: account e annunci restano uguali
+• Android può salvare la password e compilarla la prossima volta
+• Un promemoria nel Profilo per confermare la tua email
+• Controlli di integrità più forti per proteggere gli account
+</it-IT>
+<pt-BR>
+Novidades do ProHost 1.0.44
+• Entre com seu e-mail e uma senha, ou com o Google
+• Esqueceu a senha? Receba um link para redefini-la por e-mail
+• Entrava com um código por e-mail? Toque em "Esqueci a senha" para criar uma: sua conta e anúncios continuam iguais
+• O Android pode salvar sua senha e preenchê-la na próxima vez
+• Um lembrete no Perfil para confirmar seu e-mail
+• Verificações de integridade mais fortes para proteger as contas
+</pt-BR>
+<tr-TR>
+ProHost 1.0.44'te yenilikler
+• E-posta ve şifreyle ya da Google ile giriş yapın
+• Şifrenizi mi unuttunuz? Sıfırlama bağlantısı e-postanıza gelir
+• E-posta koduyla mı giriyordunuz? Şifre belirlemek için "Şifremi unuttum"a dokunun: hesabınız ve ilanlarınız aynı kalır
+• Android şifrenizi kaydedip bir dahaki sefere doldurabilir
+• Profil'de e-postanızı doğrulamanız için bir hatırlatma
+• Hesapları korumak için daha güçlü uygulama bütünlüğü kontrolleri
+</tr-TR>

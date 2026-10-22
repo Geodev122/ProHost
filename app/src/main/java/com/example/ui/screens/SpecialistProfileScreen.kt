@@ -61,6 +61,7 @@ fun SpecialistProfileScreen(
     onSignOut: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
+    val needsEmailVerification by viewModel.needsEmailVerification.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val currentUser by viewModel.currentUser.collectAsState()
 
@@ -163,6 +164,22 @@ fun SpecialistProfileScreen(
                     com.example.ui.components.KycCompletionBanner(
                         user = user,
                         onComplete = { showRequirementsSheet = true }
+                    )
+                }
+            }
+            // Email + password accounts that haven't confirmed their address yet: a reminder, never a gate.
+            if (needsEmailVerification && !user.emailVerified) {
+                item {
+                    ProHostAlertBanner(
+                        title = stringResource(R.string.verify_email_title),
+                        message = stringResource(R.string.verify_email_body_x, user.email),
+                        icon = Icons.Default.MarkEmailUnread,
+                        modifier = Modifier.testTag("verify_email_banner"),
+                        action = {
+                            TextButton(onClick = { viewModel.resendEmailVerification(context) }) {
+                                Text(stringResource(R.string.resend_verification), fontWeight = FontWeight.SemiBold)
+                            }
+                        }
                     )
                 }
             }

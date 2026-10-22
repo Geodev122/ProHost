@@ -2,36 +2,23 @@ package com.example.data.auth
 
 import android.content.Context
 import android.util.Log
+import com.example.analytics.AnalyticsTracker
 import com.google.android.gms.tasks.Task
 import com.google.firebase.FirebaseApp
-import com.google.firebase.auth.ActionCodeSettings
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-sealed class AuthResult {
-    data class Success(
-        val firebaseUser: FirebaseUser? = null,
-        val email: String = "",
-        val displayName: String? = null,
-        val photoUrl: String? = null,
-        val isNewUser: Boolean = false
-    ) : AuthResult()
-
-    /** Lightweight failure used by the email and Google methods. */
-    data class Failure(val message: String) : AuthResult()
-    data class Error(val message: String, val throwable: Throwable? = null) : AuthResult()
-    data object Cancelled : AuthResult()
-}
-
 /**
- * Service encapsulating Firebase Auth operations (email link, Google, custom token).
- * There is no phone/SMS sign-in or verification: the WhatsApp number is saved to the profile.
+ * Firebase Authentication: email + password (sign up, sign in, reset) and Google. There is no
+ * magic link, emailed code or phone sign-in any more (retired in 1.0.44).
  */
-class FirebaseAuthService(private val context: Context) {
+class FirebaseAuthService(private val context: Context) : AuthGateway {
 
     private val tag = "FirebaseAuthService"
 
@@ -57,6 +44,11 @@ class FirebaseAuthService(private val context: Context) {
     val isUserSignedIn: Boolean
         get() = currentFirebaseUser != null
 
+    override val signedInUid: String? get() = currentFirebaseUser?.uid
+
+    override val usesPassword: Boolean
+        get() = currentFirebaseUser?.providerData?.any { it.providerId == "password" } == true
+
     private suspend fun <T> Task<T>.awaitTask(): T = suspendCancellableCoroutine { cont ->
         addOnSuccessListener { result ->
             if (cont.isActive) cont.resume(result)
@@ -69,86 +61,55 @@ class FirebaseAuthService(private val context: Context) {
         }
     }
 
-    // --- Email / Google sign-in methods ---
-
-    suspend fun signInWithGoogleCredential(googleIdToken: String): AuthResult {
-        val auth = firebaseAuth
-            ?: return AuthResult.Failure("Authentication service unavailable.")
+    private suspend fun run(block: suspend (FirebaseAuth) -> AuthOutcome): AuthOutcome {
+        val auth = firebaseAuth ?: return AuthOutcome.Failure(AuthError.UNAVAILABLE, "no_firebase")
         return try {
-            val credential = GoogleAuthProvider.getCredential(googleIdToken, null)
-            val result = auth.signInWithCredential(credential).awaitTask()
-            val isNewUser = result.additionalUserInfo?.isNewUser ?: false
-            AuthResult.Success(isNewUser = isNewUser)
+            block(auth)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            AuthResult.Failure(e.message ?: "Google sign-in failed")
+            val code = (e as? FirebaseAuthException)?.errorCode ?: AnalyticsTracker.errorCode(e)
+            Log.w(tag, "auth call failed ($code)")
+            AuthOutcome.Failure(AuthError.from(e), code)
         }
     }
 
-    /** Firebase Auth's own mailer. The failure carries the real reason (logged, never shown raw). */
-    suspend fun sendSignInLinkToEmail(email: String, continueUrl: String): Result<Unit> {
-        val auth = firebaseAuth ?: return Result.failure(IllegalStateException("Authentication service unavailable"))
-        return try {
-            val settings = ActionCodeSettings.newBuilder()
-                .setUrl(continueUrl)
-                .setHandleCodeInApp(true)
-                .setAndroidPackageName("app.geonajjar.prohost", true, "24")
-                .build()
-            auth.sendSignInLinkToEmail(email, settings).awaitTask()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            if (e is kotlinx.coroutines.CancellationException) throw e
-            Log.w(tag, "sendSignInLinkToEmail failed (${(e as? com.google.firebase.auth.FirebaseAuthException)?.errorCode}): ${e.message}")
-            Result.failure(e)
-        }
+    override suspend fun signInWithPassword(email: String, password: String): AuthOutcome = run { auth ->
+        auth.signInWithEmailAndPassword(email, password).awaitTask()
+        AuthOutcome.Success(isNewUser = false)
     }
 
-    suspend fun signInWithEmailLink(email: String, emailLink: String): AuthResult {
-        val auth = firebaseAuth
-            ?: return AuthResult.Failure("Authentication service unavailable.")
-        return try {
-            val result = auth.signInWithEmailLink(email, emailLink).awaitTask()
-            val isNewUser = result.additionalUserInfo?.isNewUser ?: false
-            AuthResult.Success(isNewUser = isNewUser)
-        } catch (e: Exception) {
-            AuthResult.Failure(e.message ?: "Email sign-in failed")
-        }
+    override suspend fun createAccount(email: String, password: String): AuthOutcome = run { auth ->
+        auth.createUserWithEmailAndPassword(email, password).awaitTask()
+        AuthOutcome.Success(isNewUser = true)
     }
 
-    fun isSignInWithEmailLink(link: String): Boolean {
+    override suspend fun signInWithGoogle(idToken: String): AuthOutcome = run { auth ->
+        val result = auth.signInWithCredential(GoogleAuthProvider.getCredential(idToken, null)).awaitTask()
+        AuthOutcome.Success(isNewUser = result.additionalUserInfo?.isNewUser ?: false)
+    }
+
+    override suspend fun sendPasswordResetEmail(email: String): AuthOutcome = run { auth ->
+        auth.sendPasswordResetEmail(email).awaitTask()
+        AuthOutcome.Success(isNewUser = false)
+    }
+
+    override suspend fun refreshEmailVerified(): Boolean {
+        val user = currentFirebaseUser ?: return false
         return try {
-            firebaseAuth?.isSignInWithEmailLink(link) ?: false
+            user.reload().awaitTask()
+            val verified = firebaseAuth?.currentUser?.isEmailVerified == true
+            // The ID token only carries email_verified after a refresh; the server mirrors it from there.
+            if (verified) firebaseAuth?.currentUser?.getIdToken(true)?.awaitTask()
+            verified
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             false
         }
     }
 
-    @Suppress("DEPRECATION")
-    suspend fun fetchSignInMethodsForEmail(email: String): List<String> {
-        val auth = firebaseAuth ?: return emptyList()
-        return try {
-            auth.fetchSignInMethodsForEmail(email).awaitTask().signInMethods ?: emptyList()
-        } catch (e: Exception) {
-            emptyList()
-        }
-    }
-
-    suspend fun signInWithEmailAndPassword(email: String, password: String) {
-        val auth = firebaseAuth ?: throw Exception("Authentication service unavailable.")
-        auth.signInWithEmailAndPassword(email, password).awaitTask()
-    }
-
-    suspend fun signInWithCustomToken(token: String): AuthResult {
-        val auth = firebaseAuth ?: return AuthResult.Failure("Authentication service unavailable.")
-        return try {
-            val result = auth.signInWithCustomToken(token).awaitTask()
-            val isNewUser = result.additionalUserInfo?.isNewUser ?: false
-            AuthResult.Success(isNewUser = isNewUser)
-        } catch (e: Exception) {
-            AuthResult.Failure(e.message ?: "Sign-in failed")
-        }
-    }
-
-    fun signOut() {
+    override fun signOut() {
         try {
             firebaseAuth?.signOut()
         } catch (e: Exception) {

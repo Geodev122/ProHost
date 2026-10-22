@@ -46,9 +46,9 @@ class AnalyticsTrackerTest {
     @Test
     fun `events flow once consent is granted`() {
         AnalyticsTracker.applyConsent(granted = true, reset = false)
-        AnalyticsTracker.login("email_link")
+        AnalyticsTracker.login("password")
         assertEquals(Event.LOGIN, sink.events.single().first)
-        assertEquals("email_link", sink.events.single().second[Param.METHOD])
+        assertEquals("password", sink.events.single().second[Param.METHOD])
     }
 
     @Test
