@@ -16,6 +16,9 @@ on:
         required: false
         default: ""
 
+permissions:
+  contents: write
+
 concurrency: production-maintenance
 
 jobs:
@@ -56,3 +59,13 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: node scripts/maintenance/run.js "$TASK" "$CODE"
+
+      - name: Commit saved marketing files (igmedia)
+        if: ${{ inputs.task == 'igmedia' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add marketing/live
+          git diff --cached --quiet && { echo "No changes"; exit 0; }
+          git commit -m "igmedia: current posts of the Instagram account (for design analysis)"
+          git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME"

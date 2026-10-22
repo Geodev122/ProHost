@@ -1032,9 +1032,23 @@ async function igmedia(db) {
   rows.forEach((m, i) => {
     const kids = (m.children && m.children.data) || [];
     notice(`#${i + 1} ${m.media_type}/${m.media_product_type || "-"} ${m.timestamp} likes=${m.like_count ?? "-"} comments=${m.comments_count ?? "-"} slides=${kids.length || 1} ${m.permalink} caption="${String(m.caption || "").replace(/\n/g, " ⏎ ").slice(0, 700)}"`);
-    notice(`#${i + 1} image: ${m.media_url || m.thumbnail_url || "-"}`);
-    kids.forEach((k, j) => notice(`#${i + 1}.${j + 1} ${k.media_type}: ${k.media_url}`));
+    kids.forEach((k, j) => notice(`#${i + 1}.${j + 1} ${k.media_type}`));
   });
+  // Save the pictures into the repo (the workflow commits marketing/live) so the design can be studied; the CDN is not reachable from the sandbox.
+  const fs = require("fs");
+  const dir = path.join(__dirname, "../../marketing/live");
+  fs.mkdirSync(dir, { recursive: true });
+  const files = [];
+  rows.forEach((m, i) => {
+    const kids = (m.children && m.children.data) || [];
+    (kids.length ? kids : [m]).forEach((k, j) => files.push({ url: k.media_url || k.thumbnail_url, name: `post${String(i + 1).padStart(2, "0")}${kids.length ? `-slide${j + 1}` : ""}.${k.media_type === "VIDEO" ? "mp4" : "jpg"}` }));
+  });
+  for (const f of files) {
+    if (!f.url) continue;
+    const r = await fetch(f.url);
+    fs.writeFileSync(path.join(dir, f.name), Buffer.from(await r.arrayBuffer()));
+    notice(`saved marketing/live/${f.name} (${r.status})`);
+  }
   try {
     const lim = await get(`${G}/${cfg.igUserId}/content_publishing_limit?fields=quota_usage,config`);
     notice(`publishing: ALLOWED (limit info ${JSON.stringify(lim.data || lim)})`);
