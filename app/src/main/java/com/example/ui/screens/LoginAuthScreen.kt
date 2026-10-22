@@ -268,18 +268,24 @@ fun LoginAuthScreen(
 
     // Offers the password manager to save what the person just signed in / signed up with
     // (Credential Manager; they can dismiss it). Never blocks the sign-in.
-    fun offerToSavePassword(email: String, password: String) {
-        val cm = credentialManager ?: return
-        val act = activity ?: return
-        coroutineScope.launch {
-            runCatching { cm.createCredential(act, androidx.credentials.CreatePasswordRequest(email, password)) }
-        }
-    }
-
+    // Offers to save the password (Credential Manager), then continues. The offer is awaited first:
+    // leaving the screen cancels this composable's scope, which would close the prompt.
     fun afterPasswordAuth(email: String, password: String): (Boolean) -> Unit = { needsRegistration ->
-        offerToSavePassword(email, password)
         passwordInput = ""
-        if (needsRegistration) goToRegistrationForm() else onLoginSuccess()
+        coroutineScope.launch {
+            val cm = credentialManager
+            val act = activity
+            if (cm != null && act != null) {
+                try {
+                    cm.createCredential(act, androidx.credentials.CreatePasswordRequest(email, password))
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // Dismissed, or no password manager on this device: nothing to save.
+                }
+            }
+            if (needsRegistration) goToRegistrationForm() else onLoginSuccess()
+        }
     }
 
     // Returning people: offer a saved password or an already-used Google account once when the
