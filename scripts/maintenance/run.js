@@ -28,6 +28,8 @@
 //   node scripts/maintenance/run.js igtest           Instagram pipeline test in dry-run: posts a signed synthetic comment ("link please"), a story reply, a text-less story reaction and a
 //                                                    STOP DM from a fake person to /ig-webhook, waits for the engine's decision
 //                                                    and prints what it would send. Refuses unless mode is dry-run. Sends nothing.
+//   node scripts/maintenance/run.js igmedia         read-only: the account's latest posts (type, slides, caption, permalink, a temporary image URL) and whether
+//                                                    the token may publish (content_publishing_limit); used to analyse the live grid
 //   node scripts/maintenance/run.js aiprobe         which Claude model/region the project can call on Vertex AI (functions service account)
 //   node scripts/maintenance/run.js geminiprobe     which Gemini Flash-Lite models the GEMINI_API_KEY secret can call (answers a test in Arabic)
 //   node scripts/maintenance/run.js aitest [MODEL]  runs the DM agent prompt on sample questions through Gemini (nothing is sent anywhere)
@@ -1014,6 +1016,33 @@ async function aitest(arg, db) {
   notice(`flow helpers: no=${isNo("no")} email=${findEmail("it's a@b.co")} exit=${isExitIntent("thanks")}`);
 }
 
+async function igmedia(db) {
+  const cfg = (await db.collection("app_config").doc("instagram").get()).data() || {};
+  if (!cfg.accessToken || !cfg.igUserId) throw new Error("run igsetup first");
+  const G = "https://graph.instagram.com/v23.0";
+  const get = async (u) => {
+    const r = await fetch(u, { headers: { Authorization: `Bearer ${cfg.accessToken}` } });
+    const j = await r.json().catch(() => ({}));
+    if (j.error) throw new Error(`${j.error.code || r.status}: ${j.error.message}`);
+    return j;
+  };
+  const list = await get(`${G}/${cfg.igUserId}/media?fields=id,media_type,media_product_type,caption,permalink,timestamp,media_url,thumbnail_url,like_count,comments_count,children{media_type,media_url}&limit=12`);
+  const rows = list.data || [];
+  notice(`posts on the account: ${rows.length}`);
+  rows.forEach((m, i) => {
+    const kids = (m.children && m.children.data) || [];
+    notice(`#${i + 1} ${m.media_type}/${m.media_product_type || "-"} ${m.timestamp} likes=${m.like_count ?? "-"} comments=${m.comments_count ?? "-"} slides=${kids.length || 1} ${m.permalink} caption="${String(m.caption || "").replace(/\n/g, " ⏎ ").slice(0, 700)}"`);
+    notice(`#${i + 1} image: ${m.media_url || m.thumbnail_url || "-"}`);
+    kids.forEach((k, j) => notice(`#${i + 1}.${j + 1} ${k.media_type}: ${k.media_url}`));
+  });
+  try {
+    const lim = await get(`${G}/${cfg.igUserId}/content_publishing_limit?fields=quota_usage,config`);
+    notice(`publishing: ALLOWED (limit info ${JSON.stringify(lim.data || lim)})`);
+  } catch (e) {
+    notice(`publishing: NOT confirmed (${String(e.message).slice(0, 220)}). If this mentions permission/scope, add instagram_business_content_publish to the Meta app and regenerate the token.`);
+  }
+}
+
 async function aiprobe(db) {
   const rows = await serverTask(db, "aiProbe");
   rows.forEach((r) => notice(`${r.ok ? "✓" : "✗"} ${r.model} @ ${r.region}: ${r.detail}`));
@@ -1186,6 +1215,7 @@ async function smsauth(db, arg) {
   else if (task === "igsetup") await igsetup(db, arg);
   else if (task === "igsmoke") await igsmoke(db);
   else if (task === "igtest") await igtest(db);
+  else if (task === "igmedia") await igmedia(db);
   else if (task === "aiprobe") await aiprobe(db);
   else if (task === "geminiprobe") await geminiprobe();
   else if (task === "aitest") await aitest(arg, db);
