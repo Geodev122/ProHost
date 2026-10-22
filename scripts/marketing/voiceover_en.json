@@ -284,6 +284,39 @@
           "text": "Download ProHost today. Your first four months of Premium are free."
         }
       ]
+    },
+    {
+      "id": "story_dm_agent",
+      "voice": "Sulafat",
+      "gender": "female",
+      "length": 18.0,
+      "persona": "Warm, bright British woman in her late 20s, introducing the ProHost smart assistant to one viewer like a friend.",
+      "lines": [
+        {
+          "at": 0.3,
+          "end": 3.4,
+          "style": "Curious and friendly, a natural rising question to the viewer.",
+          "text": "Got a question about renting a space?"
+        },
+        {
+          "at": 3.7,
+          "end": 8.6,
+          "style": "Warm, easy and upbeat, like sharing a handy tip with a friend.",
+          "text": "Just message ProHost. Our smart assistant replies in seconds."
+        },
+        {
+          "at": 8.9,
+          "end": 13.2,
+          "style": "Brisk, friendly and clear; a little lift on each of the three topics.",
+          "text": "In your language. How to list, how to book, what's new in the app."
+        },
+        {
+          "at": 13.5,
+          "end": 17.6,
+          "style": "Smiling invitation straight to the viewer, confident and warm.",
+          "text": "Tap Send message, and ask us anything."
+        }
+      ]
     }
   ]
 }

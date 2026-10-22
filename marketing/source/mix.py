@@ -17,7 +17,8 @@ import numpy as np
 
 HERE = pathlib.Path(__file__).parent
 ROOT = HERE.parent
-SR, LENGTH = 48000, 16.0
+SR = 48000
+LENGTH = float(__import__("os").environ.get("LENGTH", 16.0))
 _env = __import__("os").environ
 VIDEOS = pathlib.Path(_env.get("VIDEOS", HERE / "out"))  # silent renders from render.py
 VOICE = _env.get("VOICE")                                # e.g. "voice_en" or "voice" (Lebanese Arabic)

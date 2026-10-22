@@ -253,7 +253,7 @@ def main():
             chains.append(f"[{k}:a]adelay={ms}|{ms}[d{k}]")
         mix = "".join(f"[d{k}]" for k in range(len(placed)))
         graph = ";".join(chains) + f";{mix}amix=inputs={len(placed)}:normalize=0,apad," \
-                f"atrim=0:{LENGTH},loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000,atrim=0:{LENGTH}[out]"
+                f"atrim=0:{p.get('length', LENGTH)},loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000,atrim=0:{p.get('length', LENGTH)}[out]"
         wav_out = OUT / f"{p['id']}_voice.wav"
         ff(*inputs, "-filter_complex", graph, "-map", "[out]", "-ac", "2", "-ar", "48000", str(wav_out))
         ff("-i", str(wav_out), "-c:a", "libmp3lame", "-b:a", "192k", str(OUT / f"{p['id']}_voice.mp3"))
