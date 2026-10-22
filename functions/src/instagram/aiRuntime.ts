@@ -34,7 +34,8 @@ const dayKey = (now: number) => new Date(now).toISOString().slice(0, 10).replace
 export async function aiDecide(config: IgConfig, event: IgEvent, now: number, f?: typeof fetch): Promise<Decision | null> {
   const ai = config.ai;
   if (!ai.enabled) return null;
-  if (ai.provider === "anthropic" && !config.anthropicKey) return ignored("AI agent: no Anthropic key configured");
+  const apiKey = ai.provider === "gemini" ? config.geminiKey : ai.provider === "anthropic" ? config.anthropicKey : "";
+  if (ai.provider !== "vertex" && !apiKey) return ignored(`AI agent: no ${ai.provider} key configured (run igsetup with the GitHub secret)`);
   const db = getFirestore();
   const threadRef = db.collection("ig_threads").doc(event.senderId);
   const thread = (await threadRef.get()).data() ?? {};
@@ -45,7 +46,7 @@ export async function aiDecide(config: IgConfig, event: IgEvent, now: number, f?
   const dayRef = db.collection("ig_stats").doc("ai_" + dayKey(now));
   if ((Number((await dayRef.get()).data()?.calls) || 0) >= ai.dailyCap) return ignored(`AI agent: daily cap of ${ai.dailyCap} replies reached`);
 
-  const cfg: AiConfig = { provider: ai.provider, model: ai.model, region: ai.region, apiKey: config.anthropicKey };
+  const cfg: AiConfig = { provider: ai.provider, model: ai.model, region: ai.region, apiKey };
   let run;
   try {
     run = await runAgent(cfg, await loadKnowledge(now), turns, event.text, f);

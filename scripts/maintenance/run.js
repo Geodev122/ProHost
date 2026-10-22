@@ -29,6 +29,7 @@
 //                                                    STOP DM from a fake person to /ig-webhook, waits for the engine's decision
 //                                                    and prints what it would send. Refuses unless mode is dry-run. Sends nothing.
 //   node scripts/maintenance/run.js aiprobe         which Claude model/region the project can call on Vertex AI (functions service account)
+//   node scripts/maintenance/run.js geminiprobe     which Gemini Flash-Lite models the GEMINI_API_KEY secret can call (answers a test in Arabic)
 //   node scripts/maintenance/run.js prodcheck        production readiness (read-only apart from one RTDN self-test
 //                                                    message): deployed functions + indexes, public pages, Play catalog
 //                                                    as this account sees it, RTDN topic → function, then the audit
@@ -724,8 +725,10 @@ async function igsetup(db, sheetId) {
     mode: current.mode === "live" ? "live" : "dry-run", killSwitch: Boolean(current.killSwitch),
     ...(sheetId ? { sheetId: sheetId.trim() } : {}),
     ...(process.env.ANTHROPIC_API_KEY ? { anthropicKey: process.env.ANTHROPIC_API_KEY } : {}),
+    ...(process.env.GEMINI_API_KEY ? { geminiKey: process.env.GEMINI_API_KEY } : {}),
   }, { merge: true });
   if (process.env.ANTHROPIC_API_KEY) notice("Anthropic API key stored (only used when ai_provider = anthropic)");
+  if (process.env.GEMINI_API_KEY) notice("Gemini API key stored (only used when ai_provider = gemini)");
   notice(`app_config/instagram saved (mode ${current.mode === "live" ? "live" : "dry-run"}${sheetId ? ", sheet linked" : current.sheetId ? ", sheet already linked" : ", NO sheet linked yet"})`);
 
   try {
@@ -911,6 +914,28 @@ async function aiquota(db, arg) {
   res.rows.forEach((r) => notice(`QUOTA ${r.quotaId} | ${JSON.stringify(r.dimensions)} | value=${r.value} ${r.unit} | raw=${r.raw}`));
 }
 
+// Gemini API (AI Studio key from the GEMINI_API_KEY GitHub secret): lists the Flash-Lite models this key can use and
+// asks each one for a small JSON answer in Arabic, so the model name, access and free-tier limits are proven live.
+async function geminiprobe() {
+  const key = process.env.GEMINI_API_KEY || "";
+  if (!key) throw new Error("GEMINI_API_KEY GitHub secret is missing");
+  const list = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", { headers: { "x-goog-api-key": key } });
+  const lj = await list.json().catch(() => ({}));
+  if (!list.ok) throw new Error(`models list HTTP ${list.status}: ${String((lj.error && lj.error.message) || "").slice(0, 200)}`);
+  const names = (lj.models || []).map((m) => String(m.name).replace(/^models\//, "")).filter((n) => /gemini/.test(n) && !/embedding|image|tts|live|audio/.test(n));
+  notice(`key works: ${names.length} Gemini text model(s); flash-lite: ${names.filter((n) => /flash-lite/.test(n)).join(", ") || "none"}`);
+  const tryModels = names.filter((n) => /flash-lite/.test(n)).slice(0, 4).concat(names.filter((n) => /flash/.test(n) && !/lite/.test(n)).slice(0, 2));
+  for (const model of tryModels) {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+      body: JSON.stringify({ systemInstruction: { parts: [{ text: "Reply in the same language as the user. Return only JSON {\"reply\": string}." }] }, contents: [{ role: "user", parts: [{ text: "كيف أحمّل التطبيق؟" }] }], generationConfig: { maxOutputTokens: 120, responseMimeType: "application/json" } }),
+    });
+    const j = await r.json().catch(() => ({}));
+    const text = (((j.candidates || [])[0] || {}).content || {}).parts ? j.candidates[0].content.parts.map((p) => p.text || "").join("") : "";
+    notice(`${r.ok ? "✓" : "✗"} ${model}: ${r.ok ? text.slice(0, 120) + ` (in ${(j.usageMetadata || {}).promptTokenCount}, out ${(j.usageMetadata || {}).candidatesTokenCount})` : `${r.status} ${String((j.error && j.error.message) || "").slice(0, 220)}`}`);
+  }
+}
+
 async function aiprobe(db) {
   const rows = await serverTask(db, "aiProbe");
   rows.forEach((r) => notice(`${r.ok ? "✓" : "✗"} ${r.model} @ ${r.region}: ${r.detail}`));
@@ -1084,6 +1109,7 @@ async function smsauth(db, arg) {
   else if (task === "igsmoke") await igsmoke(db);
   else if (task === "igtest") await igtest(db);
   else if (task === "aiprobe") await aiprobe(db);
+  else if (task === "geminiprobe") await geminiprobe();
   else if (task === "aiquota") await aiquota(db, arg);
   else if (task === "playcatalog") await playcatalog(db);
   else if (task === "smsauth") await smsauth(db, arg);

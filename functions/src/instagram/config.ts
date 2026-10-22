@@ -25,12 +25,14 @@ export interface IgConfig {
   sheetId: string;
   /** Only for provider "anthropic" (Vertex needs no key: the functions' service account is used). */
   anthropicKey: string;
+  /** Gemini API key from Google AI Studio (provider "gemini"). */
+  geminiKey: string;
   ai: AiSettings;
 }
 
 export interface AiSettings {
   enabled: boolean;
-  provider: "vertex" | "anthropic";
+  provider: "vertex" | "anthropic" | "gemini";
   model: string;
   region: string;
   dailyCap: number;
@@ -49,7 +51,7 @@ export function parseConfig(d: Record<string, unknown> | undefined): IgConfig {
     igUserId: str(d?.igUserId), username: str(d?.username), tokenExpiresAt: Number(d?.tokenExpiresAt) || 0,
     mode: d?.mode === "live" ? "live" : "dry-run",
     killSwitch: Boolean(d?.killSwitch),
-    adminEmail: str(d?.adminEmail) || "admin@pro-host.tech", sheetId: str(d?.sheetId), anthropicKey: str(d?.anthropicKey), ai: { ...DEFAULT_AI, ...((d?.ai ?? {}) as Partial<AiSettings>) },
+    adminEmail: str(d?.adminEmail) || "admin@pro-host.tech", sheetId: str(d?.sheetId), anthropicKey: str(d?.anthropicKey), geminiKey: str(d?.geminiKey), ai: { ...DEFAULT_AI, ...((d?.ai ?? {}) as Partial<AiSettings>) },
     settings: { ...DEFAULT_SETTINGS, ...s, vars: { ...DEFAULT_SETTINGS.vars, ...(s.vars ?? {}) } },
   };
 }

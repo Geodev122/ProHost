@@ -105,7 +105,7 @@ export function aiFromStatus(status: Map<string, string>): Record<string, unknow
   const out: Record<string, unknown> = {};
   const t = (k: string) => (status.get(k) ?? "").trim();
   out.enabled = /^(true|yes|1|on)$/i.test(t("ai_enabled"));
-  if (t("ai_provider") === "anthropic" || t("ai_provider") === "vertex") out.provider = t("ai_provider");
+  if (["anthropic", "vertex", "gemini"].includes(t("ai_provider"))) out.provider = t("ai_provider");
   if (/^[A-Za-z0-9@._-]{3,80}$/.test(t("ai_model"))) out.model = t("ai_model");
   if (/^[a-z0-9-]{3,30}$/.test(t("ai_region"))) out.region = t("ai_region");
   const cap = Number(t("ai_daily_cap")); if (t("ai_daily_cap") && Number.isFinite(cap) && cap >= 1 && cap <= 5000) out.dailyCap = Math.round(cap);

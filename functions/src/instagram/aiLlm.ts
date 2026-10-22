@@ -6,7 +6,7 @@ import { google } from "googleapis";
  */
 export interface LlmMsg { role: "user" | "assistant"; content: string }
 export interface AiConfig {
-  provider: "vertex" | "anthropic";
+  provider: "vertex" | "anthropic" | "gemini";
   model: string;
   /** Vertex region ("global", "us-east5", "europe-west1", ...). */
   region: string;
@@ -41,7 +41,38 @@ export class LlmError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
 
+/** Gemini API (Google AI Studio key): generateContent with JSON output, same prompt as the Claude adapters. */
+export function buildGeminiBody(system: string, knowledge: string, messages: LlmMsg[], maxTokens: number): Record<string, unknown> {
+  return {
+    systemInstruction: { parts: [{ text: knowledge ? `${system}\n\n${knowledge}` : system }] },
+    contents: messages.map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })),
+    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.3, responseMimeType: "application/json" },
+  };
+}
+
+async function completeGemini(cfg: AiConfig, system: string, knowledge: string, messages: LlmMsg[], maxTokens: number, f: Fetch, timeoutMs: number): Promise<LlmResult> {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
+  try {
+    const res = await f(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(cfg.model)}:generateContent`, {
+      method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": cfg.apiKey ?? "" },
+      body: JSON.stringify(buildGeminiBody(system, knowledge, messages, maxTokens)), signal: ctl.signal,
+    });
+    const j = (await res.json().catch(() => ({}))) as {
+      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; cachedContentTokenCount?: number };
+      error?: { message?: string }; modelVersion?: string;
+    };
+    if (!res.ok) throw new LlmError(res.status, (j.error?.message ?? `HTTP ${res.status}`).slice(0, 300));
+    const text = (j.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? "").join("").trim();
+    return { text, inputTokens: j.usageMetadata?.promptTokenCount ?? 0, outputTokens: j.usageMetadata?.candidatesTokenCount ?? 0, cacheReadTokens: j.usageMetadata?.cachedContentTokenCount ?? 0, model: j.modelVersion ?? cfg.model };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function complete(cfg: AiConfig, system: string, knowledge: string, messages: LlmMsg[], maxTokens = 350, f: Fetch = fetch, timeoutMs = 20000): Promise<LlmResult> {
+  if (cfg.provider === "gemini") return completeGemini(cfg, system, knowledge, messages, maxTokens, f, timeoutMs);
   const body = buildBody(cfg, system, knowledge, messages, maxTokens);
   const url = cfg.provider === "vertex" ? vertexUrl(cfg.model, cfg.region) : "https://api.anthropic.com/v1/messages";
   const headers: Record<string, string> = { "Content-Type": "application/json" };
