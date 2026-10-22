@@ -23,7 +23,7 @@ How analytics is wired, what is tracked, and the console steps that only the pro
     deep_link), `manage_listing` (+ `item_id`), `whatsapp_number_gate`, `suspended`, `splash`. Admin Console tabs:
     `admin_packages`, `admin_users`, `admin_listings`, `admin_analytics`, `admin_schema`, `admin_security`, `admin_demo`.
   - **Sheets, dialogs and steps** report themselves with `TrackScreen(name)` (`ui/components/TrackScreen.kt`, class
-    `Sheet`/`Dialog`): `auth_email`, `auth_email_code`, `auth_email_link_sent`, `registration`, `explore_filters`,
+    `Sheet`/`Dialog`): `auth_sign_in`, `auth_create_account`, `auth_forgot_password`, `auth_reset_sent`, `registration`, `explore_filters`,
     `availability`, `booking_confirm`, `request_sent`, `requirements` (+ `source` booking/hosting), `change_price`,
     `listing_wizard_step_1..3`, `rebook`, `edit_booking`, `cancel_booking`, `listing_verification`, `legal`,
     `legal_<doc>`, `notifications`, `premium_redeem`, `pro_host_welcome`, `admin_user_dossier`.
@@ -46,10 +46,10 @@ How analytics is wired, what is tracked, and the console steps that only the pro
 | | `notification_mark_read` | `action`=all |
 | | `location_permission` | `result` (granted/denied/blocked), `source`=map |
 | | `analytics_consent` | `granted`=true (first event after opting in) |
-| Auth | `auth_start` | `method` (email_link/email_link_resend/email_code/google) |
-| | `auth_fallback` | `from`=magic_link, `to`=email_code |
+| Auth | `auth_start` | `method` (password/password_reset/google) |
+| | `auth_fallback` | `from`=password_reset, `to`=sent (a reset email was requested; the answer never says whether the account exists) |
 | | `auth_error` | `method`, `code` (machine code only; google: cancelled/unavailable/credential_error; every catch path) |
-| | ★`login` | `method` (email_link/email_code/google) |
+| | ★`login` | `method` (password/google; email_link/email_code before 1.0.44) |
 | | `registration_start` | `method` (the registration form opened for a new account) |
 | | `phone_hint` | `result` (offered/used/unavailable), `source` (registration/whatsapp_step) |
 | | ★`sign_up` ⚑ | `method`, `role` |

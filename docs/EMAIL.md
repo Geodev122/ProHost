@@ -4,8 +4,8 @@ ProHost has **no mail server of its own** (the Hostinger SMTP mailbox was retire
 
 | Email | Sent by |
 |---|---|
-| Magic sign-in link, password/verify/change-email templates | **Firebase Authentication's built-in mailer** (`sendSignInLinkToEmail` from the app; Auth › Templates). Sender domain `pro-host.tech` once its DNS is verified, otherwise Firebase's default `noreply@prohost-f766f.firebaseapp.com`. |
-| 6-digit sign-in code, branded sign-in link fallback, email verification, booking accepted/rejected/cancelled, subscription activated/renewed/expiring | Cloud Functions write `mail/{id}` (`functions/src/lib/email.ts` `sendEmail`) → the **Trigger Email extension** (`firebase/firestore-send-email`) delivers it. Delivery outcome is written back on the doc (`delivery.state`, `delivery.error`). |
+| Password reset fallback (only when the `sendPasswordResetLink` callable is unreachable) | **Firebase Authentication's built-in mailer** (the app's `sendPasswordResetEmail`; Auth › Templates). Sender domain `pro-host.tech` once its DNS is verified, otherwise Firebase's default `noreply@prohost-f766f.firebaseapp.com`. |
+| Password reset ("Forgot password", `auth/passwordReset.ts`), "set your password" invites for former email-code users (Maintenance `passwordinvites`), email verification, legacy 6-digit code (1.0.43 apps until `authconfig retire`), booking accepted/rejected/cancelled, subscription activated/renewed/expiring | Cloud Functions write `mail/{id}` (`functions/src/lib/email.ts` `sendEmail`) → the **Trigger Email extension** (`firebase/firestore-send-email`) delivers it. Delivery outcome is written back on the doc (`delivery.state`, `delivery.error`). |
 
 `mail` is server-only (firestore.rules deny). Never log full addresses — use `maskEmail()`.
 

@@ -25,3 +25,16 @@ Firebase Console › App Check › APIs › each service shows *Verified / Unver
 unknown origin / invalid)* for the last 7 days. Enforce a service only when **≥ 99%** is verified and
 the remaining unverified traffic is not real users. Then (optional) set `ENFORCE_APP_CHECK=true` for
 callables in a later release — see CLAUDE.md for why it was reverted once.
+
+## Play Integrity on sign-in (server)
+Separate from App Check: `assignInitialRole` sends the app's Play Integrity token to
+`functions/src/lib/playIntegrity.ts`, which decodes it with Google's `decodeIntegrityToken` and blocks
+`UNRECOGNIZED_VERSION` / `UNLICENSED` / wrong package or nonce / stale tokens on release builds.
+- Until 1.0.44 every decode returned **403**: the call used firebase-admin's credential token, which is not scoped
+  for the Play Integrity API, and a decode failure lets sign-in through — so nothing was enforced. It now uses a
+  googleapis `GoogleAuth` token with scope `https://www.googleapis.com/auth/playintegrity`.
+- Logs: `play_integrity_ok` (verdicts) on success; `play_integrity_decode_failed {status, body}` on failure (body
+  truncated, never the token). Maintenance `logerrors` groups them.
+- Check it any time with Maintenance **`integrity`**: API state, then a dummy-token decode with the functions' own
+  credentials — **400 = OK** (credentials and Play Console link fine, the token is just fake), 403 = the project
+  isn't linked in Play Console (step 2 above) or the API is off (`code=enable` turns it on).

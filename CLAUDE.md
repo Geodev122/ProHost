@@ -107,12 +107,31 @@ plan + recurring price + date;
 - One completeness rule: `AppUser.isProfileComplete()` (blank `fullName` ⇒ registration form,
   ADMIN exempt). Use it for cold start and every sign-in path; never re-introduce a
   `phone.isBlank()` gate — email/Google users have no phone until KYC.
-- Email sign-in has no "does this email exist" lookup (always empty under enumeration
-  protection). `AuthViewModel.startEmailSignIn` sends a magic link and falls back to a 6-digit
-  code when the link callable is unavailable. Show callable errors via
-  `Throwable.toUserMessage()` / `friendlyErrorMessage()` — never a raw `e.message` ("NOT_FOUND").
-- The email-code path creates the Auth user server-side, so `isNewUser` is false for brand-new
-  people — decide registration from the stored profile, not `isNewUser`.
+- Sign-in is **email + password or Google** (1.0.44). Email enumeration protection stays on: wrong email and wrong
+  password read the same (`AuthError.INVALID_CREDENTIALS`), and Forgot password always answers "if an account exists…".
+  `AuthViewModel` (`signIn`, `createAccount`, `requestPasswordReset`, `startGoogleSignIn`) runs over `AuthGateway`
+  (`FirebaseAuthService`) and `SessionFinisher` (integrity token → `assignInitialRole`), both faked in
+  `AuthViewModelTest`. Firebase error codes map through `AuthError` (`data/auth/AuthErrors.kt`) — never show Firebase's
+  English text or a raw `e.message`; callable errors go through `Throwable.toUserMessage()`. The password policy is
+  enforced by Firebase (Identity Platform `passwordPolicyConfig`: min 8, a lowercase letter, a number — Maintenance
+  `authconfig apply`) and mirrored by `util/PasswordRules.kt` for the sign-up checklist; keep both identical.
+  Credential Manager offers a saved password / authorized Google account once on the sign-in step and saves the password
+  after success. Decide registration from the stored profile (`isProfileComplete`), not `isNewUser`.
+- Forgot password: `sendPasswordResetLink` callable (`auth/passwordReset.ts`, `takeEmailSendSlot("pwreset")`, Admin
+  `generatePasswordResetLink` → branded EN+AR mail) with Firebase's own `sendPasswordResetEmail` as the client fallback
+  when the callable is unreachable. Links open Firebase's hosted action handler and continue to `pro-host.tech/get`
+  (`lib/authLinks.ts`). People who used the retired email code / magic link set a first password through the same reset
+  (it works for provider-less accounts); Maintenance `passwordinvites` (dry run · `send` · `resend`) mails them a 30-day
+  `passwordSetupLink` (token hash in server-only `auth_password_invites/{uid}`, GET confirm page, POST → fresh reset link,
+  because mail scanners open links; selection = `needsPasswordSetup`, unit-tested).
+- Legacy email sign-in (6-digit code `sendEmailOtp`/`verifyEmailOtp`/`clickEmailOtpLink`, magic link `sendSignInEmailLink`)
+  stays only for 1.0.43 apps and is switched off by `app_config/auth.legacyEmailSignIn = false` (Maintenance
+  `authconfig retire`, which also sets Identity Toolkit `passwordRequired`): the callables then throw
+  `failed-precondition` "Email codes were replaced by passwords. Update ProHost…" (`lib/authConfig.ts`). The app has no
+  email-link or `emailotp` deep link any more; never bring the code or link sign-in back.
+- Email verification never blocks (email is not a requirement): `assignInitialRole` mails the verification link to
+  password accounts; the app re-checks on resume (`ProHostViewModel.refreshEmailVerification`) and Profile shows
+  "Verify your email · Resend" (`needsEmailVerification`).
 - Session lock (biometric/PIN) was removed on purpose; `MainActivity` is a `ComponentActivity`.
   Screenshots/screen recording are allowed on purpose (owner, Oct 2026): never re-add `FLAG_SECURE`.
 - People see server-assigned display codes, never Firebase UIDs/doc ids: `U-`/`L-`/`D-`/`B-` +
@@ -188,16 +207,11 @@ plan + recurring price + date;
   faint dot texture in light theme only (one shader tile, not per-dot drawing). The shell Scaffold is transparent over it;
   drawer and app bars use `surface` with tonal elevation 0 (no blue tint); cards keep their 1 dp outline. Never
   `.background(premiumBackgroundBrush())` a screen directly.
-- Sign-in is email (magic link, 6-digit code fallback) or Google only; `FirebaseAuthService` has no phone methods. Legacy
+- `FirebaseAuthService` has no phone methods. Legacy
   phone-auth accounts keep their Firebase `phone_number` claim (rules still tie `isVerified` to it); maintenance `smsauth`
   remains only as a diagnostic.
-- Email sign-in links are handled every time (`AuthViewModel.onEmailLinkArrived`; never a session-long "consumed" flag —
-  that blocked every returning user's link after the first sign-in). The saved address (`pending_email_link`) is read with
-  `peekPendingEmailLink` and cleared only after a successful sign-in; a link without one asks for the email
-  (`linkAwaitingEmail` dialog); `restorePendingEmail` refills the address after process death so resend/code never send "".
-- Email sign-in layer 1 (`sendSignInLinkToEmail`) returns a `Result`; its Firebase error code is logged as
-  `auth_error(method=email_link_native)` before falling back. Diagnose delivery with the Maintenance workflow
-  task `emailauth` (Auth config, mail queue states, send limits).
+- Diagnose auth mail delivery with the Maintenance task `emailauth` (Auth config, mail queue states, send limits) and the
+  password setup with `authconfig` (dry run prints the policy, authorized domains, email sign-in settings).
 - Brand blue is Steel Blue `#2B5A8C` (dark `#93B8E0`, `SteelBlue` in `Color.kt`); never reintroduce `#246BEE`. Tapping a room in Explore opens
   the listing on that room's card (the sheet opens only from Availability / Check availability); after a request the "Request sent" sheet offers "View request" (opens My Rentals
   highlighting it) and "Message host on WhatsApp".
@@ -246,8 +260,8 @@ plan + recurring price + date;
   proxied sandbox run it in CI, not locally. Production readiness: Maintenance task `prodcheck` (deployed functions vs
   exports, indexes, Cloud Billing, functions answering, public pages, audit); `authorphans` explains Auth users with no
   profile (abandoned Google registrations: the profile is created only when the registration form is submitted).
-  Auth users with **no provider** in the console are email 6-digit-code sign-ins (`verifyEmailOtp`/`clickEmailOtpLink`
-  create them with the Admin SDK and sign in by custom token) — expected. Inspect one account with Maintenance `authuser`
+  Auth users with **no provider** in the console are legacy email 6-digit-code sign-ins (created with the Admin SDK and
+  signed in by custom token, before 1.0.44); they get a `password` provider once they set a password. Inspect one account with Maintenance `authuser`
   (uid in `code`): Auth record, profile, audit log, sign-in calls around creation and a verdict; `audit` lists sign-in
   methods and any provider-less account that is not a verified-email code sign-in; `logerrors` (hours in `code`, default 48)
   groups function errors and warnings. GitHub keeps only 10 notices per step, so keep each task under 10.
@@ -269,14 +283,14 @@ plan + recurring price + date;
 - Never `set(..., merge: true)` / batch-set a counter or flag onto a document that might not exist
   (a deleted listing): it recreates a ghost doc. Use `update()` and skip not-found
   (see `favoritesSync.ts`). Analytics and the admin feed ignore ownerless listing docs.
-- Email: no mail server of ours (Hostinger retired). Firebase Auth's built-in mailer sends magic links (the app calls
-  `sendSignInLinkToEmail` first); everything else goes through `sendEmail()` → `mail/{id}` → the Trigger Email
+- Email: no mail server of ours (Hostinger retired). Auth mail (reset, verification, invites) is generated with the Admin SDK's
+  action links and, like everything else, goes through `sendEmail()` → `mail/{id}` → the Trigger Email
   extension (installed from the console, not in firebase.json). Never add an SMTP client back. `docs/EMAIL.md`.
-- Unauthenticated email callables (`sendEmailOtp`, `sendSignInEmailLink`) must call
+- Unauthenticated email callables (`sendPasswordResetLink`, legacy `sendEmailOtp`/`sendSignInEmailLink`) must call
   `takeEmailSendSlot` (5/hour per address) and throw `HttpsError` (never plain `Error`, which
   reaches users as a generic internal error). Throwing inside a Firestore transaction rolls its
   writes back — return an outcome and throw after commit. Server-only collections
-  (`email_otps`, `email_send_limits`) need explicit deny rules.
+  (`email_otps`, `email_send_limits`, `auth_password_invites`) need explicit deny rules.
 - In-app notification centre: `sendPushToUser` (`functions/src/lib/push.ts`) stores every push in
   `user_profiles/{uid}/notifications/{id}` (48 h `expireAt`, `read`) before sending FCM (with `notificationId`), even
   without a device token; `pruneExpiredNotifications` deletes expired ones hourly (collection-group index on
@@ -482,8 +496,8 @@ plan + recurring price + date;
 - Admin Revoke Pro Host (`revokeProHostRole`) lapses the host's listings (`isOwnerPackageLapsed`) and marks the Play
   subscription `adminRevoked` in `subscriptions/{id}`, so `syncSubscription` never re-grants it; an admin Activate in the
   billing rescue panel clears the flag. An unchanged re-grant still finishes a half-done grant (lapsed listings, parked draft).
-- Email bodies escape every user-supplied value with `esc()` (`lib/emailTemplates.ts`). The email-code link
-  (`clickEmailOtpLink`) shows a confirm page on GET and consumes the code only on POST, because mail scanners open links.
+- Email bodies escape every user-supplied value with `esc()` (`lib/emailTemplates.ts`). Links that act (`passwordSetupLink`,
+  legacy `clickEmailOtpLink`) show a confirm page on GET and act only on POST, because mail scanners open links.
 - `grantProHost`/`removeProHost` return early for deleted accounts (no ghost profile, no RTDN retry storm) and write
   with `update()`; a PRO_HOST claim whose profile `role` mirror lagged is repaired on the next sync.
 - Only `package_pro_mrr` exists (`isSupportedProduct`). Retired plans are ignored everywhere with no admin alert; the client
@@ -545,6 +559,11 @@ plan + recurring price + date;
   after those logs show real app traffic is verified. It was flipped to `true` on main (v1.0.26)
   and reverted to `false`: testers' debug APKs carry no Play Integrity token, so enforcement
   rejects every callable for them (delete account, role assignment, email sign-in).
+- Play Integrity (`lib/playIntegrity.ts`, called by `assignInitialRole`): the decode uses a token scoped to
+  `https://www.googleapis.com/auth/playintegrity` (googleapis `GoogleAuth`) — firebase-admin's unscoped token got 403 on
+  every decode, so integrity was never enforced before 1.0.44. Decode failures still allow sign-in but log
+  `play_integrity_decode_failed {status, body}`; success logs `play_integrity_ok`. Maintenance `integrity` checks the API
+  and decodes a dummy token (400 = credentials and Play Console link OK, 403 = not linked / no access; `code=enable`).
 
 ## Signing material
 
