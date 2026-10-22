@@ -76,7 +76,10 @@ export async function handleEvent(config: IgConfig, event: IgEvent, now = Date.n
       error = "circuit breaker open: too many recent API errors";
     } else {
       try {
-        for (const step of decision.steps) await sendStep({ igUserId: config.igUserId, token: config.accessToken }, step);
+        for (const [i, step] of decision.steps.entries()) {
+          if (i > 0 && decision.pauseMs) await new Promise((r) => setTimeout(r, decision.pauseMs));
+          await sendStep({ igUserId: config.igUserId, token: config.accessToken }, step);
+        }
         await db.collection("ig_stats").doc("hour_" + Math.floor(now / HOUR)).set({ sent: FieldValue.increment(decision.steps.length), hour: Math.floor(now / HOUR) }, { merge: true });
       } catch (e) {
         status = "failed";

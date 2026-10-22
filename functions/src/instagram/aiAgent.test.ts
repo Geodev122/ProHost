@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { AgentOutput, BUTTON_URLS, salvage, NEW_STATE, advance, buildMessages, buttonLabel, cleanLead, contextBlock, parseAgentJson, runAgent, sanitizeReply, toStepButtons } from "./aiAgent";
 import { buildKnowledge } from "./aiKnowledge";
 
-const OUT: AgentOutput = { reply: "x", lang: "en", buttons: [], handoff: false, confidence: 1, learn: false, stage: "answer", askConsent: false, consentGiven: null, lead: {} };
+const OUT: AgentOutput = { reply: "x", messages: ["x"], awaitReply: false, askEmail: false, lang: "en", buttons: [], handoff: false, confidence: 1, learn: false, stage: "answer", askConsent: false, consentGiven: null, lead: {} };
 
 test("json is parsed from fences and text, buttons filtered and capped", () => {
   const raw = 'Sure!\n```json\n{"reply":"Hi! Get it here https://pro-host.tech/ig","lang":"en","buttons":["download","whatsapp","bogus","download","email","website"],"handoff":false,"confidence":1.7,"learn":false}\n```';
@@ -99,4 +99,19 @@ test("declining is final and never persists", () => {
 test("context block tells the model what the server knows", () => {
   assert.ok(/NOT been asked/.test(contextBlock(NEW_STATE)));
   assert.ok(/name=Nada/.test(contextBlock({ ...NEW_STATE, lead: { name: "Nada" }, exchanges: 3 })) && /connect ProHost/.test(contextBlock({ ...NEW_STATE, exchanges: 3 })));
+});
+
+test("multi-message answers keep order, cap at 3 and fall back to a single reply", () => {
+  const o = parseAgentJson('{"messages":["Hey Sam","Let me check this for you. Email you registered with?","third","fourth"],"stage":"assist","askEmail":true,"awaitReply":true,"lang":"en"}')!;
+  assert.deepEqual(o.messages, ["Hey Sam", "Let me check this for you. Email you registered with?", "third"]);
+  assert.equal(o.askEmail, true); assert.equal(o.awaitReply, true); assert.equal(o.stage, "assist");
+  assert.deepEqual(parseAgentJson('{"reply":"only one"}')!.messages, ["only one"]);
+});
+
+test("state remembers what the last message waits for and clears it on close", () => {
+  assert.equal(advance(NEW_STATE, { ...OUT, askEmail: true, awaitReply: true }).state.awaiting, "email");
+  assert.equal(advance(NEW_STATE, { ...OUT, awaitReply: true }).state.awaiting, "reply");
+  assert.equal(advance({ ...NEW_STATE, awaiting: "email" }, { ...OUT, stage: "close", awaitReply: true }).state.awaiting, "");
+  const c = contextBlock({ ...NEW_STATE, awaiting: "email", name: "Sam" }, "LIVE X");
+  assert.ok(/name|Sam/.test(c) && /registration email/.test(c) && /LIVE X/.test(c));
 });

@@ -92,4 +92,6 @@ export interface Decision {
   ruleName?: string;
   steps: Step[];
   tags: string[];
+  /** Pause between consecutive steps so a multi-message answer reads like a person typing (ms). */
+  pauseMs?: number;
 }

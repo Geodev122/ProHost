@@ -938,32 +938,52 @@ async function geminiprobe() {
 }
 
 // Runs the real DM-agent prompt + website knowledge through Gemini on sample questions (no Instagram, nothing is sent).
-async function aitest(arg) {
+async function aitest(arg, db) {
   const key = process.env.GEMINI_API_KEY || "";
   if (!key) throw new Error("GEMINI_API_KEY GitHub secret is missing");
   const { runAgent, advance, NEW_STATE } = require(`${LIB}/instagram/aiAgent`);
   const { buildKnowledge } = require(`${LIB}/instagram/aiKnowledge`);
+  const { formatOffers, offersContext } = require(`${LIB}/instagram/aiOffers`);
+  const { formatInsight } = require(`${LIB}/instagram/aiAccountInsight`);
+  const { isExitIntent, isNo, findEmail, closingThanks } = require(`${LIB}/instagram/aiFlow`);
   const model = (arg || "").trim() || "gemini-3.1-flash-lite";
   const cfg = { provider: "gemini", model, region: "", apiKey: key };
   const knowledge = buildKnowledge([]);
+  let offers = "";
+  try { offers = formatOffers((await serverTask(db, "playCatalog")).basePlans); } catch (e) { notice(`offers unavailable: ${String(e.message).slice(0, 120)}`); }
+  notice(`LIVE OFFERS given to the agent: ${offers.replace(/\n/g, " ") || "(none)"}`);
+  const FAKE_PROHOST = formatInsight({ found: true, role: "PRO_HOST", premiumActive: true, listings: 1, published: 0, drafts: 1, rentals: 0, hasPhoto: true, hasWhatsApp: true, hasLocation: true, daysSinceSignIn: 2 });
+  const FAKE_SPECIALIST = formatInsight({ found: true, role: "SPECIALIST", premiumActive: false, listings: 0, published: 0, drafts: 0, rentals: 2, lastRentalStatus: "accepted", hasPhoto: false, hasWhatsApp: true, hasLocation: false, daysSinceSignIn: 5 });
+  const NEW_ACCT = "ACCOUNT LOOKUP: the person said they are new (or declined). No lookup was made. Continue with download, the Premium offers and the steps.";
+  // [name, lines]; a line can be [text, extraContextForThatTurn]
   const scenarios = [
     ["direct", ["how do I get the app?"]],
+    ["howto-new", ["How can I list spaces?", ["no", NEW_ACCT], "ok thanks"]],
+    ["howto-prohost", ["how can i list my space", ["sam@example.com", FAKE_PROHOST], "thank you"]],
+    ["howto-specialist-ar", ["كيف بقدر انشر مساحتي؟", ["me@example.com", FAKE_SPECIALIST]]],
     ["features", ["What's new in the app? How does the Arabic support work?"]],
     ["discovery", ["Hi", "I'm a physiotherapist, I see clients two mornings a week", "Mostly I struggle to find a quiet room, I rent by the hour from friends", "My name is Nada", "Yes sure, you can save them: nada@example.com"]],
-    ["declines", ["hello", "I own a small training center", "Evenings are empty", "Sam", "No thanks, I'd rather not share my details"]],
   ];
   for (const [name, lines] of scenarios) {
-    let turns = [], state = NEW_STATE;
-    for (const line of lines) {
+    let turns = [], state = { ...NEW_STATE, name: "Sam" };
+    for (const item of lines) {
+      const [line, ctx] = Array.isArray(item) ? item : [item, ""];
+      if (state.awaiting !== "email" && isExitIntent(line)) {
+        const bye = closingThanks("en", state.name);
+        notice(`[${name}] USER: ${line} || BOT(close, no model): ${bye}`);
+        break;
+      }
       try {
-        const { out, usage } = await runAgent(cfg, knowledge, turns, line, undefined, state);
+        const extra = (ctx ? ctx + "\n" : "") + offersContext(offers);
+        const { out, usage } = await runAgent(cfg, knowledge, turns, line, undefined, state, extra);
         const adv = advance(state, out);
         state = adv.state;
         turns = turns.concat([{ r: "u", t: line }, { r: "a", t: out.reply }]);
-        notice(`[${name}] USER: ${line} || BOT(${out.lang}, ${out.stage}, askConsent ${out.askConsent}, consent ${out.consentGiven}, buttons ${out.buttons.join("+") || "-"}, ${usage.inputTokens}+${usage.outputTokens}tok): ${out.reply.replace(/\n/g, " ").slice(0, 380)}${adv.persist ? " || SAVED LEAD " + JSON.stringify({ ...adv.persist, email: adv.persist.email ? "(email)" : undefined }) : ""}`);
+        notice(`[${name}] USER: ${line} || BOT(${out.lang}, ${out.stage}, wait ${out.awaitReply}, askEmail ${out.askEmail}, buttons ${out.buttons.join("+") || "-"}, ${usage.inputTokens}+${usage.outputTokens}tok) ${out.messages.length} msg: ${out.messages.map((m, i) => `(${i + 1}) ${m.replace(/\n/g, " ").slice(0, 260)}`).join(" ")}${adv.persist ? " || SAVED LEAD" : ""}`);
       } catch (e) { notice(`[${name}] USER: ${line} || ERROR ${String(e.message).slice(0, 160)}`); break; }
     }
   }
+  notice(`flow helpers: no=${isNo("no")} email=${findEmail("it's a@b.co")} exit=${isExitIntent("thanks")}`);
 }
 
 async function aiprobe(db) {
@@ -1140,7 +1160,7 @@ async function smsauth(db, arg) {
   else if (task === "igtest") await igtest(db);
   else if (task === "aiprobe") await aiprobe(db);
   else if (task === "geminiprobe") await geminiprobe();
-  else if (task === "aitest") await aitest(arg);
+  else if (task === "aitest") await aitest(arg, db);
   else if (task === "aiquota") await aiquota(db, arg);
   else if (task === "playcatalog") await playcatalog(db);
   else if (task === "smsauth") await smsauth(db, arg);

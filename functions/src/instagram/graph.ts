@@ -60,6 +60,16 @@ export async function whoAmI(token: string, f: Fetch = fetch): Promise<{ id: str
   return { id: String(r.user_id ?? r.id ?? ""), username: String(r.username ?? "") };
 }
 
+/** Name and handle of a person who messaged us (needs the person to have written first). Null when Meta doesn't return it. */
+export async function getProfile(creds: GraphCreds, userId: string, f: Fetch = fetch): Promise<{ name: string; username: string } | null> {
+  try {
+    const r = await call(f, "GET", `${GRAPH}/${encodeURIComponent(userId)}?fields=name,username`, creds.token);
+    return { name: String(r.name ?? ""), username: String(r.username ?? "") };
+  } catch {
+    return null;
+  }
+}
+
 /** Subscribes the Instagram account to our app's webhook fields. */
 export async function subscribeApp(creds: GraphCreds, fields = "comments,messages,messaging_postbacks,message_reactions", f: Fetch = fetch): Promise<boolean> {
   const r = await call(f, "POST", `${GRAPH}/${encodeURIComponent(creds.igUserId)}/subscribed_apps?subscribed_fields=${fields}`, creds.token);

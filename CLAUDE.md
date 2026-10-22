@@ -342,6 +342,15 @@ plan + recurring price + date;
   Rules live in the Google Sheet "ProHost IG Automations" (`igSheetSync` mirrors Rules/Status in, Log/Contacts out); the IG Control Room artifact
   edits that sheet (an artifact can't call functions). Secrets only via GitHub secrets + Maintenance `igsetup`/`igsmoke` — never in chat/code/logs;
   collections `ig_*` are server-only. The engine's matching is mirrored in the artifact Simulator (keep both identical; `engine.test.ts` has the cases).
+- AI DM agent conversation flow (`aiAgent.ts`, `aiFlow.ts`, `aiRuntime.ts`, `aiOffers.ts`, `aiAccountInsight.ts`, `aiSweeper.ts`): how-to questions are answered
+  like a person, as separate DMs (`messages`, up to 3, pause between them, buttons on the last): greet by first name (Instagram profile fetch,
+  fallback "Hey there"), ask permission to look up the account by registration email ("no" = new), then guide. An email sent in reply to that
+  question is the consent for ONE read-only lookup (`lookupInsight`: role, Premium, listings, rentals, profile gaps); the email is unverified,
+  so facts are never recited back and "not found" reads like "no" (no probing); only a coarse tag (`insight`) is kept on `ig_threads`.
+  Offers/prices come ONLY from `liveOffersText` (Play via `readPlayCatalog`, cached 15 min in `app_config/instagram_offers`, promo/upgrade
+  offers excluded); if unavailable the agent quotes nothing. Silence: `igFollowUps` (every minute) sends one nudge 2 min after our last
+  question and a goodbye 2 min later, only inside Meta's 24 h window; thanks/ok/bye (`isExitIntent`) ends the chat with a warm goodbye
+  without a model call. Never reintroduce hard-coded offer text in the knowledge or prompt.
 - Payment reminders go to the user's own calendar via `PaymentCalendar` (insert intent, monthly
   RRULE) — no calendar permission, no Google Calendar API.
 

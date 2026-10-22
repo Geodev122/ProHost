@@ -56,6 +56,7 @@ export { sendEmailOtp, verifyEmailOtp, clickEmailOtpLink } from "./auth/emailOtp
 export { websiteContact, websiteSubscribe, mailingUnsubscribe } from "./website/websiteForms";
 export { igWebhook } from "./instagram/webhook";
 export { igSheetSync } from "./instagram/sheetsBridge";
+export { igFollowUps } from "./instagram/aiSweeper";
 export { igTokenRefresh } from "./instagram/tokenRefresh";
 export {
   mailingAdminLogin,

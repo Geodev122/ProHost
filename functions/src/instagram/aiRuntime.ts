@@ -2,7 +2,11 @@ import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import "../lib/admin";
 import { AiConfig, LlmError } from "./aiLlm";
+import { formatInsight, insightTag, lookupInsight } from "./aiAccountInsight";
 import { ConvState, NEW_STATE, Turn, advance, runAgent, toStepButtons } from "./aiAgent";
+import { NUDGE_AFTER_MS, closingThanks, detectLang, findEmail, isExitIntent, isNo } from "./aiFlow";
+import { liveOffersText, offersContext } from "./aiOffers";
+import { getProfile } from "./graph";
 import { KnowledgeItem, buildKnowledge } from "./aiKnowledge";
 import { IgConfig } from "./config";
 import { alertAdmin } from "./notify";
@@ -48,9 +52,37 @@ export async function aiDecide(config: IgConfig, event: IgEvent, now: number, f?
 
   const cfg: AiConfig = { provider: ai.provider, model: ai.model, region: ai.region, apiKey };
   const prior: ConvState = fresh && thread.state ? { ...NEW_STATE, ...(thread.state as Partial<ConvState>), lead: { ...((thread.state as ConvState).lead ?? {}) } } : NEW_STATE;
+  const lang0 = detectLang(event.text, String(thread.lang ?? "en"));
+  const talked = fresh && turns.length > 0;
+
+  // The person is wrapping up (thanks / ok / bye): one warm goodbye, no model call, no more questions.
+  if (talked && prior.awaiting !== "email" && isExitIntent(event.text)) {
+    const text = closingThanks(lang0, String(thread.name ?? prior.name ?? ""));
+    await threadRef.set({ at: now, turns: [...turns, { r: "u", t: event.text.slice(0, 600) }, { r: "a", t: text }].slice(-12), state: { ...prior, awaiting: "" }, dueAt: FieldValue.delete(), nudges: 0, closed: true, lang: lang0, lastUserAt: now }, { merge: true }).catch(() => undefined);
+    return { kind: "replied", reason: "AI agent · closing (the person is wrapping up)", ruleName: "AI agent", steps: [{ type: "dm", recipientId: event.senderId, text }], tags: ["ai"] };
+  }
+
+  // First name from their Instagram profile (only once per thread; Meta may not return it before the app is live).
+  let name = String(thread.name ?? prior.name ?? "");
+  if (!name && !turns.length && config.accessToken && config.igUserId) {
+    const profile = await getProfile({ igUserId: config.igUserId, token: config.accessToken }, event.senderId).catch(() => null);
+    name = (profile?.name ?? "").trim().split(/\s+/)[0]?.replace(/[^\p{L}\p{M}'-]/gu, "").slice(0, 30) ?? "";
+  }
+
+  // Waiting for their registration email: an email in the reply is the permission for ONE read-only account lookup.
+  let extra = offersContext(await liveOffersText(now).catch(() => ""));
+  let insightTagValue = String(thread.insight ?? "");
+  const mail = prior.awaiting === "email" ? findEmail(event.text) : null;
+  if (mail) {
+    const insight = await lookupInsight(mail, now);
+    insightTagValue = insightTag(insight);
+    extra = `${formatInsight(insight)}\n${extra}`;
+  } else if (prior.awaiting === "email" && isNo(event.text)) {
+    extra = `ACCOUNT LOOKUP: the person said they are new (or declined). No lookup was made. Continue with download, the Premium offers and the steps.\n${extra}`;
+  }
   let run;
   try {
-    run = await runAgent(cfg, await loadKnowledge(now), turns, event.text, f, prior);
+    run = await runAgent(cfg, await loadKnowledge(now), turns, event.text, f, { ...prior, ...(name ? { name } : {}) }, extra);
   } catch (e) {
     const status = e instanceof LlmError ? e.status : 0;
     logger.warn("ig ai agent failed", { status, message: (e as Error).message.slice(0, 200) });
@@ -59,9 +91,13 @@ export async function aiDecide(config: IgConfig, event: IgEvent, now: number, f?
   }
   const { out, usage } = run;
 
-  const { state, persist } = advance(prior, out);
+  const { state: next, persist } = advance({ ...prior, ...(name ? { name } : {}) }, out);
+  const state = next;
+  const closing = out.stage === "close";
+  const waiting = !closing && !out.handoff && (out.awaitReply || out.askEmail);
   await Promise.all([
-    threadRef.set({ at: now, turns: [...turns, { r: "u", t: event.text.slice(0, 600) }, { r: "a", t: out.reply.slice(0, 600) }].slice(-12), aiTimes: [...times, now], state }),
+    threadRef.set({ at: now, turns: [...turns, { r: "u", t: event.text.slice(0, 600) }, { r: "a", t: out.reply.slice(0, 600) }].slice(-12), aiTimes: [...times, now], state, name, lang: out.lang.slice(0, 2), lastUserAt: now, nudges: 0, closed: closing, insight: insightTagValue,
+      dueAt: waiting ? now + NUDGE_AFTER_MS : FieldValue.delete() }, { merge: true }),
     dayRef.set({ calls: FieldValue.increment(1), inputTokens: FieldValue.increment(usage.inputTokens), outputTokens: FieldValue.increment(usage.outputTokens), cacheReadTokens: FieldValue.increment(usage.cacheReadTokens), day: dayKey(now) }, { merge: true }),
   ]).catch(() => undefined);
 
@@ -86,7 +122,8 @@ export async function aiDecide(config: IgConfig, event: IgEvent, now: number, f?
     kind: out.handoff ? "handoff" : "replied",
     reason: `AI agent · ${out.stage} · exchange ${state.exchanges}${persist ? " · lead saved" : ""} (conf ${out.confidence.toFixed(2)}, ${out.lang}, ${usage.inputTokens}+${usage.outputTokens} tok)`,
     ruleName: "AI agent",
-    steps: [{ type: "dm", recipientId: event.senderId, text: out.reply, ...(buttons.length ? { buttons } : {}) }],
+    steps: out.messages.map((text, i) => ({ type: "dm" as const, recipientId: event.senderId, text, ...(i === out.messages.length - 1 && buttons.length ? { buttons } : {}) })),
+    pauseMs: 1100,
     tags: out.handoff ? ["handoff", "ai"] : ["ai"],
   };
 }

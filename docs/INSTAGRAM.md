@@ -40,3 +40,11 @@ Share the sheet (Editor) with the functions' runtime service account. Mode stays
   (`advance()` in aiAgent.ts, unit-tested). A "no" is final. Threads (`ig_threads`) hold the last 12 turns for 48 h.
 * Settings (sheet Status): `ai_enabled`, `ai_provider`, `ai_model`, `ai_daily_cap`, `ai_per_person_per_hour`. Unanswered questions go to the sheet `Learn` tab; answers written in `Knowledge` override the built-in facts.
 * Maintenance: `geminiprobe`, `aitest` (scripted conversations, nothing sent), `aiprobe`/`aiquota` (Vertex).
+
+
+## Conversation flow (how-to questions)
+
+1. Greeting by first name and the "may I look up your account with the email you registered with? type no if you're new" question go out as two separate DMs.
+2. An email reply is the person's permission for one read-only account lookup (role, Premium, listings, rentals, profile gaps). The agent only uses it to choose the next step and never repeats it back. "no" = new person: download, live Premium offers (from Google Play, cached in `app_config/instagram_offers`), then the publishing steps, each as its own message.
+3. Silence: one nudge after 2 minutes, goodbye after 2 more (`igFollowUps`); thanks/ok/bye ends the chat politely. All inside Meta's 24 h window.
+4. Check any change with Maintenance `aitest` (prints every message part and the live offers given to the agent).
