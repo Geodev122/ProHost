@@ -19,8 +19,18 @@ import androidx.compose.ui.platform.LocalAutofillTree
  * Lets the phone's autofill service (Google Password Manager and others) fill and save a field:
  * email on sign-in, the current password on sign-in, a new password on sign-up.
  */
+/** The email / username field of a sign-in or sign-up form. */
 @OptIn(ExperimentalComposeUiApi::class)
-fun Modifier.autofillHints(types: List<AutofillType>, onFill: (String) -> Unit): Modifier = composed {
+fun Modifier.emailAutofill(onFill: (String) -> Unit): Modifier =
+    autofillHints(listOf(AutofillType.EmailAddress, AutofillType.Username), onFill)
+
+/** A password field: [newPassword] on sign-up (offers a generated password), else the saved one. */
+@OptIn(ExperimentalComposeUiApi::class)
+fun Modifier.passwordAutofill(newPassword: Boolean, onFill: (String) -> Unit): Modifier =
+    autofillHints(listOf(if (newPassword) AutofillType.NewPassword else AutofillType.Password), onFill)
+
+@OptIn(ExperimentalComposeUiApi::class)
+private fun Modifier.autofillHints(types: List<AutofillType>, onFill: (String) -> Unit): Modifier = composed {
     val currentOnFill by rememberUpdatedState(onFill)
     val node = remember(types) { AutofillNode(autofillTypes = types, onFill = { currentOnFill(it) }) }
     val autofill = LocalAutofill.current

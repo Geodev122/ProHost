@@ -399,7 +399,7 @@ fun LoginAuthScreen(
                     leadingIcon = Icons.Default.Email,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .autofillHints(listOf(androidx.compose.ui.autofill.AutofillType.EmailAddress, androidx.compose.ui.autofill.AutofillType.Username)) { emailInput = it.trim() }
+                        .emailAutofill { emailInput = it.trim() }
                         .testTag("auth_email_input"),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = androidx.compose.ui.text.input.ImeAction.Next),
                     singleLine = true
@@ -435,7 +435,7 @@ fun LoginAuthScreen(
                         else androidx.compose.ui.text.input.PasswordVisualTransformation(),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .autofillHints(listOf(if (creating) androidx.compose.ui.autofill.AutofillType.NewPassword else androidx.compose.ui.autofill.AutofillType.Password)) { passwordInput = it }
+                        .passwordAutofill(newPassword = creating) { passwordInput = it }
                         .testTag("auth_password_input"),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = androidx.compose.ui.text.input.ImeAction.Done),
                     keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { if (!isAuthenticating) submit() }),
