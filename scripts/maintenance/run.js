@@ -614,8 +614,20 @@ async function authuser(db, auth, uid) {
 // Function logs over the last N hours (default 48), grouped. GitHub shows at most 10 notices per step, so this
 // is its own task: one notice per severity, the top groups in each.
 async function logerrors(arg) {
-  const hours = Math.min(Math.max(parseInt(arg, 10) || 48, 1), 720);
+  const [h, needle] = String(arg || "").split(/:(.*)/s);
+  const hours = Math.min(Math.max(parseInt(h, 10) || 48, 1), 720);
   const since = new Date(Date.now() - hours * 3600 * 1000).toISOString();
+  if (needle) {
+    // "HOURS:text" — the full text of a few entries containing `text` (where they come from and what they say).
+    const entries = await logEntries(`timestamp>="${since}" AND severity>=WARNING AND "${needle.replace(/"/g, "")}"`, 200);
+    notice(`matches=${entries.length} for "${needle}"`);
+    for (const e of entries.slice(-6)) {
+      notice(`${e.timestamp} ${e.severity} log=${String(e.logName || "").split("/").pop()} res=${e.resource?.type} ` +
+        `${JSON.stringify(e.resource?.labels || {})} method=${e.protoPayload?.methodName || "-"} ` +
+        `msg=${redact(e.protoPayload?.status?.message || e.jsonPayload?.message || e.textPayload || "").slice(0, 600)}`);
+    }
+    return;
+  }
   for (const [label, sev] of [["errors", "severity>=ERROR"], ["warnings", "severity=WARNING"]]) {
     await step(`${label}${hours}h`, async () => {
       const entries = await logEntries(`${sev} AND (resource.type="cloud_run_revision" OR resource.type="cloud_function") ` +
