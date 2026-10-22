@@ -17,6 +17,15 @@
 `sendPasswordResetLink`, `passwordSetupLink`, legacy switch `app_config/auth.legacyEmailSignIn`, rules for
 `auth_password_invites`, Maintenance `authconfig` / `passwordinvites` / `integrity`.
 
+## Release details
+- Released 2026-10-22 to production at 100% (owner's call) by `release-bundle.yml` run 39805068660 from main `b420bf4`:
+  bundle versionCode 44 (sha256 `e5447b4d…3ee7`), R8 mapping and native symbols uploaded; probe run 39806224929 shows
+  production `1.0.44 (44) completed`. Notes: en-GB (the only store-listing language).
+- Before release: Maintenance `authconfig apply` (password policy ENFORCE live), `integrity` decode probe 400 (fixed;
+  was 403), `passwordinvites` dry run: 4 accounts (3 magic-link, 1 email-code), none invited yet.
+- CI: Android job and the release/screenshot workflows now set up JDK 21 from Temurin (setup-java's JetBrains index
+  stopped listing 21 on 2026-10-22).
+
 ## Ship order
 1. CI green on main (Android, functions, rules, e2e, deploy); Design Screenshots clean; NIGHTHAWK 0 critical/high.
 2. Maintenance `authconfig` (dry run) → `authconfig code=apply` (password policy ENFORCE, `pro-host.tech` authorized).
