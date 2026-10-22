@@ -53,8 +53,9 @@ test("status keys become engine settings; blanks and junk are dropped", () => {
 
 import { aiFromStatus } from "./rulesSheet";
 test("ai status keys: enabled flag, validated overrides, junk dropped", () => {
-  assert.deepEqual(aiFromStatus(new Map()), { enabled: false });
+  assert.deepEqual(aiFromStatus(new Map()), { enabled: false, comments: true, commentDm: true });
   assert.deepEqual(aiFromStatus(new Map([["ai_enabled", "TRUE"], ["ai_provider", "anthropic"], ["ai_model", "claude-haiku-5-5"], ["ai_region", "europe-west1"], ["ai_daily_cap", "100"]])),
-    { enabled: true, provider: "anthropic", model: "claude-haiku-5-5", region: "europe-west1", dailyCap: 100 });
-  assert.deepEqual(aiFromStatus(new Map([["ai_enabled", "yes"], ["ai_provider", "evil"], ["ai_model", "bad model!"], ["ai_daily_cap", "999999"]])), { enabled: true });
+    { enabled: true, provider: "anthropic", model: "claude-haiku-5-5", region: "europe-west1", dailyCap: 100, comments: true, commentDm: true });
+  assert.deepEqual(aiFromStatus(new Map([["ai_enabled", "yes"], ["ai_provider", "evil"], ["ai_model", "bad model!"], ["ai_daily_cap", "999999"]])), { enabled: true, comments: true, commentDm: true });
+  assert.deepEqual(aiFromStatus(new Map([["ai_enabled", "true"], ["ai_comments", "off"], ["ai_comment_dm", "FALSE"]])), { enabled: true, comments: false, commentDm: false });
 });

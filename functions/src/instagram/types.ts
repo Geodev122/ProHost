@@ -92,6 +92,8 @@ export interface Decision {
   ruleName?: string;
   steps: Step[];
   tags: string[];
+  /** Set on comments we deliberately do not answer: "negative" alerts the owner, "spam" is only logged. */
+  flag?: "negative" | "spam";
   /** Pause between consecutive steps so a multi-message answer reads like a person typing (ms). */
   pauseMs?: number;
 }

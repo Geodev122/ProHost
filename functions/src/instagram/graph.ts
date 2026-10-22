@@ -70,6 +70,24 @@ export async function getProfile(creds: GraphCreds, userId: string, f: Fetch = f
   }
 }
 
+export interface IgComment { id: string; text: string; username: string; fromId: string; timestamp: number; parentId: string }
+
+/** Latest media ids of the account (posts, reels). */
+export async function listRecentMedia(creds: GraphCreds, limit = 5, f: Fetch = fetch): Promise<string[]> {
+  const r = await call(f, "GET", `${GRAPH}/${encodeURIComponent(creds.igUserId)}/media?fields=id,timestamp&limit=${limit}`, creds.token);
+  return (Array.isArray(r.data) ? (r.data as Array<{ id?: string }>) : []).map((m) => String(m.id ?? "")).filter(Boolean);
+}
+
+/** Top-level comments of one media, newest first as Meta returns them. */
+export async function listComments(creds: GraphCreds, mediaId: string, limit = 50, f: Fetch = fetch): Promise<IgComment[]> {
+  const r = await call(f, "GET", `${GRAPH}/${encodeURIComponent(mediaId)}/comments?fields=id,text,username,timestamp,from,parent_id&limit=${limit}`, creds.token);
+  const rows = Array.isArray(r.data) ? (r.data as Array<Record<string, unknown>>) : [];
+  return rows.map((c) => ({
+    id: String(c.id ?? ""), text: String(c.text ?? ""), username: String(c.username ?? ""),
+    fromId: String(((c.from ?? {}) as Record<string, unknown>).id ?? ""), timestamp: Date.parse(String(c.timestamp ?? "")) || 0, parentId: String(c.parent_id ?? ""),
+  })).filter((c) => c.id);
+}
+
 /** Subscribes the Instagram account to our app's webhook fields. */
 export async function subscribeApp(creds: GraphCreds, fields = "comments,messages,messaging_postbacks,message_reactions", f: Fetch = fetch): Promise<boolean> {
   const r = await call(f, "POST", `${GRAPH}/${encodeURIComponent(creds.igUserId)}/subscribed_apps?subscribed_fields=${fields}`, creds.token);

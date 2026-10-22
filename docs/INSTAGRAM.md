@@ -48,3 +48,11 @@ Share the sheet (Editor) with the functions' runtime service account. Mode stays
 2. An email reply is the person's permission for one read-only account lookup (role, Premium, listings, rentals, profile gaps). The agent only uses it to choose the next step and never repeats it back. "no" = new person: download, live Premium offers (from Google Play, cached in `app_config/instagram_offers`), then the publishing steps, each as its own message.
 3. Silence: one nudge after 2 minutes, goodbye after 2 more (`igFollowUps`); thanks/ok/bye ends the chat politely. All inside Meta's 24 h window.
 4. Check any change with Maintenance `aitest` (prints every message part and the live offers given to the agent).
+
+
+## Comments (intent agent + poller)
+
+- Keyword rules still win. A comment no rule matches goes to the comment agent: positive -> public thanks (+ one opening DM per day), question -> "see your DMs" + the answer as the private reply, negative -> not answered, not liked, flagged (event status `flagged`, email to admin), neutral/spam -> logged only.
+- Instagram has no API to like a comment; the public thank-you is the visible acknowledgement.
+- `igCommentPoll` fetches new comments of the latest 5 posts every minute and runs them through the same pipeline; it catches comments the webhook did not deliver (an unpublished Meta app only delivers events for accounts with an app role). Check it with Maintenance `igsmoke` ("comment poller") or the sheet row `health_comment_poll`.
+- Status keys: `ai_comments` (default on), `ai_comment_dm` (default on). `igtest` sends synthetic positive / question / negative / neutral comments in dry-run.

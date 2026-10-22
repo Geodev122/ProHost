@@ -7,6 +7,9 @@ import { ConvState, NEW_STATE, Turn, advance, runAgent, toStepButtons } from "./
 import { NUDGE_AFTER_MS, closingThanks, detectLang, findEmail, isExitIntent, isNo } from "./aiFlow";
 import { liveOffersText, offersContext } from "./aiOffers";
 import { getProfile } from "./graph";
+import { commentModeContext, dmHook, publicSeeDm, publicThanks } from "./aiComment";
+import { classifyComment, commentLang } from "./commentClass";
+import { Step } from "./types";
 import { KnowledgeItem, buildKnowledge } from "./aiKnowledge";
 import { IgConfig } from "./config";
 import { alertAdmin } from "./notify";
@@ -126,4 +129,70 @@ export async function aiDecide(config: IgConfig, event: IgEvent, now: number, f?
     pauseMs: 1100,
     tags: out.handoff ? ["handoff", "ai"] : ["ai"],
   };
+}
+
+const DAY = 24 * HOUR;
+
+/**
+ * Public comments no keyword rule handled, answered by intent (see commentClass.ts):
+ * positive -> public thanks (+ ONE opening DM per person per day), question -> "see your DMs" + the answer as the private reply,
+ * negative -> nothing sent, flagged for the owner, neutral/spam -> logged only. Returns null when the comment agent is off.
+ */
+export async function commentDecide(config: IgConfig, event: IgEvent, now: number, f?: typeof fetch): Promise<Decision | null> {
+  const ai = config.ai;
+  if (!ai.enabled || !ai.comments || event.kind !== "comment" || !event.commentId) return null;
+  const kind = classifyComment(event.text);
+  const lang = commentLang(event.text);
+  const seed = event.commentId;
+  if (kind === "negative") return { kind: "ignored", reason: "negative comment: not answered or liked, flagged for the owner", steps: [], tags: ["flagged"], flag: "negative" };
+  if (kind === "spam") return { kind: "ignored", reason: "promotional or link comment: not answered", steps: [], tags: ["spam"], flag: "spam" };
+  if (kind === "neutral") return ignored("comment needs no answer (neutral)");
+
+  const db = getFirestore();
+  const threadRef = db.collection("ig_threads").doc(event.senderId);
+  const thread = (await threadRef.get()).data() ?? {};
+  const user = event.username;
+
+  if (kind === "positive") {
+    const steps: Step[] = [{ type: "comment_reply", commentId: event.commentId, text: publicThanks(lang, user, seed) }];
+    const hookDue = ai.commentDm && !(thread.hookAt && now - Number(thread.hookAt) < DAY);
+    if (hookDue) {
+      const hook = dmHook(lang, user);
+      steps.push({ type: "private_reply", commentId: event.commentId, text: hook });
+      await threadRef.set({ at: now, turns: [{ r: "u", t: event.text.slice(0, 300) }, { r: "a", t: hook }], state: { ...NEW_STATE, exchanges: 1, awaiting: "reply" }, lang, hookAt: now, nudges: 0, closed: false }, { merge: true }).catch(() => undefined);
+    }
+    return { kind: "replied", reason: `AI comment · positive${hookDue ? " · opening DM" : " · thanks only (DM already sent today)"}`, ruleName: "AI comment", steps, tags: ["ai", "comment-positive"] };
+  }
+
+  // question: the answer goes to DMs as the one private reply Instagram allows per comment
+  const apiKey = ai.provider === "gemini" ? config.geminiKey : ai.provider === "anthropic" ? config.anthropicKey : "";
+  if (ai.provider !== "vertex" && !apiKey) return ignored(`AI agent: no ${ai.provider} key configured`);
+  const times = (Array.isArray(thread.aiTimes) ? (thread.aiTimes as number[]) : []).filter((t) => now - t < HOUR);
+  if (times.length >= ai.perPersonPerHour) return ignored(`AI agent: limit of ${ai.perPersonPerHour} replies per person per hour reached`);
+  const dayRef = db.collection("ig_stats").doc("ai_" + dayKey(now));
+  if ((Number((await dayRef.get()).data()?.calls) || 0) >= ai.dailyCap) return ignored(`AI agent: daily cap of ${ai.dailyCap} replies reached`);
+  const cfg: AiConfig = { provider: ai.provider, model: ai.model, region: ai.region, apiKey };
+  const extra = `LANGUAGE OF THEIR COMMENT: ${lang === "ar" ? "Arabic, reply in Arabic" : lang === "fr" ? "French, reply in French" : lang === "es" ? "Spanish, reply in Spanish" : "English, reply in English"}.\n${commentModeContext(event.text)}\n${offersContext(await liveOffersText(now).catch(() => ""))}`;
+  let run;
+  try {
+    run = await runAgent(cfg, await loadKnowledge(now), [], event.text, f, NEW_STATE, extra);
+  } catch (e) {
+    const status = e instanceof LlmError ? e.status : 0;
+    logger.warn("ig comment agent failed", { status, message: (e as Error).message.slice(0, 200) });
+    return ignored(`AI agent unavailable (${status || "error"}: ${(e as Error).message.slice(0, 120)})`);
+  }
+  const { out, usage } = run;
+  const text = out.messages.join(" ").slice(0, 600);
+  const button = toStepButtons(out)[0];
+  const { state } = advance(NEW_STATE, out);
+  await Promise.all([
+    threadRef.set({ at: now, turns: [{ r: "u", t: event.text.slice(0, 300) }, { r: "a", t: text }], aiTimes: [...times, now], state: { ...state, awaiting: out.awaitReply ? "reply" : "" }, lang: out.lang.slice(0, 2), lastUserAt: 0, nudges: 0, closed: false }, { merge: true }),
+    dayRef.set({ calls: FieldValue.increment(1), inputTokens: FieldValue.increment(usage.inputTokens), outputTokens: FieldValue.increment(usage.outputTokens), cacheReadTokens: FieldValue.increment(usage.cacheReadTokens), day: dayKey(now) }, { merge: true }),
+  ]).catch(() => undefined);
+  if (out.handoff) await alertAdmin(config, "Instagram: a commenter needs a human", `${user || event.senderId} commented: "${event.text.slice(0, 300)}".`).catch(() => undefined);
+  const steps: Step[] = [
+    { type: "comment_reply", commentId: event.commentId, text: publicSeeDm(lang, user, seed) },
+    { type: "private_reply", commentId: event.commentId, text, ...(button ? { buttonLabel: button.label, buttonUrl: button.url } : {}) },
+  ];
+  return { kind: out.handoff ? "handoff" : "replied", reason: `AI comment · question · answered in DM (conf ${out.confidence.toFixed(2)}, ${out.lang}, ${usage.inputTokens}+${usage.outputTokens} tok)`, ruleName: "AI comment", steps, tags: out.handoff ? ["handoff", "ai"] : ["ai", "comment-question"] };
 }

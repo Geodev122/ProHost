@@ -37,8 +37,12 @@ export interface AiSettings {
   region: string;
   dailyCap: number;
   perPersonPerHour: number;
+  /** Answer public comments by intent (thanks / question / negative). */
+  comments: boolean;
+  /** Positive comments also get ONE opening DM. */
+  commentDm: boolean;
 }
-export const DEFAULT_AI: AiSettings = { enabled: false, provider: "vertex", model: "claude-haiku-4-5@20251001", region: "global", dailyCap: 300, perPersonPerHour: 12 };
+export const DEFAULT_AI: AiSettings = { enabled: false, provider: "vertex", model: "claude-haiku-4-5@20251001", region: "global", dailyCap: 300, perPersonPerHour: 12, comments: true, commentDm: true };
 
 const TTL_MS = 60 * 1000;
 let cached: { config: IgConfig; at: number } | null = null;

@@ -3,7 +3,7 @@ import * as logger from "firebase-functions/logger";
 import { onRequest } from "firebase-functions/v2/https";
 import "../lib/admin";
 import { IgConfig, canSend, loadConfig } from "./config";
-import { aiDecide } from "./aiRuntime";
+import { aiDecide, commentDecide } from "./aiRuntime";
 import { decide } from "./engine";
 import { GraphError, sendStep } from "./graph";
 import { alertAdmin } from "./notify";
@@ -68,7 +68,13 @@ export async function handleEvent(config: IgConfig, event: IgEvent, now = Date.n
     }
   }
 
-  let status: string = decision.kind === "ignored" ? "ignored" : canSend(config) ? "sent" : "dry-run";
+  // Public comments no keyword rule handled: the comment agent answers by intent (thanks / question) or flags negatives.
+  if (event.kind === "comment" && decision.kind === "ignored" && decision.reason === "no rule matched") {
+    const ai = await commentDecide(config, event, now);
+    if (ai && (ai.kind !== "ignored" || ai.flag)) decision = ai;
+  }
+
+  let status: string = decision.flag ? "flagged" : decision.kind === "ignored" ? "ignored" : canSend(config) ? "sent" : "dry-run";
   let error = "";
   if (decision.steps.length && status === "sent") {
     if (await breakerOpen(now)) {
@@ -89,6 +95,9 @@ export async function handleEvent(config: IgConfig, event: IgEvent, now = Date.n
     }
   }
 
+  if (decision.flag === "negative") {
+    await alertAdmin(config, "Negative Instagram comment", `@${event.username || event.senderId} wrote under a post: "${event.text.slice(0, 300)}". Nothing was sent or liked. Comment id ${event.commentId ?? ""}.`).catch(() => undefined);
+  }
   const sentOrWould = status === "sent" || status === "dry-run";
   const update: Record<string, unknown> = {
     seenBefore: true, lastSeenAt: now, username: event.username ?? contact.username ?? "", lastText: event.text.slice(0, 200),

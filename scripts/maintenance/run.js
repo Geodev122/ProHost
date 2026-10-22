@@ -773,6 +773,8 @@ async function igsmoke(db) {
   const last = await db.collection("ig_events").orderBy("createdAt", "desc").limit(1).get();
   const left = c.tokenExpiresAt ? Math.floor((c.tokenExpiresAt - Date.now()) / 86400000) : null;
   const sync = (await db.collection("ig_stats").doc("sync").get()).data();
+  const poll = (await db.collection("ig_stats").doc("comment_poll").get()).data();
+  notice(poll ? `comment poller: ${poll.lastError ? "FAILING " + String(poll.lastError).slice(0, 250) : "ok"}, last run ${new Date(poll.lastRun).toISOString()}, comments processed ${poll.processed || 0}` : "comment poller: has not run yet (first run sets the baseline)");
   notice(sync ? `sheet sync: ${sync.ok ? "ok" : "FAILING"} at ${new Date(sync.at).toISOString()} ${sync.ok ? `(${String(sync.note || "")})` : String(sync.error || "").slice(0, 300)}` : "sheet sync: never ran since this version deployed");
   notice(`account @${c.username || "?"} · mode ${c.mode || "dry-run"}${c.killSwitch ? " · KILL SWITCH ON" : ""} · rules ${rules.size} · token ${left === null ? "?" : left + " days"} left · sheet ${c.sheetId ? "linked" : "NOT linked"} · last event ${last.empty ? "none yet" : new Date(last.docs[0].get("createdAt")).toISOString()}`);
 }
@@ -803,6 +805,21 @@ async function igtest(db) {
   const cid = `${fake}c`;
   notice(`comment accepted: HTTP ${await post({ object: "instagram", entry: [{ id: cfg.igUserId, time: now, changes: [{ field: "comments", value: { id: cid, text: "link please", from: { id: fake, username: "igtest_user" }, media: { id: "igtest_media" } } }] }] })}`);
   show("comment 'link please'", await wait(`c_${cid}`));
+  const comment = async (label, text) => {
+    const id = `${fake}k${label}`;
+    const sender = `${fake}ck${label}`;
+    const code = await post({ object: "instagram", entry: [{ id: cfg.igUserId, time: now, changes: [{ field: "comments", value: { id, text, from: { id: sender, username: `igtest_${label}` }, media: { id: "igtest_media" } } }] }] });
+    notice(`comment ${label} accepted: HTTP ${code}`);
+    show(`comment ${label} "${text}"`, await wait(`c_${id}`));
+    await db.collection("ig_contacts").doc(sender).delete();
+    await db.collection("ig_threads").doc(sender).delete();
+  };
+  if ((cfg.ai || {}).enabled) {
+    await comment("positive", "❤️🔥 love this, thank you");
+    await comment("question", "How can I list my clinic room? price?");
+    await comment("negative", "this looks like a scam");
+    await comment("neutral", "I was there last summer with my cousins");
+  } else notice("AI agent is off: comment-agent cases skipped");
   const mid = `${fake}m`;
   notice(`STOP dm accepted: HTTP ${await post({ object: "instagram", entry: [{ id: cfg.igUserId, time: now, messaging: [{ sender: { id: fake }, recipient: { id: cfg.igUserId }, timestamp: now * 1000, message: { mid, text: "STOP" } }] }] })}`);
   show("DM 'STOP'", await wait(`m_${mid}`));
@@ -956,6 +973,16 @@ async function aitest(arg, db) {
   const FAKE_SPECIALIST = formatInsight({ found: true, role: "SPECIALIST", premiumActive: false, listings: 0, published: 0, drafts: 0, rentals: 2, lastRentalStatus: "accepted", hasPhoto: false, hasWhatsApp: true, hasLocation: false, daysSinceSignIn: 5 });
   const NEW_ACCT = "ACCOUNT LOOKUP: the person said they are new (or declined). No lookup was made. Continue with download, the Premium offers and the steps.";
   // [name, lines]; a line can be [text, extraContextForThatTurn]
+  const { classifyComment } = require(`${LIB}/instagram/commentClass`);
+  const { commentModeContext } = require(`${LIB}/instagram/aiComment`);
+  for (const t of ["❤️🔥", "Thank you!", "شكرا", "How can I list my space?", "بكم الاشتراك؟", "price?", "this is a scam", "👎", "check my page www.x.com", "I was there last summer"]) notice(`[comment class] "${t}" -> ${classifyComment(t)}`);
+  for (const t of ["How can I list my clinic room and how much is it?", "كيف أحمل التطبيق؟"]) {
+    try {
+      const lang = /[\u0600-\u06FF]/.test(t) ? "Arabic, reply in Arabic" : "English, reply in English";
+      const { out } = await runAgent(cfg, knowledge, [], t, undefined, NEW_STATE, `LANGUAGE OF THEIR COMMENT: ${lang}.\n${commentModeContext(t)}\n${offersContext(offers)}`);
+      notice(`[comment answer] "${t}" -> DM (${out.messages.length} msg, buttons ${out.buttons.join("+") || "-"}): ${out.messages.join(" ").replace(/\n/g, " ").slice(0, 420)}`);
+    } catch (e) { notice(`[comment answer] "${t}" ERROR ${String(e.message).slice(0, 140)}`); }
+  }
   const scenarios = [
     ["direct", ["how do I get the app?"]],
     ["howto-new", ["How can I list spaces?", ["no", NEW_ACCT], "ok thanks"]],

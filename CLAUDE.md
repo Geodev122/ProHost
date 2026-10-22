@@ -351,6 +351,14 @@ plan + recurring price + date;
   offers excluded); if unavailable the agent quotes nothing. Silence: `igFollowUps` (every minute) sends one nudge 2 min after our last
   question and a goodbye 2 min later, only inside Meta's 24 h window; thanks/ok/bye (`isExitIntent`) ends the chat with a warm goodbye
   without a model call. Never reintroduce hard-coded offer text in the knowledge or prompt.
+- Comment agent (`commentClass.ts`, `aiComment.ts`, `commentDecide` in `aiRuntime.ts`, poller `commentPoller.ts`/`commentFeed.ts`): a public comment no
+  keyword rule matched is classified by intent without a model (positive / question / negative / spam / neutral, en·ar·fr·es). Positive: public
+  thanks + at most ONE opening DM per person per day (private reply, Status `ai_comment_dm`). Question: public "see your DMs" + the answer as the one
+  private reply Instagram allows per comment (model, live offers), saved as the first turns of `ig_threads` so the DM chat continues. Negative: nothing
+  sent, never liked, event status `flagged` + admin email (`Decision.flag`). Status `ai_comments` turns the agent off. Instagram's API has NO endpoint
+  to like a comment: never promise likes. `igCommentPoll` (every minute) reads the 5 latest media's comments from the API and feeds them through
+  `handleEvent` (dedupe by `c_<id>`), so comments are caught even when the unpublished Meta app delivers no webhook; first run only sets a baseline;
+  health in `ig_stats/comment_poll`, `igsmoke` and the sheet row `health_comment_poll`.
 - Payment reminders go to the user's own calendar via `PaymentCalendar` (insert intent, monthly
   RRULE) — no calendar permission, no Google Calendar API.
 

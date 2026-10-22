@@ -57,6 +57,7 @@ export { websiteContact, websiteSubscribe, mailingUnsubscribe } from "./website/
 export { igWebhook } from "./instagram/webhook";
 export { igSheetSync } from "./instagram/sheetsBridge";
 export { igFollowUps } from "./instagram/aiSweeper";
+export { igCommentPoll } from "./instagram/commentPoller";
 export { igTokenRefresh } from "./instagram/tokenRefresh";
 export {
   mailingAdminLogin,
