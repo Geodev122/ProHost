@@ -35,3 +35,12 @@ test("gemini call: key header, system prompt, roles mapped, text + usage parsed"
   assert.deepEqual((seen?.body.contents as Array<{ role: string }>).map((c) => c.role), ["user", "model", "user"]);
   assert.ok(JSON.stringify(buildGeminiBody("s", "K", [], 1)).includes("responseMimeType"));
 });
+
+test("gemini falls back to the stable lite alias when the first model is overloaded, but not on a bad key", async () => {
+  const urls: string[] = [];
+  const busy = (async (url: string) => { urls.push(url); return url.includes("gemini-new") ? { ok: false, status: 503, json: async () => ({ error: { message: "high demand" } }) } as Response : { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: "{}" }] } }] }) } as Response; }) as unknown as typeof fetch;
+  const r = await complete({ provider: "gemini", model: "gemini-new", region: "", apiKey: "G" }, "s", "", [{ role: "user", content: "x" }], 50, busy);
+  assert.equal(r.text, "{}"); assert.deepEqual(urls.map((u) => u.split("/models/")[1].split(":")[0]), ["gemini-new", "gemini-flash-lite-latest"]);
+  const denied = (async () => ({ ok: false, status: 400, json: async () => ({ error: { message: "API key not valid" } }) }) as Response) as unknown as typeof fetch;
+  await assert.rejects(() => complete({ provider: "gemini", model: "gemini-new", region: "", apiKey: "bad" }, "s", "", [{ role: "user", content: "x" }], 50, denied), (e: { status: number }) => e.status === 400);
+});

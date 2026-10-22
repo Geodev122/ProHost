@@ -50,6 +50,8 @@ export function buildGeminiBody(system: string, knowledge: string, messages: Llm
   };
 }
 
+export const GEMINI_FALLBACK = "gemini-flash-lite-latest";
+
 async function completeGemini(cfg: AiConfig, system: string, knowledge: string, messages: LlmMsg[], maxTokens: number, f: Fetch, timeoutMs: number): Promise<LlmResult> {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
@@ -72,7 +74,20 @@ async function completeGemini(cfg: AiConfig, system: string, knowledge: string, 
 }
 
 export async function complete(cfg: AiConfig, system: string, knowledge: string, messages: LlmMsg[], maxTokens = 350, f: Fetch = fetch, timeoutMs = 20000): Promise<LlmResult> {
-  if (cfg.provider === "gemini") return completeGemini(cfg, system, knowledge, messages, maxTokens, f, timeoutMs);
+  if (cfg.provider === "gemini") {
+    // Newly released Gemini models are often overloaded (503) or slow: fall back once to the stable lite alias.
+    const models = [cfg.model, ...(cfg.model === GEMINI_FALLBACK ? [] : [GEMINI_FALLBACK])];
+    let last: unknown;
+    for (const model of models) {
+      try { return await completeGemini({ ...cfg, model }, system, knowledge, messages, maxTokens, f, Math.min(timeoutMs, 9000)); }
+      catch (e) {
+        last = e;
+        const retryable = !(e instanceof LlmError) || e.status === 429 || e.status >= 500;
+        if (!retryable) throw e;
+      }
+    }
+    throw last;
+  }
   const body = buildBody(cfg, system, knowledge, messages, maxTokens);
   const url = cfg.provider === "vertex" ? vertexUrl(cfg.model, cfg.region) : "https://api.anthropic.com/v1/messages";
   const headers: Record<string, string> = { "Content-Type": "application/json" };
