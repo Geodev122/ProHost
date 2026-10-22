@@ -30,7 +30,7 @@ const INTERROGATIVES = new Set([
 ]);
 /** Interest words: a question wherever they appear. */
 const INTEREST = new Set([
-  "price", "prices", "pricing", "cost", "link", "info", "information", "details", "detail", "available", "availability", "interested", "dm", "download", "contact", "whatsapp",
+  "price", "prices", "pricing", "cost", "link", "list", "how", "info", "information", "details", "detail", "available", "availability", "interested", "dm", "download", "contact", "whatsapp",
   "prix", "lien", "infos", "disponible", "intéressé", "interesse", "renseignements",
   "precio", "enlace", "informacion", "información", "interesado",
   "سعر", "اسعار", "أسعار", "معلومات", "تفاصيل", "رابط", "لينك", "مهتم", "مهتمة", "متاح", "تواصل", "واتساب", "بدي", "اريد", "أريد", "رقم",

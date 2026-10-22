@@ -30,6 +30,9 @@
 //                                                    and prints what it would send. Refuses unless mode is dry-run. Sends nothing.
 //   node scripts/maintenance/run.js igmedia         read-only: the account's latest posts (type, slides, caption, permalink, a temporary image URL) and whether
 //                                                    the token may publish (content_publishing_limit); used to analyse the live grid
+//   node scripts/maintenance/run.js igpublish [ID]  publishes ONE item of marketing/social/captions.json (post11 | post12 | post13 | story) to the Instagram
+//                                                    account (image post or Story) from https://pro-host.tech/social/<file>; without ID it only prints the plan
+//                                                    (dry run). Never publishes the same item twice (ig_stats/published); needs instagram_business_content_publish.
 //   node scripts/maintenance/run.js aiprobe         which Claude model/region the project can call on Vertex AI (functions service account)
 //   node scripts/maintenance/run.js geminiprobe     which Gemini Flash-Lite models the GEMINI_API_KEY secret can call (answers a test in Arabic)
 //   node scripts/maintenance/run.js aitest [MODEL]  runs the DM agent prompt on sample questions through Gemini (nothing is sent anywhere)
@@ -1057,6 +1060,44 @@ async function igmedia(db) {
   }
 }
 
+async function igpublish(db, id) {
+  const cfg = (await db.collection("app_config").doc("instagram").get()).data() || {};
+  if (!cfg.accessToken || !cfg.igUserId) throw new Error("run igsetup first");
+  const items = JSON.parse(require("fs").readFileSync(path.join(__dirname, "../../marketing/social/captions.json"), "utf8"));
+  const G = "https://graph.instagram.com/v23.0";
+  const api = async (method, url, body) => {
+    const r = await fetch(url, { method, headers: { Authorization: `Bearer ${cfg.accessToken}`, ...(body ? { "Content-Type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined });
+    const j = await r.json().catch(() => ({}));
+    if (j.error) throw new Error(`${j.error.code || r.status}: ${j.error.message}`);
+    return j;
+  };
+  const ref = db.collection("ig_stats").doc("published");
+  const done = (await ref.get()).data() || {};
+  const wanted = id ? [id] : Object.keys(items);
+  for (const key of wanted) {
+    const it = items[key];
+    if (!it) throw new Error(`unknown item ${key}`);
+    const url = `https://pro-host.tech/social/${it.file}`;
+    if (!id) { notice(`plan ${key}: ${it.story ? "STORY" : "IMAGE post"} ${url} ${done[key] ? "(already published: " + done[key].permalink + ")" : ""}${it.caption ? " caption=" + JSON.stringify(it.caption.slice(0, 120)) : ""}`); continue; }
+    if (done[key]) { notice(`${key}: already published ${done[key].permalink}, nothing to do`); continue; }
+    let ok = false;
+    for (let i = 0; i < 40 && !ok; i++) { const h = await fetch(url, { method: "HEAD" }); ok = h.status === 200; if (!ok) await new Promise((r) => setTimeout(r, 15000)); }
+    if (!ok) throw new Error(`${url} is not reachable yet (deploy pending?)`);
+    const body = it.story ? { media_type: "STORIES", video_url: url } : { image_url: url, caption: it.caption };
+    const created = await api("POST", `${G}/${cfg.igUserId}/media`, body);
+    for (let i = 0; i < 40; i++) {
+      const st = await api("GET", `${G}/${created.id}?fields=status_code,status`);
+      if (st.status_code === "FINISHED") break;
+      if (st.status_code === "ERROR" || st.status_code === "EXPIRED") throw new Error(`container ${st.status_code}: ${st.status}`);
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+    const pub = await api("POST", `${G}/${cfg.igUserId}/media_publish`, { creation_id: created.id });
+    const info = await api("GET", `${G}/${pub.id}?fields=permalink,media_type,timestamp`);
+    await ref.set({ [key]: { mediaId: pub.id, permalink: info.permalink || "", at: Date.now() } }, { merge: true });
+    notice(`${key}: PUBLISHED ${info.media_type} ${info.permalink || pub.id}`);
+  }
+}
+
 async function aiprobe(db) {
   const rows = await serverTask(db, "aiProbe");
   rows.forEach((r) => notice(`${r.ok ? "✓" : "✗"} ${r.model} @ ${r.region}: ${r.detail}`));
@@ -1230,6 +1271,7 @@ async function smsauth(db, arg) {
   else if (task === "igsmoke") await igsmoke(db);
   else if (task === "igtest") await igtest(db);
   else if (task === "igmedia") await igmedia(db);
+  else if (task === "igpublish") await igpublish(db, (arg || "").trim());
   else if (task === "aiprobe") await aiprobe(db);
   else if (task === "geminiprobe") await geminiprobe();
   else if (task === "aitest") await aitest(arg, db);

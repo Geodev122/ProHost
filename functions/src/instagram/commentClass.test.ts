@@ -9,7 +9,7 @@ test("positive: emoji-only and short praise in four languages", () => {
 });
 
 test("questions and interest: ?, price words, link requests, Arabic", () => {
-  for (const t of ["How can I list my space?", "price?", "how much", "Link please", "Interested", "dm me the details", "Where can I download it", "بكم الاشتراك", "كيف أحمل التطبيق؟", "شو الاسعار", "Comment ça marche ?", "¿Cuánto cuesta?", "Is it available in Dubai", "info"]) {
+  for (const t of ["How can I list my space?", "price?", "how much", "Link please", "Interested", "dm me the details", "Where can I download it", "بكم الاشتراك", "كيف أحمل التطبيق؟", "شو الاسعار", "Comment ça marche ?", "¿Cuánto cuesta?", "Is it available in Dubai", "info", "LIST", "HOW"]) {
     assert.equal(classifyComment(t), "question", t);
   }
 });
