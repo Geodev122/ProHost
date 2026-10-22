@@ -194,6 +194,13 @@ describe("workspace_listings", () => {
     await assertFails(setDoc(doc(hostCtx(), "promo_campaigns", "current"), { code: "FREE", active: true }));
     await assertFails(updateDoc(doc(specCtx(), "promo_campaigns", "current"), { redeemed: 0 }));
   });
+  test("sign-in secrets and the auth switch are server-only (own account included)", async () => {
+    for (const [col, id] of [["email_otps", "a@b.c"], ["email_send_limits", "otp_x"], ["auth_password_invites", "spec1"], ["app_config", "auth"]]) {
+      await assertFails(getDoc(doc(specCtx(), col, id)));
+      await assertFails(setDoc(doc(specCtx(), col, id), { legacyEmailSignIn: true, tokenHash: "x" }));
+      await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), col, id)));
+    }
+  });
   test("website address book, messages, campaigns and admin sessions are server-only", async () => {
     for (const col of ["mailing_list", "mailing_messages", "mail_campaigns", "mailing_admin_sessions"]) {
       await assertFails(getDoc(doc(specCtx(), col, "x1")));

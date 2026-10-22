@@ -178,6 +178,55 @@ export function signInLinkTemplate(email: string, link: string) {
   return { subject, html };
 }
 
+// ─── Password reset / first password (email + password sign-in) ───────────────
+// Bilingual (English, then Arabic): the address book has no language preference.
+
+function rtl(html: string): string {
+  return `<div dir="rtl" lang="ar" style="text-align:right;border-top:1px solid #EEE;margin-top:24px;padding-top:16px">${html}</div>`;
+}
+
+export function passwordResetTemplate(email: string, link: string) {
+  const subject = "Reset your ProHost password · إعادة تعيين كلمة مرور ProHost";
+  const html = layout(subject, `
+    <h2>Reset your password</h2>
+    <p>Someone asked to reset the password for <strong style="color:#1A1A1A">${esc(email)}</strong>.
+       Tap the button to choose a new one. The link works once and expires in <strong style="color:#1A1A1A">1 hour</strong>.</p>
+    <div class="cta"><a class="btn" href="${esc(link)}">Choose a new password</a></div>
+    <p class="fine">If you didn't ask for this, ignore this email — your password stays the same.</p>
+    ${rtl(`
+      <h2>إعادة تعيين كلمة المرور</h2>
+      <p>طُلبت إعادة تعيين كلمة المرور للحساب <strong>${esc(email)}</strong>. اضغط الزر لاختيار كلمة مرور جديدة.
+         يعمل الرابط مرة واحدة وتنتهي صلاحيته خلال ساعة.</p>
+      <div class="cta"><a class="btn" href="${esc(link)}">اختر كلمة مرور جديدة</a></div>
+      <p class="fine">إذا لم تطلب ذلك فتجاهل هذه الرسالة؛ كلمة مرورك لن تتغير.</p>
+    `)}
+  `, "Choose a new password for ProHost");
+  return { subject, html };
+}
+
+export function passwordSetupInviteTemplate(email: string, link: string) {
+  const subject = "Set a password for ProHost · عيّن كلمة مرور لـ ProHost";
+  const html = layout(subject, `
+    <h2>ProHost now signs in with a password</h2>
+    <p>You've been signing in to ProHost as <strong style="color:#1A1A1A">${esc(email)}</strong> with an emailed code or link.
+       Those are being replaced by a password you choose — your account, listings and bookings stay exactly as they are.</p>
+    <div class="cta"><a class="btn" href="${esc(link)}">Set my password</a></div>
+    <p>Then update ProHost from Google Play and sign in with your email and new password.
+       This button works for 30 days; after that, tap <strong style="color:#1A1A1A">Forgot password</strong> on the sign-in screen.</p>
+    <p class="fine">Using Google to sign in? Nothing changes for you. Didn't expect this email? You can ignore it.</p>
+    ${rtl(`
+      <h2>تسجيل الدخول إلى ProHost أصبح بكلمة مرور</h2>
+      <p>كنت تسجّل الدخول إلى ProHost بالحساب <strong>${esc(email)}</strong> برمز أو رابط يصلك بالبريد.
+         سيُستبدل ذلك بكلمة مرور تختارها، ويبقى حسابك وإعلاناتك وحجوزاتك كما هي.</p>
+      <div class="cta"><a class="btn" href="${esc(link)}">عيّن كلمة المرور</a></div>
+      <p>بعد ذلك حدّث ProHost من Google Play وسجّل الدخول ببريدك وكلمة المرور الجديدة.
+         يعمل هذا الزر لمدة 30 يومًا؛ بعدها اضغط <strong>نسيت كلمة المرور</strong> في شاشة تسجيل الدخول.</p>
+      <p class="fine">تسجّل الدخول بحساب Google؟ لا شيء يتغير بالنسبة لك.</p>
+    `)}
+  `, "Choose a password to keep signing in to ProHost");
+  return { subject, html };
+}
+
 // ─── Email Verification ──────────────────────────────────────────────────────
 
 export function emailVerificationTemplate(ctx: UserContext, verifyUrl: string) {

@@ -490,6 +490,11 @@ service cloud.firestore {
     match /email_send_limits/{key} {
       allow read, write: if false;
     }
+    // "Set your password" invites for accounts from the retired email code / magic link
+    // (functions/src/auth/passwordReset.ts): token hashes, server-only.
+    match /auth_password_invites/{uid} {
+      allow read, write: if false;
+    }
     // Public, person-free projection of ACCEPTED bookings (functions/src/bookings/occupancyProjection.ts):
     // listing, room, schedule and term only — what locks a slot. Any signed-in user reads it so
     // specialists see slots other people hold; only the server writes it.

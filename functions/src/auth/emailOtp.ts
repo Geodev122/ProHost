@@ -6,6 +6,7 @@ import { onCall } from "../lib/callable";
 import { maskEmail, sendEmail } from "../lib/email";
 import { esc, otpSignInTemplate } from "../lib/emailTemplates";
 import { takeEmailSendSlot, isPlausibleEmail } from "../lib/emailRateLimit";
+import { assertLegacyEmailSignIn, legacyEmailSignInEnabled, LEGACY_EMAIL_RETIRED_MESSAGE } from "../lib/authConfig";
 
 const db = admin.firestore();
 
@@ -39,6 +40,7 @@ export const sendEmailOtp = onCall(
     if (!isPlausibleEmail(email)) {
       throw new HttpsError("invalid-argument", "A valid email address is required.");
     }
+    await assertLegacyEmailSignIn();
     await takeEmailSendSlot("otp", email);
 
     const code = randomInt(100000, 1000000).toString();
@@ -80,6 +82,7 @@ export const verifyEmailOtp = onCall(async (request) => {
   if (!email || !code) {
     throw new HttpsError("invalid-argument", "Email and code are required.");
   }
+  await assertLegacyEmailSignIn();
 
   const customToken = await validateAndConsumeOtp(email, code);
   return { customToken };
@@ -98,6 +101,10 @@ export const clickEmailOtpLink = onRequest(
 
     if (!email || !code) {
       res.status(400).send("Missing parameters.");
+      return;
+    }
+    if (!(await legacyEmailSignInEnabled())) {
+      res.set("Cache-Control", "no-store").status(410).send(esc(LEGACY_EMAIL_RETIRED_MESSAGE));
       return;
     }
 
