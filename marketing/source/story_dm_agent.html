@@ -1,0 +1,113 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>
+:root { --navy:#001f4e; --navy2:#0a3a7e; --orange:#fd631d; --paper:#fefefc; --soft:#e9eff8; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1080px; height: 1920px; overflow: hidden; }
+body { font-family: "Inter", "Inter Display", "DejaVu Sans", Arial, sans-serif; background: var(--navy); color: #fff; position: relative; -webkit-font-smoothing: antialiased; }
+.bg { position: absolute; inset: 0; background: radial-gradient(1300px 1000px at 85% 8%, #0d4a9a 0%, rgba(0,31,78,0) 60%), var(--navy); }
+.abs { position: absolute; }
+/* Story safe zones: top 250 px and bottom 340 px stay free of text and controls */
+.logo { left: 76px; top: 258px; display: flex; align-items: center; gap: 22px; }
+.logo img { width: 112px; display: block; }
+.logo span { font-weight: 800; font-size: 84px; letter-spacing: -3.6px; line-height: 1; }
+.h { left: 72px; right: 72px; font-weight: 800; letter-spacing: -5px; line-height: 1.04; }
+.rule { left: 76px; width: 270px; height: 7px; background: var(--orange); }
+.card { left: 70px; right: 70px; top: 560px; height: 840px; background: var(--paper); border-radius: 56px; box-shadow: 0 40px 100px rgba(0,10,40,.5); color: var(--navy); overflow: hidden; }
+.card .bar { position: absolute; left: 0; right: 0; top: 0; height: 132px; display: flex; align-items: center; gap: 22px; padding: 0 44px; background: #fff; border-bottom: 2px solid #e6ecf5; }
+.card .bar img { width: 74px; }
+.card .bar b { font-size: 38px; letter-spacing: -1px; font-weight: 800; }
+.card .bar i { display: block; font-style: normal; font-size: 26px; font-weight: 500; color: #51607a; letter-spacing: 0; }
+.dot { width: 18px; height: 18px; border-radius: 50%; background: #3ac47d; margin-left: auto; box-shadow: 0 0 0 8px rgba(58,196,125,.2); }
+.bub { position: absolute; max-width: 700px; padding: 28px 36px; border-radius: 40px; font-size: 40px; line-height: 1.25; letter-spacing: -.6px; font-weight: 500; }
+.me { right: 44px; background: var(--navy); color: #fff; border-bottom-right-radius: 12px; }
+.ai { left: 44px; background: var(--soft); color: var(--navy); border-bottom-left-radius: 12px; }
+.typing { left: 44px; background: var(--soft); border-bottom-left-radius: 12px; padding: 30px 38px; display: flex; gap: 12px; }
+.typing s { width: 16px; height: 16px; border-radius: 50%; background: #8896ad; display: block; }
+.chip { position: absolute; padding: 24px 40px; border-radius: 999px; font-weight: 700; font-size: 46px; letter-spacing: -1px; background: #fff; color: var(--navy); box-shadow: 0 14px 34px rgba(0,10,40,.35); white-space: nowrap; }
+.chip.o { background: var(--orange); color: var(--navy); }
+.cta { left: 76px; width: 928px; height: 168px; background: var(--orange); color: var(--navy); border-radius: 30px; display: flex; align-items: center; justify-content: center; gap: 26px; font-weight: 800; font-size: 62px; letter-spacing: -2px; box-shadow: 0 24px 60px rgba(253,99,29,.35); }
+.arrow { left: 0; right: 0; text-align: center; font-size: 120px; line-height: 1; color: var(--orange); font-weight: 800; }
+.ar { font-family: "DejaVu Sans", "Noto Sans Arabic", Arial, sans-serif; letter-spacing: 0; }
+</style></head><body>
+<div class="bg"></div>
+<div class="abs logo" id="logo"><img src="assets/mark.png" alt=""><span>ProHost</span></div>
+
+<!-- scene A: the hook -->
+<div class="abs h" id="a1" style="top:700px;font-size:132px">Got a question about renting a space?</div>
+
+<!-- scene B: the DM -->
+<div class="abs card" id="card">
+  <div class="bar"><img src="assets/mark.png" alt=""><div><b>ProHost</b><i>Smart assistant</i></div><div class="dot"></div></div>
+  <div class="bub me" id="m1" style="top:190px">How can I list my clinic room?</div>
+  <div class="bub typing" id="ty" style="top:370px"><s></s><s></s><s></s></div>
+  <div class="bub ai" id="m2" style="top:370px">Hey! Let me check this for you.</div>
+  <div class="bub ai" id="m3" style="top:530px;max-width:790px">Which email did you register with in the app? Type “no” if you’re new.</div>
+</div>
+
+<!-- scene C: languages and topics -->
+<div class="abs h" id="c1" style="top:560px;font-size:120px">Ask in<br>your language.</div>
+<div class="abs rule" id="c2" style="top:840px"></div>
+<div class="chip" id="l1" style="left:76px;top:920px">English</div>
+<div class="chip ar" id="l2" style="left:470px;top:920px">العربية</div>
+<div class="chip" id="l3" style="left:76px;top:1070px">Français</div>
+<div class="chip" id="l4" style="left:470px;top:1070px">Español</div>
+<div class="chip o" id="t1" style="left:76px;top:1270px">How to list</div>
+<div class="chip o" id="t2" style="left:430px;top:1270px">How to book</div>
+<div class="chip o" id="t3" style="left:76px;top:1420px">What’s new in the app</div>
+
+<!-- scene D: the call to action -->
+<div class="abs h" id="d1" style="top:620px;font-size:150px">Send us<br>a DM.</div>
+<div class="abs rule" id="d2" style="top:930px"></div>
+<div class="abs" id="d3" style="left:76px;right:90px;top:985px;font-size:54px;line-height:1.22;letter-spacing:-1.2px;color:rgba(255,255,255,.94)">Our smart assistant replies in seconds.</div>
+<div class="abs cta" id="d4" style="top:1220px">Send message</div>
+<div class="abs arrow" id="d5" style="top:1420px">↓</div>
+
+<script>
+const ease = x => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
+const back = x => { x = Math.min(1, Math.max(0, x)); const c = 1.70158; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+const $ = id => document.getElementById(id);
+function show(id, t, t0, t1 = 1e9, o = {}) { // fades/slides in at t0, out at t1
+  const e = $(id), up = o.dy ?? 34, inD = o.d ?? 0.45;
+  const a = ease((t - t0) / inD), b = t1 < 1e9 ? ease((t - t1) / 0.32) : 0;
+  const s = o.pop ? (0.82 + 0.18 * back((t - t0) / 0.45)) : 1;
+  e.style.opacity = Math.max(0, a * (1 - b));
+  e.style.transform = `translateY(${(1 - a) * up - b * 28}px) scale(${s})`;
+}
+const SCENES = { A: [0, 3.55], B: [3.5, 8.75], C: [8.7, 13.4], D: [13.3, 18] };
+window.EVENTS = [
+  { t: 0.3, k: "pop" }, { t: 3.5, k: "whoosh", major: true },
+  { t: 4.3, k: "tap" }, { t: 5.75, k: "notify" }, { t: 7.0, k: "notify" },
+  { t: 8.7, k: "whoosh", major: true },
+  { t: 9.45, k: "pop" }, { t: 9.75, k: "pop" }, { t: 10.05, k: "pop" }, { t: 10.35, k: "pop" },
+  { t: 11.1, k: "tap" }, { t: 11.5, k: "tap" }, { t: 11.9, k: "tap" },
+  { t: 13.3, k: "whoosh", major: true }, { t: 14.2, k: "success" }, { t: 14.9, k: "impact", major: true }
+];
+window.render = function (t) {
+  const [aS, aE] = SCENES.A, [bS, bE] = SCENES.B, [cS, cE] = SCENES.C, [dS] = SCENES.D;
+  show("a1", t, 0.25, aE - 0.1, { dy: 50, d: 0.6 });
+  // B
+  show("card", t, bS + 0.1, bE, { dy: 80, d: 0.55 });
+  show("m1", t, 4.25, bE, { dy: 24, d: 0.3, pop: true });
+  const typing = t > 4.95 && t < 5.75;
+  $("ty").style.opacity = typing ? 1 : 0;
+  $("ty").querySelectorAll("s").forEach((d, i) => d.style.transform = `translateY(${typing ? -10 * Math.max(0, Math.sin(t * 9 - i * 0.9)) : 0}px)`);
+  show("m2", t, 5.75, bE, { dy: 24, d: 0.3, pop: true });
+  show("m3", t, 7.0, bE, { dy: 24, d: 0.3, pop: true });
+  // C
+  show("c1", t, cS + 0.15, cE, { dy: 50, d: 0.55 });
+  show("c2", t, cS + 0.5, cE, { dy: 0, d: 0.4 });
+  [["l1", 9.4], ["l2", 9.7], ["l3", 10.0], ["l4", 10.3], ["t1", 11.05], ["t2", 11.45], ["t3", 11.85]].forEach(([id, t0]) => show(id, t, t0, cE, { dy: 30, d: 0.35, pop: true }));
+  // D
+  show("d1", t, dS + 0.2, 1e9, { dy: 60, d: 0.6 });
+  show("d2", t, dS + 0.7, 1e9, { dy: 0, d: 0.4 });
+  show("d3", t, dS + 0.95, 1e9, { dy: 30, d: 0.5 });
+  show("d4", t, 14.6, 1e9, { dy: 40, d: 0.45, pop: true });
+  const pulse = t > 15.1 ? 1 + 0.025 * Math.sin((t - 15.1) * 6) : 1;
+  $("d4").style.transform += ` scale(${pulse})`;
+  show("d5", t, 15.2, 1e9, { dy: -20, d: 0.4 });
+  $("d5").style.transform += ` translateY(${t > 15.2 ? 18 * Math.abs(Math.sin((t - 15.2) * 4)) : 0}px)`;
+  // logo: stays through the story, brightens slightly at the end
+  $("logo").style.opacity = 1;
+};
+render(0);
+</script></body></html>
