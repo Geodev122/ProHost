@@ -25,7 +25,7 @@ async function sheetsClient(): Promise<sheets_v4.Sheets> {
   return google.sheets({ version: "v4", auth });
 }
 
-export const TABS = ["Rules", "Log", "Contacts", "Status", "Knowledge", "Learn"] as const;
+export const TABS = ["Rules", "Log", "Contacts", "Status", "Knowledge", "Learn", "Leads"] as const;
 
 /** Creates missing tabs and header rows; safe to run repeatedly. Used by `igsetup`. */
 export async function ensureTabs(sheets: sheets_v4.Sheets, sheetId: string): Promise<void> {
@@ -35,7 +35,7 @@ export async function ensureTabs(sheets: sheets_v4.Sheets, sheetId: string): Pro
   if (missing.length) {
     await sheets.spreadsheets.batchUpdate({ spreadsheetId: sheetId, requestBody: { requests: missing.map((title) => ({ addSheet: { properties: { title } } })) } });
   }
-  const headers: Record<string, readonly string[]> = { Rules: RULE_COLUMNS, Log: LOG_COLUMNS, Contacts: CONTACT_COLUMNS, Status: ["key", "value"], Knowledge: ["question", "answer"], Learn: ["time", "lang", "question", "times", "status", "id"] };
+  const headers: Record<string, readonly string[]> = { Rules: RULE_COLUMNS, Log: LOG_COLUMNS, Contacts: CONTACT_COLUMNS, Status: ["key", "value"], Knowledge: ["question", "answer"], Learn: ["time", "lang", "question", "times", "status", "id"], Leads: ["time", "instagram", "name", "email", "role", "need", "lang", "consent", "status", "id"] };
   for (const tab of missing) {
     await sheets.spreadsheets.values.update({ spreadsheetId: sheetId, range: `${tab}!A1`, valueInputOption: "RAW", requestBody: { values: [[...headers[tab]]] } });
   }
@@ -126,6 +126,23 @@ export async function runSheetSync(now = Date.now()): Promise<string> {
       notes.push(`learn+${learnPending.size}`);
     } catch (e) {
       notes.push(`learn tab unavailable (${(e as Error).message.slice(0, 60)})`);
+    }
+  }
+
+  // 3c. Leads (agent → artifact): people who agreed to be contacted. Updated rows are appended again (latest wins by id).
+  const leadPending = await db.collection("ig_leads").where("synced", "==", false).limit(50).get();
+  if (!leadPending.empty) {
+    try {
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: sid, range: "Leads!A1", valueInputOption: "RAW", insertDataOption: "INSERT_ROWS",
+        requestBody: { values: leadPending.docs.map((d) => { const l = d.data(); return [isoTime(Number(l.updatedAt) || now), String(l.instagram ?? ""), String(l.name ?? ""), String(l.email ?? ""), String(l.role ?? ""), String(l.need ?? ""), String(l.lang ?? ""), "yes " + isoTime(Number(l.consentAt) || now), "new", d.id]; }) },
+      });
+      const lb2 = db.batch();
+      leadPending.docs.forEach((d) => lb2.update(d.ref, { synced: true }));
+      await lb2.commit();
+      notes.push(`leads+${leadPending.size}`);
+    } catch (e) {
+      notes.push(`leads tab unavailable (${(e as Error).message.slice(0, 60)})`);
     }
   }
 

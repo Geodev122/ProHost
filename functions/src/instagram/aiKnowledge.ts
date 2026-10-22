@@ -1,3 +1,5 @@
+import { RELEASE_KNOWLEDGE } from "./aiRelease.generated";
+
 /**
  * What the DM agent knows. Source: the public site (public/index.html, FAQ, landing pages) and docs/MONETIZATION.md.
  * The owner adds answers in the sheet's Knowledge tab (mirrored into app_config/instagram_knowledge); those win over this text.
@@ -20,6 +22,18 @@ FOR HOSTS (space owners)
 - One request inbox: accept or decline in a tap; availability updates by itself so there are no double bookings. Earnings and occupancy dashboard. WhatsApp built in; the host's number is never shown publicly.
 - ProHost does not take a commission on bookings; Premium is a flat subscription.
 
+FEATURES AND THE VALUE THEY GIVE (use to connect the product to the person's need; explain HOW it works, then WHY it helps)
+- Live map search (professionals): see rooms near you with real-time availability, so you find a space in minutes instead of phoning around.
+- Five ways to rent, room by room (hosts): hourly, shift, daily, monthly or per attendee. Value: the same room earns from a therapist by the hour, a doctor by the shift and a trainer per seat for a workshop.
+- Live availability and automatic locking: when a request is accepted the slot locks itself. Value: no double bookings and no calendar to maintain by hand.
+- One request inbox: every request lands in one place with all details; accept or decline in a tap. Value: less back-and-forth, nothing lost in chats.
+- WhatsApp built in: professionals and hosts talk directly; the host's number is never shown publicly. Value: fast answers without giving out private numbers.
+- Change prices any time: choose to apply now or from the next term; affected tenants are notified automatically. Value: you adjust prices without chasing people one by one.
+- Earnings and occupancy dashboard (hosts): bookings, occupancy and revenue per room. Value: see which rooms earn and which sit empty.
+- Payment reminders (professionals): add a monthly reminder to your own phone calendar so rent is never forgotten.
+- Saved spaces and My Rentals: track what you saved and what you booked in one place.
+- Arabic and English: the app follows the phone language, or choose it in Profile > Language (new in 1.0.43).
+
 CONTACT
 - WhatsApp (admin team): +961 76 701 865 (https://wa.me/96176701865)
 - Email: admin@pro-host.tech
@@ -32,7 +46,8 @@ Anything about specific listings, availability, someone's account, payments, ref
 export interface KnowledgeItem { q: string; a: string }
 
 export function buildKnowledge(extra: KnowledgeItem[]): string {
+  const base = `${BASE_KNOWLEDGE}\n\n${RELEASE_KNOWLEDGE}`;
   const owner = extra.filter((i) => i.q.trim() && i.a.trim()).slice(0, 80)
     .map((i) => `Q: ${i.q.trim().slice(0, 300)}\nA: ${i.a.trim().slice(0, 900)}`).join("\n\n");
-  return owner ? `${BASE_KNOWLEDGE}\n\nOWNER-APPROVED ANSWERS (these override anything above if they conflict)\n${owner}` : BASE_KNOWLEDGE;
+  return owner ? `${base}\n\nOWNER-APPROVED ANSWERS (these override anything above if they conflict)\n${owner}` : base;
 }

@@ -536,6 +536,9 @@ service cloud.firestore {
     match /ig_learn/{id} {
       allow read, write: if false;
     }
+    match /ig_leads/{id} {
+      allow read, write: if false;
+    }
     // Server-only config (app_config/ga4 holds the GA4 Measurement Protocol API secret,
     // read by functions/src/lib/ga4.ts via the Admin SDK). Set in the Firebase console.
     match /app_config/{key} {

@@ -38,7 +38,7 @@ export interface AiSettings {
   dailyCap: number;
   perPersonPerHour: number;
 }
-export const DEFAULT_AI: AiSettings = { enabled: false, provider: "vertex", model: "claude-haiku-4-5@20251001", region: "global", dailyCap: 300, perPersonPerHour: 6 };
+export const DEFAULT_AI: AiSettings = { enabled: false, provider: "vertex", model: "claude-haiku-4-5@20251001", region: "global", dailyCap: 300, perPersonPerHour: 12 };
 
 const TTL_MS = 60 * 1000;
 let cached: { config: IgConfig; at: number } | null = null;

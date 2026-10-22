@@ -1,7 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BUTTON_URLS, buildMessages, buttonLabel, parseAgentJson, runAgent, sanitizeReply, toStepButtons } from "./aiAgent";
+import { AgentOutput, BUTTON_URLS, NEW_STATE, advance, buildMessages, buttonLabel, cleanLead, contextBlock, parseAgentJson, runAgent, sanitizeReply, toStepButtons } from "./aiAgent";
 import { buildKnowledge } from "./aiKnowledge";
+
+const OUT: AgentOutput = { reply: "x", lang: "en", buttons: [], handoff: false, confidence: 1, learn: false, stage: "answer", askConsent: false, consentGiven: null, lead: {} };
 
 test("json is parsed from fences and text, buttons filtered and capped", () => {
   const raw = 'Sure!\n```json\n{"reply":"Hi! Get it here https://pro-host.tech/ig","lang":"en","buttons":["download","whatsapp","bogus","download","email","website"],"handoff":false,"confidence":1.7,"learn":false}\n```';
@@ -19,7 +21,7 @@ test("links outside the allow-list are removed", () => {
 });
 
 test("buttons map to real https urls with localized labels", () => {
-  const b = toStepButtons({ reply: "x", lang: "ar", buttons: ["whatsapp", "download"], handoff: false, confidence: 1, learn: false });
+  const b = toStepButtons({ ...OUT, lang: "ar", buttons: ["whatsapp", "download"] });
   assert.deepEqual(b.map((x) => x.url), [BUTTON_URLS.whatsapp, BUTTON_URLS.download]);
   assert.equal(buttonLabel("download", "ar-LB"), "حمّل التطبيق");
   assert.equal(buttonLabel("email", "xx"), "Email us");
@@ -46,4 +48,47 @@ test("runAgent returns the model output, or a safe hand-off when the model break
   assert.equal(good.out.lang, "ar"); assert.equal(good.out.buttons[0], "download");
   const bad = await runAgent(cfg, "KB", [], "x", fake("I am a pirate"));
   assert.equal(bad.out.handoff, true); assert.equal(bad.out.learn, true); assert.deepEqual(bad.out.buttons, ["whatsapp"]);
+});
+
+test("lead fields are validated and cleaned", () => {
+  assert.deepEqual(cleanLead({ name: "  Nada  <b>El-Haj</b> ", email: "NADA@Example.COM ", role: "Physiotherapist", need: "a room 2 mornings a week" }),
+    { name: "Nada bEl-Hajb", email: "nada@example.com", role: "Physiotherapist", need: "a room 2 mornings a week" });
+  assert.deepEqual(cleanLead({ email: "not-an-email", name: "12345" }), {});
+  assert.deepEqual(cleanLead(null), {});
+});
+
+test("model output carries stage, consent flags (tri-state) and lead", () => {
+  const o = parseAgentJson('{"reply":"May I save your name and email?","lang":"en","stage":"capture","askConsent":true,"consentGiven":null,"lead":{"name":"Nada","role":"physio"}}')!;
+  assert.deepEqual([o.stage, o.askConsent, o.consentGiven, o.lead.name], ["capture", true, null, "Nada"]);
+  assert.equal(parseAgentJson('{"reply":"ok","consentGiven":false}')!.consentGiven, false);
+  assert.equal(parseAgentJson('{"reply":"ok","stage":"bogus"}')!.stage, "answer");
+});
+
+test("consent: nothing is persisted until a yes to a question asked in an earlier turn", () => {
+  // turn 1: the person says their name; no consent yet -> nothing to persist
+  let r = advance(NEW_STATE, { ...OUT, stage: "discover", lead: { name: "Nada", role: "physio" } });
+  assert.equal(r.persist, null); assert.equal(r.state.exchanges, 1);
+  // turn 2: the agent asks; even if the model wrongly marks consentGiven in the same turn it does not count
+  r = advance(r.state, { ...OUT, askConsent: true, consentGiven: true });
+  assert.equal(r.persist, null); assert.equal(r.state.consentAsked, true); assert.equal(r.state.consent, false);
+  // turn 3: they say yes and give an email -> persisted
+  r = advance(r.state, { ...OUT, consentGiven: true, lead: { email: "nada@example.com" } });
+  assert.deepEqual(r.persist, { name: "Nada", role: "physio", email: "nada@example.com" }); assert.equal(r.state.consent, true);
+  // later turns keep persisting new facts without asking again
+  r = advance(r.state, { ...OUT, lead: { need: "a room two mornings" } });
+  assert.equal(r.persist?.need, "a room two mornings");
+});
+
+test("declining is final and never persists", () => {
+  let r = advance(NEW_STATE, { ...OUT, askConsent: true, lead: { name: "Sam" } });
+  r = advance(r.state, { ...OUT, consentGiven: false, lead: { email: "sam@example.com" } });
+  assert.equal(r.persist, null); assert.equal(r.state.declined, true);
+  r = advance(r.state, { ...OUT, consentGiven: true });
+  assert.equal(r.persist, null); assert.equal(r.state.consent, false);
+  assert.ok(/declined/.test(contextBlock(r.state)));
+});
+
+test("context block tells the model what the server knows", () => {
+  assert.ok(/NOT been asked/.test(contextBlock(NEW_STATE)));
+  assert.ok(/name=Nada/.test(contextBlock({ ...NEW_STATE, lead: { name: "Nada" }, exchanges: 3 })) && /connect ProHost/.test(contextBlock({ ...NEW_STATE, exchanges: 3 })));
 });

@@ -29,3 +29,14 @@ Share the sheet (Editor) with the functions' runtime service account. Mode stays
 3. Test from a tester account in dry-run; check the Live log. Then set mode `live` for one rule. Turn off ManyChat's automations on @prohost.app first (double replies).
 4. Public (non-tester) accounts need Meta App Review (Advanced Access for `instagram_business_manage_messages` / `_manage_comments`).
 5. Tokens last 60 days; `igTokenRefresh` renews weekly and emails admin when it fails or < 14 days remain.
+
+## AI DM agent (Gemini / Claude)
+`functions/src/instagram/aiAgent.ts` (prompt, output schema, conversation state), `aiRuntime.ts` (thread memory, caps, leads), `aiLlm.ts`
+(providers: `gemini` AI Studio key, `anthropic` key, `vertex`), `aiKnowledge.ts` (site facts + feature value) and the generated
+`aiRelease.generated.ts` (current version + latest "What's new", produced from `docs/release` by `scripts/website/gen-agent-release.js` on every functions build).
+* Two modes per turn: a direct question gets one full answer with the right button; a vague opener starts a 2-3 exchange discovery (what brings them, their
+  profession/space, the gap) before connecting ProHost to that need.
+* Name/email are saved to `ig_leads` (sheet tab `Leads`, admin email) ONLY after the person said yes to a consent question asked in an earlier turn
+  (`advance()` in aiAgent.ts, unit-tested). A "no" is final. Threads (`ig_threads`) hold the last 12 turns for 48 h.
+* Settings (sheet Status): `ai_enabled`, `ai_provider`, `ai_model`, `ai_daily_cap`, `ai_per_person_per_hour`. Unanswered questions go to the sheet `Learn` tab; answers written in `Knowledge` override the built-in facts.
+* Maintenance: `geminiprobe`, `aitest` (scripted conversations, nothing sent), `aiprobe`/`aiquota` (Vertex).
