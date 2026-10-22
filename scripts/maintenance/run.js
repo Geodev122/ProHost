@@ -624,7 +624,8 @@ async function logerrors(arg) {
     for (const e of entries.slice(-6)) {
       notice(`${e.timestamp} ${e.severity} log=${String(e.logName || "").split("/").pop()} res=${e.resource?.type} ` +
         `${JSON.stringify(e.resource?.labels || {})} method=${e.protoPayload?.methodName || "-"} ` +
-        `msg=${redact(e.protoPayload?.status?.message || e.jsonPayload?.message || e.textPayload || "").slice(0, 600)}`);
+        `msg=${redact(e.protoPayload?.status?.message || e.jsonPayload?.message || e.textPayload || "").slice(0, 600)} ` +
+        `fields=${redact(JSON.stringify({ ...(e.jsonPayload || {}), message: undefined, uid: undefined })).slice(0, 300)}`);
     }
     return;
   }
