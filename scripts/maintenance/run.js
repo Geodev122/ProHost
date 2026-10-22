@@ -12,6 +12,9 @@
 //   node scripts/maintenance/run.js clearstalesecrets drop retired HOSTINGER_* secret bindings that block deploys
 //   node scripts/maintenance/run.js authorphans      read-only: Auth users with no profile, grouped by provider, day and
 //                                                    test-robot domain (no emails printed)
+//   node scripts/maintenance/run.js authuser UID     read-only: one account — Auth record, profile, audit log and the
+//                                                    sign-in calls around its creation, with a verdict on how it got in
+//                                                    (no provider = email 6-digit code: custom-token sign-in)
 //   node scripts/maintenance/run.js mailingcode CODE set (or rotate) the pro-host.tech/admin access code; stores only a
 //                                                    salted scrypt hash in app_config/mailing_admin and signs out all
 //                                                    admin sessions. Without CODE: reports whether a code is set.
@@ -79,14 +82,26 @@ async function audit(db, auth) {
   }
   let authUsers = 0;
   let authNoProfile = 0;
+  const methods = {};
+  const odd = [];
   let page;
   do {
     const r = await auth.listUsers(1000, page);
-    r.users.forEach((u) => { authUsers++; if (!ids.has(u.uid)) authNoProfile++; });
+    r.users.forEach((u) => {
+      authUsers++;
+      if (!ids.has(u.uid)) authNoProfile++;
+      const m = signInMethod(u);
+      methods[m] = (methods[m] || 0) + 1;
+      // Every provider-less account should be an email-code sign-in (verified email, custom token).
+      if (m.startsWith("none") && m !== "none(email-code)") {
+        odd.push(`${m}:${maskEmail(u.email) || "-"}:${u.metadata.creationTime.slice(5, 16)}`);
+      }
+    });
     page = r.pageToken;
   } while (page);
   notice(`profiles=${profiles.size} orphanProfiles=${orphanProfiles} profilesWithoutCode=${profilesNoCode} ` +
     `legacyProfileFields=${legacyProfileFields} authUsers=${authUsers} authUsersWithoutProfile=${authNoProfile}`);
+  notice(`signInMethods=${JSON.stringify(methods).replace(/[{}"]/g, "")} unexplainedProviderless=[${odd.slice(0, 20).join(", ")}]`);
 
   const listings = await db.collection("workspace_listings").get();
   let legacy = 0; let demo = 0; let noCode = 0; let ownerEmail = 0;
@@ -141,6 +156,21 @@ async function audit(db, auth) {
     rows.push(`${code || "?"}:${r.productId}:needsAdmin=${!!r.needsAdmin}`);
   }
   notice(`parkedPurchases=[${rows.join(", ")}]`);
+
+  await step("functionErrors48h", async () => {
+    const since = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
+    const entries = await logEntries(`severity>=ERROR AND (resource.type="cloud_run_revision" OR resource.type="cloud_function") ` +
+      `AND timestamp>="${since}"`, 500);
+    const groups = {};
+    for (const e of entries) {
+      const m = redact(e.textPayload || e.jsonPayload?.message || e.protoPayload?.status?.message ||
+        (e.httpRequest ? `HTTP ${e.httpRequest.status}` : "")).slice(0, 90);
+      const k = `${e.resource?.labels?.service_name || e.resource?.labels?.function_name || "?"}: ${m}`;
+      groups[k] = (groups[k] || 0) + 1;
+    }
+    return `${entries.length} error entries` + (entries.length ?
+      ` — ${Object.entries(groups).sort((x, y) => y[1] - x[1]).slice(0, 10).map(([k, v]) => `${v}x ${k}`).join(" || ")}` : "");
+  });
 }
 
 async function j8(db, auth) {
@@ -507,6 +537,91 @@ async function authorphans(db, auth) {
   const types = {};
   logs.docs.forEach((d) => { const t = d.data().actionType; types[t] = (types[t] || 0) + 1; });
   notice(`auditLog14d=${j(types)}`);
+}
+
+const maskEmail = (e) => { if (!e) return ""; const at = e.indexOf("@"); return at <= 0 ? "***" : `${e[0]}***${e.slice(at)}`; };
+const redact = (v) => String(v || "").replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, (m) => maskEmail(m)).replace(/\s+/g, " ");
+// Sign-in method from the Auth record: no provider = custom token = the email 6-digit code (verifyEmailOtp /
+// clickEmailOtpLink create the user with the Admin SDK and return a custom token).
+const signInMethod = (u) => {
+  const p = (u.providerData || []).map((x) => x.providerId).sort().join("+");
+  if (p) return p;
+  if (u.email) return u.emailVerified ? "none(email-code)" : "none(email-unverified)";
+  return u.phoneNumber ? "none(phone)" : "none(no-email)";
+};
+async function logEntries(filter, pageSize = 200) {
+  const res = await googleApi("https://logging.googleapis.com/v2/entries:list", {
+    method: "POST",
+    body: JSON.stringify({ resourceNames: [`projects/${process.env.GCLOUD_PROJECT}`], filter, orderBy: "timestamp asc", pageSize }),
+  });
+  if (!res.ok) throw new Error(`logs HTTP ${res.status}`);
+  return (await res.json()).entries || [];
+}
+
+async function authuser(db, auth, uid) {
+  if (!/^[A-Za-z0-9]{20,40}$/.test(String(uid || ""))) throw new Error("pass the Auth uid in the code input");
+  let u;
+  try { u = await auth.getUser(uid); } catch (e) {
+    if (e.code !== "auth/user-not-found") throw e;
+    notice("auth: no Auth user with this uid (deleted?)");
+  }
+  if (u) {
+    notice(`auth: method=${signInMethod(u)} providers=[${(u.providerData || []).map((p) => p.providerId).join(",")}] ` +
+      `email=${maskEmail(u.email)} emailVerified=${u.emailVerified} phone=${u.phoneNumber ? "yes" : "no"} disabled=${u.disabled} ` +
+      `created=${u.metadata.creationTime} lastSignIn=${u.metadata.lastSignInTime} lastRefresh=${u.metadata.lastRefreshTime || "-"} ` +
+      `claims=${JSON.stringify(u.customClaims || {})}`);
+  }
+  const snap = await db.collection("user_profiles").doc(uid).get();
+  if (!snap.exists) notice("profile: none (registration form never submitted)");
+  else {
+    const p = snap.data();
+    const ts = (v) => (v && v.toDate ? v.toDate().toISOString() : v ? new Date(v).toISOString() : "-");
+    notice(`profile: code=${p.displayCode || "-"} role=${p.role || "-"} complete=${!!String(p.fullName || "").trim()} ` +
+      `photo=${!!p.profilePictureUrl} whatsapp=${!!p.phone} country=${p.country || "-"} city=${p.city ? "yes" : "no"} ` +
+      `emailVerified=${!!p.emailVerified} specialty=${p.specialty ? "yes" : "no"} createdAt=${ts(p.createdAtMillis)} ` +
+      `lastSignIn=${ts(p.lastSignInAtMillis)} tosAccepted=${ts(p.tosAcceptedAtMillis)} suspended=${!!p.isSuspended} ` +
+      `package=${p.ownerPackageId || "-"} analyticsConsent=${p.analyticsConsent ?? "-"}`);
+  }
+  const listings = (await db.collection("workspace_listings").where("ownerId", "==", uid).count().get()).data().count;
+  const bookings = (await db.collection("booking_requests").where("practitionerId", "==", uid).count().get()).data().count;
+  notice(`activity: listings=${listings} bookingsAsSpecialist=${bookings}`);
+  // Audit entries name the account in `details` (uid) or `actorEmail`; scan the last 60 days.
+  const recent = await db.collection("audit_security_logs").where("timestamp", ">=", Date.now() - 60 * 24 * 3600 * 1000).get();
+  const acts = recent.docs.filter((d) => String(d.data().details || "").includes(uid) ||
+    (u?.email && d.data().actorEmail === u.email))
+    .map((d) => `${d.data().actionType}@${new Date(d.data().timestamp || 0).toISOString().slice(0, 16)}`);
+  notice(`auditLog60d: ${acts.length ? acts.join(", ") : "none"}`);
+  if (!u) return;
+
+  // Sign-in calls around the account's creation (Cloud Run request logs + the functions' own logs).
+  await step("signInCallsAroundCreation", async () => {
+    const t = new Date(u.metadata.creationTime).getTime();
+    const from = new Date(t - 15 * 60 * 1000).toISOString();
+    const to = new Date(t + 15 * 60 * 1000).toISOString();
+    const svcs = ["sendemailotp", "verifyemailotp", "clickemailotplink", "sendsigninemaillink", "assigninitialrole"];
+    const entries = await logEntries(`timestamp>="${from}" AND timestamp<="${to}" AND ` +
+      `resource.labels.service_name=(${svcs.map((s) => `"${s}"`).join(" OR ")})`, 300);
+    const rows = {};
+    for (const e of entries) {
+      const svc = e.resource?.labels?.service_name;
+      const what = e.httpRequest ? `${e.httpRequest.requestMethod} ${e.httpRequest.status}` :
+        redact(e.jsonPayload?.message || e.textPayload || "").slice(0, 60);
+      const k = `${svc} ${what}`;
+      rows[k] = rows[k] || { n: 0, first: e.timestamp };
+      rows[k].n++;
+    }
+    const masked = maskEmail(u.email);
+    const otpForThisAddress = entries.some((e) => e.jsonPayload?.message === "email_otp_sent" && e.jsonPayload?.email === masked);
+    const linkForThisAddress = entries.some((e) => e.jsonPayload?.message === "sign_in_link_sent" && e.jsonPayload?.email === masked);
+    const okVerify = entries.some((e) => ["verifyemailotp", "clickemailotplink"].includes(e.resource?.labels?.service_name) &&
+      e.httpRequest && e.httpRequest.status < 400);
+    const method = signInMethod(u);
+    const verdict = method === "none(email-code)" && (okVerify || otpForThisAddress) ? "email 6-digit code (custom token) — expected" :
+      method.includes("google.com") ? "Google sign-in" :
+      method === "password" ? "email magic link" : `UNEXPLAINED (${method}; no matching code verification in the logs)`;
+    notice(`verdict: ${verdict} | codeEmailedToThisAddress=${otpForThisAddress} magicLinkSent=${linkForThisAddress} codeVerifiedOk=${okVerify}`);
+    return Object.entries(rows).map(([k, v]) => `${v.first.slice(11, 19)} ${v.n}x ${k}`).join(" | ") || "no sign-in calls in ±15 min";
+  });
 }
 
 async function prodcheck(db, auth) {
@@ -1265,6 +1380,7 @@ async function smsauth(db, arg) {
   else if (task === "clearstalesecrets") await clearstalesecrets();
   else if (task === "prodcheck") await prodcheck(db, auth);
   else if (task === "authorphans") await authorphans(db, auth);
+  else if (task === "authuser") await authuser(db, auth, arg);
   else if (task === "mailingcode") await mailingcode(db, arg);
   else if (task === "mailingsmoke") await mailingsmoke(db, arg);
   else if (task === "igsetup") await igsetup(db, arg);

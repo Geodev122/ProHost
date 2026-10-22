@@ -10,9 +10,9 @@ on:
         required: true
         default: audit
         type: choice
-        options: [audit, prodcheck, playcatalog, playofferfix, smsauth, authorphans, mailingcode, mailingsmoke, igsetup, igsmoke, igmedia, igpublish, igtest, aiprobe, geminiprobe, aitest, aiquota, j8, retiregrowth, occupancy, emailauth, enableemaillink, mailtest, clearstalesecrets]
+        options: [audit, prodcheck, playcatalog, playofferfix, smsauth, authorphans, authuser, mailingcode, mailingsmoke, igsetup, igsmoke, igmedia, igpublish, igtest, aiprobe, geminiprobe, aitest, aiquota, j8, retiregrowth, occupancy, emailauth, enableemaillink, mailtest, clearstalesecrets]
       code:
-        description: "mailingcode / mailingsmoke: the pro-host.tech/admin code (digits); playofferfix: apply (else dry run); smsauth: allow:SY (or empty to only read); other tasks ignore it"
+        description: "mailingcode / mailingsmoke: the pro-host.tech/admin code (digits); playofferfix: apply (else dry run); smsauth: allow:SY (or empty to only read); authuser: the Auth uid; other tasks ignore it"
         required: false
         default: ""
 
