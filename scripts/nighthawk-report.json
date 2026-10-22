@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-10-20T08:49:14.264Z",
+  "generatedAt": "2026-10-22T14:42:00.371Z",
   "trigger": "NIGHTHAWK",
   "summary": {
-    "total": 202,
+    "total": 224,
     "critical": 0,
     "high": 0,
-    "medium": 24,
-    "low": 178,
+    "medium": 43,
+    "low": 181,
     "info": 0,
     "passes": 30
   },
@@ -162,6 +162,177 @@
       "file": "functions/src/bookings/priceChange.ts",
       "line": null,
       "message": "Module \"bookings/priceChange\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/instagram/aiAccountInsight.ts",
+      "line": null,
+      "message": "Module \"instagram/aiAccountInsight\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/instagram/aiAgent.ts",
+      "line": null,
+      "message": "Module \"instagram/aiAgent\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/instagram/aiComment.ts",
+      "line": null,
+      "message": "Module \"instagram/aiComment\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/instagram/aiFlow.ts",
+      "line": null,
+      "message": "Module \"instagram/aiFlow\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/instagram/aiKnowledge.ts",
+      "line": null,
+      "message": "Module \"instagram/aiKnowledge\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/instagram/aiLlm.ts",
+      "line": null,
+      "message": "Module \"instagram/aiLlm\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/instagram/aiOffers.ts",
+      "line": null,
+      "message": "Module \"instagram/aiOffers\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/instagram/aiRelease.generated.ts",
+      "line": null,
+      "message": "Module \"instagram/aiRelease.generated\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/instagram/aiRuntime.ts",
+      "line": null,
+      "message": "Module \"instagram/aiRuntime\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/instagram/commentClass.ts",
+      "line": null,
+      "message": "Module \"instagram/commentClass\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/instagram/commentFeed.ts",
+      "line": null,
+      "message": "Module \"instagram/commentFeed\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/instagram/config.ts",
+      "line": null,
+      "message": "Module \"instagram/config\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/instagram/engine.ts",
+      "line": null,
+      "message": "Module \"instagram/engine\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/instagram/graph.ts",
+      "line": null,
+      "message": "Module \"instagram/graph\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/instagram/notify.ts",
+      "line": null,
+      "message": "Module \"instagram/notify\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/instagram/parse.ts",
+      "line": null,
+      "message": "Module \"instagram/parse\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/instagram/rulesSheet.ts",
+      "line": null,
+      "message": "Module \"instagram/rulesSheet\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/instagram/signature.ts",
+      "line": null,
+      "message": "Module \"instagram/signature\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/instagram/types.ts",
+      "line": null,
+      "message": "Module \"instagram/types\" has exports but is not imported from index.ts.",
       "suggestion": "Export or remove."
     },
     {
@@ -331,7 +502,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/CreateListingDialog.kt",
-      "line": 484,
+      "line": 487,
       "message": "Line has 166 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -340,7 +511,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/CreateListingDialog.kt",
-      "line": 693,
+      "line": 707,
       "message": "Line has 179 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -349,7 +520,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/CreateListingDialog.kt",
-      "line": 820,
+      "line": 834,
       "message": "Line has 164 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -358,7 +529,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/CreateListingDialog.kt",
-      "line": 1028,
+      "line": 1042,
       "message": "Line has 169 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -367,7 +538,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/CreateListingDialog.kt",
-      "line": 1261,
+      "line": 1262,
       "message": "Line has 214 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -376,7 +547,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/CreateListingDialog.kt",
-      "line": 1411,
+      "line": 1412,
       "message": "Line has 161 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -439,7 +610,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/OwnerIncomingRequestsView.kt",
-      "line": 332,
+      "line": 334,
       "message": "Line has 168 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -448,26 +619,26 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/OwnerIncomingRequestsView.kt",
-      "line": 436,
-      "message": "Line has 205 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/components/OwnerIncomingRequestsView.kt",
-      "line": 437,
-      "message": "Line has 187 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/components/OwnerIncomingRequestsView.kt",
       "line": 438,
-      "message": "Line has 171 characters (>160 limit).",
+      "message": "Line has 256 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/components/OwnerIncomingRequestsView.kt",
+      "line": 439,
+      "message": "Line has 246 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/components/OwnerIncomingRequestsView.kt",
+      "line": 440,
+      "message": "Line has 183 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
     {
@@ -1051,8 +1222,8 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/LoginAuthScreen.kt",
-      "line": 425,
-      "message": "Line has 173 characters (>160 limit).",
+      "line": 402,
+      "message": "Line has 181 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
     {
@@ -1060,7 +1231,16 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/LoginAuthScreen.kt",
-      "line": 776,
+      "line": 438,
+      "message": "Line has 194 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/LoginAuthScreen.kt",
+      "line": 806,
       "message": "Line has 166 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1069,7 +1249,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/LoginAuthScreen.kt",
-      "line": 871,
+      "line": 893,
       "message": "Line has 166 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1618,7 +1798,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpecialistProfileScreen.kt",
-      "line": 201,
+      "line": 218,
       "message": "Line has 182 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1627,7 +1807,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpecialistProfileScreen.kt",
-      "line": 443,
+      "line": 460,
       "message": "Line has 174 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1636,7 +1816,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpecialistProfileScreen.kt",
-      "line": 444,
+      "line": 461,
       "message": "Line has 192 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1645,7 +1825,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpecialistProfileScreen.kt",
-      "line": 579,
+      "line": 596,
       "message": "Line has 175 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1654,7 +1834,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpecialistProfileScreen.kt",
-      "line": 580,
+      "line": 597,
       "message": "Line has 170 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1663,7 +1843,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpecialistProfileScreen.kt",
-      "line": 581,
+      "line": 598,
       "message": "Line has 171 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1672,7 +1852,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpecialistProfileScreen.kt",
-      "line": 606,
+      "line": 623,
       "message": "Line has 193 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1681,7 +1861,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpecialistProfileScreen.kt",
-      "line": 664,
+      "line": 681,
       "message": "Line has 183 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1690,7 +1870,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpecialistProfileScreen.kt",
-      "line": 703,
+      "line": 720,
       "message": "Line has 193 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1699,7 +1879,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpecialistProfileScreen.kt",
-      "line": 991,
+      "line": 1008,
       "message": "Line has 176 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1708,7 +1888,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpecialistProfileScreen.kt",
-      "line": 1057,
+      "line": 1074,
       "message": "Line has 164 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1779,8 +1959,26 @@
       "severity": "LOW",
       "category": "detekt",
       "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/util/PriceChange.kt",
+      "line": 98,
+      "message": "Line has 182 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/util/PriceChange.kt",
+      "line": 108,
+      "message": "Line has 175 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 629,
+      "line": 662,
       "message": "Line has 169 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1789,7 +1987,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 1050,
+      "line": 1083,
       "message": "Line has 186 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1798,7 +1996,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 1103,
+      "line": 1136,
       "message": "Line has 171 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1807,7 +2005,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 1133,
+      "line": 1166,
       "message": "Line has 164 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1816,7 +2014,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 1186,
+      "line": 1219,
       "message": "Line has 189 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1825,7 +2023,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 1289,
+      "line": 1322,
       "message": "Line has 165 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     }
@@ -1833,11 +2031,11 @@
   "passes": [
     {
       "check": "CF Name Consistency",
-      "message": "All 23 getHttpsCallable() calls match exported functions in index.ts."
+      "message": "All 21 getHttpsCallable() calls match exported functions in index.ts."
     },
     {
       "check": "Firestore Rules Coverage",
-      "message": "All 11 Firestore collections used in Cloud Functions are covered."
+      "message": "All 18 Firestore collections used in Cloud Functions are covered."
     },
     {
       "check": "Empty Catch Block",
