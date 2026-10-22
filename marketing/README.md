@@ -219,3 +219,23 @@ Quiet until 6 PM? Your free hours can pay. 🧘 Instructors book them every week
 - **Music:** `scripts/marketing/music.json` → Actions › "Marketing music (manual)" → `audio/music/`.
 - **Backgrounds:** `scripts/marketing/backgrounds.json` → Actions › "Marketing backgrounds (manual)" → `backgrounds/`.
 - **Videos:** see `source/README.md` (render → mix → export).
+
+
+## Instagram grid, posts 4-6 and the DM Story (`social/`)
+
+The live account (@prohost.app) shows three single 4:5 typographic posts in a light / dark / light rhythm (read with Maintenance `igmedia`, images in `live/`).
+**Design DNA:** flat navy `#001f4e` or off-white `#fefefc`, the checkmark logo + ProHost wordmark top-left, a huge tightly-tracked bold grotesque headline (Inter ExtraBold, -4 px), one thin orange `#fd631d` rule, one regular-weight line of value, one orange call-to-action block (or full-width orange band on light posts); no photos, no gradients. Captions: a hook, one value paragraph, one call to action (message us / link in bio), three hashtags.
+
+The grid continues **dark, light, dark** (publish order matters: oldest first):
+
+| Post | Theme | Headline | CTA | Source |
+|---|---|---|---|---|
+| 11 | dark | Rent it your way. | DM us LIST to get started. | `social/post11_rent_your_way.html` |
+| 12 | light | Add it. Price it. Publish it. | Questions? DM us HOW and we'll walk you through. | `social/post12_add_price_publish.html` |
+| 13 | dark | Questions at 2 am? | Send us a DM. | `social/post13_ask_prohost.html` |
+
+Captions and the Story entry are in `social/captions.json`; `python social/render_posts.py` renders the PNG/JPEG into `social/out/` and checks the safe margins. The agent answers a DM or comment with LIST or HOW through the normal AI flow (no extra rules).
+
+**Story (`source/story_dm_agent.html`, 18 s, 1080x1920):** hook, a DM thread showing the agent's real opening flow, languages and topics, end card "Send us a DM." with the arrow towards Instagram's *Send message* bar (top 250 px / bottom 340 px kept free). British English voice-over (`scripts/marketing/voiceover_en.json`, `story_dm_agent`, voice Sulafat), Lyria music (`scripts/marketing/music.json`), UI sounds, mixed with `LENGTH=18 VOICE=audio/voiceovers-english python mix.py story_dm_agent` (renderer: `VIEWPORT=1080x1920 python render.py story_dm_agent.html 18 30`). -14 LUFS.
+
+**Publishing:** files are served from `public/social/` (Firebase Hosting) and published with Maintenance `igpublish` (code = `post11`, `post12`, `post13`, `story`; empty = dry-run plan; never publishes an item twice, `ig_stats/published`). The posts avoid prices and offers on purpose; any future offer text must match `functions/src/billing/offerClaims.ts`.

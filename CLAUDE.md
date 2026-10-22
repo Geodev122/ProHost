@@ -359,6 +359,9 @@ plan + recurring price + date;
   to like a comment: never promise likes. `igCommentPoll` (every minute) reads the 5 latest media's comments from the API and feeds them through
   `handleEvent` (dedupe by `c_<id>`), so comments are caught even when the unpublished Meta app delivers no webhook; first run only sets a baseline;
   health in `ig_stats/comment_poll`, `igsmoke` and the sheet row `health_comment_poll`.
+- Instagram feed/Story publishing: the grid style (flat navy/off-white, checkmark logo, Inter ExtraBold headline, one orange rule + block) is documented in `marketing/README.md`
+  ("Instagram grid"). Assets live in `public/social/`, captions in `marketing/social/captions.json`, publishing goes only through Maintenance `igpublish`
+  (idempotent via `ig_stats/published`); keep the light/dark alternation, no prices/offers in graphics unless they match `offerClaims.ts`.
 - Payment reminders go to the user's own calendar via `PaymentCalendar` (insert intent, monthly
   RRULE) — no calendar permission, no Google Calendar API.
 
