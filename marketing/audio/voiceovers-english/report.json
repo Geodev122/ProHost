@@ -408,5 +408,53 @@
       }
     ],
     "trackSeconds": 16.0
+  },
+  {
+    "post": "story_dm_agent",
+    "voice": "Sulafat",
+    "gender": "female",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 0.3,
+        "end": 2.09,
+        "sceneEnd": 3.4,
+        "spoken": 1.8,
+        "tempo": 1.0,
+        "text": "Got a question about renting a space?"
+      },
+      {
+        "line": 2,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 3.7,
+        "end": 8.13,
+        "sceneEnd": 8.6,
+        "spoken": 4.44,
+        "tempo": 1.0,
+        "text": "Just message ProHost. Our smart assistant replies in seconds."
+      },
+      {
+        "line": 3,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 8.9,
+        "end": 13.2,
+        "sceneEnd": 13.2,
+        "spoken": 4.65,
+        "tempo": 1.083,
+        "text": "In your language. How to list, how to book, what's new in the app."
+      },
+      {
+        "line": 4,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 13.5,
+        "end": 16.44,
+        "sceneEnd": 17.6,
+        "spoken": 2.94,
+        "tempo": 1.0,
+        "text": "Tap Send message, and ask us anything."
+      }
+    ],
+    "trackSeconds": 18.0
   }
 ]
