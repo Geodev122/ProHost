@@ -15,5 +15,18 @@
       "s4": "gemini-3.1-flash-image",
       "s5": "gemini-3.1-flash-lite-image"
     }
+  },
+  {
+    "at": "2026-10-24T16:34:56Z",
+    "stage": "clips",
+    "shots": {
+      "s1": "veo-3.1-fast-generate-001",
+      "s2": "veo-3.1-fast-generate-001",
+      "s3": "veo-3.1-fast-generate-001",
+      "s4": "veo-3.1-fast-generate-001",
+      "s5": "veo-3.1-fast-generate-001"
+    },
+    "seconds": 40,
+    "estimatedUsd": 4.8
   }
 ]
