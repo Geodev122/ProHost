@@ -1170,11 +1170,15 @@ async function igtest(db) {
 async function officeleadsmoke(db) {
   const { leadDocId } = require(`${LIB}/website/officeLeads`);
   const email = "admin@pro-host.tech";
+  const start = Date.now();
   await step("officeleadsmoke page", async () => `HTTP ${(await fetch("https://pro-host.tech/list-your-office")).status}`);
+  // Both paths end in onOfficeLeadSaved (website/officeLeadSync.ts), which records each email|WhatsApp once: a fresh test
+  // number per run makes this run record again.
+  const testWa = "+961700" + String(start).slice(-5);
   await step("officeleadsmoke submit", async () => {
     const r = await fetch("https://europe-west1-prohost-f766f.cloudfunctions.net/websiteOfficeLead", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data: { name: "ProHost smoke test", email, whatsapp: "+96170000000", profession: "Life coach", city: "Test",
+      body: JSON.stringify({ data: { name: "ProHost smoke test", email, whatsapp: testWa, profession: "Life coach", city: "Test",
         message: "Automated live check (maintenance officeleadsmoke).", consent: true, lang: "en", utm_source: "maintenance", utm_medium: "smoke" } }),
     });
     const j = await r.json().catch(() => ({}));
@@ -1189,9 +1193,36 @@ async function officeleadsmoke(db) {
     return `tags ${tags.filter((t) => t !== "partner" && t !== "strategic-sponsor" && t !== "usd-24000").join(", ")}`;
   });
   await step("officeleadsmoke leads tab queue", async () => {
-    const d = await db.collection("ig_leads").doc(leadDocId(email)).get();
+    let d = await db.collection("ig_leads").doc(leadDocId(email)).get();
     if (!d.exists) throw new Error("ig_leads row missing");
-    return `source ${d.get("source")}, synced ${d.get("synced")}`;
+    for (let i = 0; i < 20 && !(Number(d.get("recordedAt")) >= start); i++) {
+      await new Promise((res) => setTimeout(res, 3000));
+      d = await db.collection("ig_leads").doc(leadDocId(email)).get();
+    }
+    if (!(Number(d.get("recordedAt")) >= start)) throw new Error("not recorded by onOfficeLeadSaved within 60 s");
+    return `source ${d.get("source")}, synced ${d.get("synced")}, recorded ${d.get("recordedFor")}`;
+  });
+  // The DM agent's intake writes the same kind of doc after consent (instagram/aiRuntime.ts): simulate one.
+  await step("officeleadsmoke dm intake", async () => {
+    const ref = db.collection("ig_leads").doc("smoke_dm");
+    await ref.set({ kind: "office_owner", name: "ProHost smoke test (DM)", email: "admin+dmsmoke@pro-host.tech", whatsapp: "+961710" + String(start).slice(-5),
+      profession: "Psychologist", city: "Test", role: "Psychologist", need: "list my office", lang: "en", instagram: "prohost.smoke",
+      source: "instagram_dm", tags: ["insta-leads-story", "prospect", "office-owner", "psychologist"], consentAt: start, updatedAt: start, synced: false });
+    for (let i = 0; i < 20; i++) {
+      await new Promise((res) => setTimeout(res, 3000));
+      const d = await ref.get();
+      if (Number(d.get("recordedAt")) >= start) {
+        const q = await db.collection("mailing_list").where("email", "==", "admin+dmsmoke@pro-host.tech").limit(1).get();
+        const c = q.empty ? null : q.docs[0];
+        if (!c || !(c.get("sources") || []).includes("instagram_dm")) throw new Error("recorded, but no instagram_dm contact-book entry");
+        return `recorded; contact book tags ${(c.get("tags") || []).join(", ")}`;
+      }
+    }
+    throw new Error("onOfficeLeadSaved did not record the DM lead within 60 s");
+  });
+  await step("officeleadsmoke whatsapp", async () => {
+    const d = (await db.collection("app_config").doc("whatsapp").get()).data() || {};
+    return d.enabled ? `on, last alert: ${d.lastResult || "none yet"}` : "off (set up at pro-host.tech/admin › WhatsApp alerts)";
   });
   await step("officeleadsmoke admin email", async () => {
     const q = await db.collection("mail").orderBy("message.subject").startAt("[ProHost Office lead]").endAt("[ProHost Office lead]\uf8ff").limit(20).get();

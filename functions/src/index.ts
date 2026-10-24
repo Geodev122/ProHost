@@ -56,6 +56,7 @@ export { sendEmailOtp, verifyEmailOtp, clickEmailOtpLink } from "./auth/emailOtp
 export { sendPasswordResetLink, passwordSetupLink } from "./auth/passwordReset";
 export { websiteContact, websiteSubscribe, mailingUnsubscribe } from "./website/websiteForms";
 export { websiteOfficeLead } from "./website/officeLeads";
+export { onOfficeLeadSaved } from "./website/officeLeadSync";
 export { igWebhook } from "./instagram/webhook";
 export { igSheetSync } from "./instagram/sheetsBridge";
 export { igFollowUps } from "./instagram/aiSweeper";
@@ -70,6 +71,7 @@ export {
   mailingAdminSend,
   mailingAdminCampaign,
   mailingAdminRetry,
+  mailingAdminWhatsApp,
 } from "./website/mailingAdmin";
 export { sendSignInEmailLink, sendVerificationEmailLink } from "./auth/emailLinkAuth";
 export { playBillingRtdn } from "./billing/playBillingRtdn";

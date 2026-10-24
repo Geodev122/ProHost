@@ -116,13 +116,13 @@ export function aiFromStatus(status: Map<string, string>): Record<string, unknow
   return out;
 }
 
-/** Leads tab columns; whatsapp / source / tags (1.0.46) carry the website office-lead form (website/officeLeads.ts). */
-export const LEAD_COLUMNS = ["time", "instagram", "name", "email", "role", "need", "lang", "consent", "status", "id", "whatsapp", "source", "tags"] as const;
+/** Leads tab columns; whatsapp / source / tags / profession / city carry office leads (website form + DM agent intake). */
+export const LEAD_COLUMNS = ["time", "instagram", "name", "email", "role", "need", "lang", "consent", "status", "id", "whatsapp", "source", "tags", "profession", "city"] as const;
 
 /** One Leads row from an ig_leads document (agent DM leads and website form leads). */
 export function leadRow(id: string, l: Record<string, unknown>, now: number): string[] {
   const tags = Array.isArray(l.tags) ? l.tags.filter((t) => typeof t === "string").join(", ") : "";
   return [isoTime(Number(l.updatedAt) || now), String(l.instagram ?? ""), String(l.name ?? ""), String(l.email ?? ""), String(l.role ?? ""),
     String(l.need ?? ""), String(l.lang ?? ""), "yes " + isoTime(Number(l.consentAt) || now), "new", id,
-    String(l.whatsapp ?? ""), String(l.source ?? ""), tags];
+    String(l.whatsapp ?? ""), String(l.source ?? ""), tags, String(l.profession ?? ""), String(l.city ?? "")];
 }

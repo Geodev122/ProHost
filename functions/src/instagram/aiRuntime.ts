@@ -13,6 +13,7 @@ import { Step } from "./types";
 import { KnowledgeItem, buildKnowledge } from "./aiKnowledge";
 import { IgConfig } from "./config";
 import { alertAdmin } from "./notify";
+import { leadTags as officeLeadTags } from "../lib/officeLeadFields";
 import { Decision, IgEvent } from "./types";
 import { FLOW_TTL_MS, Turn, aliasId, appendTurns, importHistory } from "./aiMemory";
 import { ListingRow, catalogOverview, cleanCriteria, formatMatches, listingButtons, listingsCatalog, searchListings } from "./aiListings";
@@ -192,8 +193,10 @@ export async function aiDecide(config: IgConfig, event: IgEvent, now: number, f?
   if (persist) {
     const leadRef = db.collection("ig_leads").doc(event.senderId);
     const before = (await leadRef.get()).data();
-    await leadRef.set({ ...persist, lang: out.lang, instagram: event.username ?? "", consentAt: before?.consentAt ?? now, source: "instagram_dm", updatedAt: now, synced: false }, { merge: true }).catch(() => undefined);
-    if (persist.email && before?.email !== persist.email) {
+    // Office owners (intake mode F) are recorded in the contact book and alerted by website/officeLeadSync.ts (onOfficeLeadSaved).
+    const office = persist.kind === "office_owner" ? { tags: officeLeadTags(persist.profession ?? "") } : {};
+    await leadRef.set({ ...persist, ...office, lang: out.lang, instagram: event.username ?? "", consentAt: before?.consentAt ?? now, source: "instagram_dm", updatedAt: now, synced: false }, { merge: true }).catch(() => undefined);
+    if (persist.kind !== "office_owner" && persist.email && before?.email !== persist.email) {
       await alertAdmin(config, "New Instagram lead", `${persist.name ?? "(no name)"} <${persist.email}> — ${persist.role ?? "role unknown"}; need: ${persist.need ?? "unknown"}. They agreed to be contacted. @${event.username ?? event.senderId}`).catch(() => undefined);
     }
   }

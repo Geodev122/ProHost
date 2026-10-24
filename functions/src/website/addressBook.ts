@@ -31,7 +31,7 @@ export interface Contact {
   role?: string;
   message?: string;
   subscribe: boolean;     // true = opt in now; false = leave the current choice as it is
-  source: "contact" | "subscribe" | "partner" | "insta_story";
+  source: "contact" | "subscribe" | "partner" | "insta_story" | "instagram_dm";
   /** Admin-side labels kept on the address-book entry and on the stored message, e.g. ["partner", "strategic-sponsor"]. */
   tags?: string[];
 }

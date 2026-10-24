@@ -1,20 +1,22 @@
 import { complete, AiConfig, LlmMsg, LlmResult } from "./aiLlm";
 import { MODEL_TURNS, Turn, ago, cleanMemory } from "./aiMemory";
 import { SearchCriteria } from "./aiListings";
+import { normalizeWhatsApp, profession } from "../lib/officeLeadFields";
 
-export type ButtonId = "download" | "whatsapp" | "email" | "website" | "partner";
+export type ButtonId = "download" | "whatsapp" | "email" | "website" | "partner" | "office";
 export const BUTTON_URLS: Record<ButtonId, string> = {
   download: "https://pro-host.tech/ig",
   whatsapp: "https://wa.me/96176701865",
   email: "https://pro-host.tech/#contact",
   website: "https://pro-host.tech/",
   partner: "https://pro-host.tech/partner",
+  office: "https://pro-host.tech/list-your-office?utm_source=instagram&utm_medium=dm&utm_campaign=office_sourcing",
 };
 const LABELS: Record<string, Record<ButtonId, string>> = {
-  en: { download: "Get the app", whatsapp: "WhatsApp us", email: "Email us", website: "Visit website", partner: "Partner with us" },
-  ar: { download: "حمّل التطبيق", whatsapp: "واتساب", email: "راسلنا بالبريد", website: "زور الموقع", partner: "كن شريكاً" },
-  fr: { download: "Télécharger", whatsapp: "WhatsApp", email: "Nous écrire", website: "Voir le site", partner: "Devenir partenaire" },
-  es: { download: "Descargar", whatsapp: "WhatsApp", email: "Escríbenos", website: "Ver el sitio", partner: "Ser socio" },
+  en: { download: "Get the app", whatsapp: "WhatsApp us", email: "Email us", website: "Visit website", partner: "Partner with us", office: "List your office" },
+  ar: { download: "حمّل التطبيق", whatsapp: "واتساب", email: "راسلنا بالبريد", website: "زور الموقع", partner: "كن شريكاً", office: "سجّل مكتبك" },
+  fr: { download: "Télécharger", whatsapp: "WhatsApp", email: "Nous écrire", website: "Voir le site", partner: "Devenir partenaire", office: "Inscrire mon cabinet" },
+  es: { download: "Descargar", whatsapp: "WhatsApp", email: "Escríbenos", website: "Ver el sitio", partner: "Ser socio", office: "Registrar mi consulta" },
 };
 export const buttonLabel = (id: ButtonId, lang: string): string => (LABELS[lang.slice(0, 2).toLowerCase()] ?? LABELS.en)[id];
 
@@ -39,6 +41,7 @@ A) DIRECT QUESTION (how to download, what a feature does, the offer, contact): a
 B) DISCOVERY (hi / info? / vague): a short real conversation before any pitch, ONE question per message: what brings them (renting a room for their work, or listing a space they own), then what they do and what is hard today; then connect ProHost to THAT need in one or two sentences and offer the next step.
 C) HOW-TO / FEATURE HELP: explain like a person in up to 3 short separate messages ("messages" array), one idea each, button only on the last. Ask permission to look up their ProHost account (by the email they registered with; "no" if they are new) ONLY when the answer depends on their own account (their listing does not show, their Premium, a booking): set "askEmail" true and "awaitReply" true. With an ACCOUNT LOOKUP block, use it silently to pick the right next step; never repeat its facts back, never say whether an account exists.
 D) FIND A SPACE (they want a room, office, clinic, studio, desk, meeting or training room): be their personal finder. Use LIVE LISTINGS to know what exists. Gather the need with ONE short question per message, skipping anything already known: 1) what kind of space and for what work, 2) city / area, 3) how they want to book it (by the hour, shift, day or month) and roughly when, 4) how many people, 5) budget or must-have equipment (optional). Put everything known so far in "search" every turn. As soon as you know at least the kind and the city (or they ask to see options), set "searchReady" true: the server then searches the live catalogue and asks you again with LISTING RESULTS. With LISTING RESULTS: present the best 1-3 options in your own words (why each fits them, price exactly as written), list their ids in "listings" (the server attaches a "View" button per listing that opens it in the ProHost app), and ask ONE follow-up. With NO MATCH: say so honestly, suggest relaxing one thing, and offer the Explore map in the app. Renters use ProHost for free; booking happens in the app.
+F) OFFICE OWNER INTAKE (they own or rent a clinic / office / therapy room they could rent out, or they came from our office reel, story, the "office" comment or the OFFICE keyword): the offer is the first month of Premium free when they register (exact terms only as in LIVE PREMIUM OFFERS). Register them right here in the chat: if consent has not been asked, ask once "Shall I register you here for the free month? I just need your name, email and WhatsApp number" ("askConsent" true; the "office" button is the form alternative). Once they agreed, collect ONE missing item per message, skipping anything known: 1) name, 2) email, 3) WhatsApp number with country code, 4) profession (psychologist, life coach, therapist, nutritionist, physiotherapist or other), 5) city. Put everything said in "lead" with "kind": "office_owner". When name, email and WhatsApp are known, confirm them in one message and say the ProHost team will contact them on WhatsApp to set up the listing and the free month; "stage" "close" after that only if they have no other question. If they prefer the form, send the "office" button.
 E) WRAPPING UP (thanks / bye): one warm closing message, "stage" "close", no question, no button.
 
 SELLING, HONESTLY
@@ -46,13 +49,17 @@ SELLING, HONESTLY
 - Use the RELEASE section for "what's new". If ProHost is not a fit, say so kindly. Never pressure. One call to action per message.
 
 NAME AND EMAIL (consent first, asked ONCE)
-- Do not ask to save details in your first reply or while pitching; first be useful. To SAVE their name or email, ask permission once in its own short message ("May I save your name and email so our team can follow up? You can say no.") with "askConsent" true. Never ask twice; if they already agreed and gave only a name, just ask for the email in plain words. "consentGiven": true only when they clearly said yes to that question, false when they declined, else null. Put what they actually said in "lead" (name, email, role = their job or kind of space, need = their main need in a few words). Never ask for phone numbers, ID or payment details.
+- Do not ask to save details in your first reply or while pitching; first be useful. To SAVE their name or email, ask permission once in its own short message ("May I save your name and email so our team can follow up? You can say no.") with "askConsent" true. Never ask twice; if they already agreed and gave only a name, just ask for the email in plain words. "consentGiven": true only when they clearly said yes to that question, false when they declined, else null. Put what they actually said in "lead" (name, email, role = their job or kind of space, need = their main need in a few words). Never ask for phone numbers, ID or payment details, with ONE exception: in OFFICE OWNER INTAKE (F), after they agreed, ask for their WhatsApp number.
 
 OUTPUT: return ONLY a JSON object, no other text:
-{"messages": [string] (1-3, each its own DM), "lang": "en|ar|fr|es|...", "stage": "answer|discover|qualify|pitch|capture|assist|find|close", "awaitReply": boolean, "askEmail": boolean, "buttons": ["download"|"whatsapp"|"email"|"website"|"partner"], "handoff": boolean, "confidence": number 0-1, "learn": boolean, "askConsent": boolean, "consentGiven": true|false|null, "lead": {"name": string, "email": string, "role": string, "need": string}, "memory": string, "search": {"kind": "clinic|therapy|office|desk|meeting|training|studio|gym|space", "city": string (English map name), "country": string, "unit": "hour|shift|day|month|person", "attendees": number, "maxPrice": number (USD per unit), "features": [string]} or null, "searchReady": boolean, "listings": [string]}`;
+{"messages": [string] (1-3, each its own DM), "lang": "en|ar|fr|es|...", "stage": "answer|discover|qualify|pitch|capture|assist|find|close", "awaitReply": boolean, "askEmail": boolean, "buttons": ["download"|"whatsapp"|"email"|"website"|"partner"|"office"], "handoff": boolean, "confidence": number 0-1, "learn": boolean, "askConsent": boolean, "consentGiven": true|false|null, "lead": {"name": string, "email": string, "role": string, "need": string, "kind": "office_owner" or omitted, "whatsapp": string, "profession": string, "city": string}, "memory": string, "search": {"kind": "clinic|therapy|office|desk|meeting|training|studio|gym|space", "city": string (English map name), "country": string, "unit": "hour|shift|day|month|person", "attendees": number, "maxPrice": number (USD per unit), "features": [string]} or null, "searchReady": boolean, "listings": [string]}`;
 
 export type Stage = "answer" | "discover" | "qualify" | "pitch" | "capture" | "assist" | "find" | "close";
-export interface Lead { name?: string; email?: string; role?: string; need?: string }
+export interface Lead {
+  name?: string; email?: string; role?: string; need?: string;
+  /** Office-owner intake (mode F): "office_owner", their WhatsApp (+E.164), profession and city. */
+  kind?: "office_owner"; whatsapp?: string; profession?: string; city?: string;
+}
 export interface AgentOutput {
   /** All messages joined (what is remembered); `messages` are what is sent, one DM each, buttons on the last. */
   reply: string; messages: string[]; awaitReply: boolean; askEmail: boolean; lang: string; buttons: ButtonId[]; handoff: boolean; confidence: number; learn: boolean;
@@ -75,11 +82,15 @@ export function cleanLead(raw: unknown): Lead {
   if (EMAIL.test(email)) lead.email = email;
   const role = str(r.role, 120); if (role) lead.role = role;
   const need = str(r.need, 160); if (need) lead.need = need;
+  if (r.kind === "office_owner") lead.kind = "office_owner";
+  const wa = normalizeWhatsApp(str(r.whatsapp, 30)); if (wa) lead.whatsapp = wa;
+  const prof = profession(r.profession); if (prof) lead.profession = prof;
+  const city = str(r.city, 80).replace(/[^\p{L}\p{M} .'-]/gu, "").trim(); if (city) lead.city = city;
   return lead;
 }
 
 const ALLOWED_URL = /^https?:\/\/(?:pro-host\.tech|wa\.me\/96176701865|play\.google\.com)(?:[\/#?][^\s]*)?$/i;
-const IDS: ButtonId[] = ["download", "whatsapp", "email", "website", "partner"];
+const IDS: ButtonId[] = ["download", "whatsapp", "email", "website", "partner", "office"];
 
 /** Strips any link the model was not allowed to use, collapses whitespace, caps the length. */
 export function sanitizeReply(text: string): string {
@@ -179,7 +190,7 @@ export function contextBlock(st: ConvState, extra = "", lastContactMs = 0): stri
 /** Applies one model answer to the stored state; returns the new state and the lead to persist (only after consent). */
 export function advance(st: ConvState, out: AgentOutput, search?: SearchCriteria): { state: ConvState; persist: Lead | null } {
   const lead: Lead = { ...st.lead };
-  for (const [k, v] of Object.entries(out.lead) as Array<[keyof Lead, string | undefined]>) if (v) lead[k] = v;
+  for (const [k, v] of Object.entries(out.lead) as Array<[keyof Lead, string | undefined]>) if (v) (lead as Record<string, string>)[k] = v;
   // Consent only counts as an answer to a question asked in an EARLIER turn, never in the turn it is asked.
   const answered = st.consentAsked && !st.consent && !st.declined;
   const consent = st.consent || (answered && out.consentGiven === true);

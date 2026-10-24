@@ -81,6 +81,7 @@
       <button data-tab="messages">Messages</button>
       <button data-tab="compose">Write email</button>
       <button data-tab="campaigns">Sent emails</button>
+      <button data-tab="whatsapp">WhatsApp alerts</button>
     </div>
 
     <section data-view="book">
@@ -138,6 +139,30 @@
         <div id="liveFailed"></div>
       </div>
       <div class="tablewrap"><table><thead><tr><th>Date</th><th>Subject</th><th>Recipients</th><th></th></tr></thead><tbody id="campRows"></tbody></table></div>
+    </section>
+    <section data-view="whatsapp" class="hidden">
+      <div class="card2" style="max-width:640px">
+        <h2 style="margin:0 0 .4rem;border:0;padding:0;font-size:1.1rem">WhatsApp alerts for new office leads</h2>
+        <p class="fine" style="margin-top:0">Every new office lead (website form or Instagram DM agent) is also sent to your WhatsApp through the
+          <b>WhatsApp Business Cloud API</b>. Off until you fill this in. Meta only lets a business start a chat with an
+          <b>approved message template</b> that has one body variable <code>{{1}}</code> (the alert text); without one, alerts arrive only within 24 h of you messaging the business number.
+          The token is stored on the server only and never shown again.</p>
+        <div id="waStatus" class="fine"></div>
+        <label class="f"><input type="checkbox" id="wa_on"> Send WhatsApp alerts</label>
+        <label class="f" for="wa_pid">Phone number ID <small>(Meta › WhatsApp › API setup)</small></label><input class="f-in" id="wa_pid" maxlength="40" inputmode="numeric">
+        <label class="f" for="wa_to">Your WhatsApp number <small>(with country code, e.g. +961 76 701 865)</small></label><input class="f-in" id="wa_to" maxlength="30">
+        <div class="grid2" style="gap:.8rem">
+          <div><label class="f" for="wa_tpl">Template name</label><input class="f-in" id="wa_tpl" maxlength="120" placeholder="new_lead_alert"></div>
+          <div><label class="f" for="wa_lang">Template language</label><input class="f-in" id="wa_lang" maxlength="10" placeholder="en"></div>
+        </div>
+        <label class="f" for="wa_token">Access token <small id="wa_hint">(permanent System User token)</small></label>
+        <input class="f-in" id="wa_token" type="password" autocomplete="off" maxlength="600" placeholder="Paste to set or replace; leave blank to keep">
+        <div class="bar" style="margin-top:1rem">
+          <button class="b b-primary" id="waSave" type="button">Save</button>
+          <button class="b b-steel" id="waTest" type="button">Send test alert</button>
+        </div>
+        <div class="err" id="waErr" role="alert"></div>
+      </div>
     </section>
   </main>
 
@@ -332,6 +357,30 @@
     };
     tick(); pollTimer = setInterval(tick, 4000);
   }
+
+  // WhatsApp alerts panel (mailingAdminWhatsApp): the token is write-only, only its last 4 characters come back.
+  function waShow(r) {
+    $("wa_on").checked = !!r.enabled; $("wa_pid").value = r.phoneNumberId || ""; $("wa_to").value = r.adminNumber ? "+" + r.adminNumber : "";
+    $("wa_tpl").value = r.templateName || ""; $("wa_lang").value = r.templateLang || "en"; $("wa_token").value = "";
+    $("wa_hint").textContent = r.tokenSet ? "(saved " + r.tokenHint + ")" : "(permanent System User token)";
+    $("waStatus").innerHTML = (r.missing && r.missing.length ? "<b>Off</b> · missing: " + esc(r.missing.join(", ")) : "<b>On</b>") +
+      (r.lastResult ? " · last alert: " + esc(r.lastResult) : "");
+  }
+  function waCall(action, extra) {
+    $("waErr").textContent = "";
+    return call("mailingAdminWhatsApp", Object.assign({ token: token, action: action }, extra || {}))
+      .catch(function (err) { $("waErr").textContent = err.message; throw err; });
+  }
+  document.querySelector('.tabs button[data-tab="whatsapp"]').addEventListener("click", function () { waCall("get").then(waShow); });
+  $("waSave").addEventListener("click", function () {
+    waCall("set", { config: { enabled: $("wa_on").checked, phoneNumberId: $("wa_pid").value, adminNumber: $("wa_to").value,
+      templateName: $("wa_tpl").value, templateLang: $("wa_lang").value, accessToken: $("wa_token").value } }).then(waShow);
+  });
+  $("waTest").addEventListener("click", function () {
+    $("waTest").disabled = true;
+    waCall("test").then(function (r) { $("waErr").textContent = "Test: " + r.result; return waCall("get").then(waShow); })
+      .finally(function () { $("waTest").disabled = false; });
+  });
 
   if (token) open(); else $("code").focus();
 })();

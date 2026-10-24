@@ -150,3 +150,23 @@ test("history window: last 16 turns, resumed chats are marked with the gap", () 
   assert.ok(/\[2 days later\] back again$/.test(m[m.length - 1].content));
   assert.ok(!/later/.test(buildMessages([{ r: "u", t: "a", at: 1 }], "b", 2).map((x) => x.content).join()));
 });
+
+test("office-owner intake: WhatsApp, profession and city are validated; the office button opens the form", () => {
+  assert.deepEqual(cleanLead({ kind: "office_owner", name: "Karim", email: "k@clinic.com", whatsapp: "00961 70 123 456", profession: "life coach", city: " Jounieh <b>" }),
+    { name: "Karim", email: "k@clinic.com", kind: "office_owner", whatsapp: "+96170123456", profession: "Life coach", city: "Jounieh b" });
+  assert.deepEqual(cleanLead({ kind: "renter", whatsapp: "70123456" }), {}, "no country code, unknown kind");
+  assert.match(BUTTON_URLS.office, /^https:\/\/pro-host\.tech\/list-your-office\?/);
+  assert.equal(buttonLabel("office", "ar"), "سجّل مكتبك");
+  const out = parseAgentJson(JSON.stringify({ messages: ["Shall I register you here?"], buttons: ["office"], askConsent: true, lead: { kind: "office_owner" } }))!;
+  assert.deepEqual(out.buttons, ["office"]);
+  assert.equal(out.lead.kind, "office_owner");
+});
+
+test("an office lead is persisted only after consent, with all its fields", () => {
+  const st = { ...NEW_STATE, consentAsked: true };
+  const out = parseAgentJson(JSON.stringify({ messages: ["Thanks Karim!"], consentGiven: true, lead: { kind: "office_owner", name: "Karim", email: "k@clinic.com", whatsapp: "+96170123456" } }))!;
+  const { persist } = advance(st, out);
+  assert.equal(persist?.whatsapp, "+96170123456");
+  assert.equal(persist?.kind, "office_owner");
+  assert.equal(advance(NEW_STATE, out).persist, null, "consent in the same turn it was asked does not count");
+});

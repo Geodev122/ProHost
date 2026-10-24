@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { parseWhatsAppConfig, whatsAppMissing } from "../lib/whatsappAlerts";
 import { getFirestore } from "firebase-admin/firestore";
 import { google, sheets_v4 } from "googleapis";
 import * as logger from "firebase-functions/logger";
@@ -166,6 +167,7 @@ export async function runSheetSync(now = Date.now()): Promise<string> {
   const aiDay = (await db.collection("ig_stats").doc("ai_" + dayKey).get()).data();
   const poll = (await db.collection("ig_stats").doc("comment_poll").get()).data();
   const dmPoll = (await db.collection("ig_stats").doc("dm_poll").get()).data();
+  const wa = (await db.collection("app_config").doc("whatsapp").get()).data();
   const health: string[][] = [
     ["health_synced_at", isoTime(now)],
     ["health_account", config.username ? "@" + config.username : ""],
@@ -178,10 +180,19 @@ export async function runSheetSync(now = Date.now()): Promise<string> {
     ["health_dm_poll", dmPoll ? (dmPoll.lastError ? `FAILING: ${String(dmPoll.lastError).slice(0, 200)}` : `ok, last run ${isoTime(Number(dmPoll.lastRun))}, ${Number(dmPoll.processed) || 0} DMs handled`) : "not run yet"],
     ["health_ai_replies_today", String(Number(aiDay?.calls) || 0)],
     ["health_ai_tokens_today", aiDay ? `${Number(aiDay.inputTokens) || 0} in / ${Number(aiDay.outputTokens) || 0} out / ${Number(aiDay.cacheReadTokens) || 0} cached` : ""],
+    // Placeholder for WhatsApp lead alerts: configured only in pro-host.tech/admin (the token never goes into this sheet).
+    ["health_whatsapp_alerts", waStatus(wa)],
     ["health_effective_mode", config.mode === "live" && !config.killSwitch ? "LIVE" : "dry-run"],
   ];
   await sheets.spreadsheets.values.update({ spreadsheetId: sid, range: "Status!A40", valueInputOption: "RAW", requestBody: { values: health } });
   return notes.join(" ") || "no changes";
+}
+
+/** The WhatsApp alerts line: off until set up at pro-host.tech/admin › WhatsApp alerts (lib/whatsappAlerts.ts). */
+export function waStatus(d: Record<string, unknown> | undefined): string {
+  const missing = whatsAppMissing(parseWhatsAppConfig(d));
+  const last = typeof d?.lastResult === "string" && d.lastResult ? ` · last alert: ${d.lastResult.slice(0, 120)}` : "";
+  return (missing.length ? `OFF (missing: ${missing.join(", ")}) · set up at pro-host.tech/admin › WhatsApp alerts` : "ON") + last;
 }
 
 async function trimLog(sheets: sheets_v4.Sheets, sheetId: string): Promise<void> {

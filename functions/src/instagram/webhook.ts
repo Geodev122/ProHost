@@ -108,7 +108,8 @@ export async function handleEvent(config: IgConfig, event: IgEvent, now = Date.n
   // A keyword rule's private reply opens a chat too: remember it, so the agent can carry on when the person answers.
   const priv = decision.steps.find((st) => st.type === "private_reply");
   if (event.kind === "comment" && decision.ruleId && priv?.text && (status === "sent" || status === "dry-run")) {
-    await seedRuleReply(event, priv.text, now).catch(() => undefined);
+    // A rule tagged "consent-asked" (office-comment) asks "shall I register you?" in its private reply: a yes counts as consent.
+    await seedRuleReply(event, priv.text, now, decision.tags.includes("consent-asked")).catch(() => undefined);
   }
 
   if (decision.flag === "negative") {
@@ -127,11 +128,11 @@ export async function handleEvent(config: IgConfig, event: IgEvent, now = Date.n
   return decision;
 }
 
-async function seedRuleReply(event: IgEvent, reply: string, now: number): Promise<void> {
+async function seedRuleReply(event: IgEvent, reply: string, now: number, consentAsked = false): Promise<void> {
   const ref = getFirestore().collection("ig_threads").doc(event.senderId);
   const t = (await ref.get()).data() ?? {};
   const turns = seedFromComment(Array.isArray(t.turns) ? t.turns : [], event.text, reply, now);
-  await ref.set({ turns, at: now, lastAgentAt: now, closed: false, nudges: 0, state: { ...(t.state ?? {}), awaiting: "reply" },
+  await ref.set({ turns, at: now, lastAgentAt: now, closed: false, nudges: 0, state: { ...(t.state ?? {}), awaiting: "reply", ...(consentAsked ? { consentAsked: true } : {}) },
     ...(event.username ? { username: event.username } : {}) }, { merge: true });
 }
 
