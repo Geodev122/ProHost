@@ -65,7 +65,7 @@ ${lead ? `<p class="lead">${esc(lead)}</p>` : ""}
 </body></html>`;
 }
 
-const jobs = [{ out: "img/og-hero.jpg", pill: "<b>4 MONTHS FREE</b> or 50% off your first year", h1: "Turn empty rooms<br>into <em>steady income.</em>",
+const jobs = [{ out: "img/og-hero.jpg", pill: "<b>1 MONTH FREE</b> or 50% off your first year", h1: "Turn empty rooms<br>into <em>steady income.</em>",
   lead: "List your clinic, therapy room, office, studio or meeting room and rent it to verified professionals.", photo: "hotel" }];
 jobs.push({ out: "img/og/partner.jpg", pill: "Strategic partnership", h1: "Become ProHost's<br><em>strategic partner</em>", lead: "One partner. A share of app revenue and your logo in the app.", photo: "meeting" });
 for (const p of PAGES) {
@@ -74,7 +74,7 @@ for (const p of PAGES) {
 }
 
 (async () => {
-  const browser = await chromium.launch({ args: ["--allow-file-access-from-files"] });
+  const browser = await chromium.launch({ args: ["--allow-file-access-from-files"], ...(process.env.CHROME ? { executablePath: process.env.CHROME } : {}) });
   const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
   const tmp = path.join(require("os").tmpdir(), "prohost-og.html");
   for (const j of jobs) {

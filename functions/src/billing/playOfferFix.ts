@@ -7,7 +7,7 @@
  *     so the offer is copied — phases, tags, regions and eligibility — onto the live monthly plan and
  *     activated there. The app finds it by its `promo` tag on any base plan (PlayPromo).
  *  2. The monthly launch offer's 4-month phase was set to 99% off (a few cents) instead of free, while the
- *     website, emails and media promise "4 months free": the phase is made free (same duration, regions).
+ *     website, emails and media promise "1 month free" (WEBSITE_OFFER_CLAIMS): the phase is made free (same duration, regions).
  *  3. The monthly launch offer is limited to accounts that "never had any subscription in this app", so
  *     anyone who ever subscribed never sees it. It is widened to "never had this subscription", like the
  *     yearly offer.

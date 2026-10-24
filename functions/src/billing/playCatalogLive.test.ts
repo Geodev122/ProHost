@@ -61,13 +61,13 @@ const offer = (offerId: string, tags: string[], phases: LiveBasePlan["offers"][n
 });
 const NOW = Date.parse("2026-10-14T12:00:00Z");
 
-const FREE4 = [{ duration: "P4M", recurrenceCount: 1, pricing: { LB: "free", US: "free" } }];
+const FREE1 = [{ duration: "P1M", recurrenceCount: 1, pricing: { LB: "free", US: "free" } }];
 const HALF_YEAR = [{ duration: "P1Y", recurrenceCount: 1, pricing: { LB: "-50%", US: "-50%" } }];
 
-test("lintOffers is quiet for the live catalog: 4 months free monthly, 50% off year one, one promo", () => {
+test("lintOffers is quiet for the live catalog: 1 month free monthly, 50% off year one, one promo", () => {
   const warnings = lintOffers([
     plan("pro-monthly1", "P1M", [
-      offer("free-4-months", [], FREE4),
+      offer("free-4-months", [], FREE1),
       offer("prohost2026", ["promo", "code-prohost2026", "ends-20261231"], [{ duration: "P1M", recurrenceCount: 1, pricing: { LB: "free", US: "free" } }]),
     ]),
     plan("pro-yearly", "P1Y", [offer("launch-50-first-year", [], HALF_YEAR)]),
@@ -75,7 +75,7 @@ test("lintOffers is quiet for the live catalog: 4 months free monthly, 50% off y
   assert.deepEqual(warnings, []);
 });
 
-test("lintOffers flags the 99%-off slip, broken promos and a free phase beyond 4 months", () => {
+test("lintOffers flags the 99%-off slip, broken promos and a free phase beyond the promised month", () => {
   const warnings = lintOffers([
     plan("pro-monthly1", "P1M", [
       offer("slip", [], [{ duration: "P2M", recurrenceCount: 1, pricing: { LB: "-99%", US: "-99%" } }]),
@@ -94,17 +94,17 @@ test("lintOffers flags the 99%-off slip, broken promos and a free phase beyond 4
 
 test("lintOffers warns when Play no longer matches what the website promises", () => {
   const all = lintOffers([
-    plan("pro-monthly1", "P1M", [offer("short", [], [{ duration: "P2M", recurrenceCount: 1, pricing: { LB: "free", US: "free" } }])]),
+    plan("pro-monthly1", "P1M", [offer("short", [], [{ duration: "P1M", recurrenceCount: 1, pricing: { LB: "-50%", US: "-50%" } }])]),
     plan("pro-yearly", "P1Y", [offer("thirty", [], [{ duration: "P1Y", recurrenceCount: 1, pricing: { LB: "-30%", US: "-30%" } }])]),
   ], NOW).join("\n");
-  assert.match(all, /website promises the first 4 months free on the monthly plan, but pro-monthly1/);
+  assert.match(all, /website promises the first month free on the monthly plan, but pro-monthly1/);
   assert.match(all, /website promises 50% off the first year on the yearly plan, but pro-yearly/);
 });
 
 test("lintOffers flags two ACTIVE base plans with the same period (a renamed plan left active)", () => {
   const warnings = lintOffers([
-    plan("pro-montly", "P1M", [offer("free-4-months", [], FREE4)]),
-    plan("pro-monthly1", "P1M", [offer("free-4-months", [], FREE4)]),
+    plan("pro-montly", "P1M", [offer("free-4-months", [], FREE1)]),
+    plan("pro-monthly1", "P1M", [offer("free-4-months", [], FREE1)]),
     plan("pro-yearly", "P1Y", [offer("launch-50-first-year", [], HALF_YEAR)]),
   ], NOW);
   assert.equal(warnings.length, 1);
@@ -113,8 +113,8 @@ test("lintOffers flags two ACTIVE base plans with the same period (a renamed pla
 
 test("lintOffers flags a promo stranded on an inactive base plan and an offer limited to any subscription in the app", () => {
   const all = lintOffers([
-    { ...plan("pro-monthly", "P1M", [{ ...offer("prohost2026", ["promo", "code-prohost2026", "ends-20261231"], FREE4), state: "INACTIVE" }]), state: "INACTIVE" },
-    plan("pro-monthly1", "P1M", [{ ...offer("free-4-months", [], FREE4), eligibility: "new customers: never had any subscription in this app" }]),
+    { ...plan("pro-monthly", "P1M", [{ ...offer("prohost2026", ["promo", "code-prohost2026", "ends-20261231"], FREE1), state: "INACTIVE" }]), state: "INACTIVE" },
+    plan("pro-monthly1", "P1M", [{ ...offer("free-4-months", [], FREE1), eligibility: "new customers: never had any subscription in this app" }]),
     plan("pro-yearly", "P1Y", [{ ...offer("launch-50-first-year", [], HALF_YEAR), eligibility: "new customers: never had this subscription" }]),
   ], NOW).join("\n");
   assert.match(all, /pro-monthly\/prohost2026: promo offer on a INACTIVE base plan can't be resumed/);

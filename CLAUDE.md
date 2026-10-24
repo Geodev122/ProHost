@@ -39,7 +39,7 @@ App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; P
   subscription in this app" to "this subscription" (`billing/playOfferFix.ts`; lint flags both). Checkout offer = `OfferChoice` (`PlayBillingManager`): plan cards
   `Preferred` (`preferredOffer` skips `promo` offers), switches `BasePlanOnly` (regular prices shown ⇒ charged), promo
   `Specific(offerId)`; a missing offer aborts with a billing message. `lintOffers` (`playCatalogLive.ts`, Maintenance
-  `playcatalog` step `playOfferLint`) flags Play Console slips (≥ 90 % off, promo tags, the website's offer claims in `offerClaims.ts`: monthly 4 months free, yearly 50 % off year one — the static pages, `public/admin.html` email template, marketing README/voiceover scripts and videos must state them; `offerClaims.test.ts` enforces it). Monthly ↔ yearly passes the old token
+  `playcatalog` step `playOfferLint`) flags Play Console slips (≥ 90 % off, promo tags, the website's offer claims in `offerClaims.ts`: monthly 1 month free (offer `free-4-months` keeps its id; its phase became P1M in Oct 2026), yearly 50 % off year one; monthly price $8.99 — the static pages, `public/admin.html` email template, marketing README/voiceover scripts and videos must state them; `offerClaims.test.ts` enforces it). Monthly ↔ yearly passes the old token
   (`SubscriptionUpdateParams`). The screen is "ProHost Premium" (`OwnerSubscriptionsScreen.kt`).
 - Product queries use the Billing 8+ callback `queryProductDetailsAsync(params) { billingResult,
   queryProductDetailsResult -> }` (`productDetailsList` / `unfetchedProductList`). Never cast the callback

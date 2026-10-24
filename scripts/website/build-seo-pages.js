@@ -112,7 +112,7 @@ ${header(false)}
       <a class="play" href="${getUrl("hero", p.slug)}" aria-label="Get ProHost on Google Play">${PLAY_SVG}<span><small>GET IT ON</small><b>Google Play</b></span></a>
       <a class="btn btn-outline" href="${hosts ? "/#contact" : "#how"}">${hosts ? "Talk to our team" : "How it works"}</a>
     </div>
-    <ul class="ticks">${(hosts ? ["First 4 months free, or 50% off your first year", "No booking commission", "Cancel anytime in Google Play"] : ["Free for professionals", "Phone-verified community", "Live availability"]).map((t) => `<li>${t}</li>`).join("")}</ul>
+    <ul class="ticks">${(hosts ? ["First month free, or 50% off your first year", "No booking commission", "Cancel anytime in Google Play"] : ["Free for professionals", "Phone-verified community", "Live availability"]).map((t) => `<li>${t}</li>`).join("")}</ul>
   </div>
   <img class="hero-img" src="/img/${p.img}.jpg" alt="${esc(p.imgAlt)}" width="640" height="800" fetchpriority="high">
 </div></section>
@@ -149,7 +149,7 @@ ${header(false)}
 </div></section>
 
 <section><div class="wrap">
-  <div class="final"><div><h2>${hosts ? "Start Premium with 4 months free." : "Find your next room on ProHost."}</h2>
+  <div class="final"><div><h2>${hosts ? "Start Premium with 1 month free." : "Find your next room on ProHost."}</h2>
     <p>${hosts ? "List your space today, monthly or yearly. Offer for new Premium subscribers; Google Play shows the exact price before you confirm." : "Free to download and free to book. Search the map, check live availability and send your request in minutes."}</p></div>
     <a class="btn btn-white" href="${getUrl("final", p.slug)}">Get ProHost on Google Play</a></div>
   <div class="related"><b>Related:</b> ${p.related.map((s) => `<a href="/${s}">${esc(strip(bySlug[s].h1))}</a>`).join("")}</div>
@@ -168,7 +168,7 @@ function arabic() {
     ["هل يمكنني استئجار عيادة لبضع ساعات فقط في الأسبوع؟", "نعم. كثير من العيادات على ProHost معروضة بالدوام أو بالساعة، فتحجز مثلاً صباح الاثنين والخميس فقط، ويظهر لك المجموع قبل إرسال الطلب."],
     ["هل الحجز مجاني للمهنيين؟", "نعم. البحث والحجز على ProHost مجانيان للمهنيين، وتدفع ثمن الغرفة مباشرة لصاحب المساحة."],
     ["كيف أتواصل مع صاحب المساحة؟", "من صفحة المساحة اضغط على زر واتساب لتسأل عن التجهيزات أو الموقف قبل الحجز، من دون أن يُنشر رقم صاحب المساحة."],
-    ["كم يكلّف عرض مساحتي على ProHost؟", "نشر المساحات وإدارتها جزء من اشتراك ProHost Premium الشهري أو السنوي عبر Google Play، مع أول 4 أشهر مجانًا على الخطة الشهرية أو خصم 50% على السنة الأولى في الخطة السنوية للمشتركين الجدد. يظهر السعر الدقيق وتاريخ بدء الفوترة في Google Play قبل التأكيد."],
+    ["كم يكلّف عرض مساحتي على ProHost؟", "نشر المساحات وإدارتها جزء من اشتراك ProHost Premium الشهري أو السنوي عبر Google Play، مع أول شهر مجانًا على الخطة الشهرية أو خصم 50% على السنة الأولى في الخطة السنوية للمشتركين الجدد. يظهر السعر الدقيق وتاريخ بدء الفوترة في Google Play قبل التأكيد."],
     ["هل يأخذ ProHost عمولة على الحجوزات؟", "لا. ProHost لا يأخذ عمولة ولا يعالج المدفوعات بينك وبين المهني، وتتفقان على الدفع مباشرة."],
   ];
   const ld = [ORG, WEBSITE,
@@ -217,7 +217,7 @@ ${header(true)}
 <section id="hosts"><div class="wrap two">
   <div><span class="eyebrow">لأصحاب المساحات</span><h2 class="h2s">غرفك فارغة جزءاً من الأسبوع؟ أجّرها.</h2>
     <p class="muted">فنادق ومراكز طبية ومراكز تدريب واستوديوهات ومكاتب تعرض غرفها على ProHost لتملأ الساعات الفارغة مع مهنيين موثّقين. خمس طرق للتأجير لكل غرفة، صندوق طلبات واحد، توفّر مباشر يمنع الحجز المزدوج، وتغيير الأسعار في أي وقت مع إشعار المستأجرين تلقائياً.</p>
-    <a class="btn btn-orange" style="margin-top:1rem" href="/get?utm_source=website&amp;utm_medium=hosts&amp;utm_campaign=seo_ar">أول 4 أشهر مجانًا · أو خصم 50% على السنة الأولى</a></div>
+    <a class="btn btn-orange" style="margin-top:1rem" href="/get?utm_source=website&amp;utm_medium=hosts&amp;utm_campaign=seo_ar">أول شهر مجانًا · أو خصم 50% على السنة الأولى</a></div>
   <div><span class="eyebrow">الموقع</span><h2 class="h2s">مساحات قريبة منك</h2>
     <p class="muted">تظهر كل مساحة على خريطة مباشرة، فتبحث في منطقتك وتفلتر حسب نوع المساحة وطريقة التسعير، وترى الغرف المتاحة الآن.</p>
     <p class="fine" style="margin-top:.8rem">يتغيّر التوفّر يومياً. افتح الخريطة في التطبيق لترى المساحات المعروضة قربك الآن.</p></div>
@@ -228,7 +228,7 @@ ${header(true)}
   <div class="faq">${faq.map(([q, a], i) => `<details${i ? "" : " open"}><summary>${q}</summary><p>${a}</p></details>`).join("")}</div>
 </div></section>
 
-<section><div class="wrap"><div class="final"><div><h2>حمّل ProHost اليوم</h2><p>مجاني للتنزيل ومجاني للحجز. ولأصحاب المساحات: أول 4 أشهر من Premium مجانًا على الخطة الشهرية، أو خصم 50% على السنة الأولى في الخطة السنوية.</p></div>
+<section><div class="wrap"><div class="final"><div><h2>حمّل ProHost اليوم</h2><p>مجاني للتنزيل ومجاني للحجز. ولأصحاب المساحات: أول شهر من Premium مجانًا على الخطة الشهرية، أو خصم 50% على السنة الأولى في الخطة السنوية.</p></div>
   <a class="btn btn-white" href="/get?utm_source=website&amp;utm_medium=final&amp;utm_campaign=seo_ar">حمّل من Google Play</a></div></div></section>
 </main>
 ${footer(true)}

@@ -239,7 +239,7 @@ export function lintOffers(basePlans: LiveBasePlan[], nowMillis: number): string
     }
     if (!kept) {
       out.push(kind === "monthly"
-        ? `website promises the first ${WEBSITE_OFFER_CLAIMS.monthlyFreeMonths} months free on the monthly plan, but ${bp.basePlanId} has no ACTIVE offer with that free phase in LB`
+        ? `website promises the first ${WEBSITE_OFFER_CLAIMS.monthlyFreeMonths === 1 ? "month" : `${WEBSITE_OFFER_CLAIMS.monthlyFreeMonths} months`} free on the monthly plan, but ${bp.basePlanId} has no ACTIVE offer with that free phase in LB`
         : `website promises ${WEBSITE_OFFER_CLAIMS.yearlyDiscountPercent}% off the first year on the yearly plan, but ${bp.basePlanId} has no ACTIVE offer with that discount in LB`);
     }
   }
