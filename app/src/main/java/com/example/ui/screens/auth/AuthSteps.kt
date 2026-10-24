@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -13,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -60,10 +62,11 @@ internal fun AuthStepScaffold(
     actions: @Composable ColumnScope.() -> Unit,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+    AuthBackdrop()
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .proHostScreenBackground()
             .statusBarsPadding()
             .navigationBarsPadding()
             .imePadding()
@@ -114,6 +117,34 @@ internal fun AuthStepScaffold(
             content = actions
         )
     }
+    }
+}
+
+/**
+ * Behind every sign-in / sign-up step (1.0.46): a pre-blurred practice room (`auth_background.webp`, made by
+ * scripts/marketing/blur_background.py) under a surface scrim — light at the top so the room shows, near-opaque where the
+ * fields and buttons sit — so text keeps its contrast in light and dark themes.
+ */
+@Composable
+private fun AuthBackdrop() {
+    val surface = MaterialTheme.colorScheme.surface
+    Image(
+        painter = painterResource(R.drawable.auth_background),
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier.fillMaxSize()
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    0f to surface.copy(alpha = 0.55f),
+                    0.35f to surface.copy(alpha = 0.78f),
+                    1f to surface.copy(alpha = 0.92f)
+                )
+            )
+    )
 }
 
 /** Small "By continuing you agree to the Terms of Use and Privacy Policy." line with tappable documents. */
