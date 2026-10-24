@@ -60,12 +60,13 @@ def level(x, target=0.2):
     return x / (max(1e-6, np.sqrt((x[active] ** 2).mean())) / target) if active.any() else x
 
 
-def last_voiced(x, around, thr=0.06):
-    """End of the last 20 ms frame above thr × peak, searched from 0.3 s before `around` to 2 s after it."""
+def last_voiced(x, around, thr=0.15):
+    """End of the last 20 ms frame above thr × peak, searched from 0.3 s before `around` to 0.6 s after it (room tone
+    after the line must not stretch the shot)."""
     hop = SR // 50
     n = len(x) // hop
     rms = np.sqrt((x[: n * hop].mean(axis=1).reshape(n, hop) ** 2).mean(axis=1))
-    lo, hi = max(0, int((around - 0.3) * 50)), min(n, int((around + 2.0) * 50))
+    lo, hi = max(0, int((around - 0.3) * 50)), min(n, int((around + 0.6) * 50))
     on = [i for i in range(lo, hi) if rms[i] > thr * rms.max()]
     return max(around, (on[-1] + 1) * hop / SR) if on else around
 
