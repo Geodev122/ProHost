@@ -1,0 +1,70 @@
+[
+  {
+    "post": "reel_office",
+    "voice": "Charon",
+    "gender": "male",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 0.2,
+        "end": 3.7,
+        "sceneEnd": 3.7,
+        "spoken": 3.54,
+        "tempo": 1.013,
+        "text": "عِنْدَك عيادة أو office… وبيضَلّ فاضي بين جلساتك؟"
+      },
+      {
+        "line": 2,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 3.9,
+        "end": 7.21,
+        "sceneEnd": 7.7,
+        "spoken": 3.31,
+        "tempo": 1.0,
+        "text": "كلّ ساعة فاضية… هيّي إيجار عم تدفعو عَالفاضي."
+      },
+      {
+        "line": 3,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 7.9,
+        "end": 13.89,
+        "sceneEnd": 13.9,
+        "spoken": 7.33,
+        "tempo": 1.222,
+        "text": "مع ProHost، بتأجّر مكتبك بالساعة، بالـ shift أو باليوم، لـ psychologists و coaches و therapists متلك."
+      },
+      {
+        "line": 4,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 14.1,
+        "end": 18.9,
+        "sceneEnd": 18.9,
+        "spoken": 5.0,
+        "tempo": 1.041,
+        "text": "إنتَ بتحدّد الأوقات والسعر، والطلبات بتوصلك مباشرةً عَالواتساب."
+      },
+      {
+        "line": 5,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 19.1,
+        "end": 24.71,
+        "sceneEnd": 24.7,
+        "spoken": 6.78,
+        "tempo": 1.211,
+        "text": "عبّي الـ form، الرابط بالـ bio: اسمك، إيميلك ورقم الواتساب… وأوّل شهر علينا، مجّاناً."
+      },
+      {
+        "line": 6,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 24.9,
+        "end": 29.7,
+        "sceneEnd": 29.7,
+        "spoken": 5.48,
+        "tempo": 1.141,
+        "text": "وبعدها؟ بسّ تمانْيِة وتسعة وتسعين دولار بالشهر… أقلّ من إيجار ساعة وحدة."
+      }
+    ],
+    "trackSeconds": 30.0
+  }
+]
