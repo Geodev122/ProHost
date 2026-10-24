@@ -4,6 +4,8 @@ Runs in CI (.github/workflows/marketing-avatar.yml) with the Firebase service ac
 on Vertex AI in the Firebase project:
   stage keyframes  Gemini image: references + scene prompt -> marketing/avatar/keyframes/<shot>.png (9:16 first frame).
                    Shots after s1 also get s1's keyframe so the room stays the same.
+  stage check      Gemini listens to every speaking clip: verbatim transcript, speech start/end, dialect, voice, and
+                   whether it says the scripted line (cents; result in report.json).
   stage clips      Veo (newest 3.x fast): keyframe -> marketing/avatar/clips/<shot>.mp4 (8 s, 9:16); audio (lip-synced
                    speech) only for shots with "audio": true.
 Spend guard: at most MAX_SECONDS generated video seconds per run; every run is appended to marketing/avatar/report.json
@@ -140,6 +142,36 @@ def clip(shot, models):
     return None
 
 
+def check(shot, models):
+    import subprocess, imageio_ffmpeg
+    clip_path = CLIPS / f"{shot['id']}.mp4"
+    if not clip_path.exists():
+        return {"error": "no clip"}
+    mp3 = pathlib.Path(os.environ.get("RUNNER_TEMP", "/tmp")) / f"{shot['id']}.mp3"
+    subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-i", str(clip_path), "-vn", "-ac", "1",
+                    "-b:a", "96k", str(mp3)], check=True)
+    prompt = ("Listen to this 8-second clip of a man speaking. Reply with JSON only: {\"transcript\": verbatim Arabic as "
+              "spoken, \"speech_start_s\": number, \"speech_end_s\": number, \"cut_off\": true if the last word is cut "
+              "off by the end of the clip, \"dialect\": which Arabic dialect it sounds like, \"voice\": gender and tone, "
+              "\"matches_script\": true if it says the same words as the script, \"differences\": what differs, "
+              f"\"intelligible\": 1-5}}. Script: {shot['speech']}")
+    body = {"contents": [{"role": "user", "parts": [{"inlineData": {"mimeType": "audio/mpeg", "data": b64(mp3)}},
+                                                     {"text": prompt}]}],
+            "generationConfig": {"responseMimeType": "application/json", "temperature": 0}}
+    for model in models:
+        r = session.post(f"https://aiplatform.googleapis.com/v1/projects/{project}/locations/global/publishers/google/"
+                         f"models/{model}:generateContent", json=body, headers=HDR, timeout=300)
+        if not r.ok:
+            print(f"::notice::check {model}: HTTP {r.status_code} {r.text[:200]}")
+            continue
+        txt = "".join(p.get("text", "") for c in r.json().get("candidates", []) for p in c.get("content", {}).get("parts", []))
+        try:
+            return {"model": model, **json.loads(txt)}
+        except ValueError:
+            return {"model": model, "raw": txt[:800]}
+    return {"error": "no model answered"}
+
+
 def main():
     stage = sys.argv[1] if len(sys.argv) > 1 else "keyframes"
     only = [s for s in (sys.argv[2] if len(sys.argv) > 2 else "").split(",") if s.strip()]
@@ -172,12 +204,19 @@ def main():
             print(f"clip {s['id']}: {m or 'FAILED'} audio={s['audio']} ~${DURATION * PRICE[s['audio']]:.2f}")
         run["seconds"], run["estimatedUsd"] = seconds, round(cost, 2)
         print(f"clips total: {seconds} s, estimated US${cost:.2f}")
+    elif stage == "check":
+        models = pick(found, lambda m: re.fullmatch(r"gemini-\d+(\.\d+)?-(pro|flash)", m) is not None,
+                      ["gemini-2.5-pro", "gemini-2.5-flash"], lambda m: "pro" in m)
+        for s in [s for s in shots if s.get("speech")]:
+            res = check(s, models)
+            run["shots"][s["id"]] = res
+            print(f"check {s['id']}: {json.dumps(res, ensure_ascii=False)}")
     else:
         sys.exit(f"unknown stage {stage}")
     rep = AV / "report.json"
     hist = json.loads(rep.read_text()) if rep.exists() else []
     rep.write_text(json.dumps(hist + [run], indent=2, ensure_ascii=False) + "\n")
-    if any(v == "failed" for v in run["shots"].values()):
+    if any(v == "failed" for v in run["shots"].values() if isinstance(v, str)):
         print("::warning::some shots failed")
 
 
