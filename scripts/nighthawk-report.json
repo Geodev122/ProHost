@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-10-24T06:22:42.311Z",
+  "generatedAt": "2026-10-24T12:14:29.749Z",
   "trigger": "NIGHTHAWK",
   "summary": {
-    "total": 225,
+    "total": 228,
     "critical": 0,
     "high": 0,
     "medium": 46,
-    "low": 179,
+    "low": 182,
     "info": 0,
     "passes": 30
   },
@@ -439,7 +439,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/data/model/DataModels.kt",
-      "line": 1486,
+      "line": 1500,
       "message": "Line has 170 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -520,7 +520,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/CreateListingDialog.kt",
-      "line": 183,
+      "line": 188,
       "message": "Line has 170 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -529,25 +529,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/CreateListingDialog.kt",
-      "line": 487,
-      "message": "Line has 166 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/components/CreateListingDialog.kt",
-      "line": 707,
-      "message": "Line has 179 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/components/CreateListingDialog.kt",
-      "line": 834,
+      "line": 671,
       "message": "Line has 164 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -556,8 +538,8 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/CreateListingDialog.kt",
-      "line": 1042,
-      "message": "Line has 169 characters (>160 limit).",
+      "line": 736,
+      "message": "Line has 181 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
     {
@@ -565,8 +547,8 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/CreateListingDialog.kt",
-      "line": 1262,
-      "message": "Line has 214 characters (>160 limit).",
+      "line": 788,
+      "message": "Line has 166 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
     {
@@ -574,8 +556,44 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/CreateListingDialog.kt",
-      "line": 1412,
+      "line": 1129,
+      "message": "Line has 216 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/components/CreateListingDialog.kt",
+      "line": 1259,
+      "message": "Line has 168 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/components/CreateListingDialog.kt",
+      "line": 1324,
       "message": "Line has 161 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/components/CreateListingDialog.kt",
+      "line": 1454,
+      "message": "Line has 184 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/components/CreateListingDialog.kt",
+      "line": 1455,
+      "message": "Line has 165 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
     {
@@ -594,6 +612,15 @@
       "file": "app/src/main/java/com/example/ui/components/DateRangePickerRow.kt",
       "line": 70,
       "message": "Line has 169 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/components/EditListingDialog.kt",
+      "line": 54,
+      "message": "Line has 164 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
     {
@@ -673,7 +700,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/RentalBookingDialog.kt",
-      "line": 158,
+      "line": 159,
       "message": "Line has 169 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -682,7 +709,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/RentalBookingDialog.kt",
-      "line": 486,
+      "line": 487,
       "message": "Line has 165 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -691,7 +718,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/RentalBookingDialog.kt",
-      "line": 492,
+      "line": 493,
       "message": "Line has 168 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -700,7 +727,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/RentalBookingDialog.kt",
-      "line": 728,
+      "line": 729,
       "message": "Line has 162 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -709,7 +736,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/RentalBookingDialog.kt",
-      "line": 743,
+      "line": 744,
       "message": "Line has 181 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -718,7 +745,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/RentalBookingDialog.kt",
-      "line": 760,
+      "line": 761,
       "message": "Line has 194 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -727,7 +754,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/RentalBookingDialog.kt",
-      "line": 767,
+      "line": 768,
       "message": "Line has 162 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -736,7 +763,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/RentalBookingDialog.kt",
-      "line": 777,
+      "line": 778,
       "message": "Line has 164 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -745,7 +772,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/RentalBookingDialog.kt",
-      "line": 802,
+      "line": 803,
       "message": "Line has 183 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -754,7 +781,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/RentalBookingDialog.kt",
-      "line": 828,
+      "line": 829,
       "message": "Line has 190 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -763,7 +790,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/RentalBookingDialog.kt",
-      "line": 840,
+      "line": 841,
       "message": "Line has 181 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -772,7 +799,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/RentalBookingDialog.kt",
-      "line": 859,
+      "line": 860,
       "message": "Line has 180 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -781,7 +808,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/RentalBookingDialog.kt",
-      "line": 862,
+      "line": 863,
       "message": "Line has 165 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -790,7 +817,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/RentalBookingDialog.kt",
-      "line": 880,
+      "line": 881,
       "message": "Line has 183 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -799,7 +826,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/RentalBookingDialog.kt",
-      "line": 886,
+      "line": 887,
       "message": "Line has 164 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -808,7 +835,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/RentalBookingDialog.kt",
-      "line": 896,
+      "line": 897,
       "message": "Line has 161 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -817,7 +844,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/RentalBookingDialog.kt",
-      "line": 1506,
+      "line": 1507,
       "message": "Line has 171 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -826,7 +853,43 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/RentalStrategyEditors.kt",
-      "line": 303,
+      "line": 64,
+      "message": "Line has 170 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/components/RentalStrategyEditors.kt",
+      "line": 65,
+      "message": "Line has 175 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/components/RentalStrategyEditors.kt",
+      "line": 66,
+      "message": "Line has 172 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/components/RentalStrategyEditors.kt",
+      "line": 67,
+      "message": "Line has 178 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/components/RentalStrategyEditors.kt",
+      "line": 305,
       "message": "Line has 181 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -835,7 +898,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/components/RentalStrategyEditors.kt",
-      "line": 377,
+      "line": 379,
       "message": "Line has 181 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -852,44 +915,26 @@
       "severity": "LOW",
       "category": "detekt",
       "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/components/SubdivisionEditorSection.kt",
-      "line": 355,
-      "message": "Line has 171 characters (>160 limit).",
+      "file": "app/src/main/java/com/example/ui/components/SubdivisionForm.kt",
+      "line": 284,
+      "message": "Line has 191 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
     {
       "severity": "LOW",
       "category": "detekt",
       "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/components/SubdivisionEditorSection.kt",
-      "line": 370,
-      "message": "Line has 169 characters (>160 limit).",
+      "file": "app/src/main/java/com/example/ui/components/SubdivisionForm.kt",
+      "line": 285,
+      "message": "Line has 196 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
     {
       "severity": "LOW",
       "category": "detekt",
       "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/components/SubdivisionEditorSection.kt",
-      "line": 431,
-      "message": "Line has 166 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/components/SubdivisionEditorSection.kt",
-      "line": 504,
-      "message": "Line has 183 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/components/SubdivisionEditorSection.kt",
-      "line": 566,
+      "file": "app/src/main/java/com/example/ui/components/SubdivisionForm.kt",
+      "line": 467,
       "message": "Line has 163 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -897,26 +942,17 @@
       "severity": "LOW",
       "category": "detekt",
       "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/components/SubdivisionEditorSection.kt",
-      "line": 626,
-      "message": "Line has 162 characters (>160 limit).",
+      "file": "app/src/main/java/com/example/ui/components/SubdivisionForm.kt",
+      "line": 480,
+      "message": "Line has 172 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
     {
       "severity": "LOW",
       "category": "detekt",
       "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/components/SubdivisionEditorSection.kt",
-      "line": 802,
-      "message": "Line has 180 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/components/SubdivisionEditorSection.kt",
-      "line": 865,
+      "file": "app/src/main/java/com/example/ui/components/SubdivisionForm.kt",
+      "line": 541,
       "message": "Line has 169 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -924,17 +960,8 @@
       "severity": "LOW",
       "category": "detekt",
       "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/components/SubdivisionEditorSection.kt",
-      "line": 972,
-      "message": "Line has 182 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/components/SubdivisionEditorSection.kt",
-      "line": 1108,
+      "file": "app/src/main/java/com/example/ui/components/SubdivisionForm.kt",
+      "line": 712,
       "message": "Line has 173 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -942,8 +969,8 @@
       "severity": "LOW",
       "category": "detekt",
       "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/components/SubdivisionEditorSection.kt",
-      "line": 1237,
+      "file": "app/src/main/java/com/example/ui/components/SubdivisionForm.kt",
+      "line": 841,
       "message": "Line has 165 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1042,7 +1069,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
-      "line": 148,
+      "line": 149,
       "message": "Line has 187 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1051,7 +1078,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
-      "line": 206,
+      "line": 207,
       "message": "Line has 172 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1060,7 +1087,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
-      "line": 266,
+      "line": 267,
       "message": "Line has 169 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1069,7 +1096,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
-      "line": 331,
+      "line": 332,
       "message": "Line has 178 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1078,7 +1105,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
-      "line": 346,
+      "line": 347,
       "message": "Line has 186 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1087,7 +1114,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
-      "line": 352,
+      "line": 353,
       "message": "Line has 206 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1096,7 +1123,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
-      "line": 376,
+      "line": 377,
       "message": "Line has 182 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1105,7 +1132,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
-      "line": 391,
+      "line": 392,
       "message": "Line has 191 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1114,7 +1141,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
-      "line": 414,
+      "line": 415,
       "message": "Line has 171 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1123,7 +1150,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
-      "line": 417,
+      "line": 418,
       "message": "Line has 174 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1132,7 +1159,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
-      "line": 431,
+      "line": 432,
       "message": "Line has 169 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1141,7 +1168,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
-      "line": 444,
+      "line": 445,
       "message": "Line has 191 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1150,7 +1177,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
-      "line": 465,
+      "line": 466,
       "message": "Line has 171 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1159,7 +1186,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
-      "line": 468,
+      "line": 469,
       "message": "Line has 174 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1168,7 +1195,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
-      "line": 482,
+      "line": 483,
       "message": "Line has 169 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1177,7 +1204,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
-      "line": 484,
+      "line": 485,
       "message": "Line has 172 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1186,7 +1213,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
-      "line": 491,
+      "line": 492,
       "message": "Line has 191 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1195,17 +1222,8 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
-      "line": 542,
+      "line": 543,
       "message": "Line has 171 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
-      "line": 638,
-      "message": "Line has 166 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
     {
@@ -1214,6 +1232,15 @@
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
       "line": 639,
+      "message": "Line has 166 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
+      "line": 640,
       "message": "Line has 169 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1222,7 +1249,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
-      "line": 642,
+      "line": 643,
       "message": "Line has 162 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1231,7 +1258,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/AvailabilitySheet.kt",
-      "line": 653,
+      "line": 654,
       "message": "Line has 168 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1240,7 +1267,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/DiscoveryScreen.kt",
-      "line": 505,
+      "line": 506,
       "message": "Line has 175 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1248,26 +1275,8 @@
       "severity": "LOW",
       "category": "detekt",
       "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/LoginAuthScreen.kt",
-      "line": 812,
-      "message": "Line has 166 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/LoginAuthScreen.kt",
-      "line": 899,
-      "message": "Line has 166 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/ManageListingScreen.kt",
-      "line": 127,
+      "line": 151,
       "message": "Line has 178 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1276,7 +1285,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/ManageListingScreen.kt",
-      "line": 273,
+      "line": 297,
       "message": "Line has 161 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1285,7 +1294,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/ManageListingScreen.kt",
-      "line": 286,
+      "line": 310,
       "message": "Line has 175 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1294,7 +1303,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/ManageListingScreen.kt",
-      "line": 299,
+      "line": 323,
       "message": "Line has 168 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1303,7 +1312,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/ManageListingScreen.kt",
-      "line": 353,
+      "line": 377,
       "message": "Line has 164 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1312,7 +1321,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/ManageListingScreen.kt",
-      "line": 367,
+      "line": 391,
       "message": "Line has 172 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1321,7 +1330,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/ManageListingScreen.kt",
-      "line": 462,
+      "line": 486,
       "message": "Line has 173 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1330,7 +1339,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt",
-      "line": 65,
+      "line": 66,
       "message": "Line has 187 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1339,16 +1348,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt",
-      "line": 546,
-      "message": "Line has 162 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt",
-      "line": 587,
+      "line": 593,
       "message": "Line has 201 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1357,7 +1357,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt",
-      "line": 612,
+      "line": 618,
       "message": "Line has 201 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1366,7 +1366,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt",
-      "line": 643,
+      "line": 649,
       "message": "Line has 165 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1375,7 +1375,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt",
-      "line": 693,
+      "line": 699,
       "message": "Line has 176 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1384,7 +1384,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt",
-      "line": 735,
+      "line": 741,
       "message": "Line has 168 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1393,7 +1393,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt",
-      "line": 748,
+      "line": 754,
       "message": "Line has 176 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1402,7 +1402,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt",
-      "line": 857,
+      "line": 863,
       "message": "Line has 165 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1411,7 +1411,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt",
-      "line": 870,
+      "line": 876,
       "message": "Line has 176 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1420,7 +1420,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/MyBookingsScreen.kt",
-      "line": 879,
+      "line": 885,
       "message": "Line has 164 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1429,7 +1429,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerAnalyticsScreen.kt",
-      "line": 341,
+      "line": 350,
       "message": "Line has 222 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1438,7 +1438,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerAnalyticsScreen.kt",
-      "line": 386,
+      "line": 395,
       "message": "Line has 167 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1447,7 +1447,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerAnalyticsScreen.kt",
-      "line": 396,
+      "line": 405,
       "message": "Line has 172 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1456,7 +1456,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt",
-      "line": 251,
+      "line": 252,
       "message": "Line has 183 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1465,16 +1465,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt",
-      "line": 312,
-      "message": "Line has 169 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt",
-      "line": 451,
+      "line": 431,
       "message": "Line has 170 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1483,7 +1474,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt",
-      "line": 453,
+      "line": 433,
       "message": "Line has 203 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1492,7 +1483,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt",
-      "line": 500,
+      "line": 480,
       "message": "Line has 165 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1501,7 +1492,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt",
-      "line": 668,
+      "line": 648,
       "message": "Line has 168 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1510,7 +1501,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt",
-      "line": 765,
+      "line": 745,
       "message": "Line has 162 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1519,7 +1510,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt",
-      "line": 770,
+      "line": 750,
       "message": "Line has 164 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1528,7 +1519,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt",
-      "line": 819,
+      "line": 799,
       "message": "Line has 161 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1537,7 +1528,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt",
-      "line": 841,
+      "line": 821,
       "message": "Line has 176 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1546,7 +1537,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt",
-      "line": 842,
+      "line": 822,
       "message": "Line has 188 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1555,7 +1546,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt",
-      "line": 878,
+      "line": 858,
       "message": "Line has 182 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1564,7 +1555,16 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt",
-      "line": 932,
+      "line": 891,
+      "message": "Line has 164 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt",
+      "line": 933,
       "message": "Line has 169 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1573,7 +1573,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt",
-      "line": 964,
+      "line": 965,
       "message": "Line has 162 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1582,7 +1582,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt",
-      "line": 976,
+      "line": 977,
       "message": "Line has 187 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1591,7 +1591,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/OwnerHubScreen.kt",
-      "line": 988,
+      "line": 989,
       "message": "Line has 173 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1762,7 +1762,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 494,
+      "line": 495,
       "message": "Line has 163 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1771,7 +1771,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 636,
+      "line": 645,
       "message": "Line has 162 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1780,7 +1780,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 688,
+      "line": 697,
       "message": "Line has 225 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1789,7 +1789,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 689,
+      "line": 698,
       "message": "Line has 164 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1798,7 +1798,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/SpaceDetailsScreen.kt",
-      "line": 739,
+      "line": 748,
       "message": "Line has 184 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1933,7 +1933,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/admin/AdminListingsTab.kt",
-      "line": 251,
+      "line": 252,
       "message": "Line has 163 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1942,7 +1942,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/admin/AdminListingsTab.kt",
-      "line": 302,
+      "line": 303,
       "message": "Line has 169 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1962,6 +1962,33 @@
       "file": "app/src/main/java/com/example/ui/screens/admin/AdminUsersTab.kt",
       "line": 106,
       "message": "Line has 167 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Long Parameter List",
+      "file": "app/src/main/java/com/example/ui/screens/auth/AuthSteps.kt",
+      "line": null,
+      "message": "Function signature has 8 parameters (>7): fun RegistrationStepScaffold(\n    step: Int,\n    t...",
+      "suggestion": "Group parameters into a data class/state holder object to reduce complexity."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/auth/AuthSteps.kt",
+      "line": 383,
+      "message": "Line has 162 characters (>160 limit).",
+      "suggestion": "Break line into multiple statements for readability."
+    },
+    {
+      "severity": "LOW",
+      "category": "detekt",
+      "check": "Excessive Line Length",
+      "file": "app/src/main/java/com/example/ui/screens/auth/AuthSteps.kt",
+      "line": 464,
+      "message": "Line has 168 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
     {
@@ -1987,7 +2014,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 662,
+      "line": 663,
       "message": "Line has 169 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1996,7 +2023,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 1083,
+      "line": 1084,
       "message": "Line has 186 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -2005,7 +2032,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 1136,
+      "line": 1141,
       "message": "Line has 171 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -2014,7 +2041,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 1166,
+      "line": 1171,
       "message": "Line has 164 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -2023,7 +2050,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 1219,
+      "line": 1224,
       "message": "Line has 189 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -2032,7 +2059,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/viewmodel/ProHostViewModel.kt",
-      "line": 1322,
+      "line": 1327,
       "message": "Line has 165 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     }
