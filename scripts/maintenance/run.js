@@ -8,6 +8,9 @@
 //   node scripts/maintenance/run.js occupancy        rebuild booking_occupancy from ACCEPTED bookings
 //   node scripts/maintenance/run.js favrecount [apply] listing save counts (favoriteCount) recounted from user_profiles.savedSpaceIds,
 //                                                    the owner's own save excluded; dry run prints counts only, apply writes
+//   node scripts/maintenance/run.js officeleadsmoke  live check of pro-host.tech/list-your-office: posts ONE test lead from
+//                                                    admin@pro-host.tech to websiteOfficeLead and checks the address-book tag, the
+//                                                    Leads-tab queue (ig_leads) and the admin email (no personal data printed)
 //   node scripts/maintenance/run.js emailauth        read-only: why sign-in emails fail (Auth config, mail, limits)
 //   node scripts/maintenance/run.js enableemaillink  turn on Firebase Auth "Email link (passwordless)" sign-in
 //   node scripts/maintenance/run.js mailtest         queue one test email to the extension's reply-to (owner) address
@@ -1164,6 +1167,39 @@ async function igtest(db) {
   notice("fake contact removed; the two test events stay in the log (they reach the sheet Log tab within a minute)");
 }
 
+async function officeleadsmoke(db) {
+  const { leadDocId } = require(`${LIB}/website/officeLeads`);
+  const email = "admin@pro-host.tech";
+  await step("officeleadsmoke page", async () => `HTTP ${(await fetch("https://pro-host.tech/list-your-office")).status}`);
+  await step("officeleadsmoke submit", async () => {
+    const r = await fetch("https://europe-west1-prohost-f766f.cloudfunctions.net/websiteOfficeLead", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data: { name: "ProHost smoke test", email, whatsapp: "+96170000000", profession: "Life coach", city: "Test",
+        message: "Automated live check (maintenance officeleadsmoke).", consent: true, lang: "en", utm_source: "maintenance", utm_medium: "smoke" } }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (j.error) throw new Error(`${j.error.status} ${j.error.message}`);
+    return "accepted";
+  });
+  await new Promise((res) => setTimeout(res, 8000));
+  await step("officeleadsmoke address book", async () => {
+    const q = await db.collection("mailing_list").where("email", "==", email).limit(1).get();
+    const tags = q.empty ? [] : q.docs[0].get("tags") || [];
+    if (!tags.includes("insta-leads-story")) throw new Error("tag insta-leads-story missing");
+    return `tags ${tags.filter((t) => t !== "partner" && t !== "strategic-sponsor" && t !== "usd-24000").join(", ")}`;
+  });
+  await step("officeleadsmoke leads tab queue", async () => {
+    const d = await db.collection("ig_leads").doc(leadDocId(email)).get();
+    if (!d.exists) throw new Error("ig_leads row missing");
+    return `source ${d.get("source")}, synced ${d.get("synced")}`;
+  });
+  await step("officeleadsmoke admin email", async () => {
+    const q = await db.collection("mail").orderBy("message.subject").startAt("[ProHost Office lead]").endAt("[ProHost Office lead]\uf8ff").limit(20).get();
+    const states = q.docs.map((d) => d.get("delivery.state") || "PENDING");
+    return q.empty ? "no office-lead mail found" : `${q.size} office-lead mail(s): ${[...new Set(states)].join(", ")}`;
+  });
+}
+
 async function mailingsmoke(db, code) {
   const FN = "https://europe-west1-prohost-f766f.cloudfunctions.net/";
   const call = async (name, data) => {
@@ -1590,6 +1626,7 @@ async function smsauth(db, arg) {
   else if (task === "integrity") await integrity(db, arg);
   else if (task === "mailingcode") await mailingcode(db, arg);
   else if (task === "mailingsmoke") await mailingsmoke(db, arg);
+  else if (task === "officeleadsmoke") await officeleadsmoke(db);
   else if (task === "igsetup") await igsetup(db, arg);
   else if (task === "igsmoke") await igsmoke(db);
   else if (task === "igtest") await igtest(db);
