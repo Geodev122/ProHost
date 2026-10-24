@@ -58,5 +58,15 @@
         "intelligible": 5
       }
     }
+  },
+  {
+    "at": "2026-10-24T17:27:24Z",
+    "stage": "clips",
+    "shots": {
+      "s1": "failed",
+      "s5": "veo-3.1-fast-generate-001"
+    },
+    "seconds": 16,
+    "estimatedUsd": 2.4
   }
 ]
