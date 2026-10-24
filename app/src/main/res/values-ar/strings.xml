@@ -1213,4 +1213,10 @@
     <string name="more_amenities">المزيد</string>
     <string name="more_options">خيارات إضافية</string>
     <string name="division_hashtags_hint">ساعد الأخصائيين في العثور على هذا القسم.</string>
+    <string name="edit_listing_title">تعديل الإعلان</string>
+    <string name="discard_changes_title">تجاهل تغييراتك؟</string>
+    <string name="discard_changes_body">لم تُحفظ تعديلاتك بعد.</string>
+    <string name="discard">تجاهل</string>
+    <string name="division_has_bookings">لهذا القسم حجوزات نشطة. غيّر سعره بدلًا من ذلك، أو احذفه بعد انتهائها.</string>
+    <string name="whole_place_has_bookings">لهذا المكان حجوزات نشطة ككل. أضف الأقسام بعد انتهائها.</string>
 </resources>

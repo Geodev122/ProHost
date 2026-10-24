@@ -11,6 +11,9 @@
   language (English country + `cityEn` for search), no visitor policy, Step 3 as division cards edited in a sheet; one
   division is saved as the whole place. Translation pass: glossary `docs/design/GLOSSARY.md`, sentence case, 68 unused
   strings removed.
+- Create / continue / edit / manage use one editor: Edit (My Listings and the Manage page's new pencil) saves from any step;
+  closing keeps work (drafts auto-save, edits ask); the Manage page can pause/resume; booked divisions can't be deleted and
+  a booked listing never flips between whole place and divisions.
 - Division sheet redesigned: live preview card, type as icon chips, "How is it rented?" as choice cards (by the hour /
   shift / day / month, then fixed price or per person), amenity chips, capacity for every division, rarely used settings
   under "More options". An undivided listing keeps its capacity (`SpaceListing.capacity`), which the Instagram finder

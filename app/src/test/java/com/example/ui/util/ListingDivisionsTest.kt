@@ -58,6 +58,13 @@ class ListingDivisionsTest {
     }
 
     @Test
+    fun aBookedDividedListingStaysDividedWithOneDivisionLeft() {
+        val shape = ListingDivisions.toListingShape(listOf(room), "c", emptyList(), emptyList(), emptyList(), keepDivided = true)
+        assertEquals(listOf(room), shape.subdivisions)
+        assertEquals(RentalPricingConfig.default(), shape.pricing)
+    }
+
+    @Test
     fun twoDivisionsAreSavedAsDivisions() {
         val shape = ListingDivisions.toListingShape(listOf(room, roomB), "cover", listOf("old"), listOf("Wi-Fi"), emptyList())
         assertEquals(listOf(room, roomB), shape.subdivisions)

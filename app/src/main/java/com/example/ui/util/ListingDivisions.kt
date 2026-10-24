@@ -44,9 +44,11 @@ object ListingDivisions {
         cover: String?,
         galleryExtras: List<String>,
         facilities: List<String>,
-        hashtags: List<String>
+        hashtags: List<String>,
+        /** Keep the divisions even when one is left (its bookings reference that division's id). */
+        keepDivided: Boolean = false
     ): Shape {
-        if (isWholePlace(divisions)) {
+        if (!keepDivided && isWholePlace(divisions)) {
             val d = divisions[0]
             return Shape(
                 pricing = d.pricing,

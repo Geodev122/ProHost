@@ -292,28 +292,7 @@ fun OwnerHubScreen(
     // pricing strategies, photos, facilities, description, house rules, and equipment
     // were all simply unreachable on a host's own published listing.
     editingSpace?.let { space ->
-        val editTopHashtags by viewModel.topHashtags.collectAsState()
-        CreateListingDialog(
-            currentUser = currentUser,
-            existingDraft = space,
-            suggestedHashtags = editTopHashtags,
-            availableFacilities = availableFacilities,
-            spaceCategories = architectureSchema.spaceTypes,
-            availableAmenities = architectureSchema.amenities.filter { it.isEnabled },
-            attendeeTemplates = architectureSchema.attendeePackages.filter { it.isEnabled },
-            onAddCustomSchemaItem = { category, name, scopedToIds -> viewModel.addUserSuggestedSchemaItem(category, name, scopedToIds) },
-            onDismiss = { editingSpace = null },
-            onListingCreated = {},
-            onListingUpdated = { updated ->
-                coroutineScope.launch {
-                    val success = viewModel.updateOwnerListing(updated)
-                    editingSpace = null
-                    UiMessages.show(context,
-                        if (success) context.getString(R.string.listing_updated_successfully) else context.getString(R.string.failed_to_update_listing_please_try_again),
-                        long = false)
-                }
-            }
-        )
+        EditListingDialog(space = space, viewModel = viewModel, onDone = { editingSpace = null })
     }
 
     // Delete Listing Confirmation Dialog

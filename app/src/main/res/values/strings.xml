@@ -1212,4 +1212,10 @@
     <string name="more_amenities">More</string>
     <string name="more_options">More options</string>
     <string name="division_hashtags_hint">Help specialists find this division.</string>
+    <string name="edit_listing_title">Edit listing</string>
+    <string name="discard_changes_title">Discard your changes?</string>
+    <string name="discard_changes_body">Your edits aren\'t saved yet.</string>
+    <string name="discard">Discard</string>
+    <string name="division_has_bookings">This division has active bookings. Change its price instead, or delete it once they end.</string>
+    <string name="whole_place_has_bookings">This place has active bookings as a whole. Add divisions once they end.</string>
 </resources>

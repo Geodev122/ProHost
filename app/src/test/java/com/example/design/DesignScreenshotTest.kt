@@ -289,6 +289,9 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             "listing_wizard_1" -> CreateListingDialog(currentUser = user, onDismiss = {}, onListingCreated = {})
             "listing_wizard_2", "listing_wizard_3", "listing_division_sheet" ->
                 CreateListingDialog(currentUser = user, onDismiss = {}, onListingCreated = {}, existingDraft = mockSpace1)
+            "listing_edit" -> CreateListingDialog(
+                currentUser = user, onDismiss = {}, onListingCreated = {}, existingDraft = mockSpace1, onListingUpdated = {}
+            )
             "listing_wizard_3_empty" -> CreateListingDialog(
                 currentUser = user, onDismiss = {}, onListingCreated = {},
                 existingDraft = mockSpace1.copy(subdivisions = emptyList(), pricing = com.example.data.model.RentalPricingConfig.default())
@@ -377,7 +380,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             "requirements_host", "rebook", "edit_booking", "cancel_booking", "country_picker", "legal_documents", "notifications",
             "analytics_consent", "delete_account", "redeem_code", "reject_request", "request_detail", "change_price",
             "listing_wizard_1", "listing_wizard_2", "listing_wizard_3", "listing_wizard_3_empty", "listing_division_sheet",
-            "listing_verification", "location_prompt",
+            "listing_edit", "listing_verification", "location_prompt",
             "delete_listing", "share_menu", "change_price_slots", "change_price_new"
         )
         /** Dialogs holding a text field: rendered on a manual clock (see capture()). */
@@ -400,7 +403,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         val HOST_SCREENS = setOf(
             "renting_requests", "owner_analytics", "manage_listing", "requirements_host", "redeem_code", "reject_request",
             "request_detail", "change_price", "listing_wizard_1", "listing_wizard_2", "listing_wizard_3", "listing_wizard_3_empty",
-            "listing_division_sheet", "listing_verification",
+            "listing_division_sheet", "listing_edit", "listing_verification",
             "delete_listing", "change_price_slots", "change_price_new"
         )
         /** Smallest common phone (360 dp wide) at the largest text the app allows. */

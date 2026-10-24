@@ -28,6 +28,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.model.*
 import com.example.ui.components.ChangePriceSheet
+import com.example.ui.components.EditListingDialog
+import androidx.compose.ui.platform.LocalContext
 import com.example.ui.components.ProSectionHeader
 import com.example.ui.components.ProSurfaceCard
 import com.example.ui.theme.*
@@ -86,6 +88,12 @@ fun ManageListingScreen(
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
     var showChangePrice by remember { mutableStateOf(false) }
+    // Edit opens the same wizard as My Listings › Edit, so both places change the listing the same way.
+    var showEdit by remember { mutableStateOf(false) }
+    if (showEdit) {
+        EditListingDialog(space = liveSpace, viewModel = viewModel, onDone = { showEdit = false })
+    }
+    val context = LocalContext.current
     if (showChangePrice) {
         ChangePriceSheet(viewModel = viewModel, onDismiss = { showChangePrice = false }, initialSpaceId = liveSpace.id)
     }
@@ -104,6 +112,22 @@ fun ManageListingScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    }
+                },
+                actions = {
+                    if (liveSpace.status != ListingStatus.DRAFT) {
+                        val paused = liveSpace.status == ListingStatus.PAUSED
+                        IconButton(onClick = {
+                            viewModel.setListingStatus(liveSpace.id, if (paused) ListingStatus.ACTIVE else ListingStatus.PAUSED, context)
+                        }) {
+                            Icon(
+                                if (paused) Icons.Default.PlayCircle else Icons.Default.PauseCircle,
+                                contentDescription = if (paused) stringResource(R.string.resume_listing) else stringResource(R.string.pause_listing)
+                            )
+                        }
+                    }
+                    IconButton(onClick = { showEdit = true }) {
+                        Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit_listing), tint = MaterialTheme.colorScheme.primary)
                     }
                 }
             )

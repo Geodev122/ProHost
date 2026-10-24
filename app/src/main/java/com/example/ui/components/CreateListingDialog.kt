@@ -161,6 +161,9 @@ fun CreateListingDialog(
     // Admin attendee packages, offered to hosts as starting templates for a
     // per-attendee room's own tiers.
     attendeeTemplates: List<AttendeePackage> = emptyList(),
+    // Live (pending/accepted, not ended) bookings of the listing being edited — see activeBookingsFor(). The wizard never
+    // deletes a booked division or reshapes a booked listing between "whole place" and "divisions".
+    activeBookings: List<BookingRequest> = emptyList(),
     // Write-back: called when the host types a new custom facility or equipment item
     // so it gets persisted to the global schema catalog as a CUSTOM NODE.
     // Receives the category (FACILITY or AMENITY), name, and optional scopedToIds.
@@ -195,6 +198,9 @@ fun CreateListingDialog(
     // "Save draft" sits in the header (the bottom row was too narrow on small phones); its action is built further
     // down, next to buildListing, and read only when tapped.
     val saveDraftAction = remember { arrayOf<() -> Unit>({}) }
+    // Divisions someone has booked, and whether the undivided place itself is booked.
+    val bookedDivisionIds = remember(activeBookings) { activeBookings.mapNotNull { it.subdivisionId }.toSet() }
+    val wholePlaceBooked = existingDraft?.subdivisions?.isEmpty() == true && activeBookings.any { it.subdivisionId.isNullOrBlank() }
     val storageService = remember { FirebaseStorageService.getInstance() }
 
     // Generated up front (not just at submit time) so photos can upload to their final
@@ -205,6 +211,13 @@ fun CreateListingDialog(
     // Internal key only — people see the server-assigned L- display code.
     val listingId = remember { existingDraft?.id ?: ("SPC-" + UUID.randomUUID().toString().replace("-", "").take(10).uppercase()) }
     var hasUserTyped by rememberSaveable { mutableStateOf(existingDraft != null) }
+    // Edit mode: a published listing saved straight back (Save in the header on every step, all steps reachable).
+    val isEditing = onListingUpdated != null
+    // Anything changed since the wizard opened (set by the snapshot watcher below) — closing then keeps the work: a new
+    // listing or draft is saved as a draft, an edit asks before discarding.
+    var hasChanges by rememberSaveable { mutableStateOf(false) }
+    var showDiscardDialog by remember { mutableStateOf(false) }
+    val saveChangesAction = remember { arrayOf<() -> Unit>({}) }
     // Drives the small "Draft auto-saved" caption in the header — set once the
     // auto-save LaunchedEffect below has actually fired at least once.
     var lastAutoSavedAtMillis by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -428,13 +441,29 @@ fun CreateListingDialog(
     // blackout slots a listing already had before this removal are preserved as-is
     // (see buildListing() below) — there is just no UI here to add more.
 
+    // The one thing still missing before Publish (and before an edit can be saved) — never a silently greyed-out button.
+    val publishBlocker: String? = when {
+        pickedLatLng == null -> stringResource(R.string.publish_needs_pin)
+        coverUrl == null -> stringResource(R.string.publish_needs_cover)
+        divisions.isEmpty() -> stringResource(R.string.publish_needs_division)
+        !ListingDivisions.hasRealPricing(divisions) -> stringResource(R.string.publish_needs_price)
+        else -> null
+    }
+    fun requestClose() {
+        when {
+            !hasChanges -> onDismiss()
+            isEditing -> showDiscardDialog = true
+            else -> saveDraftAction[0]() // a new listing or draft keeps the work as a draft (saved, then closed)
+        }
+    }
+
     // A full-screen page (not a floating card): edge-to-edge window, its own top bar with Close, a three-segment step
     // bar, and system Back stepping back through the wizard before it closes.
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { requestClose() },
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
     ) {
-        androidx.activity.compose.BackHandler(enabled = currentStep > 0) { currentStep-- }
+        androidx.activity.compose.BackHandler { if (currentStep > 0) currentStep-- else requestClose() }
         // The dialog window draws under the system bars, so it sets their icon colour for its own surface.
         val dialogView = androidx.compose.ui.platform.LocalView.current
         val lightBars = MaterialTheme.colorScheme.surface.luminance() > 0.5f
@@ -462,13 +491,17 @@ fun CreateListingDialog(
                       modifier = Modifier.fillMaxWidth(),
                       verticalAlignment = Alignment.CenterVertically
                   ) {
-                      IconButton(onClick = onDismiss) {
+                      IconButton(onClick = { requestClose() }) {
                           Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
                       }
                       Spacer(modifier = Modifier.width(Spacing.xs))
                       Column(modifier = Modifier.weight(1f)) {
                           Text(
-                              text = if (existingDraft != null) stringResource(R.string.continue_draft_listing) else stringResource(R.string.create_listing),
+                              text = when {
+                                  isEditing -> stringResource(R.string.edit_listing_title)
+                                  existingDraft != null -> stringResource(R.string.continue_draft_listing)
+                                  else -> stringResource(R.string.create_listing)
+                              },
                               style = MaterialTheme.typography.titleLarge,
                               color = MaterialTheme.colorScheme.onSurface,
                               maxLines = 2,
@@ -491,7 +524,12 @@ fun CreateListingDialog(
                       // requirement); available at any step so a host can save partial progress and come back later.
                       // Hidden in admin-edit mode (onListingUpdated != null): demoting an existing ACTIVE/PAUSED listing
                       // to Draft is not something "Edit" should ever do silently.
-                      if (onListingUpdated == null) {
+                      if (isEditing) {
+                          // Edits save from any step, as soon as the listing is still publishable.
+                          TextButton(onClick = { saveChangesAction[0]() }, enabled = publishBlocker == null) {
+                              Text(stringResource(R.string.save), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                          }
+                      } else {
                           TextButton(onClick = { saveDraftAction[0]() }) {
                               Text(stringResource(R.string.save_draft_short), style = MaterialTheme.typography.labelLarge)
                           }
@@ -506,7 +544,8 @@ fun CreateListingDialog(
                           stringResource(R.string.wizard_step_availability)
                       ),
                       current = currentStep,
-                      onStepClick = { target -> if (target < currentStep) currentStep = target }
+                      allReachable = isEditing,
+                      onStepClick = { target -> if (isEditing || target < currentStep) currentStep = target }
                   )
 
                   Spacer(modifier = Modifier.height(Spacing.md))
@@ -814,10 +853,19 @@ fun CreateListingDialog(
                               // Step 3: the divisions, one card each; the sheet edits one at a time.
                               DivisionCards(
                                   divisions = divisions,
-                                  onAdd = { editingDivision = -1 },
+                                  onAdd = {
+                                      // A booked whole place can't be split into divisions: its bookings are for the place.
+                                      if (wholePlaceBooked && divisions.size == 1 && divisions[0].id == ListingDivisions.WHOLE_PLACE_ID) {
+                                          UiMessages.show(context, uiText(R.string.whole_place_has_bookings), long = true)
+                                      } else editingDivision = -1
+                                  },
                                   onEdit = { editingDivision = it },
-                                  onDelete = { index ->
+                                  onDelete = delete@{ index ->
                                       val removed = divisions[index]
+                                      if (removed.id in bookedDivisionIds || (removed.id == ListingDivisions.WHOLE_PLACE_ID && wholePlaceBooked)) {
+                                          UiMessages.show(context, uiText(R.string.division_has_bookings), long = true)
+                                          return@delete
+                                      }
                                       divisions = divisions.filterIndexed { i, _ -> i != index }
                                       hasUserTyped = true
                                       UiMessages.show(
@@ -848,7 +896,9 @@ fun CreateListingDialog(
                           cover = coverUrl,
                           galleryExtras = galleryExtras,
                           facilities = selectedFacilities.toList(),
-                          hashtags = selectedSpecialties.toList()
+                          hashtags = selectedSpecialties.toList(),
+                          // Bookings point at a division id: a booked divided listing stays divided.
+                          keepDivided = existingDraft?.subdivisions?.isNotEmpty() == true && bookedDivisionIds.isNotEmpty()
                       )
                       var monthly = existingDraft?.baseMonthlyRateUsd ?: 500.0
                       if (shape.subdivisions.isEmpty() && divisions.isNotEmpty()) {
@@ -993,6 +1043,12 @@ fun CreateListingDialog(
                   // a no-op, so a caller that hasn't wired it up just doesn't get this.
                   // drop(1) skips the initial snapshot (reopening an existing Draft shouldn't
                   // immediately re-save it before anything actually changed).
+                  // Any change to what would be saved (every field on every step) marks the wizard changed.
+                  LaunchedEffect(Unit) {
+                      snapshotFlow { buildListing(ListingStatus.DRAFT) }
+                          .drop(1)
+                          .collect { hasChanges = true; hasUserTyped = true }
+                  }
                   LaunchedEffect(Unit) {
                       snapshotFlow { buildListing(ListingStatus.DRAFT) }
                           .drop(1)
@@ -1006,14 +1062,6 @@ fun CreateListingDialog(
                           }
                   }
 
-                  // The one thing still missing before Publish, on the last step — never a silently greyed-out button.
-                  val publishBlocker: String? = when {
-                      pickedLatLng == null -> stringResource(R.string.publish_needs_pin)
-                      coverUrl == null -> stringResource(R.string.publish_needs_cover)
-                      divisions.isEmpty() -> stringResource(R.string.publish_needs_division)
-                      !ListingDivisions.hasRealPricing(divisions) -> stringResource(R.string.publish_needs_price)
-                      else -> null
-                  }
                   if (currentStep == totalSteps - 1 && publishBlocker != null) {
                       Text(
                           publishBlocker,
@@ -1041,6 +1089,13 @@ fun CreateListingDialog(
                           }
                       }
 
+                      // The header's "Save" (edit mode) runs this.
+                      saveChangesAction[0] = {
+                          coroutineScope.launch {
+                              val fallback = resolveFallbackGeocode()
+                              onListingUpdated?.invoke(buildListing(existingDraft?.status ?: ListingStatus.ACTIVE, fallback))
+                          }
+                      }
                       // The header's "Save draft" runs this (it needs buildListing, declared in this scope).
                       saveDraftAction[0] = {
                           coroutineScope.launch {
@@ -1102,6 +1157,30 @@ fun CreateListingDialog(
 
 
 
+          if (showDiscardDialog) {
+              ProHostDialog(
+                  onDismissRequest = { showDiscardDialog = false },
+                  title = { Text(stringResource(R.string.discard_changes_title)) },
+                  text = { Text(stringResource(R.string.discard_changes_body)) },
+                  confirmButton = {
+                      CustomButton(
+                          text = stringResource(R.string.save),
+                          onClick = { showDiscardDialog = false; saveChangesAction[0]() },
+                          enabled = publishBlocker == null,
+                          compact = true
+                      )
+                  },
+                  dismissButton = {
+                      CustomButton(
+                          text = stringResource(R.string.discard),
+                          onClick = { showDiscardDialog = false; onDismiss() },
+                          variant = CustomButtonVariant.OUTLINED,
+                          compact = true
+                      )
+                  }
+              )
+          }
+
         editingDivision?.let { index ->
             DivisionSheet(
                 spaceId = listingId,
@@ -1144,7 +1223,7 @@ fun CreateListingDialog(
  * tappable to go back; later ones are not (each step's gate decides when Next unlocks).
  */
 @Composable
-private fun WizardStepBar(steps: List<String>, current: Int, onStepClick: (Int) -> Unit) {
+private fun WizardStepBar(steps: List<String>, current: Int, onStepClick: (Int) -> Unit, allReachable: Boolean = false) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
@@ -1156,7 +1235,7 @@ private fun WizardStepBar(steps: List<String>, current: Int, onStepClick: (Int) 
                 modifier = Modifier
                     .weight(1f)
                     .clip(MaterialTheme.shapes.extraSmall)
-                    .then(if (done) Modifier.clickable(role = androidx.compose.ui.semantics.Role.Tab) { onStepClick(index) } else Modifier)
+                    .then(if (done || (allReachable && !active)) Modifier.clickable(role = androidx.compose.ui.semantics.Role.Tab) { onStepClick(index) } else Modifier)
                     .semantics {
                         selected = active
                         stateDescription = name

@@ -435,7 +435,10 @@ plan + recurring price + date;
   `DivisionSheet` (`SubdivisionForm`: live `DivisionCard` preview, type chips, `ChoiceGrid` for strategy and fixed vs
   per-person, amenity chips, capacity, "More options" for hashtags and own hours); one division (not per-attendee, no own hours) is saved as the whole place
   (`ui/util/ListingDivisions.kt`, unit-tested: its pricing becomes `pricing`, `subdivisions` stays empty) and an undivided
-  listing reopens as one card. Terms: `docs/design/GLOSSARY.md` (sentence case, one helper line at most). Dark mode has its own splash art
+  listing reopens as one card. One editor everywhere: new listing, Continue draft and Edit (My Listings card and the
+  Manage page's pencil, both `EditListingDialog`) are the same wizard; Edit saves from the header on any step and every step
+  is tappable; closing never loses work (new/draft → saved as a draft, edit → "Discard your changes?"); a division with
+  live bookings can't be deleted and a booked listing keeps its shape (`activeBookingsFor`, `keepDivided`). Terms: `docs/design/GLOSSARY.md` (sentence case, one helper line at most). Dark mode has its own splash art
   (`drawable-night-*`, `values-night/colors.xml`).
 - The Design Screenshots harness covers screens and every sheet/dialog/form (`OVERLAYS`, `TAPS` in
   `DesignScreenshotTest`); add a new overlay there when you add one.
