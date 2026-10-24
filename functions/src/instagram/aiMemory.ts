@@ -23,7 +23,9 @@ export function appendTurns(prev: Turn[], add: Turn[]): Turn[] {
 /** The model's running summary of the person: one paragraph, no newlines, capped. Empty input keeps nothing. */
 export function cleanMemory(raw: unknown): string {
   if (typeof raw !== "string") return "";
-  const s = raw.replace(/\s+/g, " ").trim();
+  // Never keep contact details in the summary (they live only in ig_leads, after consent): redact emails and phone numbers.
+  const s = raw.replace(/[^\s@<>()"']+@[^\s@<>()"']+\.[A-Za-z]{2,24}/g, "[email]")
+    .replace(/(?:\+|00)?\d[\d\s().-]{6,}\d/g, "[phone]").replace(/\s+/g, " ").trim();
   return s.length > MEMORY_MAX ? s.slice(0, MEMORY_MAX - 1).trimEnd() + "…" : s;
 }
 

@@ -46,3 +46,9 @@ test("gaps read naturally", () => {
   assert.equal(ago(30_000), "1 minute"); assert.equal(ago(5 * 60_000), "5 minutes");
   assert.equal(ago(3 * 3_600_000), "3 hours"); assert.equal(ago(3 * 86_400_000), "3 days");
 });
+
+test("the memory never keeps an email or a phone number", () => {
+  const m = cleanMemory("Karim (karim.test@example.com, +961 70 123 456 / 0096170123456) is a psychologist in Beirut, wants 2 rooms in 2026.");
+  assert.ok(!m.includes("@") && !m.includes("123 456") && !m.includes("0096170123456"), m);
+  assert.ok(m.includes("[email]") && m.includes("[phone]") && m.includes("2 rooms in 2026"), m);
+});
