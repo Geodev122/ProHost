@@ -28,5 +28,35 @@
     },
     "seconds": 40,
     "estimatedUsd": 4.8
+  },
+  {
+    "at": "2026-10-24T16:48:08Z",
+    "stage": "check",
+    "shots": {
+      "s1": {
+        "model": "gemini-3.8-flash",
+        "transcript": "كنت ادفع إيجار عيادتي كامل وهي فاضية نص النهار",
+        "speech_start_s": 1.2,
+        "speech_end_s": 5.5,
+        "cut_off": false,
+        "dialect": "Levantine Arabic",
+        "voice": "male, calm, reflective",
+        "matches_script": true,
+        "differences": null,
+        "intelligible": 5
+      },
+      "s5": {
+        "model": "gemini-3.8-flash",
+        "transcript": "إذا عندك مكتب عبّي الفورم اللي بالبايو وبيفعّلولك أوّل شهر مجّاناً",
+        "speech_start_s": 0.3,
+        "speech_end_s": 6.0,
+        "cut_off": false,
+        "dialect": "Levantine Arabic",
+        "voice": "male, enthusiastic commercial style",
+        "matches_script": true,
+        "differences": "none (script writes 'form' and 'bio' in Latin letters)",
+        "intelligible": 5
+      }
+    }
   }
 ]
