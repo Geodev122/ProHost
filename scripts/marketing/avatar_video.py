@@ -4,10 +4,11 @@ Runs in CI (.github/workflows/marketing-avatar.yml) with the Firebase service ac
 on Vertex AI in the Firebase project:
   stage keyframes  Gemini image: references + scene prompt -> marketing/avatar/keyframes/<shot>.png (9:16 first frame).
                    Shots after s1 also get s1's keyframe so the room stays the same.
-  stage check      Gemini listens to every speaking clip: verbatim transcript, speech start/end, dialect, voice, and
-                   whether it says the scripted line (cents; result in report.json).
+  stage check      Gemini listens to every take of every speaking clip (and the voice-over lines): verbatim transcript,
+                   speech start/end, dialect (Lebanese vs Syrian...), whether it says the scripted line; the best take
+                   (script, Lebanese, score) becomes clips/<shot>.mp4 (cents; verdicts in report.json).
   stage clips      Veo (newest 3.x fast): keyframe -> marketing/avatar/clips/<shot>.mp4 (8 s, 9:16); audio (lip-synced
-                   speech) only for shots with "audio": true.
+                   speech) only for shots with "audio": true; "takes": n > 1 writes <shot>_a.mp4, <shot>_b.mp4, ...
 Spend guard: at most MAX_SECONDS generated video seconds per run; every run is appended to marketing/avatar/report.json
 with its estimated cost.
 
@@ -22,7 +23,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 CFG = json.loads((pathlib.Path(__file__).parent / "avatar_shots.json").read_text(encoding="utf-8"))
 AV = ROOT / "marketing/avatar"
 REF, KEY, CLIPS = AV / "reference", AV / "keyframes", AV / "clips"
-MAX_SECONDS = 48
+MAX_SECONDS = 64
 DURATION = 8
 PRICE = {True: 0.15, False: 0.10}  # Veo 3.x Fast, US$ per generated second (with / without audio)
 
@@ -92,8 +93,9 @@ def keyframe(shot, models):
 def veo_prompt(shot):
     p = f"{CFG['person']} Setting: {CFG['room']}. {shot['motion']} {CFG['look']}"
     if shot.get("speech"):
-        p += (f' He says, in {shot["voice"]}: "{shot["speech"]}" Only his voice and quiet room tone; no music, '
-              "no subtitles. His lips move exactly with the words.")
+        p += (f' He says, in {shot["voice"]}, accent: {CFG["accent"]}. His exact words: "{shot["speech"]}" Only his voice '
+              "and quiet room tone; no music, no subtitles. His lips move exactly with the words, and he finishes the "
+              "last word well before the clip ends.")
     return p
 
 
@@ -102,7 +104,8 @@ def clip(shot, models):
     if not frame.exists():
         print(f"::warning::{shot['id']}: no keyframe, skipped")
         return None
-    params = {"aspectRatio": "9:16", "durationSeconds": DURATION, "sampleCount": 1, "generateAudio": shot["audio"],
+    takes = int(shot.get("takes", 1))
+    params = {"aspectRatio": "9:16", "durationSeconds": DURATION, "sampleCount": takes, "generateAudio": shot["audio"],
               "negativePrompt": CFG["negative"], "personGeneration": "allow_adult", "resolution": "1080p"}
     inst = {"prompt": veo_prompt(shot), "image": {"bytesBase64Encoded": b64(frame), "mimeType": "image/png"}}
     for model in models:
@@ -137,24 +140,31 @@ def clip(shot, models):
                   f"{res.get('raiMediaFilteredReasons')})")
             return model  # billed or not, the attempt counts toward the cap
         CLIPS.mkdir(parents=True, exist_ok=True)
-        (CLIPS / f"{shot['id']}.mp4").write_bytes(base64.b64decode(vids[0]["bytesBase64Encoded"]))
+        for i, v in enumerate(vids):
+            if "bytesBase64Encoded" in v:
+                name = f"{shot['id']}_{'abcdefgh'[i]}" if takes > 1 else shot["id"]
+                (CLIPS / f"{name}.mp4").write_bytes(base64.b64decode(v["bytesBase64Encoded"]))
         return model
     return None
 
 
-def check(shot, models):
+LINES = ROOT / "marketing/audio/voiceovers-arabic-reel/lines"
+VO_CFG = pathlib.Path(__file__).parent / "voiceover_reel.json"
+
+
+def listen(path, script, models):
+    """Gemini's verdict on one audio/video file against its script (transcript, timing, dialect)."""
     import subprocess, imageio_ffmpeg
-    clip_path = CLIPS / f"{shot['id']}.mp4"
-    if not clip_path.exists():
-        return {"error": "no clip"}
-    mp3 = pathlib.Path(os.environ.get("RUNNER_TEMP", "/tmp")) / f"{shot['id']}.mp3"
-    subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-i", str(clip_path), "-vn", "-ac", "1",
+    mp3 = pathlib.Path(os.environ.get("RUNNER_TEMP", "/tmp")) / f"{path.stem}.mp3"
+    subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-i", str(path), "-vn", "-ac", "1",
                     "-b:a", "96k", str(mp3)], check=True)
-    prompt = ("Listen to this 8-second clip of a man speaking. Reply with JSON only: {\"transcript\": verbatim Arabic as "
-              "spoken, \"speech_start_s\": number, \"speech_end_s\": number, \"cut_off\": true if the last word is cut "
-              "off by the end of the clip, \"dialect\": which Arabic dialect it sounds like, \"voice\": gender and tone, "
-              "\"matches_script\": true if it says the same words as the script, \"differences\": what differs, "
-              f"\"intelligible\": 1-5}}. Script: {shot['speech']}")
+    prompt = ("You are a Lebanese dialect coach. Listen to this clip of a man speaking Arabic. Reply with JSON only: "
+              "{\"transcript\": verbatim as spoken, \"speech_start_s\": number, \"speech_end_s\": number (end of the last "
+              "word), \"cut_off\": true if the last word is cut off, \"dialect\": one of Lebanese, Syrian, Palestinian, "
+              "Jordanian, Egyptian, Gulf, MSA, other, \"lebanese_score\": 1-5 (5 = clearly a native Beiruti, 1 = clearly "
+              "not Lebanese), \"cues\": the pronunciation or intonation cues that decided it, \"matches_script\": true if "
+              "it says the same words as the script (spelling and English words may differ), \"differences\": string, "
+              f"\"intelligible\": 1-5}}. Script: {script}")
     body = {"contents": [{"role": "user", "parts": [{"inlineData": {"mimeType": "audio/mpeg", "data": b64(mp3)}},
                                                      {"text": prompt}]}],
             "generationConfig": {"responseMimeType": "application/json", "temperature": 0}}
@@ -170,6 +180,35 @@ def check(shot, models):
         except ValueError:
             return {"model": model, "raw": txt[:800]}
     return {"error": "no model answered"}
+
+
+def take_score(v):
+    return (bool(v.get("matches_script")), v.get("dialect") == "Lebanese", float(v.get("lebanese_score") or 0),
+            not v.get("cut_off"), float(v.get("intelligible") or 0))
+
+
+def check(shot, models):
+    """Checks every take of a speaking shot; the best one becomes clips/<shot>.mp4."""
+    import shutil
+    takes = sorted(CLIPS.glob(f"{shot['id']}_?.mp4")) or [CLIPS / f"{shot['id']}.mp4"]
+    takes = [t for t in takes if t.exists()]
+    if not takes:
+        return {"error": "no clip"}
+    verdicts = {t.stem: listen(t, shot["speech"], models) for t in takes}
+    best = max(verdicts, key=lambda k: take_score(verdicts[k]))
+    if best != shot["id"]:
+        shutil.copyfile(CLIPS / f"{best}.mp4", CLIPS / f"{shot['id']}.mp4")
+    return {"chosen": best, **verdicts[best], "takes": verdicts}
+
+
+def check_voiceover(models):
+    cfg = json.loads(VO_CFG.read_text(encoding="utf-8"))
+    out = {}
+    for i, line in enumerate(cfg["posts"][0]["lines"], 1):
+        wav = LINES / f"reel_office_{i:02d}.wav"
+        if wav.exists():
+            out[f"vo{i}"] = listen(wav, line["text"], models)
+    return out
 
 
 def main():
@@ -193,15 +232,16 @@ def main():
         print(f"::notice::video models: {', '.join(models[:4])}")
         seconds, cost = 0, 0.0
         for s in shots:
-            if seconds + DURATION > MAX_SECONDS:
+            n = int(s.get("takes", 1))
+            if seconds + DURATION * n > MAX_SECONDS:
                 print(f"::warning::{s['id']}: skipped, the {MAX_SECONDS} s cap per run is reached")
                 continue
             m = clip(s, models)
             if m:
-                seconds += DURATION
-                cost += DURATION * PRICE[s["audio"]]
+                seconds += DURATION * n
+                cost += DURATION * n * PRICE[s["audio"]]
             run["shots"][s["id"]] = m or "failed"
-            print(f"clip {s['id']}: {m or 'FAILED'} audio={s['audio']} ~${DURATION * PRICE[s['audio']]:.2f}")
+            print(f"clip {s['id']}: {m or 'FAILED'} takes={n} audio={s['audio']} ~${DURATION * n * PRICE[s['audio']]:.2f}")
         run["seconds"], run["estimatedUsd"] = seconds, round(cost, 2)
         print(f"clips total: {seconds} s, estimated US${cost:.2f}")
     elif stage == "check":
@@ -210,7 +250,13 @@ def main():
         for s in [s for s in shots if s.get("speech")]:
             res = check(s, models)
             run["shots"][s["id"]] = res
-            print(f"check {s['id']}: {json.dumps(res, ensure_ascii=False)}")
+            short = {k: res.get(k) for k in ("chosen", "transcript", "dialect", "lebanese_score", "matches_script", "speech_end_s", "cut_off")}
+            print(f"check {s['id']}: {json.dumps(short, ensure_ascii=False)} takes=" +
+                  json.dumps({k: [v.get("dialect"), v.get("lebanese_score"), v.get("matches_script")] for k, v in res.get("takes", {}).items()}, ensure_ascii=False))
+        if not only or "vo" in only:
+            for k, v in check_voiceover(models).items():
+                run["shots"][k] = v
+                print(f"check {k}: {json.dumps({x: v.get(x) for x in ('transcript', 'dialect', 'lebanese_score', 'cues', 'matches_script')}, ensure_ascii=False)}")
     else:
         sys.exit(f"unknown stage {stage}")
     rep = AV / "report.json"

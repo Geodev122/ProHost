@@ -7,42 +7,64 @@
   "shots": [
     {
       "id": "s1",
-      "refs": ["close_neutral", "desk_mid", "three_quarter"],
+      "refs": [
+        "close_neutral",
+        "desk_mid",
+        "three_quarter"
+      ],
       "frame": "Medium shot. He sits behind the oak desk facing the camera, forearms resting on the desk, looking slightly down at his notebook, thoughtful. The empty grey couch is softly blurred behind him.",
-      "motion": "He looks up from the notebook straight into the camera and speaks to the viewer, honest and a little tired, with natural blinking and small head movements. Static camera, slow subtle push-in.",
-      "speech": "كنت إدفع إيجار عيادتي كامل… وهيّي فاضية نُصّ النهار.",
-      "voice": "a calm, deep, warm Lebanese Arabic male voice from Beirut, natural conversational Levantine dialect, a small sigh before the last word",
-      "audio": true
+      "motion": "He looks up from the notebook straight into the camera and speaks the whole line to the viewer, honest and a little tired, natural blinking and small head movements, and finishes the sentence fully before the clip ends. Static camera, slow subtle push-in.",
+      "speech": "بِدْفَع أَجار عيادتي كامل… وهيّي فاضية نُصّ لِنهار.",
+      "voice": "a calm, deep, warm male voice, honest and a little tired, a small sigh before 'فاضية'",
+      "audio": true,
+      "takes": 2
     },
     {
       "id": "s2",
-      "refs": ["three_quarter", "desk_mid"],
+      "refs": [
+        "three_quarter",
+        "desk_mid"
+      ],
       "frame": "Medium-wide side angle. He sits at the oak desk in profile, turned toward the empty grey couch across the room; the round wall clock is visible on the wall.",
       "motion": "He glances at the empty couch, then up at the wall clock, exhales, pushes his chair back and stands up from the desk. Slow camera push-in. No speaking.",
       "audio": false
     },
     {
       "id": "s3",
-      "refs": ["full_front", "three_quarter", "full_back"],
+      "refs": [
+        "full_front",
+        "three_quarter",
+        "full_back"
+      ],
       "frame": "Wide shot. He stands near the half-open door of the therapy room, full body visible, about to walk, the bright empty room with the couch visible through the doorway.",
       "motion": "He walks a few steps toward the door, opens it fully and turns to the camera with an open-hand gesture presenting the bright empty room, a proud small smile. Smooth handheld tracking shot. No speaking.",
       "audio": false
     },
     {
       "id": "s4",
-      "refs": ["desk_mid", "close_smile", "three_quarter"],
+      "refs": [
+        "desk_mid",
+        "close_smile",
+        "three_quarter"
+      ],
       "frame": "Medium shot. He leans back against the front edge of the oak desk, holding a black smartphone in one hand at chest height, the screen facing him and away from the camera, looking down at it.",
       "motion": "A message arrives; he reads it, smiles, and types a quick reply with his thumb, relaxed and pleased. Gentle slow dolly sideways. No speaking. Phone screen never visible.",
       "audio": false
     },
     {
       "id": "s5",
-      "refs": ["close_smile", "full_front", "close_neutral"],
+      "refs": [
+        "close_smile",
+        "full_front",
+        "close_neutral"
+      ],
       "frame": "Medium shot from the waist up. He stands in the middle of the office facing the camera, relaxed, friendly half-smile, the oak desk and the plant softly blurred behind him.",
-      "motion": "He speaks warmly to the viewer as an invitation, with one open-hand gesture toward the camera, and breaks into a real smile on the last words. Static camera, slow subtle push-in.",
-      "speech": "إذا عندك مكتب، عبّي الـ form اللي بالـ bio، وبيفعّلولك أوّل شهر مجّاناً.",
-      "voice": "the same calm, deep, warm Lebanese Arabic male voice from Beirut, natural Levantine dialect, a lift of excitement on the last words",
-      "audio": true
+      "motion": "He speaks warmly to the viewer as an invitation; on 'Comment office' he points down toward the bottom of the screen where the comments are, then opens his hand to the viewer and breaks into a real smile on the last words. Static camera, slow subtle push-in.",
+      "speech": "إذا عندك مكتَب… Comment office أو تواصل معنا عالـ DM لتربح شهر مجّاني",
+      "voice": "the same calm, deep, warm male voice, inviting, a lift of excitement on 'شهر مجّاني'; 'Comment office' said in English",
+      "audio": true,
+      "takes": 2
     }
-  ]
+  ],
+  "accent": "Native Beiruti Lebanese Arabic, NOT Syrian or Damascene, NOT Palestinian, NOT Jordanian: Lebanese melody and pacing, final -a/-ā raised to -e the Beirut way (فاضية sounds 'fāḍye', مجّاني sounds 'majjēne', النهار sounds 'lnhār'), ق as a glottal stop, soft, relaxed, warm delivery, like a Beirut professional talking to a friend; English words said naturally in English"
 }
