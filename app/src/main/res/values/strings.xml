@@ -706,7 +706,6 @@
     <string name="x_views">%1$s Views</string>
     <string name="x_workspaces_here">%1$s workspaces here</string>
     <string name="x_x_people">%1$s–%2$s people</string>
-    <string name="x_x_ref_x">%1$s, %2$s • Ref %3$s</string>
     <string name="x_x_unless_you_cancel_in_google_play_befor">%1$s / %2$s unless you cancel in Google Play before then.</string>
     <string name="x_x_x_is_no_longer_offered">%1$s %2$s - %3$s is no longer offered</string>
     <string name="yield_this_month">Yield This Month</string>
@@ -844,7 +843,6 @@
     <string name="list">List</string>
     <string name="list_your_space_set_subdivisions_choose_re">List your space, set subdivisions, choose renting modal, and keep your business active.</string>
     <string name="live">Live</string>
-    <string name="location_x_x">*Location:* %1$s, %2$s</string>
     <string name="maintenance_slot">Maintenance Slot</string>
     <string name="managed_spaces_incoming_tenant_inquiries_a">Managed spaces, incoming tenant inquiries, and MRR yield</string>
     <string name="map">Map</string>

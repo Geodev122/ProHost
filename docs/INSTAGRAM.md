@@ -23,6 +23,12 @@ Tabs `Rules` (artifact → backend), `Status` (`mode`, `kill_switch`, engine set
 `Log`, `Contacts` (backend → artifact). `igSheetSync` mirrors it every minute; bad rule rows are skipped and listed in `health_rule_errors`.
 Share the sheet (Editor) with the functions' runtime service account. Mode stays `dry-run` (logs what it *would* send) until Status `mode` = `live`.
 
+### Office-sourcing story (1.0.46)
+Story art `public/social/story_list_your_office(_ar).jpg`, posted from the Instagram app with a link sticker to
+`https://pro-host.tech/list-your-office?utm_source=instagram&utm_medium=story&utm_campaign=office_sourcing` (add `&lang=ar`
+for the Arabic story). Rules `office-dm` (dm_keyword) and `office-story` (story_reply) answer OFFICE / مكتب with the same
+form button; leads land in the Leads tab with whatsapp / source / tags.
+
 ## Go-live checklist
 1. Meta app "ProHost-IG" → Instagram → webhooks: callback `https://pro-host.tech/ig-webhook`, verify token = `IG_VERIFY_TOKEN`, fields `comments`, `messages`, `messaging_postbacks`.
 2. Maintenance `igsetup` (code = Sheet id), then `igsmoke`.

@@ -707,7 +707,6 @@
     <string name="x_views">%1$s مشاهدات</string>
     <string name="x_workspaces_here">%1$s مساحات هنا</string>
     <string name="x_x_people">%1$s–%2$s أشخاص</string>
-    <string name="x_x_ref_x">%1$s، %2$s • المرجع %3$s</string>
     <string name="x_x_unless_you_cancel_in_google_play_befor">%1$s / %2$s ما لم تُلغِ في Google Play قبل ذلك.</string>
     <string name="x_x_x_is_no_longer_offered">%1$s \u2066%2$s - %3$s\u2069 لم تعد معروضة</string>
     <string name="yield_this_month">العائد هذا الشهر</string>
@@ -845,7 +844,6 @@
     <string name="list">قائمة</string>
     <string name="list_your_space_set_subdivisions_choose_re">اعرض مساحتك، وحدّد الأقسام، واختر طريقة التأجير، وحافظ على نشاط عملك.</string>
     <string name="live">منشور</string>
-    <string name="location_x_x">*الموقع:* %1$s، %2$s</string>
     <string name="maintenance_slot">فترة صيانة</string>
     <string name="managed_spaces_incoming_tenant_inquiries_a">المساحات المُدارة واستفسارات المستأجرين والعائد الشهري</string>
     <string name="map">خريطة</string>
