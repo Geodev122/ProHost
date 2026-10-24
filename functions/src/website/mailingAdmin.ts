@@ -81,12 +81,12 @@ export const mailingAdminData = onCall({ cors: true, memory: "512MiB" }, async (
         id: d.id, createdAt: iso(x.createdAt), updatedAt: iso(x.updatedAt), name: x.name ?? "", email: x.email ?? "",
         phone: x.phone ?? "", organization: x.organization ?? "", role: x.role ?? "", lastMessage: x.lastMessage ?? "",
         lastMessageAt: iso(x.lastMessageAt), messagesCount: x.messagesCount ?? 0, subscribed: x.subscribed === true,
-        subscribedAt: iso(x.subscribedAt), unsubscribedAt: iso(x.unsubscribedAt), sources: x.sources ?? [],
+        subscribedAt: iso(x.subscribedAt), unsubscribedAt: iso(x.unsubscribedAt), sources: x.sources ?? [], tags: x.tags ?? [],
       };
     }),
     messages: msgs.docs.map((d) => {
       const x = d.data();
-      return { createdAt: iso(x.createdAt), name: x.name, email: x.email, phone: x.phone, organization: x.organization, role: x.role, message: x.message };
+      return { createdAt: iso(x.createdAt), name: x.name, email: x.email, phone: x.phone, organization: x.organization, role: x.role, message: x.message, tags: x.tags ?? [] };
     }),
     campaigns: camps.docs.map((d) => ({ id: d.id, subject: d.get("subject"), total: d.get("total"), createdAt: iso(d.get("createdAt")), test: d.get("test") === true })),
   };

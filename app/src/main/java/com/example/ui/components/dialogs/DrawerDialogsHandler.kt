@@ -352,7 +352,7 @@ fun DrawerDialogsHandler(
                                                         ) {
                                                             Icon(
                                                                 imageVector = when (alert.category) {
-                                                                    "ADMIN_SUBSCRIPTION" -> Icons.Default.AdminPanelSettings
+                                                                    "ADMIN_SUBSCRIPTION", "ADMIN_LEAD" -> Icons.Default.AdminPanelSettings
                                                                     "BOOKING_REQUEST" -> Icons.Default.Inbox
                                                                     "BOOKING_UPDATE" -> Icons.AutoMirrored.Filled.EventNote
                                                                     "PACKAGE_ACTIVATED", "PACKAGE_RENEWED" -> Icons.Default.Verified
@@ -435,7 +435,7 @@ fun DrawerDialogsHandler(
                                                                         // category-to-tab mapping for legacy notifications.
                                                                         val resolvedTab = alert.targetTab?.takeIf { it.isNotBlank() }
                                                                             ?: when (alert.category) {
-                                                                                "ADMIN_SUBSCRIPTION" -> "admin_console"
+                                                                                "ADMIN_SUBSCRIPTION", "ADMIN_LEAD" -> "admin_console"
                                                                                 "BOOKING_REQUEST" -> "owner_requests"
                                                                                 "PRICE_CHANGE" -> "pro_rentals"
                                                                                 "PAYMENT_REMINDER", "PACKAGE_EXPIRED",

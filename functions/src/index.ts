@@ -55,6 +55,7 @@ export { verifyEmailLink } from "./auth/emailVerification";
 export { sendEmailOtp, verifyEmailOtp, clickEmailOtpLink } from "./auth/emailOtp";
 export { sendPasswordResetLink, passwordSetupLink } from "./auth/passwordReset";
 export { websiteContact, websiteSubscribe, mailingUnsubscribe } from "./website/websiteForms";
+export { websiteOfficeLead } from "./website/officeLeads";
 export { igWebhook } from "./instagram/webhook";
 export { igSheetSync } from "./instagram/sheetsBridge";
 export { igFollowUps } from "./instagram/aiSweeper";

@@ -1,0 +1,34 @@
+/* Instagram Story (1080x1920) in the grid style of post.css: flat navy, checkmark logo, Inter ExtraBold headline, one orange
+   rule, one orange CTA block. Instagram covers the top ~250 px (profile bar) and the bottom ~340 px (reply bar), so text stays
+   between 250 and 1580; the empty .sticker band above "or reply" is where the owner places the link sticker. */
+@font-face { font-family: "Inter"; font-weight: 400; src: url("assets/fonts/inter-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 600; src: url("assets/fonts/inter-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 800; src: url("assets/fonts/inter-latin-800-normal.woff2") format("woff2"); }
+@font-face { font-family: "Cairo"; font-weight: 600; src: url("assets/fonts/cairo-arabic-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Cairo"; font-weight: 800; src: url("assets/fonts/cairo-arabic-800-normal.woff2") format("woff2"); }
+:root { --navy: #001f4e; --orange: #fd631d; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1080px; height: 1920px; overflow: hidden; }
+body { background: var(--navy); color: #fff; font-family: "Inter", "Helvetica Neue", Arial, sans-serif; position: relative; -webkit-font-smoothing: antialiased; }
+body[dir="rtl"] { font-family: "Cairo", "Inter", sans-serif; }
+.logo { position: absolute; left: 76px; top: 270px; display: flex; align-items: center; gap: 22px; }
+[dir="rtl"] .logo { left: auto; right: 76px; flex-direction: row-reverse; }
+.logo img { width: 104px; height: auto; display: block; }
+.logo span { font-family: "Inter", sans-serif; font-weight: 800; font-size: 78px; letter-spacing: -3.4px; line-height: 1; }
+.stack { position: absolute; left: 76px; right: 76px; top: 440px; bottom: 365px; display: flex; flex-direction: column; }
+.eyebrow { color: var(--orange); font-weight: 600; font-size: 30px; letter-spacing: 5px; text-transform: uppercase; line-height: 1.4; }
+[dir="rtl"] .eyebrow { letter-spacing: 0; font-size: 38px; }
+.h { margin-top: 44px; font-weight: 800; font-size: 122px; line-height: 1.02; letter-spacing: -5px; }
+[dir="rtl"] .h { font-size: 118px; line-height: 1.18; letter-spacing: 0; }
+.rule { margin-top: 56px; width: 240px; height: 7px; background: var(--orange); flex: none; }
+.sub { margin-top: 40px; font-weight: 400; font-size: 50px; line-height: 1.24; letter-spacing: -1px; color: rgba(255, 255, 255, .94); }
+[dir="rtl"] .sub { font-weight: 600; font-size: 48px; line-height: 1.5; letter-spacing: 0; }
+.cta { margin-top: 48px; background: var(--orange); color: var(--navy); font-weight: 800; font-size: 50px; letter-spacing: -1.4px; padding: 30px 40px; line-height: 1.15; }
+[dir="rtl"] .cta { letter-spacing: 0; font-size: 50px; line-height: 1.4; }
+.arrow { margin-top: 40px; font-weight: 600; font-size: 34px; color: rgba(255, 255, 255, .85); text-align: center; letter-spacing: 3px; }
+[dir="rtl"] .arrow { letter-spacing: 0; font-size: 38px; }
+/* Left empty for the link sticker the owner adds in the Instagram app. */
+.sticker { flex: 1; min-height: 130px; }
+.alt { font-weight: 600; font-size: 40px; color: #fff; text-align: center; }
+.alt b { color: var(--orange); font-weight: 800; }
+.alt { line-height: 1.2; } [dir="rtl"] .alt { line-height: 1.1; padding-bottom: 6px; }

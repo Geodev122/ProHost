@@ -43,7 +43,7 @@
 //                                                    and prints what it would send. Refuses unless mode is dry-run. Sends nothing.
 //   node scripts/maintenance/run.js igmedia         read-only: the account's latest posts (type, slides, caption, permalink, a temporary image URL) and whether
 //                                                    the token may publish (content_publishing_limit); used to analyse the live grid
-//   node scripts/maintenance/run.js igpublish [ID]  publishes ONE item of marketing/social/captions.json (post11 | post12 | post13 | story) to the Instagram
+//   node scripts/maintenance/run.js igpublish [ID]  publishes ONE item of marketing/social/captions.json (post11 | post12 | post13 | story | story_office | story_office_ar) to the Instagram
 //                                                    account (image post or Story) from https://pro-host.tech/social/<file>; without ID it only prints the plan
 //                                                    (dry run). Never publishes the same item twice (ig_stats/published); needs instagram_business_content_publish.
 //   node scripts/maintenance/run.js aiprobe         which Claude model/region the project can call on Vertex AI (functions service account)
@@ -1393,12 +1393,14 @@ async function igpublish(db, id) {
     const it = items[key];
     if (!it) throw new Error(`unknown item ${key}`);
     const url = `https://pro-host.tech/social/${it.file}`;
-    if (!id) { notice(`plan ${key}: ${it.story ? "STORY" : "IMAGE post"} ${url} ${done[key] ? "(already published: " + done[key].permalink + ")" : ""}${it.caption ? " caption=" + JSON.stringify(it.caption.slice(0, 120)) : ""}`); continue; }
+    if (!id) { notice(`plan ${key}: ${it.story ? "STORY" : "IMAGE post"}${it.manual ? " (post from the Instagram app with a link sticker: " + it.link + ")" : ""} ${url} ${done[key] ? "(already published: " + done[key].permalink + ")" : ""}${it.caption ? " caption=" + JSON.stringify(it.caption.slice(0, 120)) : ""}`); continue; }
     if (done[key]) { notice(`${key}: already published ${done[key].permalink}, nothing to do`); continue; }
     let ok = false;
     for (let i = 0; i < 40 && !ok; i++) { const h = await fetch(url, { method: "HEAD" }); ok = h.status === 200; if (!ok) await new Promise((r) => setTimeout(r, 15000)); }
     if (!ok) throw new Error(`${url} is not reachable yet (deploy pending?)`);
-    const body = it.story ? { media_type: "STORIES", video_url: url } : { image_url: url, caption: it.caption };
+    // Stories: an .mp4 is a video Story, anything else an image Story. The API can't add a link sticker, so a Story that
+    // needs one (manual: true) is meant to be posted from the Instagram app; publishing it here posts it without the sticker.
+    const body = it.story ? { media_type: "STORIES", ...(/\.mp4$/i.test(it.file) ? { video_url: url } : { image_url: url }) } : { image_url: url, caption: it.caption };
     const created = await api("POST", `${G}/${cfg.igUserId}/media`, body);
     for (let i = 0; i < 40; i++) {
       const st = await api("GET", `${G}/${created.id}?fields=status_code,status`);

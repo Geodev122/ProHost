@@ -38,6 +38,7 @@ CONTACT
 - WhatsApp (admin team): +961 76 701 865 (https://wa.me/96176701865)
 - Email: admin@pro-host.tech
 - Strategic partners: https://pro-host.tech/partner
+- Practitioners who own an office (psychologists, life coaches, therapists…) and want to rent it out by the hour between their own sessions: the 30-second form https://pro-host.tech/list-your-office?utm_source=instagram&utm_medium=dm — the team then contacts them on WhatsApp to set up the listing. Offer it as a button ("List your office"); they can also reply OFFICE.
 - Website contact form: https://pro-host.tech/#contact
 
 NOT KNOWN / DO NOT ANSWER

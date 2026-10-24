@@ -40,6 +40,7 @@
     td.msg { max-width: 360px; white-space: pre-wrap; color: var(--muted); }
     .pill { display: inline-block; padding: .15rem .55rem; border-radius: 99px; font-size: .78rem; font-weight: 700; }
     .pill.on { background: #E3F4EA; color: var(--green); } .pill.off { background: var(--soft); color: var(--muted); }
+    .pill.tag { background: #FFF1E3; color: #B45F06; font-weight: 600; margin: 0 .2rem .2rem 0; }
     .grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.2rem; }
     @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
     label.f { display: block; font-weight: 600; font-size: .88rem; margin: .7rem 0 .3rem; }
@@ -87,10 +88,11 @@
       <div class="bar">
         <input type="search" id="q" placeholder="Search name, email, phone, organization…">
         <select id="filter"><option value="all">Everyone</option><option value="sub">Subscribed</option><option value="unsub">Not subscribed</option></select>
+        <select id="tag" aria-label="Tag"><option value="">All tags</option></select>
         <button class="b b-steel" id="xlsx" type="button">⬇ Download Excel</button>
         <button class="b b-ghost" id="reload" type="button">Refresh</button>
       </div>
-      <div class="tablewrap"><table><thead><tr><th>Date</th><th>Name</th><th>Email</th><th>Phone</th><th>Organization</th><th>Role</th><th>Last message</th><th>Subscribed</th></tr></thead><tbody id="rows"></tbody></table></div>
+      <div class="tablewrap"><table><thead><tr><th>Date</th><th>Name</th><th>Email</th><th>Phone</th><th>Organization</th><th>Role</th><th>Tags</th><th>Last message</th><th>Subscribed</th></tr></thead><tbody id="rows"></tbody></table></div>
     </section>
 
     <section data-view="messages" class="hidden">
@@ -197,7 +199,15 @@
     return call("mailingAdminData", { token: token }).then(function (r) { data = r; renderAll(); })
       .catch(function (err) { $("rows").innerHTML = '<tr><td colspan="8" class="err">' + esc(err.message) + "</td></tr>"; });
   }
-  function renderAll() { renderStats(); renderRows(); renderMessages(); renderCampaigns(); }
+  function renderAll() { renderTags(); renderStats(); renderRows(); renderMessages(); renderCampaigns(); }
+  // Tag filter options from the address book (e.g. insta-leads-story for the Instagram story's office leads).
+  function renderTags() {
+    var seen = {}, cur = $("tag").value;
+    data.contacts.forEach(function (c) { (c.tags || []).forEach(function (x) { seen[x] = (seen[x] || 0) + 1; }); });
+    $("tag").innerHTML = '<option value="">All tags</option>' + Object.keys(seen).sort().map(function (x) {
+      return '<option value="' + esc(x) + '"' + (x === cur ? " selected" : "") + ">" + esc(x) + " (" + seen[x] + ")</option>";
+    }).join("");
+  }
   function renderStats() {
     var subs = data.contacts.filter(function (c) { return c.subscribed; }).length;
     $("subCount").textContent = subs;
@@ -205,21 +215,23 @@
       .map(function (s) { return '<div class="stat"><b>' + s[1] + "</b><span>" + s[0] + "</span></div>"; }).join("");
   }
   function filtered() {
-    var q = $("q").value.trim().toLowerCase(), f = $("filter").value;
+    var q = $("q").value.trim().toLowerCase(), f = $("filter").value, t = $("tag").value;
     return data.contacts.filter(function (c) {
+      if (t && (c.tags || []).indexOf(t) < 0) return false;
       if (f === "sub" && !c.subscribed) return false;
       if (f === "unsub" && c.subscribed) return false;
-      return !q || [c.name, c.email, c.phone, c.organization, c.role, c.lastMessage].join(" ").toLowerCase().indexOf(q) >= 0;
+      return !q || [c.name, c.email, c.phone, c.organization, c.role, c.lastMessage, (c.tags || []).join(" ")].join(" ").toLowerCase().indexOf(q) >= 0;
     });
   }
   function renderRows() {
     var list = filtered();
     $("rows").innerHTML = list.length ? list.map(function (c) {
       return "<tr><td>" + esc(day(c.createdAt)) + "</td><td>" + esc(c.name) + '</td><td><a href="mailto:' + esc(c.email) + '">' + esc(c.email) + "</a></td><td>" + esc(c.phone) +
-        "</td><td>" + esc(c.organization) + "</td><td>" + esc(c.role) + '</td><td class="msg">' + esc(c.lastMessage) + "</td><td>" +
+        "</td><td>" + esc(c.organization) + "</td><td>" + esc(c.role) + "</td><td>" + (c.tags || []).map(function (x) { return '<span class="pill tag">' + esc(x) + "</span>"; }).join(" ") +
+        '</td><td class="msg">' + esc(c.lastMessage) + "</td><td>" +
         '<span class="pill ' + (c.subscribed ? "on" : "off") + '">' + (c.subscribed ? "Yes" : "No") + "</span> " +
         '<button class="b b-ghost" style="padding:.2rem .5rem;font-size:.75rem" data-toggle="' + esc(c.id) + '" data-to="' + (!c.subscribed) + '">' + (c.subscribed ? "Unsubscribe" : "Subscribe") + "</button></td></tr>";
-    }).join("") : '<tr><td colspan="8">No contacts yet.</td></tr>';
+    }).join("") : '<tr><td colspan="9">No contacts yet.</td></tr>';
   }
   $("rows").addEventListener("click", function (e) {
     var b = e.target.closest("[data-toggle]"); if (!b) return;
@@ -227,7 +239,7 @@
     call("mailingAdminSetSubscribed", { token: token, id: b.getAttribute("data-toggle"), subscribed: b.getAttribute("data-to") === "true" })
       .then(load).catch(function (err) { alertBox(err.message); b.disabled = false; });
   });
-  $("q").addEventListener("input", renderRows); $("filter").addEventListener("change", renderRows);
+  $("q").addEventListener("input", renderRows); $("filter").addEventListener("change", renderRows); $("tag").addEventListener("change", renderRows);
   $("reload").addEventListener("click", load);
   function renderMessages() {
     $("msgRows").innerHTML = data.messages.length ? data.messages.map(function (m) {
@@ -242,12 +254,13 @@
     if (!window.XLSX) { alertBox("The Excel library is still loading — try again in a second."); return; }
     var row = function (c) { return { "Date": day(c.createdAt), "Name": c.name, "Email": c.email, "Phone": c.phone, "Organization": c.organization, "Role": c.role,
       "Last message": c.lastMessage, "Messages": c.messagesCount, "Subscribed": c.subscribed ? "Yes" : "No", "Subscribed at": day(c.subscribedAt),
-      "Unsubscribed at": day(c.unsubscribedAt), "Source": (c.sources || []).join(", "), "Last updated": day(c.updatedAt) }; };
+      "Unsubscribed at": day(c.unsubscribedAt), "Source": (c.sources || []).join(", "), "Tags": (c.tags || []).join(", "), "Last updated": day(c.updatedAt) }; };
     var wb = XLSX.utils.book_new();
     var add = function (name, rows) { var ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{}]); ws["!cols"] = Object.keys(rows[0] || {}).map(function (k) { return { wch: k === "Last message" || k === "Message" ? 60 : 20 }; }); XLSX.utils.book_append_sheet(wb, ws, name); };
     add("Address book", data.contacts.map(row));
     add("Subscribers", data.contacts.filter(function (c) { return c.subscribed; }).map(row));
-    add("Messages", data.messages.map(function (m) { return { "Date": day(m.createdAt), "Name": m.name, "Email": m.email, "Phone": m.phone, "Organization": m.organization, "Role": m.role, "Message": m.message }; }));
+    add("Insta story leads", data.contacts.filter(function (c) { return (c.tags || []).indexOf("insta-leads-story") >= 0; }).map(row));
+    add("Messages", data.messages.map(function (m) { return { "Date": day(m.createdAt), "Name": m.name, "Email": m.email, "Phone": m.phone, "Organization": m.organization, "Role": m.role, "Tags": (m.tags || []).join(", "), "Message": m.message }; }));
     XLSX.writeFile(wb, "ProHost-address-book-" + new Date().toISOString().slice(0, 10) + ".xlsx");
   });
 

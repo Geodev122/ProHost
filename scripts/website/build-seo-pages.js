@@ -342,10 +342,130 @@ ${footer(false)}
   fs.writeFileSync(path.join(PUB, "partner.html"), html);
 }
 
+/**
+ * /list-your-office (1.0.46): the Instagram story's intake form for practitioners (psychologists, life coaches, therapists…)
+ * who want to rent out their own office by the hour. noindex, not in the sitemap; English with an Arabic toggle (?lang=ar or
+ * an Arabic browser). Posts websiteOfficeLead (functions/src/website/officeLeads.ts): address book tag insta-leads-story,
+ * the IG Automations sheet's Leads tab, and an admin push + email.
+ */
+function listYourOffice() {
+  const url = `${SITE}/list-your-office`, title = "List your office by the hour | ProHost";
+  const description = "Psychologists, life coaches and therapists: rent your office by the hour between your own sessions and grow your revenue with ProHost.";
+  const T = {
+    eyebrow: ["For practitioners with their own office", "للمختصّين الذين يملكون مكتبًا"],
+    h1: ["Your office sits empty between sessions?", "مكتبك فارغ بين جلساتك؟"],
+    lead: ["Psychologists, life coaches, therapists and other practitioners: list your office on ProHost and rent it by the hour to verified professionals. You choose the hours and the price.", "أخصائيون نفسيون، مدرّبو حياة، معالجون وغيرهم: اعرض مكتبك على ProHost وأجّره بالساعة لمختصّين موثّقين. أنت تختار الساعات والسعر."],
+    t1: ["Rent by the hour, shift or day", "تأجير بالساعة أو بالدوام أو باليوم"],
+    t2: ["Requests come to you on WhatsApp", "تصلك الطلبات على واتساب"],
+    t3: ["Turn empty hours into revenue", "حوّل الساعات الفارغة إلى دخل"],
+    formTitle: ["Interested? Leave your details", "مهتم؟ اترك بياناتك"],
+    formSub: ["Our team will contact you on WhatsApp to set up your listing.", "سيتواصل معك فريقنا على واتساب لإعداد إعلانك."],
+    name: ["Full name *", "الاسم الكامل *"],
+    email: ["Email *", "البريد الإلكتروني *"],
+    wa: ["WhatsApp number *", "رقم واتساب *"],
+    waHint: ["With the country code, e.g. +961 70 123 456", "مع رمز الدولة، مثل ‎+961 70 123 456"],
+    prof: ["You are a…", "أنت…"],
+    city: ["City", "المدينة"],
+    msg: ["Anything to add? (optional)", "هل تودّ إضافة شيء؟ (اختياري)"],
+    ok: ["I agree that ProHost contacts me by WhatsApp or email about listing my office.", "أوافق على أن يتواصل معي ProHost عبر واتساب أو البريد الإلكتروني بخصوص عرض مكتبي."],
+    send: ["Send my details", "أرسل بياناتي"],
+    how: ["How it works", "كيف يعمل"],
+    s1: ["Leave your details", "اترك بياناتك"], s1d: ["Takes 30 seconds.", "يستغرق 30 ثانية."],
+    s2: ["We set up your listing", "نُعدّ إعلانك"], s2d: ["Photos, hours and prices, with you on WhatsApp.", "الصور والساعات والأسعار، معك على واتساب."],
+    s3: ["Professionals book your hours", "المختصّون يحجزون ساعاتك"], s3d: ["You accept each request in the ProHost app.", "تقبل كل طلب من تطبيق ProHost."],
+  };
+  const tx = (k) => `<span data-t="${k}">${T[k][0]}</span>`;
+  const profs = [["Psychologist", "أخصائي نفسي"], ["Life coach", "مدرّب حياة"], ["Therapist", "معالج"], ["Nutritionist", "أخصائي تغذية"], ["Physiotherapist", "معالج فيزيائي"], ["Other", "غير ذلك"]];
+  const html = `${head({ lang: "en", title, description, keywords: "list your office, rent office by the hour, therapy room rental, ProHost", canonical: url, image: `${SITE}/img/og-hero.jpg`, imageAlt: "ProHost: list your office by the hour", ld: [ORG, WEBSITE],
+    alternates: [["en", url], ["x-default", url]], robots: "noindex, follow" })}
+<body>
+${header(false)}
+<main>
+<section class="hero"><div class="wrap hero-grid">
+  <div>
+    <span class="eyebrow">${tx("eyebrow")}</span>
+    <h1>${tx("h1")}</h1>
+    <p class="lead">${tx("lead")}</p>
+    <ul class="ticks"><li>${tx("t1")}</li><li>${tx("t2")}</li><li>${tx("t3")}</li></ul>
+    <p class="fine"><button type="button" class="btn btn-outline" id="langBtn" style="padding:.45rem .9rem">العربية</button></p>
+  </div>
+  <form class="pform" id="officeForm" novalidate>
+    <h2 class="h2s" style="margin:0">${tx("formTitle")}</h2>
+    <p class="muted" style="margin:0 0 .3rem">${tx("formSub")}</p>
+    <label for="of_name">${tx("name")}</label><input id="of_name" name="name" autocomplete="name" required maxlength="100">
+    <label for="of_email">${tx("email")}</label><input id="of_email" name="email" type="email" autocomplete="email" required maxlength="254" dir="ltr">
+    <label for="of_wa">${tx("wa")}</label><input id="of_wa" name="whatsapp" type="tel" autocomplete="tel" required maxlength="24" dir="ltr" placeholder="+961 70 123 456">
+    <span class="fine" style="font-size:.8rem">${tx("waHint")}</span>
+    <div class="row2"><div><label for="of_prof">${tx("prof")}</label><select id="of_prof" name="profession">${profs.map(([en, ar]) => `<option value="${en}" data-ar="${ar}">${en}</option>`).join("")}</select></div>
+      <div><label for="of_city">${tx("city")}</label><input id="of_city" name="city" autocomplete="address-level2" maxlength="80"></div></div>
+    <label for="of_msg">${tx("msg")}</label><textarea id="of_msg" name="message" maxlength="600" style="min-height:80px"></textarea>
+    <div class="hp" aria-hidden="true"><label for="of_web">Website</label><input id="of_web" name="website" tabindex="-1" autocomplete="off"></div>
+    <label class="check"><input type="checkbox" id="of_ok" required> ${tx("ok")}</label>
+    <button class="btn btn-orange" type="submit" style="width:100%;margin-top:1rem">${tx("send")}</button>
+    <p class="status" id="of_status" role="status" aria-live="polite"></p>
+  </form>
+</div></section>
+
+<section class="white"><div class="wrap">
+  <div class="sec-head"><span class="eyebrow">${tx("how")}</span></div>
+  <ol class="steps">
+    <li><h3>${tx("s1")}</h3><p>${tx("s1d")}</p></li>
+    <li><h3>${tx("s2")}</h3><p>${tx("s2d")}</p></li>
+    <li><h3>${tx("s3")}</h3><p>${tx("s3d")}</p></li>
+  </ol>
+</div></section>
+</main>
+${footer(false)}
+<script>
+(function () {
+  var T = ${JSON.stringify(Object.fromEntries(Object.entries(T).map(([k, v]) => [k, v[1]])))};
+  var EN = {}, lang = "en";
+  var MSG = { en: { need: "Please add your name.", email: "Please enter a valid email address.", wa: "Please enter your WhatsApp number with the country code, e.g. +961 70 123 456.", ok: "Please tick the box so we may contact you.", sending: "Sending…", done: "Thank you! We received your details and will message you on WhatsApp soon.", fail: "Something went wrong. Please email admin@pro-host.tech." },
+    ar: { need: "يرجى إضافة اسمك.", email: "يرجى إدخال بريد إلكتروني صحيح.", wa: "يرجى إدخال رقم واتساب مع رمز الدولة، مثل ‎+961 70 123 456.", ok: "يرجى تحديد المربع لنتمكّن من التواصل معك.", sending: "جارٍ الإرسال…", done: "شكرًا! وصلتنا بياناتك وسنراسلك على واتساب قريبًا.", fail: "حدث خطأ. يرجى مراسلتنا على admin@pro-host.tech." } };
+  var nodes = document.querySelectorAll("[data-t]");
+  nodes.forEach(function (n) { EN[n.getAttribute("data-t")] = n.textContent; });
+  function setLang(l) {
+    lang = l;
+    document.documentElement.lang = l; document.documentElement.dir = l === "ar" ? "rtl" : "ltr";
+    nodes.forEach(function (n) { var k = n.getAttribute("data-t"); n.textContent = l === "ar" ? T[k] : EN[k]; });
+    document.querySelectorAll("#of_prof option").forEach(function (o) { o.textContent = l === "ar" ? o.getAttribute("data-ar") : o.value; });
+    document.getElementById("langBtn").textContent = l === "ar" ? "English" : "العربية";
+  }
+  document.getElementById("langBtn").addEventListener("click", function () { setLang(lang === "ar" ? "en" : "ar"); });
+  var qs = new URLSearchParams(location.search);
+  if (qs.get("lang") === "ar" || (!qs.get("lang") && /^ar/i.test(navigator.language || ""))) setLang("ar");
+  var BASE = "https://europe-west1-prohost-f766f.cloudfunctions.net/", form = document.getElementById("officeForm"), st = document.getElementById("of_status");
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var m = MSG[lang], d = {}; new FormData(form).forEach(function (v, k) { d[k] = typeof v === "string" ? v.trim() : v; });
+    d.consent = document.getElementById("of_ok").checked; d.lang = lang;
+    ["utm_source", "utm_medium", "utm_campaign"].forEach(function (k) { if (qs.get(k)) d[k] = qs.get(k); });
+    if (!d.utm_source) { d.utm_source = "instagram"; d.utm_medium = "story"; }
+    function bad(t) { st.className = "status err"; st.textContent = t; }
+    if (!d.name) return bad(m.need);
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(d.email || "")) return bad(m.email);
+    if (!/^(\\+|00)[1-9][\\d\\s().-]{7,20}$/.test(d.whatsapp || "")) return bad(m.wa);
+    if (!d.consent) return bad(m.ok);
+    var btn = form.querySelector("button[type=submit]"); btn.disabled = true; st.className = "status"; st.textContent = m.sending;
+    fetch(BASE + "websiteOfficeLead", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: d }) })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (j) { if (!j || j.error || !j.result) throw new Error((j && j.error && j.error.message) || m.fail); st.className = "status ok"; st.textContent = m.done; form.reset(); })
+      .catch(function (err) { bad(err.message); })
+      .then(function () { btn.disabled = false; });
+  });
+})();
+</script>
+</body>
+</html>
+`;
+  fs.writeFileSync(path.join(PUB, "list-your-office.html"), html);
+}
+
 PAGES.forEach(page);
 arabic();
 partner();
+listYourOffice();
 // A retired slug must not linger as a static file: firebase.json 301-redirects it to the new page.
 Object.keys(LEGACY_SLUGS).forEach((old) => { const f = path.join(PUB, `${old}.html`); if (fs.existsSync(f)) { fs.unlinkSync(f); console.log(`removed retired page ${old}.html`); } });
-console.log(`built ${PAGES.length} English pages + /ar + /partner`);
+console.log(`built ${PAGES.length} English pages + /ar + /partner + /list-your-office`);
 module.exports = { PAGES, LEGACY_SLUGS };

@@ -11,5 +11,20 @@
     "file": "post13_ask_prohost.jpg",
     "caption": "Questions at 2 am? Our smart assistant replies in seconds, in English, Arabic, French or Spanish.\n\nAsk how to list your space, how to book one, or what’s new in the app.\n\nSend us a DM.\n\n#ProHost #AskProHost #WorkspacesLebanon"
   },
-  "story": { "file": "story_dm_agent.mp4", "story": true }
+  "story": {
+    "file": "story_dm_agent.mp4",
+    "story": true
+  },
+  "story_office": {
+    "file": "story_list_your_office.jpg",
+    "story": true,
+    "manual": true,
+    "link": "https://pro-host.tech/list-your-office?utm_source=instagram&utm_medium=story&utm_campaign=office_sourcing"
+  },
+  "story_office_ar": {
+    "file": "story_list_your_office_ar.jpg",
+    "story": true,
+    "manual": true,
+    "link": "https://pro-host.tech/list-your-office?utm_source=instagram&utm_medium=story&utm_campaign=office_sourcing&lang=ar"
+  }
 }

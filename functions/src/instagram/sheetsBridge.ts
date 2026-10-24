@@ -5,7 +5,7 @@ import * as logger from "firebase-functions/logger";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import "../lib/admin";
 import { clearConfigCache, loadConfig } from "./config";
-import { CONTACT_COLUMNS, LOG_COLUMNS, RULE_COLUMNS, isoTime, logRow, aiFromStatus, parseRulesSheet, settingsFromStatus } from "./rulesSheet";
+import { CONTACT_COLUMNS, LEAD_COLUMNS, LOG_COLUMNS, RULE_COLUMNS, isoTime, leadRow, logRow, aiFromStatus, parseRulesSheet, settingsFromStatus } from "./rulesSheet";
 import { daysLeft } from "./tokenRefresh";
 
 /**
@@ -35,7 +35,7 @@ export async function ensureTabs(sheets: sheets_v4.Sheets, sheetId: string): Pro
   if (missing.length) {
     await sheets.spreadsheets.batchUpdate({ spreadsheetId: sheetId, requestBody: { requests: missing.map((title) => ({ addSheet: { properties: { title } } })) } });
   }
-  const headers: Record<string, readonly string[]> = { Rules: RULE_COLUMNS, Log: LOG_COLUMNS, Contacts: CONTACT_COLUMNS, Status: ["key", "value"], Knowledge: ["question", "answer"], Learn: ["time", "lang", "question", "times", "status", "id"], Leads: ["time", "instagram", "name", "email", "role", "need", "lang", "consent", "status", "id"] };
+  const headers: Record<string, readonly string[]> = { Rules: RULE_COLUMNS, Log: LOG_COLUMNS, Contacts: CONTACT_COLUMNS, Status: ["key", "value"], Knowledge: ["question", "answer"], Learn: ["time", "lang", "question", "times", "status", "id"], Leads: LEAD_COLUMNS };
   for (const tab of missing) {
     await sheets.spreadsheets.values.update({ spreadsheetId: sheetId, range: `${tab}!A1`, valueInputOption: "RAW", requestBody: { values: [[...headers[tab]]] } });
   }
@@ -135,8 +135,10 @@ export async function runSheetSync(now = Date.now()): Promise<string> {
     try {
       await sheets.spreadsheets.values.append({
         spreadsheetId: sid, range: "Leads!A1", valueInputOption: "RAW", insertDataOption: "INSERT_ROWS",
-        requestBody: { values: leadPending.docs.map((d) => { const l = d.data(); return [isoTime(Number(l.updatedAt) || now), String(l.instagram ?? ""), String(l.name ?? ""), String(l.email ?? ""), String(l.role ?? ""), String(l.need ?? ""), String(l.lang ?? ""), "yes " + isoTime(Number(l.consentAt) || now), "new", d.id]; }) },
+        requestBody: { values: leadPending.docs.map((d) => leadRow(d.id, d.data(), now)) },
       });
+      // Older sheets were set up before the whatsapp / source / tags columns: keep the header row current.
+      await sheets.spreadsheets.values.update({ spreadsheetId: sid, range: "Leads!A1", valueInputOption: "RAW", requestBody: { values: [[...LEAD_COLUMNS]] } });
       const lb2 = db.batch();
       leadPending.docs.forEach((d) => lb2.update(d.ref, { synced: true }));
       await lb2.commit();
