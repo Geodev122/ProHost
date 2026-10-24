@@ -25,6 +25,6 @@ class ListingLocationTest {
 
     @Test
     fun countryIsShownInTheAppLanguage() {
-        assertEquals("طرابلس, لبنان", ListingLocation.line("طرابلس", "", "", "Lebanon") { if (it == "Lebanon") "لبنان" else it })
+        assertEquals("طرابلس, لبنان", ListingLocation.line("طرابلس", "", "", "Lebanon", countryLabel = { if (it == "Lebanon") "لبنان" else it }))
     }
 }

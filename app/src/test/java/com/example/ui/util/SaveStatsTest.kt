@@ -1,12 +1,17 @@
 package com.example.ui.util
 
+import com.example.data.model.Governorate
 import com.example.data.model.SpaceListing
+import com.example.data.model.SpaceType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
 class SaveStatsTest {
     private val oct24 = 1_792_800_000_000L // 2026-10-24 UTC
+
+    private fun listing(id: String, byMonth: Map<String, Int>) =
+        SpaceListing(id = id, title = id, spaceType = SpaceType.POLYCLINIC, governorate = Governorate.BEIRUT, favoritesByMonth = byMonth)
 
     @Test
     fun monthKeysMatchTheServer() {
@@ -18,8 +23,8 @@ class SaveStatsTest {
     @Test
     fun savesAreSummedPerMonth() {
         val listings = listOf(
-            SpaceListing(id = "a", favoritesByMonth = mapOf("202610" to 3, "202609" to 1)),
-            SpaceListing(id = "b", favoritesByMonth = mapOf("202610" to 2))
+            listing("a", mapOf("202610" to 3, "202609" to 1)),
+            listing("b", mapOf("202610" to 2))
         )
         assertEquals(5, SaveStats.savesInMonth(listings, oct24))
         assertEquals(1, SaveStats.savesInMonth(listings, oct24, monthsBack = 1))
