@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.BookingRequestStatus
+import com.example.data.model.ListingStatus
 import com.example.data.model.SpaceListing
 import com.example.data.model.UserRole
 import com.example.ui.components.*
@@ -129,6 +130,7 @@ fun ProHostAppRoot(
     deepLinkTab: String? = null,
     deepLinkBookingId: String? = null,
     deepLinkSpaceId: String? = null,
+    deepLinkRoomId: String? = null,
     emailVerifiedDeepLink: Boolean = false,
     inAppUpdateManager: InAppUpdateManager? = null,
     viewModel: ProHostViewModel = viewModel()
@@ -287,27 +289,39 @@ fun ProHostAppRoot(
         }
     }
 
-    // Opens the listing detail modal for a tapped share link
-    // (pro-host.tech/listing/{spaceId} — see MainActivity's
-    // handleIncomingIntent and functions/src/listings/shareLanding.ts). Only
-    // reachable once the user is signed in (the app gates everything behind
-    // login) and the live spaces list has loaded — re-runs whenever either
-    // changes, so a link tapped from a cold start (spaces not loaded yet) or
-    // before sign-in still resolves the moment both are ready, without
-    // needing a one-shot Firestore fetch just for this case.
+    // Opens the listing detail page for a tapped listing link (pro-host.tech/listing/{spaceId}?room=… — share links and
+    // the Instagram agent's buttons; see MainActivity and functions/src/listings/shareLanding.ts). Everything is behind
+    // sign-in, so it waits for a user and re-runs after login or registration. A listing outside the loaded Explore page
+    // is fetched on its own; one that is gone or unpublished says so and shows Explore.
     var consumedDeepLinkSpaceId by remember { mutableStateOf<String?>(null) }
+    var fetchingDeepLinkSpaceId by remember { mutableStateOf<String?>(null) }
+    fun openDeepLinked(space: SpaceListing) {
+        consumedDeepLinkSpaceId = space.id
+        detailedSpaceSource = "deep_link"
+        detailedSpaceOpenAvailability = false
+        detailedSpaceSubdivisionId = deepLinkRoomId?.takeIf { room -> space.subdivisions.any { it.id == room } }
+        detailedSpace = space
+        navigateTo("search_map")
+    }
     LaunchedEffect(deepLinkSpaceId, deepLinkSpaces, currentUser?.id) {
-        if (deepLinkSpaceId.isNullOrBlank() || currentUser == null) return@LaunchedEffect
-        if (consumedDeepLinkSpaceId == deepLinkSpaceId) return@LaunchedEffect
+        val id = deepLinkSpaceId
+        if (id.isNullOrBlank() || currentUser == null) return@LaunchedEffect
+        if (consumedDeepLinkSpaceId == id) return@LaunchedEffect
         // Don't re-open a listing the user already dismissed — an auth state change
         // (e.g. token refresh) re-fires this effect; guard prevents a back-navigation
         // loop where the detail screen re-appears after the user pressed back.
         if (detailedSpace != null) return@LaunchedEffect
-        val match = deepLinkSpaces.find { it.id == deepLinkSpaceId }
-        if (match != null) {
-            consumedDeepLinkSpaceId = deepLinkSpaceId
-            detailedSpaceSource = "deep_link"
-            detailedSpace = match
+        deepLinkSpaces.find { it.id == id }?.let { openDeepLinked(it); return@LaunchedEffect }
+        if (fetchingDeepLinkSpaceId == id) return@LaunchedEffect
+        fetchingDeepLinkSpaceId = id
+        val fetched = viewModel.repository.fetchListing(id)
+        val viewable = fetched != null && (fetched.ownerId == currentUser?.id ||
+            (fetched.status == ListingStatus.ACTIVE && !fetched.isOwnerSuspended && !fetched.isOwnerPackageLapsed))
+        if (fetched != null && viewable) {
+            openDeepLinked(fetched)
+        } else {
+            consumedDeepLinkSpaceId = id
+            UiMessages.show(appContext, uiText(R.string.listing_link_unavailable))
             navigateTo("search_map")
         }
     }

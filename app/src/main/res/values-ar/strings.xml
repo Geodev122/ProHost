@@ -1232,4 +1232,5 @@
     <string name="verify_email_title">تحقّق من بريدك الإلكتروني</string>
     <string name="verify_email_body_x">أرسلنا رابطًا إلى %1$s. اضغط عليه لتأكيد عنوانك.</string>
     <string name="resend_verification">إعادة الإرسال</string>
+    <string name="listing_link_unavailable">هذا الإعلان لم يعد متاحاً. إليك مساحات أخرى على الخريطة.</string>
 </resources>

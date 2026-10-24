@@ -1231,4 +1231,5 @@
     <string name="verify_email_title">Verify your email</string>
     <string name="verify_email_body_x">We sent a link to %1$s. Tap it to confirm your address.</string>
     <string name="resend_verification">Resend</string>
+    <string name="listing_link_unavailable">This listing is no longer available. Here are other spaces on the map.</string>
 </resources>

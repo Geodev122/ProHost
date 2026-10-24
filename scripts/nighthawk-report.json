@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-24T06:20:54.831Z",
+  "generatedAt": "2026-10-24T06:22:42.311Z",
   "trigger": "NIGHTHAWK",
   "summary": {
     "total": 225,
@@ -1024,7 +1024,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/navigation/ProHostNavGraph.kt",
-      "line": 121,
+      "line": 122,
       "message": "Line has 162 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },

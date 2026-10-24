@@ -23,6 +23,7 @@ class MainActivity : ComponentActivity() {
     private var targetTab by mutableStateOf<String?>(null)
     private var targetBookingId by mutableStateOf<String?>(null)
     private var targetSpaceId by mutableStateOf<String?>(null)
+    private var targetRoomId by mutableStateOf<String?>(null)
     private var emailVerifiedDeepLink by mutableStateOf(false)
     private var inAppUpdateManager: InAppUpdateManager? = null
 
@@ -73,6 +74,7 @@ class MainActivity : ComponentActivity() {
                     deepLinkTab = targetTab,
                     deepLinkBookingId = targetBookingId,
                     deepLinkSpaceId = targetSpaceId,
+                    deepLinkRoomId = targetRoomId,
                     emailVerifiedDeepLink = emailVerifiedDeepLink,
                     inAppUpdateManager = inAppUpdateManager
                 )
@@ -149,10 +151,13 @@ class MainActivity : ComponentActivity() {
         // hits this code path at all, they see the landing page's own HTML instead.
         // ProHostNavGraph resolves the id against the live spaces list once the user
         // is signed in and it's loaded.
-        val isListingShareLink = data != null && data.scheme == "https" &&
-            data.host == "pro-host.tech" && data.path?.startsWith("/listing/") == true
-        if (isListingShareLink) {
-            targetSpaceId = data.path?.removePrefix("/listing/")?.trim('/')?.takeIf { it.isNotBlank() }
+        // `?room=` (the Instagram agent's links) opens the details page on that room's card.
+        val listingLink = data?.let {
+            com.example.util.ListingDeepLink.parse(it.scheme, it.host, it.path, it.getQueryParameter("room"))
+        }
+        if (listingLink != null) {
+            targetSpaceId = listingLink.spaceId
+            targetRoomId = listingLink.roomId
         }
 
         // Email verification return: prohost://verify-email/success (from verifyEmailLink
