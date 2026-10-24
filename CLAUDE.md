@@ -360,6 +360,8 @@ plan + recurring price + date;
   Utility pages (`/get`, `/admin`, `/redeem`, `/emaillink`) are noindex. Maintenance `prodcheck` step `seo` verifies the
   sitemap pages and the legacy 301s live.
   Play screenshots: `play/screenshots/` (rendered from `source/shots.html`); listing text: `play/store-listing/`.
+- Data model: `docs/DATA_MODEL.md` (collections, who writes/reads, whole place vs divisions). The Instagram agent reads app
+  data and writes only `ig_*` + its `app_config/instagram*` docs — `instagram/readOnlyAccess.test.ts` fails otherwise.
 - Instagram automation (@prohost.app, `functions/src/instagram/`, `docs/INSTAGRAM.md`): `igWebhook` (`/ig-webhook`) → pure `engine.ts` →
   `graph.ts` (Instagram login API, fixed version). Starts and stays `dry-run` until the sheet's Status `mode` is `live`; `kill_switch` stops sends.
   Rules live in the Google Sheet "ProHost IG Automations" (`igSheetSync` mirrors Rules/Status in, Log/Contacts out); the IG Control Room artifact
@@ -430,7 +432,8 @@ plan + recurring price + date;
   (`imageUrls[0]`), the pin (`ListingLocationMapPicker` → `ResolvedAddress`: street/area/city in the app's language, the
   country by its English name and `SpaceListing.cityEn`, which Explore search and the Instagram finder also match), address,
   description. Step 2 has no visitor policy (kept on old listings). Step 3 = division cards (`DivisionCards`), each edited in
-  `DivisionSheet` (`SubdivisionForm`); one division (not per-attendee, no own hours) is saved as the whole place
+  `DivisionSheet` (`SubdivisionForm`: live `DivisionCard` preview, type chips, `ChoiceGrid` for strategy and fixed vs
+  per-person, amenity chips, capacity, "More options" for hashtags and own hours); one division (not per-attendee, no own hours) is saved as the whole place
   (`ui/util/ListingDivisions.kt`, unit-tested: its pricing becomes `pricing`, `subdivisions` stays empty) and an undivided
   listing reopens as one card. Terms: `docs/design/GLOSSARY.md` (sentence case, one helper line at most). Dark mode has its own splash art
   (`drawable-night-*`, `values-night/colors.xml`).
@@ -439,6 +442,8 @@ plan + recurring price + date;
 
 ## Google Play releases
 
+- `docs/release/published.txt` = the version live on Play production. The Instagram agent's release knowledge
+  (`gen-agent-release.js`) only describes notes up to it, so bump it when a release reaches production, never before.
 - `release-bundle.yml` (manual): `play_track` none = build only; probe = read Play tracks (no build, no change);
   internal / production = build, upload the `.aab` + R8 mapping + native symbols, release with
   `docs/release/<version>-notes.txt` (a listing language without its exact note takes the same base language, e.g.

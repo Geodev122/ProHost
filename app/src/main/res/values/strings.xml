@@ -104,10 +104,8 @@
     <string name="check_your_email">Check your email</string>
     <string name="checking_google_play_for_updates">Checking Google Play for updates...</string>
     <string name="choose_a_day">Choose a day:</string>
-    <string name="choose_a_room_type">Choose a room type</string>
     <string name="choose_a_shift">Choose a shift:</string>
     <string name="choose_a_single_pricing_formula_to_filter">Choose a single pricing formula to filter by price.</string>
-    <string name="choose_amenities">Choose amenities</string>
     <string name="choose_file">Choose File</string>
     <string name="choose_one_or_more_priced_days">Choose one or more priced days:</string>
     <string name="choose_one_or_more_priced_hours">Choose one or more priced hours:</string>
@@ -218,10 +216,8 @@
     <string name="edit_division">Edit division</string>
     <string name="edit_listing">Edit Listing</string>
     <string name="edit_request_sent_your_current_booking_sta">Edit request sent! Your current booking stays active until the host approves this change.</string>
-    <string name="edit_room_unit">Division</string>
     <string name="email_address">Email address</string>
     <string name="email_verified_your_account_is_now_level_2">Email verified! Your account is now Level 2.</string>
-    <string name="enter_a_price_for_each_offered_slot">Enter a price for each offered slot.</string>
     <string name="enter_a_promo_or_gift_code_and_we_ll_open">Enter a promo or gift code and we\'ll open Google Play with it pre-filled.\u0020</string>
     <string name="enter_attendee_count_then_tap_days_to_sele">Enter attendee count, then tap days to select slots.</string>
     <string name="est_mrr">Est. MRR</string>
@@ -384,7 +380,6 @@
     <string name="off_follows_the_space_s_hours">Off — follows the space\'s hours.</string>
     <string name="off_hours_access">Off-hours access</string>
     <string name="offer_ends_in">Offer ends in</string>
-    <string name="offered_times_hourly_shifts_or_days">Offered times (hourly, shifts or days)</string>
     <string name="once_accepted_by_the_owner_your_chosen_sch">• Once accepted by the owner, your chosen schedule (%1$s) is locked exclusively for your use.\n</string>
     <string name="one_or_two_lines_a_specialist_sees_before">One or two lines a specialist sees before opening the listing</string>
     <string name="one_price_for_the_whole_booking_not_multip">One price for the whole booking — not multiplied by hours, shifts or days.</string>
@@ -394,7 +389,6 @@
     <string name="open_google_play_redeem">Open Google Play redeem</string>
     <string name="open_menu">Open menu</string>
     <string name="open_on_sundays">Open on Sundays</string>
-    <string name="open_picker">Open picker</string>
     <string name="open_side_navigation_drawer">Open Side Navigation Drawer</string>
     <string name="open_xh">Open: %1$sh</string>
     <string name="opens_hh_mm">Opens (HH:mm)</string>
@@ -417,7 +411,6 @@
     <string name="pending_x">Pending (%1$s)</string>
     <string name="per_attendee">Per attendee</string>
     <string name="per_attendee_x_accepted_x_attendees">Per-attendee: %1$s accepted · %2$s attendees ·\u0020</string>
-    <string name="per_booking">Per booking</string>
     <string name="per_day_a_single_price_leave_blank_to_mark">Per day: a single price. Leave blank to mark a day not available. The\u0020</string>
     <string name="per_x">per %1$s</string>
     <string name="period_shown_until_you_cancel_cancel_anyti">period shown until you cancel. Cancel anytime in Google Play › Payments &amp; subscriptions; you keep\u0020</string>
@@ -440,8 +433,6 @@
     <string name="price_per_shift_usd">Price per shift (USD)</string>
     <string name="price_range">Price range</string>
     <string name="pricing_formula">Pricing formula</string>
-    <string name="pricing_mode">Pricing mode</string>
-    <string name="pricing_strategy">Pricing</string>
     <string name="privacy">Privacy</string>
     <string name="privacy_policy">Privacy Policy</string>
     <string name="pro_host">PRO HOST</string>
@@ -508,7 +499,6 @@
     <string name="rented_xh">Rented: %1$sh</string>
     <string name="renting_progress">Renting Progress</string>
     <string name="renting_requests">Renting Requests</string>
-    <string name="renting_strategy">Renting strategy</string>
     <string name="repeats_on_the_chosen_day_s_every_week_unt">Repeats on the chosen day(s) every week — until when?</string>
     <string name="request_sent">Request sent</string>
     <string name="request_x">Request %1$s</string>
@@ -524,10 +514,7 @@
     <string name="reverted_from_active">Reverted from Active —\u0020</string>
     <string name="review_and_confirm_professional_rental_con">Review and confirm professional rental contracts</string>
     <string name="room_amenities">Amenities</string>
-    <string name="room_name_desk_id_e_g_treatment_room_b">Name (e.g. Treatment room B)</string>
     <string name="room_photos">Photos</string>
-    <string name="room_unit_identity">Division</string>
-    <string name="room_unit_type">Type</string>
     <string name="save">Save</string>
     <string name="save_address">Save address</string>
     <string name="save_apply_x_selected">Save (%1$s selected)</string>
@@ -651,7 +638,6 @@
     <string name="total_for_this_request">Total for this request</string>
     <string name="total_x_usd">\u0020Total: $%1$s USD</string>
     <string name="turn_on">Turn on</string>
-    <string name="type">Type</string>
     <string name="type_x">Type: %1$s</string>
     <string name="unavailable">Unavailable</string>
     <string name="unlimited_listings_admin_access">Unlimited Listings — Admin Access</string>
@@ -886,7 +872,6 @@
     <string name="no_schedule_yet">No schedule yet</string>
     <string name="no_shift_selected_yet">No shift selected yet</string>
     <string name="no_updates_right_now_explore_available_wor">No updates right now — explore available workspaces.</string>
-    <string name="none_selected">None selected</string>
     <string name="not_now">Not now</string>
     <string name="not_subscribed">Not subscribed</string>
     <string name="notes">Notes</string>
@@ -1203,4 +1188,28 @@
     <string name="publish_needs_cover">Add a cover photo (step 1).</string>
     <string name="publish_needs_division">Add at least one division.</string>
     <string name="publish_needs_price">Give a division a price.</string>
+    <string name="division_what_is_it">What is it?</string>
+    <string name="division_name">Name</string>
+    <string name="division_name_placeholder">e.g. %1$s 1</string>
+    <string name="division_capacity">Fits up to (people)</string>
+    <string name="division_how_rented">How is it rented?</string>
+    <string name="division_how_rented_hint">Choose how guests book it, then set your prices.</string>
+    <string name="rent_mode_fixed">Fixed price</string>
+    <string name="rent_mode_fixed_hint">One price for each booked slot</string>
+    <string name="rent_mode_per_person">Per person</string>
+    <string name="rent_mode_per_person_hint">Price times the number of people</string>
+    <string name="division_set_prices">Set the price of each slot you offer</string>
+    <string name="division_pick_times">Pick the times you offer</string>
+    <string name="strategy_hourly">By the hour</string>
+    <string name="strategy_hourly_hint">Guests book single hours</string>
+    <string name="strategy_shift">By shift</string>
+    <string name="strategy_shift_hint">Morning, afternoon or evening blocks</string>
+    <string name="strategy_day">By day</string>
+    <string name="strategy_day_hint">Whole days on chosen weekdays</string>
+    <string name="strategy_monthly">By the month</string>
+    <string name="strategy_monthly_hint">A monthly rent, booked by month</string>
+    <string name="division_photos_hint">The first photo shows on the card.</string>
+    <string name="more_amenities">More</string>
+    <string name="more_options">More options</string>
+    <string name="division_hashtags_hint">Help specialists find this division.</string>
 </resources>

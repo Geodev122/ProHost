@@ -523,7 +523,14 @@ fun SpaceDetailsScreenContent(
                         )
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text(
-                            text = "${liveSpace.district}, ${localizedLabel(liveSpace.governorate.displayName)} • ${liveSpace.floorInfo}",
+                            // Area, city (the governorate only for legacy listings without one), floor and, for an
+                            // undivided place, how many people it fits.
+                            text = listOfNotNull(
+                                listOf(liveSpace.district, liveSpace.city.ifBlank { localizedLabel(liveSpace.governorate.displayName) })
+                                    .filter { it.isNotBlank() }.distinct().joinToString(", ").takeIf { it.isNotBlank() },
+                                liveSpace.floorInfo.takeIf { it.isNotBlank() },
+                                liveSpace.capacity?.takeIf { liveSpace.subdivisions.isEmpty() }?.let { stringResource(R.string.up_to_x, it) }
+                            ).joinToString(" • "),
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xCCFFFFFF),
                             maxLines = 1,

@@ -79,8 +79,9 @@ fun DivisionCards(
     }
 }
 
+/** One division as a card; also the division sheet's live preview (no click, no delete). */
 @Composable
-private fun DivisionCard(division: Subdivision, onClick: () -> Unit, onDelete: () -> Unit) {
+internal fun DivisionCard(division: Subdivision, onClick: (() -> Unit)?, onDelete: (() -> Unit)?) {
     val price = SpaceCalculationUtils.findLowestPriceForSubdivision(division)
     val priceText = if (price.amount > 0.0) "$" + AttendeePricing.formatUsd(price.amount) + price.unitLabel else null
     ProCard(
@@ -105,7 +106,7 @@ private fun DivisionCard(division: Subdivision, onClick: () -> Unit, onDelete: (
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Text(
-                    division.name,
+                    division.name.ifBlank { localizedLabel(division.type.displayName) },
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
@@ -126,8 +127,10 @@ private fun DivisionCard(division: Subdivision, onClick: () -> Unit, onDelete: (
                     )
                 }
             }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_division), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (onDelete != null) {
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_division), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
     }
@@ -165,7 +168,7 @@ private fun AddDivisionTile(onClick: () -> Unit) {
     }
 }
 
-private fun iconFor(type: Level2Type): ImageVector = when (type) {
+internal fun iconFor(type: Level2Type): ImageVector = when (type) {
     Level2Type.OFFICE -> Icons.Default.Business
     Level2Type.CONFERENCE_ROOM, Level2Type.THEATER_TRAINING, Level2Type.TRAINING_ROOM -> Icons.Default.Groups
     Level2Type.DESK_IN_SHARED_AREA, Level2Type.STORAGE -> Icons.Default.Apartment

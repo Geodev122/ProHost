@@ -36,7 +36,9 @@ fun RentalPricingConfigEditor(
     // Per-attendee rooms: configure only WHEN the room is offered; price comes from
     // attendee tiers (see AttendeePricing), so price inputs are hidden, Monthly isn't
     // offered, and offered slots carry the availability marker price.
-    availabilityOnly: Boolean = false
+    availabilityOnly: Boolean = false,
+    // Shown between the strategy choice and its price table (the division form asks "fixed price or per person" there).
+    afterStrategy: (@Composable ColumnScope.() -> Unit)? = null
 ) {
     // Per-attendee: which shifts are offered is decided by the day distribution, and the
     // shift editor has no price field — so every shift carries the availability marker.
@@ -57,32 +59,32 @@ fun RentalPricingConfigEditor(
         RentalStrategyType.values().toList()
     }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        Text(
-            if (availabilityOnly) stringResource(R.string.offered_times_hourly_shifts_or_days) else stringResource(R.string.renting_strategy),
-            fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.labelMedium
-        )
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            items(strategyChoices) { type ->
-                FilterChip(
-                    selected = config.strategyType == type,
-                    onClick = {
-                        if (config.strategyType != type) {
-                            emitConfig(
-                                RentalPricingConfig(
-                                    strategyType = type,
-                                    monthly = if (type == RentalStrategyType.MONTHLY) config.monthly ?: MonthlyConfig() else null,
-                                    hourly = if (type == RentalStrategyType.HOURLY) config.hourly ?: HourlyConfig() else null,
-                                    shiftBased = if (type == RentalStrategyType.SHIFT_BASED) config.shiftBased ?: ShiftBasedConfig() else null,
-                                    dayBased = if (type == RentalStrategyType.DAY_BASED) config.dayBased ?: DayBasedConfig() else null
-                                )
-                            )
-                        }
-                    },
-                    label = { Text(localizedLabel(type.displayName), style = MaterialTheme.typography.labelSmall) }
-                )
+        val choices = strategyChoices.map { type ->
+            when (type) {
+                RentalStrategyType.HOURLY -> Choice(type, Icons.Default.Schedule, stringResource(R.string.strategy_hourly), stringResource(R.string.strategy_hourly_hint))
+                RentalStrategyType.SHIFT_BASED -> Choice(type, Icons.Default.AccessTime, stringResource(R.string.strategy_shift), stringResource(R.string.strategy_shift_hint))
+                RentalStrategyType.DAY_BASED -> Choice(type, Icons.Default.CalendarToday, stringResource(R.string.strategy_day), stringResource(R.string.strategy_day_hint))
+                RentalStrategyType.MONTHLY -> Choice(type, Icons.Default.CalendarMonth, stringResource(R.string.strategy_monthly), stringResource(R.string.strategy_monthly_hint))
             }
         }
+        ChoiceGrid(
+            choices = choices,
+            selected = config.strategyType,
+            onSelect = { type ->
+                if (config.strategyType != type) {
+                    emitConfig(
+                        RentalPricingConfig(
+                            strategyType = type,
+                            monthly = if (type == RentalStrategyType.MONTHLY) config.monthly ?: MonthlyConfig() else null,
+                            hourly = if (type == RentalStrategyType.HOURLY) config.hourly ?: HourlyConfig() else null,
+                            shiftBased = if (type == RentalStrategyType.SHIFT_BASED) config.shiftBased ?: ShiftBasedConfig() else null,
+                            dayBased = if (type == RentalStrategyType.DAY_BASED) config.dayBased ?: DayBasedConfig() else null
+                        )
+                    )
+                }
+            }
+        )
+        afterStrategy?.invoke(this)
 
         when (config.strategyType) {
             RentalStrategyType.MONTHLY -> MonthlyStrategyEditor(

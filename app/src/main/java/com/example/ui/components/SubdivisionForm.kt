@@ -75,7 +75,7 @@ fun SubdivisionForm(
     var subAmenitiesSelected by remember { mutableStateOf(initial?.amenities?.toSet() ?: setOf()) }
     var subHashtags by remember { mutableStateOf(initial?.hashtags ?: listOf()) }
     var hashtagInput by remember { mutableStateOf("") }
-    var showTypePicker by remember { mutableStateOf(false) }
+    var showMoreOptions by remember { mutableStateOf(initial?.scheduleOverride != null || initial?.hashtags?.isNotEmpty() == true) }
     var showAmenityPicker by remember { mutableStateOf(false) }
     var subImageUrls by remember { mutableStateOf(initial?.imageUrls ?: listOf()) }
     var isUploadingSubImage by remember { mutableStateOf(false) }
@@ -211,19 +211,6 @@ fun SubdivisionForm(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
 
         // Pickers declared up-front so they render on top of everything
-        if (showTypePicker) {
-            SearchablePickerDialog(
-                title = stringResource(R.string.room_unit_type),
-                options = Level2Type.values().map { localizedLabel(it.displayName) },
-                selected = setOf(localizedLabel(subType.displayName)),
-                multiSelect = false,
-                onToggle = { label ->
-                    Level2Type.values().firstOrNull { localizedLabel(it.displayName) == label }?.let { subType = it }
-                    showTypePicker = false
-                },
-                onDismiss = { showTypePicker = false }
-            )
-        }
         if (showAmenityPicker) {
             SearchablePickerDialog(
                 title = stringResource(R.string.room_amenities),
@@ -240,64 +227,206 @@ fun SubdivisionForm(
             )
         }
 
-        // ── Section 1: Identity ─────────────────────────────────────────────
-        Surface(
-            color = MaterialTheme.colorScheme.surface,
-            shape = MaterialTheme.shapes.large,
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.extraSmall) {
-                        Text(
-                            "1",
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+        // Live preview: the card this division becomes in Step 3.
+        DivisionCard(division = buildCurrentSubdivision(), onClick = null, onDelete = null)
+
+        FormSection(title = stringResource(R.string.division_what_is_it)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Level2Type.values().forEach { type ->
+                    FilterChip(
+                        selected = subType == type,
+                        onClick = { subType = type },
+                        label = { Text(localizedLabel(type.displayName)) },
+                        leadingIcon = { Icon(iconFor(type), contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    )
+                }
+            }
+            InputField(
+                value = subName,
+                onValueChange = { subName = it },
+                label = stringResource(R.string.division_name),
+                placeholder = stringResource(R.string.division_name_placeholder, localizedLabel(subType.displayName)),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            // Per-person divisions set their max with the tiers below.
+            if (!isPerAttendee) {
+                InputField(
+                    value = subCapacityInput,
+                    onValueChange = { raw ->
+                        val digits = raw.filter { it.isDigit() }.take(4)
+                        subCapacityInput = digits
+                        subCapacity = digits.toIntOrNull()?.takeIf { it > 0 }
+                    },
+                    label = stringResource(R.string.division_capacity),
+                    placeholder = stringResource(R.string.no_limit),
+                    leadingIcon = Icons.Default.People,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
+        FormSection(title = stringResource(R.string.division_how_rented), hint = stringResource(R.string.division_how_rented_hint)) {
+            RentalPricingConfigEditor(
+                config = subPricing,
+                operatingDays = if (subScheduleOverrideEnabled) subOverrideDays.toList() else operatingDays,
+                openingHour = if (subScheduleOverrideEnabled) subOverrideOpeningHour else openingHour,
+                closingHour = if (subScheduleOverrideEnabled) subOverrideClosingHour else closingHour,
+                onConfigChange = { subPricing = it },
+                availabilityOnly = isPerAttendee,
+                afterStrategy = {
+                    // Per person is not offered for Monthly, which is a whole-month lease.
+                    if (subPricing.strategyType != RentalStrategyType.MONTHLY) {
+                        ChoiceGrid(
+                            choices = listOf(
+                                Choice(SubdivisionPricingMode.STRATEGY_BASED, Icons.Default.Payments, stringResource(R.string.rent_mode_fixed), stringResource(R.string.rent_mode_fixed_hint)),
+                                Choice(SubdivisionPricingMode.PER_ATTENDEE, Icons.Default.Groups, stringResource(R.string.rent_mode_per_person), stringResource(R.string.rent_mode_per_person_hint))
+                            ),
+                            selected = subPricingMode,
+                            onSelect = { mode ->
+                                if (mode != subPricingMode) {
+                                    subPricingMode = mode
+                                    subPricing = if (mode == SubdivisionPricingMode.PER_ATTENDEE) {
+                                        com.example.ui.util.AttendeePricing.toAvailabilityMarkers(subPricing)
+                                    } else com.example.ui.util.AttendeePricing.clearAvailabilityMarkers(subPricing)
+                                }
+                            }
                         )
                     }
                     Text(
-                        if (initial != null) stringResource(R.string.edit_room_unit) else stringResource(R.string.room_unit_identity),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
+                        if (isPerAttendee) stringResource(R.string.division_pick_times) else stringResource(R.string.division_set_prices),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(top = Spacing.sm)
                     )
                 }
+            )
+            if (isPerAttendee) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
+                    InputField(
+                        value = subMinAttendeesInput,
+                        onValueChange = { raw ->
+                            val digits = raw.filter { it.isDigit() }
+                            subMinAttendeesInput = digits
+                            subMinAttendees = digits.toIntOrNull()?.takeIf { it > 0 }
+                        },
+                        label = stringResource(R.string.min_attendees),
+                        placeholder = "1",
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f)
+                    )
+                    InputField(
+                        value = subCapacityInput,
+                        onValueChange = { raw ->
+                            val digits = raw.filter { it.isDigit() }
+                            subCapacityInput = digits
+                            subCapacity = digits.toIntOrNull()?.takeIf { it > 0 }
+                        },
+                        label = stringResource(R.string.max_attendees),
+                        placeholder = stringResource(R.string.no_limit),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                AttendeeTierEditor(
+                    tiers = subAttendeeTiers,
+                    templates = attendeeTemplates,
+                    onTiersChange = { subAttendeeTiers = it }
+                )
+                if (attendeeBlocker != null) {
+                    Text(
+                        attendeeBlocker,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                } else {
+                    Text(
+                        stringResource(R.string.tiers_are_saved_with_the_room_tap_save_bel),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.proColors.success
+                    )
+                }
+            }
+        }
 
-                InputField(
-                    value = subName,
-                    onValueChange = { subName = it },
-                    label = stringResource(R.string.room_name_desk_id_e_g_treatment_room_b),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
+        FormSection(title = stringResource(R.string.room_photos), hint = stringResource(R.string.division_photos_hint)) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                items(subImageUrls) { url ->
+                    Box(modifier = Modifier.size(72.dp)) {
+                        AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                        IconButton(
+                            onClick = { subImageUrls = subImageUrls - url },
+                            modifier = Modifier.align(Alignment.TopEnd).size(32.dp)
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove_image), modifier = Modifier.size(14.dp))
+                        }
+                    }
+                }
+                item {
+                    Surface(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clickable(enabled = !isUploadingSubImage) { imagePickerLauncher.launch("image/*") },
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            if (isUploadingSubImage) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                            } else {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(
+                                        Icons.Default.AddAPhoto,
+                                        contentDescription = stringResource(R.string.add_room_image),
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(stringResource(R.string.add), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (subImageUploadError != null) {
+                Text(subImageUploadError!!, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+            }
+        }
 
-                Text(stringResource(R.string.type), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                PickerTriggerRow(
-                    summary = localizedLabel(subType.displayName),
-                    placeholder = stringResource(R.string.choose_a_room_type),
-                    onClick = { showTypePicker = true }
+        FormSection(title = stringResource(R.string.amenities)) {
+            val quickAmenities = (amenityCatalog.take(8) + subAmenitiesSelected).distinct()
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                quickAmenities.forEach { amenity ->
+                    val on = amenity in subAmenitiesSelected
+                    FilterChip(
+                        selected = on,
+                        onClick = { subAmenitiesSelected = if (on) subAmenitiesSelected - amenity else subAmenitiesSelected + amenity },
+                        label = { Text(amenity) },
+                        leadingIcon = if (on) {
+                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                        } else null
+                    )
+                }
+                AssistChip(
+                    onClick = { showAmenityPicker = true },
+                    label = { Text(stringResource(R.string.more_amenities)) },
+                    leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp)) }
                 )
+            }
+        }
 
-                Text(
-                    stringResource(R.string.amenities),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                PickerTriggerRow(
-                    summary = subAmenitiesSelected.joinToString().ifBlank { uiText(R.string.none_selected) },
-                    placeholder = stringResource(R.string.choose_amenities),
-                    onClick = { showAmenityPicker = true }
-                )
-
-                Text(
-                    stringResource(R.string.hashtags),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        // Rarely needed settings stay folded away.
+        TextButton(onClick = { showMoreOptions = !showMoreOptions }) {
+            Text(stringResource(R.string.more_options), style = MaterialTheme.typography.labelLarge)
+            Icon(if (showMoreOptions) Icons.Default.ExpandLess else Icons.Default.ExpandMore, contentDescription = null)
+        }
+        if (showMoreOptions) {
+            FormSection(title = stringResource(R.string.hashtags), hint = stringResource(R.string.division_hashtags_hint)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -341,242 +470,18 @@ fun SubdivisionForm(
                     }
                 }
             }
-        }
-
-        // ── Section 2: Photos ───────────────────────────────────────────────
-        Surface(
-            color = MaterialTheme.colorScheme.surface,
-            shape = MaterialTheme.shapes.large,
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.extraSmall) {
-                        Text(
-                            "2",
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                    Text(stringResource(R.string.room_photos), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                }
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    items(subImageUrls) { url ->
-                        Box(modifier = Modifier.size(72.dp)) {
-                            AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                            IconButton(
-                                onClick = { subImageUrls = subImageUrls - url },
-                                modifier = Modifier.align(Alignment.TopEnd).size(32.dp)
-                            ) {
-                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove_image), modifier = Modifier.size(14.dp))
-                            }
-                        }
-                    }
-                    item {
-                        Surface(
-                            modifier = Modifier
-                                .size(72.dp)
-                                .clickable(enabled = !isUploadingSubImage) { imagePickerLauncher.launch("image/*") },
-                            shape = MaterialTheme.shapes.medium,
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                if (isUploadingSubImage) {
-                                    CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                                } else {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Icon(
-                                            Icons.Default.AddAPhoto,
-                                            contentDescription = stringResource(R.string.add_room_image),
-                                            modifier = Modifier.size(20.dp),
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                        Text(stringResource(R.string.add), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if (subImageUploadError != null) {
-                    Text(subImageUploadError!!, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
-                }
-            }
-        }
-
-        // ── Section 3: Pricing ──────────────────────────────────────────────
-        Surface(
-            color = MaterialTheme.colorScheme.surface,
-            shape = MaterialTheme.shapes.large,
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.extraSmall) {
-                        Text(
-                            "3",
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                    Text(stringResource(R.string.pricing_strategy), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                }
-
-                // Step 1: when the room is offered (and, unless per-attendee, at what price).
-                RentalPricingConfigEditor(
-                    config = subPricing,
-                    operatingDays = if (subScheduleOverrideEnabled) subOverrideDays.toList() else operatingDays,
-                    openingHour = if (subScheduleOverrideEnabled) subOverrideOpeningHour else openingHour,
-                    closingHour = if (subScheduleOverrideEnabled) subOverrideClosingHour else closingHour,
-                    onConfigChange = { subPricing = it },
-                    availabilityOnly = isPerAttendee
-                )
-
-                // Step 2: pricing mode — standard (fixed per slot) or per attendee.
-                // Per-attendee is not offered for Monthly, which is a whole-month lease.
-                if (subPricing.strategyType != RentalStrategyType.MONTHLY) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-                    ) {
-                        Text(stringResource(R.string.pricing_mode), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                        @OptIn(ExperimentalMaterial3Api::class)
-                        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                            SegmentedButton(
-                                selected = !isPerAttendee,
-                                onClick = {
-                                    if (isPerAttendee) {
-                                        subPricingMode = SubdivisionPricingMode.STRATEGY_BASED
-                                        subPricing = com.example.ui.util.AttendeePricing.clearAvailabilityMarkers(subPricing)
-                                    }
-                                },
-                                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                                label = { Text(stringResource(R.string.per_booking)) }
-                            )
-                            SegmentedButton(
-                                selected = isPerAttendee,
-                                onClick = {
-                                    if (!isPerAttendee) {
-                                        subPricingMode = SubdivisionPricingMode.PER_ATTENDEE
-                                        subPricing = com.example.ui.util.AttendeePricing.toAvailabilityMarkers(subPricing)
-                                    }
-                                },
-                                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                                label = { Text(stringResource(R.string.per_attendee)) }
-                            )
-                        }
-                        if (!isPerAttendee && !subPricing.hasRealPrice()) {
-                            Text(
-                                stringResource(R.string.enter_a_price_for_each_offered_slot),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                if (isPerAttendee) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
-                        InputField(
-                            value = subMinAttendeesInput,
-                            onValueChange = { raw ->
-                                val digits = raw.filter { it.isDigit() }
-                                subMinAttendeesInput = digits
-                                subMinAttendees = digits.toIntOrNull()?.takeIf { it > 0 }
-                            },
-                            label = stringResource(R.string.min_attendees),
-                            placeholder = "1",
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f)
-                        )
-                        InputField(
-                            value = subCapacityInput,
-                            onValueChange = { raw ->
-                                val digits = raw.filter { it.isDigit() }
-                                subCapacityInput = digits
-                                subCapacity = digits.toIntOrNull()?.takeIf { it > 0 }
-                            },
-                            label = stringResource(R.string.max_attendees),
-                            placeholder = stringResource(R.string.no_limit),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    AttendeeTierEditor(
-                        tiers = subAttendeeTiers,
-                        templates = attendeeTemplates,
-                        onTiersChange = { subAttendeeTiers = it }
-                    )
-                    if (attendeeBlocker != null) {
-                        Text(
-                            attendeeBlocker,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    } else {
-                        Text(
-                            stringResource(R.string.tiers_are_saved_with_the_room_tap_save_bel),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.proColors.success
-                        )
-                    }
-                }
-            }
-        }
-
-        // ── Section 4: Custom Hours (optional) ─────────────────────────────
-        Surface(
-            color = if (subScheduleOverrideEnabled) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.25f) else MaterialTheme.colorScheme.surface,
-            shape = MaterialTheme.shapes.large,
-            border = androidx.compose.foundation.BorderStroke(
-                width = if (subScheduleOverrideEnabled) 1.5.dp else 1.dp,
-                color = if (subScheduleOverrideEnabled) {
-                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f)
-                } else {
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
-                }
-            ),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            FormSection(title = stringResource(R.string.custom_hours)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    Text(
+                        if (subScheduleOverrideEnabled) stringResource(R.string.this_room_has_its_own_schedule) else stringResource(R.string.off_follows_the_space_s_hours),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f)
-                    ) {
-                        Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.extraSmall) {
-                            Text(
-                                "4",
-                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                        Column {
-                            Text(stringResource(R.string.custom_hours), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                            Text(
-                                if (subScheduleOverrideEnabled) stringResource(R.string.this_room_has_its_own_schedule) else stringResource(R.string.off_follows_the_space_s_hours),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
+                    )
                     Switch(
                         checked = subScheduleOverrideEnabled,
                         onCheckedChange = { enabled ->
@@ -589,7 +494,6 @@ fun SubdivisionForm(
                         }
                     )
                 }
-
                 if (subScheduleOverrideEnabled) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                     OperatingScheduleEditorSection(
@@ -723,33 +627,20 @@ fun SubdivisionForm(
     }
 }
 
-/** The tappable "current selection" row that opens a [SearchablePickerDialog]. */
+/** A titled group of the division form, with an optional one-line hint. */
 @Composable
-private fun PickerTriggerRow(
-    summary: String,
-    placeholder: String,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = summary.ifBlank { placeholder },
-                fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                color = if (summary.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f)
-            )
-            Icon(Icons.Default.Search, contentDescription = stringResource(R.string.open_picker), tint = MaterialTheme.colorScheme.primary)
+private fun FormSection(title: String, hint: String? = null, content: @Composable ColumnScope.() -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.semantics { heading() }
+        )
+        if (hint != null) {
+            Text(hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        content()
     }
 }
 

@@ -907,6 +907,7 @@ fun CreateListingDialog(
                           country = country.trim(),
                           city = city.trim(),
                           cityEn = cityEn.trim(),
+                          capacity = shape.capacity,
                           floorInfo = if (floorNumber == 0) uiText(R.string.ground_floor) else uiText(R.string.floor_x, floorNumber),
                           lat = geocodedLat,
                           lng = geocodedLng,

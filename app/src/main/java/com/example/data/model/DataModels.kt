@@ -887,6 +887,8 @@ data class SpaceListing(
     /** English copy of [city] (the address fields are filled in the app's language), so search and filters match. */
     val cityEn: String = "",
     val floorInfo: String,
+    /** How many people an undivided listing fits (its one division's "fits up to"); divisions carry their own. */
+    val capacity: Int? = null,
     val lat: Double,
     val lng: Double,
     val isShared: Boolean,
@@ -1005,6 +1007,7 @@ data class SpaceListing(
             "city" to city,
             "cityEn" to cityEn,
             "floorInfo" to floorInfo,
+            "capacity" to capacity,
             "lat" to lat,
             "lng" to lng,
             "isShared" to isShared,
@@ -1206,6 +1209,7 @@ data class SpaceListing(
                 country = data["country"] as? String ?: "",
                 city = data["city"] as? String ?: "",
                 cityEn = data["cityEn"] as? String ?: "",
+                capacity = (data["capacity"] as? Number)?.toInt()?.takeIf { it > 0 },
                 floorInfo = data["floorInfo"] as? String ?: "Floor 1",
                 lat = (data["lat"] as? Number)?.toDouble() ?: 33.8938,
                 lng = (data["lng"] as? Number)?.toDouble() ?: 35.5018,

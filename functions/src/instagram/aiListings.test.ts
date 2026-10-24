@@ -25,6 +25,10 @@ test("rows carry details and analytics, never the owner's contact", () => {
   assert.ok(!JSON.stringify(clinic).includes("Never shown") && !JSON.stringify(clinic).includes("+961000"));
   const whole = toListingRow("SPC-3", { title: "Studio", pricing: { strategyType: "HOURLY", hourly: { cellPrices: { a: 15 } } } });
   assert.deepEqual([whole.rooms.length, whole.rooms[0].price, whole.rooms[0].offered], [1, 15, "hour"]);
+  // an undivided listing (one division saved as the whole place) keeps its capacity on the listing
+  const sized = toListingRow("SPC-5", { title: "Studio", capacity: 6, pricing: { strategyType: "HOURLY", hourly: { cellPrices: { a: 15 } } } });
+  assert.equal(sized.rooms[0].capacity, 6);
+  assert.equal(searchListings([sized], { attendees: 8 }, NOW).length, 0, "too small");
 });
 
 test("criteria are validated and merged over what was known", () => {

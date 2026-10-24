@@ -50,7 +50,7 @@ export function toListingRow(id: string, d: Data, bookings = 0): ListingRow {
     : [(() => {
       const pricing = listingPricing(d);
       const p = lowestPriceFor(pricing);
-      return { id: "", code: "", name: str(d.title, 60), type: category, capacity: null, offered: unitOfStrategy(pricing.strategyType), price: p?.amount ?? null, priceUnit: p?.unit ?? null, amenities: [] };
+      return { id: "", code: "", name: str(d.title, 60), type: category, capacity: num(d.capacity) > 0 ? num(d.capacity) : null, offered: unitOfStrategy(pricing.strategyType), price: p?.amount ?? null, priceUnit: p?.unit ?? null, amenities: [] };
     })()];
   const equipment = Array.isArray(d.equipment) ? (d.equipment as Data[]).map((e) => str(e.name, 40)).filter(Boolean) : [];
   return {

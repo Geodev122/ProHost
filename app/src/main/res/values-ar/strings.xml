@@ -105,10 +105,8 @@
     <string name="check_your_email">تحقّق من بريدك الإلكتروني</string>
     <string name="checking_google_play_for_updates">جارٍ البحث عن تحديثات في Google Play...</string>
     <string name="choose_a_day">اختر يومًا:</string>
-    <string name="choose_a_room_type">اختر نوع الغرفة</string>
     <string name="choose_a_shift">اختر مناوبة:</string>
     <string name="choose_a_single_pricing_formula_to_filter">اختر صيغة تسعير واحدة للتصفية حسب السعر.</string>
-    <string name="choose_amenities">اختر المرافق</string>
     <string name="choose_file">اختر ملفًا</string>
     <string name="choose_one_or_more_priced_days">اختر يومًا أو أكثر من الأيام المسعّرة:</string>
     <string name="choose_one_or_more_priced_hours">اختر ساعة أو أكثر من الساعات المسعّرة:</string>
@@ -219,10 +217,8 @@
     <string name="edit_division">تعديل القسم</string>
     <string name="edit_listing">تعديل الإعلان</string>
     <string name="edit_request_sent_your_current_booking_sta">أُرسل طلب التعديل! يبقى حجزك الحالي ساريًا حتى يوافق المضيف على التغيير.</string>
-    <string name="edit_room_unit">القسم</string>
     <string name="email_address">البريد الإلكتروني</string>
     <string name="email_verified_your_account_is_now_level_2">تم توثيق البريد الإلكتروني! أصبح حسابك في المستوى 2.</string>
-    <string name="enter_a_price_for_each_offered_slot">أدخل سعرًا لكل فترة معروضة.</string>
     <string name="enter_a_promo_or_gift_code_and_we_ll_open">أدخل رمزًا ترويجيًا أو رمز هدية وسنفتح Google Play وهو مُعبّأ مسبقًا.\u0020</string>
     <string name="enter_attendee_count_then_tap_days_to_sele">أدخل عدد الحضور، ثم اضغط على الأيام لاختيار الفترات.</string>
     <string name="est_mrr">الدخل الشهري المتوقع</string>
@@ -385,7 +381,6 @@
     <string name="off_follows_the_space_s_hours">متوقف — يتبع ساعات المساحة.</string>
     <string name="off_hours_access">الوصول خارج أوقات العمل</string>
     <string name="offer_ends_in">ينتهي العرض خلال</string>
-    <string name="offered_times_hourly_shifts_or_days">الأوقات المعروضة (بالساعة أو مناوبات أو أيام)</string>
     <string name="once_accepted_by_the_owner_your_chosen_sch">• بعد قبول المالك، يُحجز جدولك المختار (%1$s) لاستخدامك حصريًا.\n</string>
     <string name="one_or_two_lines_a_specialist_sees_before">سطر أو سطران يراهما الأخصائي قبل فتح الإعلان</string>
     <string name="one_price_for_the_whole_booking_not_multip">سعر واحد للحجز كاملًا — لا يُضرب بعدد الساعات أو المناوبات أو الأيام.</string>
@@ -395,7 +390,6 @@
     <string name="open_google_play_redeem">فتح استرداد الرمز في Google Play</string>
     <string name="open_menu">فتح القائمة</string>
     <string name="open_on_sundays">مفتوح أيام الأحد</string>
-    <string name="open_picker">فتح المنتقي</string>
     <string name="open_side_navigation_drawer">فتح القائمة الجانبية</string>
     <string name="open_xh">مفتوح: %1$s س</string>
     <string name="opens_hh_mm">يفتح (HH:mm)</string>
@@ -418,7 +412,6 @@
     <string name="pending_x">قيد الانتظار (%1$s)</string>
     <string name="per_attendee">لكل شخص</string>
     <string name="per_attendee_x_accepted_x_attendees">حسب الحضور: %1$s مقبول · %2$s من الحضور ·\u0020</string>
-    <string name="per_booking">لكل حجز</string>
     <string name="per_day_a_single_price_leave_blank_to_mark">لكل يوم: سعر واحد. اتركه فارغًا لتعليم اليوم غير متاح.\u0020</string>
     <string name="per_x">لكل %1$s</string>
     <string name="period_shown_until_you_cancel_cancel_anyti">المدة المعروضة حتى تُلغي. يمكنك الإلغاء في أي وقت من Google Play › المدفوعات والاشتراكات؛ وتحتفظ\u0020</string>
@@ -441,8 +434,6 @@
     <string name="price_per_shift_usd">السعر لكل مناوبة ($ دولار)</string>
     <string name="price_range">نطاق السعر</string>
     <string name="pricing_formula">صيغة التسعير</string>
-    <string name="pricing_mode">طريقة التسعير</string>
-    <string name="pricing_strategy">التسعير</string>
     <string name="privacy">الخصوصية</string>
     <string name="privacy_policy">سياسة الخصوصية</string>
     <string name="pro_host">مضيف محترف</string>
@@ -509,7 +500,6 @@
     <string name="rented_xh">مؤجَّر: %1$s س</string>
     <string name="renting_progress">تقدّم الإيجارات</string>
     <string name="renting_requests">طلبات الإيجار</string>
-    <string name="renting_strategy">استراتيجية الإيجار</string>
     <string name="repeats_on_the_chosen_day_s_every_week_unt">يتكرر في اليوم (الأيام) المختارة كل أسبوع — حتى متى؟</string>
     <string name="request_sent">أُرسل الطلب</string>
     <string name="request_x">طلب %1$s</string>
@@ -525,10 +515,7 @@
     <string name="reverted_from_active">أُعيد من نشط —\u0020</string>
     <string name="review_and_confirm_professional_rental_con">راجع عقود الإيجار المهنية وأكّدها</string>
     <string name="room_amenities">التجهيزات</string>
-    <string name="room_name_desk_id_e_g_treatment_room_b">الاسم (مثلًا: غرفة العلاج 2)</string>
     <string name="room_photos">الصور</string>
-    <string name="room_unit_identity">القسم</string>
-    <string name="room_unit_type">النوع</string>
     <string name="save">حفظ</string>
     <string name="save_address">حفظ العنوان</string>
     <string name="save_apply_x_selected">حفظ (%1$s محدد)</string>
@@ -652,7 +639,6 @@
     <string name="total_for_this_request">المجموع لهذا الطلب</string>
     <string name="total_x_usd">\u0020المجموع: %1$s$ دولار</string>
     <string name="turn_on">تفعيل</string>
-    <string name="type">النوع</string>
     <string name="type_x">النوع: %1$s</string>
     <string name="unavailable">غير متاح</string>
     <string name="unlimited_listings_admin_access">إعلانات غير محدودة — صلاحية الإدارة</string>
@@ -887,7 +873,6 @@
     <string name="no_schedule_yet">لا جدول بعد</string>
     <string name="no_shift_selected_yet">لم تُختر مناوبة بعد</string>
     <string name="no_updates_right_now_explore_available_wor">لا تحديثات حاليًا — استكشف المساحات المتاحة.</string>
-    <string name="none_selected">لا شيء محدد</string>
     <string name="not_now">ليس الآن</string>
     <string name="not_subscribed">غير مشترك</string>
     <string name="notes">ملاحظات</string>
@@ -1204,4 +1189,28 @@
     <string name="publish_needs_cover">أضف صورة غلاف (الخطوة 1).</string>
     <string name="publish_needs_division">أضف قسمًا واحدًا على الأقل.</string>
     <string name="publish_needs_price">حدّد سعرًا لقسم واحد على الأقل.</string>
+    <string name="division_what_is_it">ما نوعه؟</string>
+    <string name="division_name">الاسم</string>
+    <string name="division_name_placeholder">مثلًا: %1$s 1</string>
+    <string name="division_capacity">يتّسع حتى (أشخاص)</string>
+    <string name="division_how_rented">كيف يُؤجَّر؟</string>
+    <string name="division_how_rented_hint">اختر طريقة الحجز، ثم حدّد أسعارك.</string>
+    <string name="rent_mode_fixed">سعر ثابت</string>
+    <string name="rent_mode_fixed_hint">سعر واحد لكل فترة محجوزة</string>
+    <string name="rent_mode_per_person">لكل شخص</string>
+    <string name="rent_mode_per_person_hint">السعر مضروبًا بعدد الأشخاص</string>
+    <string name="division_set_prices">حدّد سعر كل فترة تعرضها</string>
+    <string name="division_pick_times">اختر الأوقات التي تعرضها</string>
+    <string name="strategy_hourly">بالساعة</string>
+    <string name="strategy_hourly_hint">يحجز الضيوف ساعات منفردة</string>
+    <string name="strategy_shift">بالمناوبة</string>
+    <string name="strategy_shift_hint">فترات صباحية أو بعد الظهر أو مسائية</string>
+    <string name="strategy_day">باليوم</string>
+    <string name="strategy_day_hint">أيام كاملة في أيام الأسبوع المختارة</string>
+    <string name="strategy_monthly">بالشهر</string>
+    <string name="strategy_monthly_hint">إيجار شهري يُحجز بالشهر</string>
+    <string name="division_photos_hint">تظهر الصورة الأولى على البطاقة.</string>
+    <string name="more_amenities">المزيد</string>
+    <string name="more_options">خيارات إضافية</string>
+    <string name="division_hashtags_hint">ساعد الأخصائيين في العثور على هذا القسم.</string>
 </resources>

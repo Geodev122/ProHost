@@ -11,13 +11,17 @@
   language (English country + `cityEn` for search), no visitor policy, Step 3 as division cards edited in a sheet; one
   division is saved as the whole place. Translation pass: glossary `docs/design/GLOSSARY.md`, sentence case, 68 unused
   strings removed.
+- Division sheet redesigned: live preview card, type as icon chips, "How is it rented?" as choice cards (by the hour /
+  shift / day / month, then fixed price or per person), amenity chips, capacity for every division, rarely used settings
+  under "More options". An undivided listing keeps its capacity (`SpaceListing.capacity`), which the Instagram finder
+  uses. The agent's app-data access is read-only by test (`readOnlyAccess.test.ts`); data model in `docs/DATA_MODEL.md`.
 - Server side (already on the feature branch, deploys with main): the Instagram agent's DM poller, whole-chat memory and
   listing finder; the listing page hands Android visitors (Instagram's in-app browser too) to the app.
 
 ## Status
 Built and verified on the feature branch only. **Not published to Play** (owner, 2026-10-24: do not publish to production
 yet). To release: merge to main (CI green, functions deploy), then `release-bundle.yml` play_track=production rollout=1 and
-a probe.
+a probe; then set `docs/release/published.txt` to 1.0.45 so the Instagram agent starts describing it.
 
 ## Check after release
 - [ ] Tap a "View" button from the Instagram agent on Android: the app opens on that listing and room (signed in and signed

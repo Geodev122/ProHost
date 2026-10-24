@@ -40,6 +40,8 @@ class ListingDivisionsTest {
         assertEquals(listOf("cover", "a1", "a2"), shape.imageUrls)
         assertEquals(listOf("Wi-Fi", "Parking", "Sink"), shape.facilities)
         assertEquals(listOf("dentist", "dental"), shape.hashtags)
+        assertEquals(null, shape.capacity)
+        assertEquals(6, ListingDivisions.toListingShape(listOf(room.copy(capacity = 6)), "c", emptyList(), emptyList(), emptyList()).capacity)
     }
 
     @Test
@@ -80,6 +82,8 @@ class ListingDivisionsTest {
         assertEquals(listing.pricing, shape.pricing)
         assertEquals(listing.imageUrls, shape.imageUrls)
         assertEquals(listing.essentialFacilities, shape.facilities)
+        val withCapacity = listing.copy(capacity = 12)
+        assertEquals(12, ListingDivisions.fromListing(withCapacity, Level2Type.OFFICE)[0].capacity)
     }
 
     @Test

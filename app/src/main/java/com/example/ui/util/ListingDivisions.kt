@@ -22,7 +22,9 @@ object ListingDivisions {
         val subdivisions: List<Subdivision>,
         val imageUrls: List<String>,
         val facilities: List<String>,
-        val hashtags: List<String>
+        val hashtags: List<String>,
+        /** The whole place's capacity (null when divided: each division has its own). */
+        val capacity: Int? = null
     )
 
     fun isWholePlace(divisions: List<Subdivision>): Boolean =
@@ -51,7 +53,8 @@ object ListingDivisions {
                 subdivisions = emptyList(),
                 imageUrls = (listOfNotNull(cover) + galleryExtras + d.imageUrls).distinct(),
                 facilities = (facilities + d.amenities).distinct(),
-                hashtags = (hashtags + d.hashtags).distinct()
+                hashtags = (hashtags + d.hashtags).distinct(),
+                capacity = d.capacity
             )
         }
         return Shape(
@@ -73,7 +76,8 @@ object ListingDivisions {
                 name = listing.title,
                 type = wholePlaceType,
                 imageUrls = listing.imageUrls.drop(1),
-                pricing = listing.pricing
+                pricing = listing.pricing,
+                capacity = listing.capacity
             )
         )
     }
