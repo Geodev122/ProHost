@@ -19,8 +19,9 @@
   sheet rules `office-dm` / `office-story` answer "OFFICE" / "مكتب" with the form button.
 
 ## Status
-Built and verified on `claude/mobile-app-analysis-sqxny6`; ship = merge to main (deploy) → `favrecount apply` →
-release-bundle production → `published.txt`.
+Published (2026-10-24): backend deployed from main (CI green: rules, e2e, functions, Android, deploy), Play production
+release run 40095966773, `favrecount apply` (4 listings, 1 corrected), `prodcheck` clean, `officeleadsmoke` (page 200,
+submit accepted, address-book tags, Leads row synced, admin email delivered). `published.txt` = 1.0.46.
 
 ## Check after release
 - [ ] Create listing on a phone with gesture navigation and one with 3-button navigation: Back / Next fully visible; with

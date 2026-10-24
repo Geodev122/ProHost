@@ -1,0 +1,63 @@
+name: Marketing AI avatar (manual)
+
+# Office reel v3: keyframes (Gemini image) and clips (Veo fast) of the AI avatar on Vertex AI in the Firebase project,
+# committed to marketing/avatar/ on the branch it runs on. scripts/marketing/avatar_video.py caps Veo at 48 s per run.
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "keyframes (Gemini image, cents) or clips (Veo, billed per second)"
+        required: true
+        default: keyframes
+        type: choice
+        options: [keyframes, clips]
+      shots:
+        description: "Comma-separated shot ids from avatar_shots.json (blank = all)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency: marketing-avatar
+
+jobs:
+  avatar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install google-auth requests
+
+      - name: Write Service Account Credentials
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+
+      - name: Generate
+        env:
+          STAGE: ${{ inputs.stage }}
+          SHOTS: ${{ inputs.shots }}
+        run: |
+          set -o pipefail
+          python -u scripts/marketing/avatar_video.py "$STAGE" "$SHOTS" 2>&1 | tee "$RUNNER_TEMP/av.log" || {
+            echo "::error::$(tail -c 1500 "$RUNNER_TEMP/av.log" | tr '\n' ' ')"; exit 1; }
+          while read -r l; do echo "::notice::$l"; done < <(grep -E '^(keyframe|clip)' "$RUNNER_TEMP/av.log")
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add marketing/avatar
+          git diff --cached --quiet && { echo "No changes"; exit 0; }
+          git commit -m "Marketing: AI avatar ${{ inputs.stage }} (${{ inputs.shots || 'all' }})"
+          git pull --rebase
+          git push
