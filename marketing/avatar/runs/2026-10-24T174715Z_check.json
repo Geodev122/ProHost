@@ -1,0 +1,48 @@
+{
+  "at": "2026-10-24T17:47:15Z",
+  "stage": "check",
+  "shots": {
+    "s1": {
+      "chosen": "s1_a",
+      "model": "gemini-3.8-flash",
+      "transcript": "بدفع أجار عيادتي كامل وهيي فاضية نص النهار",
+      "speech_start_s": 0.1,
+      "speech_end_s": 5.4,
+      "cut_off": false,
+      "dialect": "Lebanese",
+      "lebanese_score": 5,
+      "cues": "Pronunciation of 'بدفع' with b-prefix for present continuous/habitual, typical Lebanese / Levantine intonation, 'وهيي' with the -ye suffix pronoun, feminine ending in 'فاضية' pronounced '-ye', and phrasing 'نص لنهار'.",
+      "matches_script": true,
+      "differences": "",
+      "intelligible": 5,
+      "takes": {
+        "s1_a": {
+          "model": "gemini-3.8-flash",
+          "transcript": "بدفع أجار عيادتي كامل وهيي فاضية نص النهار",
+          "speech_start_s": 0.1,
+          "speech_end_s": 5.4,
+          "cut_off": false,
+          "dialect": "Lebanese",
+          "lebanese_score": 5,
+          "cues": "Pronunciation of 'بدفع' with b-prefix for present continuous/habitual, typical Lebanese / Levantine intonation, 'وهيي' with the -ye suffix pronoun, feminine ending in 'فاضية' pronounced '-ye', and phrasing 'نص لنهار'.",
+          "matches_script": true,
+          "differences": "",
+          "intelligible": 5
+        },
+        "s1_b": {
+          "model": "gemini-3.8-flash",
+          "transcript": "بدفع أجار عيادتي كامل وهيي فاضية نص النهار",
+          "speech_start_s": 0.09,
+          "speech_end_s": 5.4,
+          "cut_off": false,
+          "dialect": "Lebanese",
+          "lebanese_score": 5,
+          "cues": "Authentic Lebanese pronunciation of words like 'أجار' (ajār), the pronoun 'وهيي' (w-hiye), and natural Beiruti/Lebanese intonation throughout.",
+          "matches_script": true,
+          "differences": "",
+          "intelligible": 5
+        }
+      }
+    }
+  }
+}
