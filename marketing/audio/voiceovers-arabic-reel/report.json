@@ -8,29 +8,29 @@
         "line": 1,
         "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 0.2,
-        "end": 3.7,
+        "end": 3.71,
         "sceneEnd": 3.7,
-        "spoken": 3.87,
-        "tempo": 1.105,
-        "text": "كنت إدفع إيجار عيادتي كامل… وهيّي فاضية نُصّ النهار."
+        "spoken": 3.77,
+        "tempo": 1.077,
+        "text": "بِدْفَع أَجار عيادتي كامل… وهيّي فاضية نُصّ لِنهار."
       },
       {
         "line": 2,
         "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 3.9,
-        "end": 7.72,
+        "end": 7.59,
         "sceneEnd": 7.7,
-        "spoken": 4.22,
-        "tempo": 1.11,
+        "spoken": 3.7,
+        "tempo": 1.0,
         "text": "بين جلسة وجلسة، ساعات ضايعة… ومصاري عم تطير."
       },
       {
         "line": 3,
         "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 7.9,
-        "end": 12.45,
+        "end": 12.42,
         "sceneEnd": 13.4,
-        "spoken": 4.56,
+        "spoken": 4.52,
         "tempo": 1.0,
         "text": "هلّق عم أجّرها بالساعة على ProHost، لـ psychologists و coaches متلي."
       },
@@ -48,21 +48,21 @@
         "line": 5,
         "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 18.6,
-        "end": 23.37,
+        "end": 24.15,
         "sceneEnd": 25.0,
-        "spoken": 4.77,
+        "spoken": 5.55,
         "tempo": 1.0,
-        "text": "إذا عندك مكتب، عبّي الـ form اللي بالـ bio، وبيفعّلولك أوّل شهر مجّاناً."
+        "text": "إذا عندك مكتَب… Comment office أو تواصل معنا عالـ DM لتربح شهر مجّاني."
       },
       {
         "line": 6,
         "engine": "vertex:gemini-3.1-flash-tts-preview",
         "start": 25.2,
-        "end": 29.71,
+        "end": 29.26,
         "sceneEnd": 29.7,
-        "spoken": 4.66,
-        "tempo": 1.036,
-        "text": "وبعد الشهر؟ بسّ تسعة دولار بالشهر… أقلّ من إيجار ساعة وحدة."
+        "spoken": 4.07,
+        "tempo": 1.0,
+        "text": "وبعد الشهر؟ بسّ تسعة دولار بالشهر… أقلّ من أجار ساعة وحدة."
       }
     ],
     "trackSeconds": 30.0
