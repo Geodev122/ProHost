@@ -284,8 +284,9 @@ L((t) => {
 });
 // Sound cue sheet for mix.py
 window.EVENTS = [
-  { t: S[0] + 1.6, s: "pop" }, { t: S[1] + 0.8, s: "whoosh" }, { t: S[2] + 0.1, s: "whoosh" }, { t: S[3] + 2.4, s: "ding" },
-  { t: S[4] + 3.4, s: "pop" }, { t: S[5] + 0.9, s: "pop" }, { t: END, s: "whoosh" },
+  { t: S[0] + 1.6, k: "pop" }, { t: S[1] + 0.8, k: "whoosh" }, { t: S[2] + 0.1, k: "whoosh" }, { t: S[3] + 2.4, k: "notify" },
+  { t: S[4] + 0.6, k: "tap" }, { t: S[4] + 1.4, k: "tap" }, { t: S[4] + 2.2, k: "tap" }, { t: S[4] + 3.4, k: "success" },
+  { t: S[5] + 0.9, k: "pop" }, { t: END, k: "impact" },
 ];
 render(0);
 </script>
