@@ -168,5 +168,6 @@ def score(post):
     print(f"{post}: music offset {d:.2f}s, beat match {s:.2f}{', voice ' + VOICE if VOICE else ''} → {out}")
 
 
-for p in sys.argv[1:] or [f.stem for f in sorted((ROOT / "audio" / "music").glob("*.wav"))]:
-    score(p)
+if __name__ == "__main__":  # reel_v3_compose.py imports load/sfx/best_offset
+    for p in sys.argv[1:] or [f.stem for f in sorted((ROOT / "audio" / "music").glob("*.wav"))]:
+        score(p)

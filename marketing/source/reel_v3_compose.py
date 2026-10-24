@@ -1,0 +1,197 @@
+"""Office reel v3: cuts the AI-avatar clips (marketing/avatar/clips, from scripts/marketing/avatar_video.py) to the voice,
+renders the overlay layer (reel_office_v3.html, transparent) on top and scores it.
+
+Segments: s1 and s5 carry Veo's own lip-synced speech (their speech window is detected in the clip audio); s2-s4 and the
+price segment carry the v2 voice-over lines (audio/voiceovers-arabic-reel/lines). Music: audio/music/reel_office.wav,
+ducked under speech, with the overlay's sound cues (mix.py's sfx).
+
+usage: python reel_v3_compose.py [preview t,t,...]
+  → ../02-reels-arabic-9x16/12-office-sourcing-avatar.mp4 + 12-office-sourcing-avatar_cover.jpg
+"""
+import json, os, pathlib, subprocess, sys, tempfile
+
+import numpy as np
+from playwright.sync_api import sync_playwright
+
+from mix import FF, SR, best_offset, load, sfx
+
+HERE = pathlib.Path(__file__).parent
+ROOT = HERE.parent
+CLIPS = ROOT / "avatar" / "clips"
+LINES = ROOT / "audio" / "voiceovers-arabic-reel" / "lines"
+OUT = ROOT / "02-reels-arabic-9x16" / "12-office-sourcing-avatar.mp4"
+CHROME = os.environ.get("CHROME", "/opt/pw-browsers/chromium-1194/chrome-linux/chrome")
+FPS = 30
+TMP = pathlib.Path(tempfile.mkdtemp(prefix="reel3_"))
+
+# clip, speech ("veo" = the clip's own, else the v2 voice-over line number), clip offset (s), caption
+SEGS = [
+    {"clip": "s1", "speech": "veo", "cap": "كنت إدفع إيجار عيادتي كامل… وهيّي <b>فاضية</b> نُصّ النهار."},
+    {"clip": "s2", "speech": 2, "from": 1.2, "cap": "بين جلسة وجلسة، ساعات ضايعة… و<b>مصاري</b> عم تطير."},
+    {"clip": "s3", "speech": 3, "from": 0.6, "cap": "هلّق عم أجّرها <b>بالساعة</b> على ProHost، لـ psychologists و coaches متلي."},
+    {"clip": "s4", "speech": 4, "from": 0.8, "cap": "أنا بحدّد الوقت والسعر، والطلبات بتوصلني عَال<b>واتساب</b>."},
+    {"clip": "s5", "speech": "veo", "cap": "إذا عندك مكتب، عبّي الـ form اللي بالـ bio، وبيفعّلولك <b>أوّل شهر مجّاناً</b>."},
+    {"clip": "s3", "speech": 6, "from": 3.4, "tail": 1.8, "cap": "وبعد الشهر؟ بسّ <b>تسعة دولار</b> بالشهر… أقلّ من إيجار ساعة وحدة."},
+]
+LEAD, HOLD = 0.2, 0.35  # silence before / after each spoken line
+
+
+def wav48(src, ss=None, t=None):
+    """Any audio (or a clip's audio track) → 48 kHz stereo float array."""
+    dst = TMP / f"a{len(list(TMP.iterdir()))}.wav"
+    cmd = [FF, "-nostdin", "-y", "-loglevel", "error"] + (["-ss", f"{ss:.3f}"] if ss is not None else []) + \
+          (["-t", f"{t:.3f}"] if t is not None else []) + ["-i", str(src), "-vn", "-ac", "2", "-ar", str(SR), str(dst)]
+    subprocess.run(cmd, check=True)
+    return load(dst)
+
+
+def speech_window(x, thr=0.12):
+    """First / last 20 ms frame louder than thr × the loudest one (seconds)."""
+    hop = SR // 50
+    n = len(x) // hop
+    rms = np.sqrt((x[: n * hop].mean(axis=1).reshape(n, hop) ** 2).mean(axis=1))
+    on = np.where(rms > thr * rms.max())[0]
+    return (on[0] * hop / SR, (on[-1] + 1) * hop / SR) if len(on) else (0.0, len(x) / SR)
+
+
+def level(x, target=0.2):
+    active = np.abs(x).mean(axis=1) > 0.01
+    return x / (max(1e-6, np.sqrt((x[active] ** 2).mean())) / target) if active.any() else x
+
+
+def timeline():
+    t, segs = 0.0, []
+    for s in SEGS:
+        clip = CLIPS / f"{s['clip']}.mp4"
+        if s["speech"] == "veo":
+            full = wav48(clip)
+            a, b = speech_window(full)
+            frm = max(0.0, a - LEAD)
+            dur = min(len(full) / SR - frm, b - frm + HOLD)
+            voice = full[int(frm * SR): int((frm + dur) * SR)]
+            sp = (t + a - frm, t + b - frm)
+        else:
+            line = wav48(LINES / f"reel_office_{s['speech']:02d}.wav")
+            a, b = speech_window(line, 0.05)
+            line = line[int(a * SR): int(b * SR)]
+            frm = s.get("from", 0.0)
+            dur = LEAD + len(line) / SR + HOLD + s.get("tail", 0.0)
+            voice = np.zeros((int(dur * SR), 2), dtype=np.float32)
+            voice[int(LEAD * SR): int(LEAD * SR) + len(line)] = line
+            sp = (t + LEAD, t + LEAD + len(line) / SR)
+        segs.append({**s, "t0": round(t, 3), "t1": round(t + dur, 3), "frm": frm, "dur": dur, "voice": level(voice),
+                     "sp": [round(sp[0], 3), round(sp[1], 3)]})
+        t += dur
+    return segs, t
+
+
+def base_video(segs, length):
+    """Cut + scale every segment to 1080x1920@30 (freezing the last frame if a clip runs short) and concatenate."""
+    args, chains = [], []
+    for i, s in enumerate(segs):
+        args += ["-ss", f"{s['frm']:.3f}", "-i", str(CLIPS / f"{s['clip']}.mp4")]
+        chains.append(f"[{i}:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps={FPS},setsar=1,"
+                      f"tpad=stop_mode=clone:stop_duration={s['dur']:.3f},trim=duration={s['dur']:.3f},setpts=PTS-STARTPTS[v{i}]")
+    fc = ";".join(chains) + ";" + "".join(f"[v{i}]" for i in range(len(segs))) + f"concat=n={len(segs)}:v=1:a=0[v]"
+    out = TMP / "base.mp4"
+    subprocess.run([FF, "-nostdin", "-y", "-loglevel", "error", *args, "-filter_complex", fc, "-map", "[v]",
+                    "-c:v", "libx264", "-crf", "14", "-preset", "medium", "-pix_fmt", "yuv420p", "-t", f"{length:.3f}",
+                    str(out)], check=True)
+    return out
+
+
+def score(segs, length, events):
+    n = int(length * SR)
+    voice = np.zeros((n, 2), dtype=np.float32)
+    for s in segs:
+        i = int(s["t0"] * SR)
+        v = s["voice"][: n - i]
+        voice[i: i + len(v)] += v
+    music = load(ROOT / "audio" / "music" / "reel_office.wav")
+    d, _ = best_offset(music, [{"t": e["t"], "major": True} for e in events] + [{"t": 0.0}]) if len(music) / SR > length + 1 else (0.0, 0)
+    m = music[int(d * SR): int(d * SR) + n].copy()
+    if len(m) < n:
+        m = np.pad(m, ((0, n - len(m)), (0, 0)))
+    t = np.arange(n) / SR
+    m *= (np.minimum(1, t / 0.4) * np.clip((length - t) / 1.2, 0, 1))[:, None]
+    m /= max(1e-6, np.sqrt((m ** 2).mean())) / 0.12
+    active = np.abs(voice).mean(axis=1) > 0.01
+    env, e, step = np.zeros(n, dtype=np.float32), 0.0, 240
+    up, dn = 1 - np.exp(-1 / (0.06 * SR)), 1 - np.exp(-1 / (0.4 * SR))
+    for i in range(0, n, step):
+        target = 1.0 if active[i: i + step].mean() > 0.2 else 0.0
+        k = up if target > e else dn
+        e += (target - e) * (1 - (1 - k) ** step)
+        env[i: i + step] = e
+    m *= (0.6 * (1 - 0.45 * env))[:, None]
+    fx = np.zeros(n)
+    for ev in events:
+        x = sfx(ev["k"])
+        i = max(0, int(ev["t"] * SR) - (int(0.2 * SR) if ev["k"] == "whoosh" else 0))
+        x = x[: max(0, n - i)]
+        fx[i: i + len(x)] += x
+    mix = m * 0.8 + fx[:, None] * 0.7 + voice
+    mix /= max(1.0, np.abs(mix).max() / 0.95)
+    out = TMP / "score.wav"
+    import wave
+    with wave.open(str(out), "wb") as w:
+        w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR)
+        w.writeframes((mix * 32767).astype("<i2").tobytes())
+    return out
+
+
+def main():
+    segs, length = timeline()
+    data = {"segs": [{"t0": s["t0"], "t1": s["t1"], "sp": s["sp"], "cap": s["cap"]} for s in segs],
+            "end": round(length - SEGS[-1].get("tail", 0) + 0.15, 3), "length": round(length, 3)}
+    (HERE / "reel_office_v3_data.js").write_text("window.REEL3 = " + json.dumps(data, ensure_ascii=False) + ";\n", encoding="utf-8")
+    print("segments:", ", ".join(f"{s['clip']}@{s['frm']:.2f} {s['t0']:.2f}-{s['t1']:.2f} speech {s['sp']}" for s in segs),
+          f"length {length:.2f}s")
+    base = base_video(segs, length)
+    preview = sys.argv[2].split(",") if len(sys.argv) > 2 and sys.argv[1] == "preview" else None
+    with sync_playwright() as p:
+        b = p.chromium.launch(executable_path=CHROME, args=["--force-color-profile=srgb"])
+        pg = b.new_page(viewport={"width": 1080, "height": 1920}, device_scale_factor=1)
+        pg.goto((HERE / "reel_office_v3.html").as_uri())
+        pg.wait_for_function("document.fonts.ready.then(() => true)")
+        pg.wait_for_function("Array.from(document.images).every(i => i.complete)")
+        pg.wait_for_timeout(400)
+        events = pg.evaluate("window.EVENTS")
+        if preview:
+            out_dir = HERE / "out"
+            out_dir.mkdir(exist_ok=True)
+            for ts in preview:
+                tt = float(ts)
+                pg.evaluate(f"render({tt})")
+                ov = TMP / "ov.png"
+                pg.screenshot(path=str(ov), omit_background=True)
+                subprocess.run([FF, "-nostdin", "-y", "-loglevel", "error", "-ss", f"{tt:.3f}", "-i", str(base), "-i", str(ov),
+                                "-filter_complex", "[0:v][1:v]overlay=0:0", "-frames:v", "1",
+                                str(out_dir / f"reel3_t{tt:05.2f}.png")], check=True)
+            b.close()
+            return
+        silent = TMP / "video.mp4"
+        proc = subprocess.Popen([FF, "-nostdin", "-y", "-loglevel", "error", "-i", str(base), "-f", "image2pipe",
+                                 "-framerate", str(FPS), "-c:v", "png", "-i", "-", "-filter_complex",
+                                 "[0:v][1:v]overlay=0:0:format=auto,format=yuv420p[v]", "-map", "[v]", "-c:v", "libx264",
+                                 "-crf", "17", "-preset", "slow", "-profile:v", "high", "-r", str(FPS), str(silent)],
+                                stdin=subprocess.PIPE)
+        for f in range(int(round(length * FPS))):
+            pg.evaluate(f"render({f / FPS})")
+            proc.stdin.write(pg.screenshot(type="png", omit_background=True))
+        proc.stdin.close()
+        proc.wait()
+        b.close()
+    audio = score(segs, length, events)
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run([FF, "-nostdin", "-y", "-loglevel", "error", "-i", str(silent), "-i", str(audio), "-map", "0:v:0",
+                    "-map", "1:a:0", "-c:v", "copy", "-af", "loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000",
+                    "-c:a", "aac", "-b:a", "192k", "-t", f"{length:.3f}", "-movflags", "+faststart", str(OUT)], check=True)
+    cover_t = segs[4]["sp"][1] - 0.4
+    subprocess.run([FF, "-nostdin", "-y", "-loglevel", "error", "-ss", f"{cover_t:.2f}", "-i", str(OUT), "-frames:v", "1",
+                    "-q:v", "2", str(OUT.with_name(OUT.stem + "_cover.jpg"))], check=True)
+    print(f"{OUT} ({length:.2f}s)")
+
+
+if __name__ == "__main__":
+    main()
