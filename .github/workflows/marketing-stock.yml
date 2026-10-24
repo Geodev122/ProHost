@@ -1,0 +1,48 @@
+name: Marketing stock download (manual)
+
+# Downloads files (Adobe Stock thumbnails, or licensed clips via their 1-hour presigned URLs) into marketing/stock/<dir>/
+# and commits them to the branch it runs on. The agent sandbox can't reach Adobe's file hosts; GitHub's runners can.
+on:
+  workflow_dispatch:
+    inputs:
+      dir:
+        description: "Sub-folder of marketing/stock (e.g. thumbs, clips)"
+        required: true
+        default: thumbs
+      files:
+        description: 'JSON object {"file-name.ext": "https://…"}'
+        required: true
+
+permissions:
+  contents: write
+
+concurrency: marketing-stock
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download
+        env:
+          DIR: ${{ inputs.dir }}
+          FILES: ${{ inputs.files }}
+        run: |
+          set -euo pipefail
+          case "$DIR" in *..*|/*) echo "::error::bad dir"; exit 1;; esac
+          mkdir -p "marketing/stock/$DIR"
+          echo "$FILES" | jq -r 'to_entries[] | "\(.key)\t\(.value)"' | while IFS=$'\t' read -r name url; do
+            case "$name" in */*|..*) echo "::error::bad name $name"; exit 1;; esac
+            curl -fsSL --retry 3 -o "marketing/stock/$DIR/$name" "$url"
+            echo "::notice::$name $(stat -c %s "marketing/stock/$DIR/$name") bytes"
+          done
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add marketing/stock
+          git diff --cached --quiet && { echo "No changes"; exit 0; }
+          git commit -m "Marketing: stock files (${{ inputs.dir }})"
+          git pull --rebase
+          git push
