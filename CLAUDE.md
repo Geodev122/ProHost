@@ -370,6 +370,16 @@ plan + recurring price + date;
   offers excluded); if unavailable the agent quotes nothing. Silence: `igFollowUps` (every minute) sends one nudge 2 min after our last
   question and a goodbye 2 min later, only inside Meta's 24 h window; thanks/ok/bye (`isExitIntent`) ends the chat with a warm goodbye
   without a model call. Never reintroduce hard-coded offer text in the knowledge or prompt.
+- DM continuity + memory + listing finder (`dmPoller.ts`, `aiMemory.ts`, `aiListings.ts`, `docs/INSTAGRAM.md` "Conversation flow"):
+  `igDmPoll` reads replies via the Conversations API every minute (the unpublished Meta app gets no webhook for the public —
+  that is why replies to our private-reply DMs went unanswered); a person the agent wrote to within 24 h is in a live
+  conversation (engine `DecideOptions.conversation`): keyword rules step aside, only a bare opt-out word or a clear request for
+  a person interrupts. Threads keep 40 turns for good + a model-written `memory`; never reintroduce a TTL that wipes history.
+  The finder searches public listings server-side (pure `searchListings`) and sends only validated
+  `pro-host.tech/listing/{id}?room=` buttons; listing prices come from `listings/listingPrices.ts` (mirror of
+  `SpaceCalculationUtils.lowestPriceFor` — keep identical). The listing landing page hands Android to the app
+  (`appHandoffScript`, client-side because the page is CDN-cached); the app opens `?room=` and fetches listings outside the
+  loaded page (`ListingDeepLink`, `ProHostNavGraph`). One silence nudge after 3 h, no goodbye.
 - Comment agent (`commentClass.ts`, `aiComment.ts`, `commentDecide` in `aiRuntime.ts`, poller `commentPoller.ts`/`commentFeed.ts`): a public comment no
   keyword rule matched is classified by intent without a model (positive / question / negative / spam / neutral, en·ar·fr·es). Positive: public
   thanks + at most ONE opening DM per person per day (private reply, Status `ai_comment_dm`). Question: public "see your DMs" + the answer as the one

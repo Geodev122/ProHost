@@ -37,17 +37,46 @@ Share the sheet (Editor) with the functions' runtime service account. Mode stays
 * Two modes per turn: a direct question gets one full answer with the right button; a vague opener starts a 2-3 exchange discovery (what brings them, their
   profession/space, the gap) before connecting ProHost to that need.
 * Name/email are saved to `ig_leads` (sheet tab `Leads`, admin email) ONLY after the person said yes to a consent question asked in an earlier turn
-  (`advance()` in aiAgent.ts, unit-tested). A "no" is final. Threads (`ig_threads`) hold the last 12 turns for 48 h.
+  (`advance()` in aiAgent.ts, unit-tested). A "no" is final. Threads (`ig_threads`) keep the person's whole history (see "Memory" below).
 * Settings (sheet Status): `ai_enabled`, `ai_provider`, `ai_model`, `ai_daily_cap`, `ai_per_person_per_hour`. Unanswered questions go to the sheet `Learn` tab; answers written in `Knowledge` override the built-in facts.
 * Maintenance: `geminiprobe`, `aitest` (scripted conversations, nothing sent), `aiprobe`/`aiquota` (Vertex).
 
 
-## Conversation flow (how-to questions)
+## Conversation flow
 
-1. Greeting by first name and the "may I look up your account with the email you registered with? type no if you're new" question go out as two separate DMs.
-2. An email reply is the person's permission for one read-only account lookup (role, Premium, listings, rentals, profile gaps). The agent only uses it to choose the next step and never repeats it back. "no" = new person: download, live Premium offers (from Google Play, cached in `app_config/instagram_offers`), then the publishing steps, each as its own message.
-3. Silence: one nudge after 2 minutes, goodbye after 2 more (`igFollowUps`); thanks/ok/bye ends the chat politely. All inside Meta's 24 h window.
-4. Check any change with Maintenance `aitest` (prints every message part and the live offers given to the agent).
+1. **Replies always reach the agent.** An unpublished Meta app gets webhooks only for accounts with an app role, so `igDmPoll`
+   (`dmPoller.ts`, every minute) reads our latest conversations through the Conversations API and runs each person's new
+   messages through the same `handleEvent` as webhook DMs (`ig_events/m_<id>` dedupes both; several quick messages are
+   answered once; nothing is sent when the team already answered by hand). Health: `ig_stats/dm_poll`, sheet row
+   `health_dm_poll`, Maintenance `igsmoke` (also probes the Conversations API: a 403 means the token lacks
+   `instagram_business_manage_messages`).
+2. **Live conversations win over keyword rules.** Within 24 h of an agent message (`aiMemory.inConversation`) the person's DM
+   goes to the agent; only a message that IS an opt-out word ("stop") or clearly asks for a person ("human", "agent", "real
+   person") interrupts. If the agent can't answer (off, capped, provider down) the keyword rules answer as before. A comment
+   answered by a keyword rule's private reply also opens the thread, so the agent knows what was said.
+3. **Memory.** `ig_threads/{igsid}` keeps the last 40 turns for good (the model sees the last 16, with "[2 days later]"
+   markers), a rolling `memory` summary written by the model every turn (who they are, city, need, budget, what we sent,
+   promises), the space `search` so far and the listing ids already `sent`. Only the flow state (what the last message waited
+   for) goes stale after 48 h. A person we have no turns for gets their earlier Instagram messages imported (team, ManyChat).
+   Comment replies are appended, never overwrite; a commenter Instagram did not identify (`u:<username>`) is relinked on
+   their first DM. Returning after a day the agent welcomes them back and continues from the memory.
+4. **Listing finder.** `aiListings.ts` reads every public listing (`isPublicListing`): rooms, place, lowest price per unit
+   (`listings/listingPrices.ts`, mirror of the app's `lowestPriceFor`), views / inquiries / saves / accepted bookings — never
+   owner contacts. A short catalogue overview is in every turn. In FIND A SPACE mode the agent asks one question at a time
+   (kind, city, hour/shift/day/month, people, budget/equipment) and returns `search` + `searchReady`; the server runs the pure
+   `searchListings` and calls the model again with `LISTING RESULTS`; it presents 1-3 and the server adds up to 3 "View …"
+   buttons to `https://pro-host.tech/listing/{id}?room={sub}&utm_source=instagram…` (only ids from the results). No match:
+   said honestly, logged to `ig_learn`. The listing page hands Android visitors (Instagram's in-app browser included) to the
+   app with an intent link (`appHandoffScript` in `shareLanding.ts`); app 1.0.45 opens the listing on that room, fetching it
+   when it is outside the loaded Explore page and keeping the link through sign-in.
+5. **How-to questions.** Answered directly; the account lookup ("the email you registered with, or no if you're new") is asked
+   only when the answer depends on their own account. An email reply is the permission for one read-only lookup.
+6. **Silence.** One nudge 3 h after our last question, about what they were looking for ("still looking for a clinic room in
+   Jounieh?"), never twice, only inside Meta's 24 h window; no goodbye message. "thanks / bye" ends the chat politely;
+   a bare "ok / sure / cool" is an answer, not a goodbye. A broken model answer sends the polite fallback and alerts the owner
+   once a day; it never pauses the person.
+7. Check any change with Maintenance `aitest` (comment-continues, office finder against the live catalogue, returning person
+   with memory; nothing is sent).
 
 
 ## Comments (intent agent + poller)
