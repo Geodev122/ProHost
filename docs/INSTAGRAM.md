@@ -26,8 +26,14 @@ Share the sheet (Editor) with the functions' runtime service account. Mode stays
 ### Office-sourcing story (1.0.46)
 Story art `public/social/story_list_your_office(_ar).jpg`, posted from the Instagram app with a link sticker to
 `https://pro-host.tech/list-your-office?utm_source=instagram&utm_medium=story&utm_campaign=office_sourcing` (add `&lang=ar`
-for the Arabic story). Rules `office-dm` (dm_keyword) and `office-story` (story_reply) answer OFFICE / مكتب with the same
-form button; leads land in the Leads tab with whatsapp / source / tags.
+for the Arabic story). Rules `office-dm` (dm_keyword), `office-story` (story_reply) and `office-comment` (comment, under the
+AI-avatar reel "Comment office") answer OFFICE / مكتب by asking "shall I register you here for the free month?", with the form
+as a button. They carry the tag `consent-asked`: `webhook.ts` seeds that question into `ig_threads` (consentAsked), so the
+person's answer goes to the AI agent, a "yes" counts as consent and the agent's intake (mode F in `aiAgent.ts`) collects name,
+email, WhatsApp, profession and city, one per message. The lead (`ig_leads/<ig id>`, kind `office_owner`) is recorded by
+`onOfficeLeadSaved` exactly like a form lead: contact book, Leads tab (whatsapp, source, tags, profession, city), admin push +
+email, a DM to @geo_elnajjat (Meta's 24 h window only) and WhatsApp once set up at pro-host.tech/admin › WhatsApp alerts
+(Status row `health_whatsapp_alerts` shows on/off; the token is never put in this sheet).
 
 ## Go-live checklist
 1. Meta app "ProHost-IG" → Instagram → webhooks: callback `https://pro-host.tech/ig-webhook`, verify token = `IG_VERIFY_TOKEN`, fields `comments`, `messages`, `messaging_postbacks`.

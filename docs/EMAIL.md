@@ -40,13 +40,16 @@ domain not verified yet).
 ### 5. Clean-up
 Secret Manager: delete `HOSTINGER_SMTP_API_KEY` (and the dead `WHISH_SECRET_KEY`).
 
-## Office leads (pro-host.tech/list-your-office, Instagram story)
+## Office leads (pro-host.tech/list-your-office, Instagram story, DM agent)
 
-The form calls `websiteOfficeLead` (`functions/src/website/officeLeads.ts`). Each lead arrives at admin@pro-host.tech with
+The form calls `websiteOfficeLead` (`functions/src/website/officeLeads.ts`); the Instagram DM agent's intake saves the same
+kind of lead after consent. Both are recorded once by `onOfficeLeadSaved` (`website/officeLeadSync.ts`). Each lead arrives at admin@pro-host.tech with
 subject `[ProHost Office lead] Name · Profession · City`, reply-to the lead, a "Message on WhatsApp" button and headers
 `X-ProHost-Form: office-lead`, `X-ProHost-Tags: insta-leads-story, prospect, office-owner, <profession>`. It is saved in
-`mailing_list` (source `insta_story`, never subscribed) and `mailing_messages`, and as a row in the IG Automations sheet's
-Leads tab. Filter by the tag in /admin (Tag dropdown; the Excel export has an "Insta story leads" sheet).
+`mailing_list` (source `insta_story` or `instagram_dm`, never subscribed) and `mailing_messages`, and as a row in the IG Automations sheet's
+Leads tab. Filter by the tag in /admin (Tag dropdown; the Excel export has an "Insta story leads" sheet). The same alert
+also goes to WhatsApp once /admin › WhatsApp alerts is set up (WhatsApp Business Cloud API, approved template with one
+`{{1}}`; `lib/whatsappAlerts.ts`).
 
 ## Partner enquiries (pro-host.tech/partner)
 
