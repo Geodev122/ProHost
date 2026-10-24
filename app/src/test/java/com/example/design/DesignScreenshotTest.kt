@@ -287,8 +287,13 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             "request_detail" -> OwnerRequestDetailSheet(request = mockBooking2, onDismiss = {}, onAccept = {}, onReject = {}, onWhatsApp = {}, onChangePrice = {})
             "change_price" -> ChangePriceSheet(viewModel = vm, onDismiss = {}, initialSpaceId = mockSpace1.id)
             "listing_wizard_1" -> CreateListingDialog(currentUser = user, onDismiss = {}, onListingCreated = {})
-            "listing_wizard_2", "listing_wizard_3", "listing_division_sheet" ->
+            "listing_wizard_2", "listing_wizard_3" ->
                 CreateListingDialog(currentUser = user, onDismiss = {}, onListingCreated = {}, existingDraft = mockSpace1)
+            // Opened directly (like availability_sheet): a tap from the wizard leaves its debounced autosave pending.
+            "listing_division_sheet" -> DivisionSheet(
+                spaceId = mockSpace1.id, initial = null, onSave = {}, onDismiss = {},
+                operatingDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri"), openingHour = "08:00", closingHour = "20:00"
+            )
             "listing_edit" -> CreateListingDialog(
                 currentUser = user, onDismiss = {}, onListingCreated = {}, existingDraft = mockSpace1, onListingUpdated = {}
             )
@@ -384,7 +389,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             "delete_listing", "share_menu", "change_price_slots", "change_price_new"
         )
         /** Dialogs holding a text field: rendered on a manual clock (see capture()). */
-        val FIELD_DIALOGS = setOf("cancel_booking", "country_picker", "reject_request", "listing_division_sheet")
+        val FIELD_DIALOGS = setOf("cancel_booking", "country_picker", "reject_request")
         /** Overlays opened by tapping a control on their screen (string resources of the controls, in order). */
         val TAPS: Map<String, List<Tap>> = mapOf(
             "delete_account" to listOf(Tap.Res(R.string.delete_account)),
@@ -394,7 +399,6 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             "listing_wizard_2" to listOf(Tap.Res(R.string.next)),
             "listing_wizard_3" to listOf(Tap.Res(R.string.next), Tap.Res(R.string.next)),
             "listing_wizard_3_empty" to listOf(Tap.Res(R.string.next), Tap.Res(R.string.next)),
-            "listing_division_sheet" to listOf(Tap.Res(R.string.next), Tap.Res(R.string.next), Tap.Res(R.string.add_division)),
             "delete_listing" to listOf(Tap.Desc(R.string.delete_listing_2)),
             "share_menu" to listOf(Tap.Desc(R.string.share)),
             "change_price_slots" to listOf(Tap.Literal(mockSpace1.title)),
