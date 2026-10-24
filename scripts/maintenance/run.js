@@ -1372,6 +1372,10 @@ async function aitest(arg, db) {
     ["comment-continues", [{ r: "u", t: "(public comment under our post) love this 😍" }, { r: "a", t: hook }], { ...NEW_STATE, exchanges: 1, awaiting: "reply" }, 0,
       ["ok sure, I'm a dentist and I need a room", "Beirut, by the hour, just me and an assistant", "do you have anything cheaper?"]],
     ["office-finder", [], NEW_STATE, 0, ["Hi, I'm looking for an office", "Jounieh or Beirut", "monthly, for 3 people, budget around 500$"]],
+    // Comment "office" under the reel -> office-comment private reply (consent-asked) -> the agent's intake (mode F).
+    ["office-intake", [{ r: "u", t: "(public comment under our post) office" }, { r: "a", t: "أهلا! 🙌 شكراً على تعليقك. إذا عندك عيادة أو مكتب، فيك تأجّرو بالساعة على ProHost بين جلساتك، وأوّل شهر علينا مجّاني.\nبتحب سجّلك هون؟ بدّي منك بس اسمك، إيميلك ورقم الواتساب." }],
+      { ...NEW_STATE, consentAsked: true, awaiting: "reply" }, 0,
+      ["اي أكيد", "اسمي كريم حداد", "karim.test@example.com", "+961 70 123 456", "psychologist ببيروت"]],
     ["returning-memory", [{ r: "u", t: "I'm a physio, I need a room two mornings a week" }, { r: "a", t: "Got it! The ProHost app shows rooms by the hour on a live map; here is the link." }],
       { ...NEW_STATE, exchanges: 2, name: "Nada", memory: "Nada is a physiotherapist in Jounieh; needs a quiet room two mornings a week, books by the hour; we sent her the app link." }, 3 * 86_400_000,
       ["hi again! any rooms near me now?"]],
@@ -1381,7 +1385,8 @@ async function aitest(arg, db) {
     for (const line of lines) {
       if (isExitIntent(line, state.awaiting)) { log.push(`USER: ${line} -> (closing, no model)`); break; }
       try {
-        const extra = `LANGUAGE OF THEIR LAST MESSAGE (from the server): Latin script, reply in English.\n${offersContext(offers)}\n${overview}`;
+        const lang = /[\u0600-\u06FF]/.test(line) || /[\u0600-\u06FF]/.test(turns.map((x) => x.t).join(" ")) ? "Arabic script, reply in Lebanese Arabic" : "Latin script, reply in English";
+        const extra = `LANGUAGE OF THEIR LAST MESSAGE (from the server): ${lang}.\n${offersContext(offers)}\n${overview}`;
         let { out, usage } = await runAgent(cfg, knowledge, turns, line, undefined, state, extra, 0, turns.length ? gap : 0);
         let search = out.search ? cleanCriteria(out.search, state.search) : state.search;
         let links = [];
@@ -1391,7 +1396,9 @@ async function aitest(arg, db) {
           links = m.length ? listingButtons(m, out.listings) : [];
           log.push(`[search ${JSON.stringify(search)} -> ${m.length} match(es)]`);
         }
-        state = advance(state, { ...out, listings: links.length ? out.listings : [] }, search).state;
+        const adv = advance(state, { ...out, listings: links.length ? out.listings : [] }, search);
+        state = adv.state;
+        if (adv.persist) log.push(`[lead saved: ${Object.entries(adv.persist).map(([k, v]) => `${k}=${k === "email" || k === "whatsapp" ? "✓" : v}`).join(", ")}]`);
         turns = turns.concat([{ r: "u", t: line }, { r: "a", t: out.reply }]);
         log.push(`USER: ${line} -> BOT(${out.stage}${links.length ? `, links: ${links.map((l) => l.label).join(" | ")}` : ""}): ${out.messages.join(" / ").replace(/\n/g, " ").slice(0, 240)}`);
       } catch (e) { log.push(`USER: ${line} -> ERROR ${String(e.message).slice(0, 120)}`); break; }
