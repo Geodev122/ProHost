@@ -70,8 +70,22 @@ function triggersFor(event: IgEvent, contact: ContactState): Trigger[] {
   }
 }
 
+/** Reason `decide` gives when a DM belongs to a live AI conversation (webhook.ts hands it to the agent). */
+export const IN_CONVERSATION = "AI conversation in progress";
+
+/** Inside a live AI conversation only an unmistakable request for a person hands over ("help me" or "support" do not). */
+const STRONG_HANDOFF = ["human", "real person", "agent", "team member", "someone from your team", "talk to someone",
+  "humain", "humano", "موظف", "انسان", "إنسان", "شخص حقيقي"];
+
+export interface DecideOptions {
+  /** The person is mid-conversation with the AI agent: keyword rules step aside; only a message that IS an opt-out word
+   *  ("stop") or clearly asks for a person interrupts. Off by default (the artifact Simulator models no conversations). */
+  conversation?: boolean;
+}
+
 export function decide(
   event: IgEvent, rules: Rule[], contact: ContactState, settings: EngineSettings, now: number, rand: () => number = Math.random,
+  opts: DecideOptions = {},
 ): Decision {
   const text = event.kind === "postback" ? event.payload || event.text : event.text;
   const isMessage = event.kind === "dm" || event.kind === "postback" || event.kind === "story_reply";
@@ -84,12 +98,19 @@ export function decide(
   if (!text.trim() && event.kind !== "story_mention" && event.kind !== "story_reply") return ignored("empty message");
 
   if (isMessage) {
-    if (settings.optOutWords.some((w) => matchesKeyword(text, w, "word"))) {
+    const conv = opts.conversation === true;
+    const whole = words(text);
+    const optOut = conv ? settings.optOutWords.some((w) => words(w) === whole) : settings.optOutWords.some((w) => matchesKeyword(text, w, "word"));
+    if (optOut) {
       return { kind: "opt_out", reason: "opt-out word", steps: [{ type: "dm", recipientId: event.senderId, text: settings.optOutReply }], tags: ["opted-out"] };
     }
-    if (settings.handoffWords.some((w) => matchesKeyword(text, w, "word"))) {
+    const handoff = conv
+      ? STRONG_HANDOFF.some((w) => matchesKeyword(text, w, "word")) || settings.handoffWords.some((w) => words(w) === whole)
+      : settings.handoffWords.some((w) => matchesKeyword(text, w, "word"));
+    if (handoff) {
       return { kind: "handoff", reason: "asked for a human", steps: [{ type: "dm", recipientId: event.senderId, text: settings.handoffReply }], tags: ["handoff"] };
     }
+    if (conv && event.kind === "dm") return ignored(IN_CONVERSATION);
   }
 
   const triggers = triggersFor(event, contact);

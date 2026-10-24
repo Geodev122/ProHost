@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-10-22T14:42:00.371Z",
+  "generatedAt": "2026-10-24T06:20:54.831Z",
   "trigger": "NIGHTHAWK",
   "summary": {
-    "total": 224,
+    "total": 225,
     "critical": 0,
     "high": 0,
-    "medium": 43,
-    "low": 181,
+    "medium": 46,
+    "low": 179,
     "info": 0,
     "passes": 30
   },
@@ -213,9 +213,27 @@
       "severity": "MEDIUM",
       "category": "consistency",
       "check": "Orphaned Module",
+      "file": "functions/src/instagram/aiListings.ts",
+      "line": null,
+      "message": "Module \"instagram/aiListings\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
       "file": "functions/src/instagram/aiLlm.ts",
       "line": null,
       "message": "Module \"instagram/aiLlm\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/instagram/aiMemory.ts",
+      "line": null,
+      "message": "Module \"instagram/aiMemory\" has exports but is not imported from index.ts.",
       "suggestion": "Export or remove."
     },
     {
@@ -351,6 +369,15 @@
       "file": "functions/src/listings/listingLocation.ts",
       "line": null,
       "message": "Module \"listings/listingLocation\" has exports but is not imported from index.ts.",
+      "suggestion": "Export or remove."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "consistency",
+      "check": "Orphaned Module",
+      "file": "functions/src/listings/listingPrices.ts",
+      "line": null,
+      "message": "Module \"listings/listingPrices\" has exports but is not imported from index.ts.",
       "suggestion": "Export or remove."
     },
     {
@@ -1222,25 +1249,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/LoginAuthScreen.kt",
-      "line": 402,
-      "message": "Line has 181 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/LoginAuthScreen.kt",
-      "line": 438,
-      "message": "Line has 194 characters (>160 limit).",
-      "suggestion": "Break line into multiple statements for readability."
-    },
-    {
-      "severity": "LOW",
-      "category": "detekt",
-      "check": "Excessive Line Length",
-      "file": "app/src/main/java/com/example/ui/screens/LoginAuthScreen.kt",
-      "line": 806,
+      "line": 812,
       "message": "Line has 166 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },
@@ -1249,7 +1258,7 @@
       "category": "detekt",
       "check": "Excessive Line Length",
       "file": "app/src/main/java/com/example/ui/screens/LoginAuthScreen.kt",
-      "line": 893,
+      "line": 899,
       "message": "Line has 166 characters (>160 limit).",
       "suggestion": "Break line into multiple statements for readability."
     },

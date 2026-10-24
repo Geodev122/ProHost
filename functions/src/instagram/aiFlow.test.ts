@@ -1,10 +1,17 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CLOSE_AFTER_MS, NUDGE_AFTER_MS, closingThanks, detectLang, findEmail, isExitIntent, isNo, nextFollowUp } from "./aiFlow";
+import { NUDGE_AFTER_MS, closingThanks, detectLang, findEmail, isExitIntent, isNo, nextFollowUp, nudgeTopic } from "./aiFlow";
 
-test("wrapping-up messages are recognised in four languages, real questions are not", () => {
-  for (const t of ["thanks", "Thank you so much!", "ok", "Okay 👍", "bye", "got it, thanks", "merci beaucoup", "gracias", "شكراً", "تمام شكرا", "اوكي", "مع السلامة"]) assert.equal(isExitIntent(t), true, t);
-  for (const t of ["thanks but how much is it?", "ok and the app?", "how can I list spaces", "", "can you send the link"]) assert.equal(isExitIntent(t), false, t);
+test("wrapping-up messages are recognised in four languages; acknowledgements and real questions are not", () => {
+  for (const t of ["thanks", "Thank you so much!", "bye", "got it, thanks", "merci beaucoup", "gracias", "شكراً", "تمام شكرا", "مع السلامة"]) assert.equal(isExitIntent(t), true, t);
+  for (const t of ["ok", "Okay 👍", "sure", "cool", "ok sure", "great", "اوكي", "thanks but how much is it?", "ok and the app?", "how can I list spaces", "", "can you send the link"]) assert.equal(isExitIntent(t), false, t);
+});
+
+test("right after our question, only an explicit goodbye ends the chat", () => {
+  assert.equal(isExitIntent("thanks", "reply"), false);
+  assert.equal(isExitIntent("great thanks", "reply"), false);
+  assert.equal(isExitIntent("thanks, bye", "reply"), true);
+  assert.equal(isExitIntent("شكرا باي", "reply"), true);
 });
 
 test("'no' answers and emails are found", () => {
@@ -20,17 +27,21 @@ test("language follows the script, then the thread's language", () => {
   assert.equal(detectLang("ok", "zz"), "en");
 });
 
-test("silence: one nudge after 2 minutes, then a goodbye, never twice and never outside the window", () => {
-  const t0 = 1_000_000;
-  const w = { dueAt: t0 + NUDGE_AFTER_MS, nudges: 0, lang: "en", name: "Sam", lastUserAt: t0 };
+test("silence: one nudge 3 h later about what they were looking for, never twice, never outside the window, no goodbye", () => {
+  const t0 = 1_000_000_000;
+  const w = { dueAt: t0 + NUDGE_AFTER_MS, nudges: 0, lang: "en", name: "Sam Doe", lastUserAt: t0, state: { search: { kind: "clinic", city: "Jounieh" } } };
+  assert.equal(NUDGE_AFTER_MS, 3 * 3_600_000);
   assert.equal(nextFollowUp(w, t0 + NUDGE_AFTER_MS - 1), null);
   const nudge = nextFollowUp(w, t0 + NUDGE_AFTER_MS)!;
-  assert.equal(nudge.action, "nudge"); assert.ok(/Sam/.test(nudge.text));
-  const close = nextFollowUp({ ...w, nudges: 1, dueAt: t0 + NUDGE_AFTER_MS + CLOSE_AFTER_MS }, t0 + NUDGE_AFTER_MS + CLOSE_AFTER_MS)!;
-  assert.equal(close.action, "close"); assert.ok(/busy/.test(close.text) && /another time/.test(close.text));
+  assert.equal(nudge.action, "nudge");
+  assert.ok(/Sam/.test(nudge.text) && !/Doe/.test(nudge.text) && /a clinic room in Jounieh/.test(nudge.text), nudge.text);
+  assert.equal(nextFollowUp({ ...w, nudges: 1 }, t0 + 2 * NUDGE_AFTER_MS), null);
   assert.equal(nextFollowUp({ ...w, closed: true }, t0 + 10 * NUDGE_AFTER_MS), null);
   assert.equal(nextFollowUp({ ...w, lastUserAt: t0 - 24 * 3_600_000 }, t0 + NUDGE_AFTER_MS), null);
-  assert.ok(/تعتني|اعتنِ/.test(nextFollowUp({ ...w, nudges: 1, lang: "ar" }, t0 + NUDGE_AFTER_MS)!.text));
+  assert.ok(/[؀-ۿ]/.test(nextFollowUp({ ...w, lang: "ar" }, t0 + NUDGE_AFTER_MS)!.text));
+  assert.ok(/Anything else/.test(nextFollowUp({ ...w, state: undefined }, t0 + NUDGE_AFTER_MS)!.text));
+  assert.equal(nudgeTopic("es", "office", "Beirut"), "una oficina en Beirut");
+  assert.equal(nudgeTopic("en"), "");
 });
 
 test("thank-you goodbye is localized and names the person", () => {

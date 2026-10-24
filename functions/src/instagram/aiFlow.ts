@@ -1,7 +1,7 @@
 /** Pure helpers of the human conversation flow: ending the chat, silence follow-ups, language. */
 
-export const NUDGE_AFTER_MS = 2 * 60_000;
-export const CLOSE_AFTER_MS = 2 * 60_000;
+/** One gentle nudge 3 h after the person went quiet; no goodbye after it (owner's choice: the chat stays open). */
+export const NUDGE_AFTER_MS = 3 * 3_600_000;
 /** Meta only lets us message inside 24 h of their last message; stay well inside it. */
 export const WINDOW_MS = 23 * 3_600_000;
 
@@ -14,11 +14,23 @@ const END_WORDS = new Set([
 
 const norm = (t: string) => t.toLowerCase().replace(/[^\p{L}\p{M}\s']/gu, " ").replace(/\s+/g, " ").trim();
 
-/** "thanks", "ok", "bye", "thank you so much 🙏", "شكراً"... : nothing left to answer, the person is wrapping up. */
-export function isExitIntent(text: string): boolean {
+// Words that actually close a chat (thanks / bye); "ok", "sure", "cool" alone are acknowledgements, not goodbyes.
+const CLOSERS = new Set([
+  "thanks", "thank", "thx", "ty", "tysm", "appreciate", "bye", "goodbye", "cya", "later", "merci", "revoir", "gracias", "adios", "adiós", "chao", "chau",
+  "شكرا", "شكراً", "شكرًا", "مشكور", "ممنون", "يسلمو", "تسلم", "باي", "السلامة", "العافية",
+]);
+const BYES = new Set(["bye", "goodbye", "cya", "later", "revoir", "adios", "adiós", "chao", "chau", "باي", "السلامة"]);
+
+/**
+ * "thanks", "thank you so much 🙏", "got it, thanks", "شكراً", "bye": the person is wrapping up.
+ * A bare "ok" / "sure" / "cool" is an answer, not a goodbye. Right after we asked something (`awaiting` "reply"),
+ * only an explicit goodbye ("thanks, bye") ends the chat; "thanks" alone is just politeness there.
+ */
+export function isExitIntent(text: string, awaiting = ""): boolean {
   const words = norm(text).split(" ").filter(Boolean);
-  if (!words.length || words.length > 5) return false;
-  return words.every((w) => END_WORDS.has(w));
+  if (!words.length || words.length > 6 || !words.every((w) => END_WORDS.has(w))) return false;
+  if (!words.some((w) => CLOSERS.has(w))) return false;
+  return awaiting !== "reply" || words.some((w) => BYES.has(w));
 }
 
 /** "no", "nope", "no thanks", "لا": the answer to "type no if you are new". */
@@ -44,18 +56,31 @@ export function detectLang(text: string, fallback: string): Lang {
 
 const firstName = (name?: string) => (name ?? "").trim().split(/\s+/)[0] ?? "";
 
-const NUDGE: Record<Lang, (n: string) => string> = {
-  en: (n) => `${n ? n + ", are" : "Are"} you still there? I'm happy to help whenever you're ready.`,
-  ar: (n) => `${n ? n + "، " : ""}هل ما زلت معي؟ يسعدني أن أساعدك متى كنت جاهزاً.`,
-  fr: (n) => `${n ? n + ", es" : "Es"}-tu toujours là ? Je suis là dès que tu es prêt.`,
-  es: (n) => `${n ? n + ", ¿s" : "¿S"}igues por ahí? Estoy aquí cuando quieras.`,
+const NUDGE: Record<Lang, (n: string, topic: string) => string> = {
+  en: (n, t) => `${n ? n + ", just" : "Just"} checking in${t ? `: still looking for ${t}? I can send you a few options whenever you're ready.` : ". Anything else I can help you with?"}`,
+  ar: (n, t) => `${n ? n + "، " : ""}حبيت أطمّن عليك${t ? `: لسا عم تدوّر على ${t}؟ فيني بعتلك كم خيار ساعة ما تكون جاهز.` : ". في شي تاني فيني ساعدك فيه؟"}`,
+  fr: (n, t) => `${n ? n + ", je" : "Je"} reviens vers toi${t ? ` : tu cherches toujours ${t} ? Je peux t'envoyer quelques options quand tu veux.` : ". Je peux t'aider pour autre chose ?"}`,
+  es: (n, t) => `${n ? n + ", solo" : "Solo"} quería saber de ti${t ? `: ¿sigues buscando ${t}? Te puedo enviar algunas opciones cuando quieras.` : ". ¿Te ayudo con algo más?"}`,
 };
-const CLOSE_BUSY: Record<Lang, string> = {
-  en: "I see you're busy, pleasure to assist you another time. Take care!",
-  ar: "أراك مشغولاً، سعدت بمساعدتك وفي أي وقت آخر. اعتنِ بنفسك!",
-  fr: "Je vois que tu es occupé, ce fut un plaisir de t'aider, à une prochaine fois. Prends soin de toi !",
-  es: "Veo que estás ocupado, un placer ayudarte en otro momento. ¡Cuídate!",
+const KIND_WORDS: Record<string, Record<Lang, string>> = {
+  clinic: { en: "a clinic room", ar: "عيادة", fr: "un cabinet", es: "un consultorio" },
+  therapy: { en: "a therapy room", ar: "غرفة علاج", fr: "une salle de thérapie", es: "una sala de terapia" },
+  office: { en: "an office", ar: "مكتب", fr: "un bureau", es: "una oficina" },
+  desk: { en: "a desk", ar: "مكتب مشترك", fr: "un poste de travail", es: "un escritorio" },
+  meeting: { en: "a meeting room", ar: "قاعة اجتماعات", fr: "une salle de réunion", es: "una sala de reuniones" },
+  training: { en: "a training room", ar: "قاعة تدريب", fr: "une salle de formation", es: "una sala de formación" },
+  studio: { en: "a studio", ar: "استوديو", fr: "un studio", es: "un estudio" },
+  gym: { en: "a sports space", ar: "مساحة رياضية", fr: "un espace sportif", es: "un espacio deportivo" },
+  space: { en: "a space", ar: "مساحة", fr: "un espace", es: "un espacio" },
 };
+const IN: Record<Lang, string> = { en: " in ", ar: " ب", fr: " à ", es: " en " };
+/** "a clinic room in Beirut" from the search the person was building (empty when nothing is known yet). */
+export function nudgeTopic(lang: Lang, kind?: string, city?: string): string {
+  if (!kind && !city) return "";
+  const k = (KIND_WORDS[kind ?? ""] ?? KIND_WORDS.space)[lang];
+  return city ? `${k}${IN[lang]}${city}` : k;
+}
+
 const CLOSE_THANKS: Record<Lang, (n: string) => string> = {
   en: (n) => `Thank you${n ? " " + n : ""}! I have to go now to help others waiting for me, but I'm always here if you need anything. Take care!`,
   ar: (n) => `شكراً${n ? " " + n : ""}! علي أن أذهب الآن لمساعدة أشخاص آخرين بانتظاري، وأنا دائماً هنا إن احتجت أي شيء. اعتنِ بنفسك!`,
@@ -65,14 +90,17 @@ const CLOSE_THANKS: Record<Lang, (n: string) => string> = {
 
 export const closingThanks = (lang: Lang, name?: string) => CLOSE_THANKS[lang](firstName(name));
 
-export interface WaitingThread { dueAt?: number; nudges?: number; lang?: string; name?: string; lastUserAt?: number; closed?: boolean }
-export type FollowUp = { action: "nudge" | "close"; text: string } | null;
+export interface WaitingThread {
+  dueAt?: number; nudges?: number; lang?: string; name?: string; lastUserAt?: number; closed?: boolean;
+  state?: { search?: { kind?: string; city?: string } };
+}
+export type FollowUp = { action: "nudge"; text: string } | null;
 
-/** What to do when a waiting thread comes due. One nudge, then a polite goodbye; never inside a closed chat or past Meta's window. */
+/** What to do when a waiting thread comes due: ONE nudge about what they were looking for, never twice, never in a closed
+ *  chat and never past Meta's 24 h window. There is no goodbye message: the chat simply stays open. */
 export function nextFollowUp(t: WaitingThread, now: number): FollowUp {
-  if (t.closed || !t.dueAt || now < t.dueAt) return null;
-  if (t.lastUserAt && now - t.lastUserAt > WINDOW_MS) return null;
+  if (t.closed || !t.dueAt || now < t.dueAt || (t.nudges ?? 0) >= 1) return null;
+  if (!t.lastUserAt || now - t.lastUserAt > WINDOW_MS) return null;
   const lang = detectLang("", t.lang ?? "en");
-  if (!t.nudges) return { action: "nudge", text: NUDGE[lang](firstName(t.name)) };
-  return { action: "close", text: CLOSE_BUSY[lang] };
+  return { action: "nudge", text: NUDGE[lang](firstName(t.name), nudgeTopic(lang, t.state?.search?.kind, t.state?.search?.city)) };
 }

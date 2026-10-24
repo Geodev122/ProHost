@@ -4,7 +4,8 @@ import { onRequest } from "firebase-functions/v2/https";
 import "../lib/admin";
 import { IgConfig, canSend, loadConfig } from "./config";
 import { aiDecide, commentDecide } from "./aiRuntime";
-import { decide } from "./engine";
+import { IN_CONVERSATION, decide } from "./engine";
+import { inConversation, seedFromComment } from "./aiMemory";
 import { GraphError, sendStep } from "./graph";
 import { alertAdmin } from "./notify";
 import { parseWebhook } from "./parse";
@@ -58,13 +59,22 @@ export async function handleEvent(config: IgConfig, event: IgEvent, now = Date.n
   const stats = (await db.collection("ig_stats").doc("hour_" + Math.floor(now / HOUR)).get()).data();
   const settings = { ...config.settings, sentThisHour: Number(stats?.sent) || 0 };
   const rules = await loadRules();
-  let decision = decide(event, rules, contact, settings, now);
-  // The AI agent answers DMs no keyword rule handled, and replaces the generic welcome / catch-all DM rules.
+  // Mid-conversation with the agent (it wrote within 24 h): the reply goes to the agent, not to a keyword rule.
+  const conversation = event.kind === "dm" && config.ai.enabled &&
+    inConversation((await db.collection("ig_threads").doc(event.senderId).get()).data(), now);
+  let decision = decide(event, rules, contact, settings, now, Math.random, { conversation });
+  // The AI agent answers DMs no keyword rule handled, replaces the generic welcome / catch-all DM rules, and owns live conversations.
   if (event.kind === "dm") {
     const generic = decision.kind === "replied" && rules.some((r) => r.id === decision.ruleId && (r.trigger === "dm_welcome" || r.trigger === "dm_default"));
-    if (generic || (decision.kind === "ignored" && decision.reason === "no rule matched")) {
+    const live = decision.kind === "ignored" && decision.reason === IN_CONVERSATION;
+    if (generic || live || (decision.kind === "ignored" && decision.reason === "no rule matched")) {
       const ai = await aiDecide(config, event, now);
       if (ai && (ai.kind !== "ignored" || decision.kind === "ignored")) decision = ai;
+      // The agent could not answer (off, capped, provider down): the keyword rules answer as they would have.
+      if (live && (!ai || ai.kind === "ignored")) {
+        const fallback = decide(event, rules, contact, settings, now);
+        if (fallback.kind !== "ignored") decision = fallback;
+      }
     }
   }
 
@@ -95,6 +105,12 @@ export async function handleEvent(config: IgConfig, event: IgEvent, now = Date.n
     }
   }
 
+  // A keyword rule's private reply opens a chat too: remember it, so the agent can carry on when the person answers.
+  const priv = decision.steps.find((st) => st.type === "private_reply");
+  if (event.kind === "comment" && decision.ruleId && priv?.text && (status === "sent" || status === "dry-run")) {
+    await seedRuleReply(event, priv.text, now).catch(() => undefined);
+  }
+
   if (decision.flag === "negative") {
     await alertAdmin(config, "Negative Instagram comment", `@${event.username || event.senderId} wrote under a post: "${event.text.slice(0, 300)}". Nothing was sent or liked. Comment id ${event.commentId ?? ""}.`).catch(() => undefined);
   }
@@ -109,6 +125,14 @@ export async function handleEvent(config: IgConfig, event: IgEvent, now = Date.n
   await contactRef.set({ ...flatten(update) }, { merge: true }).catch(() => undefined);
   await eventRef.update({ status, reason: decision.reason, ruleId: decision.ruleId ?? "", ruleName: decision.ruleName ?? "", replies: decision.steps.map((s) => s.text ?? "").filter(Boolean).join(" ‖ ").slice(0, 500), error, synced: false, processedAt: Date.now() });
   return decision;
+}
+
+async function seedRuleReply(event: IgEvent, reply: string, now: number): Promise<void> {
+  const ref = getFirestore().collection("ig_threads").doc(event.senderId);
+  const t = (await ref.get()).data() ?? {};
+  const turns = seedFromComment(Array.isArray(t.turns) ? t.turns : [], event.text, reply, now);
+  await ref.set({ turns, at: now, lastAgentAt: now, closed: false, nudges: 0, state: { ...(t.state ?? {}), awaiting: "reply" },
+    ...(event.username ? { username: event.username } : {}) }, { merge: true });
 }
 
 /** dotted keys in `update` (lastRuleAt.<id>) are written as nested maps so merge keeps siblings. */

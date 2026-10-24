@@ -88,6 +88,43 @@ export async function listComments(creds: GraphCreds, mediaId: string, limit = 5
   })).filter((c) => c.id);
 }
 
+export interface IgConversation { id: string; updated: number; participants: Array<{ id: string; username: string }> }
+export interface IgMessage { id: string; fromId: string; fromUsername: string; text: string; created: number }
+
+const rows = (v: unknown): Array<Record<string, unknown>> =>
+  (v && typeof v === "object" && Array.isArray((v as Record<string, unknown>).data) ? ((v as Record<string, unknown>).data as Array<Record<string, unknown>>) : []);
+
+/** Conversations API answer → conversations (pure). */
+export function parseConversations(r: Record<string, unknown>): IgConversation[] {
+  return rows(r).map((c) => ({
+    id: String(c.id ?? ""), updated: Date.parse(String(c.updated_time ?? "")) || 0,
+    participants: rows(c.participants).map((p) => ({ id: String(p.id ?? ""), username: String(p.username ?? "") })),
+  })).filter((c) => c.id);
+}
+
+/** One conversation's `messages` edge → messages, newest first as Meta returns them (pure). */
+export function parseMessages(r: Record<string, unknown>): IgMessage[] {
+  return rows(r.messages).map((m) => {
+    const from = (m.from ?? {}) as Record<string, unknown>;
+    return { id: String(m.id ?? ""), fromId: String(from.id ?? ""), fromUsername: String(from.username ?? ""), text: String(m.message ?? ""), created: Date.parse(String(m.created_time ?? "")) || 0 };
+  }).filter((m) => m.id);
+}
+
+/**
+ * Our latest DM conversations (Conversations API). An unpublished Meta app gets no webhook for people without an app role,
+ * so the DM poller reads replies from here. `userId` narrows it to one person's conversation.
+ */
+export async function listConversations(creds: GraphCreds, limit = 20, f: Fetch = fetch, userId?: string): Promise<IgConversation[]> {
+  const q = `platform=instagram&fields=id,updated_time,participants&limit=${limit}${userId ? `&user_id=${encodeURIComponent(userId)}` : ""}`;
+  return parseConversations(await call(f, "GET", `${GRAPH}/me/conversations?${q}`, creds.token));
+}
+
+/** The last messages of one conversation (Meta returns details for the 20 most recent only). */
+export async function listMessages(creds: GraphCreds, conversationId: string, limit = 20, f: Fetch = fetch): Promise<IgMessage[]> {
+  const fields = `messages.limit(${Math.min(20, limit)}){id,created_time,from,to,message}`;
+  return parseMessages(await call(f, "GET", `${GRAPH}/${encodeURIComponent(conversationId)}?fields=${encodeURIComponent(fields)}`, creds.token));
+}
+
 /** Subscribes the Instagram account to our app's webhook fields. */
 export async function subscribeApp(creds: GraphCreds, fields = "comments,messages,messaging_postbacks,message_reactions", f: Fetch = fetch): Promise<boolean> {
   const r = await call(f, "POST", `${GRAPH}/${encodeURIComponent(creds.igUserId)}/subscribed_apps?subscribed_fields=${fields}`, creds.token);

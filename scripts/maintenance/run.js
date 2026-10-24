@@ -1044,7 +1044,19 @@ async function igsmoke(db) {
   const left = c.tokenExpiresAt ? Math.floor((c.tokenExpiresAt - Date.now()) / 86400000) : null;
   const sync = (await db.collection("ig_stats").doc("sync").get()).data();
   const poll = (await db.collection("ig_stats").doc("comment_poll").get()).data();
-  notice(poll ? `comment poller: ${poll.lastError ? "FAILING " + String(poll.lastError).slice(0, 250) : "ok"}, last run ${new Date(poll.lastRun).toISOString()}, comments processed ${poll.processed || 0}` : "comment poller: has not run yet (first run sets the baseline)");
+  const dmPoll = (await db.collection("ig_stats").doc("dm_poll").get()).data();
+  const pollLine = (label, d, what) => (d ? `${label}: ${d.lastError ? "FAILING " + String(d.lastError).slice(0, 200) : "ok"}, last run ${new Date(d.lastRun).toISOString()}, ${what} ${d.processed || 0}` : `${label}: has not run yet (first run sets the baseline)`);
+  notice(`${pollLine("comment poller", poll, "comments processed")} · ${pollLine("DM poller", dmPoll, "DMs processed")}`);
+  // The DM poller reads replies through the Conversations API (needs instagram_business_manage_messages on the token).
+  try {
+    const { listConversations, listMessages } = require(`${LIB}/instagram/graph`);
+    const creds = { igUserId: String(c.igUserId || ""), token: String(c.accessToken || "") };
+    const convs = await listConversations(creds, 10);
+    const msgs = convs.length ? await listMessages(creds, convs[0].id, 5) : [];
+    notice(`conversations API: ok · ${convs.length} recent conversation(s), newest updated ${convs[0] ? new Date(convs[0].updated).toISOString() : "-"} · its last ${msgs.length} message(s) readable${msgs.some((m) => m.text) ? " with text" : ""}`);
+  } catch (e) {
+    fail(`conversations API: ${String(e.message).slice(0, 250)} (the DM poller cannot read replies: the token needs instagram_business_manage_messages)`);
+  }
   notice(sync ? `sheet sync: ${sync.ok ? "ok" : "FAILING"} at ${new Date(sync.at).toISOString()} ${sync.ok ? `(${String(sync.note || "")})` : String(sync.error || "").slice(0, 300)}` : "sheet sync: never ran since this version deployed");
   notice(`account @${c.username || "?"} · mode ${c.mode || "dry-run"}${c.killSwitch ? " · KILL SWITCH ON" : ""} · rules ${rules.size} · token ${left === null ? "?" : left + " days"} left · sheet ${c.sheetId ? "linked" : "NOT linked"} · last event ${last.empty ? "none yet" : new Date(last.docs[0].get("createdAt")).toISOString()}`);
 }
@@ -1231,55 +1243,60 @@ async function aitest(arg, db) {
   const { runAgent, advance, NEW_STATE } = require(`${LIB}/instagram/aiAgent`);
   const { buildKnowledge } = require(`${LIB}/instagram/aiKnowledge`);
   const { formatOffers, offersContext } = require(`${LIB}/instagram/aiOffers`);
-  const { formatInsight } = require(`${LIB}/instagram/aiAccountInsight`);
-  const { isExitIntent, isNo, findEmail, closingThanks } = require(`${LIB}/instagram/aiFlow`);
+  const { isExitIntent, isNo, findEmail } = require(`${LIB}/instagram/aiFlow`);
   const model = (arg || "").trim() || "gemini-3.1-flash-lite";
   const cfg = { provider: "gemini", model, region: "", apiKey: key };
   const knowledge = buildKnowledge([]);
   let offers = "";
   try { offers = formatOffers((await serverTask(db, "playCatalog")).basePlans); } catch (e) { notice(`offers unavailable: ${String(e.message).slice(0, 120)}`); }
-  notice(`LIVE OFFERS given to the agent: ${offers.replace(/\n/g, " ") || "(none)"}`);
-  const FAKE_PROHOST = formatInsight({ found: true, role: "PRO_HOST", premiumActive: true, listings: 1, published: 0, drafts: 1, rentals: 0, hasPhoto: true, hasWhatsApp: true, hasLocation: true, daysSinceSignIn: 2 });
-  const FAKE_SPECIALIST = formatInsight({ found: true, role: "SPECIALIST", premiumActive: false, listings: 0, published: 0, drafts: 0, rentals: 2, lastRentalStatus: "accepted", hasPhoto: false, hasWhatsApp: true, hasLocation: false, daysSinceSignIn: 5 });
-  const NEW_ACCT = "ACCOUNT LOOKUP: the person said they are new (or declined). No lookup was made. Continue with download, the Premium offers and the steps.";
-  // [name, lines]; a line can be [text, extraContextForThatTurn]
+  notice(`LIVE OFFERS given to the agent: ${offers.replace(/\n/g, " ").slice(0, 300) || "(none)"}`);
   const { classifyComment } = require(`${LIB}/instagram/commentClass`);
   const { commentModeContext } = require(`${LIB}/instagram/aiComment`);
-  for (const t of ["❤️🔥", "Thank you!", "شكرا", "How can I list my space?", "بكم الاشتراك؟", "price?", "this is a scam", "👎", "check my page www.x.com", "I was there last summer"]) notice(`[comment class] "${t}" -> ${classifyComment(t)}`);
-  for (const t of ["How can I list my clinic room and how much is it?", "كيف أحمل التطبيق؟"]) {
+  notice(`[comment class] ${["❤️🔥", "شكرا", "price?", "this is a scam", "check my page www.x.com", "I was there last summer"].map((t) => `"${t}"->${classifyComment(t)}`).join(", ")}`);
+  for (const t of ["How can I list my clinic room and how much is it?"]) {
     try {
       const lang = /[\u0600-\u06FF]/.test(t) ? "Arabic, reply in Arabic" : "English, reply in English";
       const { out } = await runAgent(cfg, knowledge, [], t, undefined, NEW_STATE, `LANGUAGE OF THEIR COMMENT: ${lang}.\n${commentModeContext(t)}\n${offersContext(offers)}`);
       notice(`[comment answer] "${t}" -> DM (${out.messages.length} msg, buttons ${out.buttons.join("+") || "-"}): ${out.messages.join(" ").replace(/\n/g, " ").slice(0, 420)}`);
     } catch (e) { notice(`[comment answer] "${t}" ERROR ${String(e.message).slice(0, 140)}`); }
   }
+  // Conversations that continue (comment-opened, returning after days) and the listing finder against the LIVE catalogue.
+  const { toListingRow, catalogOverview, cleanCriteria, searchListings, formatMatches, listingButtons } = require(`${LIB}/instagram/aiListings`);
+  const { isPublicListing } = require(`${LIB}/website/sitemapXml`);
+  const live = (await db.collection("workspace_listings").where("status", "==", "ACTIVE").limit(500).get()).docs.filter((d) => isPublicListing(d.data())).map((d) => toListingRow(d.id, d.data(), 0));
+  const overview = catalogOverview(live);
+  notice(`catalogue given to the agent: ${overview.slice(0, 400)}`);
+  const hook = "Thanks for the love! 🙏 Are you looking for a space to work from, or do you have one to rent out?";
   const scenarios = [
-    ["direct", ["how do I get the app?"]],
-    ["howto-new", ["How can I list spaces?", ["no", NEW_ACCT], "ok thanks"]],
-    ["howto-prohost", ["how can i list my space", ["sam@example.com", FAKE_PROHOST], "thank you"]],
-    ["howto-specialist-ar", ["كيف بقدر انشر مساحتي؟", ["me@example.com", FAKE_SPECIALIST]]],
-    ["features", ["What's new in the app? How does the Arabic support work?"]],
-    ["discovery", ["Hi", "I'm a physiotherapist, I see clients two mornings a week", "Mostly I struggle to find a quiet room, I rent by the hour from friends", "My name is Nada", "Yes sure, you can save them: nada@example.com"]],
+    // [name, seed turns, seed state, lastContactMs, lines]
+    ["comment-continues", [{ r: "u", t: "(public comment under our post) love this 😍" }, { r: "a", t: hook }], { ...NEW_STATE, exchanges: 1, awaiting: "reply" }, 0,
+      ["ok sure, I'm a dentist and I need a room", "Beirut, by the hour, just me and an assistant", "do you have anything cheaper?"]],
+    ["office-finder", [], NEW_STATE, 0, ["Hi, I'm looking for an office", "Jounieh or Beirut", "monthly, for 3 people, budget around 500$"]],
+    ["returning-memory", [{ r: "u", t: "I'm a physio, I need a room two mornings a week" }, { r: "a", t: "Got it! The ProHost app shows rooms by the hour on a live map; here is the link." }],
+      { ...NEW_STATE, exchanges: 2, name: "Nada", memory: "Nada is a physiotherapist in Jounieh; needs a quiet room two mornings a week, books by the hour; we sent her the app link." }, 3 * 86_400_000,
+      ["hi again! any rooms near me now?"]],
   ];
-  for (const [name, lines] of scenarios) {
-    let turns = [], state = { ...NEW_STATE, name: "Sam" };
-    for (const item of lines) {
-      const [line, ctx] = Array.isArray(item) ? item : [item, ""];
-      if (state.awaiting !== "email" && isExitIntent(line)) {
-        const bye = closingThanks("en", state.name);
-        notice(`[${name}] USER: ${line} || BOT(close, no model): ${bye}`);
-        break;
-      }
+  for (const [name, seedTurns, seedState, gap, lines] of scenarios) {
+    let turns = seedTurns.slice(), state = { ...seedState }, log = [];
+    for (const line of lines) {
+      if (isExitIntent(line, state.awaiting)) { log.push(`USER: ${line} -> (closing, no model)`); break; }
       try {
-        const lang = /[\u0600-\u06FF]/.test(line) ? "Arabic script, reply in Arabic" : "Latin script, reply in the language of their words (English unless they clearly write French, Spanish or Arabic in Latin letters); never switch to Arabic because of the name or the country";
-        const extra = `LANGUAGE OF THEIR LAST MESSAGE (from the server): ${lang}.\n` + (ctx ? ctx + "\n" : "") + offersContext(offers);
-        const { out, usage } = await runAgent(cfg, knowledge, turns, line, undefined, state, extra);
-        const adv = advance(state, out);
-        state = adv.state;
+        const extra = `LANGUAGE OF THEIR LAST MESSAGE (from the server): Latin script, reply in English.\n${offersContext(offers)}\n${overview}`;
+        let { out, usage } = await runAgent(cfg, knowledge, turns, line, undefined, state, extra, 0, turns.length ? gap : 0);
+        let search = out.search ? cleanCriteria(out.search, state.search) : state.search;
+        let links = [];
+        if (out.searchReady && search) {
+          const m = searchListings(live, { ...search, exclude: state.sent }, Date.now());
+          ({ out, usage } = await runAgent(cfg, knowledge, turns, line, undefined, { ...state, search }, `${extra}\n${formatMatches(m, search)}`, 0, turns.length ? gap : 0));
+          links = m.length ? listingButtons(m, out.listings) : [];
+          log.push(`[search ${JSON.stringify(search)} -> ${m.length} match(es)]`);
+        }
+        state = advance(state, { ...out, listings: links.length ? out.listings : [] }, search).state;
         turns = turns.concat([{ r: "u", t: line }, { r: "a", t: out.reply }]);
-        notice(`[${name}] USER: ${line} || BOT(${out.lang}, ${out.stage}, wait ${out.awaitReply}, askEmail ${out.askEmail}, buttons ${out.buttons.join("+") || "-"}, ${usage.inputTokens}+${usage.outputTokens}tok) ${out.messages.length} msg: ${out.messages.map((m, i) => `(${i + 1}) ${m.replace(/\n/g, " ").slice(0, 260)}`).join(" ")}${adv.persist ? " || SAVED LEAD" : ""}`);
-      } catch (e) { notice(`[${name}] USER: ${line} || ERROR ${String(e.message).slice(0, 160)}`); break; }
+        log.push(`USER: ${line} -> BOT(${out.stage}${links.length ? `, links: ${links.map((l) => l.label).join(" | ")}` : ""}): ${out.messages.join(" / ").replace(/\n/g, " ").slice(0, 240)}`);
+      } catch (e) { log.push(`USER: ${line} -> ERROR ${String(e.message).slice(0, 120)}`); break; }
     }
+    notice(`[${name}] ${log.join(" || ")} || MEMORY: ${(state.memory || "-").slice(0, 200)}`);
   }
   notice(`flow helpers: no=${isNo("no")} email=${findEmail("it's a@b.co")} exit=${isExitIntent("thanks")}`);
 }

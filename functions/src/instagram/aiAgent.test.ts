@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { AgentOutput, BUTTON_URLS, salvage, NEW_STATE, advance, buildMessages, buttonLabel, cleanLead, contextBlock, parseAgentJson, runAgent, sanitizeReply, toStepButtons } from "./aiAgent";
 import { buildKnowledge } from "./aiKnowledge";
 
-const OUT: AgentOutput = { reply: "x", messages: ["x"], awaitReply: false, askEmail: false, lang: "en", buttons: [], handoff: false, confidence: 1, learn: false, stage: "answer", askConsent: false, consentGiven: null, lead: {} };
+const OUT: AgentOutput = { reply: "x", messages: ["x"], awaitReply: false, askEmail: false, lang: "en", buttons: [], handoff: false, confidence: 1, learn: false, stage: "answer", askConsent: false, consentGiven: null, lead: {}, memory: "", search: null, searchReady: false, listings: [] };
 
 test("json is parsed from fences and text, buttons filtered and capped", () => {
   const raw = 'Sure!\n```json\n{"reply":"Hi! Get it here https://pro-host.tech/ig","lang":"en","buttons":["download","whatsapp","bogus","download","email","website"],"handoff":false,"confidence":1.7,"learn":false}\n```';
@@ -54,7 +54,7 @@ test("runAgent returns the model output, retries once on broken output, salvages
   assert.ok(p.out.reply.startsWith("Sure, I can help")); assert.equal(p.out.handoff, false);
   const bad = seq(["I am a pirate"]);
   const b = await runAgent(cfg, "KB", [], "x", bad.f);
-  assert.equal(b.out.handoff, true); assert.equal(b.out.learn, true); assert.deepEqual(b.out.buttons, ["whatsapp"]);
+  assert.equal(b.out.handoff, false); assert.equal(b.out.learn, true); assert.equal(b.out.confidence, 0); assert.deepEqual(b.out.buttons, ["whatsapp"]);
   assert.equal(salvage('{"reply":'), null);
 });
 
@@ -114,4 +114,39 @@ test("state remembers what the last message waits for and clears it on close", (
   assert.equal(advance({ ...NEW_STATE, awaiting: "email" }, { ...OUT, stage: "close", awaitReply: true }).state.awaiting, "");
   const c = contextBlock({ ...NEW_STATE, awaiting: "email", name: "Sam" }, "LIVE X");
   assert.ok(/name|Sam/.test(c) && /registration email/.test(c) && /LIVE X/.test(c));
+});
+
+test("new fields: memory, search, searchReady and listing ids are parsed and cleaned", () => {
+  const o = parseAgentJson(JSON.stringify({ messages: ["Got it"], memory: "  Physio   in Jounieh,\n needs a room  ", search: { kind: "clinic", city: "Jounieh" }, searchReady: true, listings: ["SPC-1", "bad id!", 3, "SPC-2", "SPC-3", "SPC-4"], stage: "find" }))!;
+  assert.equal(o.memory, "Physio in Jounieh, needs a room");
+  assert.deepEqual(o.search, { kind: "clinic", city: "Jounieh" });
+  assert.equal(o.searchReady, true); assert.equal(o.stage, "find");
+  assert.deepEqual(o.listings, ["SPC-1", "SPC-2", "SPC-3"]);
+  const plain = parseAgentJson('{"reply":"hi"}')!;
+  assert.equal(plain.memory, ""); assert.equal(plain.search, null); assert.equal(plain.searchReady, false); assert.deepEqual(plain.listings, []);
+});
+
+test("state keeps memory, the search and every listing already sent", () => {
+  let r = advance(NEW_STATE, { ...OUT, memory: "Nada, physio, Jounieh", listings: ["SPC-1"] }, { kind: "clinic", city: "Jounieh" });
+  assert.equal(r.state.memory, "Nada, physio, Jounieh"); assert.deepEqual(r.state.sent, ["SPC-1"]); assert.equal(r.state.search?.city, "Jounieh");
+  r = advance(r.state, { ...OUT, memory: "", listings: ["SPC-1", "SPC-2"] });
+  assert.equal(r.state.memory, "Nada, physio, Jounieh", "an empty memory never erases what we knew");
+  assert.deepEqual(r.state.sent, ["SPC-1", "SPC-2"]); assert.equal(r.state.search?.kind, "clinic");
+});
+
+test("context carries the memory, the search so far, sent listings and a welcome back after days", () => {
+  const c = contextBlock({ ...NEW_STATE, exchanges: 4, memory: "Nada is a physio in Jounieh", search: { kind: "clinic", city: "Jounieh", exclude: ["x"] }, sent: ["SPC-1"] }, "", 3 * 86_400_000);
+  assert.ok(/WHAT WE KNOW FROM EARLIER CHATS.*physio in Jounieh/.test(c));
+  assert.ok(/SPACE SEARCH SO FAR: kind=clinic, city=Jounieh\./.test(c) && !/exclude/.test(c));
+  assert.ok(/SPC-1/.test(c) && /coming back after 3 days/.test(c));
+  assert.ok(!/coming back/.test(contextBlock(NEW_STATE, "", 3_600_000)));
+});
+
+test("history window: last 16 turns, resumed chats are marked with the gap", () => {
+  const day = 86_400_000;
+  const turns = Array.from({ length: 30 }, (_, i) => ({ r: (i % 2 ? "a" : "u") as "u" | "a", t: `t${i}`, at: 1_000 + i * 60_000 }));
+  const m = buildMessages(turns, "back again", 1_000 + 29 * 60_000 + 2 * day);
+  assert.ok(!m.some((x) => /t13\b/.test(x.content)) && m.some((x) => /t14\b/.test(x.content)));
+  assert.ok(/\[2 days later\] back again$/.test(m[m.length - 1].content));
+  assert.ok(!/later/.test(buildMessages([{ r: "u", t: "a", at: 1 }], "b", 2).map((x) => x.content).join()));
 });

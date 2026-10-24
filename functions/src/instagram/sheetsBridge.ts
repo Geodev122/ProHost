@@ -163,6 +163,7 @@ export async function runSheetSync(now = Date.now()): Promise<string> {
   const dayKey = new Date(now).toISOString().slice(0, 10).replace(/-/g, "");
   const aiDay = (await db.collection("ig_stats").doc("ai_" + dayKey).get()).data();
   const poll = (await db.collection("ig_stats").doc("comment_poll").get()).data();
+  const dmPoll = (await db.collection("ig_stats").doc("dm_poll").get()).data();
   const health: string[][] = [
     ["health_synced_at", isoTime(now)],
     ["health_account", config.username ? "@" + config.username : ""],
@@ -172,6 +173,7 @@ export async function runSheetSync(now = Date.now()): Promise<string> {
     ["health_sent_this_hour", String(hourSent)],
     ["health_last_api_error", errDoc ? `${isoTime(Number(errDoc.lastAt))} ${String(errDoc.lastError ?? "")}`.slice(0, 300) : ""],
     ["health_comment_poll", poll ? (poll.lastError ? `FAILING: ${String(poll.lastError).slice(0, 200)}` : `ok, last run ${isoTime(Number(poll.lastRun))}, ${Number(poll.processed) || 0} comments handled`) : "not run yet"],
+    ["health_dm_poll", dmPoll ? (dmPoll.lastError ? `FAILING: ${String(dmPoll.lastError).slice(0, 200)}` : `ok, last run ${isoTime(Number(dmPoll.lastRun))}, ${Number(dmPoll.processed) || 0} DMs handled`) : "not run yet"],
     ["health_ai_replies_today", String(Number(aiDay?.calls) || 0)],
     ["health_ai_tokens_today", aiDay ? `${Number(aiDay.inputTokens) || 0} in / ${Number(aiDay.outputTokens) || 0} out / ${Number(aiDay.cacheReadTokens) || 0} cached` : ""],
     ["health_effective_mode", config.mode === "live" && !config.killSwitch ? "LIVE" : "dry-run"],

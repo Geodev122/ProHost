@@ -59,6 +59,7 @@ export { igWebhook } from "./instagram/webhook";
 export { igSheetSync } from "./instagram/sheetsBridge";
 export { igFollowUps } from "./instagram/aiSweeper";
 export { igCommentPoll } from "./instagram/commentPoller";
+export { igDmPoll } from "./instagram/dmPoller";
 export { igTokenRefresh } from "./instagram/tokenRefresh";
 export {
   mailingAdminLogin,

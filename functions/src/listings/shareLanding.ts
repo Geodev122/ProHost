@@ -23,6 +23,23 @@ function escapeHtml(text: string): string {
     .replace(/'/g, "&#39;");
 }
 
+const APP_PACKAGE = "app.geonajjar.prohost";
+
+/**
+ * Android hand-off, run in the browser (the page is CDN-cached, so it must not vary by user agent). Instagram and other
+ * in-app browsers never fire App Links, so on Android the "Open in ProHost App" button becomes an intent link to the same
+ * https URL (the app's verified /listing filter takes it; `room` is kept), falling back to Play when the app is missing,
+ * and the page tries once to open the app by itself, falling back to this page with `noapp=1` (no loop).
+ */
+export function appHandoffScript(playUrl: string): string {
+  return `<script>(function(){var ua=navigator.userAgent||"";if(!/Android/i.test(ua))return;` +
+    `var q=new URLSearchParams(location.search),p=location.pathname,k=new URLSearchParams();if(q.get("room"))k.set("room",q.get("room"));` +
+    `var path=location.host+p+(k.toString()?"?"+k.toString():"");` +
+    `function intent(fb){return "intent://"+path+"#Intent;scheme=https;package=${APP_PACKAGE};S.browser_fallback_url="+encodeURIComponent(fb)+";end"}` +
+    `var b=document.getElementById("open-app");if(b)b.href=intent(${JSON.stringify(playUrl)});` +
+    `if(!q.get("noapp")){q.set("noapp","1");var back=location.origin+p+"?"+q.toString();setTimeout(function(){location.href=intent(back)},300)}})();</script>`;
+}
+
 function renderPage(opts: {
   title: string;
   description: string;
@@ -35,8 +52,10 @@ function renderPage(opts: {
   /** Extra escaped HTML under the card (rooms, description, related links). */
   extraHtml?: string;
   jsonLd?: object;
+  /** A real listing: on Android, hand the visitor over to the app (see appHandoffScript). */
+  appHandoff?: boolean;
 }): string {
-  const { title, description, image, url, bodyHeading, bodySubtext, indexable = false, extraHtml = "", jsonLd } = opts;
+  const { title, description, image, url, bodyHeading, bodySubtext, indexable = false, extraHtml = "", jsonLd, appHandoff = false } = opts;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -110,13 +129,14 @@ function renderPage(opts: {
         <h1>${escapeHtml(bodyHeading)}</h1>
         <p class="subtext">${escapeHtml(bodySubtext)}</p>
         <div class="cta-row">
-          <a class="btn btn-primary" href="${escapeHtml(url)}">Open in ProHost App</a>
+          <a class="btn btn-primary" id="open-app" href="${escapeHtml(url)}">Open in ProHost App</a>
           <a class="btn btn-secondary" href="${escapeHtml(PLAY_STORE_URL)}">Get the App</a>
         </div>
       </div>
     </div>${extraHtml}
   </main>
-  <footer><a href="${CANONICAL_HOST}/" style="color:inherit">ProHost</a> &mdash; rent clinics, offices, studios and meeting rooms by the hour, shift, day or month</footer>
+  <footer><a href="${CANONICAL_HOST}/" style="color:inherit">ProHost</a> &mdash; rent clinics, offices, studios and meeting rooms by the hour, shift, day or month</footer>${appHandoff ? `
+  ${appHandoffScript(PLAY_STORE_URL)}` : ""}
 </body>
 </html>`;
 }
@@ -230,6 +250,7 @@ export const listingShareLanding = onRequest(async (req, res) => {
       indexable: true,
       extraHtml,
       jsonLd,
+      appHandoff: true,
     }));
   } catch {
     // Never let a Firestore hiccup surface as a raw 500 to a link-preview

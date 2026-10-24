@@ -2,14 +2,14 @@ import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import "../lib/admin";
-import { CLOSE_AFTER_MS, WaitingThread, nextFollowUp } from "./aiFlow";
+import { WaitingThread, nextFollowUp } from "./aiFlow";
 import { IgConfig, canSend, loadConfig } from "./config";
 import { sendStep } from "./graph";
 import { liveOffersText } from "./aiOffers";
 
 /**
- * Silence handling for the DM agent: when the person went quiet after a question, send ONE nudge after 2 minutes and a polite goodbye
- * 2 minutes later, then close the chat. Only threads the agent itself is waiting on (`dueAt`), always inside Meta's 24 h window,
+ * Silence handling for the DM agent: when the person went quiet after a question, send ONE nudge 3 h later about what they were
+ * looking for; no goodbye, the chat stays open. Only threads the agent itself is waiting on (`dueAt`), always inside Meta's 24 h window,
  * never for opted-out or handed-over people.
  */
 export async function runFollowUps(config: IgConfig, now: number, send = sendStep): Promise<number> {
@@ -24,7 +24,7 @@ export async function runFollowUps(config: IgConfig, now: number, send = sendSte
     const claimed = await db.runTransaction(async (tx) => {
       const cur = (await tx.get(doc.ref)).data() as WaitingThread | undefined;
       if (!cur || cur.dueAt !== t.dueAt) return false;
-      tx.update(doc.ref, fu.action === "nudge" ? { nudges: 1, dueAt: now + CLOSE_AFTER_MS } : { closed: true, dueAt: FieldValue.delete() });
+      tx.update(doc.ref, { nudges: 1, dueAt: FieldValue.delete() });
       return true;
     });
     if (!claimed) continue;
@@ -36,8 +36,8 @@ export async function runFollowUps(config: IgConfig, now: number, send = sendSte
       try { await send({ igUserId: config.igUserId, token: config.accessToken }, { type: "dm", recipientId: doc.id, text: fu.text }); } catch (e) { status = "failed"; error = (e as Error).message.slice(0, 300); }
     }
     await db.collection("ig_events").doc(`fu_${doc.id}_${now}`).set({
-      kind: "dm", senderId: doc.id, username: String(contact.username ?? ""), text: fu.action === "nudge" ? "(silence: nudge)" : "(silence: closing)", status,
-      reason: blocked ? "follow-up skipped: opted out or handed to a human" : `AI agent · silence ${fu.action}`, ruleName: "AI agent", replies: fu.text, error, createdAt: now, processedAt: now, synced: false,
+      kind: "dm", senderId: doc.id, username: String(contact.username ?? ""), text: "(silence: nudge)", status,
+      reason: blocked ? "follow-up skipped: opted out or handed to a human" : "AI agent · silence nudge", ruleName: "AI agent", replies: fu.text, error, createdAt: now, processedAt: now, synced: false,
     }).catch(() => undefined);
     done++;
   }

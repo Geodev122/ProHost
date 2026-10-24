@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DEFAULT_SETTINGS, decide, matchesKeyword, normalize, render } from "./engine";
+import { DEFAULT_SETTINGS, IN_CONVERSATION, decide, matchesKeyword, normalize, render } from "./engine";
 import { IgEvent, Rule } from "./types";
 
 const NOW = Date.UTC(2026, 9, 21, 12, 0, 0);
@@ -97,4 +97,19 @@ test("a text-less story reaction is answered, an empty DM or comment is not", ()
   assert.equal(decide(ev({ kind: "story_reply", text: "" }), [sr], {}, S, NOW).kind, "replied");
   assert.equal(decide(ev({ kind: "dm", text: "  " }), [rule({ trigger: "dm_default", keywords: [], dm: "x", commentReplies: [], privateReply: undefined })], { seenBefore: true }, S, NOW).kind, "ignored");
   assert.equal(decide(ev({ text: "" }), [rule({})], {}, S, NOW).kind, "ignored");
+});
+
+test("inside a live AI conversation keyword rules step aside; only a bare stop or a request for a person interrupts", () => {
+  const dm = (text: string) => ev({ id: "m_1", kind: "dm", text, commentId: undefined, mediaId: undefined });
+  const kw = rule({ id: "k", trigger: "dm_keyword", keywords: ["price"], dm: "Prices: …", privateReply: undefined });
+  const conv = { conversation: true };
+  assert.equal(decide(dm("what's the price?"), [kw], { seenBefore: true }, S, NOW).kind, "replied");
+  const live = decide(dm("what's the price?"), [kw], { seenBefore: true }, S, NOW, () => 0, conv);
+  assert.equal(live.kind, "ignored"); assert.equal(live.reason, IN_CONVERSATION);
+  assert.equal(decide(dm("can you help me list my space"), [], {}, S, NOW, () => 0, conv).reason, IN_CONVERSATION);
+  assert.equal(decide(dm("how do I cancel a booking"), [], {}, S, NOW, () => 0, conv).reason, IN_CONVERSATION);
+  assert.equal(decide(dm("STOP"), [], {}, S, NOW, () => 0, conv).kind, "opt_out");
+  assert.equal(decide(dm("can I talk to a human please"), [], {}, S, NOW, () => 0, conv).kind, "handoff");
+  // outside a conversation the old, broader words still apply
+  assert.equal(decide(dm("help me"), [], {}, S, NOW).kind, "handoff");
 });

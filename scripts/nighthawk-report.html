@@ -32,13 +32,13 @@
 <body>
 <header>
   <h1>🦅 NIGHTHAWK — ProHost Enhanced Debug Report</h1>
-  <p>224 issues found · 30 checks passed</p>
+  <p>225 issues found · 30 checks passed</p>
 </header>
 <div class="stats">
   <div class="stat crit"><div class="num">0</div><div class="lbl">Critical</div></div>
   <div class="stat high"><div class="num">0</div><div class="lbl">High</div></div>
-  <div class="stat med"><div class="num">43</div><div class="lbl">Medium</div></div>
-  <div class="stat low"><div class="num">181</div><div class="lbl">Low</div></div>
+  <div class="stat med"><div class="num">46</div><div class="lbl">Medium</div></div>
+  <div class="stat low"><div class="num">179</div><div class="lbl">Low</div></div>
   <div class="stat pass"><div class="num">30</div><div class="lbl">Passing</div></div>
 </div>
 <h2>Findings</h2>
@@ -247,8 +247,26 @@
     <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
     <td><code class="tag">consistency</code></td>
     <td><strong>Orphaned Module</strong></td>
+    <td><code>functions/src/instagram/aiListings.ts</code></td>
+    <td>Module &quot;instagram/aiListings&quot; has exports but is not imported from index.ts.</td>
+    <td class="suggestion">Export or remove.</td>
+  </tr>
+
+  <tr style="background:#FFF3E0">
+    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
+    <td><code class="tag">consistency</code></td>
+    <td><strong>Orphaned Module</strong></td>
     <td><code>functions/src/instagram/aiLlm.ts</code></td>
     <td>Module &quot;instagram/aiLlm&quot; has exports but is not imported from index.ts.</td>
+    <td class="suggestion">Export or remove.</td>
+  </tr>
+
+  <tr style="background:#FFF3E0">
+    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
+    <td><code class="tag">consistency</code></td>
+    <td><strong>Orphaned Module</strong></td>
+    <td><code>functions/src/instagram/aiMemory.ts</code></td>
+    <td>Module &quot;instagram/aiMemory&quot; has exports but is not imported from index.ts.</td>
     <td class="suggestion">Export or remove.</td>
   </tr>
 
@@ -384,6 +402,15 @@
     <td><strong>Orphaned Module</strong></td>
     <td><code>functions/src/listings/listingLocation.ts</code></td>
     <td>Module &quot;listings/listingLocation&quot; has exports but is not imported from index.ts.</td>
+    <td class="suggestion">Export or remove.</td>
+  </tr>
+
+  <tr style="background:#FFF3E0">
+    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
+    <td><code class="tag">consistency</code></td>
+    <td><strong>Orphaned Module</strong></td>
+    <td><code>functions/src/listings/listingPrices.ts</code></td>
+    <td>Module &quot;listings/listingPrices&quot; has exports but is not imported from index.ts.</td>
     <td class="suggestion">Export or remove.</td>
   </tr>
 
@@ -1257,25 +1284,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/LoginAuthScreen.kt:402</code></td>
-    <td>Line has 181 characters (&gt;160 limit).</td>
-    <td class="suggestion">Break line into multiple statements for readability.</td>
-  </tr>
-
-  <tr style="background:#E3F2FD">
-    <td><span class="badge" style="background:#1976D2">LOW</span></td>
-    <td><code class="tag">detekt</code></td>
-    <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/LoginAuthScreen.kt:438</code></td>
-    <td>Line has 194 characters (&gt;160 limit).</td>
-    <td class="suggestion">Break line into multiple statements for readability.</td>
-  </tr>
-
-  <tr style="background:#E3F2FD">
-    <td><span class="badge" style="background:#1976D2">LOW</span></td>
-    <td><code class="tag">detekt</code></td>
-    <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/LoginAuthScreen.kt:806</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/LoginAuthScreen.kt:812</code></td>
     <td>Line has 166 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
@@ -1284,7 +1293,7 @@
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
     <td><strong>Excessive Line Length</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/LoginAuthScreen.kt:893</code></td>
+    <td><code>app/src/main/java/com/example/ui/screens/LoginAuthScreen.kt:899</code></td>
     <td>Line has 166 characters (&gt;160 limit).</td>
     <td class="suggestion">Break line into multiple statements for readability.</td>
   </tr>
