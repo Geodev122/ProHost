@@ -23,9 +23,10 @@ How analytics is wired, what is tracked, and the console steps that only the pro
     deep_link), `manage_listing` (+ `item_id`), `whatsapp_number_gate`, `suspended`, `splash`. Admin Console tabs:
     `admin_packages`, `admin_users`, `admin_listings`, `admin_analytics`, `admin_schema`, `admin_security`, `admin_demo`.
   - **Sheets, dialogs and steps** report themselves with `TrackScreen(name)` (`ui/components/TrackScreen.kt`, class
-    `Sheet`/`Dialog`): `auth_sign_in`, `auth_create_account`, `auth_forgot_password`, `auth_reset_sent`, `registration`, `explore_filters`,
+    `Sheet`/`Dialog`): the staged sign-in steps `auth_welcome`, `auth_providers`, `auth_email`, `auth_password`, `auth_forgot_password`,
+    `auth_reset_sent`, registration steps `registration_profile`, `registration_place`, `registration_whatsapp` (1.0.45), `explore_filters`,
     `availability`, `booking_confirm`, `request_sent`, `requirements` (+ `source` booking/hosting), `change_price`,
-    `listing_wizard_step_1..3`, `rebook`, `edit_booking`, `cancel_booking`, `listing_verification`, `legal`,
+    `listing_wizard_step_1..3`, `listing_division_sheet`, `rebook`, `edit_booking`, `cancel_booking`, `listing_verification`, `legal`,
     `legal_<doc>`, `notifications`, `premium_redeem`, `pro_host_welcome`, `admin_user_dossier`.
   - **Stack:** they stack on the page. When one closes, the screen now visible is reported again, so time is never
     credited to a closed sheet. Every new sheet or dialog gets a `TrackScreen`, never a raw id.

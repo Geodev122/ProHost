@@ -1,47 +1,63 @@
 <en-US>
 What's new in ProHost 1.0.45
+• Simpler sign-in, one step at a time
+• Create a listing faster: one cover photo, your address in your language, divisions as cards
 • Links to a listing now always open it in the app, on the right room, even after you sign in
 • Listings shared with you that are no longer published show a clear message instead of nothing
 • Faster, smarter answers from our Instagram assistant, with direct links to matching spaces
 </en-US>
 <ar>
 الجديد في ProHost 1.0.45
+• تسجيل دخول أبسط، خطوة بخطوة
+• إنشاء إعلان أسرع: صورة غلاف واحدة، عنوانك بلغتك، والأقسام كبطاقات
 • روابط الإعلانات تفتح الآن دائماً داخل التطبيق وعلى الغرفة الصحيحة، حتى بعد تسجيل الدخول
 • الإعلانات المشاركة معك التي لم تعد منشورة تظهر برسالة واضحة
 • إجابات أسرع وأذكى من مساعدنا على إنستغرام مع روابط مباشرة لمساحات مناسبة
 </ar>
 <fr-FR>
 Nouveautés de ProHost 1.0.45
+• Connexion plus simple, étape par étape
+• Créez une annonce plus vite : une photo de couverture, l'adresse dans votre langue, les espaces en cartes
 • Les liens vers une annonce l'ouvrent toujours dans l'appli, sur la bonne salle, même après connexion
 • Une annonce partagée qui n'est plus publiée affiche un message clair
 • Des réponses plus rapides de notre assistant Instagram, avec des liens directs vers les espaces adaptés
 </fr-FR>
 <es-ES>
 Novedades de ProHost 1.0.45
+• Inicio de sesión más simple, paso a paso
+• Crea un anuncio más rápido: una foto de portada, la dirección en tu idioma y las salas como tarjetas
 • Los enlaces a un anuncio siempre lo abren en la app, en la sala correcta, incluso tras iniciar sesión
 • Un anuncio compartido que ya no está publicado muestra un mensaje claro
 • Respuestas más rápidas de nuestro asistente de Instagram, con enlaces directos a espacios adecuados
 </es-ES>
 <de-DE>
 Neu in ProHost 1.0.45
+• Einfachere Anmeldung, Schritt für Schritt
+• Inserate schneller erstellen: ein Titelbild, die Adresse in deiner Sprache, Räume als Karten
 • Links zu einem Inserat öffnen es jetzt immer in der App, im richtigen Raum, auch nach der Anmeldung
 • Geteilte Inserate, die nicht mehr veröffentlicht sind, zeigen einen klaren Hinweis
 • Schnellere Antworten unseres Instagram-Assistenten mit direkten Links zu passenden Räumen
 </de-DE>
 <it-IT>
 Novità di ProHost 1.0.45
+• Accesso più semplice, un passo alla volta
+• Crea un annuncio più in fretta: una foto di copertina, l'indirizzo nella tua lingua, gli spazi come schede
 • I link a un annuncio lo aprono sempre nell'app, sulla stanza giusta, anche dopo l'accesso
 • Un annuncio condiviso non più pubblicato mostra un messaggio chiaro
 • Risposte più rapide dal nostro assistente Instagram, con link diretti agli spazi adatti
 </it-IT>
 <pt-BR>
 Novidades do ProHost 1.0.45
+• Login mais simples, passo a passo
+• Crie um anúncio mais rápido: uma foto de capa, o endereço no seu idioma e as salas como cartões
 • Links para um anúncio agora sempre abrem no app, na sala certa, mesmo depois de entrar
 • Um anúncio compartilhado que não está mais publicado mostra uma mensagem clara
 • Respostas mais rápidas do nosso assistente no Instagram, com links diretos para espaços adequados
 </pt-BR>
 <tr-TR>
 ProHost 1.0.45'te yenilikler
+• Adım adım daha basit giriş
+• Daha hızlı ilan oluşturun: tek kapak fotoğrafı, kendi dilinizde adres, kart olarak bölümler
 • İlan bağlantıları artık giriş yaptıktan sonra bile her zaman uygulamada, doğru odada açılır
 • Artık yayında olmayan paylaşılmış ilanlar net bir mesaj gösterir
 • Instagram asistanımızdan uygun alanlara doğrudan bağlantılarla daha hızlı yanıtlar

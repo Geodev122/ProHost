@@ -381,7 +381,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             "delete_listing", "share_menu", "change_price_slots", "change_price_new"
         )
         /** Dialogs holding a text field: rendered on a manual clock (see capture()). */
-        val FIELD_DIALOGS = setOf("cancel_booking", "country_picker", "reject_request")
+        val FIELD_DIALOGS = setOf("cancel_booking", "country_picker", "reject_request", "listing_division_sheet")
         /** Overlays opened by tapping a control on their screen (string resources of the controls, in order). */
         val TAPS: Map<String, List<Tap>> = mapOf(
             "delete_account" to listOf(Tap.Res(R.string.delete_account)),

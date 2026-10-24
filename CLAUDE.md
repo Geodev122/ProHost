@@ -107,6 +107,10 @@ plan + recurring price + date;
 - One completeness rule: `AppUser.isProfileComplete()` (blank `fullName` ⇒ registration form,
   ADMIN exempt). Use it for cold start and every sign-in path; never re-introduce a
   `phone.isBlank()` gate — email/Google users have no phone until KYC.
+- Sign-in is a staged, intent-first path (1.0.45): Welcome ("Create an account" / "I already have an account") → providers
+  (Google, Apple slot behind `AuthProviders.APPLE_ENABLED`, email) → email → password, one `AuthStepScaffold` per step
+  (`ui/screens/auth/AuthSteps.kt`, coordinator `LoginAuthScreen`); registration is three steps (profile, place, WhatsApp +
+  terms). Adding a provider = an `AuthProvider` entry + its gateway call.
 - Sign-in is **email + password or Google** (1.0.44). Email enumeration protection stays on: wrong email and wrong
   password read the same (`AuthError.INVALID_CREDENTIALS`), and Forgot password always answers "if an account exists…".
   `AuthViewModel` (`signIn`, `createAccount`, `requestPasswordReset`, `startGoogleSignIn`) runs over `AuthGateway`
@@ -421,7 +425,14 @@ plan + recurring price + date;
   `\u0020` (aapt trims plain spaces, which glued joined sentences together: "AllowProHostto"). Never split a sentence into
   two resources mid-word. One avatar: `ProAvatar(size)`. Phone numbers render LTR (`PhoneNumberField`).
 - Text fields are `InputField` (never a raw `OutlinedTextField` outside admin tools). The listing wizard
-  (`CreateListingDialog`) is a full-screen page with `WizardStepBar`; Back steps back. Dark mode has its own splash art
+  (`CreateListingDialog`, title "Create listing") is a full-screen page with `WizardStepBar`; Back steps back. Step 1:
+  category `SelectField` (single-choice dropdown, sibling of `MultiSelectDropdownField`), space name, ONE brand cover photo
+  (`imageUrls[0]`), the pin (`ListingLocationMapPicker` → `ResolvedAddress`: street/area/city in the app's language, the
+  country by its English name and `SpaceListing.cityEn`, which Explore search and the Instagram finder also match), address,
+  description. Step 2 has no visitor policy (kept on old listings). Step 3 = division cards (`DivisionCards`), each edited in
+  `DivisionSheet` (`SubdivisionForm`); one division (not per-attendee, no own hours) is saved as the whole place
+  (`ui/util/ListingDivisions.kt`, unit-tested: its pricing becomes `pricing`, `subdivisions` stays empty) and an undivided
+  listing reopens as one card. Terms: `docs/design/GLOSSARY.md` (sentence case, one helper line at most). Dark mode has its own splash art
   (`drawable-night-*`, `values-night/colors.xml`).
 - The Design Screenshots harness covers screens and every sheet/dialog/form (`OVERLAYS`, `TAPS` in
   `DesignScreenshotTest`); add a new overlay there when you add one.

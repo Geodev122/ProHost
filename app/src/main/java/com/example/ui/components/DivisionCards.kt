@@ -82,7 +82,7 @@ fun DivisionCards(
 @Composable
 private fun DivisionCard(division: Subdivision, onClick: () -> Unit, onDelete: () -> Unit) {
     val price = SpaceCalculationUtils.findLowestPriceForSubdivision(division)
-    val priceText = if (price.amount > 0.0) AttendeePricing.formatUsd(price.amount) + price.unitLabel else null
+    val priceText = if (price.amount > 0.0) "$" + AttendeePricing.formatUsd(price.amount) + price.unitLabel else null
     ProCard(
         variant = CardVariant.Outlined,
         onClick = onClick,

@@ -55,6 +55,8 @@ internal fun AuthStepScaffold(
     isBusy: Boolean = false,
     error: String? = null,
     showLogo: Boolean = true,
+    /** Replaces the small logo above the title (Welcome's large brand lockup). */
+    header: (@Composable ColumnScope.() -> Unit)? = null,
     actions: @Composable ColumnScope.() -> Unit,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -81,7 +83,9 @@ internal fun AuthStepScaffold(
             modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            if (showLogo) {
+            if (header != null) {
+                header()
+            } else if (showLogo) {
                 Image(
                     painter = painterResource(R.drawable.prohost_login_lockup),
                     contentDescription = stringResource(R.string.prohost_login),
@@ -136,7 +140,17 @@ internal fun WelcomeStep(onCreate: () -> Unit, onSignIn: () -> Unit, onTerms: ()
     AuthStepScaffold(
         title = stringResource(R.string.auth_welcome_title),
         subtitle = stringResource(R.string.auth_welcome_subtitle),
-        showLogo = false,
+        header = {
+            Image(
+                painter = painterResource(R.drawable.prohost_login_lockup),
+                contentDescription = stringResource(R.string.prohost_login),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .padding(top = Spacing.xxl, bottom = Spacing.lg)
+                    .size(width = 220.dp, height = 144.dp)
+                    .align(Alignment.CenterHorizontally)
+            )
+        },
         actions = {
             ProPrimaryButton(
                 text = stringResource(R.string.create_an_account),
@@ -152,16 +166,7 @@ internal fun WelcomeStep(onCreate: () -> Unit, onSignIn: () -> Unit, onTerms: ()
             )
             AuthTermsNote(onTerms, onPrivacy)
         }
-    ) {
-        Box(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.xl), contentAlignment = Alignment.Center) {
-            Image(
-                painter = painterResource(R.drawable.prohost_login_lockup),
-                contentDescription = stringResource(R.string.prohost_login),
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.size(width = 220.dp, height = 144.dp)
-            )
-        }
-    }
+    ) {}
 }
 
 // ---- 2. Providers ------------------------------------------------------------------------------
