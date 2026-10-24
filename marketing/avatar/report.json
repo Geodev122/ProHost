@@ -5,5 +5,15 @@
     "shots": {
       "s1": "gemini-3.1-flash-image"
     }
+  },
+  {
+    "at": "2026-10-24T16:32:50Z",
+    "stage": "keyframes",
+    "shots": {
+      "s2": "gemini-3.1-flash-image",
+      "s3": "gemini-3.1-flash-image",
+      "s4": "gemini-3.1-flash-image",
+      "s5": "gemini-3.1-flash-lite-image"
+    }
   }
 ]
