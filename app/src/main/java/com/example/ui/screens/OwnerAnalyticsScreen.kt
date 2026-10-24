@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
 import androidx.compose.ui.res.pluralStringResource
+import com.example.ui.util.SaveStats
+import com.example.ui.util.locationLine
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
@@ -57,6 +59,8 @@ fun OwnerAnalyticsScreen(
     val totalRevenuePotential = activeListings.sumOf { it.baseMonthlyRateUsd }
     val totalInquiries = displayListings.sumOf { it.avatarInquiryClicks }
     val totalFavorites = displayListings.sumOf { it.favoriteCount }
+    val savesThisMonth = remember(displayListings) { SaveStats.savesInMonth(displayListings, System.currentTimeMillis()) }
+    val savesLastMonth = remember(displayListings) { SaveStats.savesInMonth(displayListings, System.currentTimeMillis(), monthsBack = 1) }
 
     // Date boundaries computed once at composable scope so every section shares them
     val now = remember { System.currentTimeMillis() }
@@ -215,7 +219,12 @@ fun OwnerAnalyticsScreen(
                         ProMetricTile(
                             title = stringResource(R.string.saved_2),
                             value = "$totalFavorites",
-                            subtitle = stringResource(R.string.by_specialists),
+                            // New saves this month (and the direction vs last month); "By specialists" until there are any.
+                            subtitle = when {
+                                savesThisMonth == 0 && savesLastMonth == 0 -> stringResource(R.string.by_specialists)
+                                savesThisMonth >= savesLastMonth -> stringResource(R.string.saves_this_month_up, savesThisMonth)
+                                else -> stringResource(R.string.saves_this_month_down, savesThisMonth, savesLastMonth)
+                            },
                             icon = Icons.Default.Favorite,
                             iconTint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.weight(1f)
@@ -636,10 +645,21 @@ fun ListingHealthCard(space: SpaceListing) {
                         maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "${space.district} • $${lowestPrice.toInt()}$lowestUnit",
+                        text = "${space.locationLine()} • $${lowestPrice.toInt()}$lowestUnit",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    // How views turn into saves and inquiries (hidden until the listing has views).
+                    val saveRate = SaveStats.ratePercent(space.favoriteCount, space.avatarEngagementViews)
+                    val inquiryRate = SaveStats.ratePercent(space.avatarInquiryClicks, space.avatarEngagementViews)
+                    if (saveRate != null && inquiryRate != null) {
+                        Text(
+                            text = stringResource(R.string.save_inquiry_rates, space.avatarEngagementViews, saveRate, inquiryRate),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    }
                     Text(
                         text = if (premiumActive) stringResource(R.string.premium_active) else stringResource(R.string.premium_lapsed_renew_to_publish),
                         style = MaterialTheme.typography.labelSmall,

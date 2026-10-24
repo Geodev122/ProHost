@@ -1219,4 +1219,12 @@
     <string name="discard">تجاهل</string>
     <string name="division_has_bookings">لهذا القسم حجوزات نشطة. غيّر سعره بدلًا من ذلك، أو احذفه بعد انتهائها.</string>
     <string name="whole_place_has_bookings">لهذا المكان حجوزات نشطة ككل. أضف الأقسام بعد انتهائها.</string>
+    <string name="step1_needs_name">أضف اسم المساحة للمتابعة.</string>
+    <string name="step1_needs_pin">اضغط «تحديد موقع الدبوس» على الخريطة للمتابعة.</string>
+    <string name="location_x">*الموقع:* %1$s</string>
+    <string name="x_ref_x">%1$s • المرجع %2$s</string>
+    <string name="saved_update_failed">تعذّر تحديث المساحات المحفوظة. تحقّق من اتصالك وحاول مجددًا.</string>
+    <string name="saves_this_month_up">+%1$d هذا الشهر</string>
+    <string name="saves_this_month_down">+%1$d هذا الشهر (%2$d الشهر الماضي)</string>
+    <string name="save_inquiry_rates">%1$d مشاهدة · %2$d٪ حفظوها · %3$d٪ استفسروا</string>
 </resources>

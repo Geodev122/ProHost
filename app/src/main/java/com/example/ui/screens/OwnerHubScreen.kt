@@ -1,6 +1,7 @@
 ﻿package com.example.ui.screens
 
 import com.example.ui.util.timeRange
+import com.example.ui.util.locationLine
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
@@ -633,7 +634,7 @@ fun OwnerHubScreenContent(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "${space.district}, ${localizedLabel(space.governorate.displayName)}",
+                                text = space.locationLine(),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -873,6 +874,27 @@ fun OwnerHubScreenContent(
                                         stringResource(R.string.x_inquiries, space.avatarInquiryClicks),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+
+                            // People who have it saved now (server count, the owner's own save excluded).
+                            Surface(
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                shape = MaterialTheme.shapes.small,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(Spacing.sm),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.error)
+                                    Spacer(modifier = Modifier.width(Spacing.sm))
+                                    Text(
+                                        stringResource(R.string.x_saved, space.favoriteCount),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1
                                     )
                                 }
                             }

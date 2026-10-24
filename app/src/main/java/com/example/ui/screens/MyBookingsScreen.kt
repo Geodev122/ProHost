@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import com.example.ui.util.timeRange
+import com.example.ui.util.locationLine
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
@@ -543,7 +544,12 @@ fun BookingReservationCard(
                         )
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text(
-                            text = stringResource(R.string.x_x_ref_x, booking.spaceDistrict, localizedLabel(booking.governorate.displayName), booking.publicCode),
+                            text = stringResource(
+                                R.string.x_ref_x,
+                                space?.locationLine() ?: listOf(booking.spaceDistrict, localizedLabel(booking.governorate.displayName))
+                                    .filter { it.isNotBlank() }.joinToString(", "),
+                                booking.publicCode
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

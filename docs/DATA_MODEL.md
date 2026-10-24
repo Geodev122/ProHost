@@ -16,7 +16,7 @@ Written by the host's app (Create listing wizard, Manage page) through
 | `streetAddress`, `district`, `city` | Filled from the pin in the app's language (an Arabic app writes Arabic) and editable |
 | `cityEn` | English copy of the city (1.0.45), so search, filters and the Instagram finder match either language |
 | `country` | Standard English name. Blank on legacy listings = Lebanon (`effectiveCountry`) |
-| `governorate` | Lebanese enum kept for legacy readers; nearest centre to the pin |
+| `governorate` | Lebanese enum kept for legacy readers; nearest centre to the pin. Never shown for a listing abroad: cards print `locationLine()` = city, country (1.0.46) |
 | `pricing` | `RentalPricingConfig` of an **undivided** listing (the whole place) |
 | `capacity` | People an undivided listing fits (1.0.45); divisions carry their own |
 | `subdivisions[]` | The divisions of a **divided** listing (see below). Empty for a whole place |
@@ -24,7 +24,8 @@ Written by the host's app (Create listing wizard, Manage page) through
 | `rules` | House rules. `visitorPolicy` is no longer asked; old values are kept |
 | `schedule` | Opening hours and days of the space |
 | `status` | `DRAFT` / `ACTIVE` / `PAUSED`; the server demotes an ACTIVE listing that fails `validateListingForPublish` |
-| Server-owned | `isVerified`, `displayCode`, `isOwnerSuspended`, `isOwnerPackageLapsed`, counters, `searchName`, `ownerEmail` |
+| `favoriteCount`, `favoritesByMonth`, `unsavesByMonth`, `lastFavoriteEvents` | Saves (1.0.46, `users/favoritesSync.ts`): people who have it saved now (owner excluded), saves / un-saves per UTC month `yyyymm` (13 kept), and the last 50 trigger event ids so a retried event never counts twice. Maintenance `favrecount` rebuilds `favoriteCount` from `user_profiles.savedSpaceIds` |
+| Server-owned | `isVerified`, `displayCode`, `isOwnerSuspended`, `isOwnerPackageLapsed`, counters, save fields, `searchName`, `ownerEmail` |
 
 ### Whole place or divisions
 

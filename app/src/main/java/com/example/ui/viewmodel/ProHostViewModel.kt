@@ -1,6 +1,7 @@
 package com.example.ui.viewmodel
 
 import com.example.ui.util.localizedLabel
+import com.example.ui.util.locationLine
 import com.example.ui.util.uiText
 import com.example.R
 import com.example.ui.util.UiMessages
@@ -699,7 +700,7 @@ class ProHostViewModel(
             appendLine(uiText(R.string.i_m_x_x_and_i_found_your_space_on_prohost, professionalName, specialty))
             appendLine()
             appendLine("*Space:* ${space.title}")
-            appendLine(uiText(R.string.location_x_x, space.district, localizedLabel(space.governorate.displayName)))
+            appendLine(uiText(R.string.location_x, space.locationLine()))
             if (roomLabel != null) appendLine(uiText(R.string.room_area_x, roomLabel))
             appendLine("*Price:* $priceLabel")
             append(bookingDetails)
@@ -1130,7 +1131,11 @@ class ProHostViewModel(
         val wasSaved = currentUser.value?.savedSpaceIds?.contains(spaceId) == true
         viewModelScope.launch {
             try {
-                repository.toggleSavedSpace(spaceId)
+                // Analytics and Undo only for a write that landed (the repository reverts the heart otherwise).
+                if (!repository.toggleSavedSpace(spaceId)) {
+                    context?.let { UiMessages.show(it, it.getString(R.string.saved_update_failed)) }
+                    return@launch
+                }
                 spaces.value.firstOrNull { it.id == spaceId }?.let { com.example.analytics.AnalyticsTracker.wishlist(it, added = !wasSaved) }
                 if (wasSaved && context != null) {
                     UiMessages.show(context, context.getString(R.string.removed_from_saved), actionLabel = uiText(R.string.undo), onAction = { toggleSavedSpace(spaceId) })

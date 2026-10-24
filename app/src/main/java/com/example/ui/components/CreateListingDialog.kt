@@ -457,6 +457,11 @@ fun CreateListingDialog(
         }
     }
 
+    // The Activity's system-bar insets, read before entering the Dialog: on some phones the dialog window gets no insets
+    // of its own, which left the Back/Next footer under the navigation bar. The page pads by the larger of the two.
+    val outerTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val outerBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
     // A full-screen page (not a floating card): edge-to-edge window, its own top bar with Close, a three-segment step
     // bar, and system Back stepping back through the wizard before it closes.
     Dialog(
@@ -469,6 +474,10 @@ fun CreateListingDialog(
         val lightBars = MaterialTheme.colorScheme.surface.luminance() > 0.5f
         SideEffect {
             (dialogView.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window?.let { window ->
+                // Fill the screen and resize for the keyboard, so the footer stays visible above it.
+                window.setLayout(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT)
+                @Suppress("DEPRECATION")
+                window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
                 androidx.core.view.WindowCompat.getInsetsController(window, dialogView).apply {
                     isAppearanceLightStatusBars = lightBars
                     isAppearanceLightNavigationBars = lightBars
@@ -483,7 +492,7 @@ fun CreateListingDialog(
               Column(
                   modifier = Modifier
                       .fillMaxSize()
-                      .windowInsetsPadding(WindowInsets.safeDrawing)
+                      .windowInsetsPadding(WindowInsets.safeDrawing.union(WindowInsets(top = outerTop, bottom = outerBottom)))
                       .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
               ) {
                   // Header
@@ -612,9 +621,13 @@ fun CreateListingDialog(
                                           pickedLatLng = LatLng(address.lat, address.lng)
                                           val streetLine = listOf(address.street, address.area).filter { it.isNotBlank() }.joinToString(", ")
                                           if (streetLine.isNotBlank()) streetAddress = streetLine
-                                          if (address.city.isNotBlank()) city = address.city
-                                          cityEn = address.cityEn
-                                          if (address.country.isNotBlank()) country = address.country
+                                          // A resolved pin replaces the whole place (a city left from an earlier pin would be
+                                          // wrong); a failed lookup (no country) keeps what the host typed.
+                                          if (address.country.isNotBlank()) {
+                                              city = address.city
+                                              cityEn = address.cityEn
+                                              country = address.country
+                                          }
                                           if (address.area.isNotBlank()) district = address.area
                                           if (address.countryCode == "LB") derivedGovernorate = nearestGovernorate(address.lat, address.lng)
                                           hasUserTyped = true
@@ -1062,9 +1075,17 @@ fun CreateListingDialog(
                           }
                   }
 
-                  if (currentStep == totalSteps - 1 && publishBlocker != null) {
+                  // Why Next/Publish is greyed out, right above it — never a silently disabled button.
+                  val nextBlocker: String? = when {
+                      currentStep == totalSteps - 1 -> publishBlocker
+                      currentStep == 0 && title.isBlank() && streetAddress.isBlank() -> stringResource(R.string.step1_needs_name)
+                      currentStep == 0 && pickedLatLng == null -> stringResource(R.string.step1_needs_pin)
+                      else -> null
+                  }
+                  HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                  if (nextBlocker != null) {
                       Text(
-                          publishBlocker,
+                          nextBlocker,
                           style = MaterialTheme.typography.labelMedium,
                           color = MaterialTheme.colorScheme.onSurfaceVariant,
                           modifier = Modifier.padding(top = Spacing.sm)
@@ -1149,7 +1170,7 @@ fun CreateListingDialog(
               ProHostSnackbarHost(
                   modifier = Modifier
                       .align(Alignment.BottomCenter)
-                      .windowInsetsPadding(WindowInsets.safeDrawing)
+                      .windowInsetsPadding(WindowInsets.safeDrawing.union(WindowInsets(bottom = outerBottom)))
                       .padding(bottom = 72.dp)
               )
             }

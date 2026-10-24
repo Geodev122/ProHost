@@ -311,10 +311,7 @@ internal class ProfilesRepository(private val repo: ProHostRepository) {
             _currentUser.value = updated
             _users.value = _users.value.map { if (it.id == updated.id) updated else it }
 
-            val success = firestoreService.updateUserProfileFields(
-                current.id,
-                mapOf("savedSpaceIds" to updatedIds)
-            )
+            val success = firestoreService.setSavedSpace(current.id, spaceId, saved = spaceId in updatedIds)
             // Revert only if nothing has changed currentUser since this call made
             // its own optimistic write — comparing against [updated] (not
             // overwriting with [current] unconditionally) so a rapid second toggle

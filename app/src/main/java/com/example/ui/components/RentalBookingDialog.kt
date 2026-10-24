@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import com.example.ui.util.timeRange
+import com.example.ui.util.locationLine
 import com.example.ui.util.uiPlural
 import androidx.compose.ui.res.pluralStringResource
 import com.example.ui.util.localizedLabel
@@ -530,7 +531,7 @@ private fun BookingSlotSelectorDialog(
                         )
                         ProStatusBadge(type = ProBadgeType.CUSTOM_INFO, customText = headerBadgeText)
                         Text(
-                            text = "${space.title} • ${space.district}, ${localizedLabel(space.governorate.displayName)}",
+                            text = "${space.title} • ${space.locationLine()}",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

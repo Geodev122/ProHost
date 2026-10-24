@@ -168,7 +168,7 @@ export function searchListings(rows: ListingRow[], c: SearchCriteria, now = Date
       if (fit.ok && (!best || fit.score > best.score)) best = { room: r, score: fit.score, reasons: fit.reasons };
     }
     if (!best) continue;
-    const popularity = Math.min(10, l.bookings * 2 + l.favorites + l.inquiries * 0.5 + l.views * 0.02);
+    const popularity = Math.min(10, l.bookings * 2 + Math.min(5, l.favorites) + l.inquiries * 0.5 + l.views * 0.02);
     const fresh = l.createdAt && now - l.createdAt < 60 * 86_400_000 ? 2 : 0;
     out.push({ listing: l, room: best.room, score: base + best.score + (l.verified ? 5 : 0) + popularity + fresh, reasons: [...reasons, ...best.reasons] });
   }
@@ -186,7 +186,7 @@ export function formatMatches(matches: Match[], c: SearchCriteria): string {
   const lines = matches.map((m, i) => {
     const l = m.listing, r = m.room;
     const price = r.price !== null && r.priceUnit ? `from $${r.price} per ${UNIT_LABEL[r.priceUnit]}` : "price shown in the app";
-    const usage = [l.bookings ? `${l.bookings} booking${l.bookings === 1 ? "" : "s"}` : "", l.favorites ? `${l.favorites} saved` : "", l.views ? `${l.views} views` : ""].filter(Boolean).join(", ");
+    const usage = [l.bookings ? `${l.bookings} booking${l.bookings === 1 ? "" : "s"}` : "", l.favorites >= 3 ? `${l.favorites} saved` : "", l.views ? `${l.views} views` : ""].filter(Boolean).join(", ");
     return `${i + 1}. id=${l.id} | "${l.title}" (${l.category}) | ${[l.area, l.city, l.country].filter(Boolean).join(", ")} | room "${r.name}" (${r.type}${r.capacity ? `, up to ${r.capacity} people` : ""}, booked by the ${UNIT_LABEL[r.offered]}) | ${price}${l.verified ? " | verified" : ""}${usage ? ` | ${usage}` : ""}${l.features.length ? ` | has: ${l.features.slice(0, 5).join(", ")}` : ""} | why: ${m.reasons.join("; ") || "closest match"}`;
   });
   return `LISTING RESULTS (trusted, live ProHost catalogue)\nSearched for: ${wanted}.\n${lines.join("\n")}\nPresent the best 1-3 in your own words (why each fits THEM, price exactly as written), put their ids in "listings" in the order you mention them (the server adds a "View" button per listing that opens it in the ProHost app), and ask ONE follow-up question (e.g. which one they like, or a date).`;

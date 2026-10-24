@@ -130,6 +130,8 @@ service cloud.firestore {
         (isAdmin() || request.resource.data.get('isVerified', false) == false) &&
         // favoriteCount only ever grows via the onUserFavoritesChanged trigger.
         (isAdmin() || request.resource.data.get('favoriteCount', 0) == 0) &&
+        // Save history (favoritesSync.ts) is server-only from the first write.
+        !request.resource.data.keys().hasAny(["favoritesByMonth", "unsavesByMonth", "lastFavoriteEvents"]) &&
         // displayCode is minted server-side only when absent; a client-chosen one
         // could impersonate another listing's public code.
         !('displayCode' in request.resource.data) &&
@@ -160,6 +162,8 @@ service cloud.firestore {
           (isAdmin() || (role() == "PRO_HOST" && resource.data.ownerId == request.auth.uid && !isSuspended())) &&
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(
             ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId", "isOwnerSuspended", "isOwnerPackageLapsed", "favoriteCount", "displayCode", "createdAtMillis", "searchName",
+             // save history kept by favoritesSync.ts (Owner Analytics "+N this month")
+             "favoritesByMonth", "unsavesByMonth", "lastFavoriteEvents",
              // admin review-queue stamp, set only by requestListingVerification. (Counters,
              // publishBlockedReasons and isDemo are still echoed by released app versions on
              // every save, so they stay owner-writable; strangers may only +1 a counter.)
@@ -292,7 +296,10 @@ service cloud.firestore {
         // phone linked in Firebase Auth, never this field.)
         (isAdmin() ||
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(["email"]) ||
-          request.resource.data.email == request.auth.token.get('email', ''));
+          request.resource.data.email == request.auth.token.get('email', '')) &&
+        // Saved listings are capped (favoritesSync.ts reads at most 300).
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(["savedSpaceIds"]) ||
+          request.resource.data.savedSpaceIds.size() <= 300);
 
       allow delete: if isAdmin();
 

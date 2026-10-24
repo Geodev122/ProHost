@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import com.example.ui.util.uiPlural
+import com.example.ui.util.locationLine
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
@@ -842,7 +843,7 @@ fun SubdivisionDiscoveryCard(
         info = WorkspaceCardInfo(
             title = "${subdivision.name} · ${space.title}",
             listingType = localizedLabel(subdivision.type.displayName),
-            location = "${space.district}, ${localizedLabel(space.governorate.displayName)}",
+            location = space.locationLine(),
             rateUsd = lowestPrice.amount,
             rateUnit = lowestPrice.unitLabel,
             imageUrl = subdivision.imageUrls.firstOrNull() ?: space.imageUrls.firstOrNull(),
@@ -884,7 +885,7 @@ fun SpaceListingCard(
         info = WorkspaceCardInfo(
             title = space.title,
             listingType = localizedLabel(space.spaceType.displayName),
-            location = "${space.district}, ${localizedLabel(space.governorate.displayName)}",
+            location = space.locationLine(),
             rateUsd = lowestPrice.amount,
             rateUnit = lowestPrice.unitLabel,
             imageUrl = space.imageUrls.firstOrNull(),

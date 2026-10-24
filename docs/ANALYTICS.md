@@ -68,7 +68,7 @@ How analytics is wired, what is tracked, and the console steps that only the pro
 | | ★`view_item` | `items[1]`, `value`, `subdivision_type` |
 | | `select_room` | `item_id`, `subdivision_type`, `strategy` |
 | | `view_availability` | `item_id`, `subdivision_type`, `open_slot_count` |
-| | ★`add_to_wishlist` / `remove_from_wishlist` | `items`, `value` |
+| | ★`add_to_wishlist` / `remove_from_wishlist` | `items`, `value` — logged only once the save reached Firestore (1.0.46; a failed write reverts the heart and logs nothing) |
 | | ★`share` | `method` (share_sheet/copy_link), `content_type`=listing, `item_id` |
 | | ★`generate_lead` ⚑ | `channel`=whatsapp, `item_id`, `item_category`, `subdivision_type`, `value` |
 | | `contact_specialist` | `channel` (host → specialist WhatsApp) |
@@ -104,6 +104,15 @@ GA4 `items[]` for a listing: `item_id`=`L-…`, `item_name`=title, `item_categor
 **User properties:** `user_role`, `user_country`, `user_governorate`, `specialty`, `kyc_complete`,
 `is_verified`, `plan_id`, `plan_status` (active/expired/none), `listing_count_bucket`,
 `account_age_bucket`, `signup_method`, `build_type` (filter out debug testers), `is_demo`.
+
+## Saves a Pro Host sees (in-app, not GA4)
+
+The heart writes `user_profiles.savedSpaceIds` with `arrayUnion` / `arrayRemove` (capped at 300 by the rules);
+`onUserFavoritesChanged` turns each difference into listing counters in a transaction (owner's own saves ignored,
+deleted listings skipped, retries de-duplicated): `favoriteCount` and `favoritesByMonth` / `unsavesByMonth`. The app shows
+them in existing places only — My Listings card ("N saved" beside views and inquiries), Owner Analytics' Saved tile
+("+N this month", last month in brackets when it was higher, `SaveStats`) and each listing's health row
+("V views · S% saved · I% asked", rates over the listing's views, capped at 100 %).
 
 ## Owner setup (Firebase / GA4 console)
 

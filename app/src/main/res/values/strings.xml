@@ -317,7 +317,7 @@
     <string name="map_center_x">Map Center: %1$s</string>
     <string name="mark_all_read">Mark all read</string>
     <string name="mark_as_paid">Mark as Paid</string>
-    <string name="mark_pin_location">Mark Pin Location</string>
+    <string name="mark_pin_location">Mark pin location</string>
     <string name="mark_read">Mark Read</string>
     <string name="max_attendees">Max attendees</string>
     <string name="message_host_on_whatsapp">Message host on WhatsApp</string>
@@ -1218,4 +1218,12 @@
     <string name="discard">Discard</string>
     <string name="division_has_bookings">This division has active bookings. Change its price instead, or delete it once they end.</string>
     <string name="whole_place_has_bookings">This place has active bookings as a whole. Add divisions once they end.</string>
+    <string name="step1_needs_name">Add the space name to continue.</string>
+    <string name="step1_needs_pin">Tap “Mark pin location” on the map to continue.</string>
+    <string name="location_x">*Location:* %1$s</string>
+    <string name="x_ref_x">%1$s • Ref %2$s</string>
+    <string name="saved_update_failed">Couldn\'t update your saved spaces. Check your connection and try again.</string>
+    <string name="saves_this_month_up">+%1$d this month</string>
+    <string name="saves_this_month_down">+%1$d this month (%2$d last)</string>
+    <string name="save_inquiry_rates">%1$d views · %2$d%% saved · %3$d%% asked</string>
 </resources>

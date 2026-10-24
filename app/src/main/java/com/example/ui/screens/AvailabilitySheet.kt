@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import com.example.ui.util.localizedLabel
+import com.example.ui.util.locationLine
 import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -553,7 +554,7 @@ internal fun AvailabilitySheet(
                                         uiText(R.string.total_for_the_booking_x_usd, com.example.ui.util.AttendeePricing.formatUsd(q.totalUsd))
                                 } ?: ""
                                 val message = uiText(R.string.hello_i_m_interested_in_booking_x, liveSpace.title) +
-                                    " ${liveSpace.district}, ${localizedLabel(liveSpace.governorate.displayName)}" +
+                                    " ${liveSpace.locationLine()}" +
                                     uiText(R.string.selected_slots_x_xx, totalSelectedSlots, slotLines, attendeeBlock) +
                                     uiText(R.string.are_these_slots_still_available)
                                 try {
@@ -608,7 +609,7 @@ internal fun AvailabilitySheet(
                     // Space / location / room summary
                     listOf(
                         "Space" to liveSpace.title,
-                        "Location" to "${liveSpace.district}, ${localizedLabel(liveSpace.governorate.displayName)}",
+                        "Location" to liveSpace.locationLine(),
                         "Room" to (selectedSubdivisionForDialog?.name ?: "Whole Space")
                     ).forEach { (label, value) ->
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

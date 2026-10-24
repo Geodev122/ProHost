@@ -165,6 +165,11 @@ describe("user_profiles", () => {
   test("a suspended user can't edit their profile", async () => {
     await assertFails(updateDoc(doc(spec2Ctx(), "user_profiles", SPEC2), { fullName: "X" }));
   });
+  test("saved listings are capped at 300", async () => {
+    const ids = (n) => Array.from({ length: n }, (_, i) => `L${i}`);
+    await assertSucceeds(updateDoc(doc(specCtx(), "user_profiles", SPEC), { savedSpaceIds: ids(300) }));
+    await assertFails(updateDoc(doc(specCtx(), "user_profiles", SPEC), { savedSpaceIds: ids(301) }));
+  });
   test("profiles are private", async () => {
     await assertFails(getDoc(doc(specCtx(), "user_profiles", HOST)));
   });
@@ -180,6 +185,12 @@ describe("workspace_listings", () => {
     await assertFails(updateDoc(doc(hostCtx(), "workspace_listings", "L1"), { verificationRequestedAt: 5 }));
     await assertFails(updateDoc(doc(hostCtx(), "workspace_listings", "L1"), { isVerified: true }));
     await assertFails(updateDoc(doc(specCtx(), "workspace_listings", "L1"), { title: "Hijacked" }));
+  });
+  test("save counts and save history are server-only", async () => {
+    await assertFails(updateDoc(doc(hostCtx(), "workspace_listings", "L1"), { favoriteCount: 99 }));
+    await assertFails(updateDoc(doc(hostCtx(), "workspace_listings", "L1"), { favoritesByMonth: { "202610": 99 } }));
+    await assertFails(updateDoc(doc(hostCtx(), "workspace_listings", "L1"), { unsavesByMonth: {} }));
+    await assertFails(setDoc(doc(hostCtx(), "workspace_listings", "L9"), { ownerId: HOST, status: "DRAFT", title: "X", favoritesByMonth: { "202610": 5 } }));
   });
   test("server-only collections are closed", async () => {
     await assertFails(getDoc(doc(specCtx(), "display_codes", "U-AAAAAA")));

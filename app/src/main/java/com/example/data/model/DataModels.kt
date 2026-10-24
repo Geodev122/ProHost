@@ -988,6 +988,9 @@ data class SpaceListing(
     // Surfaced on OwnerAnalyticsScreen as the concrete "listing performance" signal
     // behind a specialist pressing/unpressing the heart icon.
     val favoriteCount: Int = 0,
+    // Saves per month ("yyyymm" -> count, last 13 months), server-only like favoriteCount
+    // (favoritesSync.ts; absent from toFirestoreMap). Owner Analytics' "+N this month".
+    val favoritesByMonth: Map<String, Int> = emptyMap(),
     val isDemo: Boolean = false,
     // Server-assigned public code ("L-XXXXXX"); read-only on the client, never written back.
     val displayCode: String = ""
@@ -1256,6 +1259,9 @@ data class SpaceListing(
                 subdivisions = subsList,
                 createdAtMillis = (data["createdAtMillis"] as? Number)?.toLong(),
                 favoriteCount = (data["favoriteCount"] as? Number)?.toInt() ?: 0,
+                favoritesByMonth = (data["favoritesByMonth"] as? Map<*, *>).orEmpty()
+                    .mapNotNull { (k, v) -> (k as? String)?.let { key -> (v as? Number)?.let { key to it.toInt() } } }
+                    .toMap(),
                 isDemo = data["isDemo"] as? Boolean ?: (docId.startsWith("demo-") || docId.startsWith("DEMO-"))
             )
         }

@@ -6,6 +6,8 @@
 //   node scripts/maintenance/run.js j8               production data hygiene (backup → cleanup)
 //   node scripts/maintenance/run.js retiregrowth     retired plans (growth/enterprise): holders → permanent grant, rows closed
 //   node scripts/maintenance/run.js occupancy        rebuild booking_occupancy from ACCEPTED bookings
+//   node scripts/maintenance/run.js favrecount [apply] listing save counts (favoriteCount) recounted from user_profiles.savedSpaceIds,
+//                                                    the owner's own save excluded; dry run prints counts only, apply writes
 //   node scripts/maintenance/run.js emailauth        read-only: why sign-in emails fail (Auth config, mail, limits)
 //   node scripts/maintenance/run.js enableemaillink  turn on Firebase Auth "Email link (passwordless)" sign-in
 //   node scripts/maintenance/run.js mailtest         queue one test email to the extension's reply-to (owner) address
@@ -287,6 +289,37 @@ async function retiregrowth(db) {
     actorEmail: "maintenance@pro-host.tech",
     severity: "SECURE",
   }).then(() => "recorded"));
+}
+
+async function favrecount(db, arg) {
+  // Counts only (no ids, no people). The trigger keeps favoriteCount current; this fixes drift and
+  // the self-saves the old trigger counted.
+  const { recountFavorites } = require(`${LIB}/users/favoritesSync`);
+  await step(arg === "apply" ? "favrecount apply" : "favrecount (dry run)", async () => {
+    const savedBy = new Map();
+    for (const d of (await db.collection("user_profiles").select("savedSpaceIds").get()).docs) {
+      const ids = d.get("savedSpaceIds");
+      for (const id of new Set(Array.isArray(ids) ? ids.filter((x) => typeof x === "string" && x) : [])) {
+        if (!savedBy.has(id)) savedBy.set(id, []);
+        savedBy.get(id).push(d.id);
+      }
+    }
+    const listings = await db.collection("workspace_listings").select("ownerId", "favoriteCount").get();
+    const w = arg === "apply" ? db.bulkWriter() : null;
+    let changed = 0, up = 0, down = 0, total = 0;
+    for (const d of listings.docs) {
+      if (!d.get("ownerId")) continue; // ownerless ghost docs are ignored everywhere
+      const want = recountFavorites(savedBy.get(d.id) || [], d.get("ownerId"));
+      const have = typeof d.get("favoriteCount") === "number" ? d.get("favoriteCount") : 0;
+      total += want;
+      if (want !== have) {
+        changed++; if (want > have) up++; else down++;
+        if (w) w.update(d.ref, { favoriteCount: want });
+      }
+    }
+    if (w) await w.close();
+    return `listings=${listings.size} changed=${changed} (up ${up}, down ${down}) totalSaves=${total}${w ? " written" : " — run with code apply to write"}`;
+  });
 }
 
 async function occupancy(db) {
@@ -1540,6 +1573,7 @@ async function smsauth(db, arg) {
   if (task === "audit") await audit(db, auth);
   else if (task === "j8") { await j8(db, auth); await audit(db, auth); }
   else if (task === "occupancy") await occupancy(db);
+  else if (task === "favrecount") await favrecount(db, (arg || "").trim());
   else if (task === "retiregrowth") { await retiregrowth(db); await audit(db, auth); }
   else if (task === "emailauth") await emailauth(db);
   else if (task === "enableemaillink") { await enableemaillink(); await emailauth(db); }

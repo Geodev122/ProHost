@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.ui.res.pluralStringResource
+import com.example.ui.util.locationLine
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
@@ -131,7 +132,7 @@ fun SpaceDetailsScreen(
             val shareUrl = ShareLinks.forListing(liveSpace.id)
             val shareText = buildString {
                 append("🏢 ${liveSpace.title}")
-                append("\n📍 ${liveSpace.district}, ${localizedLabel(liveSpace.governorate.displayName)}")
+                append("\n📍 ${liveSpace.locationLine()}")
                 if (liveSpace.description.isNotBlank()) {
                     append("\n${liveSpace.description}")
                 }
@@ -526,8 +527,9 @@ fun SpaceDetailsScreenContent(
                             // Area, city (the governorate only for legacy listings without one), floor and, for an
                             // undivided place, how many people it fits.
                             text = listOfNotNull(
-                                listOf(liveSpace.district, liveSpace.city.ifBlank { localizedLabel(liveSpace.governorate.displayName) })
-                                    .filter { it.isNotBlank() }.distinct().joinToString(", ").takeIf { it.isNotBlank() },
+                                // Area (when it isn't the city itself), then the listing's own "City, Country".
+                                listOf(liveSpace.district.trim().takeIf { it != liveSpace.city.trim() }.orEmpty(), liveSpace.locationLine())
+                                    .filter { it.isNotBlank() }.joinToString(", ").takeIf { it.isNotBlank() },
                                 liveSpace.floorInfo.takeIf { it.isNotBlank() },
                                 liveSpace.capacity?.takeIf { liveSpace.subdivisions.isEmpty() }?.let { stringResource(R.string.up_to_x, it) }
                             ).joinToString(" • "),

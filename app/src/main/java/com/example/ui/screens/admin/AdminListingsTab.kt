@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import android.content.ClipData
+import com.example.ui.util.locationLine
 import android.content.ClipboardManager
 import android.content.Context
 import android.provider.OpenableColumns
@@ -191,7 +192,7 @@ internal fun AdminListingsCatalogTab(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "${space.district}, ${space.governorate.displayName.split(" ").first()} • ${space.streetAddress}",
+                                text = "${space.locationLine()} • ${space.streetAddress}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

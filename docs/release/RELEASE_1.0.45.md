@@ -22,9 +22,9 @@
   listing finder; the listing page hands Android visitors (Instagram's in-app browser too) to the app.
 
 ## Status
-Built and verified on the feature branch only. **Not published to Play** (owner, 2026-10-24: do not publish to production
-yet). To release: merge to main (CI green, functions deploy), then `release-bundle.yml` play_track=production rollout=1 and
-a probe; then set `docs/release/published.txt` to 1.0.45 so the Instagram agent starts describing it.
+Published to Google Play production on 2026-10-24 at 100 % (release-bundle run 40085616980). Backend (functions, rules,
+hosting) deployed from main `941ee67` (CI run 40085012408). Live checks: prodcheck (83/83 functions) and igsmoke green.
+`docs/release/published.txt` = 1.0.45.
 
 ## Check after release
 - [ ] Tap a "View" button from the Instagram agent on Android: the app opens on that listing and room (signed in and signed
