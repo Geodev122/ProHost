@@ -112,13 +112,18 @@ internal fun DivisionCard(division: Subdivision, onClick: (() -> Unit)?, onDelet
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    listOfNotNull(localizedLabel(division.type.displayName), priceText).joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                // The title already shows the type while the division has no name.
+                val subtitle = listOfNotNull(localizedLabel(division.type.displayName).takeIf { division.name.isNotBlank() }, priceText)
+                    .joinToString(" · ")
+                if (subtitle.isNotEmpty()) {
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
                 if (priceText == null) {
                     Text(
                         stringResource(R.string.division_needs_price),
