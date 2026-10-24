@@ -10,11 +10,11 @@ on:
         required: false
         default: ""
       config:
-        description: "Script set: voiceover.json (Lebanese Arabic) or voiceover_en.json (British English)"
+        description: "Script set: voiceover.json (Lebanese Arabic), voiceover_en.json (British English) or voiceover_reel.json (30 s office Reel, Lebanese male)"
         required: false
         default: voiceover.json
         type: choice
-        options: [voiceover.json, voiceover_en.json]
+        options: [voiceover.json, voiceover_en.json, voiceover_reel.json]
 
 permissions:
   contents: write

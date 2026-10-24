@@ -1,0 +1,52 @@
+{
+  "_about": "30 s office-sourcing Reel (talking presenter, 1080x1920): Lebanese Arabic, one male voice. Hook → problem → solution → CTA (form, first month free) → last hook (then $8.99/month, the live Play price of pro-monthly1). Rendered by marketing/source/reel_office.html.",
+  "dialect": "You are a native Lebanese Arabic speaker from Beirut, presenting to camera in an Instagram reel, talking directly to the viewer. Speak natural, everyday Lebanese dialect (Levantine), never Egyptian and never Modern Standard Arabic; say ق as a glottal stop like Beirutis do. Sound like a real person talking to a friend: relaxed, warm, conversational rhythm, natural breaths and small pauses, a smile in the voice. Never theatrical, never a TV announcer. English words (ProHost, Premium, app, booking, request, shift, clinic, studio, meeting room, monthly, yearly) are said naturally in English, the way Lebanese professionals say them.",
+  "length": 30.0,
+  "output": "marketing/audio/voiceovers-arabic-reel",
+  "posts": [
+    {
+      "id": "reel_office",
+      "voice": "Charon",
+      "gender": "male",
+      "persona": "A confident, warm Lebanese professional in his mid-30s, the face of ProHost, talking to psychologists, life coaches and therapists who own an office. Polished but human, like a trusted colleague, never a salesman.",
+      "lines": [
+        {
+          "at": 0.2,
+          "end": 3.7,
+          "style": "Direct hook, eyebrows up; a real question that stops the scroll.",
+          "text": "عِنْدَك عيادة أو office… وبيضَلّ فاضي بين جلساتك؟"
+        },
+        {
+          "at": 3.9,
+          "end": 7.7,
+          "style": "Knowing and a bit serious; a short pause before the last word.",
+          "text": "كلّ ساعة فاضية… هيّي إيجار عم تدفعو عَالفاضي."
+        },
+        {
+          "at": 7.9,
+          "end": 13.9,
+          "style": "Energy lifts: here's the solution, clear and confident.",
+          "text": "مع ProHost، بتأجّر مكتبك بالساعة، بالـ shift أو باليوم، لـ psychologists و coaches و therapists متلك."
+        },
+        {
+          "at": 14.1,
+          "end": 18.9,
+          "style": "Reassuring, simple: you stay in control.",
+          "text": "إنتَ بتحدّد الأوقات والسعر، والطلبات بتوصلك مباشرةً عَالواتساب."
+        },
+        {
+          "at": 19.1,
+          "end": 24.7,
+          "style": "Inviting call to action; a smile and a lift on 'أوّل شهر علينا'.",
+          "text": "عبّي الـ form، الرابط بالـ bio: اسمك، إيميلك ورقم الواتساب… وأوّل شهر علينا، مجّاناً."
+        },
+        {
+          "at": 24.9,
+          "end": 29.7,
+          "style": "Playful last hook, a little lean-in; land the price lightly.",
+          "text": "وبعدها؟ بسّ تمانْيِة وتسعة وتسعين دولار بالشهر… أقلّ من إيجار ساعة وحدة."
+        }
+      ]
+    }
+  ]
+}
