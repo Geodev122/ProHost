@@ -9,7 +9,7 @@ on Vertex AI in the Firebase project:
                    (script, Lebanese, score) becomes clips/<shot>.mp4 (cents; verdicts in report.json).
   stage clips      Veo (newest 3.x fast): keyframe -> marketing/avatar/clips/<shot>.mp4 (8 s, 9:16); audio (lip-synced
                    speech) only for shots with "audio": true; "takes": n > 1 writes <shot>_a.mp4, <shot>_b.mp4, ...
-Spend guard: at most MAX_SECONDS generated video seconds per run; every run is appended to marketing/avatar/report.json
+Spend guard: at most MAX_SECONDS generated video seconds per run; every run is written to marketing/avatar/runs/<time>_<stage>.json
 with its estimated cost.
 
 usage: avatar_video.py <stage> [shot,shot,...]
@@ -259,9 +259,10 @@ def main():
                 print(f"check {k}: {json.dumps({x: v.get(x) for x in ('transcript', 'dialect', 'lebanese_score', 'cues', 'matches_script')}, ensure_ascii=False)}")
     else:
         sys.exit(f"unknown stage {stage}")
-    rep = AV / "report.json"
-    hist = json.loads(rep.read_text()) if rep.exists() else []
-    rep.write_text(json.dumps(hist + [run], indent=2, ensure_ascii=False) + "\n")
+    # One file per run (marketing/avatar/runs/), so two runs never conflict when they commit; report.json is the old log.
+    runs = AV / "runs"
+    runs.mkdir(parents=True, exist_ok=True)
+    (runs / f"{run['at'].replace(':', '')}_{stage}.json").write_text(json.dumps(run, indent=2, ensure_ascii=False) + "\n")
     if any(v == "failed" for v in run["shots"].values() if isinstance(v, str)):
         print("::warning::some shots failed")
 

@@ -81,7 +81,9 @@ def fade_out(x, secs=FADE):
 def checked_window(shot):
     """Speech start/end Gemini heard in the clip (avatar_video.py check stage), else None."""
     rep = ROOT / "avatar" / "report.json"
-    for run in reversed(json.loads(rep.read_text()) if rep.exists() else []):
+    history = (json.loads(rep.read_text()) if rep.exists() else []) + \
+        [json.loads(f.read_text()) for f in sorted((ROOT / "avatar" / "runs").glob("*.json"))]
+    for run in reversed(sorted(history, key=lambda r: r.get("at", ""))):
         res = run.get("shots", {}).get(shot) if run.get("stage") == "check" else None
         if isinstance(res, dict) and "speech_start_s" in res:
             return float(res["speech_start_s"]), float(res["speech_end_s"])
