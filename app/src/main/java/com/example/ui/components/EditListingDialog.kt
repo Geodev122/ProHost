@@ -9,6 +9,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import com.example.R
 import com.example.data.model.BookingRequestStatus
+import com.example.data.model.FacilityCatalog
 import com.example.data.model.SpaceListing
 import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.util.UiMessages
