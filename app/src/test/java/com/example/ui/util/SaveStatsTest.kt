@@ -1,8 +1,6 @@
 package com.example.ui.util
 
-import com.example.data.model.Governorate
-import com.example.data.model.SpaceListing
-import com.example.data.model.SpaceType
+import com.example.demoSpaces
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -11,7 +9,7 @@ class SaveStatsTest {
     private val oct24 = 1_792_800_000_000L // 2026-10-24 UTC
 
     private fun listing(id: String, byMonth: Map<String, Int>) =
-        SpaceListing(id = id, title = id, spaceType = SpaceType.POLYCLINIC, governorate = Governorate.BEIRUT, favoritesByMonth = byMonth)
+        demoSpaces().first().copy(id = id, favoritesByMonth = byMonth)
 
     @Test
     fun monthKeysMatchTheServer() {
