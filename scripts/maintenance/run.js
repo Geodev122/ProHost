@@ -1429,6 +1429,10 @@ async function igpublish(db, id) {
     const it = items[key];
     if (!it) throw new Error(`unknown item ${key}`);
     const url = `https://pro-host.tech/social/${it.file}`;
+    if (it.reel) { // AI-presenter Reels are posted from the Instagram app, where the "AI info" label can be switched on
+      notice(`plan ${key}: REEL, post from the Instagram app with AI info on: ${it.file}${it.caption ? " caption=" + JSON.stringify(it.caption.slice(0, 120)) : ""}`);
+      continue;
+    }
     if (!id) { notice(`plan ${key}: ${it.story ? "STORY" : "IMAGE post"}${it.manual ? " (post from the Instagram app with a link sticker: " + it.link + ")" : ""} ${url} ${done[key] ? "(already published: " + done[key].permalink + ")" : ""}${it.caption ? " caption=" + JSON.stringify(it.caption.slice(0, 120)) : ""}`); continue; }
     if (done[key]) { notice(`${key}: already published ${done[key].permalink}, nothing to do`); continue; }
     let ok = false;

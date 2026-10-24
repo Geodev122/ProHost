@@ -27,13 +27,13 @@ TMP = pathlib.Path(tempfile.mkdtemp(prefix="reel3_"))
 # clip, speech ("veo" = the clip's own, else the v2 voice-over line number), clip offset (s), caption
 SEGS = [
     {"clip": "s1", "speech": "veo", "cap": "كنت إدفع إيجار عيادتي كامل… وهيّي <b>فاضية</b> نُصّ النهار."},
-    {"clip": "s2", "speech": 2, "from": 1.2, "cap": "بين جلسة وجلسة، ساعات ضايعة… و<b>مصاري</b> عم تطير."},
+    {"clip": "s2", "speech": 2, "from": 1.6, "cap": "بين جلسة وجلسة، ساعات ضايعة… و<b>مصاري</b> عم تطير."},
     {"clip": "s3", "speech": 3, "from": 0.6, "cap": "هلّق عم أجّرها <b>بالساعة</b> على ProHost، لـ psychologists و coaches متلي."},
-    {"clip": "s4", "speech": 4, "from": 0.8, "cap": "أنا بحدّد الوقت والسعر، والطلبات بتوصلني عَال<b>واتساب</b>."},
+    {"clip": "s4", "speech": 4, "from": 0.0, "cap": "أنا بحدّد الوقت والسعر، والطلبات بتوصلني عَال<b>واتساب</b>."},
     {"clip": "s5", "speech": "veo", "cap": "إذا عندك مكتب، عبّي الـ form اللي بالـ bio، وبيفعّلولك <b>أوّل شهر مجّاناً</b>."},
-    {"clip": "s3", "speech": 6, "from": 3.4, "tail": 1.8, "cap": "وبعد الشهر؟ بسّ <b>تسعة دولار</b> بالشهر… أقلّ من إيجار ساعة وحدة."},
+    {"clip": "s4", "speech": 6, "from": 4.2, "tail": 1.5, "cap": "وبعد الشهر؟ بسّ <b>تسعة دولار</b> بالشهر… أقلّ من إيجار ساعة وحدة."},
 ]
-LEAD, HOLD = 0.2, 0.35  # silence before / after each spoken line
+LEAD, HOLD = 0.15, 0.25  # silence before / after each spoken line
 
 
 def wav48(src, ss=None, t=None):
@@ -59,13 +59,23 @@ def level(x, target=0.2):
     return x / (max(1e-6, np.sqrt((x[active] ** 2).mean())) / target) if active.any() else x
 
 
+def checked_window(shot):
+    """Speech start/end Gemini heard in the clip (avatar_video.py check stage), else None."""
+    rep = ROOT / "avatar" / "report.json"
+    for run in reversed(json.loads(rep.read_text()) if rep.exists() else []):
+        res = run.get("shots", {}).get(shot) if run.get("stage") == "check" else None
+        if isinstance(res, dict) and "speech_start_s" in res:
+            return float(res["speech_start_s"]), float(res["speech_end_s"]) + 0.1
+    return None
+
+
 def timeline():
     t, segs = 0.0, []
     for s in SEGS:
         clip = CLIPS / f"{s['clip']}.mp4"
         if s["speech"] == "veo":
             full = wav48(clip)
-            a, b = speech_window(full)
+            a, b = checked_window(s["clip"]) or speech_window(full)
             frm = max(0.0, a - LEAD)
             dur = min(len(full) / SR - frm, b - frm + HOLD)
             voice = full[int(frm * SR): int((frm + dur) * SR)]
