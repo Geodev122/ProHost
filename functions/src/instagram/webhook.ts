@@ -111,6 +111,12 @@ export async function handleEvent(config: IgConfig, event: IgEvent, now = Date.n
     // A rule tagged "consent-asked" (office-comment) asks "shall I register you?" in its private reply: a yes counts as consent.
     await seedRuleReply(event, priv.text, now, decision.tags.includes("consent-asked")).catch(() => undefined);
   }
+  // Same for a DM / story-reply rule tagged "consent-asked" (office-dm, office-story): the answer goes to the agent's intake.
+  const firstDm = decision.steps.find((st) => st.type === "dm");
+  if ((event.kind === "dm" || event.kind === "story_reply") && decision.ruleId && decision.tags.includes("consent-asked") && firstDm?.text &&
+      (status === "sent" || status === "dry-run")) {
+    await seedRuleReply(event, firstDm.text, now, true, event.kind === "dm" ? "" : "(reply to our story)").catch(() => undefined);
+  }
 
   if (decision.flag === "negative") {
     await alertAdmin(config, "Negative Instagram comment", `@${event.username || event.senderId} wrote under a post: "${event.text.slice(0, 300)}". Nothing was sent or liked. Comment id ${event.commentId ?? ""}.`).catch(() => undefined);
@@ -128,10 +134,10 @@ export async function handleEvent(config: IgConfig, event: IgEvent, now = Date.n
   return decision;
 }
 
-async function seedRuleReply(event: IgEvent, reply: string, now: number, consentAsked = false): Promise<void> {
+async function seedRuleReply(event: IgEvent, reply: string, now: number, consentAsked = false, label?: string): Promise<void> {
   const ref = getFirestore().collection("ig_threads").doc(event.senderId);
   const t = (await ref.get()).data() ?? {};
-  const turns = seedFromComment(Array.isArray(t.turns) ? t.turns : [], event.text, reply, now);
+  const turns = seedFromComment(Array.isArray(t.turns) ? t.turns : [], event.text, reply, now, label);
   await ref.set({ turns, at: now, lastAgentAt: now, closed: false, nudges: 0, state: { ...(t.state ?? {}), awaiting: "reply", ...(consentAsked ? { consentAsked: true } : {}) },
     ...(event.username ? { username: event.username } : {}) }, { merge: true });
 }

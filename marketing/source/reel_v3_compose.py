@@ -26,14 +26,15 @@ TMP = pathlib.Path(tempfile.mkdtemp(prefix="reel3_"))
 
 # clip, speech ("veo" = the clip's own, else the v2 voice-over line number), clip offset (s), caption
 SEGS = [
-    {"clip": "s1", "speech": "veo", "cap": "كنت إدفع إيجار عيادتي كامل… وهيّي <b>فاضية</b> نُصّ النهار."},
+    {"clip": "s1", "speech": "veo", "cap": "بدفع أجار عيادتي كامل… وهيّي <b>فاضية</b> نُصّ النهار."},
     {"clip": "s2", "speech": 2, "from": 1.6, "cap": "بين جلسة وجلسة، ساعات ضايعة… و<b>مصاري</b> عم تطير."},
     {"clip": "s3", "speech": 3, "from": 0.6, "cap": "هلّق عم أجّرها <b>بالساعة</b> على ProHost، لـ psychologists و coaches متلي."},
     {"clip": "s4", "speech": 4, "from": 0.0, "cap": "أنا بحدّد الوقت والسعر، والطلبات بتوصلني عَال<b>واتساب</b>."},
-    {"clip": "s5", "speech": "veo", "cap": "إذا عندك مكتب، عبّي الـ form اللي بالـ bio، وبيفعّلولك <b>أوّل شهر مجّاناً</b>."},
-    {"clip": "s4", "speech": 6, "from": 4.2, "tail": 1.5, "cap": "وبعد الشهر؟ بسّ <b>تسعة دولار</b> بالشهر… أقلّ من إيجار ساعة وحدة."},
+    {"clip": "s5", "speech": "veo", "cap": "إذا عندك مكتب… <b>Comment office</b> أو تواصل معنا عالـ DM لتربح <b>شهر مجّاني</b>."},
+    {"clip": "s4", "speech": 6, "from": 4.2, "tail": 1.5, "cap": "وبعد الشهر؟ بسّ <b>تسعة دولار</b> بالشهر… أقلّ من أجار ساعة وحدة."},
 ]
 LEAD, HOLD = 0.15, 0.25  # silence before / after each spoken line
+VEO_HOLD, FADE = 0.45, 0.12  # after a lip-synced line: hold, then fade the audio out (never clip the last word)
 
 
 def wav48(src, ss=None, t=None):
@@ -59,13 +60,31 @@ def level(x, target=0.2):
     return x / (max(1e-6, np.sqrt((x[active] ** 2).mean())) / target) if active.any() else x
 
 
+def last_voiced(x, around, thr=0.06):
+    """End of the last 20 ms frame above thr × peak, searched from 0.3 s before `around` to 2 s after it."""
+    hop = SR // 50
+    n = len(x) // hop
+    rms = np.sqrt((x[: n * hop].mean(axis=1).reshape(n, hop) ** 2).mean(axis=1))
+    lo, hi = max(0, int((around - 0.3) * 50)), min(n, int((around + 2.0) * 50))
+    on = [i for i in range(lo, hi) if rms[i] > thr * rms.max()]
+    return max(around, (on[-1] + 1) * hop / SR) if on else around
+
+
+def fade_out(x, secs=FADE):
+    k = min(len(x), int(secs * SR))
+    if k:
+        x = x.copy()
+        x[-k:] *= np.linspace(1, 0, k)[:, None]
+    return x
+
+
 def checked_window(shot):
     """Speech start/end Gemini heard in the clip (avatar_video.py check stage), else None."""
     rep = ROOT / "avatar" / "report.json"
     for run in reversed(json.loads(rep.read_text()) if rep.exists() else []):
         res = run.get("shots", {}).get(shot) if run.get("stage") == "check" else None
         if isinstance(res, dict) and "speech_start_s" in res:
-            return float(res["speech_start_s"]), float(res["speech_end_s"]) + 0.1
+            return float(res["speech_start_s"]), float(res["speech_end_s"])
     return None
 
 
@@ -76,14 +95,15 @@ def timeline():
         if s["speech"] == "veo":
             full = wav48(clip)
             a, b = checked_window(s["clip"]) or speech_window(full)
+            b = last_voiced(full, b)
             frm = max(0.0, a - LEAD)
-            dur = min(len(full) / SR - frm, b - frm + HOLD)
-            voice = full[int(frm * SR): int((frm + dur) * SR)]
+            dur = min(len(full) / SR - frm, b - frm + VEO_HOLD)
+            voice = fade_out(full[int(frm * SR): int((frm + dur) * SR)])
             sp = (t + a - frm, t + b - frm)
         else:
             line = wav48(LINES / f"reel_office_{s['speech']:02d}.wav")
-            a, b = speech_window(line, 0.05)
-            line = line[int(a * SR): int(b * SR)]
+            a, b = speech_window(line, 0.02)
+            line = fade_out(line[int(a * SR): min(len(line), int((b + 0.12) * SR))])
             frm = s.get("from", 0.0)
             dur = LEAD + len(line) / SR + HOLD + s.get("tail", 0.0)
             voice = np.zeros((int(dur * SR), 2), dtype=np.float32)

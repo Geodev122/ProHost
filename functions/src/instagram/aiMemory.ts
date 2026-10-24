@@ -63,8 +63,8 @@ export function inConversation(t: ThreadLike | undefined, now: number): boolean 
 }
 
 /** A private reply to a comment opens the chat: the comment and our reply become turns, and the agent waits for an answer. */
-export function seedFromComment(prevTurns: Turn[], commentText: string, replyText: string, now: number): Turn[] {
-  return appendTurns(prevTurns, [{ r: "u", t: `(public comment under our post) ${commentText}`, at: now }, { r: "a", t: replyText, at: now }]);
+export function seedFromComment(prevTurns: Turn[], commentText: string, replyText: string, now: number, label = "(public comment under our post)"): Turn[] {
+  return appendTurns(prevTurns, [{ r: "u", t: `${label} ${commentText}`.trim(), at: now }, { r: "a", t: replyText, at: now }]);
 }
 
 /** Thread id for a commenter Instagram did not identify (the poller's `u:<username>`), so a later DM can relink it. */

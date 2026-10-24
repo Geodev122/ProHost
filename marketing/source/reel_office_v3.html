@@ -1,4 +1,5 @@
 <!doctype html><html lang="ar"><head><meta charset="utf-8">
+<!-- CTA: comment "office" (the office-comment rule DMs them and the agent registers them) or DM us; first month free. -->
 <!-- Office reel v3, overlay layer only (transparent): the AI-avatar footage (marketing/avatar/clips, cut by
      scripts/marketing/reel_v3_compose.py) plays underneath. Segments and captions come from reel_office_v3_data.js
      (window.REEL3, written by the compositor from the real clip/voice timings). Offer: first month free, then $8.99/month
@@ -51,7 +52,7 @@ body { font-family: "Cairo", "Inter", sans-serif; color: #fff; position: relativ
 #wa .ic { width: 70px; height: 70px; border-radius: 50%; background: #25d366; flex: none; display: flex; align-items: center; justify-content: center; }
 #wa b { font: 800 32px/1.3 "Cairo", "Inter", sans-serif; display: block; } #wa i { font: 600 26px/1.3 "Cairo", "Inter", sans-serif; font-style: normal; color: #51607a; }
 #ctl { left: 60px; top: 1180px; display: flex; gap: 14px; }
-/* seg 5: first month free, link in bio */
+/* seg 5: comment "office" chip + free-month stamp */
 #stamp { left: 600px; top: 1040px; width: 400px; height: 200px; border-radius: 32px; background: var(--orange); color: var(--navy); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 24px 60px rgba(253,99,29,.45); }
 #stamp b { font: 800 62px/1.15 "Cairo", "Inter", sans-serif; } #stamp i { font: 800 32px/1.2 "Cairo", "Inter", sans-serif; font-style: normal; }
 #bio { left: 60px; top: 1180px; }
@@ -89,8 +90,8 @@ body { font-family: "Cairo", "Inter", sans-serif; color: #fff; position: relativ
   <div><b>طلب حجز جديد · الثلاثاء</b><i>10:00 – 12:00 · Life coach</i></div></div>
 <div class="abs" id="ctl"><span class="chip o">⏱ الوقت</span><span class="chip o">$ السعر</span><span class="chip">أنا بقرّر</span></div>
 
-<div class="abs" id="stamp"><b>أوّل شهر</b><i>مجّاناً · عبر الـ form</i></div>
-<div class="abs" id="bio"><span class="chip g">🔗 الرابط بالـ bio</span></div>
+<div class="abs" id="stamp"><b>شهر مجّاني</b><i>علّق office أو ابعتلنا DM</i></div>
+<div class="abs" id="bio"><span class="chip g">💬 Comment <span class="lat">office</span></span></div>
 
 <div class="abs card" id="tag"><div class="s">بعد الشهر الأوّل</div><div class="p">$8.99<small> /month</small></div><div class="u">أقلّ من إيجار ساعة وحدة</div></div>
 
@@ -99,8 +100,8 @@ body { font-family: "Cairo", "Inter", sans-serif; color: #fff; position: relativ
 
 <div class="abs" id="end">
   <div class="lg"><img src="assets/mark.png" alt=""><span>ProHost</span></div>
-  <div class="t">أوّل شهر <b>مجّاناً</b><br>عبّي الـ form · الرابط بالـ bio</div>
-  <div class="k">أو ابعتلنا <b>OFFICE</b> عالـ DM</div>
+  <div class="t">أوّل شهر <b>مجّاني</b><br>علّق <b class="lat">office</b> تحت الفيديو</div>
+  <div class="k">أو ابعتلنا عالـ <b>DM</b></div>
   <div class="r">pro-host.tech/list-your-office</div>
 </div>
 
@@ -123,7 +124,7 @@ fadeOut("#phone, .who", S[3] - 0.3, 0.3);
 pop("#wa", SP[3] + 0.9, 0.55);
 fadeUp("#ctl", SP[3] + 0.2, 0.45, 40);
 fadeOut("#wa, #ctl", S[4] - 0.3, 0.3);
-// seg 5: link in bio, then the free month on "أوّل شهر مجّاناً" (the line's last ~1.6 s)
+// seg 5: the comment chip on "Comment office", then the free month on "شهر مجّاني" (the line's last ~1.6 s)
 pop("#bio", SP[4] + 1.4, 0.5);
 pop("#stamp", Math.max(SP[4] + 2.0, R.segs[4].sp[1] - 1.7), 0.55);
 fadeOut("#bio, #stamp", S[5] - 0.25, 0.3);
