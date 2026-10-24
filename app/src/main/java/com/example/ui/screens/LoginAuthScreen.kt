@@ -232,6 +232,7 @@ fun LoginAuthScreen(
     var regCity by rememberSaveable { mutableStateOf("") }
     var tosAccepted by rememberSaveable { mutableStateOf(false) }
 
+    // Loading state: isAuthenticating drives each step's CircularProgressIndicator (AuthStepScaffold) and disables its actions.
     val isAuthenticating by authViewModel.isAuthenticating.collectAsState()
     val authErrorMessage by authViewModel.authErrorMessage.collectAsState()
 
