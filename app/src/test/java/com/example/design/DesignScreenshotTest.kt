@@ -246,13 +246,16 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         val user by vm.currentUser.collectAsState()
         when (screen) {
             "splash" -> SplashScreen(onSplashCompleted = {})
-            "login_signin" -> LoginAuthScreen(onLoginSuccess = {}, authViewModel = AuthViewModel(vm.repository))
-            "login_create" -> LoginAuthScreen(onLoginSuccess = {}, authViewModel = AuthViewModel(vm.repository),
-                initialStepName = "CREATE_ACCOUNT", initialEmail = "rana@example.com")
-            "login_forgot" -> LoginAuthScreen(onLoginSuccess = {}, authViewModel = AuthViewModel(vm.repository),
-                initialStepName = "FORGOT_PASSWORD", initialEmail = "rana@example.com")
-            "login_reset_sent" -> LoginAuthScreen(onLoginSuccess = {}, authViewModel = AuthViewModel(vm.repository),
-                initialStepName = "RESET_SENT", initialEmail = "rana@example.com")
+            "auth_welcome" -> LoginAuthScreen(onLoginSuccess = {}, authViewModel = AuthViewModel(vm.repository))
+            "auth_providers_signin" -> LoginAuthScreen(onLoginSuccess = {}, authViewModel = AuthViewModel(vm.repository), initialStepName = "PROVIDERS")
+            "auth_providers_create" -> LoginAuthScreen(onLoginSuccess = {}, authViewModel = AuthViewModel(vm.repository), initialStepName = "PROVIDERS", initialIntentName = "CREATE")
+            "auth_email" -> LoginAuthScreen(onLoginSuccess = {}, authViewModel = AuthViewModel(vm.repository), initialStepName = "EMAIL", initialEmail = "rana@example.com")
+            "auth_password_signin" -> LoginAuthScreen(onLoginSuccess = {}, authViewModel = AuthViewModel(vm.repository), initialStepName = "PASSWORD", initialEmail = "rana@example.com")
+            "auth_password_create" -> LoginAuthScreen(onLoginSuccess = {}, authViewModel = AuthViewModel(vm.repository), initialStepName = "PASSWORD", initialEmail = "rana@example.com", initialIntentName = "CREATE")
+            "auth_forgot" -> LoginAuthScreen(onLoginSuccess = {}, authViewModel = AuthViewModel(vm.repository), initialStepName = "FORGOT_PASSWORD", initialEmail = "rana@example.com")
+            "auth_reset_sent" -> LoginAuthScreen(onLoginSuccess = {}, authViewModel = AuthViewModel(vm.repository), initialStepName = "RESET_SENT", initialEmail = "rana@example.com")
+            "registration_2" -> LoginAuthScreen(onLoginSuccess = {}, authViewModel = AuthViewModel(vm.repository), initialStepName = "REG_PLACE")
+            "registration_3" -> LoginAuthScreen(onLoginSuccess = {}, authViewModel = AuthViewModel(vm.repository), initialStepName = "REG_WHATSAPP")
             "profile_verify_email" -> {
                 LaunchedEffect(Unit) { vm.showEmailVerificationReminderForTest() }
                 SpecialistProfileScreen(viewModel = vm)
@@ -284,8 +287,12 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             "request_detail" -> OwnerRequestDetailSheet(request = mockBooking2, onDismiss = {}, onAccept = {}, onReject = {}, onWhatsApp = {}, onChangePrice = {})
             "change_price" -> ChangePriceSheet(viewModel = vm, onDismiss = {}, initialSpaceId = mockSpace1.id)
             "listing_wizard_1" -> CreateListingDialog(currentUser = user, onDismiss = {}, onListingCreated = {})
-            "listing_wizard_2", "listing_wizard_3" ->
+            "listing_wizard_2", "listing_wizard_3", "listing_division_sheet" ->
                 CreateListingDialog(currentUser = user, onDismiss = {}, onListingCreated = {}, existingDraft = mockSpace1)
+            "listing_wizard_3_empty" -> CreateListingDialog(
+                currentUser = user, onDismiss = {}, onListingCreated = {},
+                existingDraft = mockSpace1.copy(subdivisions = emptyList(), pricing = com.example.data.model.RentalPricingConfig.default())
+            )
             "listing_verification" -> ListingVerificationDialog(space = mockSpace1, viewModel = vm, onDismiss = {})
             "location_prompt" -> SystemStylePermissionDialog(
                 icon = androidx.compose.material.icons.Icons.Filled.LocationOn,
@@ -364,11 +371,13 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         )
         /** Sheets, dialogs and forms (captured with their windows). */
         val OVERLAYS = listOf(
-            "splash", "login_signin", "login_create", "login_forgot", "login_reset_sent", "registration",
+            "splash", "auth_welcome", "auth_providers_signin", "auth_providers_create", "auth_email", "auth_password_signin",
+            "auth_password_create", "auth_forgot", "auth_reset_sent", "registration", "registration_2", "registration_3",
             "profile_verify_email", "filters", "availability_sheet", "request_sent", "requirements",
             "requirements_host", "rebook", "edit_booking", "cancel_booking", "country_picker", "legal_documents", "notifications",
             "analytics_consent", "delete_account", "redeem_code", "reject_request", "request_detail", "change_price",
-            "listing_wizard_1", "listing_wizard_2", "listing_wizard_3", "listing_verification", "location_prompt",
+            "listing_wizard_1", "listing_wizard_2", "listing_wizard_3", "listing_wizard_3_empty", "listing_division_sheet",
+            "listing_verification", "location_prompt",
             "delete_listing", "share_menu", "change_price_slots", "change_price_new"
         )
         /** Dialogs holding a text field: rendered on a manual clock (see capture()). */
@@ -381,6 +390,8 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             "reject_request" to listOf(Tap.Literal(mockBooking2.spaceTitle), Tap.Res(R.string.reject)),
             "listing_wizard_2" to listOf(Tap.Res(R.string.next)),
             "listing_wizard_3" to listOf(Tap.Res(R.string.next), Tap.Res(R.string.next)),
+            "listing_wizard_3_empty" to listOf(Tap.Res(R.string.next), Tap.Res(R.string.next)),
+            "listing_division_sheet" to listOf(Tap.Res(R.string.next), Tap.Res(R.string.next), Tap.Res(R.string.add_division)),
             "delete_listing" to listOf(Tap.Desc(R.string.delete_listing_2)),
             "share_menu" to listOf(Tap.Desc(R.string.share)),
             "change_price_slots" to listOf(Tap.Literal(mockSpace1.title)),
@@ -388,7 +399,8 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         )
         val HOST_SCREENS = setOf(
             "renting_requests", "owner_analytics", "manage_listing", "requirements_host", "redeem_code", "reject_request",
-            "request_detail", "change_price", "listing_wizard_1", "listing_wizard_2", "listing_wizard_3", "listing_verification",
+            "request_detail", "change_price", "listing_wizard_1", "listing_wizard_2", "listing_wizard_3", "listing_wizard_3_empty",
+            "listing_division_sheet", "listing_verification",
             "delete_listing", "change_price_slots", "change_price_new"
         )
         /** Smallest common phone (360 dp wide) at the largest text the app allows. */

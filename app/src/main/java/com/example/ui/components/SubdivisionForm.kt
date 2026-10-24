@@ -26,6 +26,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import coil.compose.AsyncImage
 import com.example.data.model.*
 import com.example.data.storage.FirebaseStorageService
@@ -36,28 +39,20 @@ import kotlinx.coroutines.withContext
 import java.util.UUID
 
 /**
- * The room/desk ("subdivision") builder — add, edit, and remove individually
- * rentable rooms or desks within a Center/Polyclinic/Co-working listing.
- * CreateListingDialog's Step 3 is the sole caller, for both a brand-new listing
- * and editing an already-published one (existingDraft + onListingUpdated), so a
- * host is never stuck with whatever subdivisions they happened to define during
- * the original wizard.
+ * One division of a listing (a room, desk, hall…): name, type, amenities, photos, pricing and optional own hours. The
+ * Create Listing wizard shows it in [DivisionSheet]; [initial] edits an existing division, null adds a new one, and
+ * [onSave] returns the finished division (Save is enabled only once it has a name and a real price).
  *
- * [operatingDays]/[openingHour]/[closingHour] come from the parent space's own
- * [SpaceOperatingSchedule] — the per-division pricing editor keys its Hourly/Shift/
- * Day-Based tables off these, so a division can never offer a slot outside hours
- * the space itself doesn't operate in.
- *
- * Only [subdivisionsList] and [onSubdivisionsChange] are hoisted — the "add a
- * new room" form fields are transient, single-use input state that resets after
- * each add, so they live locally here rather than in either caller.
+ * [operatingDays]/[openingHour]/[closingHour] come from the space's own [SpaceOperatingSchedule] — the pricing editor
+ * keys its Hourly/Shift/Day tables off these, so a division can never offer a slot outside the space's hours.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun SubdivisionEditorSection(
+fun SubdivisionForm(
     spaceId: String,
-    subdivisionsList: List<Subdivision>,
-    onSubdivisionsChange: (List<Subdivision>) -> Unit,
+    initial: Subdivision?,
+    onSave: (Subdivision) -> Unit,
+    onCancel: () -> Unit,
     operatingDays: List<String> = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat"),
     openingHour: String = "08:00",
     closingHour: String = "20:00",
@@ -73,90 +68,48 @@ fun SubdivisionEditorSection(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val storageService = remember { FirebaseStorageService.getInstance() }
+    val initialOverride = initial?.scheduleOverride
 
-    var subName by remember { mutableStateOf("") }
-    var subType by remember { mutableStateOf(Level2Type.ROOMS) }
-    var subAmenitiesSelected by remember { mutableStateOf(setOf<String>()) }
-    var subHashtags by remember { mutableStateOf(listOf<String>()) }
+    var subName by remember { mutableStateOf(initial?.name ?: "") }
+    var subType by remember { mutableStateOf(initial?.type ?: Level2Type.ROOMS) }
+    var subAmenitiesSelected by remember { mutableStateOf(initial?.amenities?.toSet() ?: setOf()) }
+    var subHashtags by remember { mutableStateOf(initial?.hashtags ?: listOf()) }
     var hashtagInput by remember { mutableStateOf("") }
     var showTypePicker by remember { mutableStateOf(false) }
     var showAmenityPicker by remember { mutableStateOf(false) }
-    var subImageUrls by remember { mutableStateOf(listOf<String>()) }
+    var subImageUrls by remember { mutableStateOf(initial?.imageUrls ?: listOf()) }
     var isUploadingSubImage by remember { mutableStateOf(false) }
     // uploadAndGetUrl already catches its own failures and returns null — this
     // surfaces that instead of letting the picker silently do nothing, same
-    // pattern as CreateListingDialog's photoUploadError/ownershipUploadError.
+    // pattern as CreateListingDialog's photoUploadError.
     var subImageUploadError by remember { mutableStateOf<String?>(null) }
-    var subPricing by remember { mutableStateOf(RentalPricingConfig.default()) }
-    var subPricingMode by remember { mutableStateOf(SubdivisionPricingMode.STRATEGY_BASED) }
-    var subCapacity by remember { mutableStateOf<Int?>(null) }
-    var subCapacityInput by remember { mutableStateOf("") }
-    var subMinAttendees by remember { mutableStateOf<Int?>(null) }
-    var subMinAttendeesInput by remember { mutableStateOf("") }
-    var subAttendeeTiers by remember { mutableStateOf(listOf<AttendeePackage>()) }
+    var subPricing by remember { mutableStateOf(initial?.pricing ?: RentalPricingConfig.default()) }
+    var subPricingMode by remember { mutableStateOf(initial?.pricingMode ?: SubdivisionPricingMode.STRATEGY_BASED) }
+    var subCapacity by remember { mutableStateOf<Int?>(initial?.capacity) }
+    var subCapacityInput by remember { mutableStateOf(initial?.capacity?.toString() ?: "") }
+    var subMinAttendees by remember { mutableStateOf<Int?>(initial?.minAttendees) }
+    var subMinAttendeesInput by remember { mutableStateOf(initial?.minAttendees?.toString() ?: "") }
+    var subAttendeeTiers by remember { mutableStateOf(initial?.attendeeTiers ?: listOf()) }
 
     // Per-division operating-schedule override — off by default, meaning this room
     // just follows the whole space's own SpaceOperatingSchedule (the common case).
     // Turning it on seeds from the space's current hours/days so the host is editing
     // a delta (e.g. "this exam room closes at 17:00, not 20:00"), not starting blank.
-    var subScheduleOverrideEnabled by remember { mutableStateOf(false) }
-    var subOverrideOpeningHour by remember { mutableStateOf(openingHour) }
-    var subOverrideClosingHour by remember { mutableStateOf(closingHour) }
-    var subOverrideDays by remember { mutableStateOf(operatingDays.toSet()) }
-    var subOverrideSundayOperating by remember { mutableStateOf(false) }
-    var subOverrideBlackouts by remember { mutableStateOf(listOf<BlackoutSlot>()) }
-    var blackoutDay by remember { mutableStateOf(operatingDays.firstOrNull() ?: "Mon") }
+    var subScheduleOverrideEnabled by remember { mutableStateOf(initialOverride != null) }
+    var subOverrideOpeningHour by remember { mutableStateOf(initialOverride?.openingHour ?: openingHour) }
+    var subOverrideClosingHour by remember { mutableStateOf(initialOverride?.closingHour ?: closingHour) }
+    var subOverrideDays by remember { mutableStateOf(initialOverride?.operatingDays?.toSet() ?: operatingDays.toSet()) }
+    var subOverrideSundayOperating by remember { mutableStateOf(initialOverride?.isSundayOperating ?: false) }
+    var subOverrideBlackouts by remember { mutableStateOf(initialOverride?.blackoutSlots ?: listOf()) }
+    var blackoutDay by remember { mutableStateOf(subOverrideDays.firstOrNull() ?: "Mon") }
     var blackoutStart by remember { mutableStateOf("18:00") }
     var blackoutEnd by remember { mutableStateOf("22:00") }
     var blackoutReason by remember { mutableStateOf("") }
 
-    // Pending id so images upload to their final path before the Subdivision object
-    // itself is created — same "generate the id up front" pattern CreateListingDialog
-    // uses for the parent listing's own photos. Regenerated after each successful Add
-    // (see the Button below) — a single remember{} here would give every room added
-    // in the same session the identical id, silently overwriting each other's images.
-    var pendingSubId by remember { mutableStateOf("SUB-" + UUID.randomUUID().toString().take(6).uppercase()) }
+    // Id generated up front so photos upload to their final path before the division
+    // itself is saved; an edited division keeps its own id (bookings reference it).
+    val pendingSubId = remember { initial?.id ?: ("SUB-" + UUID.randomUUID().toString().take(6).uppercase()) }
 
-    // Which entry in subdivisionsList (if any) the form below is currently editing
-    // in place, rather than building a new one. Previously the only way to change
-    // an already-added subdivision was to delete it and re-add it from scratch —
-    // this tracks the in-progress edit so the "Add" button can become "Save
-    // Changes" and commit a replacement instead of an append.
-    var editingSubdivisionIndex by remember { mutableStateOf<Int?>(null) }
-    var justSaved by remember { mutableStateOf(false) }
-
-
-    LaunchedEffect(editingSubdivisionIndex) {
-        if (editingSubdivisionIndex != null) justSaved = false
-    }
-
-    fun resetSubdivisionForm() {
-        editingSubdivisionIndex = null
-        subName = ""
-        subType = Level2Type.ROOMS
-        subAmenitiesSelected = emptySet()
-        subHashtags = emptyList()
-        hashtagInput = ""
-        subImageUrls = emptyList()
-        subPricing = RentalPricingConfig.default()
-        subPricingMode = SubdivisionPricingMode.STRATEGY_BASED
-        subCapacity = null
-        subCapacityInput = ""
-        subMinAttendees = null
-        subMinAttendeesInput = ""
-        subAttendeeTiers = emptyList()
-        subScheduleOverrideEnabled = false
-        subOverrideOpeningHour = openingHour
-        subOverrideClosingHour = closingHour
-        subOverrideDays = operatingDays.toSet()
-        subOverrideSundayOperating = false
-        subOverrideBlackouts = emptyList()
-        blackoutDay = operatingDays.firstOrNull() ?: "Mon"
-        blackoutStart = "18:00"
-        blackoutEnd = "22:00"
-        blackoutReason = ""
-        pendingSubId = "SUB-" + UUID.randomUUID().toString().take(6).uppercase()
-    }
 
     fun buildCurrentSubdivision(): Subdivision = Subdivision(
         id = pendingSubId,
@@ -256,187 +209,6 @@ fun SubdivisionEditorSection(
     }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-        // Intro header
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Icon(Icons.Default.Apartment, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-            Column {
-                Text(
-                    stringResource(R.string.rooms_workspace_divisions),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    stringResource(R.string.add_each_rentable_room_or_desk_separately),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        if (subdivisionsList.isNotEmpty()) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(16.dp))
-                Text(
-                    stringResource(R.string.configured_rooms_x, subdivisionsList.size),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                subdivisionsList.forEachIndexed { index, sub ->
-                    val isEditingThis = editingSubdivisionIndex == index
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(
-                                width = if (isEditingThis) 2.dp else 0.dp,
-                                color = if (isEditingThis) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Transparent,
-                                shape = MaterialTheme.shapes.medium
-                            ),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isEditingThis) {
-                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f)
-                            } else {
-                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
-                            }
-                        ),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                                    Text(sub.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                    if (isEditingThis) {
-                                        Surface(color = MaterialTheme.colorScheme.primary, shape = MaterialTheme.shapes.extraSmall) {
-                                            Text(
-                                                stringResource(R.string.editing),
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onPrimary
-                                            )
-                                        }
-                                    }
-                                }
-
-                                Row {
-                                    if (!isEditingThis) {
-                                        IconButton(onClick = {
-                                            subName = sub.name
-                                            subType = sub.type
-                                            subAmenitiesSelected = sub.amenities.toSet()
-                                            subHashtags = sub.hashtags
-                                            hashtagInput = ""
-                                            subImageUrls = sub.imageUrls
-                                            subPricing = sub.pricing
-                                            subPricingMode = sub.pricingMode
-                                            subCapacity = sub.capacity
-                                            subCapacityInput = sub.capacity?.toString() ?: ""
-                                            subMinAttendees = sub.minAttendees
-                                            subMinAttendeesInput = sub.minAttendees?.toString() ?: ""
-                                            subAttendeeTiers = sub.attendeeTiers
-                                            val override = sub.scheduleOverride
-                                            subScheduleOverrideEnabled = override != null
-                                            subOverrideOpeningHour = override?.openingHour ?: openingHour
-                                            subOverrideClosingHour = override?.closingHour ?: closingHour
-                                            subOverrideDays = override?.operatingDays?.toSet() ?: operatingDays.toSet()
-                                            subOverrideSundayOperating = override?.isSundayOperating ?: false
-                                            subOverrideBlackouts = override?.blackoutSlots ?: emptyList()
-                                            blackoutDay = subOverrideDays.firstOrNull() ?: "Mon"
-                                            pendingSubId = sub.id
-                                            editingSubdivisionIndex = index
-                                        }) {
-                                            Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit_division), tint = MaterialTheme.colorScheme.primary)
-                                        }
-                                    }
-                                    IconButton(onClick = {
-                                        if (isEditingThis) {
-                                            resetSubdivisionForm()
-                                        } else {
-                                            // Deleting a row above the one being edited shifts it
-                                            // down one; without this, Save Changes would overwrite
-                                            // the wrong room and duplicate the edited room's id.
-                                            val editIdx = editingSubdivisionIndex
-                                            if (editIdx != null && editIdx > index) editingSubdivisionIndex = editIdx - 1
-                                        }
-                                        onSubdivisionsChange(subdivisionsList.filterIndexed { i, _ -> i != index })
-                                    }) {
-                                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_division), tint = MaterialTheme.colorScheme.error)
-                                    }
-                                }
-                            }
-
-                            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                                Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.extraSmall) {
-                                    Text(
-                                        localizedLabel(sub.type.displayName),
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                }
-                                Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.extraSmall) {
-                                    Text(
-                                        if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) {
-                                            uiText(R.string.x_per_attendee, localizedLabel(sub.pricing.strategyType.displayName))
-                                        } else localizedLabel(sub.pricing.strategyType.displayName),
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                                    )
-                                }
-                            }
-                            if (sub.amenities.isNotEmpty()) {
-                                Text(
-                                    "✓ ${sub.amenities.joinToString()}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            if (sub.imageUrls.isNotEmpty()) {
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                                    items(sub.imageUrls) { url ->
-                                        AsyncImage(
-                                            model = url,
-                                            contentDescription = null,
-                                            contentScale = ContentScale.Crop,
-                                            modifier = Modifier.size(48.dp)
-                                        )
-                                    }
-                                }
-                            }
-                            if (isEditingThis) {
-                                Spacer(modifier = Modifier.height(Spacing.sm))
-                                Button(
-                                    onClick = {
-                                        val updatedSub = buildCurrentSubdivision()
-                                        onSubdivisionsChange(subdivisionsList.mapIndexed { i, existing ->
-                                            if (i == index) updatedSub else existing
-                                        })
-                                        resetSubdivisionForm()
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    enabled = isSubFormValid,
-                                    shape = MaterialTheme.shapes.small,
-                                    colors = proPrimaryButtonColors()
-                                ) {
-                                    Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(Spacing.xs))
-                                    Text(stringResource(R.string.save_subdivision_changes), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            HorizontalDivider()
-        }
 
         // Pickers declared up-front so they render on top of everything
         if (showTypePicker) {
@@ -487,7 +259,7 @@ fun SubdivisionEditorSection(
                         )
                     }
                     Text(
-                        if (editingSubdivisionIndex != null) stringResource(R.string.edit_room_unit) else stringResource(R.string.room_unit_identity),
+                        if (initial != null) stringResource(R.string.edit_room_unit) else stringResource(R.string.room_unit_identity),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -926,86 +698,27 @@ fun SubdivisionEditorSection(
             }
         }
 
-        // ── Action buttons ──────────────────────────────────────────────────
-        if (editingSubdivisionIndex != null) {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Button(
-                    colors = proPrimaryButtonColors(),
-                    onClick = {
-                        val editIndex = editingSubdivisionIndex
-                        val updatedSub = buildCurrentSubdivision()
-                        onSubdivisionsChange(
-                            subdivisionsList.mapIndexed { i, existing -> if (i == editIndex) updatedSub else existing }
-                        )
-                        resetSubdivisionForm()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = isSubFormValid,
-                    shape = MaterialTheme.shapes.medium
-                ) {
-                    Icon(Icons.Default.Check, contentDescription = null)
-                    Spacer(modifier = Modifier.width(Spacing.sm))
-                    Text(stringResource(R.string.save_changes), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                }
-                OutlinedButton(
-                    onClick = { resetSubdivisionForm() },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(modifier = Modifier.width(Spacing.sm))
-                    Text(stringResource(R.string.cancel_add_new_room), style = MaterialTheme.typography.labelMedium)
-                }
-            }
-        } else if (justSaved) {
-            Surface(
-                color = MaterialTheme.proColors.successContainer,
-                shape = MaterialTheme.shapes.small,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                ) {
-                    Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.proColors.success, modifier = Modifier.size(16.dp))
-                    Text(stringResource(R.string.room_saved), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.proColors.success, fontWeight = FontWeight.SemiBold)
-                }
-            }
-            Spacer(modifier = Modifier.height(Spacing.sm))
-            Button(colors = proPrimaryButtonColors(), 
-                onClick = { resetSubdivisionForm(); justSaved = false },
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null)
-                Spacer(modifier = Modifier.width(Spacing.sm))
-                Text(stringResource(R.string.add_another_room), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-            }
-            OutlinedButton(
-                onClick = { resetSubdivisionForm(); justSaved = false },
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Text(stringResource(R.string.done_adding_rooms), style = MaterialTheme.typography.labelLarge)
-            }
-        } else {
-            Button(
-                colors = proPrimaryButtonColors(),
-                onClick = {
-                    val newSub = buildCurrentSubdivision()
-                    onSubdivisionsChange(subdivisionsList + newSub)
-                    pendingSubId = "SUB-" + UUID.randomUUID().toString().take(6).uppercase()
-                    justSaved = true
-                },
-                modifier = Modifier.fillMaxWidth(),
+        // ── Save / cancel ─────────────────────────────────────────────────
+        if (!isSubFormValid && attendeeBlocker == null) {
+            Text(
+                stringResource(R.string.division_save_hint),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            CustomButton(
+                text = stringResource(R.string.cancel),
+                onClick = onCancel,
+                variant = CustomButtonVariant.OUTLINED,
+                modifier = Modifier.weight(1f)
+            )
+            ProPrimaryButton(
+                text = stringResource(R.string.save_division),
+                onClick = { onSave(buildCurrentSubdivision()) },
                 enabled = isSubFormValid,
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Icon(Icons.Default.Save, contentDescription = null)
-                Spacer(modifier = Modifier.width(Spacing.sm))
-                Text(stringResource(R.string.save_room), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-            }
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
@@ -1276,6 +989,55 @@ private fun AttendeeTierEditor(
                     modifier = Modifier.weight(1f)
                 ) { Text(stringResource(R.string.use_templates)) }
             }
+        }
+    }
+}
+
+/** The Create Listing wizard's division editor: [SubdivisionForm] in a full-height sheet ([initial] null = new division). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DivisionSheet(
+    spaceId: String,
+    initial: Subdivision?,
+    onSave: (Subdivision) -> Unit,
+    onDismiss: () -> Unit,
+    operatingDays: List<String>,
+    openingHour: String,
+    closingHour: String,
+    availableAmenities: List<SchemaItem> = emptyList(),
+    onAddCustomAmenity: ((name: String, divisionTypeId: String) -> Unit)? = null,
+    attendeeTemplates: List<AttendeePackage> = emptyList()
+) {
+    TrackScreen("listing_division_sheet", "CreateListingDialog")
+    ProHostBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .imePadding()
+                .verticalScroll(androidx.compose.foundation.rememberScrollState())
+                .padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.xl),
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
+        ) {
+            Text(
+                if (initial != null) stringResource(R.string.edit_division) else stringResource(R.string.add_division),
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.semantics { heading() }
+            )
+            SubdivisionForm(
+                spaceId = spaceId,
+                initial = initial,
+                onSave = onSave,
+                onCancel = onDismiss,
+                operatingDays = operatingDays,
+                openingHour = openingHour,
+                closingHour = closingHour,
+                availableAmenities = availableAmenities,
+                onAddCustomAmenity = onAddCustomAmenity,
+                attendeeTemplates = attendeeTemplates
+            )
         }
     }
 }

@@ -21,11 +21,15 @@ class ScreenNamesTest {
         assertEquals("admin_packages", ScreenNames.adminTab(0))
         assertEquals("admin_demo", ScreenNames.adminTab(6))
         assertEquals("admin_tab_9", ScreenNames.adminTab(9))
-        assertEquals("auth_sign_in", ScreenNames.forAuthStep("SIGN_IN"))
-        assertEquals("auth_create_account", ScreenNames.forAuthStep("CREATE_ACCOUNT"))
+        assertEquals("auth_welcome", ScreenNames.forAuthStep("WELCOME"))
+        assertEquals("auth_providers", ScreenNames.forAuthStep("PROVIDERS"))
+        assertEquals("auth_email", ScreenNames.forAuthStep("EMAIL"))
+        assertEquals("auth_password", ScreenNames.forAuthStep("PASSWORD"))
         assertEquals("auth_forgot_password", ScreenNames.forAuthStep("FORGOT_PASSWORD"))
         assertEquals("auth_reset_sent", ScreenNames.forAuthStep("RESET_SENT"))
-        assertEquals("registration", ScreenNames.forAuthStep("REGISTRATION_FORM"))
+        assertEquals("registration_profile", ScreenNames.forAuthStep("REG_PROFILE"))
+        assertEquals("registration_place", ScreenNames.forAuthStep("REG_PLACE"))
+        assertEquals("registration_whatsapp", ScreenNames.forAuthStep("REG_WHATSAPP"))
         assertEquals("notifications", ScreenNames.forDrawerDialog("fcm_alerts"))
     }
 }

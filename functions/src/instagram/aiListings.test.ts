@@ -41,6 +41,9 @@ test("search: place, kind, unit, capacity and budget filter; the best room is ch
   assert.equal(searchListings(rows, { kind: "meeting", attendees: 8 }, NOW)[0].room.id, "SUB-b");
   assert.equal(searchListings(rows, { kind: "office", unit: "month" }, NOW)[0].listing.id, "SPC-2");
   assert.equal(searchListings(rows, { city: "Tripoli" }, NOW).length, 0);
+  // a listing whose address was filled in Arabic is still found by its English city copy
+  const arabic = toListingRow("SPC-4", { title: "عيادة", country: "Lebanon", city: "طرابلس", cityEn: "Tripoli", pricing: { strategyType: "HOURLY", hourly: { cellPrices: { a: 15 } } } });
+  assert.equal(searchListings([arabic], { city: "Tripoli" }, NOW)[0].listing.id, "SPC-4");
   assert.equal(searchListings(rows, { kind: "office", exclude: ["SPC-2"] }, NOW).length, 0, "already sent");
   // nothing specific: both, the verified and popular one first
   assert.deepEqual(searchListings(rows, {}, NOW).map((x) => x.listing.id), ["SPC-1", "SPC-2"]);

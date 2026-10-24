@@ -1243,7 +1243,7 @@ class ProHostViewModel(
         val shiftName: String = "Shift"
     )
 
-    /** Adds one room/desk to an already-published listing — see SubdivisionEditorSection. */
+    /** Adds one room/desk to an already-published listing — see SubdivisionForm. */
     fun addSubdivision(spaceId: String, subdivision: Subdivision, context: Context) {
         val appContext = context.applicationContext
         viewModelScope.launch {

@@ -18,7 +18,7 @@ export interface RoomRow {
   price: number | null; priceUnit: PriceUnit | null; amenities: string[];
 }
 export interface ListingRow {
-  id: string; code: string; title: string; category: string; country: string; city: string; area: string; verified: boolean;
+  id: string; code: string; title: string; category: string; country: string; city: string; /** English copy of a city typed in another language (app 1.0.45). */ cityEn: string; area: string; verified: boolean;
   rooms: RoomRow[]; features: string[]; views: number; inquiries: number; favorites: number; bookings: number; createdAt: number;
 }
 
@@ -54,7 +54,7 @@ export function toListingRow(id: string, d: Data, bookings = 0): ListingRow {
     })()];
   const equipment = Array.isArray(d.equipment) ? (d.equipment as Data[]).map((e) => str(e.name, 40)).filter(Boolean) : [];
   return {
-    id, code: str(d.displayCode, 12), title: str(d.title, 80) || category, category, country: place.country, city: str(d.city, 60) || place.locality,
+    id, code: str(d.displayCode, 12), title: str(d.title, 80) || category, category, country: place.country, city: str(d.city, 60) || place.locality, cityEn: str(d.cityEn, 60),
     area: str(d.district, 60), verified: d.isVerified === true, rooms,
     features: [...strs(d.essentialFacilities), ...equipment].slice(0, 14),
     views: num(d.avatarEngagementViews), inquiries: num(d.avatarInquiryClicks), favorites: num(d.favoriteCount), bookings, createdAt: num(d.createdAtMillis),
@@ -159,7 +159,7 @@ export function searchListings(rows: ListingRow[], c: SearchCriteria, now = Date
     let base = 0;
     const reasons: string[] = [];
     if (c.city) {
-      if (![l.city, l.area, l.title].some((x) => has(x, c.city!) || (!!x && has(c.city!, x)))) continue;
+      if (![l.city, l.cityEn, l.area, l.title].some((x) => has(x, c.city!) || (!!x && has(c.city!, x)))) continue;
       base += 30; reasons.push(`in ${l.city || c.city}`);
     }
     let best: { room: RoomRow; score: number; reasons: string[] } | null = null;

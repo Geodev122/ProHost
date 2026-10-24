@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.dp
 /**
  * The opening/closing-hour fields + day-of-week chip row shared by
  * CreateListingDialog's Step 2 (setting a listing's own operating schedule) and
- * SubdivisionEditorSection's per-division schedule-override editor — the identical
+ * SubdivisionForm's per-division schedule-override editor — the identical
  * control (same fields, same day-chip toggle behavior) previously hand-rolled
  * separately in each place. Callers own everything around this (titles, a Sunday
  * toggle, a Save button, a wizard's surrounding form) — this is just the two real

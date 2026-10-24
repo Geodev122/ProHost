@@ -236,7 +236,7 @@ class DiscoveryViewModel(
 
     /** Everything a search token may match, lower-cased once per space. */
     private fun searchText(space: SpaceListing): String = buildList {
-        add(space.title); add(space.description); add(space.district); add(space.city)
+        add(space.title); add(space.description); add(space.district); add(space.city); add(space.cityEn)
         add(space.streetAddress); add(space.governorate.displayName); add(space.spaceType.displayName)
         // Arabic users can search by the Arabic names too.
         add(localizedLabel(space.governorate.displayName)); add(localizedLabel(space.spaceType.displayName))

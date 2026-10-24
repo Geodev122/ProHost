@@ -328,7 +328,7 @@ data class RentalPricingConfig(
          *  Called both from fromFirestoreMap (a document with no "pricing" key at
          *  all) and eagerly from every write path that still constructs a
          *  RentalFormula/SubdivisionStrategy directly (CreateListingDialog,
-         *  SubdivisionEditorSection), so "pricing" is always correct the moment
+         *  SubdivisionForm), so "pricing" is always correct the moment
          *  it's first written, not only on a later read of a genuinely old
          *  pre-existing document. */
         fun fromLegacyFormula(formula: RentalFormula?): RentalPricingConfig {
@@ -884,6 +884,8 @@ data class SpaceListing(
     // to governorate/coordinates for those.
     val country: String = "",
     val city: String = "",
+    /** English copy of [city] (the address fields are filled in the app's language), so search and filters match. */
+    val cityEn: String = "",
     val floorInfo: String,
     val lat: Double,
     val lng: Double,
@@ -1001,6 +1003,7 @@ data class SpaceListing(
             "streetAddress" to streetAddress,
             "country" to country,
             "city" to city,
+            "cityEn" to cityEn,
             "floorInfo" to floorInfo,
             "lat" to lat,
             "lng" to lng,
@@ -1202,6 +1205,7 @@ data class SpaceListing(
                 streetAddress = data["streetAddress"] as? String ?: "Beirut Central District",
                 country = data["country"] as? String ?: "",
                 city = data["city"] as? String ?: "",
+                cityEn = data["cityEn"] as? String ?: "",
                 floorInfo = data["floorInfo"] as? String ?: "Floor 1",
                 lat = (data["lat"] as? Number)?.toDouble() ?: 33.8938,
                 lng = (data["lng"] as? Number)?.toDouble() ?: 35.5018,
