@@ -1,4 +1,6 @@
-﻿package com.example.ui.screens
+﻿@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
+package com.example.ui.screens
 
 import com.example.ui.util.timeRange
 import com.example.ui.util.locationLine
@@ -835,14 +837,14 @@ fun OwnerHubScreenContent(
                         }
 
                         // Engagement metrics snapshot
-                        Row(
+                        FlowRow(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
                         ) {
                             Surface(
                                 color = MaterialTheme.colorScheme.surfaceVariant,
-                                shape = MaterialTheme.shapes.small,
-                                modifier = Modifier.weight(1f)
+                                shape = MaterialTheme.shapes.small
                             ) {
                                 Row(
                                     modifier = Modifier.padding(Spacing.sm),
@@ -861,8 +863,7 @@ fun OwnerHubScreenContent(
 
                             Surface(
                                 color = MaterialTheme.colorScheme.surfaceVariant,
-                                shape = MaterialTheme.shapes.small,
-                                modifier = Modifier.weight(1f)
+                                shape = MaterialTheme.shapes.small
                             ) {
                                 Row(
                                     modifier = Modifier.padding(Spacing.sm),
@@ -881,8 +882,7 @@ fun OwnerHubScreenContent(
                             // People who have it saved now (server count, the owner's own save excluded).
                             Surface(
                                 color = MaterialTheme.colorScheme.surfaceVariant,
-                                shape = MaterialTheme.shapes.small,
-                                modifier = Modifier.weight(1f)
+                                shape = MaterialTheme.shapes.small
                             ) {
                                 Row(
                                     modifier = Modifier.padding(Spacing.sm),
