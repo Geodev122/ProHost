@@ -120,10 +120,11 @@ jobs:
       - name: Verify Bundle Signature
         run: jarsigner -verify app/build/outputs/bundle/release/app-release.aab | tail -1
 
+      # Artifact names can't hold "/" (feature branches): main keeps "prohost-release-main-N", others "…-branch-N".
       - name: Upload Release Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: prohost-release-${{ github.ref_name }}-${{ github.run_number }}
+          name: prohost-release-${{ github.ref_name == 'main' && 'main' || 'branch' }}-${{ github.run_number }}
           if-no-files-found: error
           path: |
             app/build/outputs/bundle/release/app-release.aab
@@ -144,7 +145,7 @@ jobs:
           node-version: "22"
       - uses: actions/download-artifact@v4
         with:
-          name: prohost-release-${{ github.ref_name }}-${{ github.run_number }}
+          name: prohost-release-${{ github.ref_name == 'main' && 'main' || 'branch' }}-${{ github.run_number }}
           path: release
       - name: Install google-auth-library
         run: npm install --no-save --prefix "$RUNNER_TEMP/play" google-auth-library@9.15.1
