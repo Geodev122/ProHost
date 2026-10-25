@@ -165,8 +165,12 @@ def ask_audio(path, prompt, models):
                                                      {"text": prompt}]}],
             "generationConfig": {"responseMimeType": "application/json", "temperature": 0}}
     for model in models:
-        r = session.post(f"https://aiplatform.googleapis.com/v1/projects/{project}/locations/global/publishers/google/"
-                         f"models/{model}:generateContent", json=body, headers=HDR, timeout=300)
+        for attempt in range(4):  # 429 = per-minute quota: wait and retry the same model
+            r = session.post(f"https://aiplatform.googleapis.com/v1/projects/{project}/locations/global/publishers/google/"
+                             f"models/{model}:generateContent", json=body, headers=HDR, timeout=300)
+            if r.status_code != 429:
+                break
+            time.sleep(15 * (attempt + 1))
         if not r.ok:
             print(f"::notice::check {model}: HTTP {r.status_code} {r.text[:200]}")
             continue
