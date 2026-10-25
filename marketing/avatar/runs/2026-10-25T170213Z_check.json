@@ -1,0 +1,151 @@
+{
+  "at": "2026-10-25T17:02:13Z",
+  "stage": "check",
+  "shots": {
+    "s1n": {
+      "chosen": "s1n_a",
+      "model": "gemini-3.8-flash",
+      "transcript": "بدفع أجار عيادتي كامل وبتضلا فاضية نص النهار",
+      "speech_start_s": 0.0,
+      "speech_end_s": 4.6,
+      "cut_off": false,
+      "dialect": "Syrian",
+      "lebanese_score": 3,
+      "cues": "Levantine features (e.g. 'أجار', 'بتضلا فاضية'), but the vowel qualities and rhythm sound distinctly Syrian (Damascene/Shami) rather than urban Lebanese/Beiruti.",
+      "matches_script": true,
+      "differences": "Says 'وبتضلا' (with a slight pronominal suffix/ending /a/) instead of 'وبتضلّ'",
+      "intelligible": 5,
+      "takes": {
+        "s1n_a": {
+          "model": "gemini-3.8-flash",
+          "transcript": "بدفع أجار عيادتي كامل وبتضلا فاضية نص النهار",
+          "speech_start_s": 0.0,
+          "speech_end_s": 4.6,
+          "cut_off": false,
+          "dialect": "Syrian",
+          "lebanese_score": 3,
+          "cues": "Levantine features (e.g. 'أجار', 'بتضلا فاضية'), but the vowel qualities and rhythm sound distinctly Syrian (Damascene/Shami) rather than urban Lebanese/Beiruti.",
+          "matches_script": true,
+          "differences": "Says 'وبتضلا' (with a slight pronominal suffix/ending /a/) instead of 'وبتضلّ'",
+          "intelligible": 5
+        },
+        "s1n_b": {
+          "model": "gemini-3.8-flash",
+          "transcript": "بِدْفَع أَجار عيادتي كامل وبِتْضَلّا فاضية نصّ النهار",
+          "speech_start_s": 0.0,
+          "speech_end_s": 4.15,
+          "cut_off": false,
+          "dialect": "Syrian",
+          "lebanese_score": 3,
+          "cues": "Levantine accent, leaning Syrian due to the pronunciation of 'أجار' (open /a/ rather than Lebanese /e/ or imala) and the pronoun suffix 'بتضلا' (w-btḍalla) with Damascene-style intonation.",
+          "matches_script": false,
+          "differences": "Spoke 'وبِتْضَلّا' (with attached feminine object pronoun) instead of 'وبِتْضَلّ'.",
+          "intelligible": 5
+        },
+        "s1n_c": {
+          "model": "gemini-3.8-flash",
+          "transcript": "بدفع أجار عيادتي كامل وبتضلها فاضية نص النهار",
+          "speech_start_s": 0.0,
+          "speech_end_s": 4.1,
+          "cut_off": false,
+          "dialect": "Syrian",
+          "lebanese_score": 2,
+          "cues": "The intonation and flat vowel prolongation ('3iyādti kāmel', 'bitḍalla') are distinctly Syrian (Damascene) rather than Lebanese.",
+          "matches_script": false,
+          "differences": "Said 'وبِتْضَلّها' instead of 'وبِتْضَلّ'",
+          "intelligible": 5
+        },
+        "s1n_d": {
+          "model": "gemini-3.8-flash",
+          "transcript": "بدفع أجار عيادتي كامل وبتضلها فاضية نص النهار",
+          "speech_start_s": 0.1,
+          "speech_end_s": 4.9,
+          "cut_off": false,
+          "dialect": "Syrian",
+          "lebanese_score": 3,
+          "cues": "Levantine phonology with no imala on final vowels (pronounced 'كامل' flat, 'وبتضلها' with pronounced -ha instead of typical urban Lebanese 'وبتضلّ' or 'وبتضلا'), intonation and rhythm lean Syrian.",
+          "matches_script": false,
+          "differences": "Said 'وبتضلها' instead of 'وبتضلّ'",
+          "intelligible": 5
+        }
+      }
+    },
+    "s5n": {
+      "chosen": "s5n_c",
+      "model": "gemini-3.8-flash",
+      "transcript": "إذا بدك مكتب نزل التطبيق تفتوش وتحجز كلو مجاني",
+      "speech_start_s": 0.1,
+      "speech_end_s": 4.5,
+      "cut_off": false,
+      "dialect": "Jordanian",
+      "lebanese_score": 1,
+      "cues": "Pronounces 'qaf' as a uvular stop [q] in 'التطبيق', uses non-Lebanese intonation and vowel realization ('تفتوش' instead of Lebanese 'تفتّش' /tfattish/).",
+      "matches_script": false,
+      "differences": "Pronounced 'تفتوش' instead of 'تفتّش', and pronounced the Qaf in 'التطبيق' as [q].",
+      "intelligible": 5,
+      "takes": {
+        "s5n_a": {
+          "model": "gemini-3.8-flash",
+          "transcript": "إذا بدوك مكتب، نزل التطبيق، تفتوش وتحجز، كلو مجاني",
+          "speech_start_s": 0.05,
+          "speech_end_s": 5.65,
+          "cut_off": false,
+          "dialect": "other",
+          "lebanese_score": 1,
+          "cues": [
+            "Non-native phonology, unnatural pauses, and distorted vowel sounds",
+            "Mispronunciation of 'بدّك' as 'بدّوك'",
+            "Mispronunciation of 'تفتّش' as 'تفتوش'",
+            "Awkward lengthening in 'كلّو مجّاني' sounding like 'كلّو-وَ مجّاني'"
+          ],
+          "matches_script": false,
+          "differences": "Pronounced 'بدّك' as 'بدّوك' and 'تفتّش' as 'تفتوش'",
+          "intelligible": 3
+        },
+        "s5n_b": {
+          "model": "gemini-3.8-flash",
+          "transcript": "إذا بدوك مكتب، نزل التطبيق، تفتوش وتحجز، كلو مجاني",
+          "speech_start_s": 0.35,
+          "speech_end_s": 4.75,
+          "cut_off": false,
+          "dialect": "other",
+          "lebanese_score": 1,
+          "cues": [
+            "Pronounces 'تطبيق' with a classical /q/ rather than Levantine /ʔ/",
+            "Severe mispronunciations of Levantine words ('baddok'/'baddook' instead of 'baddak', 'tiftoosh' instead of 'tfattish')",
+            "Robotic, unnatural rhythm characteristic of text-to-speech / non-native synthesis"
+          ],
+          "matches_script": false,
+          "differences": "Mispronounced 'بدك' as 'بدوك', 'تفتش' as 'تفتوش', and pronounced 'التطبيق' with a hard 'qaf' instead of a glottal stop",
+          "intelligible": 3
+        },
+        "s5n_c": {
+          "model": "gemini-3.8-flash",
+          "transcript": "إذا بدك مكتب نزل التطبيق تفتوش وتحجز كلو مجاني",
+          "speech_start_s": 0.1,
+          "speech_end_s": 4.5,
+          "cut_off": false,
+          "dialect": "Jordanian",
+          "lebanese_score": 1,
+          "cues": "Pronounces 'qaf' as a uvular stop [q] in 'التطبيق', uses non-Lebanese intonation and vowel realization ('تفتوش' instead of Lebanese 'تفتّش' /tfattish/).",
+          "matches_script": false,
+          "differences": "Pronounced 'تفتوش' instead of 'تفتّش', and pronounced the Qaf in 'التطبيق' as [q].",
+          "intelligible": 5
+        },
+        "s5n_d": {
+          "model": "gemini-3.8-flash",
+          "transcript": "إذا بدوك مكتب، نزل التطبيق، تفـ تفتوش وتحجز كله مجاني.",
+          "speech_start_s": 0.0,
+          "speech_end_s": 5.6,
+          "cut_off": false,
+          "dialect": "other",
+          "lebanese_score": 1,
+          "cues": "Foreign/non-native pronunciation errors: mispronounces 'بدك' as 'بدوك', stumbles on 'تفتش' and pronounces it 'تفتوش', and exhibits non-native rhythm and vowel elongation throughout.",
+          "matches_script": false,
+          "differences": "Speaker says 'بدوك' instead of 'بدّك', stumbles with a false start ('تفـ') and says 'تفتوش' instead of 'تفتّش'.",
+          "intelligible": 3
+        }
+      }
+    }
+  }
+}
