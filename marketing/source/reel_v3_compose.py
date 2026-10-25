@@ -31,11 +31,11 @@ TMP = pathlib.Path(tempfile.mkdtemp(prefix="reel3_"))
 # ("clip" = that clip's own audio, "veo" = Veo's own speech, else a voice-over line number), clip offset (s), caption;
 # cam / punch / ramp / in / jcut drive the montage (montage.py).
 SEGS = [
-    # Voice 1 (on camera): Veo takes of him saying the line (s1v, s5v), voice converted to the hook voice
-    # (scripts/marketing/voice1.py → marketing/avatar/lipsync) — the lip-sync is the take's own.
-    {"role": "hook", "clip": "lipsync/hook", "speech": "veo", "take": "s1v",
-     "cap": "بدفع أجار عيادتي كامل… وبتضلّها <b>فاضية</b> نُصّ النهار.",
-     "cam": [(0, 1.38, 0.05), (2.25, 1.12, 0.05)], "punch": ["w:فاضية"]},  # 2.25 = the take's jump cut
+    # Voice 1 (on camera): Gemini-TTS Orus with the Beirut dialect prompt (marketing/audio/voice1), his mouth redrawn on
+    # the speaking takes s1v_d / s5v_d by LatentSync (scripts/marketing/lipsync_cpu.py → marketing/avatar/lipsync).
+    {"role": "hook", "clip": "lipsync/hook", "speech": "clip", "fallback": ("s1v_d", 0.0, "hook", 1),
+     "cap": "بدفع أجار عيادتي كامل… وبتضل <b>فاضية</b> نُصّ النهار.",
+     "cam": [(0, 1.38, 0.05), ("w:وبتضل", 1.12, 0.05)], "punch": ["w:فاضية"]},
     # Voice 2 (the narrator, voice-over on footage where he doesn't talk).
     {"role": "s2", "clip": "s2", "speech": 2, "from": 1.6, "in": "zoom", "jcut": 0.35,
      "cap": "بين جلسة وجلسة، ساعات ضايعة… و<b>مصاري</b> عم تطير.",
@@ -46,9 +46,9 @@ SEGS = [
     {"role": "s4", "clip": "s4", "speech": 4, "from": 0.0, "in": "whip_r", "jcut": 0.35,
      "cap": "أنا بحدّد الوقت والسعر، والطلبات بتوصلني عَال<b>واتساب</b>.",
      "cam": [(0, 1.08, 0.06), (2.0, 1.3, 0.05)]},
-    {"role": "cta1", "clip": "lipsync/cta1", "speech": "veo", "take": "s5v", "in": "zoom",
+    {"role": "cta1", "clip": "lipsync/cta1", "speech": "clip", "fallback": ("s5v_d", 0.0, "cta1", 2), "in": "zoom",
      "cap": "إذا بدّك مكتب، نزّل <b>التطبيق</b>، تفتّش وتحجز كلّو <b>مجّاني</b>.",
-     "cam": [(0, 1.1, 0.05), (2.6, 1.32, 0.04)], "punch": ["w:مجّاني"]},  # 2.6 = the take's jump cut
+     "cam": [(0, 1.1, 0.05), ("w:تفتّش", 1.32, 0.04)], "punch": ["w:مجّاني"]},
     {"role": "cta2", "clip": "s5c", "speech": 7, "from": 1.0, "in": "whip_l", "jcut": 0.35,
      "cap": "وإذا عندك مكتب بدّك تعرضو، <b>Comment أو DM</b> ليوصلك كل التفاصيل وتربح <b>شهر مجّاني</b>.",
      "cam": [(0, 1.12, 0.06), ("w:ليوصلك", 1.3, 0.05)], "punch": ["w:شهر"]},
@@ -84,8 +84,8 @@ def load_spec(path):
         seg["cam"] = [tuple(b) for b in seg.get("cam", [(0, 1.06, 0.06)])]
         if sc["voice"] == 1:
             n1 += 1
-            # his own take of the line, voice converted to voice 1 (scripts/marketing/voice1.py): native lip-sync
-            seg.update({"clip": f"lipsync/{sc['role']}", "speech": "veo", "take": sc["role"]})
+            # the take with his mouth redrawn to voice 1 (lipsync_cpu.py / gpu_lipsync.py → lipsync/<role>.mp4)
+            seg.update({"clip": f"lipsync/{sc['role']}", "speech": "clip", "fallback": (clip, frm, sc["role"], n1)})
         else:
             n2 += 1
             seg.update({"clip": clip, "speech": n2, "from": frm})

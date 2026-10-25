@@ -11,6 +11,10 @@ on:
         description: "name:audio:clip:video_from, comma-separated (e.g. hook:line_1:s1:0.1,cta1:line_5:s5_a:0.0)"
         required: true
         default: "hook:hook:s1v_d:0.0,cta1:cta1:s5v_d:0.0"
+      reel:
+        description: "Reel Studio folder (marketing/reels/<id>) — voices, takes and output there; blank = the office reel"
+        required: false
+        default: ""
       steps:
         description: "LatentSync inference steps (20 = the model's default; more = finer, slower)"
         required: false
@@ -20,6 +24,11 @@ permissions:
   contents: write
 
 concurrency: marketing-lipsync-cpu
+
+env:
+  LIPSYNC_VOICE: ${{ inputs.reel && format('{0}/voice1', inputs.reel) || 'marketing/audio/voice1' }}
+  LIPSYNC_CLIPS: ${{ inputs.reel && format('{0}/clips', inputs.reel) || 'marketing/avatar/clips' }}
+  LIPSYNC_OUT: ${{ inputs.reel && format('{0}/lipsync', inputs.reel) || 'marketing/avatar/lipsync' }}
 
 jobs:
   plan:
@@ -125,7 +134,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add marketing/avatar/lipsync
+          git add "$LIPSYNC_OUT"
           git diff --cached --quiet && { echo "No changes"; exit 0; }
           git commit -m "Marketing: lip-sync voice 1 (${{ inputs.jobs }})"
           for i in 1 2 3 4 5; do git pull --rebase && git push && exit 0; sleep $((i * 7)); done  # other marketing runs push too
