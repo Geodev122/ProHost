@@ -1,0 +1,85 @@
+{
+  "at": "2026-10-25T08:15:34Z",
+  "stage": "check",
+  "shots": {
+    "s5": {
+      "chosen": "s5_a",
+      "model": "gemini-3.8-flash",
+      "transcript": "إذا عندك مكتب comment office أو تواصل معنا ع الـ DM لتربح شهر مجـ-",
+      "speech_start_s": 0.08,
+      "speech_end_s": 5.92,
+      "cut_off": true,
+      "dialect": "Lebanese",
+      "lebanese_score": 5,
+      "cues": "Lebanese pronunciation of vowels and consonants ('ع الـ DM', 'لتربح', 'شهر مجاني' with characteristic Levantine/Lebanese cadence and English code-switching).",
+      "matches_script": false,
+      "differences": "Spoke a promotional contest pitch ('إذا عندك مكتب comment office أو تواصل معنا ع الـ DM لتربح شهر مجاني') instead of the script about downloading the app.",
+      "intelligible": 5,
+      "takes": {
+        "s5_a": {
+          "model": "gemini-3.8-flash",
+          "transcript": "إذا عندك مكتب comment office أو تواصل معنا ع الـ DM لتربح شهر مجـ-",
+          "speech_start_s": 0.08,
+          "speech_end_s": 5.92,
+          "cut_off": true,
+          "dialect": "Lebanese",
+          "lebanese_score": 5,
+          "cues": "Lebanese pronunciation of vowels and consonants ('ع الـ DM', 'لتربح', 'شهر مجاني' with characteristic Levantine/Lebanese cadence and English code-switching).",
+          "matches_script": false,
+          "differences": "Spoke a promotional contest pitch ('إذا عندك مكتب comment office أو تواصل معنا ع الـ DM لتربح شهر مجاني') instead of the script about downloading the app.",
+          "intelligible": 5
+        },
+        "s5_b": {
+          "model": "gemini-3.8-flash",
+          "transcript": "إذا عندك مكتب، كومنت أوفيس، أو تواصل معنا ع الدي إم لتربح شهر مجاني",
+          "speech_start_s": 0.1,
+          "speech_end_s": 5.8,
+          "cut_off": true,
+          "dialect": "Lebanese",
+          "lebanese_score": 5,
+          "cues": "Levantine phonology and typical Lebanese intonation, preposition contraction 'ع الدي إم' (3ad-DM), and pronunciation of 'لتربح' (la terbakh).",
+          "matches_script": false,
+          "differences": "Speaker says 'إذا عندك مكتب، كومنت أوفيس، أو تواصل معنا ع الدي إم لتربح شهر مجاني' instead of 'إذا بدّك مكتب، نزّل التطبيق، تفتّش وتحجز كلّو مجّاني.'",
+          "intelligible": 5
+        }
+      }
+    },
+    "s5b": {
+      "chosen": "s5b",
+      "model": "gemini-3.8-flash",
+      "transcript": "وإذا عندك مكتب بدك تعرضه comment أو DM ليوصلك كل التفاصيل وتربح شهر مجاني",
+      "speech_start_s": 0.05,
+      "speech_end_s": 4.54,
+      "cut_off": false,
+      "dialect": "Jordanian",
+      "lebanese_score": 2,
+      "cues": [
+        "Pronounces 'كل' as 'kull' rather than the typical Lebanese 'kel'.",
+        "Uses 'بِدّك' (biddak) and South Levantine/Jordanian vowel harmony in 'تعرضه' (to'ordo).",
+        "Intonation and cadence are characteristically Jordanian/Palestinian rather than Lebanese."
+      ],
+      "matches_script": true,
+      "differences": "None",
+      "intelligible": 5,
+      "takes": {
+        "s5b": {
+          "model": "gemini-3.8-flash",
+          "transcript": "وإذا عندك مكتب بدك تعرضه comment أو DM ليوصلك كل التفاصيل وتربح شهر مجاني",
+          "speech_start_s": 0.05,
+          "speech_end_s": 4.54,
+          "cut_off": false,
+          "dialect": "Jordanian",
+          "lebanese_score": 2,
+          "cues": [
+            "Pronounces 'كل' as 'kull' rather than the typical Lebanese 'kel'.",
+            "Uses 'بِدّك' (biddak) and South Levantine/Jordanian vowel harmony in 'تعرضه' (to'ordo).",
+            "Intonation and cadence are characteristically Jordanian/Palestinian rather than Lebanese."
+          ],
+          "matches_script": true,
+          "differences": "None",
+          "intelligible": 5
+        }
+      }
+    }
+  }
+}
