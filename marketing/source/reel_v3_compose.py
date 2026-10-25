@@ -1,8 +1,9 @@
 """Office reel v3: cuts the AI-avatar clips (marketing/avatar/clips, from scripts/marketing/avatar_video.py) to the voice,
 renders the overlay layer (reel_office_v3.html, transparent) on top and scores it.
 
-Segments: s1 and s5 carry Veo's own lip-synced speech (their speech window is detected in the clip audio); s2-s4 and the
-price segment carry the v2 voice-over lines (audio/voiceovers-arabic-reel/lines). Music: audio/music/reel_office.wav,
+Two voices: voice 1, the avatar on camera (hook + CTA 1), lip-synced by scripts/marketing/lipsync.py; voice 2, the
+narrator (audio/voiceovers-arabic-reel/lines), over footage where he doesn't talk. The footage is cut and moved by
+montage.py. Music: audio/music/reel_office.wav,
 ducked under speech, with the overlay's sound cues (mix.py's sfx).
 
 usage: python reel_v3_compose.py [preview t,t,...]
@@ -24,19 +25,34 @@ CHROME = os.environ.get("CHROME", "/opt/pw-browsers/chromium-1194/chrome-linux/c
 FPS = 30
 TMP = pathlib.Path(tempfile.mkdtemp(prefix="reel3_"))
 
-# role (the overlay keys its animations on it), clip (under avatar/clips, or "lipsync/<shot>" for a lip-synced clip that
-# carries the owner's voice), speech ("clip" = that clip's own audio, "veo" = Veo's own speech, "dub" = the avatar's
-# speaking footage voiced by voice-over `line`, aligned to his mouth inside `win`, else a voice-over line number), clip
-# offset (s), caption. Hook + CTA are spoken on camera by the avatar (Veo's own voice and lip movement) with
-# the owner's wording; the narration lines are the Lebanese voice-over.
+# role (the overlay keys its animations on it), clip (under avatar/clips, or "lipsync/<name>" for a lip-synced clip that
+# carries voice 1; until it exists, "fallback" = (raw clip, from, voice1 file, reel_v1 line) is used unsynced), speech
+# ("clip" = that clip's own audio, "veo" = Veo's own speech, else a voice-over line number), clip offset (s), caption;
+# cam / punch / ramp / in / jcut drive the montage (montage.py).
 SEGS = [
-    {"role": "hook", "clip": "s1", "speech": "veo", "cap": "بدفع أجار عيادتي كامل… وهيّي <b>فاضية</b> نُصّ النهار."},
-    {"role": "s2", "clip": "s2", "speech": 2, "from": 1.6, "cap": "بين جلسة وجلسة، ساعات ضايعة… و<b>مصاري</b> عم تطير."},
-    {"role": "s3", "clip": "s3", "speech": 3, "from": 0.3, "cap": "هلّق عم أجّرها <b>بالساعة</b> على ProHost، لـ psychologists و coaches متلي."},
-    {"role": "s4", "clip": "s4", "speech": 4, "from": 0.0, "cap": "أنا بحدّد الوقت والسعر، والطلبات بتوصلني عَال<b>واتساب</b>."},
-    {"role": "cta1", "clip": "s5_a", "speech": "dub", "line": 5, "win": [0.02, 5.55], "cap": "إذا بدّك مكتب، نزّل <b>التطبيق</b>، تفتّش وتحجز كلّو <b>مجّاني</b>."},
-    {"role": "cta2", "clip": "s5b", "speech": "dub", "line": 7, "win": [0.08, 5.12], "cap": "وإذا عندك مكتب بدّك تعرضو، <b>Comment أو DM</b> ليوصلك كل التفاصيل وتربح <b>شهر مجّاني</b>."},
-    {"role": "price", "clip": "s4", "speech": 6, "from": 4.2, "tail": 1.5, "cap": "وبعد الشهر؟ بسّ <b>تسعة دولار</b> بالشهر… أقلّ من أجار ساعة وحدة."},
+    # Voice 1 (on camera, lip-synced; marketing/avatar/lipsync from scripts/marketing/lipsync.py) — hook and CTA 1.
+    {"role": "hook", "clip": "lipsync/hook", "speech": "clip", "fallback": ("s1", 0.1, "line_1", 1),
+     "cap": "بدفع أجار عيادتي كامل… وبتضل <b>فاضية</b> نُصّ النهار.",
+     "cam": [(0, 1.38, 0.05), ("w:وبتضل", 1.12, 0.05)], "punch": ["w:فاضية"]},
+    # Voice 2 (the narrator, voice-over on footage where he doesn't talk).
+    {"role": "s2", "clip": "s2", "speech": 2, "from": 1.6, "in": "zoom", "jcut": 0.35,
+     "cap": "بين جلسة وجلسة، ساعات ضايعة… و<b>مصاري</b> عم تطير.",
+     "cam": [(0, 1.3, 0.06), (2.1, 1.04, 0.05)]},
+    {"role": "s3", "clip": "s3", "speech": 3, "from": 0.3, "in": "whip_l", "jcut": 0.35,
+     "ramp": [(1.6, 0.6), (99, 1.12)], "cap": "هلّق عم أجّرها <b>بالساعة</b> على ProHost، لـ psychologists و coaches متلي.",
+     "cam": [(0, 1.16, 0.06), (2.6, 1.32, 0.04)]},
+    {"role": "s4", "clip": "s4", "speech": 4, "from": 0.0, "in": "whip_r", "jcut": 0.35,
+     "cap": "أنا بحدّد الوقت والسعر، والطلبات بتوصلني عَال<b>واتساب</b>.",
+     "cam": [(0, 1.08, 0.06), (2.0, 1.3, 0.05)]},
+    {"role": "cta1", "clip": "lipsync/cta1", "speech": "clip", "fallback": ("s5_a", 0.0, "line_5", 2), "in": "zoom",
+     "cap": "إذا بدّك مكتب، نزّل <b>التطبيق</b>، تفتّش وتحجز كلّو <b>مجّاني</b>.",
+     "cam": [(0, 1.1, 0.05), ("w:تفتّش", 1.32, 0.04)], "punch": ["w:مجّاني"]},
+    {"role": "cta2", "clip": "s5b", "speech": 7, "from": 0.2, "in": "whip_l", "jcut": 0.35,
+     "cap": "وإذا عندك مكتب بدّك تعرضو، <b>Comment أو DM</b> ليوصلك كل التفاصيل وتربح <b>شهر مجّاني</b>.",
+     "cam": [(0, 1.04, 0.07), ("w:ليوصلك", 1.16, 0.05)], "punch": ["w:شهر"]},
+    {"role": "price", "clip": "s4", "speech": 6, "from": 4.2, "tail": 1.5, "in": "cut",
+     "cap": "وبعد الشهر؟ بسّ <b>تسعة دولار</b> بالشهر… أقلّ من أجار ساعة وحدة.",
+     "cam": [(0, 1.0, 0.1)]},
 ]
 LEAD, HOLD = 0.15, 0.25  # silence before / after each spoken line
 VEO_HOLD, FADE = 0.45, 0.12  # after a lip-synced line: hold, then fade the audio out (never clip the last word)
@@ -108,53 +124,6 @@ def phrases(x, a, b, gap=0.16, thr=0.10):
     return [p for p in out if p[1] - p[0] > 0.12]
 
 
-def stretch(x, secs):
-    """Time-stretches audio to `secs` without changing pitch (ffmpeg atempo, chained when outside 0.5–2)."""
-    if len(x) < 10 or secs <= 0.05:
-        return np.zeros((max(1, int(secs * SR)), 2), dtype=np.float32)
-    f = (len(x) / SR) / secs
-    chain = []
-    while f > 2.0:
-        chain.append("atempo=2.0"); f /= 2.0
-    while f < 0.5:
-        chain.append("atempo=0.5"); f /= 0.5
-    chain.append(f"atempo={f:.5f}")
-    import wave
-    src, dst = TMP / f"st{len(list(TMP.iterdir()))}.wav", TMP / f"st{len(list(TMP.iterdir())) + 1}_o.wav"
-    with wave.open(str(src), "wb") as w:
-        w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR)
-        w.writeframes((np.clip(x, -1, 1) * 32767).astype("<i2").tobytes())
-    subprocess.run([FF, "-nostdin", "-y", "-loglevel", "error", "-i", str(src), "-af", ",".join(chain), str(dst)], check=True)
-    y = load(dst)
-    n = int(secs * SR)
-    return np.pad(y, ((0, max(0, n - len(y))), (0, 0)))[:n]
-
-
-def dub(veo, a, b, line):
-    """The voice-over line laid over the avatar's own speech window [a, b]: phrase by phrase when both have the same
-    number of phrases (each phrase stretched to the mouth's phrase), else as a whole. Returns audio for [a, b]."""
-    la, lb = speech_window(line, 0.02)
-    vp, tp = phrases(veo, a, b), phrases(line, la, lb)
-    out = np.zeros((int((b - a) * SR), 2), dtype=np.float32)
-    if len(vp) == len(tp) and len(vp) > 1:
-        for k, ((v0, v1), (t0, t1)) in enumerate(zip(vp, tp)):
-            # Each phrase on its mouth phrase, but never more than 25 % slower / faster than spoken, nor into the next one.
-            room = (vp[k + 1][0] - v0 - 0.04) if k + 1 < len(vp) else (b - v0 + 0.3)
-            secs = min(min(max(v1 - v0, (t1 - t0) / 1.25), (t1 - t0) / 0.8), room)
-            piece = stretch(line[int(t0 * SR): int(t1 * SR)], secs)
-            i = int((v0 - a) * SR)
-            out[i: i + len(piece)] += piece[: len(out) - i]
-        print(f"  dub: {len(vp)} phrases aligned")
-    else:
-        # Keep the voice natural: at most 10 % faster or slower than spoken, even if it then ends a little after the mouth.
-        secs = min(max(b - a, (lb - la) / 1.1), (lb - la) / 0.9)
-        piece = stretch(line[int(la * SR): int(lb * SR)], secs)
-        out = np.zeros((max(len(out), len(piece)), 2), dtype=np.float32)
-        out[: len(piece)] += piece
-        print(f"  dub: whole line ({len(vp)} vs {len(tp)} phrases), {lb - la:.2f}s → {secs:.2f}s over {b - a:.2f}s of mouth")
-    return out
-
-
 def checked_window(shot):
     """Speech start/end Gemini heard in the clip (avatar_video.py check stage), else None."""
     rep = ROOT / "avatar" / "report.json"
@@ -167,6 +136,26 @@ def checked_window(shot):
     return None
 
 
+def word_time(seg, word):
+    """When `word` of the caption is said (seconds from the segment start): the caption's words spread over the speech by
+    length, the same rule the overlay uses to light them up, so cuts and punches land with the highlighted word."""
+    import re
+    ws = re.sub(r"</?b>", "", seg["cap"]).split()
+    total, acc = sum(len(w) + 1 for w in ws), 0
+    for w in ws:
+        if word in w:
+            return seg["sp"][0] - seg["t0"] + (seg["sp"][1] - seg["sp"][0]) * acc / total
+        acc += len(w) + 1
+    raise ValueError(f"{word!r} is not in the caption of {seg['role']}")
+
+
+def anchors(seg):
+    """Resolves "w:<word>" times in cam / punch to seconds."""
+    at = lambda x: word_time(seg, x[2:]) if isinstance(x, str) and x.startswith("w:") else x
+    return {**seg, "cam": [(at(b[0]), b[1], b[2]) for b in seg.get("cam", [(0, 1.0, 0.04)])],
+            "punch": [at(p) for p in seg.get("punch", [])]}
+
+
 def clip_path(name):
     return (ROOT / "avatar" / f"{name}.mp4") if "/" in name else CLIPS / f"{name}.mp4"
 
@@ -175,27 +164,26 @@ def timeline():
     t, segs = 0.0, []
     for s in SEGS:
         clip = clip_path(s["clip"])
-        if s["speech"] == "clip":
+        if s["speech"] == "clip" and not clip.exists() and s.get("fallback"):
+            raw, vfrom, v1, n = s["fallback"]
+            src = ROOT / "audio" / "voice1" / f"{v1}.wav"
+            src = src if src.exists() else LINES / f"reel_v1_{n:02d}.wav"
+            print(f"  ::warning:: {clip.name} not lip-synced yet: {raw} from {vfrom}s + {src.name}, unsynced")
+            line = wav48(src)
+            a, b = speech_window(line, 0.02)
+            line = fade_out(line[int(a * SR): min(len(line), int((b + 0.12) * SR))])
+            s = {**s, "clip": raw, "from": vfrom}
+            frm, dur = vfrom, LEAD + len(line) / SR + HOLD
+            voice = np.zeros((int(dur * SR), 2), dtype=np.float32)
+            voice[int(LEAD * SR): int(LEAD * SR) + len(line)] = line
+            sp = (t + LEAD, t + LEAD + len(line) / SR)
+        elif s["speech"] == "clip":
             # A lip-synced clip already holds exactly the voice (+ a little air): use it whole.
             full = wav48(clip)
             a, b = speech_window(full, 0.08)
             frm, dur = 0.0, len(full) / SR + 0.1
             voice = fade_out(full)
             sp = (t + a, t + b)
-        elif s["speech"] == "dub":
-            # The avatar's speaking footage, voiced by the Lebanese voice-over line (same words), aligned to his mouth.
-            full = wav48(clip)
-            a, b = s.get("win") or checked_window(s["clip"]) or speech_window(full)
-            frm = max(0.0, a - LEAD)
-            line = wav48(LINES / f"reel_office_{s['line']:02d}.wav")
-            d = dub(full, a, b, line)
-            b = a + len(d) / SR
-            dur = min(len(full) / SR - frm, b - frm + VEO_HOLD)
-            voice = np.zeros((int(dur * SR), 2), dtype=np.float32)
-            i = int((a - frm) * SR)
-            voice[i: i + len(d)] = d[: len(voice) - i]
-            voice = fade_out(voice)
-            sp = (t + a - frm, t + b - frm)
         elif s["speech"] == "veo":
             full = wav48(clip)
             a, b = checked_window(s["clip"]) or speech_window(full)
@@ -213,25 +201,18 @@ def timeline():
             voice = np.zeros((int(dur * SR), 2), dtype=np.float32)
             voice[int(LEAD * SR): int(LEAD * SR) + len(line)] = line
             sp = (t + LEAD, t + LEAD + len(line) / SR)
-        segs.append({**s, "t0": round(t, 3), "t1": round(t + dur, 3), "frm": frm, "dur": dur, "voice": level(voice),
-                     "sp": [round(sp[0], 3), round(sp[1], 3)]})
+        v = level(voice)
+        segs.append({**s, "t0": round(t, 3), "t1": round(t + dur, 3), "frm": frm, "dur": dur, "voice": v,
+                     "sp": [round(sp[0], 3), round(sp[1], 3)],
+                     "phrases": [round(t + a, 3) for a, _ in phrases(v, 0.0, len(v) / SR)]})
         t += dur
     return segs, t
 
 
 def base_video(segs, length):
-    """Cut + scale every segment to 1080x1920@30 (freezing the last frame if a clip runs short) and concatenate."""
-    args, chains = [], []
-    for i, s in enumerate(segs):
-        args += ["-ss", f"{s['frm']:.3f}", "-i", str(clip_path(s["clip"]))]
-        chains.append(f"[{i}:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps={FPS},setsar=1,"
-                      f"tpad=stop_mode=clone:stop_duration={s['dur']:.3f},trim=duration={s['dur']:.3f},setpts=PTS-STARTPTS[v{i}]")
-    fc = ";".join(chains) + ";" + "".join(f"[v{i}]" for i in range(len(segs))) + f"concat=n={len(segs)}:v=1:a=0[v]"
-    out = TMP / "base.mp4"
-    subprocess.run([FF, "-nostdin", "-y", "-loglevel", "error", *args, "-filter_complex", fc, "-map", "[v]",
-                    "-c:v", "libx264", "-crf", "14", "-preset", "medium", "-pix_fmt", "yuv420p", "-t", f"{length:.3f}",
-                    str(out)], check=True)
-    return out
+    """The footage, cut and moved by the montage engine (face-tracked framing, punches, whips, grade, grain)."""
+    from montage import render_base
+    return render_base([anchors(s) for s in segs], length, clip_path, TMP / "base.mp4", FF)
 
 
 def score(segs, length, events):
@@ -276,7 +257,9 @@ def score(segs, length, events):
 
 def main():
     segs, length = timeline()
-    data = {"segs": [{"role": s["role"], "t0": s["t0"], "t1": s["t1"], "sp": s["sp"], "cap": s["cap"]} for s in segs],
+    data = {"segs": [{"role": s["role"], "t0": s["t0"], "t1": s["t1"], "sp": s["sp"], "cap": s["cap"], "phrases": s["phrases"],
+                      "in": s.get("in", "cut"), "cut": round(s["t0"] + s.get("jcut", 0.0), 3)}
+                     for s in segs],
             "end": round(length - SEGS[-1].get("tail", 0) + 0.15, 3), "length": round(length, 3)}
     (HERE / "reel_office_v3_data.js").write_text("window.REEL3 = " + json.dumps(data, ensure_ascii=False) + ";\n", encoding="utf-8")
     print("segments:", ", ".join(f"{s['clip']}@{s['frm']:.2f} {s['t0']:.2f}-{s['t1']:.2f} speech {s['sp']}" for s in segs),

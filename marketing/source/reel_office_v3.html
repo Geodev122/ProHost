@@ -21,9 +21,11 @@ body { font-family: "Cairo", "Inter", sans-serif; color: #fff; position: relativ
 #dim { inset: 0; background: rgba(0,24,60,.62); opacity: 0; }
 #logo { left: 60px; top: 260px; display: flex; align-items: center; gap: 12px; direction: ltr; padding: 12px 22px 12px 14px; border-radius: 999px; background: rgba(0,24,60,.55); }
 #logo img { width: 46px; } #logo span { font: 800 36px/1 "Inter"; letter-spacing: -1.2px; }
-#cap { left: 64px; right: 64px; top: 1400px; text-align: center; }
+#cap { left: 70px; right: 150px; top: 1360px; text-align: center; } /* clear of Reels' right-hand buttons and bottom bar */
 #cap span { display: inline; background: rgba(0,18,46,.84); box-decoration-break: clone; -webkit-box-decoration-break: clone; padding: 6px 22px; border-radius: 14px; font: 800 50px/1.66 "Cairo", "Inter", sans-serif; color: #fff; }
 #cap b { color: var(--orange); font-weight: 800; }
+#cap .w { opacity: .4; }
+#cap .w.on { opacity: 1; }
 .card { background: var(--paper); color: var(--navy); border-radius: 36px; box-shadow: 0 30px 80px rgba(0,8,30,.45); }
 .chip { display: inline-flex; align-items: center; gap: 12px; padding: 14px 28px; border-radius: 999px; background: #fff; color: var(--navy); font: 800 36px/1.2 "Cairo", "Inter", sans-serif; box-shadow: 0 12px 30px rgba(0,8,30,.35); white-space: nowrap; }
 .chip.o { background: var(--orange); color: var(--navy); }
@@ -168,20 +170,42 @@ L((t) => {
   document.querySelector("#bio .chip").style.transform = live ? `scale(${1 + 0.06 * Math.max(0, Math.sin(t * 6.3))})` : "";
   document.getElementById("arrow").style.transform = `translateY(${live ? 14 * Math.abs(Math.sin(t * 4.2)) : 0}px)`;
 });
-// Captions: the segment's spoken line while it is spoken (+ a short hold)
+// Captions: the segment's spoken line while it is spoken (+ a short hold); words light up as they are said.
+const words = (html) => {
+  // Whitespace-separated words, each kept whole with its punctuation and its part of a bold run ("و<b>مصاري</b>").
+  let bold = false;
+  return html.split(/\s+/).filter(Boolean).map((w) => {
+    const open = bold;
+    (w.match(/<\/?b>/g) || []).forEach((tag) => { bold = tag === "<b>"; });
+    return (open ? "<b>" : "") + w + (bold ? "</b>" : "");
+  });
+};
 L((t) => {
   const i = R.segs.findIndex((s) => t >= s.sp[0] - 0.1 && t < Math.min(s.t1, s.sp[1] + 0.6));
   const cap = document.getElementById("cap"), span = cap.firstElementChild;
   if (i < 0 || t >= END || !R.segs[i].cap) { cap.style.opacity = 0; return; }
-  if (span.dataset.i !== String(i)) { span.innerHTML = R.segs[i].cap; span.dataset.i = i; }
-  const f = Math.min(1, (t - R.segs[i].sp[0] + 0.1) / 0.2);
+  const s = R.segs[i];
+  if (span.dataset.i !== String(i)) {
+    const ws = words(s.cap), len = (w) => w.replace(/<\/?b>/g, "").length + 1, total = ws.reduce((n, w) => n + len(w), 0);
+    let acc = 0;
+    span.innerHTML = ws.map((w) => { const at = s.sp[0] + (s.sp[1] - s.sp[0]) * acc / total; acc += len(w);
+      return `<span class="w" data-at="${at.toFixed(3)}">${w}</span>`; }).join(" ");
+    span.dataset.i = i;
+  }
+  span.querySelectorAll(".w").forEach((w) => {
+    const d = t - parseFloat(w.dataset.at);
+    w.classList.toggle("on", d >= 0);
+  });
+  const f = Math.min(1, (t - s.sp[0] + 0.1) / 0.2);
   cap.style.opacity = f; cap.style.transform = `translateY(${(1 - f) * 20}px)`;
 });
 window.EVENTS = [
-  { t: SP("s2") + 1.6, k: "whoosh" }, { t: SP("s3") + 0.1, k: "whoosh" }, { t: SP("s4") + 0.9, k: "notify" },
+  { t: SP("s2") + 1.6, k: "whoosh" }, { t: SP("s4") + 0.9, k: "notify" },
   { t: SP("cta1") + 0.8, k: "pop" }, { t: SP("cta2") + 0.3, k: "pop" },
   ...[0, 1, 2, 3, 4, 5].map((i) => ({ t: SP("cta2") + 1.1 + i * 0.16, k: "tap" })),
   { t: STAMP_AT, k: "success" }, { t: SP("price") + 1.0, k: "pop" }, { t: END, k: "impact" },
+  // a whoosh under every whip / zoom transition of the montage
+  ...R.segs.filter((s) => s.in && s.in !== "cut").map((s) => ({ t: s.cut, k: "whoosh" })),
 ];
 render(0);
 </script>
