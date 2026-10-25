@@ -284,7 +284,8 @@ def take_score(v):
 def check(shot, models):
     """Checks every take of a speaking shot; the best one becomes clips/<shot>.mp4."""
     import shutil
-    takes = sorted(CLIPS.glob(f"{shot['id']}_?.mp4")) or [CLIPS / f"{shot['id']}.mp4"]
+    # Only takes generated together (takes > 1) compete; otherwise the clip itself is checked (old take files never win).
+    takes = (sorted(CLIPS.glob(f"{shot['id']}_?.mp4")) if int(shot.get("takes", 1)) > 1 else []) or [CLIPS / f"{shot['id']}.mp4"]
     takes = [t for t in takes if t.exists()]
     if not takes:
         return {"error": "no clip"}
