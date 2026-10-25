@@ -1,0 +1,32 @@
+{
+  "at": "2026-10-25T09:27:55Z",
+  "stage": "voice1",
+  "shots": {
+    "voice1_1": {
+      "model": "gemini-3.8-flash",
+      "transcript": "بدفع أجار عيادتي كامل وبتضل فاضية نص النهار",
+      "speech_start_s": 0.05,
+      "speech_end_s": 5.08,
+      "cut_off": false,
+      "dialect": "Lebanese",
+      "lebanese_score": 5,
+      "cues": "Distinctive Lebanese imāla/fronting on 'kēmil' (كامل), natural Lebanese prosody and cadence, authentic pronunciation of '3yādtē' and 'faḍye'.",
+      "matches_script": true,
+      "differences": "",
+      "intelligible": 5
+    },
+    "voice1_5": {
+      "model": "gemini-3.8-flash",
+      "transcript": "إذا بدك مكتب، نزل التطبيق، تفتش وتحجز، كله مجاني",
+      "speech_start_s": 0.05,
+      "speech_end_s": 5.32,
+      "cut_off": false,
+      "dialect": "Lebanese",
+      "lebanese_score": 5,
+      "cues": "Authentic Lebanese pronunciation and cadence on 'إزا بدك', 'نزّل التطبيق', and the characteristic rising/falling melodic intonation.",
+      "matches_script": true,
+      "differences": "",
+      "intelligible": 5
+    }
+  }
+}
