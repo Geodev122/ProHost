@@ -60,9 +60,11 @@
         "close_neutral"
       ],
       "frame": "Medium shot from the waist up. He stands in the middle of the office facing the camera, relaxed, friendly half-smile, the oak desk and the plant softly blurred behind him.",
-      "motion": "Confident, warm advertiser energy. He looks straight into the camera as if talking to one friend: eyebrows lift, he leans in slightly, then opens his palm toward the viewer in an inviting gesture, a confident half-smile. He is speaking to camera the whole time (natural jaw movement), head moving naturally. Static camera, slow subtle push-in.",
-      "audio": false,
-      "lipsync": true
+      "motion": "Confident, warm advertiser energy. He looks straight into the camera as if talking to one friend and says the whole line naturally: eyebrows lift, he leans in slightly, opens his palm toward the viewer on 'نزّل التطبيق', a confident smile on 'مجّاني'. Natural blinking and head movement. Static camera, slow subtle push-in.",
+      "audio": true,
+      "takes": 1,
+      "speech": "إذا بدّك مكتب، نزّل التطبيق، تفتّش وتحجز كلّو مجّاني.",
+      "voice": "a warm, confident, deep Lebanese male voice from Beirut, smiling while he talks, like a friend recommending something he loves"
     },
     {
       "id": "s5b",
@@ -71,10 +73,12 @@
         "close_neutral",
         "full_front"
       ],
-      "audio": false,
-      "lipsync": true,
+      "audio": true,
       "frame": "Medium close-up from the chest up. He stands in the same office facing the camera, warm and energetic, the oak desk and the plant softly blurred behind him.",
-      "motion": "Advertiser call to action: he keeps talking to the camera with energy, points down toward the bottom of the screen (the comments) with one finger, nods once, then breaks into a big genuine smile and gives an open-hand 'your turn' gesture to the viewer. Natural jaw movement while talking. Slow push-in."
+      "motion": "Call to action with real advertiser energy: he keeps talking to the camera, points down toward the bottom of the screen on 'comment', nods, and breaks into a big genuine smile and an open-hand 'your turn' gesture on 'وتربح شهر مجّاني'. Natural blinking and head movement. Slow push-in.",
+      "takes": 1,
+      "speech": "وإذا عندك مكتب بدّك تعرضو، comment أو DM، ليوصلك كل التفاصيل وتربح شهر مجّاني.",
+      "voice": "the same warm, confident, deep Lebanese male voice from Beirut, rising excitement on 'وتربح شهر مجّاني'; 'comment' and 'DM' said in English"
     }
   ],
   "accent": "Native Beiruti Lebanese Arabic, NOT Syrian or Damascene, NOT Palestinian, NOT Jordanian: Lebanese melody and pacing, final -a/-ā raised to -e the Beirut way (فاضية sounds 'fāḍye', مجّاني sounds 'majjēne', النهار sounds 'lnhār'), ق as a glottal stop, soft, relaxed, warm delivery, like a Beirut professional talking to a friend; English words said naturally in English",
