@@ -360,8 +360,9 @@ def main():
                       ["gemini-2.5-pro", "gemini-2.5-flash"], lambda m: "pro" in m)
         lines = json.loads(VO_CFG.read_text(encoding="utf-8"))["posts"][0]["lines"]
         for n in only or ["1", "5"]:
-            wav = ROOT / f"marketing/audio/voice1/line_{n}.wav"
-            if wav.exists():
+            wav = next((w for w in (ROOT / f"marketing/audio/voice1/{x}.wav" for x in (f"line_{n}", {"1": "hook", "5": "cta1"}.get(n, "")))
+                        if w.exists()), None)
+            if wav:
                 v = listen(wav, lines[int(n) - 1]["text"], models)
                 run["shots"][f"voice1_{n}"] = v
                 print(f"voice1 line {n}: " + json.dumps({x: v.get(x) for x in ("transcript", "dialect", "lebanese_score",

@@ -10,6 +10,14 @@ on:
         description: "Seed-VC diffusion steps (more = cleaner, slower)"
         required: false
         default: "50"
+      jobs:
+        description: "out=source, comma-separated; source = a voice-over line name or clip:<path of a Veo take>"
+        required: false
+        default: "hook=clip:marketing/avatar/clips/s1v.mp4,cta1=clip:marketing/avatar/clips/s5v.mp4"
+      mux:
+        description: "Folder for take + voice 1 videos (clip: sources)"
+        required: false
+        default: "marketing/avatar/lipsync"
 
 permissions:
   contents: write
@@ -47,6 +55,8 @@ jobs:
       - name: Convert
         env:
           STEPS: ${{ inputs.steps }}
+          V1_JOBS: ${{ inputs.jobs }}
+          V1_MUX: ${{ inputs.mux }}
         run: |
           set -o pipefail
           python -u scripts/marketing/voice1.py "$RUNNER_TEMP/seed-vc" "$STEPS" 2>&1 | tee "$RUNNER_TEMP/v1.log" || {
@@ -62,7 +72,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add marketing/audio/voice1 marketing/avatar/runs
+          git add marketing/audio/voice1 marketing/avatar/runs marketing/avatar/lipsync
           git diff --cached --quiet && { echo "No changes"; exit 0; }
           git commit -m "Marketing: voice 1 (hook voice, lines 1 and 5)"
           for i in 1 2 3 4 5; do git pull --rebase && git push && exit 0; sleep $((i * 7)); done  # other marketing runs push too
