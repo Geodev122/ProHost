@@ -34,7 +34,7 @@ SEGS = [
     # Voice 1 (on camera): Gemini-TTS Orus with the Beirut dialect prompt (marketing/audio/voice1), fitted syllable by
     # syllable onto a take where Veo said the same line, so his own native mouth carries it (scripts/marketing/
     # fit_voice.py → marketing/avatar/dubbed). Steady frame while he talks: one slow push, no punch, no reframing.
-    {"role": "hook", "clip": "dubbed/hook", "speech": "clip", "fallback": ("s1v_a", 0.0, "hook", 1), "steady": True,
+    {"role": "hook", "clip": "dubbed/hook", "speech": "clip", "fallback": ("s1v_d", 0.0, "hook", 1), "steady": True,
      "cap": "بدفع أجار عيادتي كامل… وبتضل <b>فاضية</b> نُصّ النهار.",
      "cam": [(0, 1.22, 0.08)]},
     # Voice 2 (the narrator, voice-over on footage where he doesn't talk).
@@ -47,7 +47,7 @@ SEGS = [
     {"role": "s4", "clip": "s4", "speech": 4, "from": 0.0, "in": "whip_r", "jcut": 0.35,
      "cap": "أنا بحدّد الوقت والسعر، والطلبات بتوصلني عَال<b>واتساب</b>.",
      "cam": [(0, 1.08, 0.06), (2.0, 1.3, 0.05)]},
-    {"role": "cta1", "clip": "dubbed/cta1", "speech": "clip", "fallback": ("s5v_c", 0.0, "cta1", 2), "in": "zoom",
+    {"role": "cta1", "clip": "dubbed/cta1", "speech": "clip", "fallback": ("s5v_a", 0.0, "cta1", 2), "in": "zoom",
      "steady": True, "cap": "إذا بدّك مكتب، نزّل <b>التطبيق</b>، تفتّش وتحجز كلّو <b>مجّاني</b>.",
      "cam": [(0, 1.14, 0.08)]},
     {"role": "cta2", "clip": "s5c", "speech": 7, "from": 1.0, "in": "whip_l", "jcut": 0.35,
