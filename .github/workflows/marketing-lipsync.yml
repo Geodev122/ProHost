@@ -10,7 +10,7 @@ on:
       jobs:
         description: "name:audio:clip:video_from, comma-separated (e.g. hook:line_1:s1:0.1,cta1:line_5:s5_a:0.0)"
         required: true
-        default: "hook:line_1:s1:0.1,cta1:line_5:s5_a:0.0"
+        default: "hook:hook:s1v:0.0,cta1:cta1:s5v:0.0"
       steps:
         description: "LatentSync inference steps (20 = the model's default; 30–50 = finer)"
         required: false
@@ -20,11 +20,11 @@ on:
         required: false
         default: "1.5"
       backend:
-        description: "vertex = own GPU job (needs Vertex GPU quota) · hf = public Hugging Face Space (ZeroGPU)"
+        description: "fal = Sync lipsync-2-pro on fal.ai (FAL_KEY) · fal-probe = check the key only · vertex = own GPU job (needs Vertex GPU quota) · hf = public Hugging Face Space"
         required: false
-        default: vertex
+        default: fal
         type: choice
-        options: [vertex, hf]
+        options: [fal, fal-probe, vertex, hf]
 
 permissions:
   contents: write
@@ -43,7 +43,7 @@ jobs:
       - name: Install
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
-          pip install --quiet google-auth requests numpy opencv-python-headless==4.10.0.84 gradio_client
+          pip install --quiet google-auth requests numpy opencv-python-headless==4.10.0.84 gradio_client fal-client
       - name: Write Service Account Credentials
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -57,6 +57,7 @@ jobs:
           GUIDANCE: ${{ inputs.guidance }}
           BACKEND: ${{ inputs.backend }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          FAL_KEY: ${{ secrets.FAL_KEY }}
         run: |
           set -o pipefail
           python -u scripts/marketing/gpu_lipsync.py "$JOBS" "$STEPS" "$GUIDANCE" "$BACKEND" 2>&1 | tee "$RUNNER_TEMP/ls.log" || {

@@ -11,7 +11,11 @@ Runs in CI (.github/workflows/marketing-lipsync.yml) with the CI service account
   3. the results come back → marketing/avatar/lipsync/<name>.mp4 (the 48 kHz voice muxed back in) + <name>_sheet.jpg +
      <name>_mouth.jpg (mouth close-ups every 4 frames, for review)
 
-usage: gpu_lipsync.py <jobs> [steps] [guidance] [backend: vertex | hf]
+usage: gpu_lipsync.py <jobs> [steps] [guidance] [backend: fal | vertex | hf | fal-probe]
+
+backend fal (default, the owner's choice): Sync's lipsync-2-pro on fal.ai (FAL_KEY secret) — minutes, no GPU quota
+needed; model ids are tried in order and the log names the one that answered. fal-probe only checks the key (a tiny
+upload, nothing generated).
 
 backend hf: when the project has no GPU quota for Vertex training (the default for a new project: 429 on every GPU
 type), the same LatentSync runs on a public Hugging Face Space (ZeroGPU) through gradio_client.
@@ -32,9 +36,12 @@ TARGETS = [("us-central1", "g2-standard-8", "NVIDIA_L4"), ("europe-west4", "g2-s
            ("us-central1", "n1-standard-8", "NVIDIA_TESLA_T4"), ("europe-west4", "n1-standard-8", "NVIDIA_TESLA_T4"),
            ("us-central1", "a2-highgpu-1g", "NVIDIA_TESLA_A100")]
 
-creds, project = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+try:  # only the vertex backend needs Google credentials
+    creds, project = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+    session = google.auth.transport.requests.AuthorizedSession(creds)
+except Exception:  # noqa: BLE001
+    creds, project, session = None, None, None
 project = project or "prohost-f766f"
-session = google.auth.transport.requests.AuthorizedSession(creds)
 HDR = {"x-goog-user-project": project}
 
 RUN_SH = r"""
@@ -118,6 +125,45 @@ def wait(region, job):
         time.sleep(30)
 
 
+FAL_MODELS = [("fal-ai/sync-lipsync/v2/pro", {}), ("fal-ai/sync-lipsync/v2", {"model": "lipsync-2-pro"}),
+              ("fal-ai/sync-lipsync/v2", {}), ("fal-ai/latentsync", {})]
+
+
+def fal_key_ok():
+    if not os.environ.get("FAL_KEY"):
+        sys.exit("::error::FAL_KEY is missing: add it in GitHub › Settings › Secrets and variables › Actions")
+    import fal_client
+    probe = pathlib.Path(tempfile.mkdtemp()) / "probe.txt"
+    probe.write_text("prohost")
+    try:
+        fal_client.upload_file(str(probe))
+    except Exception as e:  # noqa: BLE001
+        sys.exit(f"::error::fal.ai refused the key ({str(e)[:200]})")
+    print("lipsync fal: key OK")
+
+
+def fal_run(video, audio, out):
+    """One job on fal.ai; returns the model id that produced it, or None."""
+    import fal_client, requests as rq
+    v_url, a_url = fal_client.upload_file(str(video)), fal_client.upload_file(str(audio))
+    for model, extra in FAL_MODELS:
+        args = {"video_url": v_url, "audio_url": a_url, "sync_mode": "cut_off", **extra}
+        try:
+            res = fal_client.subscribe(model, arguments=args, with_logs=False)
+        except Exception as e:  # noqa: BLE001 — an unknown model / field: try the next
+            print(f"::notice::lipsync fal {model} {extra or ''}: {str(e)[:240]}")
+            continue
+        url = (res.get("video") or {}).get("url") if isinstance(res, dict) else None
+        if not url:
+            print(f"::notice::lipsync fal {model}: no video in {str(res)[:200]}")
+            continue
+        r = rq.get(url, timeout=300)
+        r.raise_for_status()
+        pathlib.Path(out).write_bytes(r.content)
+        return model + (f" {extra}" if extra else "")
+    return None
+
+
 HF_SPACES = ["fffiloni/LatentSync", "ByteDance/LatentSync", "jbilcke-hf/LatentSync", "TMElyralab/MuseTalk"]
 
 
@@ -176,19 +222,32 @@ def main():
     guidance = float(sys.argv[3]) if len(sys.argv) > 3 else 1.5
     prefix = f"marketing-gpu/{time.strftime('%Y%m%d-%H%M%S')}"
     tmp = pathlib.Path(tempfile.mkdtemp(prefix="gpuls_"))
+    backend = sys.argv[4] if len(sys.argv) > 4 else "fal"
+    if backend.startswith("fal"):
+        fal_key_ok()
+        if backend == "fal-probe":
+            return
     for j in jobs:
         voice = VOICE / f"{j['audio']}.wav"
         secs = duration(voice)
         v, a = tmp / f"{j['name']}.mp4", tmp / f"{j['name']}.wav"
         # The take must be at least as long as the voice (LatentSync would otherwise play it back and forth).
         ff("-ss", f"{j['vfrom']}", "-i", str(clip_file(j['clip'])), "-an", "-vf", "fps=25,tpad=stop_mode=clone:stop_duration=3",
-           "-t", f"{secs + 0.2:.3f}", "-c:v", "libx264", "-crf", "10", str(v))
-        ff("-i", str(voice), "-ac", "1", "-ar", "16000", str(a))
-        gcs_put(v, f"{prefix}/in/{j['name']}.mp4")
-        gcs_put(a, f"{prefix}/in/{j['name']}.wav")
-        print(f"lipsync gpu {j['name']}: {secs:.2f}s of {j['audio']} on {j['clip']} from {j['vfrom']}s uploaded")
+           "-t", f"{secs + 0.3:.3f}", "-c:v", "libx264", "-crf", "10", str(v))
+        ff("-i", str(voice), "-ac", "1", "-ar", "48000" if backend == "fal" else "16000", str(a))
+        if backend == "vertex":
+            gcs_put(v, f"{prefix}/in/{j['name']}.mp4")
+            gcs_put(a, f"{prefix}/in/{j['name']}.wav")
+        print(f"lipsync gpu {j['name']}: {secs:.2f}s of {j['audio']} on {j['clip']} from {j['vfrom']}s ready")
     names = [j["name"] for j in jobs]
-    backend = sys.argv[4] if len(sys.argv) > 4 else "vertex"
+    if backend == "fal":
+        OUT.mkdir(parents=True, exist_ok=True)
+        for j in jobs:
+            model = fal_run(tmp / f"{j['name']}.mp4", tmp / f"{j['name']}.wav", tmp / f"{j['name']}_gpu.mp4")
+            if not model:
+                sys.exit(f"::error::fal.ai lip-synced nothing for {j['name']} (see the notices above)")
+            print(f"lipsync fal {j['name']}: done with {model}")
+        return finish(jobs, tmp, {"backend": "fal"})
     if backend == "hf":
         OUT.mkdir(parents=True, exist_ok=True)
         for j in jobs:
