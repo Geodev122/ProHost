@@ -32,6 +32,7 @@ def main():
                                   num_frames=config.data.num_frames, audio_feat_length=config.data.audio_feat_length)
     vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse", torch_dtype=dtype)
     vae.config.scaling_factor, vae.config.shift_factor = 0.18215, 0
+    vae.enable_slicing()  # encode / decode one frame at a time: 16 frames at 512 px at once run a 7 GB runner out of memory
     unet, _ = UNet3DConditionModel.from_pretrained(OmegaConf.to_container(config.model), "checkpoints/latentsync_unet.pt",
                                                    device="cpu")
     pipe = LipsyncPipeline(vae=vae, audio_encoder=audio_encoder, unet=unet.to(dtype=dtype),

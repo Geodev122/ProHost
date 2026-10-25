@@ -55,6 +55,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
+      - name: Swap
+        run: |
+          # Hosted runners for private repos have ~7 GB RAM; LatentSync at 512 px needs more at peak. Swap on /mnt keeps
+          # the runner alive (an out-of-memory kill shows up as "The runner has received a shutdown signal").
+          sudo swapoff -a || true
+          sudo fallocate -l 24G /mnt/swapfile && sudo chmod 600 /mnt/swapfile && sudo mkswap /mnt/swapfile > /dev/null && sudo swapon /mnt/swapfile
+          free -g; nproc
       - name: Install
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg libgl1 > /dev/null
