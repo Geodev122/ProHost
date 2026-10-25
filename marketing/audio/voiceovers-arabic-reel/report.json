@@ -104,5 +104,77 @@
       }
     ],
     "trackSeconds": 13.0
+  },
+  {
+    "post": "v1s_orus",
+    "voice": "Orus",
+    "gender": "male",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 0.2,
+        "end": 4.42,
+        "sceneEnd": 6.0,
+        "spoken": 4.23,
+        "tempo": 1.0,
+        "text": "بدفع أجار عيادتي كامل… وبتضل فاضية نُصّ النهار."
+      }
+    ],
+    "trackSeconds": 7.0
+  },
+  {
+    "post": "v1s_fenrir",
+    "voice": "Fenrir",
+    "gender": "male",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 0.2,
+        "end": 3.81,
+        "sceneEnd": 6.0,
+        "spoken": 3.61,
+        "tempo": 1.0,
+        "text": "بدفع أجار عيادتي كامل… وبتضل فاضية نُصّ النهار."
+      }
+    ],
+    "trackSeconds": 7.0
+  },
+  {
+    "post": "v1s_iapetus",
+    "voice": "Iapetus",
+    "gender": "male",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 0.2,
+        "end": 4.3,
+        "sceneEnd": 6.0,
+        "spoken": 4.1,
+        "tempo": 1.0,
+        "text": "بدفع أجار عيادتي كامل… وبتضل فاضية نُصّ النهار."
+      }
+    ],
+    "trackSeconds": 7.0
+  },
+  {
+    "post": "v1s_algenib",
+    "voice": "Algenib",
+    "gender": "male",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 0.2,
+        "end": 5.94,
+        "sceneEnd": 6.0,
+        "spoken": 5.74,
+        "tempo": 1.0,
+        "text": "بدفع أجار عيادتي كامل… وبتضل فاضية نُصّ النهار."
+      }
+    ],
+    "trackSeconds": 7.0
   }
 ]
