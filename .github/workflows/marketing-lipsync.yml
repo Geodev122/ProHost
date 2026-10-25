@@ -1,20 +1,24 @@
 name: Marketing lip-sync (manual)
 
 # Lip-syncs voice 1 (marketing/audio/voice1, from marketing-voice1.yml) onto the avatar's speaking takes with LatentSync 1.6
-# (ByteDance, open source) on CPU. Each line is cut into ~0.8–2.2 s chunks at its pauses and every chunk runs on its own
-# runner in parallel (scripts/marketing/lipsync.py plan → sync → join). Output: marketing/avatar/lipsync/<name>.mp4 +
-# <name>_sheet.jpg + <name>_mouth.jpg, committed to the branch it runs on.
+# (ByteDance, open source, 512 px) on a cloud GPU: a Vertex AI custom job in the Firebase project (L4, else T4 / A100,
+# ~US$1 per run). The free runners can't: 2 CPUs and 7 GB RAM ran it out of memory. scripts/marketing/gpu_lipsync.py.
+# Output: marketing/avatar/lipsync/<name>.mp4 + <name>_sheet.jpg + <name>_mouth.jpg, committed to the branch it runs on.
 on:
   workflow_dispatch:
     inputs:
       jobs:
         description: "name:audio:clip:video_from, comma-separated (e.g. hook:line_1:s1:0.1,cta1:line_5:s5_a:0.0)"
         required: true
-        default: "hook:line_1:s1:0.1"
+        default: "hook:line_1:s1:0.1,cta1:line_5:s5_a:0.0"
       steps:
-        description: "LatentSync inference steps (20 = the model's default; more = finer, slower)"
+        description: "LatentSync inference steps (20 = the model's default; 30–50 = finer)"
         required: false
-        default: "20"
+        default: "40"
+      guidance:
+        description: "Audio guidance (1.5 default; 2.0 = stronger mouth shapes)"
+        required: false
+        default: "1.5"
 
 permissions:
   contents: write
@@ -22,111 +26,40 @@ permissions:
 concurrency: marketing-lipsync
 
 jobs:
-  plan:
+  lipsync:
     runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.plan.outputs.matrix }}
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
-      - name: Plan
-        id: plan
-        env:
-          JOBS: ${{ inputs.jobs }}
-        run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
-          pip install --quiet numpy==1.26.4
-          python scripts/marketing/lipsync.py plan "$JOBS" > "$RUNNER_TEMP/matrix.json" 2> "$RUNNER_TEMP/plan.log"
-          cat "$RUNNER_TEMP/plan.log"
-          while read -r l; do echo "::notice::$l"; done < "$RUNNER_TEMP/plan.log"
-          echo "matrix=$(cat "$RUNNER_TEMP/matrix.json")" >> "$GITHUB_OUTPUT"
-
-  sync:
-    needs: plan
-    runs-on: ubuntu-latest
-    timeout-minutes: 340
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-      - name: Swap
-        run: |
-          # Hosted runners for private repos have ~7 GB RAM; LatentSync at 512 px needs more at peak. Swap on /mnt keeps
-          # the runner alive (an out-of-memory kill shows up as "The runner has received a shutdown signal").
-          sudo swapoff -a || true
-          sudo fallocate -l 24G /mnt/swapfile && sudo chmod 600 /mnt/swapfile && sudo mkswap /mnt/swapfile > /dev/null && sudo swapon /mnt/swapfile
-          free -g; nproc
+          python-version: "3.12"
       - name: Install
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg libgl1 > /dev/null
-          pip install --quiet torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cpu
-          pip install --quiet diffusers==0.32.2 transformers==4.48.0 decord==0.6.0 accelerate==0.26.1 einops==0.7.0 \
-            omegaconf==2.3.0 opencv-python-headless==4.9.0.80 python_speech_features==0.6 librosa==0.10.1 \
-            ffmpeg-python==0.2.0 imageio==2.31.1 imageio-ffmpeg==0.5.1 "huggingface-hub[cli]==0.30.2" numpy==1.26.4 \
-            kornia==0.8.0 insightface==0.7.3 onnxruntime==1.21.0 DeepCache==0.1.1 soundfile matplotlib more-itertools regex
-          git clone --quiet https://github.com/bytedance/LatentSync.git "$RUNNER_TEMP/LatentSync"
-          cd "$RUNNER_TEMP/LatentSync"
-          git checkout --quiet a229c3948406bc2cf6eaf4873e662e70c6a04746
-          # CPU: insightface on the CPU provider, the face detector always on, fp32 face warping (half isn't on CPU).
-          sed -i 's/providers=\["CUDAExecutionProvider"\]/providers=["CPUExecutionProvider"]/; s/ctx_id=cuda_to_int(device)/ctx_id=-1/' latentsync/utils/face_detector.py
-          sed -i 's/if device == "cpu":/if False:/' latentsync/utils/image_processor.py
-          sed -i 's/ImageProcessor(height, device="cuda"/ImageProcessor(height, device="cpu"/' latentsync/pipelines/lipsync_pipeline.py
-          sed -i 's/dtype=torch.float16):/dtype=torch.float32):/' latentsync/utils/affine_transform.py
-          grep -q CPUExecutionProvider latentsync/utils/face_detector.py && grep -q 'device="cpu", mask_image' latentsync/pipelines/lipsync_pipeline.py \
-            && grep -q 'if False:' latentsync/utils/image_processor.py && grep -q 'dtype=torch.float32):' latentsync/utils/affine_transform.py \
-            || { echo "::error::LatentSync CPU patch did not apply"; exit 1; }
-          huggingface-cli download ByteDance/LatentSync-1.6 whisper/tiny.pt --local-dir checkpoints > /dev/null
-          huggingface-cli download ByteDance/LatentSync-1.6 latentsync_unet.pt --local-dir checkpoints > /dev/null
-          python -c "import sys; sys.path.insert(0, '.'); import latentsync.pipelines.lipsync_pipeline, insightface, DeepCache; print('imports ok')"
-      - name: Lip-sync chunk
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          pip install --quiet google-auth requests numpy opencv-python-headless==4.10.0.84
+      - name: Write Service Account Credentials
         env:
-          CHUNK: ${{ toJson(matrix) }}
-          STEPS: ${{ inputs.steps }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
-          rc=0
-          python -u scripts/marketing/lipsync.py sync "$CHUNK" "$RUNNER_TEMP/LatentSync" "$RUNNER_TEMP/out" "$STEPS" > "$RUNNER_TEMP/ls.log" 2>&1 || rc=$?
-          tr '\r' '\n' < "$RUNNER_TEMP/ls.log" | grep -v "it/s\]$" | tail -60 || true
-          [ "$rc" = 0 ] || { echo "::error::$(tail -c 1500 "$RUNNER_TEMP/ls.log" | tr '\r\n' '  ')"; exit 1; }
-          grep -E '^lipsync' "$RUNNER_TEMP/ls.log" | while read -r l; do echo "::notice::$l"; done
-      - uses: actions/upload-artifact@v4
-        with:
-          name: chunk-${{ matrix.chunk }}
-          path: ${{ runner.temp }}/out/${{ matrix.chunk }}.mp4
-          retention-days: 7
-
-  join:
-    needs: [plan, sync]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-      - uses: actions/download-artifact@v4
-        with:
-          path: ${{ runner.temp }}/chunks
-          pattern: chunk-*
-      - name: Join
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+      - name: Lip-sync on GPU
         env:
           JOBS: ${{ inputs.jobs }}
+          STEPS: ${{ inputs.steps }}
+          GUIDANCE: ${{ inputs.guidance }}
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
-          pip install --quiet numpy==1.26.4 opencv-python-headless==4.9.0.80
           set -o pipefail
-          python -u scripts/marketing/lipsync.py join "$JOBS" "$RUNNER_TEMP/chunks" 2>&1 | tee "$RUNNER_TEMP/join.log"
-          while read -r l; do echo "::notice::$l"; done < <(grep -E '^lipsync' "$RUNNER_TEMP/join.log")
+          python -u scripts/marketing/gpu_lipsync.py "$JOBS" "$STEPS" "$GUIDANCE" 2>&1 | tee "$RUNNER_TEMP/ls.log" || {
+            echo "::error::$(tail -c 1500 "$RUNNER_TEMP/ls.log" | tr '\n' ' ')"; exit 1; }
+          while read -r l; do echo "::notice::$l"; done < <(grep -E '^lipsync' "$RUNNER_TEMP/ls.log")
       - name: Commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add marketing/avatar/lipsync
           git diff --cached --quiet && { echo "No changes"; exit 0; }
-          git commit -m "Marketing: lip-sync voice 1 (${{ inputs.jobs }})"
+          git commit -m "Marketing: lip-sync voice 1 on GPU (${{ inputs.jobs }})"
           for i in 1 2 3 4 5; do git pull --rebase && git push && exit 0; sleep $((i * 7)); done  # other marketing runs push too
           exit 1
