@@ -59,5 +59,5 @@ jobs:
           git add marketing/avatar marketing/audio/owner
           git diff --cached --quiet && { echo "No changes"; exit 0; }
           git commit -m "Marketing: AI avatar ${{ inputs.stage }} (${{ inputs.shots || 'all' }})"
-          git pull --rebase
-          git push
+          for i in 1 2 3 4 5; do git pull --rebase && git push && exit 0; sleep $((i * 7)); done  # other marketing runs push too
+          exit 1
