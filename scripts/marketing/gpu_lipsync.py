@@ -140,19 +140,24 @@ def hf_run(video, audio, out):
             kinds = [str(p.get("component", "")).lower() + " " + str(p.get("label", "")).lower() for p in params]
             if not any("video" in k for k in kinds) or not any("audio" in k for k in kinds):
                 continue
-            args = []
-            for p, k in zip(params, kinds):
-                if "video" in k:
-                    args.append({"video": handle_file(str(video))} if "video" == str(p.get("component", "")).lower() else handle_file(str(video)))
-                elif "audio" in k:
-                    args.append(handle_file(str(audio)))
-                else:
-                    args.append(p.get("parameter_default") if p.get("parameter_has_default") else None)
             print(f"lipsync hf {space}{ep}: {[(p.get('label'), p.get('component')) for p in params]}", flush=True)
-            try:
-                res = c.predict(*args, api_name=ep)
-            except Exception as e:  # noqa: BLE001
-                print(f"::notice::lipsync hf {space}{ep}: failed ({str(e)[:300]})")
+            res = None
+            # Gradio versions differ on how a Video input is passed: the file itself, or {"video": file}.
+            for wrap in (False, True):
+                args = []
+                for p, k in zip(params, kinds):
+                    if "video" in k:
+                        args.append({"video": handle_file(str(video))} if wrap else handle_file(str(video)))
+                    elif "audio" in k:
+                        args.append(handle_file(str(audio)))
+                    else:
+                        args.append(p.get("parameter_default") if p.get("parameter_has_default") else None)
+                try:
+                    res = c.predict(*args, api_name=ep)
+                    break
+                except Exception as e:  # noqa: BLE001
+                    print(f"::notice::lipsync hf {space}{ep} (wrapped={wrap}): failed ({str(e)[:300]})")
+            if res is None:
                 break
             path = res.get("video") if isinstance(res, dict) else (res[0] if isinstance(res, (list, tuple)) else res)
             if isinstance(path, dict):
