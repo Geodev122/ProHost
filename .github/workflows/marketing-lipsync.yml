@@ -10,7 +10,7 @@ on:
       jobs:
         description: "name:audio:clip:video_from, comma-separated (e.g. hook:line_1:s1:0.1,cta1:line_5:s5_a:0.0)"
         required: true
-        default: "hook:hook:s1v:0.0,cta1:cta1:s5v:0.0"
+        default: "hook:hook:s1v_d:0.0,cta1:cta1:s5v_d:0.0"
       steps:
         description: "LatentSync inference steps (20 = the model's default; 30–50 = finer)"
         required: false
