@@ -119,6 +119,36 @@
       "audio": false,
       "silent": true,
       "takes": 2
+    },
+    {
+      "id": "s1n",
+      "refs": [
+        "close_neutral",
+        "desk_mid",
+        "three_quarter"
+      ],
+      "frame": "Medium shot. He sits behind the oak desk facing the camera, forearms resting on the desk, looking slightly down at his notebook, thoughtful. The empty grey couch is softly blurred behind him.",
+      "motion": "He looks up from the notebook straight into the camera and speaks the whole line to the viewer, honest and a little tired, natural blinking and small head movements, and finishes the sentence fully before the clip ends. Static camera, slow subtle push-in.",
+      "speech": "بِدْفَع أَجار عيادتي كامل… وبِتْضَلّ فاضية نُصّ النهار.",
+      "voice": "a warm, slightly tired, deep male voice with a clear BEIRUT accent (not Syrian, not Jordanian): 'كامل' said 'kēmil', 'فاضية' said 'fāḍye', 'النهار' said 'lnhār', 'وبتضل' said 'w btḍall'; a small sigh before 'فاضية'",
+      "audio": true,
+      "takes": 4,
+      "note": "Native Veo take (picture, voice and lips all Veo's, used as is) of the s1v line — the owner's call, Oct 2026"
+    },
+    {
+      "id": "s5n",
+      "refs": [
+        "close_smile",
+        "full_front",
+        "close_neutral"
+      ],
+      "frame": "Medium shot from the waist up. He stands in the middle of the office facing the camera, relaxed, friendly half-smile, the oak desk and the plant softly blurred behind him.",
+      "motion": "Confident, warm advertiser energy. He looks straight into the camera as if talking to one friend and says the whole line naturally: eyebrows lift, he leans in slightly, opens his palm toward the viewer on 'نزّل التطبيق', a confident smile on 'مجّاني'. Natural blinking and head movement. Static camera, slow subtle push-in.",
+      "audio": true,
+      "takes": 4,
+      "speech": "إذا بدّك مكتب، نزّل التطبيق، تفتّش وتحجز كِلّو مجّاني.",
+      "voice": "a warm, confident, deep male voice with a clear BEIRUT accent (not Jordanian, not Syrian, not Egyptian): 'بدّك' said 'baddak', 'كِلّو' said 'kello', 'مجّاني' said 'majjēne' with the Beirut imala, soft Lebanese melody, smiling",
+      "note": "Native Veo take (picture, voice and lips all Veo's, used as is) of the s5v line — the owner's call, Oct 2026"
     }
   ],
   "accent": "Native Beiruti Lebanese Arabic, NOT Syrian or Damascene, NOT Palestinian, NOT Jordanian: Lebanese melody and pacing, final -a/-ā raised to -e the Beirut way (فاضية sounds 'fāḍye', مجّاني sounds 'majjēne', النهار sounds 'lnhār'), ق as a glottal stop, soft, relaxed, warm delivery, like a Beirut professional talking to a friend; English words said naturally in English",
