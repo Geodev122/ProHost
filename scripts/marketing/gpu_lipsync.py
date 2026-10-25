@@ -22,7 +22,7 @@ import google.auth
 import google.auth.transport.requests
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from lipsync import CLIPS, OUT, ROOT, VOICE, ff, frames, mouth_sheet, parse  # noqa: E402
+from lipsync import OUT, ROOT, VOICE, clip_file, ff, frames, mouth_sheet, parse  # noqa: E402
 
 BUCKET = os.environ.get("GPU_BUCKET", "prohost-f766f.firebasestorage.app")
 LATENTSYNC_SHA = "a229c3948406bc2cf6eaf4873e662e70c6a04746"
@@ -127,7 +127,10 @@ def hf_run(video, audio, out):
     token = os.environ.get("HF_TOKEN") or None
     for space in HF_SPACES:
         try:
-            c = Client(space, hf_token=token, verbose=False)
+            try:
+                c = Client(space, token=token, verbose=False)  # gradio_client >= 1.0
+            except TypeError:
+                c = Client(space, hf_token=token, verbose=False)
             api = c.view_api(return_format="dict", print_info=False)
         except Exception as e:  # noqa: BLE001 — a Space that is down or private: try the next
             print(f"::notice::lipsync hf {space}: unavailable ({str(e)[:160]})")
@@ -145,7 +148,7 @@ def hf_run(video, audio, out):
                     args.append(handle_file(str(audio)))
                 else:
                     args.append(p.get("parameter_default") if p.get("parameter_has_default") else None)
-            print(f"lipsync hf {space}{ep}: {[p.get('label') for p in params]}", flush=True)
+            print(f"lipsync hf {space}{ep}: {[(p.get('label'), p.get('component')) for p in params]}", flush=True)
             try:
                 res = c.predict(*args, api_name=ep)
             except Exception as e:  # noqa: BLE001
@@ -173,7 +176,7 @@ def main():
         secs = duration(voice)
         v, a = tmp / f"{j['name']}.mp4", tmp / f"{j['name']}.wav"
         # The take must be at least as long as the voice (LatentSync would otherwise play it back and forth).
-        ff("-ss", f"{j['vfrom']}", "-i", str(CLIPS / f"{j['clip']}.mp4"), "-an", "-vf", "fps=25,tpad=stop_mode=clone:stop_duration=3",
+        ff("-ss", f"{j['vfrom']}", "-i", str(clip_file(j['clip'])), "-an", "-vf", "fps=25,tpad=stop_mode=clone:stop_duration=3",
            "-t", f"{secs + 0.2:.3f}", "-c:v", "libx264", "-crf", "10", str(v))
         ff("-i", str(voice), "-ac", "1", "-ar", "16000", str(a))
         gcs_put(v, f"{prefix}/in/{j['name']}.mp4")

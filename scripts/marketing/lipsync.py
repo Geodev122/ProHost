@@ -5,12 +5,22 @@ A job is "name:audio:clip:video_from", e.g. hook:line_1:s1:0.1 — the voice mar
 marketing/avatar/clips/<clip>.mp4 from video_from (the avatar's own speaking take, so head and jaw already move naturally).
 LatentSync on the free CPU runners was tried and dropped: 2 CPUs / 7 GB ran it out of memory at 512 px.
 """
-import json, pathlib, subprocess, sys, wave
+import json, os, pathlib, subprocess, sys, wave
 
 import numpy as np
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-VOICE, CLIPS, OUT = ROOT / "marketing/audio/voice1", ROOT / "marketing/avatar/clips", ROOT / "marketing/avatar/lipsync"
+# LIPSYNC_VOICE / LIPSYNC_CLIPS / LIPSYNC_OUT: another reel's folders (Reel Studio); clips missing there come from the
+# shared avatar library (marketing/avatar/clips).
+VOICE = ROOT / os.environ.get("LIPSYNC_VOICE", "marketing/audio/voice1")
+CLIPS = ROOT / os.environ.get("LIPSYNC_CLIPS", "marketing/avatar/clips")
+OUT = ROOT / os.environ.get("LIPSYNC_OUT", "marketing/avatar/lipsync")
+LIBRARY = ROOT / "marketing/avatar/clips"
+
+
+def clip_file(name):
+    p = CLIPS / f"{name}.mp4"
+    return p if p.exists() else LIBRARY / f"{name}.mp4"
 FPS = 25
 
 

@@ -22,9 +22,11 @@ import google.auth
 import google.auth.transport.requests
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-CFG = json.loads((pathlib.Path(__file__).parent / "avatar_shots.json").read_text(encoding="utf-8"))
-AV = ROOT / "marketing/avatar"
-REF, KEY, CLIPS = AV / "reference", AV / "keyframes", AV / "clips"
+# AVATAR_SHOTS / AVATAR_OUT: another shot list and output folder (Reel Studio: marketing/reels/<id>/), same avatar refs.
+CFG = json.loads((pathlib.Path(__file__).parent / os.environ.get("AVATAR_SHOTS", "avatar_shots.json")).read_text(encoding="utf-8"))
+AV = ROOT / os.environ.get("AVATAR_OUT", "marketing/avatar")
+REF, KEY, CLIPS = ROOT / "marketing/avatar/reference", AV / "keyframes", AV / "clips"
+ROOM = ROOT / "marketing/avatar/keyframes/s1.png"  # the office every reel is shot in
 MAX_SECONDS = 64
 DURATION = 8
 PRICE = {True: 0.15, False: 0.10}  # Veo 3.x Fast, US$ per generated second (with / without audio)
@@ -66,9 +68,9 @@ def b64(path):
 
 def keyframe(shot, models):
     parts = [{"inlineData": {"mimeType": "image/png", "data": b64(REF / f"{r}.png")}} for r in shot["refs"]]
-    room_ref = KEY / "s1.png"
+    room_ref = ROOM
     same_room = ""
-    if shot["id"] != "s1" and room_ref.exists():
+    if (shot["id"] != "s1" or AV != ROOT / "marketing/avatar") and room_ref.exists():
         parts.append({"inlineData": {"mimeType": "image/png", "data": b64(room_ref)}})
         same_room = " The last image shows the same room: keep its furniture, light and colours identical."
     prompt = (f"Create one new photograph of this exact man. {CFG['person']} Setting: {CFG['room']}. {shot['frame']}"

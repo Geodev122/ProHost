@@ -8,13 +8,14 @@ The lip-sync (lipsync.py) is driven by these files; avatar_video.py stage voice1
 
 usage: voice1.py <seed-vc repo dir> [diffusion steps]
 """
-import pathlib, subprocess, sys, tempfile
+import os, pathlib, subprocess, sys, tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-SRC = ROOT / "marketing/audio/voiceovers-arabic-reel/lines"
-OUT = ROOT / "marketing/audio/voice1"
+# V1_SRC / V1_OUT / V1_JOBS ("out=src,..."): another reel's lines (Reel Studio); the reference voice never changes.
+SRC = ROOT / os.environ.get("V1_SRC", "marketing/audio/voiceovers-arabic-reel/lines")
+OUT = ROOT / os.environ.get("V1_OUT", "marketing/audio/voice1")
 REF_CLIP, REF_FROM, REF_TO = ROOT / "marketing/avatar/clips/s1.mp4", 0.1, 5.4  # the hook as Veo spoke it (Lebanese 5/5)
-JOBS = {"line_1": "reel_v1_01", "line_5": "reel_v1_02"}
+JOBS = dict(j.split("=") for j in os.environ.get("V1_JOBS", "line_1=reel_v1_01,line_5=reel_v1_02").split(","))
 
 
 def ff(*args):
