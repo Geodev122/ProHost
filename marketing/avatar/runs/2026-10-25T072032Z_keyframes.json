@@ -1,0 +1,8 @@
+{
+  "at": "2026-10-25T07:20:32Z",
+  "stage": "keyframes",
+  "shots": {
+    "s3": "gemini-3.1-flash-image",
+    "s5b": "gemini-3.1-flash-image"
+  }
+}
