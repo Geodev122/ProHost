@@ -106,6 +106,19 @@
       "takes": 4,
       "speech": "إذا بدّك مكتب، نزّل التطبيق، تفتّش وتحجز كِلّو مجّاني.",
       "voice": "a warm, confident, deep male voice with a clear BEIRUT accent (not Jordanian, not Syrian, not Egyptian): 'بدّك' said 'baddak', 'كِلّو' said 'kello', 'مجّاني' said 'majjēne' with the Beirut imala, soft Lebanese melody, smiling"
+    },
+    {
+      "id": "s5c",
+      "refs": [
+        "three_quarter",
+        "close_smile",
+        "full_front"
+      ],
+      "frame": "Medium shot. He stands at a small side counter in the same office with a compact espresso machine and two white cups, three-quarter view, relaxed, the grey couch and the plant behind him, the room door closed.",
+      "motion": "He holds his espresso cup at the side counter, takes a slow sip, lowers the cup with a relaxed closed-mouth smile, raises it slightly toward the camera like a small toast, then points down toward the bottom of the screen with his free hand and nods. His lips stay closed the whole time, he never talks. Slow, smooth push-in.",
+      "audio": false,
+      "silent": true,
+      "takes": 2
     }
   ],
   "accent": "Native Beiruti Lebanese Arabic, NOT Syrian or Damascene, NOT Palestinian, NOT Jordanian: Lebanese melody and pacing, final -a/-ā raised to -e the Beirut way (فاضية sounds 'fāḍye', مجّاني sounds 'majjēne', النهار sounds 'lnhār'), ق as a glottal stop, soft, relaxed, warm delivery, like a Beirut professional talking to a friend; English words said naturally in English",

@@ -74,6 +74,66 @@
           "text": "إذا بدّك مكتب، نزّل التطبيق، تفتّش وتحجز كِلّو مجّاني."
         }
       ]
+    },
+    {
+      "id": "v1s_orus",
+      "voice": "Orus",
+      "gender": "male",
+      "length": 7.0,
+      "persona": "A Lebanese psychologist in his early 30s speaking ON CAMERA to the viewer: warm, honest, natural; a Beirut professional talking to a friend.",
+      "lines": [
+        {
+          "at": 0.2,
+          "end": 6.0,
+          "style": "Honest confession that hooks, a little tired; a small sigh before 'فاضية'. Natural short pause after 'كامل'. Talking straight to camera, to one friend.",
+          "text": "بدفع أجار عيادتي كامل… وبتضل فاضية نُصّ النهار."
+        }
+      ]
+    },
+    {
+      "id": "v1s_fenrir",
+      "voice": "Fenrir",
+      "gender": "male",
+      "length": 7.0,
+      "persona": "A Lebanese psychologist in his early 30s speaking ON CAMERA to the viewer: warm, honest, natural; a Beirut professional talking to a friend.",
+      "lines": [
+        {
+          "at": 0.2,
+          "end": 6.0,
+          "style": "Honest confession that hooks, a little tired; a small sigh before 'فاضية'. Natural short pause after 'كامل'. Talking straight to camera, to one friend.",
+          "text": "بدفع أجار عيادتي كامل… وبتضل فاضية نُصّ النهار."
+        }
+      ]
+    },
+    {
+      "id": "v1s_iapetus",
+      "voice": "Iapetus",
+      "gender": "male",
+      "length": 7.0,
+      "persona": "A Lebanese psychologist in his early 30s speaking ON CAMERA to the viewer: warm, honest, natural; a Beirut professional talking to a friend.",
+      "lines": [
+        {
+          "at": 0.2,
+          "end": 6.0,
+          "style": "Honest confession that hooks, a little tired; a small sigh before 'فاضية'. Natural short pause after 'كامل'. Talking straight to camera, to one friend.",
+          "text": "بدفع أجار عيادتي كامل… وبتضل فاضية نُصّ النهار."
+        }
+      ]
+    },
+    {
+      "id": "v1s_algenib",
+      "voice": "Algenib",
+      "gender": "male",
+      "length": 7.0,
+      "persona": "A Lebanese psychologist in his early 30s speaking ON CAMERA to the viewer: warm, honest, natural; a Beirut professional talking to a friend.",
+      "lines": [
+        {
+          "at": 0.2,
+          "end": 6.0,
+          "style": "Honest confession that hooks, a little tired; a small sigh before 'فاضية'. Natural short pause after 'كامل'. Talking straight to camera, to one friend.",
+          "text": "بدفع أجار عيادتي كامل… وبتضل فاضية نُصّ النهار."
+        }
+      ]
     }
   ]
 }
