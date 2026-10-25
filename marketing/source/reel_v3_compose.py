@@ -54,6 +54,45 @@ SEGS = [
      "cap": "وبعد الشهر؟ بسّ <b>تسعة دولار</b> بالشهر… أقلّ من أجار ساعة وحدة.",
      "cam": [(0, 1.0, 0.1)]},
 ]
+# Paths of the office reel; a Reel Studio spec (REEL_SPEC=marketing/reels/<id>/spec.json) replaces them and SEGS.
+LIBRARY = CLIPS                              # the shared avatar takes, reusable by any reel
+LINE_FILE = "reel_office_{:02d}.wav"          # voice 2 line n
+V1_DIR, V1_TTS = ROOT / "audio" / "voice1", "reel_v1_{:02d}.wav"
+SYNCED = ROOT / "avatar"                      # "lipsync/<name>" resolves under it
+HTML, DATA_JS, COVER_ROLE = "reel_office_v3.html", "reel_office_v3_data.js", "cta2"
+SPEC = None
+
+
+def load_spec(path):
+    """A Reel Studio spec → SEGS + paths (scripts/marketing/reel_studio.py prepares the folder; docs in its skill)."""
+    global SEGS, CLIPS, LINES, LINE_FILE, V1_DIR, V1_TTS, SYNCED, OUT, HTML, DATA_JS, COVER_ROLE, SPEC
+    SPEC = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+    d = pathlib.Path(path).resolve().parent
+    CLIPS, LINES, LINE_FILE = d / "clips", d / "audio" / "lines", "v2_{:02d}.wav"
+    V1_DIR, V1_TTS, SYNCED = d / "voice1", "v1_{:02d}.wav", d
+    OUT = pathlib.Path(os.environ.get("REEL_OUT") or d / "reel.mp4")
+    HTML, DATA_JS = "reel_studio.html", "reel_studio_data.js"
+    segs, n1, n2 = [], 0, 0
+    for sc in SPEC["scenes"]:
+        shot = sc.get("shot", {})
+        clip, frm = shot.get("reuse") or sc["role"], float(shot.get("from", 0.0))
+        seg = {k: sc[k] for k in ("role", "cap", "cam", "punch", "in", "jcut", "ramp", "tail", "chip", "comment", "stamp",
+                                  "stamp_sub", "price") if k in sc}
+        seg["cam"] = [tuple(b) for b in seg.get("cam", [(0, 1.06, 0.06)])]
+        if sc["voice"] == 1:
+            n1 += 1
+            seg.update({"clip": f"lipsync/{sc['role']}", "speech": "clip", "fallback": (clip, frm, sc["role"], n1)})
+        else:
+            n2 += 1
+            seg.update({"clip": clip, "speech": n2, "from": frm})
+        segs.append(seg)
+    SEGS = segs
+    COVER_ROLE = SPEC.get("cover", segs[-1]["role"])
+
+
+if os.environ.get("REEL_SPEC"):
+    load_spec(os.environ["REEL_SPEC"])
+
 LEAD, HOLD = 0.15, 0.25  # silence before / after each spoken line
 VEO_HOLD, FADE = 0.45, 0.12  # after a lip-synced line: hold, then fade the audio out (never clip the last word)
 
@@ -157,7 +196,10 @@ def anchors(seg):
 
 
 def clip_path(name):
-    return (ROOT / "avatar" / f"{name}.mp4") if "/" in name else CLIPS / f"{name}.mp4"
+    if "/" in name:
+        return SYNCED / f"{name}.mp4"
+    p = CLIPS / f"{name}.mp4"
+    return p if p.exists() else LIBRARY / f"{name}.mp4"
 
 
 def timeline():
@@ -166,8 +208,8 @@ def timeline():
         clip = clip_path(s["clip"])
         if s["speech"] == "clip" and not clip.exists() and s.get("fallback"):
             raw, vfrom, v1, n = s["fallback"]
-            src = ROOT / "audio" / "voice1" / f"{v1}.wav"
-            src = src if src.exists() else LINES / f"reel_v1_{n:02d}.wav"
+            src = V1_DIR / f"{v1}.wav"
+            src = src if src.exists() else LINES / V1_TTS.format(n)
             print(f"  ::warning:: {clip.name} not lip-synced yet: {raw} from {vfrom}s + {src.name}, unsynced")
             line = wav48(src)
             a, b = speech_window(line, 0.02)
@@ -193,7 +235,7 @@ def timeline():
             voice = fade_out(full[int(frm * SR): int((frm + dur) * SR)])
             sp = (t + a - frm, t + b - frm)
         else:
-            line = wav48(LINES / f"reel_office_{s['speech']:02d}.wav")
+            line = wav48(LINES / LINE_FILE.format(s["speech"]))
             a, b = speech_window(line, 0.02)
             line = fade_out(line[int(a * SR): min(len(line), int((b + 0.12) * SR))])
             frm = s.get("from", 0.0)
@@ -257,19 +299,22 @@ def score(segs, length, events):
 
 def main():
     segs, length = timeline()
+    extra = ("chip", "comment", "stamp", "stamp_sub", "price")
     data = {"segs": [{"role": s["role"], "t0": s["t0"], "t1": s["t1"], "sp": s["sp"], "cap": s["cap"], "phrases": s["phrases"],
-                      "in": s.get("in", "cut"), "cut": round(s["t0"] + s.get("jcut", 0.0), 3)}
+                      "in": s.get("in", "cut"), "cut": round(s["t0"] + s.get("jcut", 0.0), 3), **{k: s[k] for k in extra if k in s}}
                      for s in segs],
-            "end": round(length - SEGS[-1].get("tail", 0) + 0.15, 3), "length": round(length, 3)}
-    (HERE / "reel_office_v3_data.js").write_text("window.REEL3 = " + json.dumps(data, ensure_ascii=False) + ";\n", encoding="utf-8")
+            "end": round(length - SEGS[-1].get("tail", 0) + 0.15, 3), "length": round(length, 3),
+            "endcard": (SPEC or {}).get("end", {})}
+    (HERE / DATA_JS).write_text("window.REEL3 = " + json.dumps(data, ensure_ascii=False) + ";\n", encoding="utf-8")
     print("segments:", ", ".join(f"{s['clip']}@{s['frm']:.2f} {s['t0']:.2f}-{s['t1']:.2f} speech {s['sp']}" for s in segs),
           f"length {length:.2f}s")
     base = base_video(segs, length)
     preview = sys.argv[2].split(",") if len(sys.argv) > 2 and sys.argv[1] == "preview" else None
     with sync_playwright() as p:
-        b = p.chromium.launch(executable_path=CHROME, args=["--force-color-profile=srgb"])
+        b = p.chromium.launch(executable_path=CHROME if pathlib.Path(CHROME).exists() else None,
+                              args=["--force-color-profile=srgb"])
         pg = b.new_page(viewport={"width": 1080, "height": 1920}, device_scale_factor=1)
-        pg.goto((HERE / "reel_office_v3.html").as_uri())
+        pg.goto((HERE / HTML).as_uri())
         pg.wait_for_function("document.fonts.ready.then(() => true)")
         pg.wait_for_function("Array.from(document.images).every(i => i.complete)")
         pg.wait_for_timeout(400)
@@ -304,7 +349,7 @@ def main():
     subprocess.run([FF, "-nostdin", "-y", "-loglevel", "error", "-i", str(silent), "-i", str(audio), "-map", "0:v:0",
                     "-map", "1:a:0", "-c:v", "copy", "-af", "loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000",
                     "-c:a", "aac", "-b:a", "192k", "-t", f"{length:.3f}", "-movflags", "+faststart", str(OUT)], check=True)
-    cover_t = next(s for s in segs if s["role"] == "cta2")["sp"][1] - 0.4  # big smile + free-month stamp
+    cover_t = next(s for s in segs if s["role"] == COVER_ROLE)["sp"][1] - 0.4  # office reel: big smile + free-month stamp
     subprocess.run([FF, "-nostdin", "-y", "-loglevel", "error", "-ss", f"{cover_t:.2f}", "-i", str(OUT), "-frames:v", "1",
                     "-q:v", "2", str(OUT.with_name(OUT.stem + "_cover.jpg"))], check=True)
     print(f"{OUT} ({length:.2f}s)")
