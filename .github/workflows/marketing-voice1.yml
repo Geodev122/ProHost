@@ -1,0 +1,69 @@
+name: Marketing voice 1 (manual)
+
+# Office reel: the on-camera avatar's lines (1 and 5) in the hook voice. Gemini-TTS lines (post reel_v1) are converted
+# to the voice of marketing/avatar/clips/s1.mp4 with Seed-VC on CPU (scripts/marketing/voice1.py), then Gemini checks the
+# words and the Lebanese accent (avatar_video.py stage voice1). Commits marketing/audio/voice1 + marketing/avatar/runs.
+on:
+  workflow_dispatch:
+    inputs:
+      steps:
+        description: "Seed-VC diffusion steps (more = cleaner, slower)"
+        required: false
+        default: "50"
+
+permissions:
+  contents: write
+
+concurrency: marketing-voice1
+
+jobs:
+  voice1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          pip install --quiet torch==2.4.0 torchaudio==2.4.0 --index-url https://download.pytorch.org/whl/cpu
+          pip install --quiet scipy==1.13.1 librosa==0.10.2 "huggingface-hub>=0.28.1" munch==4.0.0 einops==0.8.0 \
+            descript-audio-codec==1.0.0 pydub==0.25.1 transformers==4.46.3 soundfile==0.12.1 numpy==1.26.4 \
+            hydra-core==1.3.2 pyyaml accelerate google-auth requests imageio-ffmpeg
+          git clone --quiet https://github.com/Plachtaa/seed-vc.git "$RUNNER_TEMP/seed-vc"
+          git -C "$RUNNER_TEMP/seed-vc" checkout --quiet 51383efd921027683c89e5348211d93ff12ac2a8
+
+      - name: Write Service Account Credentials
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+
+      - name: Convert
+        env:
+          STEPS: ${{ inputs.steps }}
+        run: |
+          set -o pipefail
+          python -u scripts/marketing/voice1.py "$RUNNER_TEMP/seed-vc" "$STEPS" 2>&1 | tee "$RUNNER_TEMP/v1.log" || {
+            echo "::error::$(tail -c 1500 "$RUNNER_TEMP/v1.log" | tr '\n' ' ')"; exit 1; }
+
+      - name: Check
+        run: |
+          set -o pipefail
+          python -u scripts/marketing/avatar_video.py voice1 "" 2>&1 | tee "$RUNNER_TEMP/chk.log"
+          while read -r l; do echo "::notice::$l"; done < <(grep -E '^voice1' "$RUNNER_TEMP/v1.log" "$RUNNER_TEMP/chk.log" | cut -d: -f2-)
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add marketing/audio/voice1 marketing/avatar/runs
+          git diff --cached --quiet && { echo "No changes"; exit 0; }
+          git commit -m "Marketing: voice 1 (hook voice, lines 1 and 5)"
+          git pull --rebase
+          git push

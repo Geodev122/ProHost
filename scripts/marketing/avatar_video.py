@@ -352,6 +352,18 @@ def main():
             for k, v in check_voiceover(models).items():
                 run["shots"][k] = v
                 print(f"check {k}: {json.dumps({x: v.get(x) for x in ('transcript', 'dialect', 'lebanese_score', 'cues', 'matches_script')}, ensure_ascii=False)}")
+    elif stage == "voice1":
+        # Voice 1 (scripts/marketing/voice1.py): the converted on-camera lines, checked against their script.
+        models = pick(found, lambda m: re.fullmatch(r"gemini-\d+(\.\d+)?-(pro|flash)", m) is not None,
+                      ["gemini-2.5-pro", "gemini-2.5-flash"], lambda m: "pro" in m)
+        lines = json.loads(VO_CFG.read_text(encoding="utf-8"))["posts"][0]["lines"]
+        for n in only or ["1", "5"]:
+            wav = ROOT / f"marketing/audio/voice1/line_{n}.wav"
+            if wav.exists():
+                v = listen(wav, lines[int(n) - 1]["text"], models)
+                run["shots"][f"voice1_{n}"] = v
+                print(f"voice1 line {n}: " + json.dumps({x: v.get(x) for x in ("transcript", "dialect", "lebanese_score",
+                      "matches_script", "intelligible", "cut_off", "cues")}, ensure_ascii=False))
     elif stage == "voice":
         models = pick(found, lambda m: re.fullmatch(r"gemini-\d+(\.\d+)?-(pro|flash)", m) is not None,
                       ["gemini-2.5-pro", "gemini-2.5-flash"], lambda m: "pro" in m)

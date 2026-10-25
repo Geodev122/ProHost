@@ -1,105 +1,160 @@
-"""Lip-sync the AI avatar to the owner's recorded voice (free, CPU, in CI: .github/workflows/marketing-lipsync.yml).
+"""Lip-sync voice 1 (the on-camera avatar) with LatentSync 1.6 on CPU, split over parallel CI runners
+(.github/workflows/marketing-lipsync.yml).
 
-For each job "shot:audio:video_from[:audio_from-audio_to]" (e.g. s1:line_1:0 or s5:line_5:0:0-5.6):
-  1. cut the Veo clip (marketing/avatar/clips/<shot>.mp4) from video_from for the audio's length, 25 fps (Wav2Lip's rate);
-  2. Wav2Lip GAN redraws the mouth from the audio (marketing/audio/owner/<audio>.wav);
-  3. GFPGAN restores the face of every frame (Wav2Lip's mouth is 96 px, soft at full HD);
-  4. only the mouth/jaw area (an ellipse from GFPGAN's 5 landmarks, feathered) is blended back into the ORIGINAL frame,
-     so eyes, hair, skin texture, background and grain stay Veo's;
-  5. → marketing/avatar/lipsync/<shot>.mp4 (with the voice) + <shot>_sheet.jpg (6 frames to review).
+A job is "name:audio:clip:video_from", e.g. hook:line_1:s1:0.1 — the voice marketing/audio/voice1/<audio>.wav laid on
+marketing/avatar/clips/<clip>.mp4 from video_from (the avatar's own speaking take, so head and jaw already move naturally).
 
-usage: lipsync.py <wav2lip repo dir> <wav2lip_gan.pth> <GFPGANv1.4.pth> job[,job...]
+  plan <jobs>     cuts every line into chunks of about 0.8–2.2 s at its pauses (frame-exact, 25 fps) → matrix JSON
+  sync <chunk>    one chunk: cut video + audio, LatentSync redraws the mouth (512 px face, 20+ steps, DeepCache)
+  join <jobs>     chunks in order → marketing/avatar/lipsync/<name>.mp4 (25 fps, voice 1) + <name>_sheet.jpg (frames)
+                  + <name>_mouth.jpg (mouth close-ups every 4 frames, seams marked)
+
+Chunks are cut in the pauses, where the mouth is at rest in the source and in the result, so the joins don't show.
 """
-import pathlib, subprocess, sys, tempfile
+import json, pathlib, subprocess, sys, wave
 
-import cv2
 import numpy as np
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-CLIPS, VOICE, OUT = ROOT / "marketing/avatar/clips", ROOT / "marketing/audio/owner", ROOT / "marketing/avatar/lipsync"
+VOICE, CLIPS, OUT = ROOT / "marketing/audio/voice1", ROOT / "marketing/avatar/clips", ROOT / "marketing/avatar/lipsync"
 FPS = 25
+MIN_CHUNK, MAX_CHUNK = 0.8, 2.2  # seconds per runner (cut in a pause whenever one is in reach)
 
 
 def ff(*args):
     subprocess.run(["ffmpeg", "-nostdin", "-y", "-loglevel", "error", *args], check=True)
 
 
-def duration(path):
-    out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)],
-                         capture_output=True, text=True, check=True).stdout
-    return float(out.strip())
+def mono(path, sr=16000):
+    raw = subprocess.run(["ffmpeg", "-nostdin", "-loglevel", "error", "-i", str(path), "-ac", "1", "-ar", str(sr), "-f",
+                          "s16le", "-"], capture_output=True, check=True).stdout
+    return np.frombuffer(raw, dtype="<i2").astype(np.float32) / 32768, sr
 
 
-def mouth_mask(shape, lm5):
-    """Feathered ellipse over mouth + jaw from 5 landmarks (eyes, nose, mouth corners)."""
-    h, w = shape[:2]
-    le, re, nose, ml, mr = [np.array(p, dtype=np.float32) for p in lm5]
-    mouth = (ml + mr) / 2
-    eye_dist = np.linalg.norm(re - le)
-    cx, cy = mouth[0], (nose[1] + mouth[1]) / 2 + 0.45 * (mouth[1] - nose[1]) + 0.18 * eye_dist
-    ax, ay = 0.95 * eye_dist, 0.78 * eye_dist
-    angle = float(np.degrees(np.arctan2(mr[1] - ml[1], mr[0] - ml[0])))
-    m = np.zeros((h, w), np.float32)
-    cv2.ellipse(m, (int(cx), int(cy)), (int(ax), int(ay)), angle, 0, 360, 1.0, -1)
-    k = max(3, int(eye_dist * 0.35) | 1)
-    return cv2.GaussianBlur(m, (k, k), 0)[..., None]
+def parse(jobs):
+    out = []
+    for j in [j.strip() for j in jobs.split(",") if j.strip()]:
+        name, audio, clip, vfrom = j.split(":")
+        out.append({"name": name, "audio": audio, "clip": clip, "vfrom": float(vfrom)})
+    return out
 
 
-def run(job, w2l_dir, w2l_ckpt, restorer, tmp):
-    parts = job.split(":")
-    shot, audio, vfrom = parts[0], parts[1], float(parts[2] or 0)
-    wav = VOICE / f"{audio}.wav"
-    a_in, a_hq = tmp / f"{shot}_voice16k.wav", tmp / f"{shot}_voice.wav"  # 16 kHz for Wav2Lip, 48 kHz for the output
-    rng = ["-ss", parts[3].split("-")[0], "-to", parts[3].split("-")[1]] if len(parts) > 3 and parts[3] else []
-    ff(*rng, "-i", str(wav), "-ac", "1", "-ar", "16000", str(a_in))
-    ff(*rng, "-i", str(wav), "-ac", "1", "-ar", "48000", str(a_hq))
-    secs = duration(a_in)
-    src = tmp / f"{shot}_src.mp4"
-    # The clip, from vfrom, for the voice's length (+0.3 s), at 25 fps; a short clip is held on its last frame.
-    ff("-ss", f"{vfrom}", "-i", str(CLIPS / f"{shot}.mp4"), "-vf",
-       f"fps={FPS},tpad=stop_mode=clone:stop_duration=8", "-t", f"{secs + 0.3:.3f}", "-an", "-c:v", "libx264", "-crf", "12", str(src))
-    w2l = tmp / f"{shot}_w2l.mp4"
-    subprocess.run([sys.executable, "inference.py", "--checkpoint_path", str(w2l_ckpt), "--face", str(src), "--audio", str(a_in),
-                    "--outfile", str(w2l), "--pads", "0", "18", "0", "0", "--face_det_batch_size", "4", "--wav2lip_batch_size", "64"],
-                   cwd=w2l_dir, check=True)
-    a = cv2.VideoCapture(str(src)); b = cv2.VideoCapture(str(w2l))
-    frames = []
+def cuts(x, sr):
+    """Chunk boundaries (seconds, on the 25 fps grid): the quietest frame inside pauses, so each chunk is 0.8–2.2 s."""
+    hop = sr // FPS
+    n = len(x) // hop
+    rms = np.sqrt((x[: n * hop].reshape(n, hop) ** 2).mean(axis=1))
+    quiet = rms < 0.08 * rms.max()
+    total = n
+    bounds, start = [0], 0
+    while total - start > MAX_CHUNK * FPS:
+        lo, hi = start + int(MIN_CHUNK * FPS), min(total - int(0.5 * FPS), start + int(MAX_CHUNK * FPS))
+        window = range(lo, hi + 1)
+        # Prefer the middle of a pause (a quiet frame with quiet neighbours), else the quietest frame.
+        best = max(window, key=lambda k: (quiet[max(0, k - 2): k + 3].all(), quiet[k], -rms[k]))
+        bounds.append(best)
+        start = best
+    bounds.append(total)
+    return [(bounds[i] / FPS, bounds[i + 1] / FPS) for i in range(len(bounds) - 1)]
+
+
+def plan(jobs):
+    matrix = []
+    for j in parse(jobs):
+        x, sr = mono(VOICE / f"{j['audio']}.wav")
+        for k, (a0, a1) in enumerate(cuts(x, sr)):
+            matrix.append({**j, "chunk": f"{j['name']}_{k:02d}", "a0": round(a0, 3), "a1": round(a1, 3)})
+    print(json.dumps({"include": matrix}))
+    for m in matrix:
+        print(f"lipsync plan {m['chunk']}: {m['a0']:.2f}-{m['a1']:.2f}s of {m['audio']} on {m['clip']}", file=sys.stderr)
+
+
+def sync(chunk, repo, out_dir, steps):
+    c = json.loads(chunk)
+    out_dir = pathlib.Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    dur = c["a1"] - c["a0"]
+    video, audio = out_dir / f"{c['chunk']}_src.mp4", out_dir / f"{c['chunk']}_voice.wav"
+    ff("-ss", f"{c['vfrom'] + c['a0']:.3f}", "-i", str(CLIPS / f"{c['clip']}.mp4"), "-t", f"{dur:.3f}", "-an",
+       "-vf", f"fps={FPS},tpad=stop_mode=clone:stop_duration=2", "-t", f"{dur:.3f}", "-c:v", "libx264", "-crf", "10", str(video))
+    ff("-ss", f"{c['a0']:.3f}", "-t", f"{dur:.3f}", "-i", str(VOICE / f"{c['audio']}.wav"), "-ac", "1", "-ar", "16000", str(audio))
+    subprocess.run([sys.executable, str(pathlib.Path(__file__).resolve().with_name("latentsync_cpu.py")), "--video", str(video),
+                    "--audio", str(audio), "--out", str(out_dir / f"{c['chunk']}.mp4"), "--steps", str(steps)],
+                   cwd=repo, check=True)
+    print(f"lipsync sync {c['chunk']}: {dur:.2f}s done")
+
+
+def frames(path):
+    import cv2
+    cap, out = cv2.VideoCapture(str(path)), []
     while True:
-        ok1, orig = a.read(); ok2, lips = b.read()
-        if not (ok1 and ok2):
-            break
-        restorer.face_helper.clean_all()
-        _, _, restored = restorer.enhance(lips, has_aligned=False, only_center_face=True, paste_back=True)
-        lms = restorer.face_helper.all_landmarks_5
-        if restored is None or not len(lms):
-            frames.append(lips)  # no face found: keep Wav2Lip's frame
+        ok, f = cap.read()
+        if not ok:
+            return out
+        out.append(f)
+
+
+def mouth_sheet(frs, seams, path):
+    """Close-ups of the mouth (Haar face → lower half) every 4 frames; a red bar marks a chunk seam."""
+    import cv2
+    det = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+    tiles, box = [], None
+    for i in range(0, len(frs), 4):
+        f = frs[i]
+        faces = det.detectMultiScale(cv2.cvtColor(f, cv2.COLOR_BGR2GRAY), 1.1, 5, minSize=(200, 200))
+        if len(faces):
+            box = max(faces, key=lambda b: b[2] * b[3])
+        if box is None:
             continue
-        m = mouth_mask(orig.shape, lms[0])
-        frames.append((orig * (1 - m) + restored * m).astype(np.uint8))
+        x, y, w, h = box
+        t = cv2.resize(f[y + h // 2: y + h + h // 8, x: x + w], (240, 150))
+        if any(abs(i - s) < 4 for s in seams):
+            cv2.rectangle(t, (0, 0), (239, 149), (0, 0, 255), 4)
+        tiles.append(t)
+    rows = [np.hstack(tiles[i: i + 8] + [np.zeros_like(tiles[0])] * (8 - len(tiles[i: i + 8]))) for i in range(0, len(tiles), 8)]
+    if rows:
+        cv2.imwrite(str(path), np.vstack(rows), [cv2.IMWRITE_JPEG_QUALITY, 90])
+
+
+def join(jobs, chunk_dir):
+    import cv2
+    chunk_dir = pathlib.Path(chunk_dir)
     OUT.mkdir(parents=True, exist_ok=True)
-    raw = tmp / f"{shot}_frames.mp4"
-    h, w = frames[0].shape[:2]
-    vw = cv2.VideoWriter(str(raw), cv2.VideoWriter_fourcc(*"mp4v"), FPS, (w, h))
-    for f in frames:
-        vw.write(f)
-    vw.release()
-    out = OUT / f"{shot}.mp4"
-    ff("-i", str(raw), "-i", str(a_hq), "-map", "0:v", "-map", "1:a", "-c:v", "libx264",
-       "-crf", "15", "-preset", "slow", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-shortest", str(out))
-    idx = np.linspace(0, len(frames) - 1, 6).astype(int)
-    sheet = np.hstack([cv2.resize(frames[i], (w // 4, h // 4)) for i in idx])
-    cv2.imwrite(str(OUT / f"{shot}_sheet.jpg"), sheet, [cv2.IMWRITE_JPEG_QUALITY, 88])
-    print(f"lipsync {shot}: {len(frames)} frames, {secs:.2f} s of {audio} → {out.relative_to(ROOT)}")
-
-
-def main():
-    w2l_dir, w2l_ckpt, gfp_ckpt, jobs = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]), sys.argv[3], sys.argv[4]
-    from gfpgan import GFPGANer
-    restorer = GFPGANer(model_path=gfp_ckpt, upscale=1, arch="clean", channel_multiplier=2, bg_upsampler=None)
-    tmp = pathlib.Path(tempfile.mkdtemp(prefix="lipsync_"))
-    for job in [j.strip() for j in jobs.split(",") if j.strip()]:
-        run(job, w2l_dir, w2l_ckpt, restorer, tmp)
+    for j in parse(jobs):
+        parts = sorted(chunk_dir.rglob(f"{j['name']}_[0-9][0-9].mp4"))
+        if not parts:
+            print(f"::warning::no chunks for {j['name']}")
+            continue
+        allf, seams = [], []
+        for p in parts:
+            fr = frames(p)
+            if allf:
+                seams.append(len(allf))
+            allf += fr
+        h, w = allf[0].shape[:2]
+        raw = chunk_dir / f"{j['name']}_frames.mp4"
+        vw = cv2.VideoWriter(str(raw), cv2.VideoWriter_fourcc(*"mp4v"), FPS, (w, h))
+        for f in allf:
+            vw.write(f)
+        vw.release()
+        out = OUT / f"{j['name']}.mp4"
+        ff("-i", str(raw), "-i", str(VOICE / f"{j['audio']}.wav"), "-map", "0:v", "-map", "1:a", "-c:v", "libx264", "-crf", "14",
+           "-preset", "slow", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-shortest", str(out))
+        idx = np.linspace(0, len(allf) - 1, 6).astype(int)
+        cv2.imwrite(str(OUT / f"{j['name']}_sheet.jpg"), np.hstack([cv2.resize(allf[i], (w // 4, h // 4)) for i in idx]),
+                    [cv2.IMWRITE_JPEG_QUALITY, 88])
+        mouth_sheet(allf, seams, OUT / f"{j['name']}_mouth.jpg")
+        print(f"lipsync join {j['name']}: {len(parts)} chunks, {len(allf)} frames ({len(allf) / FPS:.2f}s), seams at {seams} → "
+              f"{out.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":
-    main()
+    cmd = sys.argv[1]
+    if cmd == "plan":
+        plan(sys.argv[2])
+    elif cmd == "sync":
+        sync(sys.argv[2], sys.argv[3], sys.argv[4], int(sys.argv[5]) if len(sys.argv) > 5 else 20)
+    elif cmd == "join":
+        join(sys.argv[2], sys.argv[3])
+    else:
+        sys.exit(f"unknown command {cmd}")

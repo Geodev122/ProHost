@@ -1,15 +1,20 @@
 name: Marketing lip-sync (manual)
 
-# Lip-syncs the AI avatar's clips to the owner's recorded voice with open-source models on CPU (free):
-# Wav2Lip GAN for the mouth + GFPGAN for face detail, blended back only on the mouth/jaw (scripts/marketing/lipsync.py).
-# Output: marketing/avatar/lipsync/<shot>.mp4 + <shot>_sheet.jpg, committed to the branch it runs on.
+# Lip-syncs voice 1 (marketing/audio/voice1, from marketing-voice1.yml) onto the avatar's speaking takes with LatentSync 1.6
+# (ByteDance, open source) on CPU. Each line is cut into ~0.8–2.2 s chunks at its pauses and every chunk runs on its own
+# runner in parallel (scripts/marketing/lipsync.py plan → sync → join). Output: marketing/avatar/lipsync/<name>.mp4 +
+# <name>_sheet.jpg + <name>_mouth.jpg, committed to the branch it runs on.
 on:
   workflow_dispatch:
     inputs:
       jobs:
-        description: "shot:audio:video_from[:audio_from-audio_to], comma-separated (e.g. s1:line_1:0 or s5:line_5:0:0-5.6)"
+        description: "name:audio:clip:video_from, comma-separated (e.g. hook:line_1:s1:0.1,cta1:line_5:s5_a:0.0)"
         required: true
-        default: "s1:line_1:0"
+        default: "hook:line_1:s1:0.1"
+      steps:
+        description: "LatentSync inference steps (20 = the model's default; more = finer, slower)"
+        required: false
+        default: "20"
 
 permissions:
   contents: write
@@ -17,62 +22,104 @@ permissions:
 concurrency: marketing-lipsync
 
 jobs:
-  lipsync:
+  plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-
-      - name: Install
-        run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
-          pip install --quiet torch==2.0.1 torchvision==0.15.2 --index-url https://download.pytorch.org/whl/cpu
-          pip install --quiet numpy==1.23.5 librosa==0.9.2 numba==0.56.4 opencv-python-headless==4.8.1.78 scipy tqdm \
-            basicsr==1.4.2 facexlib==0.3.0 gfpgan==1.3.8
-          git clone --quiet https://github.com/Rudrabha/Wav2Lip.git "$RUNNER_TEMP/Wav2Lip"
-          mkdir -p "$RUNNER_TEMP/Wav2Lip/temp"
-
-      - name: Model weights
-        run: |
-          set -e
-          get() { # url... → first that downloads with a plausible size
-            dest=$1; min=$2; shift 2
-            for u in "$@"; do
-              if curl -sSfL --retry 2 -o "$dest" "$u" && [ "$(stat -c %s "$dest")" -gt "$min" ]; then echo "got $(basename "$dest") from $u"; return 0; fi
-            done
-            echo "::error::could not download $(basename "$dest")"; return 1
-          }
-          get "$RUNNER_TEMP/wav2lip_gan.pth" 300000000 \
-            https://huggingface.co/numz/wav2lip_studio/resolve/main/Wav2lip/wav2lip_gan.pth \
-            https://huggingface.co/camenduru/Wav2Lip/resolve/main/checkpoints/wav2lip_gan.pth \
-            https://huggingface.co/Kedreamix/Linly-Talker/resolve/main/checkpoints/wav2lip_gan.pth \
-            https://huggingface.co/Nekochu/Wav2Lip/resolve/main/wav2lip_gan.pth
-          get "$RUNNER_TEMP/Wav2Lip/face_detection/detection/sfd/s3fd.pth" 80000000 \
-            https://www.adrianbulat.com/downloads/python-fan/s3fd-619a316812.pth \
-            https://huggingface.co/numz/wav2lip_studio/resolve/main/Wav2lip/s3fd.pth \
-            https://huggingface.co/camenduru/Wav2Lip/resolve/main/face_detection/detection/sfd/s3fd.pth
-          get "$RUNNER_TEMP/GFPGANv1.4.pth" 300000000 \
-            https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth
-
-      - name: Lip-sync
+      - name: Plan
+        id: plan
         env:
           JOBS: ${{ inputs.jobs }}
         run: |
-          set -o pipefail
-          python -u scripts/marketing/lipsync.py "$RUNNER_TEMP/Wav2Lip" "$RUNNER_TEMP/wav2lip_gan.pth" "$RUNNER_TEMP/GFPGANv1.4.pth" "$JOBS" 2>&1 | tee "$RUNNER_TEMP/ls.log" || {
-            echo "::error::$(tail -c 1500 "$RUNNER_TEMP/ls.log" | tr '\n' ' ')"; exit 1; }
-          while read -r l; do echo "::notice::$l"; done < <(grep -E '^lipsync' "$RUNNER_TEMP/ls.log")
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          pip install --quiet numpy==1.26.4
+          python scripts/marketing/lipsync.py plan "$JOBS" > "$RUNNER_TEMP/matrix.json" 2> "$RUNNER_TEMP/plan.log"
+          cat "$RUNNER_TEMP/plan.log"
+          while read -r l; do echo "::notice::$l"; done < "$RUNNER_TEMP/plan.log"
+          echo "matrix=$(cat "$RUNNER_TEMP/matrix.json")" >> "$GITHUB_OUTPUT"
 
+  sync:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg libgl1 > /dev/null
+          pip install --quiet torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cpu
+          pip install --quiet diffusers==0.32.2 transformers==4.48.0 decord==0.6.0 accelerate==0.26.1 einops==0.7.0 \
+            omegaconf==2.3.0 opencv-python-headless==4.9.0.80 python_speech_features==0.6 librosa==0.10.1 \
+            ffmpeg-python==0.2.0 imageio==2.31.1 imageio-ffmpeg==0.5.1 "huggingface-hub[cli]==0.30.2" numpy==1.26.4 \
+            kornia==0.8.0 insightface==0.7.3 onnxruntime==1.21.0 DeepCache==0.1.1 soundfile matplotlib more-itertools regex
+          git clone --quiet https://github.com/bytedance/LatentSync.git "$RUNNER_TEMP/LatentSync"
+          cd "$RUNNER_TEMP/LatentSync"
+          git checkout --quiet a229c3948406bc2cf6eaf4873e662e70c6a04746
+          # CPU: insightface on the CPU provider, the face detector always on, fp32 face warping (half isn't on CPU).
+          sed -i 's/providers=\["CUDAExecutionProvider"\]/providers=["CPUExecutionProvider"]/; s/ctx_id=cuda_to_int(device)/ctx_id=-1/' latentsync/utils/face_detector.py
+          sed -i 's/if device == "cpu":/if False:/' latentsync/utils/image_processor.py
+          sed -i 's/ImageProcessor(height, device="cuda"/ImageProcessor(height, device="cpu"/' latentsync/pipelines/lipsync_pipeline.py
+          sed -i 's/dtype=torch.float16):/dtype=torch.float32):/' latentsync/utils/affine_transform.py
+          grep -q CPUExecutionProvider latentsync/utils/face_detector.py && grep -q 'device="cpu", mask_image' latentsync/pipelines/lipsync_pipeline.py \
+            && grep -q 'if False:' latentsync/utils/image_processor.py && grep -q 'dtype=torch.float32):' latentsync/utils/affine_transform.py \
+            || { echo "::error::LatentSync CPU patch did not apply"; exit 1; }
+          huggingface-cli download ByteDance/LatentSync-1.6 whisper/tiny.pt --local-dir checkpoints > /dev/null
+          huggingface-cli download ByteDance/LatentSync-1.6 latentsync_unet.pt --local-dir checkpoints > /dev/null
+          python -c "import sys; sys.path.insert(0, '.'); import latentsync.pipelines.lipsync_pipeline, insightface, DeepCache; print('imports ok')"
+      - name: Lip-sync chunk
+        env:
+          CHUNK: ${{ toJson(matrix) }}
+          STEPS: ${{ inputs.steps }}
+        run: |
+          rc=0
+          python -u scripts/marketing/lipsync.py sync "$CHUNK" "$RUNNER_TEMP/LatentSync" "$RUNNER_TEMP/out" "$STEPS" > "$RUNNER_TEMP/ls.log" 2>&1 || rc=$?
+          tr '\r' '\n' < "$RUNNER_TEMP/ls.log" | grep -v "it/s\]$" | tail -60 || true
+          [ "$rc" = 0 ] || { echo "::error::$(tail -c 1500 "$RUNNER_TEMP/ls.log" | tr '\r\n' '  ')"; exit 1; }
+          grep -E '^lipsync' "$RUNNER_TEMP/ls.log" | while read -r l; do echo "::notice::$l"; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chunk-${{ matrix.chunk }}
+          path: ${{ runner.temp }}/out/${{ matrix.chunk }}.mp4
+          retention-days: 7
+
+  join:
+    needs: [plan, sync]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/chunks
+          pattern: chunk-*
+      - name: Join
+        env:
+          JOBS: ${{ inputs.jobs }}
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          pip install --quiet numpy==1.26.4 opencv-python-headless==4.9.0.80
+          set -o pipefail
+          python -u scripts/marketing/lipsync.py join "$JOBS" "$RUNNER_TEMP/chunks" 2>&1 | tee "$RUNNER_TEMP/join.log"
+          while read -r l; do echo "::notice::$l"; done < <(grep -E '^lipsync' "$RUNNER_TEMP/join.log")
       - name: Commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add marketing/avatar/lipsync
           git diff --cached --quiet && { echo "No changes"; exit 0; }
-          git commit -m "Marketing: lip-sync (${{ inputs.jobs }})"
+          git commit -m "Marketing: lip-sync voice 1 (${{ inputs.jobs }})"
           git pull --rebase
           git push
