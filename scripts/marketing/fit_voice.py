@@ -14,9 +14,11 @@ the voice syllable by syllable onto it (Rubber Band R3 with a keyframe map). Ins
   thrown away, so only its words and rhythm matter, never its accent.
 
 FIT_OUT defaults to marketing/avatar/dubbed (the composer's "dubbed/<name>"); Reel Studio passes <reel>/dubbed.
-Needs the rubberband CLI (apt rubberband-cli) and librosa.
+Needs the rubberband CLI (apt rubberband-cli) and librosa. With SYNCNET_REPO (a LatentSync checkout with
+checkpoints/auxiliary/syncnet_v2.model, as in the CI workflows) SyncNet — the lip-sync judge — picks the take whose
+fitted clip is best in sync and then corrects the timing where it still finds the voice early or late (sync_check.py).
 """
-import os, pathlib, subprocess, sys, tempfile, wave
+import os, pathlib, shutil, subprocess, sys, tempfile, wave
 
 import numpy as np
 
@@ -100,7 +102,7 @@ def fit(voice_wav, take_mp4):
             "score": agree - 0.5 * bend, "said": (ta / 100, tb / 100)}
 
 
-def render(best, voice_wav, name):
+def render(best, voice_wav, out):
     m, v0 = best["m"], best["v0"]
     T0, T1 = float(m[0]) / 100, float(m[-1]) / 100 + 0.01
     with tempfile.TemporaryDirectory() as d:
@@ -122,25 +124,79 @@ def render(best, voice_wav, name):
         mapf.write_text("\n".join(rows) + "\n")
         subprocess.run(["rubberband", "-q", "--fine", "-M", str(mapf), "-D", f"{T1 - T0:.4f}", str(src), str(fitted)],
                        check=True)
-        OUT.mkdir(parents=True, exist_ok=True)
+        pathlib.Path(out).parent.mkdir(parents=True, exist_ok=True)
         ff("-ss", f"{T0:.3f}", "-i", str(best["take"]), "-i", str(fitted), "-t", f"{T1 - T0:.3f}", "-map", "0:v:0",
            "-map", "1:a:0", "-c:v", "libx264", "-crf", "12", "-preset", "slow", "-pix_fmt", "yuv420p", "-c:a", "aac",
-           "-b:a", "256k", "-ar", "48000", str(OUT / f"{name}.mp4"))
+           "-b:a", "256k", "-ar", "48000", str(out))
     return T0, T1
 
 
+def judged(judge, clip):
+    """SyncNet over 2 s windows every 0.5 s: (mean confidence, [(window centre in clip seconds, offset, confidence)])."""
+    pts = [(t + 1.0, sc[0], sc[1]) for t, sc in judge.windows(clip, 2.0, 0.5) if sc]
+    return (float(np.mean([c for _, _, c in pts])) if pts else 0.0), pts
+
+
+def corrected(r, pts, min_conf=2.5):
+    """The alignment shifted by SyncNet's offsets: where the voice is early by k frames (offset +k), it is delayed by
+    k × 40 ms there (and advanced where it is late). Only confident windows count; the correction is interpolated
+    between window centres and kept monotonic."""
+    good = [(c, o) for c, o, conf in pts if conf >= min_conf and abs(o) <= 8]
+    if not good:
+        return None
+    m = r["m"]
+    clip_t = (m - m[0]) / 100
+    xs, ys = zip(*sorted(good))
+    delta = np.interp(clip_t, xs, ys) * 4.0                      # frames at 25 fps → 10 ms units
+    m2 = m + delta
+    for i in range(1, len(m2)):
+        m2[i] = max(m2[i], m2[i - 1] + 0.5)                        # never backwards, never frozen
+    m2 = np.clip(m2, 0, None)
+    return {**r, "m": m2}
+
+
 def main(voice_wav, name, takes):
+    out = OUT / f"{name}.mp4"
     results = []
     for tk in takes:
         r = fit(voice_wav, tk)
         results.append(r)
         print(f"fit {name}: {r['take'].stem} (speech {r['said'][0]:.2f}-{r['said'][1]:.2f}s): rhythm match "
               f"{r['agree']:.0%}, voice bend {r['bend']:.2f} (score {r['score']:.2f})")
-    best = max(results, key=lambda r: r["score"])
-    T0, T1 = render(best, voice_wav, name)
-    for s in np.arange(0, len(best["m"]) / 100, 0.5):
-        print(f"  voice {s:4.1f}s → take {best['m'][int(s * 100)] / 100:5.2f}s")
-    print(f"fit {name}: chose {best['take'].stem}, its frames {T0:.2f}-{T1:.2f}s → {OUT / (name + '.mp4')}")
+    repo = os.environ.get("SYNCNET_REPO")
+    if not repo:
+        best = max(results, key=lambda r: r["score"])
+        T0, T1 = render(best, voice_wav, out)
+        print(f"fit {name}: chose {best['take'].stem} (no SyncNet: rhythm score), its frames {T0:.2f}-{T1:.2f}s → {out}")
+        return
+    # SyncNet decides: the take whose fitted clip it finds best in sync, then up to two timing corrections.
+    from sync_check import Judge
+    judge = Judge(repo)
+    tmp = pathlib.Path(tempfile.mkdtemp())
+    scored = []
+    for r in results:
+        clip = tmp / f"{r['take'].stem}.mp4"
+        render(r, voice_wav, clip)
+        conf, pts = judged(judge, clip)
+        scored.append((conf, r, pts, clip))
+        print(f"fit {name}: {r['take'].stem} fitted → SyncNet {conf:.2f} "
+              f"(offsets {' '.join(f'{o:+d}' for _, o, _ in pts)})", flush=True)
+    conf, best, pts, clip = max(scored, key=lambda x: x[0])
+    for k in range(2):
+        nxt = corrected(best, pts)
+        if nxt is None:
+            break
+        clip2 = tmp / f"{best['take'].stem}_fix{k}.mp4"
+        render(nxt, voice_wav, clip2)
+        conf2, pts2 = judged(judge, clip2)
+        print(f"fit {name}: correction {k + 1} → SyncNet {conf2:.2f} (offsets {' '.join(f'{o:+d}' for _, o, _ in pts2)})",
+              flush=True)
+        if conf2 <= conf:
+            break
+        conf, best, pts, clip = conf2, nxt, pts2, clip2
+    out.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy(clip, out)
+    print(f"fit {name}: chose {best['take'].stem}, SyncNet {conf:.2f} → {out}")
 
 
 if __name__ == "__main__":
