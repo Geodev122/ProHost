@@ -7,8 +7,8 @@ on Vertex AI in the Firebase project:
   stage check      Gemini listens to every take of every speaking clip (and the voice-over lines): verbatim transcript,
                    speech start/end, dialect (Lebanese vs Syrian...), whether it says the scripted line; the best take
                    (script, Lebanese, score) becomes clips/<shot>.mp4 (cents; verdicts in report.json).
-  stage voice      the owner's recordings (marketing/audio/owner/raw/line_N.m4a, several takes each): Gemini finds and
-                   rates every take, the best one is cut at real pauses, cleaned and written to marketing/audio/owner/line_N.wav.
+  stage voice      the owner's recordings (marketing/audio/owner/raw/line_N.m4a, several takes each): takes are found
+                   from the pauses, Gemini transcribes and rates every take, the best one is cut at real pauses, cleaned and written to marketing/audio/owner/line_N.wav.
   stage clips      Veo (newest 3.x fast): keyframe -> marketing/avatar/clips/<shot>.mp4 (8 s, 9:16); audio (lip-synced
                    speech) only for shots with "audio": true; "takes": n > 1 writes <shot>_a.mp4, <shot>_b.mp4, ...
 Spend guard: at most MAX_SECONDS generated video seconds per run; every run is written to marketing/avatar/runs/<time>_<stage>.json
@@ -213,8 +213,32 @@ def snap(start, end, pauses, total):
     return round(a, 3), round(b, 3)
 
 
+ROLES = {"1": "the opening HOOK of the ad: an honest, relatable confession that makes the viewer stop scrolling",
+         "5": "the CALL TO ACTION at the end of the ad: confident, warm, energetic, makes the viewer want to comment or DM now"}
+
+
+def speech_takes(path, total, gap=1.2):
+    """Takes = stretches of speech separated by pauses longer than `gap` seconds (from silencedetect)."""
+    pauses = silences(path, "-35dB", 0.45)
+    speech, t = [], 0.0
+    for s0, e0 in pauses:
+        if s0 - t > 0.15:
+            speech.append([t, s0])
+        t = e0
+    if total - t > 0.15:
+        speech.append([t, total])
+    takes = []
+    for seg in speech:
+        if takes and seg[0] - takes[-1][1] < gap:
+            takes[-1][1] = seg[1]
+        else:
+            takes.append(seg)
+    return [(round(max(0, x - 0.12), 3), round(min(total, y + 0.18), 3)) for x, y in takes if y - x > 0.8]
+
+
 def owner_voice(line, models):
-    """Detects every take in the owner's recording, transcribes and rates them, cuts and cleans the best one."""
+    """Finds every take in the owner's recording (pauses), has Gemini transcribe and rate each one for its role in the
+    ad, then cuts and cleans the best one."""
     import subprocess, imageio_ffmpeg
     raw = OWNER / "raw" / f"line_{line}.m4a"
     if not raw.exists():
@@ -222,32 +246,30 @@ def owner_voice(line, models):
     ff = imageio_ffmpeg.get_ffmpeg_exe()
     total = float(re.search(r"Duration: (\d+):(\d+):([\d.]+)", subprocess.run([ff, "-hide_banner", "-i", str(raw)],
                     capture_output=True, text=True).stderr).group(3))
-    reference = next((l["text"] for i, l in enumerate(json.loads(VO_CFG.read_text(encoding="utf-8"))["posts"][0]["lines"], 1)
-                      if i == int(line)), "")
-    res = ask_audio(raw, (
-        "You are a Lebanese voice director choosing the best take for an Instagram ad. This recording holds several takes of "
-        "the same line, one after another (he may have changed the wording from the reference). Reply with JSON only: "
-        "{\"takes\": [{\"start_s\": number, \"end_s\": number (end of its last word), \"transcript\": verbatim Arabic as "
-        "spoken (English words in Latin letters), \"complete\": true if the whole sentence is said without stumbling or "
-        "restarting, \"clarity\": 1-5, \"energy\": 1-5 (5 = a confident, warm advertiser who makes you want to act), "
-        "\"lebanese_score\": 1-5, \"notes\": string}], \"best\": index of the best take for the ad, \"why\": string}. "
-        f"Reference wording (may differ): {reference}"), models)
-    takes = res.get("takes") or []
-    if not takes:
-        return {"error": "no takes found", **res}
-    best = res.get("best")
-    if not isinstance(best, int) or not 0 <= best < len(takes):
-        best = max(range(len(takes)), key=lambda i: (bool(takes[i].get("complete")), takes[i].get("energy", 0), takes[i].get("clarity", 0)))
-    t = takes[best]
-    a, b = snap(float(t["start_s"]), float(t["end_s"]), silences(raw), total)
+    tmp = pathlib.Path(os.environ.get("RUNNER_TEMP", "/tmp"))
+    rated = []
+    for i, (a, b) in enumerate(speech_takes(raw, total)):
+        cut = tmp / f"line{line}_take{i}.wav"
+        subprocess.run([ff, "-nostdin", "-y", "-loglevel", "error", "-ss", f"{a}", "-to", f"{b}", "-i", str(raw), str(cut)], check=True)
+        v = ask_audio(cut, (
+            f"You are a Lebanese voice director for an Instagram ad. This is one take of {ROLES.get(line, 'a line of the ad')}. "
+            "Reply with JSON only: {\"transcript\": verbatim Arabic as spoken (English words in Latin letters), \"complete\": "
+            "true if the whole sentence is said with no stumble, restart or cut word, \"clarity\": 1-5, \"emotion\": 1-5 (how "
+            "well the delivery fits that role and makes the viewer feel it), \"lebanese_score\": 1-5, \"notes\": string}"), models)
+        rated.append({"start_s": a, "end_s": b, **v})
+    if not rated:
+        return {"error": "no speech found"}
+    score = lambda t: (bool(t.get("complete")), float(t.get("emotion") or 0) + float(t.get("clarity") or 0) + 0.5 * float(t.get("lebanese_score") or 0))
+    best = max(range(len(rated)), key=lambda i: score(rated[i]))
+    t = rated[best]
     out = OWNER / f"line_{line}.wav"
     # Phone recording → clean ad voice: rumble cut, gentle denoise, de-harsh, even level.
-    subprocess.run([ff, "-nostdin", "-y", "-loglevel", "error", "-ss", f"{a:.3f}", "-to", f"{b:.3f}", "-i", str(raw),
+    subprocess.run([ff, "-nostdin", "-y", "-loglevel", "error", "-ss", f"{t['start_s']}", "-to", f"{t['end_s']}", "-i", str(raw),
                     "-af", "highpass=f=80,afftdn=nf=-28,equalizer=f=6500:t=q:w=2:g=-2,"
                            "acompressor=threshold=-22dB:ratio=3:attack=8:release=120,loudnorm=I=-16:TP=-1.5:LRA=7",
                     "-ac", "1", "-ar", "48000", str(out)], check=True)
-    return {"best": best, "cut": [a, b], "transcript": t.get("transcript"), "why": res.get("why"), "takes": takes,
-            "model": res.get("model"), "file": str(out.relative_to(ROOT))}
+    return {"best": best, "cut": [t["start_s"], t["end_s"]], "transcript": t.get("transcript"), "takes": rated,
+            "file": str(out.relative_to(ROOT))}
 
 
 def take_score(v):
@@ -331,10 +353,10 @@ def main():
         for line in only or ["1", "5"]:
             res = owner_voice(line.replace("line", "").strip("_"), models)
             run["shots"][f"line_{line}"] = res
-            print(f"voice line {line}: best take {res.get('best')} cut {res.get('cut')} \"{res.get('transcript')}\" — {str(res.get('why'))[:200]}")
+            print(f"voice line {line}: best take {res.get('best')} cut {res.get('cut')} \"{res.get('transcript')}\" {res.get('error', '')}")
             for i, t in enumerate(res.get("takes", [])):
                 print(f"voice line {line} take {i}: {t.get('start_s')}-{t.get('end_s')} complete={t.get('complete')} "
-                      f"clarity={t.get('clarity')} energy={t.get('energy')} leb={t.get('lebanese_score')} \"{t.get('transcript')}\"")
+                      f"clarity={t.get('clarity')} emotion={t.get('emotion')} leb={t.get('lebanese_score')} \"{t.get('transcript')}\"")
     else:
         sys.exit(f"unknown stage {stage}")
     # One file per run (marketing/avatar/runs/), so two runs never conflict when they commit; report.json is the old log.
