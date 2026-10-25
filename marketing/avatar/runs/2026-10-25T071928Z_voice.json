@@ -1,0 +1,62 @@
+{
+  "at": "2026-10-25T07:19:28Z",
+  "stage": "voice",
+  "shots": {
+    "line_1": {
+      "best": 0,
+      "cut": [
+        0.0,
+        7.918
+      ],
+      "transcript": "إذا بدك عيادة، نزّل التطبيق تفتّش وتحجز ببلاش، وإذا عندك مكتب، comment office",
+      "why": "This is the sole complete take in the recording. The delivery is articulate, engaging, and well-paced for an Instagram ad.",
+      "takes": [
+        {
+          "start_s": 0.0,
+          "end_s": 6.0,
+          "transcript": "إذا بدك عيادة، نزّل التطبيق تفتّش وتحجز ببلاش، وإذا عندك مكتب، comment office",
+          "complete": true,
+          "clarity": 5,
+          "energy": 4,
+          "lebanese_score": 5,
+          "notes": "Delivered smoothly in a natural, modern Lebanese tone with clear call-to-action."
+        }
+      ],
+      "model": "gemini-3.8-flash",
+      "file": "marketing/audio/owner/line_1.wav"
+    },
+    "line_5": {
+      "best": 1,
+      "cut": [
+        14.662,
+        27.087
+      ],
+      "transcript": "إذا بدك مكتب، نزل التطبيق، تفتش وتحجز كله مجاني. وإذا عندك مكتب بدك تعرضه، comment DM ليوصلك كل التفاصيل وتربح شهر مجاني.",
+      "why": "الآخذة الثانية (Take 2) أكثر حيوية ووضوحاً لإعلان على إنستغرام؛ نبرة الصوت فيها ثقة وتشويق أكبر، وإضافة كلمة 'وتربح' في الختام تعطي حافزاً أقوى للتفاعل (Call to Action).",
+      "takes": [
+        {
+          "start_s": 0.5,
+          "end_s": 12.8,
+          "transcript": "إذا بدك مكتب، نزل التطبيق، تفتش وتحجز كله ببلاش. وإذا عندك مكتب تعرضه، comment DM بيوصلك كل التفاصيل وشهر مجاني لإلك.",
+          "complete": true,
+          "clarity": 4,
+          "energy": 3,
+          "lebanese_score": 5,
+          "notes": "إلقاء طبيعي باللهجة اللبنانية، لكن الإيقاع أبطأ قليلاً وخاتمة العرض ('وشهر مجاني لإلك') أقل تحفيزاً."
+        },
+        {
+          "start_s": 14.5,
+          "end_s": 26.8,
+          "transcript": "إذا بدك مكتب، نزل التطبيق، تفتش وتحجز كله مجاني. وإذا عندك مكتب بدك تعرضه، comment DM ليوصلك كل التفاصيل وتربح شهر مجاني.",
+          "complete": true,
+          "clarity": 5,
+          "energy": 4,
+          "lebanese_score": 5,
+          "notes": "أداء أنشط ومقنع أكثر لإعلان، مع صياغة أوضح ('بدك تعرضه') ونهاية أقوى تشد المتابع ('وتربح شهر مجاني')."
+        }
+      ],
+      "model": "gemini-3.8-flash",
+      "file": "marketing/audio/owner/line_5.wav"
+    }
+  }
+}
