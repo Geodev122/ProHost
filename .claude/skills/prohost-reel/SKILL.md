@@ -1,6 +1,6 @@
 ---
 name: prohost-reel
-description: How to make a ProHost Instagram/TikTok reel with the AI presenter — same avatar, same office, the two Lebanese voices, GPU lip-sync, the reel montage and overlay — from a written brief (Reel Studio). Use for any new reel, a change to a reel's script/voice/lip-sync/montage, or a Reel Studio request.
+description: How to make a ProHost Instagram/TikTok reel with the AI presenter — same avatar, same office, the two Lebanese voices, voice 1 fitted onto his native mouth, the reel montage and overlay — from a written brief (Reel Studio). Use for any new reel, a change to a reel's script/voice/lip-sync/montage, or a Reel Studio request.
 ---
 
 # ProHost reels (Reel Studio)
@@ -16,11 +16,15 @@ Precedence: the owner's words → `CLAUDE.md` (offers, prices, no countries on t
 - **Avatar**: the man in `marketing/avatar/reference/` (character sheet), the office in
   `marketing/avatar/keyframes/s1.png`; identity text in `scripts/marketing/avatar_shots.json` (`person`, `room`,
   `look`, `negative`). New shots always get these references + the office keyframe.
-- **Voice 1 — on camera, lip-synced**: Gemini-TTS **`Orus`** (the owner's pick from 4 samples, Oct 2026) with the same
-  Beirut `dialect` prompt as the narrator, used as is — no voice conversion (Seed-VC blurred the Lebanese consonants).
-  His mouth is redrawn on a take where he talks to camera (`s1v_d` desk, `s5v_d` standing, or a new talking shot) by
-  LatentSync 1.6 (`scripts/marketing/lipsync_cpu.py`, free) or `gpu_lipsync.py` (fal / Vertex, paid). Only voice-1 scenes
-  show his mouth moving.
+- **Voice 1 — on camera**: Gemini-TTS **`Orus`** (the owner's pick from 4 samples, Oct 2026) with the same Beirut
+  `dialect` prompt as the narrator, used as is — no voice conversion (Seed-VC blurred the Lebanese consonants).
+  **His mouth is never redrawn.** Veo films him SAYING the scene's line (with audio, 2 takes), so his own mouth, jaw,
+  brows and nods articulate exactly those words; `scripts/marketing/fit_voice.py` throws Veo's audio away and stretches
+  Orus syllable by syllable onto that mouth (DTW alignment + Rubber Band keyframe map, ±25 % inside words, pauses
+  absorb the rest) → `dubbed/<role>.mp4`. This is why the first office reel (Veo's native speech) looked natural and the
+  LatentSync v6 did not: a redrawn mouth on CPU was a damped, half-open mumble over a jaw still moving to Veo's own
+  sentence (owner, Oct 2026: "not natural"). Library talking shots (`s1v`, `s5v`) can be reused only for the exact line
+  Veo says in them (`SPEAKING` in `reel_studio.py`).
 - **Voice 2 — the narrator**: Gemini-TTS `Charon`, same Beirut dialect prompt (`scripts/marketing/voiceover_reel.json`
   `dialect`). Plays only over footage where his lips stay closed (check the frames: smiles are fine, speech shapes are not).
 - **Never use Veo's own Arabic speech for dialogue**: the owner hears it as not Lebanese at all, even when Gemini's
@@ -43,15 +47,18 @@ Precedence: the owner's words → `CLAUDE.md` (offers, prices, no countries on t
   "end": { "title": "أوّل شهر <b>مجّاني</b>", "sub": "…", "url": "pro-host.tech/…" } }
 ```
 
-- 2–9 scenes; `role` = unique lowercase id. `voice: 1` needs a take where he talks: `reuse` `s1v_d` (desk) / `s5v_d`
-  (standing), or `frame` + `motion` for a new talking shot (US$0.80, silent Veo — the lip-sync adds the words).
-  `voice: 2` uses a library take as is (`reuse`, free) or a new silent shot (US$0.80, told to keep the lips closed).
-- Library takes (reuse costs nothing): `s1v_d` desk, talks · `s5v_d` standing, talks, open palms · `s2` couch/clock
+- 2–9 scenes; `role` = unique lowercase id. `voice: 1` needs a take where Veo says that line: a new shot (`frame` +
+  `motion`; Veo speaks `line`, 2 takes with audio, about US$2.40), or `reuse` `s1v` / `s5v` only for the line those
+  takes say. `voice: 2` uses a library take as is (`reuse`, free) or a new silent shot (US$0.80, lips closed).
+- Library takes (reuse costs nothing): `s1v` desk, says the office hook · `s5v` standing, says the app CTA · `s2` couch/clock
   glance, stands up · `s3` espresso, sips · `s4` phone message, types · `s5c` espresso at the counter, sip, smile, toast,
   points down (lips closed). Notes in `reel_studio.py` `LIBRARY_NOTES`. At most 6 new shots per reel.
 - `cam` beats `[time, zoom, push]` (time in s or `"w:<caption word>"`), `punch` on key words, `in` = `cut | whip_l |
   whip_r | zoom`, `jcut` ≈ 0.35 for narrator scenes (voice leads the picture), `ramp` `[[until, rate], …]` for silent
   slow-motion. `montage.py` does face-tracked framing, punches, whips/zoom-blur, grade, grain, vignette.
+- Voice-1 scenes are `steady` (set automatically): the frame holds on his face for the whole line — one slow push at
+  most, no punches, no reframing, light shake. Zooms and reframes mid-sentence fight the mouth (owner, Oct 2026). Put
+  the energy in the cuts between lines and in the narrator scenes.
 - Overlays per scene (`reel_studio.html`): `chip`, `comment` (Instagram comment bar typing the keyword + arrow),
   `stamp`/`stamp_sub`, `price` (card shows **$8.99/month** only). End card from `end`.
 - **Offers**: only what `functions/src/billing/offerClaims.ts` states (monthly first month free, yearly 50 % off year
@@ -61,25 +68,22 @@ Precedence: the owner's words → `CLAUDE.md` (offers, prices, no countries on t
 
 1. Write the spec (Reel Studio drafts it from a brief; check lines are natural **Beiruti** Arabic, English words in
    English, captions mirror the line). Commit it under `marketing/reels/<id>/spec.json`.
-2. Dispatch **Marketing Reel Studio** (`spec`, `stage` = all): `prepare` (validate) · `footage` (first frames → silent
-   Veo clips) · `voices` (voice 1 Orus + voice 2 Charon) · `voice1` (lines → `voice1/<role>.wav`). Its log ends with the
-   lip-sync jobs to run.
-3. Dispatch **Marketing lip-sync CPU** (free) with those `jobs` and `reel` = the reel folder: LatentSync 1.6 at 512 px,
-   each line split into ~1–2 s chunks at its pauses, one runner per chunk (24 GB swap; about 1–2 h) →
-   `lipsync/<role>.mp4` + `_mouth.jpg`. (Paid, minutes: **Marketing lip-sync**, backend `fal` with a `FAL_KEY` secret.)
-4. Dispatch **Marketing Reel Studio** again with `stage` = compose (montage + overlay + music, −14 LUFS, ~12 Mbps) →
-   `reel.mp4`, `cover.jpg`. A voice-1 scene whose lip-sync is missing falls back to the take + voice, unsynced, with a
-   warning — never ship that.
-5. Review before anyone posts: `lipsync/<role>_mouth.jpg` (mouth close-ups), a frame sheet of `reel.mp4`, the accent
-   verdicts in the log. Never ship a soft or out-of-sync mouth — redo `lipsync` or change the take.
+2. Dispatch **Marketing Reel Studio** (`spec`, `stage` = all): `prepare` (validate) · `footage` (first frames → Veo
+   clips; voice-1 shots speak their line) · `voices` (voice 1 Orus + voice 2 Charon) · `voice1` (fit_voice → `dubbed/`)
+   · `compose` (montage + overlay + music, −14 LUFS, ~12 Mbps) → `reel.mp4`, `cover.jpg`. One run, no lip-sync job.
+3. Check the sync before anyone posts: dispatch **Marketing lip-sync check** with the `dubbed/` clips (SyncNet: offset
+   in frames, 0 = in sync; confidence, native talking video ≈ 6–9). Look at a mouth strip too (mouth crop per frame with
+   the voice level under it): jaw drops and lip rounding must land on the loud syllables.
+4. Review: a frame sheet of `reel.mp4`, captions in the safe zone, the frame still while he talks.
 
 ## Lip-sync: what works and what didn't
 
-- Free: LatentSync 1.6 on the GitHub runners only with 24 GB swap + VAE slicing + chunks in parallel (without them the
-  7 GB runners died). Paid: fal.ai (Sync lipsync-2-pro, `FAL_KEY`). Vertex AI GPU jobs need GPU training quota (the
-  project has 0 — 429 on L4/T4/A100); the public LatentSync Space caps anonymous jobs below a 5 s line.
-- Rejected by the owner: Wav2Lip (soft mouth), dubbing TTS over Veo's speaking mouth (not in sync), Veo's own Arabic
-  (not Lebanese).
+- Works: Veo says the line + `fit_voice.py` (his native mouth, the voice bent onto it). Free, seconds per line.
+- Rejected by the owner: Wav2Lip (soft mouth), LatentSync 1.6 on CPU (damped, mumbling mouth; the head kept Veo's
+  rhythm), dubbing TTS over Veo's mouth with phrase-level shifts only (out of sync — fit_voice aligns per syllable),
+  Veo's own Arabic audio (not Lebanese), voice conversion (Seed-VC blurred the consonants).
+- Paid / GPU mouth redraws (`gpu_lipsync.py`: fal Sync lipsync-2-pro, Vertex) stay available but aren't the default;
+  the project has 0 Vertex GPU quota.
 
 ## Gotchas learned the hard way
 

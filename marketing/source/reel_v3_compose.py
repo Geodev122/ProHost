@@ -1,7 +1,7 @@
 """Office reel v3: cuts the AI-avatar clips (marketing/avatar/clips, from scripts/marketing/avatar_video.py) to the voice,
 renders the overlay layer (reel_office_v3.html, transparent) on top and scores it.
 
-Two voices: voice 1, the avatar on camera (hook + CTA 1), lip-synced by scripts/marketing/lipsync.py; voice 2, the
+Two voices: voice 1, the avatar on camera (hook + CTA 1), fitted onto his own mouth by scripts/marketing/fit_voice.py; voice 2, the
 narrator (audio/voiceovers-arabic-reel/lines), over footage where he doesn't talk. The footage is cut and moved by
 montage.py. Music: audio/music/reel_office.wav,
 ducked under speech, with the overlay's sound cues (mix.py's sfx).
@@ -25,17 +25,18 @@ CHROME = os.environ.get("CHROME", "/opt/pw-browsers/chromium-1194/chrome-linux/c
 FPS = 30
 TMP = pathlib.Path(tempfile.mkdtemp(prefix="reel3_"))
 
-# role (the overlay keys its animations on it), clip (under avatar/clips, or "lipsync/<name>" for a voice-1 take: his own
-# take of the line with the voice converted, or a lip-synced clip; "fallback" = (raw clip, from, voice1 file, reel_v1
-# line) stands in, unsynced, while a "clip"-mode one is missing), speech
+# role (the overlay keys its animations on it), clip (under avatar/clips, or "dubbed/<name>" for a voice-1 take with the
+# voice fitted onto his mouth by fit_voice.py; "fallback" = (raw clip, from, voice1 file, reel_v1 line) stands in,
+# unsynced, while a "clip"-mode one is missing), steady (voice-1 lines: hold the frame), speech
 # ("clip" = that clip's own audio, "veo" = Veo's own speech, else a voice-over line number), clip offset (s), caption;
 # cam / punch / ramp / in / jcut drive the montage (montage.py).
 SEGS = [
-    # Voice 1 (on camera): Gemini-TTS Orus with the Beirut dialect prompt (marketing/audio/voice1), his mouth redrawn on
-    # the speaking takes s1v_d / s5v_d by LatentSync (scripts/marketing/lipsync_cpu.py → marketing/avatar/lipsync).
-    {"role": "hook", "clip": "lipsync/hook", "speech": "clip", "fallback": ("s1v_d", 0.0, "hook", 1),
+    # Voice 1 (on camera): Gemini-TTS Orus with the Beirut dialect prompt (marketing/audio/voice1), fitted syllable by
+    # syllable onto a take where Veo said the same line, so his own native mouth carries it (scripts/marketing/
+    # fit_voice.py → marketing/avatar/dubbed). Steady frame while he talks: one slow push, no punch, no reframing.
+    {"role": "hook", "clip": "dubbed/hook", "speech": "clip", "fallback": ("s1v_a", 0.0, "hook", 1), "steady": True,
      "cap": "بدفع أجار عيادتي كامل… وبتضل <b>فاضية</b> نُصّ النهار.",
-     "cam": [(0, 1.38, 0.05), ("w:وبتضل", 1.12, 0.05)], "punch": ["w:فاضية"]},
+     "cam": [(0, 1.22, 0.08)]},
     # Voice 2 (the narrator, voice-over on footage where he doesn't talk).
     {"role": "s2", "clip": "s2", "speech": 2, "from": 1.6, "in": "zoom", "jcut": 0.35,
      "cap": "بين جلسة وجلسة، ساعات ضايعة… و<b>مصاري</b> عم تطير.",
@@ -46,9 +47,9 @@ SEGS = [
     {"role": "s4", "clip": "s4", "speech": 4, "from": 0.0, "in": "whip_r", "jcut": 0.35,
      "cap": "أنا بحدّد الوقت والسعر، والطلبات بتوصلني عَال<b>واتساب</b>.",
      "cam": [(0, 1.08, 0.06), (2.0, 1.3, 0.05)]},
-    {"role": "cta1", "clip": "lipsync/cta1", "speech": "clip", "fallback": ("s5v_d", 0.0, "cta1", 2), "in": "zoom",
-     "cap": "إذا بدّك مكتب، نزّل <b>التطبيق</b>، تفتّش وتحجز كلّو <b>مجّاني</b>.",
-     "cam": [(0, 1.1, 0.05), ("w:تفتّش", 1.32, 0.04)], "punch": ["w:مجّاني"]},
+    {"role": "cta1", "clip": "dubbed/cta1", "speech": "clip", "fallback": ("s5v_c", 0.0, "cta1", 2), "in": "zoom",
+     "steady": True, "cap": "إذا بدّك مكتب، نزّل <b>التطبيق</b>، تفتّش وتحجز كلّو <b>مجّاني</b>.",
+     "cam": [(0, 1.14, 0.08)]},
     {"role": "cta2", "clip": "s5c", "speech": 7, "from": 1.0, "in": "whip_l", "jcut": 0.35,
      "cap": "وإذا عندك مكتب بدّك تعرضو، <b>Comment أو DM</b> ليوصلك كل التفاصيل وتربح <b>شهر مجّاني</b>.",
      "cam": [(0, 1.12, 0.06), ("w:ليوصلك", 1.3, 0.05)], "punch": ["w:شهر"]},
@@ -60,7 +61,7 @@ SEGS = [
 LIBRARY = CLIPS                              # the shared avatar takes, reusable by any reel
 LINE_FILE = "reel_office_{:02d}.wav"          # voice 2 line n
 V1_DIR, V1_TTS = ROOT / "audio" / "voice1", "reel_v1_{:02d}.wav"
-SYNCED = ROOT / "avatar"                      # "lipsync/<name>" resolves under it
+SYNCED = ROOT / "avatar"                      # "dubbed/<name>" resolves under it
 HTML, DATA_JS, COVER_ROLE = "reel_office_v3.html", "reel_office_v3_data.js", "cta2"
 RUNS = ROOT / "avatar" / "runs"               # avatar_video.py run reports (Gemini's speech windows per take)
 SPEC = None
@@ -84,8 +85,11 @@ def load_spec(path):
         seg["cam"] = [tuple(b) for b in seg.get("cam", [(0, 1.06, 0.06)])]
         if sc["voice"] == 1:
             n1 += 1
-            # the take with his mouth redrawn to voice 1 (lipsync_cpu.py / gpu_lipsync.py → lipsync/<role>.mp4)
-            seg.update({"clip": f"lipsync/{sc['role']}", "speech": "clip", "fallback": (clip, frm, sc["role"], n1)})
+            # a take where Veo said the line, voice 1 fitted onto its mouth (fit_voice.py → dubbed/<role>.mp4); the
+            # frame holds still while he talks
+            seg.update({"clip": f"dubbed/{sc['role']}", "speech": "clip", "fallback": (clip, frm, sc["role"], n1),
+                        "steady": True})
+            seg.pop("punch", None)
         else:
             n2 += 1
             seg.update({"clip": clip, "speech": n2, "from": frm})

@@ -5,15 +5,15 @@ same tools the office reel used (.claude/skills/prohost-reel/SKILL.md documents 
 
   prepare   validates the spec; writes shots.json (new avatar shots → avatar_video.py) and voice.json (both voices →
             voiceover.py) into the reel's folder; prints the plan and the Veo cost estimate
-  footage   avatar_video.py: first frames (a library keyframe, or Gemini image for a new frame) + silent Veo clips. A
-            voice-1 scene is filmed with him talking to camera (mouth moving, no sound); the lip-sync redraws the mouth
+  footage   avatar_video.py: first frames (a library keyframe, or Gemini image for a new frame) + Veo clips. A voice-1
+            scene is filmed with Veo SAYING the scene's line (2 takes, with audio): its mouth then articulates exactly
+            those words, naturally — the first office reel's lip-sync. Narrator scenes are silent, lips closed
   voices    voiceover.py: voice 1 = Gemini-TTS Orus (the owner's pick), voice 2 = Charon (narrator), both with the Beirut
-            dialect prompt that the owner approved — never Veo's own Arabic speech (not Lebanese)
-  voice1    copies each voice-1 line to voice1/<role>.wav for the lip-sync
-  lipsync   NOT in this job: dispatch "Marketing lip-sync CPU" with reel=<folder> (free, LatentSync 1.6, parallel
-            runners, ~1–2 h) or "Marketing lip-sync" (fal / vertex) — both write lipsync/<role>.mp4
+            dialect prompt that the owner approved — Veo's own Arabic is never heard (not Lebanese)
+  voice1    fit_voice.py: voice 1 fitted syllable by syllable onto the best take's own mouth (Veo's audio thrown away)
+            → dubbed/<role>.mp4 (voice1/<role>.wav keeps the line)
   compose   reel_v3_compose.py with REEL_SPEC: montage.py + reel_studio.html overlay + music/sfx → reel.mp4 + cover.jpg
-            (a voice-1 scene without its lip-synced clip falls back to the take + voice, unsynced, with a warning)
+            (the frame holds still while he talks: no punches or reframing mid-line)
 
 usage: reel_studio.py <stage> marketing/reels/<id>/spec.json
 """
@@ -22,23 +22,45 @@ import json, os, pathlib, re, subprocess, sys
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 HERE = pathlib.Path(__file__).parent
 MAX_NEW_SHOTS, PRICE = 6, {False: 0.10, True: 0.15}  # Veo fast, US$/s silent / with speech
-SPEAKING = {"s1v_d", "s5v_d", "s1", "s5_a"}  # library takes where he talks to camera: sources for voice-1 lip-sync
+TALK_TAKES = 2  # Veo takes per voice-1 shot; fit_voice keeps the one whose rhythm fits the voice best
+# Library shots where Veo SAYS a line (takes <shot>_a…_d): a voice-1 scene may reuse one only for that same line, since
+# fit_voice keeps his native mouth and only bends the voice onto it. Any other line needs a new talking shot.
+SPEAKING = {
+    "s1v": "بدفع أجار عيادتي كامل… وبتضل فاضية نُصّ النهار.",
+    "s5v": "إذا بدّك مكتب، نزّل التطبيق، تفتّش وتحجز كِلّو مجّاني.",
+}
 V1_VOICE, V2_VOICE = "Orus", "Charon"  # the owner's picks (Oct 2026): on-camera voice, narrator
 LIBRARY = ROOT / "marketing/avatar/clips"
 # What the shared takes show, so a spec can reuse one instead of paying for a new shot.
 LIBRARY_NOTES = {
-    "s1v_d": "seated at the desk, talks to camera, a little tired (speaking take, best for a hook)",
-    "s5v_d": "standing, confident, talks to camera with open palms (speaking take, best for a call to action)",
+    "s1v": "seated at the desk, says the office hook to camera, a little tired (voice 1 only with that exact line)",
+    "s5v": "standing, confident, says the 'download the app' CTA with open palms (voice 1 only with that exact line)",
     "s5c": "with his espresso at the counter, sips, smiles, small toast, points down (silent, lips closed)",
-    "s1": "seated at the desk, looks up and talks to camera, slightly tired (speaking take)",
+    "s1": "seated at the desk, looks up and talks to camera, slightly tired (talks: never under the narrator)",
     "s2": "glances at the empty couch and the wall clock, exhales, stands up (silent)",
     "s3": "makes an espresso, sips, small satisfied smile (silent)",
     "s4": "reads a message on his phone, smiles, types a reply (silent)",
-    "s5_a": "standing, confident, talks to camera with open-palm gestures (speaking take)",
+    "s5_a": "standing, confident, talks to camera with open-palm gestures (talks: never under the narrator)",
     "s5b": "standing, smiles, points down to the comments, 'your turn' gesture (silent)",
 }
 ROLE_RE = re.compile(r"^[a-z][a-z0-9_]{0,23}$")
 TRANSITIONS = {"cut", "whip_l", "whip_r", "zoom"}
+
+
+def words(text):
+    """A line reduced to its letters, so punctuation, diacritics and spacing don't count."""
+    return re.sub(r"[^\w]|[\u064B-\u0652_]", "", text or "")
+
+
+def group(reuse):
+    """s1v_d → s1v: a shot id without its take letter."""
+    return re.sub(r"_[a-z]$", "", reuse)
+
+
+def takes_of(folder, shot):
+    """The takes of a shot in a clips folder: <shot>_a.mp4, <shot>_b.mp4… (or <shot>.mp4 alone)."""
+    found = sorted(folder.glob(f"{shot}_[a-z].mp4"))
+    return found or [p for p in [folder / f"{shot}.mp4"] if p.exists()]
 
 
 def load(spec_path):
@@ -65,8 +87,12 @@ def validate(spec):
         if shot.get("reuse"):
             if not (LIBRARY / f"{shot['reuse']}.mp4").exists():
                 errs.append(f"{r}: unknown library shot {shot['reuse']}")
-            if s.get("voice") == 1 and shot["reuse"] not in SPEAKING:
-                errs.append(f"{r}: a voice-1 scene needs a take where he talks ({', '.join(sorted(SPEAKING))}) or a new shot")
+            g = group(shot["reuse"])
+            if s.get("voice") == 1 and words(SPEAKING.get(g)) != words(s.get("line")):
+                errs.append(f"{r}: voice 1 can reuse a talking shot only for the line Veo says in it "
+                            f"({'; '.join(f'{k}: {v}' for k, v in SPEAKING.items())}); give this line a new shot")
+            if s.get("voice") == 2 and g in SPEAKING:
+                errs.append(f"{r}: {g} shows him talking; the narrator needs footage with his lips closed")
         elif not (shot.get("frame") and shot.get("motion")):
             errs.append(f"{r}: a new shot needs frame and motion")
         else:
@@ -95,18 +121,21 @@ def prepare(spec_path):
     for s in spec["scenes"]:
         shot = s.get("shot") or {}
         if shot.get("reuse"):
-            continue  # a library take, used as it is (a speaking take gets its mouth redrawn by the lip-sync)
+            continue  # a library take, used as it is (a talking one gets voice 1 fitted onto its mouth)
         talking = s["voice"] == 1
         entry = {"id": s["role"], "refs": shot.get("refs") or
                  (["close_neutral", "close_smile", "full_front"] if talking else ["three_quarter", "desk_mid", "close_smile"]),
-                 "frame": shot["frame"], "audio": False, "takes": 1}
-        if talking:  # the lip-sync redraws the mouth: he only has to talk naturally, no sound needed
-            entry["motion"] = shot["motion"] + (" He talks straight to the camera as if saying one sentence to a friend, natural"
-                                                " mouth movement, blinking and small head movements.")
+                 "frame": shot["frame"], "audio": talking, "takes": TALK_TAKES if talking else 1}
+        if talking:  # Veo says the line itself, so the mouth articulates these words; its audio is replaced by voice 1
+            entry.update({"motion": shot["motion"] + (" He says the whole line straight to the camera, as if to one friend:"
+                                                      " natural blinking and small head movements, and he finishes the"
+                                                      " sentence before the clip ends. Static camera, slow subtle push-in."),
+                          "speech": s["line"],
+                          "voice": "a warm, deep male voice with a Lebanese (Beirut) accent, relaxed and conversational"})
         else:
             entry.update({"motion": shot["motion"] + " His lips stay closed, he is not talking; a narrator speaks over this shot.",
                           "silent": True})
-        cost += 8 * PRICE[False]
+        cost += 8 * PRICE[talking] * entry["takes"]
         shots.append(entry)
     (d / "shots.json").write_text(json.dumps({**{k: v for k, v in base.items() if k != "shots"}, "shots": shots},
                                              ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -124,7 +153,7 @@ def prepare(spec_path):
                                               "output": str(rel / "audio"), "posts": posts}, ensure_ascii=False, indent=2) + "\n",
                                   encoding="utf-8")
     print(f"studio prepare {d.name}: {len(spec['scenes'])} scenes, {len(shots)} shot(s) to film (~US${cost:.2f} of Veo), "
-          f"{sum(s['voice'] == 1 for s in spec['scenes'])} on camera (lip-synced), "
+          f"{sum(s['voice'] == 1 for s in spec['scenes'])} on camera (voice 1 fitted to his mouth), "
           f"{sum(s['voice'] == 2 for s in spec['scenes'])} narrated")
     return d, spec
 
@@ -151,12 +180,16 @@ def main():
         (d / "voice1").mkdir(parents=True, exist_ok=True)
         for i, s in enumerate(v1, 1):
             src = d / "audio" / "lines" / f"v1_{i:02d}.wav"
-            if src.exists():
-                (d / "voice1" / f"{s['role']}.wav").write_bytes(src.read_bytes())
-        jobs = ",".join(f"{s['role']}:{s['role']}:{(s.get('shot') or {}).get('reuse') or s['role']}:"
-                        f"{(s.get('shot') or {}).get('from', 0.0)}" for s in v1)
-        print(f"studio lipsync next: dispatch marketing-lipsync-cpu.yml with jobs={jobs} reel={rel}")
-    if stage == "compose":  # after the lip-sync run (stage "all" stops before it)
+            if not src.exists():
+                sys.exit(f"::error::{s['role']}: voice 1 line {src.name} is missing (run stage voices)")
+            (d / "voice1" / f"{s['role']}.wav").write_bytes(src.read_bytes())
+            reuse = (s.get("shot") or {}).get("reuse")
+            takes = takes_of(LIBRARY, group(reuse)) if reuse else takes_of(d / "clips", s["role"])
+            if not takes:
+                sys.exit(f"::error::{s['role']}: no talking take to fit voice 1 onto (run stage footage)")
+            run([sys.executable, "scripts/marketing/fit_voice.py", str(d / "voice1" / f"{s['role']}.wav"), s["role"],
+                 ",".join(str(t) for t in takes)], {"FIT_OUT": str(pathlib.Path(rel) / "dubbed")})
+    if stage in ("compose", "all"):
         run([sys.executable, "marketing/source/reel_v3_compose.py"], {"REEL_SPEC": str(d / "spec.json")})
 
 

@@ -2,7 +2,8 @@ name: Marketing Reel Studio (manual)
 
 # One brief-driven reel, end to end, with the ProHost avatar and its two voices (scripts/marketing/reel_studio.py;
 # .claude/skills/prohost-reel/SKILL.md). The spec lives in marketing/reels/<id>/spec.json; everything the run makes
-# (keyframes, clips, voices, lip-sync, reel.mp4, cover.jpg) is committed next to it on the branch it runs on.
+# (keyframes, clips, voices, voice 1 fitted onto his mouth, reel.mp4, cover.jpg) is committed next to it on the branch it
+# runs on. Stage all runs straight through to the finished reel.
 on:
   workflow_dispatch:
     inputs:
@@ -32,15 +33,11 @@ jobs:
           python-version: "3.10"
       - name: Install
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
-          pip install --quiet torch==2.4.0 torchaudio==2.4.0 --index-url https://download.pytorch.org/whl/cpu
-          pip install --quiet scipy==1.13.1 librosa==0.10.2 "huggingface-hub>=0.28.1" munch==4.0.0 einops==0.8.0 \
-            descript-audio-codec==1.0.0 pydub==0.25.1 transformers==4.46.3 soundfile==0.12.1 numpy==1.26.4 \
-            hydra-core==1.3.2 pyyaml accelerate google-auth requests imageio-ffmpeg opencv-python-headless==4.10.0.84 \
-            playwright
+          # rubberband-cli: fit_voice.py stretches voice 1 onto his mouth syllable by syllable
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg rubberband-cli > /dev/null
+          pip install --quiet scipy==1.13.1 librosa==0.10.2 soundfile==0.12.1 numpy==1.26.4 google-auth requests \
+            imageio-ffmpeg opencv-python-headless==4.10.0.84 playwright
           python -m playwright install --with-deps chromium > /dev/null
-          git clone --quiet https://github.com/Plachtaa/seed-vc.git /tmp/seed-vc
-          git -C /tmp/seed-vc checkout --quiet 51383efd921027683c89e5348211d93ff12ac2a8
       - name: Write Service Account Credentials
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -57,7 +54,7 @@ jobs:
           case "$SPEC" in marketing/reels/*/spec.json) ;; *) echo "::error::spec must be marketing/reels/<id>/spec.json"; exit 1;; esac
           python -u scripts/marketing/reel_studio.py "$STAGE" "$SPEC" 2>&1 | tee "$RUNNER_TEMP/studio.log" || {
             echo "::error::$(tail -c 1500 "$RUNNER_TEMP/studio.log" | tr '\n' ' ')"; exit 1; }
-          while read -r l; do echo "::notice::$l"; done < <(grep -E '^(studio|clip |keyframe|voice1|lipsync|reel_office|.*\.mp4 \()' "$RUNNER_TEMP/studio.log" | tail -9)
+          while read -r l; do echo "::notice::$l"; done < <(grep -E '^(studio|clip |keyframe|voice1|fit |reel_office|.*\.mp4 \()' "$RUNNER_TEMP/studio.log" | tail -9)
       - name: Commit
         env:
           SPEC: ${{ inputs.spec }}

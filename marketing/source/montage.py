@@ -5,6 +5,9 @@ Per segment (reel_v3_compose.SEGS → "cam", "punch", "ramp", "in", "jcut"):
          when that caption word is said); zoom 1.0 = full frame, 1.4 = close-up; push = extra zoom gained by the end of the beat (eased dolly).
          Crops are centred on the face (OpenCV track, smoothed), so punch-ins never cut his head off.
   punch  zoom punches (+10 %, 80 ms attack, 0.6 s release) on key words, same time syntax as cam.
+  steady for a line he says on camera: the frame holds on his median face position (no tracking), no punches, a third
+         of the handheld shake — only the scene's slow push moves. The first office reel's lip-sync read as natural
+         partly because nothing moved the frame while he spoke; zooms and reframes mid-sentence fight the mouth.
   ramp   speed ramp [(until, rate)] for footage without lip-sync (e.g. the coffee pour at 0.6x, then 1.1x).
   in     transition into the segment: whip_l / whip_r (whip-pan, directional motion blur), zoom (zoom-blur), cut.
   jcut   the picture changes this many seconds after the segment's audio starts (voice leads the cut).
@@ -110,8 +113,10 @@ class Shot:
         self.s, self.src, self.idx = seg, src, idx
         self.phr = [p - seg["t0"] for p in seg.get("phrases", [])]
         self.beats = sorted((self.when(b[0]), b[1], b[2]) for b in seg.get("cam", [(0, 1.0, 0.04)]))
-        self.punches = [self.when(p) for p in seg.get("punch", [])]
+        self.steady = bool(seg.get("steady"))
+        self.punches = [] if self.steady else [self.when(p) for p in seg.get("punch", [])]
         self.ramp = seg.get("ramp")
+        self.hold = None  # steady: one face position for the whole line
 
     def when(self, x):
         if isinstance(x, str) and x.startswith("p"):
@@ -145,14 +150,20 @@ class Shot:
         st = self.src_time(u)
         f = self.src.frame(st)
         z = self.zoom(u) * BASE_ZOOM * extra_zoom
-        fx, fy, fh = self.src.face(st)
+        if self.steady:
+            if self.hold is None:
+                pts = np.array([self.src.face(self.src_time(x)) for x in np.linspace(0, self.s["dur"], 24)])
+                self.hold = tuple(np.median(pts, axis=0))
+            fx, fy, fh = self.hold
+        else:
+            fx, fy, fh = self.src.face(st)
         # Centre: frame centre at full frame, the face (with headroom) as we push in.
         k = min(1.0, (z - BASE_ZOOM) / 0.25)
         cx = W / 2 + (fx - W / 2) * k
         cy = H / 2 + (fy + 0.12 * fh - H / 2) * k  # face a little above centre: headroom kept
         hw, hh = W / (2 * z), H / (2 * z)
         cx, cy = min(max(cx, hw), W - hw), min(max(cy, hh), H - hh)
-        sx, sy, rot = shake(self.s["t0"] + u, self.idx)
+        sx, sy, rot = shake(self.s["t0"] + u, self.idx, 0.33 if self.steady else 1.0)
         m = cv2.getRotationMatrix2D((cx, cy), rot, z)
         m[0, 2] += W / 2 - cx + sx + dx_extra
         m[1, 2] += H / 2 - cy + sy
