@@ -340,7 +340,8 @@ def main():
         proc = subprocess.Popen([FF, "-nostdin", "-y", "-loglevel", "error", "-i", str(base), "-f", "image2pipe",
                                  "-framerate", str(FPS), "-c:v", "png", "-i", "-", "-filter_complex",
                                  "[0:v][1:v]overlay=0:0:format=auto,format=yuv420p[v]", "-map", "[v]", "-c:v", "libx264",
-                                 "-crf", "17", "-preset", "slow", "-profile:v", "high", "-r", str(FPS), str(silent)],
+                                 "-crf", "19", "-maxrate", "12M", "-bufsize", "24M", "-preset", "slow", "-profile:v", "high", "-r", str(FPS),
+                                 str(silent)],  # ~12 Mbps: Instagram's ceiling, and keeps reels far below GitHub's 100 MB
                                 stdin=subprocess.PIPE)
         for f in range(int(round(length * FPS))):
             pg.evaluate(f"render({f / FPS})")
