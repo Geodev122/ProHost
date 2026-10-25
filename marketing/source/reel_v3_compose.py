@@ -20,7 +20,7 @@ HERE = pathlib.Path(__file__).parent
 ROOT = HERE.parent
 CLIPS = ROOT / "avatar" / "clips"
 LINES = ROOT / "audio" / "voiceovers-arabic-reel" / "lines"
-OUT = ROOT / "02-reels-arabic-9x16" / "12-office-sourcing-avatar.mp4"
+OUT = pathlib.Path(os.environ.get("REEL_OUT") or ROOT / "02-reels-arabic-9x16" / "12-office-sourcing-avatar.mp4")
 CHROME = os.environ.get("CHROME", "/opt/pw-browsers/chromium-1194/chrome-linux/chrome")
 FPS = 30
 TMP = pathlib.Path(tempfile.mkdtemp(prefix="reel3_"))
