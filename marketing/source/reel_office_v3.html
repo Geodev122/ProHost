@@ -55,7 +55,18 @@ body { font-family: "Cairo", "Inter", sans-serif; color: #fff; position: relativ
 /* seg 5: comment "office" chip + free-month stamp */
 #stamp { left: 600px; top: 1040px; width: 400px; height: 200px; border-radius: 32px; background: var(--orange); color: var(--navy); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 24px 60px rgba(253,99,29,.45); }
 #stamp b { font: 800 62px/1.15 "Cairo", "Inter", sans-serif; } #stamp i { font: 800 32px/1.2 "Cairo", "Inter", sans-serif; font-style: normal; }
-#bio { left: 60px; top: 1180px; }
+#bio { left: 60px; top: 1040px; }
+/* CTA 1 (renters): get the app */
+#app { left: 60px; right: 60px; top: 1060px; display: flex; justify-content: center; }
+#app .chip { font-size: 40px; padding: 18px 34px; }
+/* CTA 2 (owners): a mock Instagram comment bar typing "office" + an arrow down to it */
+#cbar { left: 60px; right: 60px; top: 1210px; height: 104px; border-radius: 999px; background: rgba(255,255,255,.96); box-shadow: 0 18px 50px rgba(0,8,30,.45); display: flex; align-items: center; gap: 18px; padding: 0 18px 0 26px; direction: ltr; }
+#cbar .av { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #fd631d, #2B5A8C); flex: none; }
+#cbar .tx { flex: 1; font: 600 40px/1 "Inter"; color: #102033; white-space: nowrap; overflow: hidden; }
+#cbar .tx i { color: #8693a8; font-style: normal; }
+#cbar .tx .cur { display: inline-block; width: 3px; height: 40px; background: #2B5A8C; vertical-align: middle; margin-left: 2px; }
+#cbar .send { font: 800 34px/1 "Inter"; color: #2B5A8C; }
+#arrow { left: 0; right: 0; top: 1110px; text-align: center; font: 800 84px/1 "Inter"; color: #fff; text-shadow: 0 6px 24px rgba(0,0,0,.45); }
 /* seg 6: the price, then the end card */
 #tag { left: 110px; right: 110px; top: 520px; padding: 36px; text-align: center; }
 #tag .s { font: 800 40px/1.3 "Cairo", "Inter", sans-serif; color: #51607a; }
@@ -90,10 +101,13 @@ body { font-family: "Cairo", "Inter", sans-serif; color: #fff; position: relativ
   <div><b>طلب حجز جديد · الثلاثاء</b><i>10:00 – 12:00 · Life coach</i></div></div>
 <div class="abs" id="ctl"><span class="chip o">⏱ الوقت</span><span class="chip o">$ السعر</span><span class="chip">أنا بقرّر</span></div>
 
+<div class="abs" id="app"><span class="chip">📲 حمّل ProHost · التفتيش والحجز <b style="color:var(--orange)">ببلاش</b></span></div>
 <div class="abs" id="stamp"><b>شهر مجّاني</b><i>علّق office أو ابعتلنا DM</i></div>
 <div class="abs" id="bio"><span class="chip g">💬 Comment <span class="lat">office</span></span></div>
+<div class="abs" id="arrow">⬇</div>
+<div class="abs" id="cbar"><div class="av"></div><div class="tx"><span class="typed"></span><span class="cur"></span></div><div class="send">Post</div></div>
 
-<div class="abs card" id="tag"><div class="s">بعد الشهر الأوّل</div><div class="p">$8.99<small> /month</small></div><div class="u">أقلّ من إيجار ساعة وحدة</div></div>
+<div class="abs card" id="tag"><div class="s">بعد الشهر الأوّل</div><div class="p">$8.99<small> /month</small></div><div class="u">أقلّ من أجار ساعة وحدة</div></div>
 
 <div class="abs" id="cap"><span></span></div>
 <div class="abs" id="ai">AI-generated presenter</div>
@@ -108,34 +122,52 @@ body { font-family: "Cairo", "Inter", sans-serif; color: #fff; position: relativ
 <script src="engine.js"></script>
 <script src="reel_office_v3_data.js" onerror="0"></script>
 <script>
-const R = window.REEL3 || { segs: [0, 4.4, 8.6, 13.6, 17.7, 24.0].map((t0, i, a) => ({ t0, t1: a[i + 1] || 30, cap: "", sp: [t0 + 0.2, (a[i + 1] || 30) - 0.3] })), end: 28.4, length: 30 };
-const S = R.segs.map((s) => s.t0), SP = R.segs.map((s) => s.sp[0]), END = R.end;
+const R = window.REEL3 || { segs: ["hook", "s2", "s3", "s4", "cta1", "cta2", "price"].map((role, i) => ({ role, t0: i * 5, t1: i * 5 + 5, cap: "", sp: [i * 5 + 0.2, i * 5 + 4.7] })), end: 33.5, length: 35 };
+// Segment times by role (hook, s2, s3, s4, cta1, cta2, price); a missing role falls back to the one before it.
+const ROLES = ["hook", "s2", "s3", "s4", "cta1", "cta2", "price"];
+const seg = (r) => R.segs.find((x) => x.role === r) || seg(ROLES[Math.max(0, ROLES.indexOf(r) - 1)]);
+const T0 = (r) => seg(r).t0, SP = (r) => seg(r).sp[0], SE = (r) => seg(r).sp[1], END = R.end;
+const STAMP_AT = Math.max(SP("cta2") + 2.0, SE("cta2") - 1.6);
 
-// seg 2: the day card, empty hours turn red, money flies
-fadeUp("#day", SP[1] + 0.1, 0.55, 70);
-A(".cash", SP[1] + 1.6, 1.5, (e, i) => ({ opacity: e < 0.15 ? e / 0.15 : 1 - (e - 0.15) / 0.85, transform: `translateY(${lerp(0, -240, e)}px) rotate(${(i % 2 ? 1 : -1) * e * 18}deg)` }), "out", 0.22);
-fadeOut("#day", S[2] - 0.3, 0.3);
-// seg 3: phone listing + who
-slideIn("#phone", SP[2] + 0.1, 0.65, -260);
-A("#modes .m", SP[2] + 1.0, 0.35, (e) => ({ background: e > 0.5 ? "#fd631d" : "#e9eff8", transform: `scale(${lerp(0.9, 1, e)})` }), "back", 0.4);
-A(".who", SP[2] + 2.4, 0.45, (e) => ({ opacity: e, transform: `translateX(${lerp(-180, 0, e)}px)` }), "out", 0.3);
-fadeOut("#phone, .who", S[3] - 0.3, 0.3);
-// seg 4: WhatsApp request + control chips
-pop("#wa", SP[3] + 0.9, 0.55);
-fadeUp("#ctl", SP[3] + 0.2, 0.45, 40);
-fadeOut("#wa, #ctl", S[4] - 0.3, 0.3);
-// seg 5: the comment chip on "Comment office", then the free month on "شهر مجّاني" (the line's last ~1.6 s)
-pop("#bio", SP[4] + 1.4, 0.5);
-pop("#stamp", Math.max(SP[4] + 2.0, R.segs[4].sp[1] - 1.7), 0.55);
-fadeOut("#bio, #stamp", S[5] - 0.25, 0.3);
-// seg 6: dim the footage, the price, then the end card
-A("#dim", S[5], 0.4, (e) => ({ opacity: e }), "out");
-pop("#tag", SP[5] + 1.0, 0.6);
+// s2: the day card, empty hours turn red, money flies
+fadeUp("#day", SP("s2") + 0.1, 0.55, 70);
+A(".cash", SP("s2") + 1.6, 1.5, (e, i) => ({ opacity: e < 0.15 ? e / 0.15 : 1 - (e - 0.15) / 0.85, transform: `translateY(${lerp(0, -240, e)}px) rotate(${(i % 2 ? 1 : -1) * e * 18}deg)` }), "out", 0.22);
+fadeOut("#day", T0("s3") - 0.3, 0.3);
+// s3 (coffee): his listing on the phone + who rents it
+slideIn("#phone", SP("s3") + 0.1, 0.65, -260);
+A("#modes .m", SP("s3") + 1.0, 0.35, (e) => ({ background: e > 0.5 ? "#fd631d" : "#e9eff8", transform: `scale(${lerp(0.9, 1, e)})` }), "back", 0.4);
+A(".who", SP("s3") + 2.4, 0.45, (e) => ({ opacity: e, transform: `translateX(${lerp(-180, 0, e)}px)` }), "out", 0.3);
+fadeOut("#phone, .who", T0("s4") - 0.3, 0.3);
+// s4: WhatsApp request + control chips
+pop("#wa", SP("s4") + 0.9, 0.55);
+fadeUp("#ctl", SP("s4") + 0.2, 0.45, 40);
+fadeOut("#wa, #ctl", T0("cta1") - 0.3, 0.3);
+// CTA 1 (renters): get the app, free
+pop("#app", SP("cta1") + 0.8, 0.5);
+fadeOut("#app", T0("cta2") - 0.2, 0.25);
+// CTA 2 (owners): chip + arrow + the comment bar typing "office", then the free-month stamp on "شهر مجّاني"
+pop("#bio", SP("cta2") + 0.3, 0.45);
+fadeUp("#cbar", SP("cta2") + 0.6, 0.45, 50);
+fadeIn("#arrow", SP("cta2") + 0.9, 0.3);
+pop("#stamp", STAMP_AT, 0.55);
+fadeOut("#bio, #stamp, #cbar, #arrow", T0("price") - 0.25, 0.3);
+// price: dim the footage, the price, then the end card
+A("#dim", T0("price"), 0.4, (e) => ({ opacity: e }), "out");
+pop("#tag", SP("price") + 1.0, 0.6);
 A("#end", END, 0.45, (e) => ({ opacity: e }), "out");
 
-L((t) => { document.querySelectorAll(".slot:not(.busy)").forEach((s, i) => s.classList.toggle("lost", t > SP[1] + 0.9 + i * 0.15)); });
-L((t) => { document.getElementById("price").textContent = t > SP[2] + 3.2 ? "✓ محجوز" : "$ / hour"; });
+L((t) => { document.querySelectorAll(".slot:not(.busy)").forEach((s, i) => s.classList.toggle("lost", t > SP("s2") + 0.9 + i * 0.15)); });
+L((t) => { document.getElementById("price").textContent = t > SP("s3") + 3.2 ? "✓ محجوز" : "$ / hour"; });
 L((t) => { const v = t < END ? 1 : 0; ["logo", "ai"].forEach((id) => document.getElementById(id).style.opacity = v); });
+// CTA 2: "office" typed letter by letter, a blinking cursor, the chip pulsing and the arrow bouncing toward the comments
+L((t) => {
+  const k = Math.max(0, Math.min(6, Math.floor((t - SP("cta2") - 1.1) / 0.16)));
+  document.querySelector("#cbar .typed").innerHTML = k ? "office".slice(0, k) : "<i>Add a comment…</i>";
+  document.querySelector("#cbar .cur").style.opacity = Math.floor(t * 2.5) % 2 ? 1 : 0;
+  const live = t > SP("cta2") && t < T0("price");
+  document.querySelector("#bio .chip").style.transform = live ? `scale(${1 + 0.06 * Math.max(0, Math.sin(t * 6.3))})` : "";
+  document.getElementById("arrow").style.transform = `translateY(${live ? 14 * Math.abs(Math.sin(t * 4.2)) : 0}px)`;
+});
 // Captions: the segment's spoken line while it is spoken (+ a short hold)
 L((t) => {
   const i = R.segs.findIndex((s) => t >= s.sp[0] - 0.1 && t < Math.min(s.t1, s.sp[1] + 0.6));
@@ -146,9 +178,10 @@ L((t) => {
   cap.style.opacity = f; cap.style.transform = `translateY(${(1 - f) * 20}px)`;
 });
 window.EVENTS = [
-  { t: SP[1] + 1.6, k: "whoosh" }, { t: SP[2] + 0.1, k: "whoosh" }, { t: SP[3] + 0.9, k: "notify" },
-  { t: SP[4] + 1.4, k: "pop" }, { t: Math.max(SP[4] + 2.0, R.segs[4].sp[1] - 1.7), k: "success" },
-  { t: SP[5] + 1.0, k: "pop" }, { t: END, k: "impact" },
+  { t: SP("s2") + 1.6, k: "whoosh" }, { t: SP("s3") + 0.1, k: "whoosh" }, { t: SP("s4") + 0.9, k: "notify" },
+  { t: SP("cta1") + 0.8, k: "pop" }, { t: SP("cta2") + 0.3, k: "pop" },
+  ...[0, 1, 2, 3, 4, 5].map((i) => ({ t: SP("cta2") + 1.1 + i * 0.16, k: "tap" })),
+  { t: STAMP_AT, k: "success" }, { t: SP("price") + 1.0, k: "pop" }, { t: END, k: "impact" },
 ];
 render(0);
 </script>

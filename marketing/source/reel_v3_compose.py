@@ -24,14 +24,17 @@ CHROME = os.environ.get("CHROME", "/opt/pw-browsers/chromium-1194/chrome-linux/c
 FPS = 30
 TMP = pathlib.Path(tempfile.mkdtemp(prefix="reel3_"))
 
-# clip, speech ("veo" = the clip's own, else the v2 voice-over line number), clip offset (s), caption
+# role (the overlay keys its animations on it), clip (under avatar/clips, or "lipsync/<shot>" for a lip-synced clip that
+# carries the owner's voice), speech ("clip" = that clip's own audio, "veo" = Veo's own speech, else a voice-over line
+# number), clip offset (s), caption. Hook + CTA are the owner's recordings (marketing/audio/owner), lip-synced.
 SEGS = [
-    {"clip": "s1", "speech": "veo", "cap": "بدفع أجار عيادتي كامل… وهيّي <b>فاضية</b> نُصّ النهار."},
-    {"clip": "s2", "speech": 2, "from": 1.6, "cap": "بين جلسة وجلسة، ساعات ضايعة… و<b>مصاري</b> عم تطير."},
-    {"clip": "s3", "speech": 3, "from": 0.6, "cap": "هلّق عم أجّرها <b>بالساعة</b> على ProHost، لـ psychologists و coaches متلي."},
-    {"clip": "s4", "speech": 4, "from": 0.0, "cap": "أنا بحدّد الوقت والسعر، والطلبات بتوصلني عَال<b>واتساب</b>."},
-    {"clip": "s5", "speech": "veo", "cap": "إذا عندك مكتب… <b>Comment office</b> أو تواصل معنا عالـ DM لتربح <b>شهر مجّاني</b>."},
-    {"clip": "s4", "speech": 6, "from": 4.2, "tail": 1.5, "cap": "وبعد الشهر؟ بسّ <b>تسعة دولار</b> بالشهر… أقلّ من أجار ساعة وحدة."},
+    {"role": "hook", "clip": "lipsync/s1", "speech": "clip", "cap": "HOOK"},
+    {"role": "s2", "clip": "s2", "speech": 2, "from": 1.6, "cap": "بين جلسة وجلسة، ساعات ضايعة… و<b>مصاري</b> عم تطير."},
+    {"role": "s3", "clip": "s3", "speech": 3, "from": 0.3, "cap": "هلّق عم أجّرها <b>بالساعة</b> على ProHost، لـ psychologists و coaches متلي."},
+    {"role": "s4", "clip": "s4", "speech": 4, "from": 0.0, "cap": "أنا بحدّد الوقت والسعر، والطلبات بتوصلني عَال<b>واتساب</b>."},
+    {"role": "cta1", "clip": "lipsync/s5", "speech": "clip", "cap": "CTA1"},
+    {"role": "cta2", "clip": "lipsync/s5b", "speech": "clip", "cap": "CTA2"},
+    {"role": "price", "clip": "s4", "speech": 6, "from": 4.2, "tail": 1.5, "cap": "وبعد الشهر؟ بسّ <b>تسعة دولار</b> بالشهر… أقلّ من أجار ساعة وحدة."},
 ]
 LEAD, HOLD = 0.15, 0.25  # silence before / after each spoken line
 VEO_HOLD, FADE = 0.45, 0.12  # after a lip-synced line: hold, then fade the audio out (never clip the last word)
@@ -91,11 +94,22 @@ def checked_window(shot):
     return None
 
 
+def clip_path(name):
+    return (ROOT / "avatar" / f"{name}.mp4") if "/" in name else CLIPS / f"{name}.mp4"
+
+
 def timeline():
     t, segs = 0.0, []
     for s in SEGS:
-        clip = CLIPS / f"{s['clip']}.mp4"
-        if s["speech"] == "veo":
+        clip = clip_path(s["clip"])
+        if s["speech"] == "clip":
+            # A lip-synced clip already holds exactly the voice (+ a little air): use it whole.
+            full = wav48(clip)
+            a, b = speech_window(full, 0.08)
+            frm, dur = 0.0, len(full) / SR + 0.1
+            voice = fade_out(full)
+            sp = (t + a, t + b)
+        elif s["speech"] == "veo":
             full = wav48(clip)
             a, b = checked_window(s["clip"]) or speech_window(full)
             b = last_voiced(full, b)
@@ -122,7 +136,7 @@ def base_video(segs, length):
     """Cut + scale every segment to 1080x1920@30 (freezing the last frame if a clip runs short) and concatenate."""
     args, chains = [], []
     for i, s in enumerate(segs):
-        args += ["-ss", f"{s['frm']:.3f}", "-i", str(CLIPS / f"{s['clip']}.mp4")]
+        args += ["-ss", f"{s['frm']:.3f}", "-i", str(clip_path(s["clip"]))]
         chains.append(f"[{i}:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps={FPS},setsar=1,"
                       f"tpad=stop_mode=clone:stop_duration={s['dur']:.3f},trim=duration={s['dur']:.3f},setpts=PTS-STARTPTS[v{i}]")
     fc = ";".join(chains) + ";" + "".join(f"[v{i}]" for i in range(len(segs))) + f"concat=n={len(segs)}:v=1:a=0[v]"
@@ -175,7 +189,7 @@ def score(segs, length, events):
 
 def main():
     segs, length = timeline()
-    data = {"segs": [{"t0": s["t0"], "t1": s["t1"], "sp": s["sp"], "cap": s["cap"]} for s in segs],
+    data = {"segs": [{"role": s["role"], "t0": s["t0"], "t1": s["t1"], "sp": s["sp"], "cap": s["cap"]} for s in segs],
             "end": round(length - SEGS[-1].get("tail", 0) + 0.15, 3), "length": round(length, 3)}
     (HERE / "reel_office_v3_data.js").write_text("window.REEL3 = " + json.dumps(data, ensure_ascii=False) + ";\n", encoding="utf-8")
     print("segments:", ", ".join(f"{s['clip']}@{s['frm']:.2f} {s['t0']:.2f}-{s['t1']:.2f} speech {s['sp']}" for s in segs),
@@ -220,7 +234,7 @@ def main():
     subprocess.run([FF, "-nostdin", "-y", "-loglevel", "error", "-i", str(silent), "-i", str(audio), "-map", "0:v:0",
                     "-map", "1:a:0", "-c:v", "copy", "-af", "loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000",
                     "-c:a", "aac", "-b:a", "192k", "-t", f"{length:.3f}", "-movflags", "+faststart", str(OUT)], check=True)
-    cover_t = segs[4]["sp"][1] - 0.4
+    cover_t = next(s for s in segs if s["role"] == "cta2")["sp"][1] - 0.4  # big smile + free-month stamp
     subprocess.run([FF, "-nostdin", "-y", "-loglevel", "error", "-ss", f"{cover_t:.2f}", "-i", str(OUT), "-frames:v", "1",
                     "-q:v", "2", str(OUT.with_name(OUT.stem + "_cover.jpg"))], check=True)
     print(f"{OUT} ({length:.2f}s)")
