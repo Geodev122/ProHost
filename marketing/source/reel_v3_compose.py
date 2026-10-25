@@ -25,13 +25,15 @@ CHROME = os.environ.get("CHROME", "/opt/pw-browsers/chromium-1194/chrome-linux/c
 FPS = 30
 TMP = pathlib.Path(tempfile.mkdtemp(prefix="reel3_"))
 
-# role (the overlay keys its animations on it), clip (under avatar/clips, or "lipsync/<name>" for a lip-synced clip that
-# carries voice 1; until it exists, "fallback" = (raw clip, from, voice1 file, reel_v1 line) is used unsynced), speech
+# role (the overlay keys its animations on it), clip (under avatar/clips, or "lipsync/<name>" for a voice-1 take: his own
+# take of the line with the voice converted, or a lip-synced clip; "fallback" = (raw clip, from, voice1 file, reel_v1
+# line) stands in, unsynced, while a "clip"-mode one is missing), speech
 # ("clip" = that clip's own audio, "veo" = Veo's own speech, else a voice-over line number), clip offset (s), caption;
 # cam / punch / ramp / in / jcut drive the montage (montage.py).
 SEGS = [
-    # Voice 1 (on camera, lip-synced; marketing/avatar/lipsync from scripts/marketing/lipsync.py) — hook and CTA 1.
-    {"role": "hook", "clip": "lipsync/hook", "speech": "clip", "fallback": ("s1", 0.1, "line_1", 1),
+    # Voice 1 (on camera): Veo takes of him saying the line (s1v, s5v), voice converted to the hook voice
+    # (scripts/marketing/voice1.py → marketing/avatar/lipsync) — the lip-sync is the take's own.
+    {"role": "hook", "clip": "lipsync/hook", "speech": "veo", "take": "s1v",
      "cap": "بدفع أجار عيادتي كامل… وبتضل <b>فاضية</b> نُصّ النهار.",
      "cam": [(0, 1.38, 0.05), ("w:وبتضل", 1.12, 0.05)], "punch": ["w:فاضية"]},
     # Voice 2 (the narrator, voice-over on footage where he doesn't talk).
@@ -44,7 +46,7 @@ SEGS = [
     {"role": "s4", "clip": "s4", "speech": 4, "from": 0.0, "in": "whip_r", "jcut": 0.35,
      "cap": "أنا بحدّد الوقت والسعر، والطلبات بتوصلني عَال<b>واتساب</b>.",
      "cam": [(0, 1.08, 0.06), (2.0, 1.3, 0.05)]},
-    {"role": "cta1", "clip": "lipsync/cta1", "speech": "clip", "fallback": ("s5_a", 0.0, "line_5", 2), "in": "zoom",
+    {"role": "cta1", "clip": "lipsync/cta1", "speech": "veo", "take": "s5v", "in": "zoom",
      "cap": "إذا بدّك مكتب، نزّل <b>التطبيق</b>، تفتّش وتحجز كلّو <b>مجّاني</b>.",
      "cam": [(0, 1.1, 0.05), ("w:تفتّش", 1.32, 0.04)], "punch": ["w:مجّاني"]},
     {"role": "cta2", "clip": "s5b", "speech": 7, "from": 0.2, "in": "whip_l", "jcut": 0.35,
@@ -60,16 +62,17 @@ LINE_FILE = "reel_office_{:02d}.wav"          # voice 2 line n
 V1_DIR, V1_TTS = ROOT / "audio" / "voice1", "reel_v1_{:02d}.wav"
 SYNCED = ROOT / "avatar"                      # "lipsync/<name>" resolves under it
 HTML, DATA_JS, COVER_ROLE = "reel_office_v3.html", "reel_office_v3_data.js", "cta2"
+RUNS = ROOT / "avatar" / "runs"               # avatar_video.py run reports (Gemini's speech windows per take)
 SPEC = None
 
 
 def load_spec(path):
     """A Reel Studio spec → SEGS + paths (scripts/marketing/reel_studio.py prepares the folder; docs in its skill)."""
-    global SEGS, CLIPS, LINES, LINE_FILE, V1_DIR, V1_TTS, SYNCED, OUT, HTML, DATA_JS, COVER_ROLE, SPEC
+    global SEGS, CLIPS, LINES, LINE_FILE, V1_DIR, V1_TTS, SYNCED, OUT, HTML, DATA_JS, COVER_ROLE, SPEC, RUNS
     SPEC = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
     d = pathlib.Path(path).resolve().parent
     CLIPS, LINES, LINE_FILE = d / "clips", d / "audio" / "lines", "v2_{:02d}.wav"
-    V1_DIR, V1_TTS, SYNCED = d / "voice1", "v1_{:02d}.wav", d
+    V1_DIR, V1_TTS, SYNCED, RUNS = d / "voice1", "v1_{:02d}.wav", d, d / "runs"
     OUT = pathlib.Path(os.environ.get("REEL_OUT") or d / "reel.mp4")
     HTML, DATA_JS = "reel_studio.html", "reel_studio_data.js"
     segs, n1, n2 = [], 0, 0
@@ -81,7 +84,8 @@ def load_spec(path):
         seg["cam"] = [tuple(b) for b in seg.get("cam", [(0, 1.06, 0.06)])]
         if sc["voice"] == 1:
             n1 += 1
-            seg.update({"clip": f"lipsync/{sc['role']}", "speech": "clip", "fallback": (clip, frm, sc["role"], n1)})
+            # his own take of the line, voice converted to voice 1 (scripts/marketing/voice1.py): native lip-sync
+            seg.update({"clip": f"lipsync/{sc['role']}", "speech": "veo", "take": sc["role"]})
         else:
             n2 += 1
             seg.update({"clip": clip, "speech": n2, "from": frm})
@@ -166,8 +170,8 @@ def phrases(x, a, b, gap=0.16, thr=0.10):
 def checked_window(shot):
     """Speech start/end Gemini heard in the clip (avatar_video.py check stage), else None."""
     rep = ROOT / "avatar" / "report.json"
-    history = (json.loads(rep.read_text()) if rep.exists() else []) + \
-        [json.loads(f.read_text()) for f in sorted((ROOT / "avatar" / "runs").glob("*.json"))]
+    history = (json.loads(rep.read_text()) if rep.exists() and RUNS == ROOT / "avatar" / "runs" else []) + \
+        [json.loads(f.read_text()) for f in sorted(RUNS.glob("*.json"))]
     for run in reversed(sorted(history, key=lambda r: r.get("at", ""))):
         res = run.get("shots", {}).get(shot) if run.get("stage") == "check" else None
         if isinstance(res, dict) and "speech_start_s" in res:
@@ -228,7 +232,7 @@ def timeline():
             sp = (t + a, t + b)
         elif s["speech"] == "veo":
             full = wav48(clip)
-            a, b = checked_window(s["clip"]) or speech_window(full)
+            a, b = checked_window(s.get("take") or s["clip"]) or speech_window(full)
             b = last_voiced(full, b)
             frm = max(0.0, a - LEAD)
             dur = min(len(full) / SR - frm, b - frm + VEO_HOLD)
