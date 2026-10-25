@@ -76,5 +76,33 @@
       }
     ],
     "trackSeconds": 42.0
+  },
+  {
+    "post": "reel_v1",
+    "voice": "Orus",
+    "gender": "male",
+    "lines": [
+      {
+        "line": 1,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 0.2,
+        "end": 5.33,
+        "sceneEnd": 6.0,
+        "spoken": 5.13,
+        "tempo": 1.0,
+        "text": "بدفع أجار عيادتي كامل… وبتضل فاضية نُصّ النهار."
+      },
+      {
+        "line": 2,
+        "engine": "vertex:gemini-3.1-flash-tts-preview",
+        "start": 6.4,
+        "end": 11.71,
+        "sceneEnd": 12.8,
+        "spoken": 5.31,
+        "tempo": 1.0,
+        "text": "إذا بدّك مكتب، نزّل التطبيق، تفتّش وتحجز كِلّو مجّاني."
+      }
+    ],
+    "trackSeconds": 13.0
   }
 ]
