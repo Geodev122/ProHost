@@ -1,5 +1,5 @@
 {
-  "_about": "30 s office-sourcing Reel (1080x1920), v2: a real person (licensed Adobe Stock footage of one actor) at his desk, standing up, walking his office, while his own voice (Lebanese Arabic, male, first person) tells the story. Hook → problem → solution → CTA (fill the form = your first month free) → last hook (then only 9 dollars a month; the live Play price is $8.99). Lines 1 and 5 are spoken on camera by the AI avatar (Veo, avatar_shots.json); lines 2-4 and 6 are this voice-over. Rendered by marketing/source/reel_v3_compose.py.",
+  "_about": "30 s office-sourcing Reel (1080x1920), v2: a real person (licensed Adobe Stock footage of one actor) at his desk, standing up, walking his office, while his own voice (Lebanese Arabic, male, first person) tells the story. Hook → problem → solution → CTA (fill the form = your first month free) → last hook (then only 9 dollars a month; the live Play price is $8.99). Two voices: post reel_v1 = voice 1, the on-camera avatar (lines 1 and 5; converted to the hook voice by scripts/marketing/voice1.py and lip-synced by lipsync.py); post reel_office = voice 2, the narrator (lines 2, 3, 4, 6 and 7). Rendered by marketing/source/reel_v3_compose.py.",
   "dialect": "You are a native Lebanese Arabic speaker from Beirut (Achrafieh / Hamra), telling his own story in an Instagram reel as a voice-over, talking to colleagues like a friend would. Speak natural, everyday BEIRUTI LEBANESE, never Syrian or Damascene, never Palestinian or Jordanian, never Egyptian, never Modern Standard Arabic. Lebanese cues: the soft, relaxed Beirut melody (not the Damascene sing-song), final -a / -ā raised to -e the Beirut way (فاضية sounds 'fāḍye', ساعة 'sē3a'), ق as a glottal stop, 'هلّق' as 'halla2', 'كتير' with a short i, words linked smoothly. Sound like a real person talking to a friend: relaxed, warm, conversational rhythm, natural breaths and small pauses, a smile in the voice. Never theatrical, never a TV announcer. English words (ProHost, Premium, app, form, comment, office, DM, psychologists, coaches) are said naturally in English, the way Lebanese professionals say them.",
   "length": 42.0,
   "output": "marketing/audio/voiceovers-arabic-reel",
@@ -14,7 +14,7 @@
           "at": 0.2,
           "end": 3.7,
           "style": "Honest confession that hooks; a small sigh before 'فاضية'.",
-          "text": "بدفع أجار عيادتي كامل… وهيّي فاضية نُصّ النهار."
+          "text": "بدفع أجار عيادتي كامل… وبتضل فاضية نُصّ النهار."
         },
         {
           "at": 3.9,
@@ -51,6 +51,27 @@
           "end": 39.5,
           "text": "وإذا عندك مكتب بدّك تعرضو، comment أو DM، ليوصلك كِل التفاصيل وتربح شهر مجّاني.",
           "style": "Energetic, inviting call to action; 'comment' and 'DM' in English; rising excitement on 'وتربح شهر مجّاني'."
+        }
+      ]
+    },
+    {
+      "id": "reel_v1",
+      "voice": "Orus",
+      "gender": "male",
+      "length": 13.0,
+      "persona": "The same Lebanese psychologist in his late 30s, now speaking ON CAMERA straight to the viewer, like a confident advertiser talking to one friend. These two lines are converted to the on-camera voice and lip-synced, so speak them cleanly with natural pauses between phrases.",
+      "lines": [
+        {
+          "at": 0.2,
+          "end": 6.0,
+          "style": "Honest confession that hooks, a little tired; a small sigh before 'فاضية'. Natural short pause after 'كامل'.",
+          "text": "بدفع أجار عيادتي كامل… وبتضل فاضية نُصّ النهار."
+        },
+        {
+          "at": 6.4,
+          "end": 12.8,
+          "style": "Warm, confident advertiser talking to a friend, a smile in the voice; short natural pauses at the commas; light lift on 'مجّاني'.",
+          "text": "إذا بدّك مكتب، نزّل التطبيق، تفتّش وتحجز كِلّو مجّاني."
         }
       ]
     }
