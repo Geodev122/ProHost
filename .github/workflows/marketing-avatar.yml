@@ -10,7 +10,7 @@ on:
         required: true
         default: keyframes
         type: choice
-        options: [keyframes, clips, check, voice]
+        options: [keyframes, clips, check, voice, voice1]
       shots:
         description: "Comma-separated shot ids from avatar_shots.json (blank = all)"
         required: false
