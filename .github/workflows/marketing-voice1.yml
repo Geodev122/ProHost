@@ -18,6 +18,10 @@ on:
         description: "Folder for take + voice 1 videos (clip: sources)"
         required: false
         default: "marketing/avatar/lipsync"
+      f0:
+        description: "True = Seed-VC 44 kHz pitch-conditioned model (clearer words)"
+        required: false
+        default: "False"
 
 permissions:
   contents: write
@@ -57,6 +61,7 @@ jobs:
           STEPS: ${{ inputs.steps }}
           V1_JOBS: ${{ inputs.jobs }}
           V1_MUX: ${{ inputs.mux }}
+          V1_F0: ${{ inputs.f0 }}
         run: |
           set -o pipefail
           python -u scripts/marketing/voice1.py "$RUNNER_TEMP/seed-vc" "$STEPS" 2>&1 | tee "$RUNNER_TEMP/v1.log" || {

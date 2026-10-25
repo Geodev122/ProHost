@@ -22,6 +22,9 @@ REF_VOICE = ROOT / "marketing/avatar/reference/hook_voice.wav"
 # with the timing untouched, so the mouth stays in sync; V1_MUX=<dir> then writes <dir>/<out>.mp4 (the take + voice 1).
 JOBS = dict(j.split("=", 1) for j in os.environ.get("V1_JOBS", "line_1=reel_v1_01,line_5=reel_v1_02").split(","))
 MUX = os.environ.get("V1_MUX")
+# V1_F0=True: Seed-VC's 44 kHz model (BigVGAN, pitch-conditioned, pitch moved to the reference) — clearer consonants
+# than the 22 kHz speech model when a take's words come out blurred.
+F0 = os.environ.get("V1_F0", "False")
 
 
 def ff(*args):
@@ -43,7 +46,8 @@ def main():
             source = SRC / f"{src}.wav"
         subprocess.run([sys.executable, "inference.py", "--source", str(source), "--target", str(ref),
                         "--output", str(out_dir), "--diffusion-steps", str(steps), "--length-adjust", "1.0",
-                        "--inference-cfg-rate", "0.7", "--f0-condition", "False", "--fp16", "False"], cwd=repo, check=True)
+                        "--inference-cfg-rate", os.environ.get("V1_CFG", "0.7"), "--f0-condition", F0,
+                        "--auto-f0-adjust", F0, "--fp16", "False"], cwd=repo, check=True)
         wav = next(out_dir.glob("vc_*.wav"))
         ff("-i", str(wav), "-ac", "1", "-ar", "48000", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000",
            str(OUT / f"{name}.wav"))
