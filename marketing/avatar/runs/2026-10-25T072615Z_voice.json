@@ -1,0 +1,127 @@
+{
+  "at": "2026-10-25T07:26:15Z",
+  "stage": "voice",
+  "shots": {
+    "line_1": {
+      "best": 0,
+      "cut": [
+        1.368,
+        5.448
+      ],
+      "transcript": "بدفع أجار عيادتي كامل وهي فاضية نص النهار",
+      "takes": [
+        {
+          "start_s": 1.368,
+          "end_s": 5.448,
+          "model": "gemini-3.8-flash",
+          "transcript": "بدفع أجار عيادتي كامل وهي فاضية نص النهار",
+          "complete": true,
+          "clarity": 5,
+          "emotion": 4,
+          "lebanese_score": 5,
+          "notes": "Natural and relatable delivery with an authentic Lebanese accent. The tone works very well as a personal confession hook, though adding just a tiny bit more quiet frustration would make it even more compelling."
+        },
+        {
+          "start_s": 7.25,
+          "end_s": 11.0,
+          "model": "gemini-3.8-flash",
+          "transcript": "بدفع أجار عيادتي كامل، وهي فاضية نص النهار.",
+          "complete": true,
+          "clarity": 5,
+          "emotion": 4,
+          "lebanese_score": 5,
+          "notes": "أداء طبيعي ومقنع، فيه نبرة الفضفضة المناسبة للـ Hook ولهجة لبنانية سليمة 100%."
+        },
+        {
+          "start_s": 12.527,
+          "end_s": 16.228,
+          "model": "gemini-3.8-flash",
+          "transcript": "بدفع أجار عيادتي كامل وهي فاضية نص النهار",
+          "complete": true,
+          "clarity": 5,
+          "emotion": 4,
+          "lebanese_score": 5,
+          "notes": "Natural and relatable delivery with an authentic Lebanese accent. It works well as an honest hook for an ad."
+        },
+        {
+          "start_s": 17.498,
+          "end_s": 21.243,
+          "model": "gemini-3.8-flash",
+          "transcript": "بدفع أجار عيادتي كامل وهي فاضية نص النهار",
+          "complete": true,
+          "clarity": 5,
+          "emotion": 4,
+          "lebanese_score": 5,
+          "notes": "التيك قوية ومقنعة كـ Hook لإعلان إنستغرام؛ اللهجة اللبنانية طبيعية ومضبوطة بدون تصنّع. إذا بدنا نجرّب تيك تانية، فينا نزيد نبرة الإحباط وحرقة الجيبة شوي لنخلي المشاهد يوقف سكرول فوراً."
+        },
+        {
+          "start_s": 22.201,
+          "end_s": 25.813,
+          "model": "gemini-3.8-flash",
+          "transcript": "بدفع أجار عيادتي كامل وهي فاضية نص النهار",
+          "complete": true,
+          "clarity": 5,
+          "emotion": 4,
+          "lebanese_score": 5,
+          "notes": "Good, natural hook delivery. The tone is sincere and relatable. You could push the frustration slightly more on 'وهي فاضية نص النهار' to add extra punch, but this take already works well for an organic scroll-stopper."
+        },
+        {
+          "start_s": 27.25,
+          "end_s": 30.997,
+          "model": "gemini-3.7-flash",
+          "transcript": "بدفع أجار عيادتي كامل وهي فاضية نص النهار",
+          "complete": true,
+          "clarity": 5,
+          "emotion": 4,
+          "lebanese_score": 5,
+          "notes": "Clear, natural Lebanese delivery with a genuine conversational tone. To make it an even stronger scroll-stopping hook, lean a bit more into the frustration or sigh of throwing money away."
+        },
+        {
+          "start_s": 32.144,
+          "end_s": 35.956,
+          "model": "gemini-3.8-flash",
+          "transcript": "بدفع أجر عيادتي كامل وهي فاضية نص النهار",
+          "complete": true,
+          "clarity": 5,
+          "emotion": 4,
+          "lebanese_score": 5,
+          "notes": "Solid, natural take with authentic Lebanese phrasing. A touch more relatable frustration or sigh of exasperation could make the hook hit even harder to stop the scroll."
+        }
+      ],
+      "file": "marketing/audio/owner/line_1.wav"
+    },
+    "line_5": {
+      "best": 0,
+      "cut": [
+        1.036,
+        12.711
+      ],
+      "transcript": "إذا بدك مكتب نزل التطبيق لتفتش وتحجز كله ببلاش وإذا عندك مكتب تعرضه comment DM بيوصلك كل التفاصيل وشهر مجاني لإلك",
+      "takes": [
+        {
+          "start_s": 1.036,
+          "end_s": 12.711,
+          "model": "gemini-3.8-flash",
+          "transcript": "إذا بدك مكتب نزل التطبيق لتفتش وتحجز كله ببلاش وإذا عندك مكتب تعرضه comment DM بيوصلك كل التفاصيل وشهر مجاني لإلك",
+          "complete": true,
+          "clarity": 5,
+          "emotion": 5,
+          "lebanese_score": 5,
+          "notes": "Excellent take! Energetic, natural, and persuasive delivery that fits an Instagram CTA perfectly. Pronunciation and pacing are spot on."
+        },
+        {
+          "start_s": 14.693,
+          "end_s": 27.116,
+          "model": "gemini-3.8-flash",
+          "transcript": "إذا بدك مكتب نزل التطبيق، فتش واحجوز كله مجاني. وإذا عندك مكتب بدك تعرضه، comment DM ليوصلك كل التفاصيل وتربح شهر مجاني.",
+          "complete": true,
+          "clarity": 5,
+          "emotion": 4,
+          "lebanese_score": 5,
+          "notes": "Great energy, clear diction, and natural Lebanese phrasing. The transition into 'comment DM' is smooth and works nicely as a modern social media call to action."
+        }
+      ],
+      "file": "marketing/audio/owner/line_5.wav"
+    }
+  }
+}
