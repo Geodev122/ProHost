@@ -32,13 +32,14 @@
     {
       "id": "s3",
       "refs": [
-        "full_front",
         "three_quarter",
-        "full_back"
+        "close_smile",
+        "full_front"
       ],
-      "frame": "Wide shot. He stands near the half-open door of the therapy room, full body visible, about to walk, the bright empty room with the couch visible through the doorway.",
-      "motion": "He walks a few steps toward the door, opens it fully and turns to the camera with an open-hand gesture presenting the bright empty room, a proud small smile. Smooth handheld tracking shot. No speaking.",
-      "audio": false
+      "frame": "Medium shot. He stands at a small side counter in the same office with a compact espresso machine and two white cups, three-quarter view, relaxed, the grey couch and the plant behind him, the room door closed.",
+      "motion": "He presses the button of the espresso machine, coffee pours into the white cup, he picks it up, takes a calm sip and gives a small satisfied smile, relaxed and in control of his time. His lips stay closed, he is not talking. Smooth slow handheld push-in.",
+      "audio": false,
+      "silent": true
     },
     {
       "id": "s4",
@@ -59,12 +60,23 @@
         "close_neutral"
       ],
       "frame": "Medium shot from the waist up. He stands in the middle of the office facing the camera, relaxed, friendly half-smile, the oak desk and the plant softly blurred behind him.",
-      "motion": "He speaks warmly to the viewer as an invitation; on 'Comment office' he points down toward the bottom of the screen where the comments are, then opens his hand to the viewer and breaks into a real smile on the last words. Static camera, slow subtle push-in.",
-      "speech": "إذا عندك مكتَب… Comment office أو تواصل معنا عالـ DM لتربح شهر مجّاني",
-      "voice": "the same calm, deep, warm male voice, inviting, a lift of excitement on 'شهر مجّاني'; 'Comment office' said in English",
-      "audio": true,
-      "takes": 2
+      "motion": "Confident, warm advertiser energy. He looks straight into the camera as if talking to one friend: eyebrows lift, he leans in slightly, then opens his palm toward the viewer in an inviting gesture, a confident half-smile. He is speaking to camera the whole time (natural jaw movement), head moving naturally. Static camera, slow subtle push-in.",
+      "audio": false,
+      "lipsync": true
+    },
+    {
+      "id": "s5b",
+      "refs": [
+        "close_smile",
+        "close_neutral",
+        "full_front"
+      ],
+      "audio": false,
+      "lipsync": true,
+      "frame": "Medium close-up from the chest up. He stands in the same office facing the camera, warm and energetic, the oak desk and the plant softly blurred behind him.",
+      "motion": "Advertiser call to action: he keeps talking to the camera with energy, points down toward the bottom of the screen (the comments) with one finger, nods once, then breaks into a big genuine smile and gives an open-hand 'your turn' gesture to the viewer. Natural jaw movement while talking. Slow push-in."
     }
   ],
-  "accent": "Native Beiruti Lebanese Arabic, NOT Syrian or Damascene, NOT Palestinian, NOT Jordanian: Lebanese melody and pacing, final -a/-ā raised to -e the Beirut way (فاضية sounds 'fāḍye', مجّاني sounds 'majjēne', النهار sounds 'lnhār'), ق as a glottal stop, soft, relaxed, warm delivery, like a Beirut professional talking to a friend; English words said naturally in English"
+  "accent": "Native Beiruti Lebanese Arabic, NOT Syrian or Damascene, NOT Palestinian, NOT Jordanian: Lebanese melody and pacing, final -a/-ā raised to -e the Beirut way (فاضية sounds 'fāḍye', مجّاني sounds 'majjēne', النهار sounds 'lnhār'), ق as a glottal stop, soft, relaxed, warm delivery, like a Beirut professional talking to a friend; English words said naturally in English",
+  "negative_silent": "talking, speaking, moving lips, open mouth chatter"
 }
