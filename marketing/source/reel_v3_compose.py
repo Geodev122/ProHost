@@ -28,12 +28,12 @@ TMP = pathlib.Path(tempfile.mkdtemp(prefix="reel3_"))
 # carries the owner's voice), speech ("clip" = that clip's own audio, "veo" = Veo's own speech, else a voice-over line
 # number), clip offset (s), caption. Hook + CTA are the owner's recordings (marketing/audio/owner), lip-synced.
 SEGS = [
-    {"role": "hook", "clip": "lipsync/s1", "speech": "clip", "cap": "HOOK"},
+    {"role": "hook", "clip": "lipsync/s1", "speech": "clip", "cap": "بدفع أجار عيادتي كامل… وهيّي <b>فاضية</b> نُصّ النهار."},
     {"role": "s2", "clip": "s2", "speech": 2, "from": 1.6, "cap": "بين جلسة وجلسة، ساعات ضايعة… و<b>مصاري</b> عم تطير."},
     {"role": "s3", "clip": "s3", "speech": 3, "from": 0.3, "cap": "هلّق عم أجّرها <b>بالساعة</b> على ProHost، لـ psychologists و coaches متلي."},
     {"role": "s4", "clip": "s4", "speech": 4, "from": 0.0, "cap": "أنا بحدّد الوقت والسعر، والطلبات بتوصلني عَال<b>واتساب</b>."},
-    {"role": "cta1", "clip": "lipsync/s5", "speech": "clip", "cap": "CTA1"},
-    {"role": "cta2", "clip": "lipsync/s5b", "speech": "clip", "cap": "CTA2"},
+    {"role": "cta1", "clip": "lipsync/s5", "speech": "clip", "cap": "إذا بدّك مكتب، نزّل <b>التطبيق</b>، تفتّش وتحجز كلّو <b>مجّاني</b>."},
+    {"role": "cta2", "clip": "lipsync/s5b", "speech": "clip", "cap": "وإذا عندك مكتب بدّك تعرضو، <b>Comment أو DM</b> ليوصلك كل التفاصيل وتربح <b>شهر مجّاني</b>."},
     {"role": "price", "clip": "s4", "speech": 6, "from": 4.2, "tail": 1.5, "cap": "وبعد الشهر؟ بسّ <b>تسعة دولار</b> بالشهر… أقلّ من أجار ساعة وحدة."},
 ]
 LEAD, HOLD = 0.15, 0.25  # silence before / after each spoken line
