@@ -425,10 +425,11 @@ plan + recurring price + date;
   the link sticker can't be added by the API: the owner posts the Story from the Instagram app.
 - Reels with the AI presenter (Reel Studio, `.claude/skills/prohost-reel/SKILL.md`): one spec per reel
   (`marketing/reels/<id>/spec.json`) → `scripts/marketing/reel_studio.py` / workflow "Marketing Reel Studio". Voice 1 (on
-  camera) = Veo takes of him SAYING the line (native lip-sync; Gemini picks the Lebanese take) converted to the hook voice
-  (`marketing/avatar/reference/hook_voice.wav`, Seed-VC); voice 2 = Charon narrator over closed-lip footage. Never Wav2Lip
-  or LatentSync on the free runners (rejected / out of memory); the project has 0 Vertex GPU quota. Requests come from the
-  Reel Studio artifact (claude.ai/artifact/1t3x5W6v75goFAT5bSdcA8) through the "ProHost Reel Studio producer" scheduled task.
+  camera) = Gemini-TTS Orus with the narrator's Beirut dialect prompt, his mouth redrawn on a talking take by LatentSync
+  ("Marketing lip-sync CPU", free) or fal.ai; voice 2 = Charon narrator over closed-lip footage. Never Veo's own Arabic
+  speech (owner: not Lebanese, whatever Gemini scores), never Wav2Lip or voice conversion. The project has 0 Vertex GPU
+  quota. Requests come from the Reel Studio artifact (claude.ai/artifact/1t3x5W6v75goFAT5bSdcA8) through the "ProHost
+  Reel Studio producer" scheduled task.
 - Payment reminders go to the user's own calendar via `PaymentCalendar` (insert intent, monthly
   RRULE) — no calendar permission, no Google Calendar API.
 
