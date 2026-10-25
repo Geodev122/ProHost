@@ -11,7 +11,10 @@ Runs in CI (.github/workflows/marketing-lipsync.yml) with the CI service account
   3. the results come back → marketing/avatar/lipsync/<name>.mp4 (the 48 kHz voice muxed back in) + <name>_sheet.jpg +
      <name>_mouth.jpg (mouth close-ups every 4 frames, for review)
 
-usage: gpu_lipsync.py <jobs> [steps] [guidance]
+usage: gpu_lipsync.py <jobs> [steps] [guidance] [backend: vertex | hf]
+
+backend hf: when the project has no GPU quota for Vertex training (the default for a new project: 429 on every GPU
+type), the same LatentSync runs on a public Hugging Face Space (ZeroGPU) through gradio_client.
 """
 import json, os, pathlib, subprocess, sys, tempfile, time, urllib.parse
 
@@ -115,6 +118,50 @@ def wait(region, job):
         time.sleep(30)
 
 
+HF_SPACES = ["fffiloni/LatentSync", "ByteDance/LatentSync", "jbilcke-hf/LatentSync", "TMElyralab/MuseTalk"]
+
+
+def hf_run(video, audio, out):
+    """Runs one job on the first public Space whose API takes a video and an audio; returns the Space id or None."""
+    from gradio_client import Client, handle_file
+    token = os.environ.get("HF_TOKEN") or None
+    for space in HF_SPACES:
+        try:
+            c = Client(space, hf_token=token, verbose=False)
+            api = c.view_api(return_format="dict", print_info=False)
+        except Exception as e:  # noqa: BLE001 — a Space that is down or private: try the next
+            print(f"::notice::lipsync hf {space}: unavailable ({str(e)[:160]})")
+            continue
+        for ep, info in (api.get("named_endpoints") or {}).items():
+            params = info.get("parameters", [])
+            kinds = [str(p.get("component", "")).lower() + " " + str(p.get("label", "")).lower() for p in params]
+            if not any("video" in k for k in kinds) or not any("audio" in k for k in kinds):
+                continue
+            args = []
+            for p, k in zip(params, kinds):
+                if "video" in k:
+                    args.append({"video": handle_file(str(video))} if "video" == str(p.get("component", "")).lower() else handle_file(str(video)))
+                elif "audio" in k:
+                    args.append(handle_file(str(audio)))
+                else:
+                    args.append(p.get("parameter_default") if p.get("parameter_has_default") else None)
+            print(f"lipsync hf {space}{ep}: {[p.get('label') for p in params]}", flush=True)
+            try:
+                res = c.predict(*args, api_name=ep)
+            except Exception as e:  # noqa: BLE001
+                print(f"::notice::lipsync hf {space}{ep}: failed ({str(e)[:300]})")
+                break
+            path = res.get("video") if isinstance(res, dict) else (res[0] if isinstance(res, (list, tuple)) else res)
+            if isinstance(path, dict):
+                path = path.get("video") or path.get("path")
+            if path and pathlib.Path(path).exists():
+                pathlib.Path(out).write_bytes(pathlib.Path(path).read_bytes())
+                return space
+            print(f"::notice::lipsync hf {space}{ep}: no video in {str(res)[:200]}")
+            break
+    return None
+
+
 def main():
     jobs = parse(sys.argv[1])
     steps = int(sys.argv[2]) if len(sys.argv) > 2 else 30
@@ -133,6 +180,16 @@ def main():
         gcs_put(a, f"{prefix}/in/{j['name']}.wav")
         print(f"lipsync gpu {j['name']}: {secs:.2f}s of {j['audio']} on {j['clip']} from {j['vfrom']}s uploaded")
     names = [j["name"] for j in jobs]
+    backend = sys.argv[4] if len(sys.argv) > 4 else "vertex"
+    if backend == "hf":
+        OUT.mkdir(parents=True, exist_ok=True)
+        for j in jobs:
+            raw = tmp / f"{j['name']}_gpu.mp4"
+            space = hf_run(tmp / f"{j['name']}.mp4", tmp / f"{j['name']}.wav", raw)
+            if not space:
+                sys.exit(f"::error::no Hugging Face Space lip-synced {j['name']}")
+            print(f"lipsync hf {j['name']}: done on {space}")
+        return finish(jobs, tmp, {"backend": "hf"})
     for region, machine, acc in TARGETS:
         job = submit(region, machine, acc, prefix, names, steps, guidance)
         if not job:
@@ -153,20 +210,26 @@ def main():
         data = gcs_get(f"{prefix}/out/{j['name']}.mp4")
         if not data:
             sys.exit(f"::error::no output for {j['name']}")
+        (tmp / f"{j['name']}_gpu.mp4").write_bytes(data)
+    finish(jobs, tmp, {"backend": "vertex", "prefix": prefix, "steps": steps, "guidance": guidance})
+
+
+def finish(jobs, tmp, meta):
+    """The lip-synced takes → marketing/avatar/lipsync/<name>.mp4 with the 48 kHz voice, + review sheets."""
+    import cv2, numpy as np
+    for j in jobs:
         raw = tmp / f"{j['name']}_gpu.mp4"
-        raw.write_bytes(data)
         out = OUT / f"{j['name']}.mp4"
         ff("-i", str(raw), "-i", str(VOICE / f"{j['audio']}.wav"), "-map", "0:v", "-map", "1:a", "-c:v", "libx264", "-crf", "14",
            "-preset", "slow", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-shortest", str(out))
         fr = frames(out)
-        import cv2, numpy as np
         h, w = fr[0].shape[:2]
         idx = np.linspace(0, len(fr) - 1, 6).astype(int)
         cv2.imwrite(str(OUT / f"{j['name']}_sheet.jpg"), np.hstack([cv2.resize(fr[i], (w // 4, h // 4)) for i in idx]),
                     [cv2.IMWRITE_JPEG_QUALITY, 88])
         mouth_sheet(fr, [], OUT / f"{j['name']}_mouth.jpg")
         print(f"lipsync gpu {j['name']}: {len(fr)} frames → {out.relative_to(ROOT)}")
-    (OUT / "gpu_run.json").write_text(json.dumps({"prefix": prefix, "jobs": names, "steps": steps, "guidance": guidance}) + "\n")
+    (OUT / "gpu_run.json").write_text(json.dumps({**meta, "jobs": [j["name"] for j in jobs]}) + "\n")
 
 
 if __name__ == "__main__":

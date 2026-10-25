@@ -19,6 +19,12 @@ on:
         description: "Audio guidance (1.5 default; 2.0 = stronger mouth shapes)"
         required: false
         default: "1.5"
+      backend:
+        description: "vertex = own GPU job (needs Vertex GPU quota) · hf = public Hugging Face Space (ZeroGPU)"
+        required: false
+        default: vertex
+        type: choice
+        options: [vertex, hf]
 
 permissions:
   contents: write
@@ -37,7 +43,7 @@ jobs:
       - name: Install
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
-          pip install --quiet google-auth requests numpy opencv-python-headless==4.10.0.84
+          pip install --quiet google-auth requests numpy opencv-python-headless==4.10.0.84 gradio_client
       - name: Write Service Account Credentials
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -49,9 +55,11 @@ jobs:
           JOBS: ${{ inputs.jobs }}
           STEPS: ${{ inputs.steps }}
           GUIDANCE: ${{ inputs.guidance }}
+          BACKEND: ${{ inputs.backend }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           set -o pipefail
-          python -u scripts/marketing/gpu_lipsync.py "$JOBS" "$STEPS" "$GUIDANCE" 2>&1 | tee "$RUNNER_TEMP/ls.log" || {
+          python -u scripts/marketing/gpu_lipsync.py "$JOBS" "$STEPS" "$GUIDANCE" "$BACKEND" 2>&1 | tee "$RUNNER_TEMP/ls.log" || {
             echo "::error::$(tail -c 1500 "$RUNNER_TEMP/ls.log" | tr '\n' ' ')"; exit 1; }
           while read -r l; do echo "::notice::$l"; done < <(grep -E '^lipsync' "$RUNNER_TEMP/ls.log")
       - name: Commit
