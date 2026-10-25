@@ -31,12 +31,12 @@ TMP = pathlib.Path(tempfile.mkdtemp(prefix="reel3_"))
 # ("clip" = that clip's own audio, "veo" = Veo's own speech, else a voice-over line number), clip offset (s), caption;
 # cam / punch / ramp / in / jcut drive the montage (montage.py).
 SEGS = [
-    # Voice 1 (on camera): Gemini-TTS Orus with the Beirut dialect prompt (marketing/audio/voice1), fitted syllable by
-    # syllable onto a take where Veo said the same line, so his own native mouth carries it (scripts/marketing/
-    # fit_voice.py → marketing/avatar/dubbed). Steady frame while he talks: one slow push, no punch, no reframing.
-    {"role": "hook", "clip": "dubbed/hook", "speech": "clip", "fallback": ("s1v_d", 0.0, "hook", 1), "steady": True,
+    # Voice 1 (on camera): native Veo takes — picture, voice and lips all generated together and used as they come
+    # (s1n / s5n, the owner's call, Oct 2026: same script and Beirut accent prompt as s1v / s5v). Steady frame while he
+    # talks: the take's own slow push-in only, no punch, no reframing.
+    {"role": "hook", "clip": "s1n", "speech": "veo", "steady": True,
      "cap": "بدفع أجار عيادتي كامل… وبتضل <b>فاضية</b> نُصّ النهار.",
-     "cam": [(0, 1.22, 0.08)]},
+     "cam": [(0, 1.06, 0.04)]},
     # Voice 2 (the narrator, voice-over on footage where he doesn't talk).
     {"role": "s2", "clip": "s2", "speech": 2, "from": 1.6, "in": "zoom", "jcut": 0.35,
      "cap": "بين جلسة وجلسة، ساعات ضايعة… و<b>مصاري</b> عم تطير.",
@@ -47,9 +47,9 @@ SEGS = [
     {"role": "s4", "clip": "s4", "speech": 4, "from": 0.0, "in": "whip_r", "jcut": 0.35,
      "cap": "أنا بحدّد الوقت والسعر، والطلبات بتوصلني عَال<b>واتساب</b>.",
      "cam": [(0, 1.08, 0.06), (2.0, 1.3, 0.05)]},
-    {"role": "cta1", "clip": "dubbed/cta1", "speech": "clip", "fallback": ("s5v_a", 0.0, "cta1", 2), "in": "zoom",
-     "steady": True, "cap": "إذا بدّك مكتب، نزّل <b>التطبيق</b>، تفتّش وتحجز كلّو <b>مجّاني</b>.",
-     "cam": [(0, 1.14, 0.08)]},
+    {"role": "cta1", "clip": "s5n", "speech": "veo", "in": "zoom", "steady": True,
+     "cap": "إذا بدّك مكتب، نزّل <b>التطبيق</b>، تفتّش وتحجز كلّو <b>مجّاني</b>.",
+     "cam": [(0, 1.1, 0.05)]},
     {"role": "cta2", "clip": "s5c", "speech": 7, "from": 1.0, "in": "whip_l", "jcut": 0.35,
      "cap": "وإذا عندك مكتب بدّك تعرضو، <b>Comment أو DM</b> ليوصلك كل التفاصيل وتربح <b>شهر مجّاني</b>.",
      "cam": [(0, 1.12, 0.06), ("w:ليوصلك", 1.3, 0.05)], "punch": ["w:شهر"]},

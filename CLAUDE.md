@@ -424,14 +424,13 @@ plan + recurring price + date;
   Story art `marketing/social/story_office(_ar).html` (`story.css`, bundled Inter + Cairo fonts, rendered by `render_posts.py`);
   the link sticker can't be added by the API: the owner posts the Story from the Instagram app.
 - Reels with the AI presenter (Reel Studio, `.claude/skills/prohost-reel/SKILL.md`): one spec per reel
-  (`marketing/reels/<id>/spec.json`) → `scripts/marketing/reel_studio.py` / workflow "Marketing Reel Studio". Voice 1 (on
-  camera) = Gemini-TTS Orus with the narrator's Beirut dialect prompt, fitted onto his NATIVE mouth: Veo films him saying
-  the line, `scripts/marketing/fit_voice.py` drops Veo's audio and stretches Orus syllable by syllable onto it (that is
-  why the first office reel looked natural; LatentSync's redrawn mouth did not). Voice-1 scenes hold the frame still
-  (montage `steady`). Voice 2 = Charon narrator over closed-lip footage. Never Veo's own Arabic audio (owner: not
-  Lebanese), never Wav2Lip, LatentSync-on-CPU or voice conversion. Sync check: workflow "Marketing lip-sync check"
-  (SyncNet). The project has 0 Vertex GPU quota. Requests come from the Reel Studio artifact (claude.ai/artifact/1t3x5W6v75goFAT5bSdcA8) through the "ProHost
-  Reel Studio producer" scheduled task.
+  (`marketing/reels/<id>/spec.json`) → `scripts/marketing/reel_studio.py` / workflow "Marketing Reel Studio". On-camera
+  lines (owner's latest call, 25 Oct 2026, after hearing every lip-sync variant): **native Veo takes used as they come** —
+  picture, voice and lips all from Veo (office reel: `s1n`, `s5n`; same script and Beirut accent prompt, best of 4 takes by
+  the Gemini check), never a redrawn mouth. `fit_voice.py` (TTS fitted onto Veo's mouth) stays available, not the
+  default. Voice-1 scenes hold the frame still (montage `steady`). Voice 2 = Charon narrator over closed-lip footage.
+  Never Wav2Lip, LatentSync-on-CPU or voice conversion. Sync check: workflow "Marketing lip-sync check" (SyncNet).
+  The project has 0 Vertex GPU quota.
 - Payment reminders go to the user's own calendar via `PaymentCalendar` (insert intent, monthly
   RRULE) — no calendar permission, no Google Calendar API.
 

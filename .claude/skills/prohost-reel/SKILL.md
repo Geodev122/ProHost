@@ -16,6 +16,10 @@ Precedence: the owner's words → `CLAUDE.md` (offers, prices, no countries on t
 - **Avatar**: the man in `marketing/avatar/reference/` (character sheet), the office in
   `marketing/avatar/keyframes/s1.png`; identity text in `scripts/marketing/avatar_shots.json` (`person`, `room`,
   `look`, `negative`). New shots always get these references + the office keyframe.
+- **Owner's latest call (25 Oct 2026): on-camera lines are native Veo takes, used as they come** — Veo films him saying
+  the line with its own voice and lips (4 takes, the Gemini check picks the best: script match, no cut-off), nothing
+  replaced or redrawn. Office reel: `s1n` (hook), `s5n` (CTA). The Orus + fit_voice path below remains an option only
+  when the owner asks for the TTS voice on camera.
 - **Voice 1 — on camera**: Gemini-TTS **`Orus`** (the owner's pick from 4 samples, Oct 2026) with the same Beirut
   `dialect` prompt as the narrator, used as is — no voice conversion (Seed-VC blurred the Lebanese consonants).
   **His mouth is never redrawn.** Veo films him SAYING the scene's line (with audio, 2 takes), so his own mouth, jaw,
