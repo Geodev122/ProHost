@@ -26,14 +26,15 @@ TMP = pathlib.Path(tempfile.mkdtemp(prefix="reel3_"))
 
 # role (the overlay keys its animations on it), clip (under avatar/clips, or "lipsync/<shot>" for a lip-synced clip that
 # carries the owner's voice), speech ("clip" = that clip's own audio, "veo" = Veo's own speech, else a voice-over line
-# number), clip offset (s), caption. Hook + CTA are the owner's recordings (marketing/audio/owner), lip-synced.
+# number), clip offset (s), caption. Hook + CTA are spoken on camera by the avatar (Veo's own voice and lip movement) with
+# the owner's wording; the narration lines are the Lebanese voice-over.
 SEGS = [
-    {"role": "hook", "clip": "lipsync/s1", "speech": "clip", "cap": "بدفع أجار عيادتي كامل… وهيّي <b>فاضية</b> نُصّ النهار."},
+    {"role": "hook", "clip": "s1", "speech": "veo", "cap": "بدفع أجار عيادتي كامل… وهيّي <b>فاضية</b> نُصّ النهار."},
     {"role": "s2", "clip": "s2", "speech": 2, "from": 1.6, "cap": "بين جلسة وجلسة، ساعات ضايعة… و<b>مصاري</b> عم تطير."},
     {"role": "s3", "clip": "s3", "speech": 3, "from": 0.3, "cap": "هلّق عم أجّرها <b>بالساعة</b> على ProHost، لـ psychologists و coaches متلي."},
     {"role": "s4", "clip": "s4", "speech": 4, "from": 0.0, "cap": "أنا بحدّد الوقت والسعر، والطلبات بتوصلني عَال<b>واتساب</b>."},
-    {"role": "cta1", "clip": "lipsync/s5", "speech": "clip", "cap": "إذا بدّك مكتب، نزّل <b>التطبيق</b>، تفتّش وتحجز كلّو <b>مجّاني</b>."},
-    {"role": "cta2", "clip": "lipsync/s5b", "speech": "clip", "cap": "وإذا عندك مكتب بدّك تعرضو، <b>Comment أو DM</b> ليوصلك كل التفاصيل وتربح <b>شهر مجّاني</b>."},
+    {"role": "cta1", "clip": "s5", "speech": "veo", "cap": "إذا بدّك مكتب، نزّل <b>التطبيق</b>، تفتّش وتحجز كلّو <b>مجّاني</b>."},
+    {"role": "cta2", "clip": "s5b", "speech": "veo", "cap": "وإذا عندك مكتب بدّك تعرضو، <b>Comment أو DM</b> ليوصلك كل التفاصيل وتربح <b>شهر مجّاني</b>."},
     {"role": "price", "clip": "s4", "speech": 6, "from": 4.2, "tail": 1.5, "cap": "وبعد الشهر؟ بسّ <b>تسعة دولار</b> بالشهر… أقلّ من أجار ساعة وحدة."},
 ]
 LEAD, HOLD = 0.15, 0.25  # silence before / after each spoken line
