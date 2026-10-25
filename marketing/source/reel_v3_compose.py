@@ -25,16 +25,17 @@ FPS = 30
 TMP = pathlib.Path(tempfile.mkdtemp(prefix="reel3_"))
 
 # role (the overlay keys its animations on it), clip (under avatar/clips, or "lipsync/<shot>" for a lip-synced clip that
-# carries the owner's voice), speech ("clip" = that clip's own audio, "veo" = Veo's own speech, else a voice-over line
-# number), clip offset (s), caption. Hook + CTA are spoken on camera by the avatar (Veo's own voice and lip movement) with
+# carries the owner's voice), speech ("clip" = that clip's own audio, "veo" = Veo's own speech, "dub" = the avatar's
+# speaking footage voiced by voice-over `line`, aligned to his mouth inside `win`, else a voice-over line number), clip
+# offset (s), caption. Hook + CTA are spoken on camera by the avatar (Veo's own voice and lip movement) with
 # the owner's wording; the narration lines are the Lebanese voice-over.
 SEGS = [
     {"role": "hook", "clip": "s1", "speech": "veo", "cap": "بدفع أجار عيادتي كامل… وهيّي <b>فاضية</b> نُصّ النهار."},
     {"role": "s2", "clip": "s2", "speech": 2, "from": 1.6, "cap": "بين جلسة وجلسة، ساعات ضايعة… و<b>مصاري</b> عم تطير."},
     {"role": "s3", "clip": "s3", "speech": 3, "from": 0.3, "cap": "هلّق عم أجّرها <b>بالساعة</b> على ProHost، لـ psychologists و coaches متلي."},
     {"role": "s4", "clip": "s4", "speech": 4, "from": 0.0, "cap": "أنا بحدّد الوقت والسعر، والطلبات بتوصلني عَال<b>واتساب</b>."},
-    {"role": "cta1", "clip": "s5", "speech": "veo", "cap": "إذا بدّك مكتب، نزّل <b>التطبيق</b>، تفتّش وتحجز كلّو <b>مجّاني</b>."},
-    {"role": "cta2", "clip": "s5b", "speech": "veo", "cap": "وإذا عندك مكتب بدّك تعرضو، <b>Comment أو DM</b> ليوصلك كل التفاصيل وتربح <b>شهر مجّاني</b>."},
+    {"role": "cta1", "clip": "s5_a", "speech": "dub", "line": 5, "win": [0.02, 5.55], "cap": "إذا بدّك مكتب، نزّل <b>التطبيق</b>، تفتّش وتحجز كلّو <b>مجّاني</b>."},
+    {"role": "cta2", "clip": "s5b", "speech": "dub", "line": 7, "win": [0.08, 5.12], "cap": "وإذا عندك مكتب بدّك تعرضو، <b>Comment أو DM</b> ليوصلك كل التفاصيل وتربح <b>شهر مجّاني</b>."},
     {"role": "price", "clip": "s4", "speech": 6, "from": 4.2, "tail": 1.5, "cap": "وبعد الشهر؟ بسّ <b>تسعة دولار</b> بالشهر… أقلّ من أجار ساعة وحدة."},
 ]
 LEAD, HOLD = 0.15, 0.25  # silence before / after each spoken line
@@ -83,6 +84,77 @@ def fade_out(x, secs=FADE):
     return x
 
 
+def phrases(x, a, b, gap=0.16, thr=0.10):
+    """[(start, end)] of the phrases between a and b: stretches of voice split at pauses of at least `gap` seconds."""
+    hop = SR // 100
+    i0, i1 = int(a * SR) // hop, int(b * SR) // hop
+    seg = x[i0 * hop: i1 * hop].mean(axis=1)
+    n = len(seg) // hop
+    rms = np.sqrt((seg[: n * hop].reshape(n, hop) ** 2).mean(axis=1))
+    on = rms > thr * rms.max()
+    out, start, quiet = [], None, 0
+    for k, v in enumerate(on):
+        if v:
+            if start is None:
+                start = k
+            quiet = 0
+        elif start is not None:
+            quiet += 1
+            if quiet * hop / SR >= gap:
+                out.append((a + start * hop / SR, a + (k - quiet + 1) * hop / SR))
+                start, quiet = None, 0
+    if start is not None:
+        out.append((a + start * hop / SR, b))
+    return [p for p in out if p[1] - p[0] > 0.12]
+
+
+def stretch(x, secs):
+    """Time-stretches audio to `secs` without changing pitch (ffmpeg atempo, chained when outside 0.5–2)."""
+    if len(x) < 10 or secs <= 0.05:
+        return np.zeros((max(1, int(secs * SR)), 2), dtype=np.float32)
+    f = (len(x) / SR) / secs
+    chain = []
+    while f > 2.0:
+        chain.append("atempo=2.0"); f /= 2.0
+    while f < 0.5:
+        chain.append("atempo=0.5"); f /= 0.5
+    chain.append(f"atempo={f:.5f}")
+    import wave
+    src, dst = TMP / f"st{len(list(TMP.iterdir()))}.wav", TMP / f"st{len(list(TMP.iterdir())) + 1}_o.wav"
+    with wave.open(str(src), "wb") as w:
+        w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR)
+        w.writeframes((np.clip(x, -1, 1) * 32767).astype("<i2").tobytes())
+    subprocess.run([FF, "-nostdin", "-y", "-loglevel", "error", "-i", str(src), "-af", ",".join(chain), str(dst)], check=True)
+    y = load(dst)
+    n = int(secs * SR)
+    return np.pad(y, ((0, max(0, n - len(y))), (0, 0)))[:n]
+
+
+def dub(veo, a, b, line):
+    """The voice-over line laid over the avatar's own speech window [a, b]: phrase by phrase when both have the same
+    number of phrases (each phrase stretched to the mouth's phrase), else as a whole. Returns audio for [a, b]."""
+    la, lb = speech_window(line, 0.02)
+    vp, tp = phrases(veo, a, b), phrases(line, la, lb)
+    out = np.zeros((int((b - a) * SR), 2), dtype=np.float32)
+    if len(vp) == len(tp) and len(vp) > 1:
+        for k, ((v0, v1), (t0, t1)) in enumerate(zip(vp, tp)):
+            # Each phrase on its mouth phrase, but never more than 25 % slower / faster than spoken, nor into the next one.
+            room = (vp[k + 1][0] - v0 - 0.04) if k + 1 < len(vp) else (b - v0 + 0.3)
+            secs = min(min(max(v1 - v0, (t1 - t0) / 1.25), (t1 - t0) / 0.8), room)
+            piece = stretch(line[int(t0 * SR): int(t1 * SR)], secs)
+            i = int((v0 - a) * SR)
+            out[i: i + len(piece)] += piece[: len(out) - i]
+        print(f"  dub: {len(vp)} phrases aligned")
+    else:
+        # Keep the voice natural: at most 10 % faster or slower than spoken, even if it then ends a little after the mouth.
+        secs = min(max(b - a, (lb - la) / 1.1), (lb - la) / 0.9)
+        piece = stretch(line[int(la * SR): int(lb * SR)], secs)
+        out = np.zeros((max(len(out), len(piece)), 2), dtype=np.float32)
+        out[: len(piece)] += piece
+        print(f"  dub: whole line ({len(vp)} vs {len(tp)} phrases), {lb - la:.2f}s → {secs:.2f}s over {b - a:.2f}s of mouth")
+    return out
+
+
 def checked_window(shot):
     """Speech start/end Gemini heard in the clip (avatar_video.py check stage), else None."""
     rep = ROOT / "avatar" / "report.json"
@@ -110,6 +182,20 @@ def timeline():
             frm, dur = 0.0, len(full) / SR + 0.1
             voice = fade_out(full)
             sp = (t + a, t + b)
+        elif s["speech"] == "dub":
+            # The avatar's speaking footage, voiced by the Lebanese voice-over line (same words), aligned to his mouth.
+            full = wav48(clip)
+            a, b = s.get("win") or checked_window(s["clip"]) or speech_window(full)
+            frm = max(0.0, a - LEAD)
+            line = wav48(LINES / f"reel_office_{s['line']:02d}.wav")
+            d = dub(full, a, b, line)
+            b = a + len(d) / SR
+            dur = min(len(full) / SR - frm, b - frm + VEO_HOLD)
+            voice = np.zeros((int(dur * SR), 2), dtype=np.float32)
+            i = int((a - frm) * SR)
+            voice[i: i + len(d)] = d[: len(voice) - i]
+            voice = fade_out(voice)
+            sp = (t + a - frm, t + b - frm)
         elif s["speech"] == "veo":
             full = wav48(clip)
             a, b = checked_window(s["clip"]) or speech_window(full)
