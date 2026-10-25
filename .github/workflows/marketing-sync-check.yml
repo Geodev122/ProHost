@@ -1,0 +1,61 @@
+name: Marketing lip-sync check (manual)
+
+# Scores lip-sync with SyncNet (LatentSync's eval code + syncnet_v2): per clip the mouth–voice offset (frames at 25 fps,
+# 0 = in sync) and the confidence (native talking video ≈ 6–9; unsynced < 3), whole and in 2 s windows.
+# scripts/marketing/sync_check.py → <report>, committed to the branch it runs on.
+on:
+  workflow_dispatch:
+    inputs:
+      clips:
+        description: "Clips to score, space-separated repo paths"
+        required: true
+        default: "marketing/avatar/clips/s1.mp4 marketing/avatar/dubbed/hook.mp4 marketing/avatar/dubbed/cta1.mp4"
+      report:
+        description: "Report path"
+        required: false
+        default: "marketing/avatar/runs/sync_check.json"
+
+permissions:
+  contents: write
+
+concurrency: marketing-sync-check
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg libgl1 > /dev/null
+          pip install --quiet torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cpu
+          pip install --quiet opencv-python-headless==4.9.0.80 python_speech_features==0.6 scipy numpy==1.26.4 \
+            "huggingface-hub[cli]==0.30.2" scenedetect==0.6.4 decord==0.6.0 einops==0.7.0 librosa==0.10.1
+          git clone --quiet https://github.com/bytedance/LatentSync.git "$RUNNER_TEMP/LatentSync"
+          cd "$RUNNER_TEMP/LatentSync"
+          git checkout --quiet a229c3948406bc2cf6eaf4873e662e70c6a04746
+          for repo in ByteDance/LatentSync-1.6 ByteDance/LatentSync-1.5 ByteDance/LatentSync; do
+            huggingface-cli download "$repo" auxiliary/syncnet_v2.model auxiliary/sfd_face.pth --local-dir checkpoints > /dev/null 2>&1 && break
+          done
+          ls -la checkpoints/auxiliary || { echo "::error::SyncNet weights not found on Hugging Face"; exit 1; }
+      - name: Score
+        env:
+          CLIPS: ${{ inputs.clips }}
+          REPORT: ${{ inputs.report }}
+        run: |
+          set -o pipefail
+          python -u scripts/marketing/sync_check.py "$RUNNER_TEMP/LatentSync" "$REPORT" $CLIPS 2>&1 | tee "$RUNNER_TEMP/sync.log" | grep -v "it/s\]$" | tail -80
+          while read -r l; do echo "::notice::$l"; done < <(grep -E '^sync ' "$RUNNER_TEMP/sync.log")
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${{ inputs.report }}"
+          git diff --cached --quiet && { echo "No changes"; exit 0; }
+          git commit -m "Marketing: lip-sync check"
+          for i in 1 2 3 4 5; do git pull --rebase && git push && exit 0; sleep $((i * 7)); done  # other marketing runs push too
+          exit 1
