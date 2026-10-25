@@ -67,6 +67,10 @@ Precedence: the owner's words → `CLAUDE.md` (offers, prices, no countries on t
    `footage` (first frames → Veo clips) · `check` (Gemini picks the voice-1 takes) · `voices` (the narrator) · `voice1`
    (each take's speech → the hook voice, muxed into `lipsync/<role>.mp4`) · `compose` (montage + overlay + music,
    −14 LUFS) → `reel.mp4`, `cover.jpg`.
+   - Picking a take: `check` ranks words-match first, then Lebanese. When the only 5/5 Lebanese take has a slip (a
+     repeated word, a long pause), keep it and jump-cut the slip out at a silence with ffmpeg (trim+concat, 20 ms audio
+     crossfade), then add a framing change (`cam` beat) at the cut so it reads as an ad edit; record the speech window
+     in a `runs/*_check_edit.json` (the office reel's s1v / s5v are the example).
 3. Review before anyone posts: `lipsync/<role>_mouth.jpg` (mouth close-ups), a frame sheet of `reel.mp4`, the accent
    verdicts in the log. Never ship a soft or out-of-sync mouth — redo `lipsync` or change the take.
 
