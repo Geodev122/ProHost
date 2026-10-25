@@ -34,8 +34,8 @@ SEGS = [
     # Voice 1 (on camera): Veo takes of him saying the line (s1v, s5v), voice converted to the hook voice
     # (scripts/marketing/voice1.py → marketing/avatar/lipsync) — the lip-sync is the take's own.
     {"role": "hook", "clip": "lipsync/hook", "speech": "veo", "take": "s1v",
-     "cap": "بدفع أجار عيادتي كامل… وبتضل <b>فاضية</b> نُصّ النهار.",
-     "cam": [(0, 1.38, 0.05), ("w:وبتضل", 1.12, 0.05)], "punch": ["w:فاضية"]},
+     "cap": "بدفع أجار عيادتي كامل… وبتضلّها <b>فاضية</b> نُصّ النهار.",
+     "cam": [(0, 1.38, 0.05), (2.25, 1.12, 0.05)], "punch": ["w:فاضية"]},  # 2.25 = the take's jump cut
     # Voice 2 (the narrator, voice-over on footage where he doesn't talk).
     {"role": "s2", "clip": "s2", "speech": 2, "from": 1.6, "in": "zoom", "jcut": 0.35,
      "cap": "بين جلسة وجلسة، ساعات ضايعة… و<b>مصاري</b> عم تطير.",
@@ -48,7 +48,7 @@ SEGS = [
      "cam": [(0, 1.08, 0.06), (2.0, 1.3, 0.05)]},
     {"role": "cta1", "clip": "lipsync/cta1", "speech": "veo", "take": "s5v", "in": "zoom",
      "cap": "إذا بدّك مكتب، نزّل <b>التطبيق</b>، تفتّش وتحجز كلّو <b>مجّاني</b>.",
-     "cam": [(0, 1.1, 0.05), ("w:تفتّش", 1.32, 0.04)], "punch": ["w:مجّاني"]},
+     "cam": [(0, 1.1, 0.05), (2.6, 1.32, 0.04)], "punch": ["w:مجّاني"]},  # 2.6 = the take's jump cut
     {"role": "cta2", "clip": "s5b", "speech": 7, "from": 0.2, "in": "whip_l", "jcut": 0.35,
      "cap": "وإذا عندك مكتب بدّك تعرضو، <b>Comment أو DM</b> ليوصلك كل التفاصيل وتربح <b>شهر مجّاني</b>.",
      "cam": [(0, 1.04, 0.07), ("w:ليوصلك", 1.16, 0.05)], "punch": ["w:شهر"]},
