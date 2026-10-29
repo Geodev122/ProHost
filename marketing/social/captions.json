@@ -11,10 +11,6 @@
     "file": "post13_ask_prohost.jpg",
     "caption": "Questions at 2 am? Our smart assistant replies in seconds, in English, Arabic, French or Spanish.\n\nAsk how to list your space, how to book one, or what’s new in the app.\n\nSend us a DM.\n\n#ProHost #AskProHost #WorkspacesLebanon"
   },
-  "story": {
-    "file": "story_dm_agent.mp4",
-    "story": true
-  },
   "story_office": {
     "file": "story_list_your_office.jpg",
     "story": true,
@@ -34,5 +30,21 @@
     "ai_label": true,
     "caption": "بتدفع أجار عيادتك كامل… وبتضل فاضية نُصّ النهار؟ 😩\n\nعلى ProHost بتأجّر الساعات الفاضية لـ psychologists و coaches متلك. إنت بتحدّد الوقت والسعر، والطلبات بتوصلك عالواتساب.\n\n🏢 عندك مكتب؟ علّق office أو ابعتلنا DM، منسجّلك ومنعطيك أوّل شهر مجّاني، وبعدها $8.99 بالشهر بسّ.\n📲 بدّك مكتب؟ نزّل التطبيق، فتّش واحجز ببلاش. الرابط بالـ bio.\n\nYour office sits empty half the day? Comment \"office\" or DM us: first month free, then $8.99/month.\n\nPresenter is AI-generated.\n\n#ProHost #عيادة_للإيجار #مكتب_للإيجار #أخصائي_نفسي #لايف_كوتش #ClinicRental #TherapyRoom #OfficeSpace",
     "link": "https://pro-host.tech/list-your-office?utm_source=instagram&utm_medium=reel&utm_campaign=office_sourcing"
+  },
+  "post14": {
+    "file": "post14_psychologists.jpg",
+    "caption": "You see clients two mornings a week. Your room shouldn’t cost five days.\n\nOn ProHost you book calm therapy rooms by the shift or the hour and pay only for the time you use.\n\nMessage us the word ROOM and we’ll help you find one.\n\n#ProHost #PrivatePractice #TherapistLife"
+  },
+  "post15": {
+    "file": "post15_insurance_brokers.jpg",
+    "caption": "Client meetings don’t follow a timetable, so your meeting room shouldn’t either.\n\nBook a professional room by the hour on ProHost, only when you have an appointment.\n\nSend us a message with the word MEET to get started.\n\n#ProHost #InsuranceBroker #MeetingRoom"
+  },
+  "post16": {
+    "file": "post16_coworking_spaces.jpg",
+    "caption": "Quiet hours in your coworking space are income waiting to happen.\n\nList your meeting and training rooms on ProHost and rent them by the hour, the day, or per seat for workshops.\n\nSend us a message with the word LIST and we’ll show you how.\n\n#ProHost #CoworkingSpace #FlexibleWorkspace"
+  },
+  "story": {
+    "file": "story_dm_agent.mp4",
+    "story": true
   }
 }

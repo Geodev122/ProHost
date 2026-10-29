@@ -240,6 +240,12 @@ The grid continues **dark, light, dark** (publish order matters: oldest first):
 | 12 | light | Add it. Price it. Publish it. | Questions? DM us HOW and we'll walk you through. | `social/post12_add_price_publish.html` |
 | 13 | dark | Questions at 2 am? | Send us a DM. | `social/post13_ask_prohost.html` |
 
+| 14 | light | Book the shift, not the lease. (psychologists) | Need a room? DM us ROOM. | `social/post14_psychologists.html` |
+| 15 | dark | A proper room for client meetings. (insurance brokers) | DM us MEET to get started. | `social/post15_insurance_brokers.html` |
+| 16 | light | Fill your quiet hours. (coworking spaces) | List your rooms on ProHost. DM us LIST. | `social/post16_coworking_spaces.html` |
+
+The niche posts 14-16 keep the alternation going (light, dark, light) and speak to one profession each.
+
 Captions and the Story entry are in `social/captions.json`; `python social/render_posts.py` renders the PNG/JPEG into `social/out/` and checks the safe margins. The agent answers a DM or comment with LIST or HOW through the normal AI flow (no extra rules).
 
 **Story (`source/story_dm_agent.html`, 18 s, 1080x1920):** hook, a DM thread showing the agent's real opening flow, languages and topics, end card "Send us a DM." with the arrow towards Instagram's *Send message* bar (top 250 px / bottom 340 px kept free). British English voice-over (`scripts/marketing/voiceover_en.json`, `story_dm_agent`, voice Sulafat), Lyria music (`scripts/marketing/music.json`), UI sounds, mixed with `LENGTH=18 VOICE=audio/voiceovers-english python mix.py story_dm_agent` (renderer: `VIEWPORT=1080x1920 python render.py story_dm_agent.html 18 30`). -14 LUFS.
