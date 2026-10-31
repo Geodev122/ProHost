@@ -1,5 +1,8 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
+import com.example.ui.theme.Elevation
 import android.webkit.WebView
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -52,6 +55,7 @@ fun LegalDocumentDialog(
     document: LegalDocument,
     onDismiss: () -> Unit
 ) {
+    com.example.ui.components.TrackScreen("legal_" + document.id.lowercase().replace(Regex("[^a-z0-9]+"), "_"), "Dialog")
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var isGeneratingPdf by remember { mutableStateOf(false) }
@@ -84,7 +88,7 @@ fun LegalDocumentDialog(
     ) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
             Column(modifier = Modifier.fillMaxSize()) {
-                Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
+                Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = Elevation.level2, modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -96,6 +100,7 @@ fun LegalDocumentDialog(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             if (!isAdminManaged) {
                                 TextButton(
+                                    shape = MaterialTheme.shapes.medium,
                                     enabled = !isGeneratingPdf,
                                     onClick = {
                                         val adminPdfUrl = rerentalPdfVersion?.url
@@ -130,12 +135,12 @@ fun LegalDocumentDialog(
                                     } else {
                                         Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
                                     }
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Download PDF (A5)", style = MaterialTheme.typography.labelMedium)
+                                    Spacer(modifier = Modifier.width(Spacing.sm))
+                                    Text(stringResource(R.string.download_pdf_a5), style = MaterialTheme.typography.labelMedium)
                                 }
                             }
                             IconButton(onClick = onDismiss) {
-                                Icon(Icons.Default.Close, contentDescription = "Close")
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
                             }
                         }
                     }
@@ -161,7 +166,7 @@ fun LegalDocumentDialog(
                     adminVersion == null -> {
                         Box(modifier = Modifier.fillMaxSize().padding(Spacing.lg), contentAlignment = Alignment.Center) {
                             Text(
-                                "This document hasn't been published yet — check back soon.",
+                                stringResource(R.string.this_document_hasn_t_been_published_yet_ch),
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -188,6 +193,7 @@ fun LegalDocumentDialog(
 /** Lightweight entry point: three tappable rows opening [LegalDocumentDialog] on demand. */
 @Composable
 fun LegalDocumentsMenu(onDismiss: () -> Unit) {
+    com.example.ui.components.TrackScreen("legal", "Dialog")
     var openDocument by remember { mutableStateOf<LegalDocument?>(null) }
 
     if (openDocument != null) {
@@ -196,16 +202,16 @@ fun LegalDocumentsMenu(onDismiss: () -> Unit) {
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = MaterialTheme.shapes.large) {
-            Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Legal", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 8.dp))
+        Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+            Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Text(stringResource(R.string.legal), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 8.dp))
                 com.example.legal.LegalContent.all.forEach { doc ->
                     Card(
                         onClick = { openDocument = doc },
                         shape = MaterialTheme.shapes.medium,
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp, pressedElevation = 0.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = Elevation.level2, pressedElevation = Elevation.level0),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -224,10 +230,10 @@ fun LegalDocumentsMenu(onDismiss: () -> Unit) {
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(Spacing.sm))
                 }
-                TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
-                    Text("Close")
+                TextButton(shape = MaterialTheme.shapes.medium, onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
+                    Text(stringResource(R.string.close))
                 }
             }
         }

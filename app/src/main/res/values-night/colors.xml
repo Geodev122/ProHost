@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark system splash: the corner colour of drawable-night-*/splash.png, so the system splash hands off to
+         SplashScreen.kt's dark artwork without a seam. -->
+    <color name="splash_background">#121824</color>
+</resources>

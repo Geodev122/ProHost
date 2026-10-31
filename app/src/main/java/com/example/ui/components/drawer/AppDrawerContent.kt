@@ -1,8 +1,10 @@
 package com.example.ui.components.drawer
 
-import android.content.Intent
-import android.net.Uri
-import android.widget.Toast
+import com.example.ui.util.localizedLabel
+import com.example.ui.components.displayName
+import com.example.ui.util.uiText
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -27,7 +29,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AppUser
-import com.example.data.model.publicCode
 import com.example.data.model.UserRole
 import com.example.ui.components.ProHostBrandLogo
 import com.example.ui.components.ProHostDialog
@@ -45,7 +46,6 @@ import com.example.ui.theme.*
 // privacy page (public/privacy.html) — single source of truth for the
 // drawer's "Contact Support" action, rather than a second hardcoded copy
 // that could drift from the published one.
-private const val SUPPORT_EMAIL = "admin@pro-host.tech"
 
 /**
  * The unified drawer for both SPECIALIST and PRO_HOST.
@@ -78,8 +78,8 @@ private const val SUPPORT_EMAIL = "admin@pro-host.tech"
 @Composable
 private fun DrawerExploreHighlight(isActive: Boolean, onClick: () -> Unit) {
     ProHostDrawerHighlight(
-        title = "Explore Workspaces",
-        subtitle = "Browse and book verified spaces",
+        title = stringResource(R.string.explore_workspaces),
+        subtitle = stringResource(R.string.browse_and_book_verified_spaces),
         isActive = isActive,
         onClick = onClick
     )
@@ -88,7 +88,6 @@ private fun DrawerExploreHighlight(isActive: Boolean, onClick: () -> Unit) {
 @Composable
 fun SpecialistDrawerContent(
     currentUser: AppUser?,
-    packagePlans: com.example.data.model.PackagePlanCatalog = com.example.data.model.PackagePlanCatalog(),
     currentRole: UserRole,
     // Count of PENDING booking requests against this host's own listings — drives
     // the red dot on "Renting Requests" below, alongside the existing push
@@ -111,12 +110,13 @@ fun SpecialistDrawerContent(
             .split(" ").take(2)
             .joinToString("") { it.firstOrNull()?.uppercaseChar()?.toString() ?: "" }
             .ifBlank { "P" }
+        val planName = currentUser?.ownerPackageId?.let { localizedLabel(com.example.data.billing.PlayCatalog.planLabel(it)) }
         ProHostDrawerHeader(
-            title = currentUser?.fullName ?: "ProHost User",
-            subtitle = "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
+            title = currentUser?.fullName ?: uiText(R.string.prohost_user),
+            subtitle = if (planName != null) stringResource(R.string.plan_x, planName) else marketLabel(currentUser?.country),
             onClose = { onDrawerAction("close") },
-            leading = { ProHostDrawerAvatar(initials = initials) },
-            pill = { ProHostRolePill(text = if (isProHost) "PRO HOST" else "SPECIALIST", emphasized = isProHost) }
+            leading = { ProHostDrawerAvatar(initials = initials, imageUrl = currentUser?.profilePictureUrl) },
+            pill = { ProHostRolePill(text = if (isProHost) stringResource(R.string.pro_host) else stringResource(R.string.specialist), emphasized = isProHost) }
         )
 
         Spacer(modifier = Modifier.height(Spacing.lg))
@@ -130,10 +130,32 @@ fun SpecialistDrawerContent(
         Spacer(modifier = Modifier.height(Spacing.md))
 
         if (isProHost) {
-            ProHostDrawerSectionLabel(text = "PRO HOST", color = MaterialTheme.proColors.success)
+            ProHostDrawerSectionLabel(text = stringResource(R.string.pro_host))
 
             ProHostDrawerItem(
-                label = "Financials",
+                label = stringResource(R.string.renting_requests),
+                icon = Icons.Default.Inbox,
+                selected = activeProHostTabId == "owner_requests",
+                onClick = { onTabSelected("owner_requests") },
+                selectedIconTint = MaterialTheme.proColors.success,
+                badgeDot = pendingRequestsCount > 0,
+                emphasized = true
+            )
+            Spacer(modifier = Modifier.height(Spacing.xs))
+
+            // Was a bottom tab; Explore took its place there.
+            ProHostDrawerItem(
+                label = stringResource(R.string.renting_progress),
+                icon = Icons.Default.Schedule,
+                selected = activeProHostTabId == "owner_progress",
+                onClick = { onTabSelected("owner_progress") },
+                selectedIconTint = MaterialTheme.proColors.success,
+                emphasized = true
+            )
+            Spacer(modifier = Modifier.height(Spacing.xs))
+
+            ProHostDrawerItem(
+                label = stringResource(R.string.financials),
                 icon = Icons.Default.Analytics,
                 selected = activeProHostTabId == "stats",
                 onClick = { onTabSelected("stats") },
@@ -142,19 +164,23 @@ fun SpecialistDrawerContent(
             )
             Spacer(modifier = Modifier.height(Spacing.xs))
             ProHostDrawerItem(
-                label = "Subscriptions",
+                label = stringResource(R.string.prohost_premium),
                 icon = Icons.Default.Layers,
                 selected = activeProHostTabId == "owner_subscriptions",
                 onClick = { onTabSelected("owner_subscriptions") },
                 selectedIconTint = MaterialTheme.proColors.success,
                 emphasized = true
             )
-            Spacer(modifier = Modifier.height(Spacing.xs))
+
+        } else {
+            // Specialists: Explore, Saved, My Rentals and Profile are in the bottom bar, so
+            // the drawer only adds the upgrade path, Legal and Support.
             ProHostDrawerItem(
-                label = "Billing",
-                icon = Icons.Default.Payments,
-                selected = false,
-                onClick = { onDrawerAction("owner_billing") },
+                label = stringResource(R.string.become_a_pro_host),
+                icon = Icons.Default.WorkspacePremium,
+                selected = activeProHostTabId == "owner_subscriptions",
+                onClick = { onTabSelected("owner_subscriptions") },
+                selectedIconTint = MaterialTheme.proColors.success,
                 emphasized = true
             )
         }
@@ -166,7 +192,7 @@ fun SpecialistDrawerContent(
         // specialist reaches occasionally, not core daily workflow. Merged into one
         // "MORE" section (also now home to Contact Support, relocated from the
         // Profile screen) so the drawer reads as fewer, clearer groups.
-        ProHostDrawerSectionLabel(text = "MORE", color = MaterialTheme.colorScheme.secondary)
+        ProHostDrawerSectionLabel(text = stringResource(R.string.more).uppercase())
 
         // "Pending Requests" and "Payment Due Reminders" used to live here as their
         // own drawer shortcuts, routing to a pre-filtered view of My Bookings. My
@@ -174,9 +200,10 @@ fun SpecialistDrawerContent(
         // that, and it's one tap away from the bottom nav at all times — a drawer
         // shortcut to it added nothing. Removed rather than kept as a redundant
         // second path to the same screen.
-        if (!isProHost) {
+        // Specialists have Saved in the bottom bar; Pro Hosts reach it here.
+        if (isProHost) {
             ProHostDrawerItem(
-                label = "My Favorites",
+                label = stringResource(R.string.saved_2),
                 icon = Icons.Default.Favorite,
                 selected = activeProHostTabId == "my_favorites",
                 onClick = { onTabSelected("my_favorites") }
@@ -184,7 +211,7 @@ fun SpecialistDrawerContent(
         }
 
         ProHostDrawerItem(
-            label = "Legal (Privacy, Terms & Policies)",
+            label = stringResource(R.string.legal_privacy_terms_policies),
             icon = Icons.Default.Gavel,
             selected = false,
             onClick = { onDrawerAction("legal_documents") }
@@ -192,24 +219,10 @@ fun SpecialistDrawerContent(
 
         val context = LocalContext.current
         ProHostDrawerItem(
-            label = "Contact Support",
+            label = stringResource(R.string.contact_support),
             icon = Icons.AutoMirrored.Filled.Help,
             selected = false,
-            onClick = {
-                val subject = Uri.encode("ProHost Support — ${currentRole.name} account")
-                val body = Uri.encode(
-                    "Account: ${currentUser?.fullName ?: ""} (${currentUser?.email ?: ""})\n" +
-                        "Account code: ${currentUser?.publicCode ?: ""}\n\nDescribe your question or issue below:\n"
-                )
-                val intent = Intent(Intent.ACTION_SENDTO).apply {
-                    data = Uri.parse("mailto:$SUPPORT_EMAIL?subject=$subject&body=$body")
-                }
-                try {
-                    context.startActivity(intent)
-                } catch (e: Exception) {
-                    Toast.makeText(context, "No email app found — you can also reach us at $SUPPORT_EMAIL", Toast.LENGTH_LONG).show()
-                }
-            }
+            onClick = { com.example.ui.util.launchSupportEmail(context, currentUser, currentRole.name) }
         )
 
         ProHostDrawerFooter()
@@ -239,8 +252,8 @@ fun AdminDrawerContent(
     ) {
         // Brand gradient header (Admin variant)
         ProHostDrawerHeader(
-            title = currentUser?.fullName ?: "System Admin",
-            subtitle = "${currentUser?.country?.ifBlank { "Lebanon" } ?: "Lebanon"} Market",
+            title = currentUser?.fullName ?: uiText(R.string.system_admin_2),
+            subtitle = marketLabel(currentUser?.country),
             onClose = { onDrawerAction("close") },
             leading = {
                 Box(
@@ -258,7 +271,7 @@ fun AdminDrawerContent(
                     )
                 }
             },
-            pill = { ProHostRolePill(text = "SYSTEM ADMIN", emphasized = true) }
+            pill = { ProHostRolePill(text = stringResource(R.string.system_admin), emphasized = true) }
         )
 
         Spacer(modifier = Modifier.height(Spacing.lg))
@@ -271,10 +284,10 @@ fun AdminDrawerContent(
         )
         Spacer(modifier = Modifier.height(Spacing.md))
 
-        ProHostDrawerSectionLabel(text = "CENTRAL SECURITY CORES")
+        ProHostDrawerSectionLabel(text = stringResource(R.string.security))
 
         ProHostDrawerItem(
-            label = "System Admin Console",
+            label = stringResource(R.string.system_admin_console),
             icon = Icons.Default.AdminPanelSettings,
             selected = activeTabId == "admin_console",
             onClick = { onTabSelected("admin_console") },
@@ -283,7 +296,7 @@ fun AdminDrawerContent(
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
         ProHostDrawerItem(
-            label = "Security ID Card",
+            label = stringResource(R.string.security_id_card),
             icon = Icons.Default.Shield,
             selected = activeTabId == "admin_profile",
             onClick = { onTabSelected("admin_profile") },
@@ -296,10 +309,10 @@ fun AdminDrawerContent(
         // Admin gets every Pro Host capability unconditionally — unlimited listings,
         // no package to buy (see ProHostRepository's admin bypass) — so these route
         // through the exact same screens a fully-entitled Pro Host uses.
-        ProHostDrawerSectionLabel(text = "PRO HOST ACCESS (UNLIMITED)", color = MaterialTheme.colorScheme.primary)
+        ProHostDrawerSectionLabel(text = stringResource(R.string.pro_host_access))
 
         ProHostDrawerItem(
-            label = "My Listings",
+            label = stringResource(R.string.my_listings),
             icon = Icons.Default.HomeWork,
             selected = activeTabId == "manage_listings",
             onClick = { onTabSelected("manage_listings") },
@@ -307,7 +320,7 @@ fun AdminDrawerContent(
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
         ProHostDrawerItem(
-            label = "Renting Progress",
+            label = stringResource(R.string.renting_progress),
             icon = Icons.Default.Schedule,
             selected = activeTabId == "owner_progress",
             onClick = { onTabSelected("owner_progress") },
@@ -315,7 +328,16 @@ fun AdminDrawerContent(
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
         ProHostDrawerItem(
-            label = "Analytics",
+            label = stringResource(R.string.renting_requests),
+            icon = Icons.Default.Inbox,
+            selected = activeTabId == "owner_requests",
+            onClick = { onTabSelected("owner_requests") },
+            selectedIconTint = MaterialTheme.colorScheme.secondary,
+            badgeDot = pendingRequestsCount > 0
+        )
+        Spacer(modifier = Modifier.height(Spacing.xs))
+        ProHostDrawerItem(
+            label = stringResource(R.string.analytics),
             icon = Icons.Default.Analytics,
             selected = activeTabId == "stats",
             onClick = { onTabSelected("stats") },
@@ -324,20 +346,13 @@ fun AdminDrawerContent(
 
         ProHostDrawerDivider()
 
-        ProHostDrawerSectionLabel(text = "SYSTEM AUDIT & PRICING", color = MaterialTheme.colorScheme.primary)
+        ProHostDrawerSectionLabel(text = stringResource(R.string.billing_audit))
 
         ProHostDrawerItem(
-            label = "System Audit Logs",
+            label = stringResource(R.string.system_audit_logs),
             icon = Icons.Default.Terminal,
             selected = false,
             onClick = { onDrawerAction("admin_audit") }
-        )
-        Spacer(modifier = Modifier.height(Spacing.xs))
-        ProHostDrawerItem(
-            label = "Governorate Nodes Status",
-            icon = Icons.Default.Dns,
-            selected = false,
-            onClick = { onDrawerAction("admin_gov") }
         )
 
         // System Debugger stays at the very bottom of the admin side menu, below
@@ -348,7 +363,7 @@ fun AdminDrawerContent(
         if (com.example.BuildConfig.DEBUG) {
             Spacer(modifier = Modifier.height(Spacing.xs))
             ProHostDrawerItem(
-                label = "Cloud & System Debugger",
+                label = stringResource(R.string.cloud_system_debugger),
                 icon = Icons.Default.BugReport,
                 selected = false,
                 onClick = { onDrawerAction("system_debugger") },
@@ -376,20 +391,20 @@ fun ProHostDrawerFooter() {
         HorizontalDivider(modifier = Modifier.padding(bottom = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             ProHostBrandLogo(size = 28.dp)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
                 Text(
-                    text = "ProHost Lebanon",
+                    text = stringResource(R.string.prohost_lebanon),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
-                ProHostCedarBadge(text = "v2.5", isCompact = true)
+                ProHostCedarBadge(text = "v${com.example.BuildConfig.VERSION_NAME}", isCompact = true)
             }
         }
     }
@@ -420,14 +435,14 @@ fun DrawerSignOutButton(userEmail: String?, onSignOut: () -> Unit) {
     ) {
         Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
         Spacer(modifier = Modifier.width(Spacing.sm))
-        Text("Sign Out", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.sign_out), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
     }
 
     if (showConfirmDialog) {
         ProHostDialog(
             onDismissRequest = { showConfirmDialog = false },
-            title = { Text("Sign Out of ProHost", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to sign out of your account${userEmail?.let { " ($it)" } ?: ""}?") },
+            title = { Text(stringResource(R.string.sign_out_of_prohost), fontWeight = FontWeight.Bold) },
+            text = { Text(userEmail?.let { stringResource(R.string.sign_out_confirm_email, it) } ?: stringResource(R.string.sign_out_confirm)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -439,14 +454,24 @@ fun DrawerSignOutButton(userEmail: String?, onSignOut: () -> Unit) {
                         contentColor = MaterialTheme.colorScheme.onError
                     )
                 ) {
-                    Text("Sign Out", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.sign_out), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
     }
+}
+
+/** "Lebanon market" in the app language; a blank (legacy) profile country counts as Lebanon, like Explore's filter. */
+@Composable
+private fun marketLabel(country: String?): String {
+    val name = country?.takeIf { it.isNotBlank() } ?: "Lebanon"
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+    val display = com.example.data.model.COUNTRIES.firstOrNull { it.name == name }
+        ?.displayName(locale) ?: name
+    return stringResource(R.string.x_market, display)
 }

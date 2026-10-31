@@ -1,36 +1,36 @@
 package com.example
 
-import android.Manifest
+import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
-import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.activity.ComponentActivity
 import com.example.ui.navigation.ProHostAppRoot
+import com.example.ui.theme.FontScaleCap
 import com.example.ui.theme.ProHostTheme
 import com.example.util.InAppUpdateManager
 import com.example.util.NotificationPermissionManager
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-    private val permLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { /* OS handles rationale; no action needed here */ }
-
     private var targetTab by mutableStateOf<String?>(null)
     private var targetBookingId by mutableStateOf<String?>(null)
     private var targetSpaceId by mutableStateOf<String?>(null)
+    private var targetRoomId by mutableStateOf<String?>(null)
     private var emailVerifiedDeepLink by mutableStateOf(false)
-    private var emailSignInLink by mutableStateOf<String?>(null)
-    // One-click email OTP magic link: `prohost://emailotp/verified?token=<customToken>`
-    private var emailOtpToken by mutableStateOf<String?>(null)
     private var inAppUpdateManager: InAppUpdateManager? = null
+
+    // Text grows with the phone's setting only up to "Large" (FontScaleCap), dialogs and sheets included.
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(FontScaleCap.wrap(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Must run before super.onCreate() — installs the real, consistently-themed
@@ -40,15 +40,7 @@ class MainActivity : ComponentActivity() {
         // Theme.MyApplication.Starting doc comment for the full root cause).
         installSplashScreen()
         super.onCreate(savedInstanceState)
-        
-        // IMPROVE APP INTEGRITY: Prevent screen capturing/recording of the app
-        // This mitigates the "UNKNOWN_CAPTURING" risk from the Play Integrity API payload
-        // by making the OS block screen-reading malware from stealing sensitive PII or Auth/Payment info.
-        window.setFlags(
-            WindowManager.LayoutParams.FLAG_SECURE,
-            WindowManager.LayoutParams.FLAG_SECURE
-        )
-        
+        // Screenshots and screen recording are allowed on purpose (owner's choice): no FLAG_SECURE.
         enableEdgeToEdge()
         handleIncomingIntent(intent)
 
@@ -61,13 +53,19 @@ class MainActivity : ComponentActivity() {
             android.util.Log.w("MainActivity", "InAppUpdateManager initialization failed: ${e.message}")
         }
 
-        // Ask for POST_NOTIFICATIONS first and only then for location/camera/media:
-        // two concurrent permission launches make Android drop the second request.
+        // Only POST_NOTIFICATIONS is asked up front. Location is requested in context by the map
+        // picker; photos use the system pickers and the camera app, which need no permission.
+        // The system prompt waits until the first-launch analytics choice is made, so the two
+        // prompts never stack on top of each other.
         try {
-            NotificationPermissionManager(this) { requestFeaturePermissions() }.requestIfNeeded()
+            val notificationPermission = NotificationPermissionManager(this)
+            lifecycleScope.launch {
+                com.example.analytics.AnalyticsConsent.state
+                    .first { it != com.example.analytics.ConsentState.UNKNOWN }
+                notificationPermission.requestIfNeeded()
+            }
         } catch (e: Exception) {
             android.util.Log.w("MainActivity", "NotificationPermissionManager request failed: ${e.message}")
-            requestFeaturePermissions()
         }
 
         setContent {
@@ -76,11 +74,8 @@ class MainActivity : ComponentActivity() {
                     deepLinkTab = targetTab,
                     deepLinkBookingId = targetBookingId,
                     deepLinkSpaceId = targetSpaceId,
+                    deepLinkRoomId = targetRoomId,
                     emailVerifiedDeepLink = emailVerifiedDeepLink,
-                    emailSignInLink = emailSignInLink,
-                    onEmailSignInLinkConsumed = { emailSignInLink = null },
-                    emailOtpToken = emailOtpToken,
-                    onEmailOtpTokenConsumed = { emailOtpToken = null },
                     inAppUpdateManager = inAppUpdateManager
                 )
             }
@@ -105,30 +100,40 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun requestFeaturePermissions() {
-        try {
-            val mediaPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-                Manifest.permission.READ_MEDIA_IMAGES
-            else
-                Manifest.permission.READ_EXTERNAL_STORAGE
-            permLauncher.launch(arrayOf(
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.CAMERA,
-                mediaPermission
-            ))
-        } catch (e: Exception) {
-            android.util.Log.w("MainActivity", "Permission request failed: ${e.message}")
-        }
-    }
-
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         handleIncomingIntent(intent)
     }
 
+    // Acquisition analytics: notification taps carry target_tab/notification_type extras;
+    // links carry a URI. Only the kind of link and its tab are logged — never tokens or ids.
+    private fun logIncomingIntent(intent: Intent) {
+        val data = intent.data
+        val fromNotification = intent.hasExtra("notification_type") ||
+            (data == null && (intent.hasExtra("target_tab") || intent.hasExtra("booking_id")))
+        when {
+            fromNotification -> com.example.analytics.AnalyticsTracker.notificationOpen(
+                intent.getStringExtra("notification_type"),
+                intent.getStringExtra("target_tab")
+            )
+            data != null -> {
+                val source = when {
+                    data.host == "pro-host.tech" && data.path?.startsWith("/listing/") == true -> "share_link"
+                    data.scheme == "prohost" && data.host == "verify-email" -> "email"
+                    data.scheme == "prohost" && data.host == "redeem" -> "promo_link"
+                    data.scheme == "prohost" -> "prohost_scheme"
+                    else -> "web_link"
+                }
+                val target = if (source == "share_link") "space_details" else data.host
+                com.example.analytics.AnalyticsTracker.deepLinkOpen(source, target)
+            }
+        }
+    }
+
     private fun handleIncomingIntent(intent: Intent?) {
         if (intent == null) return
+        logIncomingIntent(intent)
         val tab = intent.getStringExtra("target_tab")
         val bookingId = intent.getStringExtra("booking_id")
         if (!tab.isNullOrBlank()) {
@@ -146,10 +151,13 @@ class MainActivity : ComponentActivity() {
         // hits this code path at all, they see the landing page's own HTML instead.
         // ProHostNavGraph resolves the id against the live spaces list once the user
         // is signed in and it's loaded.
-        val isListingShareLink = data != null && data.scheme == "https" &&
-            data.host == "pro-host.tech" && data.path?.startsWith("/listing/") == true
-        if (isListingShareLink) {
-            targetSpaceId = data.path?.removePrefix("/listing/")?.trim('/')?.takeIf { it.isNotBlank() }
+        // `?room=` (the Instagram agent's links) opens the details page on that room's card.
+        val listingLink = data?.let {
+            com.example.util.ListingDeepLink.parse(it.scheme, it.host, it.path, it.getQueryParameter("room"))
+        }
+        if (listingLink != null) {
+            targetSpaceId = listingLink.spaceId
+            targetRoomId = listingLink.roomId
         }
 
         // Email verification return: prohost://verify-email/success (from verifyEmailLink
@@ -160,19 +168,16 @@ class MainActivity : ComponentActivity() {
             emailVerifiedDeepLink = true
         }
 
-        // One-click email OTP magic link: prohost://emailotp/verified?token=<customToken>
-        // Sent by the clickEmailOtpLink Cloud Function after it validates the OTP code.
-        val isEmailOtp = data != null && data.scheme == "prohost" && data.host == "emailotp"
-        if (isEmailOtp) {
-            val token = data?.getQueryParameter("token")
-            if (!token.isNullOrBlank()) {
-                emailOtpToken = token
-            }
+        // Promo-code links: prohost://redeem?code=XXXX — open Subscriptions with the Redeem
+        // dialog pre-filled (the code is only ever handed to Google Play's redeem page).
+        if (data != null && data.scheme == "prohost" && data.host == "redeem") {
+            com.example.data.billing.PendingPromoCode.offer(data.getQueryParameter("code"))
+            targetTab = "owner_subscriptions"
         }
 
         // Tab deep links: prohost://<tabId> — sent by notification action buttons and
         // external links to navigate directly to a specific tab inside the app.
-        if (data != null && data.scheme == "prohost" && !isEmailVerified && !isEmailOtp) {
+        if (data != null && data.scheme == "prohost" && !isEmailVerified) {
             val tabFromHost = when (data.host) {
                 "owner_subscriptions" -> "owner_subscriptions"
                 "profile" -> "pro_profile"
@@ -183,20 +188,6 @@ class MainActivity : ComponentActivity() {
             }
             if (tabFromHost != null) {
                 targetTab = tabFromHost
-            }
-        }
-
-        // Firebase Auth email sign-in link: https://prohost-f766f.web.app/emaillink?oobCode=...
-        // Sent by the sendSignInEmailLink Cloud Function; the OS delivers this to the app
-        // via the App Link intent filter (autoVerify=true) in the manifest.
-        if (data != null) {
-            try {
-                val firebaseAuth = com.google.firebase.auth.FirebaseAuth.getInstance()
-                if (firebaseAuth.isSignInWithEmailLink(data.toString())) {
-                    emailSignInLink = data.toString()
-                }
-            } catch (e: Exception) {
-                android.util.Log.w("MainActivity", "Email link check failed: ${e.message}")
             }
         }
     }

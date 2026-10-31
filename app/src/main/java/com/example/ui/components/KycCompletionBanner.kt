@@ -1,5 +1,9 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiText
+import com.example.R
+import androidx.compose.ui.res.stringResource
+import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -12,132 +16,97 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.model.AppUser
+import com.example.data.model.UserRole
 import com.example.ui.theme.Spacing
 import com.example.ui.theme.proColors
 
 /**
- * Inline KYC progress card for SpecialistProfileScreen.
- * Shows the user's progress through the 3 verification steps and the next action.
- * Hidden entirely once all steps are complete.
+ * Profile progress card: the same items the app checks in place — photo and WhatsApp number
+ * ([AppUser.canTransact]), plus country and city for Pro Hosts ([AppUser.canHost]). Email is
+ * not a step: email and Google sign-ups are verified by signing in. [onComplete] opens the
+ * shared RequirementsSheet. Hidden once everything is done.
  */
 @Composable
 fun KycCompletionBanner(
     user: AppUser,
-    onResendVerificationEmail: () -> Unit,
-    onNavigateToIdUpload: () -> Unit = {},
+    onComplete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (user.isKycComplete) return
+    val isHost = user.role == UserRole.PRO_HOST
+    if (if (isHost) user.canHost() else user.canTransact()) return
 
-    val hasProfilePic = !user.profilePictureUrl.isNullOrBlank()
-    val emailVerified = user.emailVerified
-    val hasAddress = user.country.isNotBlank() && user.city.isNotBlank()
+    data class Step(val icon: ImageVector, val label: String, val done: Boolean)
 
-    data class KycStep(val icon: ImageVector, val label: String, val done: Boolean)
-
-    val steps = listOf(
-        KycStep(Icons.Default.Person, "Registered", true),
-        KycStep(Icons.Default.Photo, "Profile photo", hasProfilePic),
-        KycStep(Icons.Default.Email, "Email verified", emailVerified),
-        KycStep(Icons.Default.LocationOn, "Address set", hasAddress)
-    )
-
-    val (nextTitle, nextDesc, nextAction) = when {
-        !hasProfilePic -> Triple(
-            "Add a profile picture",
-            "Upload a photo to unlock booking features.",
-            null as (() -> Unit)?
-        )
-        !emailVerified -> Triple(
-            "Verify your email",
-            "Check your inbox for a verification link. Tap below to resend if needed.",
-            onResendVerificationEmail
-        )
-        !hasAddress -> Triple(
-            "Add your address",
-            "Set your country and city in the profile tab.",
-            null as (() -> Unit)?
-        )
-        else -> Triple("", "", null)
+    val steps = buildList {
+        add(Step(Icons.Default.Photo, uiText(R.string.profile_photo), !user.profilePictureUrl.isNullOrBlank()))
+        add(Step(Icons.Default.PhoneAndroid, uiText(R.string.whatsapp_number), user.hasWhatsAppNumber()))
+        if (isHost) add(Step(Icons.Default.LocationOn, uiText(R.string.country_city), user.country.isNotBlank() && user.city.isNotBlank()))
     }
+    val next = steps.first { !it.done }
 
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        tonalElevation = 1.dp
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
     ) {
         Column(
             modifier = Modifier.padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Icon(Icons.Default.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                 Text(
-                    "Profile Verification",
+                    if (isHost) stringResource(R.string.ready_to_host) else stringResource(R.string.ready_to_book),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                steps.forEachIndexed { index, step ->
-                    val isCurrent = !step.done && steps.take(index).all { it.done }
-                    val color = when {
-                        step.done -> MaterialTheme.proColors.onSuccessContainer
-                        isCurrent -> MaterialTheme.colorScheme.onSecondaryContainer
-                        else -> MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.55f)
+                steps.forEach { step ->
+                    val color = if (step.done) {
+                        MaterialTheme.proColors.onSuccessContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
                     }
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.weight(1f)
-                    ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
                         Icon(
                             imageVector = if (step.done) Icons.Default.CheckCircle else step.icon,
-                            contentDescription = null,
+                            contentDescription = if (step.done) stringResource(R.string.x_done, step.label) else stringResource(R.string.x_to_do, step.label),
                             tint = color,
                             modifier = Modifier.size(20.dp)
                         )
-                        Text(
-                            step.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = color,
-                            maxLines = 1
-                        )
-                    }
-                    if (index < steps.lastIndex) {
-                        Spacer(modifier = Modifier.weight(0.3f).height(1.dp))
+                        Text(step.label, style = MaterialTheme.typography.labelSmall, color = color, maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     }
                 }
             }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
             Text(
-                "Next: $nextTitle",
+                stringResource(R.string.next_x, next.label.lowercase()),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
-                nextDesc,
+                if (isHost) stringResource(R.string.needed_once_before_you_publish_listings) else stringResource(R.string.needed_once_before_your_first_booking_requ),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (nextAction != null) {
-                OutlinedButton(
-                    onClick = nextAction,
-                    modifier = Modifier.fillMaxWidth(),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
-                    shape = MaterialTheme.shapes.medium,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
-                ) {
-                    Text("Resend Verification Email", style = MaterialTheme.typography.labelMedium)
-                }
+            OutlinedButton(
+                onClick = onComplete,
+                modifier = Modifier.fillMaxWidth(),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                shape = MaterialTheme.shapes.medium,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Text(stringResource(R.string.complete_now), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
             }
         }
     }

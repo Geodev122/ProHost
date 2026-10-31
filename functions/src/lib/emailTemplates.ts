@@ -18,6 +18,13 @@ export interface UserContext {
 // ProHost logo — served from Firebase Hosting, already live at pro-host.tech/logo.png
 const LOGO_URL = "https://pro-host.tech/logo.png";
 
+/** HTML-escapes user-supplied text (names, titles, reasons) before it goes into an email body. */
+export function esc(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
 /**
  * @param title    <title> tag and fallback subject label
  * @param body     Inner HTML for the main content area
@@ -39,7 +46,7 @@ export function layout(title: string, body: string, preheader = ""): string {
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <meta name="color-scheme" content="light"/>
   <meta name="supported-color-schemes" content="light"/>
-  <title>${title}</title>
+  <title>${esc(title)}</title>
   <style>
     /* ── Reset ── */
     *, *::before, *::after { box-sizing: border-box; }
@@ -135,7 +142,7 @@ export function otpSignInTemplate(email: string, code: string, clickUrl: string)
   const subject = "Your ProHost sign-in code";
   const html = layout(subject, `
     <h2>Your sign-in code</h2>
-    <p>Use the code below to sign in as <strong style="color:#1A1A1A">${email}</strong>.
+    <p>Use the code below to sign in as <strong style="color:#1A1A1A">${esc(email)}</strong>.
        It expires in <strong style="color:#1A1A1A">10 minutes</strong>.</p>
     <div style="text-align:center;margin:28px 0">
       <span style="display:inline-block;font-size:36px;font-weight:800;letter-spacing:10px;color:#111;background:#F5F0EC;padding:16px 28px;border-radius:12px">${code}</span>
@@ -157,7 +164,7 @@ export function signInLinkTemplate(email: string, link: string) {
   const subject = "Sign in to ProHost";
   const html = layout(subject, `
     <h2>Your sign-in link</h2>
-    <p>Tap the button below to sign in as <strong style="color:#1A1A1A">${email}</strong>.
+    <p>Tap the button below to sign in as <strong style="color:#1A1A1A">${esc(email)}</strong>.
        This link expires in <strong style="color:#1A1A1A">60 minutes</strong> and works only once.</p>
     <div class="cta">
       <a class="btn" href="${link}">Sign in to ProHost</a>
@@ -171,12 +178,61 @@ export function signInLinkTemplate(email: string, link: string) {
   return { subject, html };
 }
 
+// ─── Password reset / first password (email + password sign-in) ───────────────
+// Bilingual (English, then Arabic): the address book has no language preference.
+
+function rtl(html: string): string {
+  return `<div dir="rtl" lang="ar" style="text-align:right;border-top:1px solid #EEE;margin-top:24px;padding-top:16px">${html}</div>`;
+}
+
+export function passwordResetTemplate(email: string, link: string) {
+  const subject = "Reset your ProHost password · إعادة تعيين كلمة مرور ProHost";
+  const html = layout(subject, `
+    <h2>Reset your password</h2>
+    <p>Someone asked to reset the password for <strong style="color:#1A1A1A">${esc(email)}</strong>.
+       Tap the button to choose a new one. The link works once and expires in <strong style="color:#1A1A1A">1 hour</strong>.</p>
+    <div class="cta"><a class="btn" href="${esc(link)}">Choose a new password</a></div>
+    <p class="fine">If you didn't ask for this, ignore this email — your password stays the same.</p>
+    ${rtl(`
+      <h2>إعادة تعيين كلمة المرور</h2>
+      <p>طُلبت إعادة تعيين كلمة المرور للحساب <strong>${esc(email)}</strong>. اضغط الزر لاختيار كلمة مرور جديدة.
+         يعمل الرابط مرة واحدة وتنتهي صلاحيته خلال ساعة.</p>
+      <div class="cta"><a class="btn" href="${esc(link)}">اختر كلمة مرور جديدة</a></div>
+      <p class="fine">إذا لم تطلب ذلك فتجاهل هذه الرسالة؛ كلمة مرورك لن تتغير.</p>
+    `)}
+  `, "Choose a new password for ProHost");
+  return { subject, html };
+}
+
+export function passwordSetupInviteTemplate(email: string, link: string) {
+  const subject = "Set a password for ProHost · عيّن كلمة مرور لـ ProHost";
+  const html = layout(subject, `
+    <h2>ProHost now signs in with a password</h2>
+    <p>You've been signing in to ProHost as <strong style="color:#1A1A1A">${esc(email)}</strong> with an emailed code or link.
+       Those are being replaced by a password you choose — your account, listings and bookings stay exactly as they are.</p>
+    <div class="cta"><a class="btn" href="${esc(link)}">Set my password</a></div>
+    <p>Then update ProHost from Google Play and sign in with your email and new password.
+       This button works for 30 days; after that, tap <strong style="color:#1A1A1A">Forgot password</strong> on the sign-in screen.</p>
+    <p class="fine">Using Google to sign in? Nothing changes for you. Didn't expect this email? You can ignore it.</p>
+    ${rtl(`
+      <h2>تسجيل الدخول إلى ProHost أصبح بكلمة مرور</h2>
+      <p>كنت تسجّل الدخول إلى ProHost بالحساب <strong>${esc(email)}</strong> برمز أو رابط يصلك بالبريد.
+         سيُستبدل ذلك بكلمة مرور تختارها، ويبقى حسابك وإعلاناتك وحجوزاتك كما هي.</p>
+      <div class="cta"><a class="btn" href="${esc(link)}">عيّن كلمة المرور</a></div>
+      <p>بعد ذلك حدّث ProHost من Google Play وسجّل الدخول ببريدك وكلمة المرور الجديدة.
+         يعمل هذا الزر لمدة 30 يومًا؛ بعدها اضغط <strong>نسيت كلمة المرور</strong> في شاشة تسجيل الدخول.</p>
+      <p class="fine">تسجّل الدخول بحساب Google؟ لا شيء يتغير بالنسبة لك.</p>
+    `)}
+  `, "Choose a password to keep signing in to ProHost");
+  return { subject, html };
+}
+
 // ─── Email Verification ──────────────────────────────────────────────────────
 
 export function emailVerificationTemplate(ctx: UserContext, verifyUrl: string) {
   const subject = "Verify your ProHost email address";
   const html = layout(subject, `
-    <h2>Welcome to ProHost, ${ctx.fullName}!</h2>
+    <h2>Welcome to ProHost, ${esc(ctx.fullName)}!</h2>
     <p>You're almost set. Please confirm your email address to activate your account and start discovering workspaces.</p>
     <div class="cta">
       <a class="btn" href="${verifyUrl}">Verify Email Address</a>
@@ -190,7 +246,7 @@ export function emailVerificationResendTemplate(ctx: UserContext, verifyUrl: str
   const subject = "New verification link — ProHost";
   const html = layout(subject, `
     <h2>Here's your new verification link</h2>
-    <p>Hi ${ctx.fullName}, your previous link has been invalidated. Use the button below to verify your email address.</p>
+    <p>Hi ${esc(ctx.fullName)}, your previous link has been invalidated. Use the button below to verify your email address.</p>
     <div class="cta">
       <a class="btn" href="${verifyUrl}">Verify Email Address</a>
     </div>
@@ -208,23 +264,31 @@ export interface BookingContext {
   ownerName: string;
   dateRange: string;        // e.g. "Sep 22 – Sep 24, 2026"
   totalUsd: number;
+  /** "20 attendees × $8/person (Standard)" for per-attendee bookings. */
+  attendeeSummary?: string | null;
+  rejectionReason?: string | null;
+}
+
+function attendeeLine(booking: BookingContext): string {
+  return booking.attendeeSummary ? `<p><strong>Attendees:</strong> ${esc(booking.attendeeSummary)}</p>` : "";
 }
 
 export function newBookingRequestTemplate(owner: UserContext, booking: BookingContext) {
   const subject = `New booking request — ${booking.listingTitle}`;
   const html = layout(subject, `
     <h2>New booking request</h2>
-    <p><strong>${booking.specialistName}</strong> has requested to book your space. Review the details and respond in the app.</p>
+    <p><strong>${esc(booking.specialistName)}</strong> has requested to book your space. Review the details and respond in the app.</p>
     <div class="card">
-      <p><strong>Listing:</strong> ${booking.listingTitle}</p>
-      <p><strong>Dates:</strong> ${booking.dateRange}</p>
+      <p><strong>Listing:</strong> ${esc(booking.listingTitle)}</p>
+      <p><strong>Dates:</strong> ${esc(booking.dateRange)}</p>
+      ${attendeeLine(booking)}
       <p><strong>Quoted amount:</strong> $${booking.totalUsd.toFixed(2)}</p>
-      <p><strong>From:</strong> ${booking.specialistName}</p>
+      <p><strong>From:</strong> ${esc(booking.specialistName)}</p>
     </div>
     <div class="cta">
       <a class="btn" href="prohost://owner_hub">Review Request</a>
     </div>
-  `, `${booking.specialistName} wants to book ${booking.listingTitle}`);
+  `, `${esc(booking.specialistName)} wants to book ${esc(booking.listingTitle)}`);
   return { subject, html };
 }
 
@@ -232,30 +296,32 @@ export function bookingAcceptedTemplate(specialist: UserContext, booking: Bookin
   const subject = `Booking confirmed — ${booking.listingTitle}`;
   const html = layout(subject, `
     <h2>Your booking is confirmed!</h2>
-    <p><strong>${booking.ownerName}</strong> has accepted your request. See you there.</p>
+    <p><strong>${esc(booking.ownerName)}</strong> has accepted your request. See you there.</p>
     <div class="card">
-      <p><strong>Listing:</strong> ${booking.listingTitle}</p>
-      <p><strong>Dates:</strong> ${booking.dateRange}</p>
+      <p><strong>Listing:</strong> ${esc(booking.listingTitle)}</p>
+      <p><strong>Dates:</strong> ${esc(booking.dateRange)}</p>
+      ${attendeeLine(booking)}
       <p><strong>Total:</strong> $${booking.totalUsd.toFixed(2)}</p>
     </div>
     <p>Payment is settled directly with the space owner on arrival.</p>
     <div class="cta">
       <a class="btn" href="prohost://my_bookings">View Booking</a>
     </div>
-  `, `Your booking at ${booking.listingTitle} is confirmed`);
+  `, `Your booking at ${esc(booking.listingTitle)} is confirmed`);
   return { subject, html };
 }
 
 export function bookingRejectedTemplate(specialist: UserContext, booking: BookingContext) {
   const subject = `Booking not available — ${booking.listingTitle}`;
   const html = layout(subject, `
-    <h2>Hi ${specialist.fullName},</h2>
-    <p>Unfortunately your booking request for <strong>${booking.listingTitle}</strong> (${booking.dateRange}) wasn't accepted this time.</p>
+    <h2>Hi ${esc(specialist.fullName)},</h2>
+    <p>Unfortunately your booking request for <strong>${esc(booking.listingTitle)}</strong> (${esc(booking.dateRange)}) wasn't accepted this time.</p>
+    ${booking.rejectionReason ? `<p><strong>Reason:</strong> ${esc(booking.rejectionReason)}</p>` : ""}
     <p>Don't worry — there are many other great workspaces on ProHost.</p>
     <div class="cta">
       <a class="btn" href="prohost://discovery">Browse More Spaces</a>
     </div>
-  `, `Your booking request for ${booking.listingTitle} wasn't accepted`);
+  `, `Your booking request for ${esc(booking.listingTitle)} wasn't accepted`);
   return { subject, html };
 }
 
@@ -264,11 +330,11 @@ export function bookingCancelledTemplate(recipient: UserContext, booking: Bookin
   const cancellerLabel = cancelledByRole === "owner" ? "the host" : "the specialist";
   const html = layout(subject, `
     <h2>Booking cancelled</h2>
-    <p>Your booking for <strong>${booking.listingTitle}</strong> (${booking.dateRange}) has been cancelled by ${cancellerLabel}.</p>
+    <p>Your booking for <strong>${esc(booking.listingTitle)}</strong> (${esc(booking.dateRange)}) has been cancelled by ${esc(cancellerLabel)}.</p>
     <div class="cta">
       <a class="btn" href="prohost://my_bookings">View My Bookings</a>
     </div>
-  `, `Your ProHost booking for ${booking.listingTitle} has been cancelled`);
+  `, `Your ProHost booking for ${esc(booking.listingTitle)} has been cancelled`);
   return { subject, html };
 }
 
@@ -278,24 +344,24 @@ export function subscriptionActivatedTemplate(ctx: UserContext, planName: string
   const subject = `Welcome to Pro Host — ${planName} plan activated!`;
   const listingWord = (ctx.activeListingCount ?? 0) > 0 ? "your listings are live" : "publish your first listing";
   const html = layout(subject, `
-    <h2>You're a Pro Host now, ${ctx.fullName}!</h2>
-    <p>Your <strong>${planName}</strong> subscription is active. Head to your Owner Hub to ${listingWord}.</p>
+    <h2>You're a Pro Host now, ${esc(ctx.fullName)}!</h2>
+    <p>Your <strong>${esc(planName)}</strong> subscription is active. Head to your Owner Hub to ${listingWord}.</p>
     <div class="card">
       <p>As a Pro Host you can create workspace listings, manage bookings, and build your hosting profile.</p>
     </div>
     <div class="cta">
       <a class="btn" href="prohost://owner_hub">Go to Owner Hub</a>
     </div>
-  `, `Your ProHost ${planName} plan is now active`);
+  `, `Your ProHost ${esc(planName)} plan is now active`);
   return { subject, html };
 }
 
 export function subscriptionRenewedTemplate(ctx: UserContext, planName: string, expiryDate: string) {
   const subject = `Subscription renewed — ${planName}`;
   const html = layout(subject, `
-    <h2>Renewed and ready, ${ctx.fullName}</h2>
-    <p>Your <strong>${planName}</strong> subscription has automatically renewed. Your Pro Host access continues through <strong>${expiryDate}</strong>.</p>
-  `, `Your ProHost ${planName} plan has been renewed`);
+    <h2>Renewed and ready, ${esc(ctx.fullName)}</h2>
+    <p>Your <strong>${esc(planName)}</strong> subscription has automatically renewed. Your Pro Host access continues through <strong>${expiryDate}</strong>.</p>
+  `, `Your ProHost ${esc(planName)} plan has been renewed`);
   return { subject, html };
 }
 
@@ -303,7 +369,7 @@ export function subscriptionExpiringTemplate(ctx: UserContext, planName: string,
   const subject = `Your Pro Host subscription expires in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`;
   const html = layout(subject, `
     <h2>Subscription expiring soon</h2>
-    <p>Hi ${ctx.fullName}, your <strong>${planName}</strong> plan expires on <strong>${expiryDate}</strong> — ${daysLeft} day${daysLeft !== 1 ? "s" : ""} from now.</p>
+    <p>Hi ${esc(ctx.fullName)}, your <strong>${esc(planName)}</strong> plan expires on <strong>${expiryDate}</strong> — ${daysLeft} day${daysLeft !== 1 ? "s" : ""} from now.</p>
     <p>Renew now to keep your listings live and avoid interrupting active bookings.</p>
     <div class="cta">
       <a class="btn" href="prohost://owner_subscriptions">Renew Subscription</a>
@@ -311,7 +377,7 @@ export function subscriptionExpiringTemplate(ctx: UserContext, planName: string,
     ${(ctx.activeListingCount ?? 0) > 0
       ? `<p class="fine">You have ${ctx.activeListingCount} active listing${ctx.activeListingCount !== 1 ? "s" : ""}. They'll be hidden if your subscription lapses.</p>`
       : ""}
-  `, `Your ProHost ${planName} plan expires in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`);
+  `, `Your ProHost ${esc(planName)} plan expires in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`);
   return { subject, html };
 }
 
@@ -319,7 +385,7 @@ export function subscriptionExpiredTemplate(ctx: UserContext) {
   const subject = "Your Pro Host subscription has ended";
   const html = layout(subject, `
     <h2>Subscription ended</h2>
-    <p>Hi ${ctx.fullName}, your Pro Host subscription has expired. Your listings are now hidden from Discovery.</p>
+    <p>Hi ${esc(ctx.fullName)}, your Pro Host subscription has expired. Your listings are now hidden from Discovery.</p>
     <p>Renew at any time to restore your listings and Pro Host access instantly.</p>
     <div class="cta">
       <a class="btn" href="prohost://owner_subscriptions">Renew Now</a>
@@ -334,15 +400,15 @@ export function inAppInquiryTemplate(sender: UserContext, recipientName: string,
   const emailSubject = `ProHost inquiry from ${sender.fullName}: ${subject}`;
   const roleLabel = sender.role === "PRO_HOST" ? "Pro Host" : "Specialist";
   const html = layout(emailSubject, `
-    <h2>New inquiry from ${sender.fullName}</h2>
+    <h2>New inquiry from ${esc(sender.fullName)}</h2>
     <div class="card">
-      <p><strong>From:</strong> ${sender.fullName} (${roleLabel})</p>
-      <p><strong>Email:</strong> ${sender.email}</p>
-      <p><strong>Subject:</strong> ${subject}</p>
+      <p><strong>From:</strong> ${esc(sender.fullName)} (${roleLabel})</p>
+      <p><strong>Email:</strong> ${esc(sender.email)}</p>
+      <p><strong>Subject:</strong> ${esc(subject)}</p>
     </div>
     <p><strong>Message:</strong></p>
-    <p>${message.replace(/\n/g, "<br/>")}</p>
-    <p class="fine">Reply directly to this email to respond to ${sender.fullName}.</p>
-  `, `Inquiry from ${sender.fullName} on ProHost`);
+    <p>${esc(message).replace(/\n/g, "<br/>")}</p>
+    <p class="fine">Reply directly to this email to respond to ${esc(sender.fullName)}.</p>
+  `, `Inquiry from ${esc(sender.fullName)} on ProHost`);
   return { subject: emailSubject, html };
 }

@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -23,7 +25,8 @@ import kotlinx.coroutines.delay
  * splash.png artwork appears, so the two together read as one continuous launch image
  * instead of two different-looking screens. No separate "second screen" with its own
  * icon/wordmark/loading text exists anymore — this single screen carries the loading state
- * for however long onSplashCompleted takes to fire.
+ * for however long onSplashCompleted takes to fire. Dark mode uses drawable-night (all densities) splash.png on the matching
+ * values-night splash_background.
  */
 @Composable
 fun SplashScreen(
@@ -40,17 +43,18 @@ fun SplashScreen(
         ) { value, _ ->
             contentAlpha = value
         }
-        // Minimum time this screen stays up, so it never flashes by faster than a human
-        // can register it even when auth/profile state resolves instantly — not a proxy
-        // for real loading progress, which is why the spinner below is indeterminate.
-        delay(900)
+        // Minimum time this screen stays up (after the 400 ms fade), so it never flashes by
+        // when auth/profile state resolves instantly — not a proxy for real loading
+        // progress, which is why the spinner below is indeterminate. Kept short: it is paid
+        // on every cold start, and session restore keeps the splash up on its own if slower.
+        delay(300)
         onSplashCompleted()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
             painter = painterResource(id = com.example.R.drawable.splash),
-            contentDescription = "ProHost",
+            contentDescription = stringResource(R.string.prohost),
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )

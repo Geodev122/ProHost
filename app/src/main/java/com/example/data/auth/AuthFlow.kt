@@ -1,9 +1,12 @@
 package com.example.data.auth
 
+import android.util.Log
 import com.example.data.model.AppUser
 import com.example.data.model.UserRole
 import com.example.data.repository.ProHostRepository
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.tasks.await
 
 /**
  * Thrown when assignInitialRole.ts rejects a sign-in because the account is
@@ -42,11 +45,24 @@ suspend fun completeVerifiedLogin(
     integrityToken: String? = null
 ): AppUser {
     val role = resolveVerifiedRole(functionsClient, firebaseUser, integrityToken)
-    return repository.login(
+    val user = repository.login(
         uid = firebaseUser.uid,
         email = firebaseUser.email ?: "",
         verifiedRole = role
     )
+    refreshFcmToken(repository, firebaseUser.uid)
+    return user
+}
+
+/** Fetches the current FCM token and saves it to the user's profile. Silently no-ops on failure. */
+private suspend fun refreshFcmToken(repository: ProHostRepository, uid: String) {
+    try {
+        @Suppress("DEPRECATION")
+        val token = FirebaseMessaging.getInstance().token.await()
+        repository.registerFcmToken(uid, token)
+    } catch (e: Exception) {
+        Log.w("AuthFlow", "FCM token refresh failed: ${e.message}")
+    }
 }
 
 /**
@@ -63,7 +79,7 @@ suspend fun completeVerifiedLogin(
  * picture is simply kept on file (its Storage URL, already uploaded by the caller once
  * [firebaseUser.uid] existed to key the upload path on). Registration never collects a
  * government ID — that only happens later, through the KYC flow (KycScreen.kt /
- * KycVerificationDialog.kt) required before a Specialist can book, or before upgrading
+ * RequirementsSheet.kt) required before a Specialist can book, or before upgrading
  * to Pro Host.
  */
 suspend fun completeVerifiedRegistration(
@@ -84,24 +100,14 @@ suspend fun completeVerifiedRegistration(
     // assignInitialRole just ran and set the claim — read it rather than calling it a second time.
     val role = FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = true)
         ?.let { runCatching { UserRole.valueOf(it) }.getOrNull() } ?: UserRole.SPECIALIST
-    return repository.registerMember(
+    val user = repository.registerMember(
         uid = firebaseUser.uid,
         verifiedRole = role,
         details = details
     )
+    refreshFcmToken(repository, firebaseUser.uid)
+    return user
 }
-
-/**
- * Completes sign-in for an existing user who authenticated via Google Sign-In.
- * Functionally identical to [completeVerifiedLogin] — reuses the same role-resolution
- * and repository.login() path. The distinction exists for call-site clarity.
- */
-suspend fun completeGoogleSignIn(
-    repository: ProHostRepository,
-    functionsClient: FirebaseFunctionsClient,
-    firebaseUser: FirebaseUser,
-    integrityToken: String? = null
-): AppUser = completeVerifiedLogin(repository, functionsClient, firebaseUser, integrityToken)
 
 /**
  * Registers a brand-new user who signed up via Google Sign-In.
@@ -119,10 +125,9 @@ suspend fun completeGoogleRegistration(
     repository = repository,
     functionsClient = functionsClient,
     firebaseUser = firebaseUser,
-    // firebaseUser.phoneNumber is always null for Google Sign-In — Google's Auth
-    // API exposes no phone number at all, so this fallback is a no-op for Google
-    // users and phone correctly stays blank until real phone OTP KYC verification
-    // (linkKycPhone) writes it. Never treat a Google account as phone-verified.
+    // firebaseUser.phoneNumber is only set for legacy phone-auth accounts; everyone
+    // else keeps the WhatsApp number typed on the registration form (or blank until
+    // they add it in the WhatsApp-number step).
     details = details.copy(phone = details.phone.ifBlank { firebaseUser.phoneNumber ?: "" }),
     integrityToken = integrityToken
 )

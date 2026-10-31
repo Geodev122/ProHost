@@ -1,3 +1,5 @@
+import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
+import java.time.Duration
 import java.util.Properties
 import java.io.FileInputStream
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
@@ -10,6 +12,8 @@ plugins {
   alias(libs.plugins.google.devtools.ksp)
   alias(libs.plugins.roborazzi)
   alias(libs.plugins.google.services)
+  // Required while firebase-crashlytics is a dependency: it generates the build ID the SDK
+  // checks at startup. Removing it crashed v1.0.33 on launch.
   alias(libs.plugins.firebase.crashlytics)
 }
 
@@ -21,8 +25,8 @@ android {
     applicationId = "app.geonajjar.prohost"
     minSdk = 24
     targetSdk = 37
-    versionCode = 28
-    versionName = "1.0.28"
+    versionCode = 46
+    versionName = "1.0.46"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     
@@ -32,7 +36,11 @@ android {
         localProperties.load(FileInputStream(localPropertiesFile))
     }
     
-    val mapsApiKey = System.getenv("MAPS_API_KEY") ?: localProperties.getProperty("MAPS_API_KEY") ?: ""
+    // A missing GitHub secret arrives as "" (not null): treat blank as missing too.
+    val mapsApiKey = System.getenv("MAPS_API_KEY")?.takeIf { it.isNotBlank() }
+        ?: localProperties.getProperty("MAPS_API_KEY")?.takeIf { it.isNotBlank() }
+        ?: ""
+    if (mapsApiKey.isBlank()) logger.warn("MAPS_API_KEY is not set: maps will render blank in this build.")
     manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
   }
 
@@ -95,6 +103,11 @@ android {
       signingConfig = signingConfigs.getByName("release")
       // Release builds attest with Play Integrity only; never a debug token.
       buildConfigField("String", "APP_CHECK_DEBUG_TOKEN", "\"\"")
+
+      // Upload Proguard/R8 mapping file to Firebase Crashlytics (enabled during CI/CD)
+      configure<CrashlyticsExtension> {
+          mappingFileUploadEnabled = System.getenv("CI") == "true" || System.getenv("GITHUB_ACTIONS") == "true"
+      }
     }
     debug {
       signingConfig = signingConfigs.findByName("debugConfig") ?: signingConfigs.getByName("debug")
@@ -148,7 +161,6 @@ googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.W
 dependencies {
   implementation(platform(libs.androidx.compose.bom))
   implementation(platform(libs.firebase.bom))
-  // implementation(libs.accompanist.permissions)
   implementation(libs.androidx.activity.compose)
   // implementation(libs.androidx.camera.camera2)
   // implementation(libs.androidx.camera.core)
@@ -174,6 +186,7 @@ dependencies {
   // Uncomment to use Firestore:
   implementation(libs.firebase.firestore)
   implementation(libs.firebase.crashlytics)
+  implementation(libs.firebase.analytics)
   implementation(libs.firebase.messaging)
   implementation(libs.firebase.storage)
 
@@ -216,4 +229,15 @@ dependencies {
   debugImplementation(libs.androidx.compose.ui.tooling)
   "ksp"(libs.androidx.room.compiler)
   "ksp"(libs.moshi.kotlin.codegen)
+}
+
+// A unit test that blocks (e.g. awaiting a real network call) fails fast instead of
+// hanging the CI job until GitHub's 6-hour limit. Recording the design screenshots (every screen,
+// sheet and dialog in five variants) legitimately takes longer.
+val recordingScreenshots = gradle.startParameter.taskNames.any { it.contains("recordRoborazzi") }
+val designOnly = providers.gradleProperty("designOnly").orElse("")
+tasks.withType<Test>().configureEach {
+  timeout.set(Duration.ofMinutes(if (recordingScreenshots) 60 else 15))
+  // DesignScreenshotTest: -PdesignOnly=screen1,screen2 renders only those.
+  systemProperty("design.only", designOnly.get())
 }

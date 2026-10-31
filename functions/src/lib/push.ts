@@ -3,6 +3,25 @@ import { getMessaging } from "firebase-admin/messaging";
 import { logger } from "firebase-functions/v2";
 import "./admin";
 
+export const NOTIFICATIONS = "notifications";
+/** How long a notification stays in the in-app centre. */
+export const NOTIFICATION_TTL_MS = 48 * 60 * 60 * 1000;
+
+/** The stored in-app notification (user_profiles/{uid}/notifications/{id}). */
+export function notificationDoc(title: string, body: string, data: Record<string, string>, now: number) {
+  return {
+    title,
+    body,
+    category: data.category ?? "GENERAL",
+    targetTab: data.targetTab ?? null,
+    bookingId: data.bookingId ?? null,
+    spaceId: data.spaceId ?? null,
+    createdAt: now,
+    expireAt: now + NOTIFICATION_TTL_MS,
+    read: false,
+  };
+}
+
 /**
  * Sends a real FCM push to [uid]'s device, reading the token
  * ProSpaceMessagingService.onNewToken (client) persisted to
@@ -25,17 +44,31 @@ export async function sendPushToUser(
 ): Promise<void> {
   try {
     const db = getFirestore();
-    const profileSnap = await db.collection("user_profiles").doc(uid).get();
+    const profileRef = db.collection("user_profiles").doc(uid);
+    const profileSnap = await profileRef.get();
+    if (!profileSnap.exists) return; // a deleted account: no inbox, no push
+
+    // In-app notification centre: every push is kept for 48 h (pruneExpiredNotifications
+    // deletes it afterwards), whether or not a device can receive it right now.
+    let notificationId: string | undefined;
+    try {
+      const ref = profileRef.collection(NOTIFICATIONS).doc();
+      await ref.set(notificationDoc(title, body, data, Date.now()));
+      notificationId = ref.id;
+    } catch (e) {
+      logger.warn(`sendPushToUser: couldn't store the notification for ${uid}: ${(e as Error).message}`);
+    }
+
     const token = profileSnap.data()?.fcmToken as string | undefined;
     if (!token) {
-      logger.info(`sendPushToUser: no fcmToken on file for ${uid}, skipping push`);
+      logger.info(`sendPushToUser: no fcmToken on file for ${uid}, stored in-app only`);
       return;
     }
 
     try {
       await getMessaging().send({
         token,
-        data: { title, body, ...data },
+        data: { title, body, ...data, ...(notificationId ? { notificationId } : {}) },
         android: { priority: "high" },
       });
     } catch (sendError) {

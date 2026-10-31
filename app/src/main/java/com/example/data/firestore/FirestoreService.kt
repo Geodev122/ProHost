@@ -26,10 +26,22 @@ class FirestoreService(
     } catch (e: Exception) {
         Log.w("FirestoreService", "FirebaseFirestore instance unavailable: ${e.message}")
         null
-    }
+    },
+    // Tests only: no Firestore at all, and writes report success so repository flows run
+    // against in-memory state instead of production (see localOnly()).
+    val localOnly: Boolean = false
 ) {
     companion object {
         private const val TAG = "FirestoreService"
+
+        /** Explore loads active listings a page at a time (see setPublicListingsLimit). */
+        const val PUBLIC_LISTINGS_PAGE = 100
+
+        /** user_profiles/{uid}/notifications — the in-app notification centre. */
+        const val NOTIFICATIONS = "notifications"
+
+        /** Hermetic instance for unit tests: never touches Firebase; writes succeed locally. */
+        fun localOnly(): FirestoreService = FirestoreService(firestore = null, localOnly = true)
 
         @Volatile
         private var INSTANCE: FirestoreService? = null
@@ -43,6 +55,41 @@ class FirestoreService(
 
     private val activeListeners = mutableListOf<ListenerRegistration>()
 
+    // Paged live lists. Each is ONE snapshot listener whose limit grows by a page on
+    // "load more" (documents come in document-id order, so a bigger limit only adds rows
+    // and needs no composite index); only that listener is re-attached, never the rest.
+    // Explore used to stop silently at 200 listings. Admins never load whole collections:
+    // the console searches server-side (functions/src/admin/adminDirectory.ts).
+    private var publicListingsRegistration: ListenerRegistration? = null
+    private var reattachPublicListings: ((Int) -> Unit)? = null
+
+    /** Grows Explore's live listing page to [limit]. */
+    fun setPublicListingsLimit(limit: Int) { reattachPublicListings?.invoke(limit) }
+
+    /**
+     * Live accepted-booking occupancy of one listing, from the server-maintained public projection
+     * `booking_occupancy` (no names, ids of people or prices — only what locks a slot). Specialists
+     * can read only their own booking_requests, so this is how they see slots other people hold.
+     * Returns null in local-only mode; the caller removes the registration when it leaves.
+     */
+    fun listenOccupancy(
+        spaceId: String,
+        onUpdate: (List<RentalBookingRequest>) -> Unit
+    ): com.google.firebase.firestore.ListenerRegistration? {
+        val db = firestore ?: return null
+        return db.collection("booking_occupancy")
+            .whereEqualTo("spaceId", spaceId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.w(TAG, "Occupancy sync note: ${error.message}")
+                    return@addSnapshotListener
+                }
+                onUpdate(snapshot?.documents.orEmpty().mapNotNull { doc ->
+                    doc.data?.let { BookingRequest.fromFirestoreMap(doc.id, it) }
+                })
+            }
+    }
+
     /**
      * Attaches real-time snapshot listeners for the collections that need live cross-device
      * sync (workspaces, users, bookings, schema, plans, audit logs). Returns nothing; call
@@ -52,24 +99,16 @@ class FirestoreService(
      * `isAdmin()`/`role()` must stay pure custom-claim checks with zero `resource.data`/
      * `get()` dependency (see the matching comment there). The moment that stops being true —
      * e.g. a future change makes an admin-revocation take effect instantly the way
-     * `isSuspended()`/`liveRole()` already do there — every unfiltered admin listener below
-     * (workspace_listings, user_profiles, booking_requests,
-     * audit_security_logs) will start failing PERMISSION_DENIED, and must be re-architected
+     * `isSuspended()`/`liveRole()` already do there — the admin-only listeners below
+     * (audit_security_logs, the listing review queue) will start failing PERMISSION_DENIED, and must be re-architected
      * into role-scoped queries in that same change, not discovered after the fact.
      *
-     * [currentUid]/[isAdminCaller] scope the three collections whose firestore.rules read
-     * rule is content-conditional (workspace_listings, user_profiles, booking_requests) — an unconstrained `.collection().addSnapshotListener()` with no
-     * `where()` filter can never satisfy those rules for a non-admin caller: Firestore only
-     * allows a LIST query when the query's own filters provably guarantee every possible
-     * result satisfies the rule, and "no filter at all" proves nothing except for the
-     * content-independent `isAdmin()` branch. The old unconstrained listeners here simply
-     * failed outright (PERMISSION_DENIED, silently logged and dropped) for every
-     * non-admin — this is the fix for that. ADMIN keeps the exact same unconstrained
-     * listeners as before (isAdmin() is trivially provable, independent of any document's
-     * content). A non-admin gets real, rule-satisfying queries instead: the public
-     * Discovery set plus their own docs for workspace_listings/booking_requests (merged
-     * client-side, since a single query can't match two different OR-branches), their own
-     * single document for user_profiles.
+     * [currentUid] scopes the three collections whose firestore.rules read rule is
+     * content-conditional (workspace_listings, user_profiles, booking_requests): every caller,
+     * admins included, gets rule-satisfying queries — the public Discovery set plus their own
+     * docs for workspace_listings/booking_requests (merged client-side), and their own single
+     * user_profiles document. [isAdminCaller] adds only the audit-log and review-queue
+     * listeners; the Admin Console reads everything else through server search.
      * [currentUid] null (signed out) attaches none of these — nothing to show.
      *
      * The old `if (list.isNotEmpty()) callback(list)` gating on every one of these is also
@@ -84,29 +123,21 @@ class FirestoreService(
         onBookingsUpdated: (List<RentalBookingRequest>) -> Unit,
         onSchemaUpdated: (SpaceArchitectureSchema) -> Unit = {},
         onAuditLogsUpdated: (List<AuditSecurityLog>) -> Unit = {},
-        onPackagePlansUpdated: (PackagePlanCatalog) -> Unit = {}
+        onWorkspacesError: (Exception) -> Unit = {},
+        publicListingsLimit: Int = PUBLIC_LISTINGS_PAGE,
+        // true when a paged list filled its limit, so another page may exist.
+        onPublicListingsPage: (hasMore: Boolean) -> Unit = {},
+        // Admin only: listings waiting for verification review (a small live queue; the
+        // console finds everything else through server search — see adminDirectory.ts).
+        onReviewQueueUpdated: (List<SpaceListing>) -> Unit = {},
+        // The signed-in user's in-app notification centre (last 48 h, newest first).
+        onNotificationsUpdated: (List<FCMAlert>) -> Unit = {}
     ) {
         val db = firestore ?: return
 
         try {
             // --- workspace_listings ---
-            if (isAdminCaller) {
-                val spaceListener = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
-                    .limit(500)
-                    .addSnapshotListener { snapshot, error ->
-                        if (error != null) {
-                            Log.w(TAG, "Workspaces sync note: ${error.message}")
-                            return@addSnapshotListener
-                        }
-                        if (snapshot != null) {
-                            val spaces = snapshot.documents.mapNotNull { doc ->
-                                doc.data?.let { data -> SpaceListing.fromFirestoreMap(doc.id, data) }
-                            }
-                            onWorkspacesUpdated(spaces)
-                        }
-                    }
-                activeListeners.add(spaceListener)
-            } else if (currentUid != null) {
+            if (currentUid != null) {
                 val publicById = mutableMapOf<String, SpaceListing>()
                 val ownById = mutableMapOf<String, SpaceListing>()
                 // ownById is published last (see below) so a host's own copy always wins
@@ -119,30 +150,37 @@ class FirestoreService(
                     ownById.values.forEach { merged[it.id] = it }
                     onWorkspacesUpdated(merged.values.toList())
                 }
-                val publicListener = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
-                    .whereEqualTo("status", "ACTIVE")
-                    .whereEqualTo("isOwnerSuspended", false)
-                    .whereEqualTo("isOwnerPackageLapsed", false)
-                    .limit(200)
-                    .addSnapshotListener { snapshot, error ->
-                        if (error != null) {
-                            Log.w(TAG, "Public workspaces sync note: ${error.message}")
-                            return@addSnapshotListener
-                        }
-                        if (snapshot != null) {
-                            publicById.clear()
-                            snapshot.documents.forEach { doc ->
-                                doc.data?.let { SpaceListing.fromFirestoreMap(doc.id, it) }?.let { publicById[it.id] = it }
+                fun attachPublic(limit: Int) {
+                    publicListingsRegistration?.remove()
+                    publicListingsRegistration = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
+                        .whereEqualTo("status", "ACTIVE")
+                        .whereEqualTo("isOwnerSuspended", false)
+                        .whereEqualTo("isOwnerPackageLapsed", false)
+                        .limit(limit.toLong())
+                        .addSnapshotListener { snapshot, error ->
+                            if (error != null) {
+                                Log.w(TAG, "Public workspaces sync note: ${error.message}")
+                                onWorkspacesError(error)
+                                return@addSnapshotListener
                             }
-                            publishSpaces()
+                            if (snapshot != null) {
+                                publicById.clear()
+                                snapshot.documents.forEach { doc ->
+                                    doc.data?.let { SpaceListing.fromFirestoreMap(doc.id, it) }?.let { publicById[it.id] = it }
+                                }
+                                onPublicListingsPage(snapshot.size() >= limit)
+                                publishSpaces()
+                            }
                         }
-                    }
-                activeListeners.add(publicListener)
+                }
+                attachPublic(publicListingsLimit)
+                reattachPublicListings = ::attachPublic
                 val ownListener = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
                     .whereEqualTo("ownerId", currentUid)
                     .addSnapshotListener { snapshot, error ->
                         if (error != null) {
                             Log.w(TAG, "Own workspaces sync note: ${error.message}")
+                            onWorkspacesError(error)
                             return@addSnapshotListener
                         }
                         if (snapshot != null) {
@@ -157,23 +195,9 @@ class FirestoreService(
             }
 
             // --- user_profiles ---
-            if (isAdminCaller) {
-                val userListener = db.collection(FirestoreSchema.Collections.USER_PROFILES)
-                    .addSnapshotListener { snapshot, error ->
-                        if (error != null) {
-                            Log.w(TAG, "Users sync note: ${error.message}")
-                            return@addSnapshotListener
-                        }
-                        if (snapshot != null) {
-                            val users = snapshot.documents.mapNotNull { doc ->
-                                doc.data?.let { data -> AppUser.fromFirestoreMap(doc.id, data) }
-                            }
-                            onUsersUpdated(users)
-                        }
-                    }
-                activeListeners.add(userListener)
-            } else if (currentUid != null) {
-                // Non-admin read rule only ever allows the caller's own document — a
+            if (currentUid != null) {
+                // Own profile only (admins too: the console reads other profiles through
+                // server search). The non-admin read rule only ever allows the caller's own document — a
                 // collection-wide listener can't be scoped any other way here, so this
                 // is a single-document listener, not a query.
                 val ownProfileListener = db.collection(FirestoreSchema.Collections.USER_PROFILES)
@@ -187,27 +211,33 @@ class FirestoreService(
                         onUsersUpdated(if (data != null) listOf(AppUser.fromFirestoreMap(snapshot.id, data)) else emptyList())
                     }
                 activeListeners.add(ownProfileListener)
+
+                // In-app notifications (functions/src/lib/push.ts keeps every push 48 h).
+                val notificationsListener = db.collection(FirestoreSchema.Collections.USER_PROFILES)
+                    .document(currentUid)
+                    .collection(NOTIFICATIONS)
+                    .whereGreaterThan("expireAt", System.currentTimeMillis())
+                    .orderBy("expireAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .limit(100)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.w(TAG, "Notifications sync note: ${error.message}")
+                            return@addSnapshotListener
+                        }
+                        if (snapshot != null) {
+                            onNotificationsUpdated(
+                                snapshot.documents.mapNotNull { doc -> doc.data?.let { FCMAlert.fromFirestoreMap(doc.id, it) } }
+                                    .sortedByDescending { it.timestamp }
+                            )
+                        }
+                    }
+                activeListeners.add(notificationsListener)
             }
 
 
             // --- booking_requests --- the single collection ("booking_requests") that both
             // reads and writes must agree on. See ProHostRepository for the write side.
-            if (isAdminCaller) {
-                val bookingListener = db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS)
-                    .addSnapshotListener { snapshot, error ->
-                        if (error != null) {
-                            Log.w(TAG, "Bookings sync note: ${error.message}")
-                            return@addSnapshotListener
-                        }
-                        if (snapshot != null) {
-                            val bookings = snapshot.documents.mapNotNull { doc ->
-                                doc.data?.let { data -> BookingRequest.fromFirestoreMap(doc.id, data) }
-                            }
-                            onBookingsUpdated(bookings)
-                        }
-                    }
-                activeListeners.add(bookingListener)
-            } else if (currentUid != null) {
+            if (currentUid != null) {
                 val asOwner = mutableMapOf<String, RentalBookingRequest>()
                 val asPractitioner = mutableMapOf<String, RentalBookingRequest>()
                 fun publishBookings() {
@@ -226,7 +256,10 @@ class FirestoreService(
                         if (snapshot != null) {
                             asOwner.clear()
                             snapshot.documents.forEach { doc ->
-                                doc.data?.let { BookingRequest.fromFirestoreMap(doc.id, it) }?.let { asOwner[it.id] = it }
+                                // Requests the server auto-rejected never reached the host: keep them out of
+                                // every host list, count and stat.
+                                doc.data?.let { BookingRequest.fromFirestoreMap(doc.id, it) }
+                                    ?.takeIf { !it.rejectedBySystem }?.let { asOwner[it.id] = it }
                             }
                             publishBookings()
                         }
@@ -268,34 +301,6 @@ class FirestoreService(
                 }
             activeListeners.add(schemaListener)
 
-            // Admin-managed, purchasable Pro Host packages (package_plans/main). Public
-            // read (firestore.rules) — every client, not just admins, needs the live
-            // catalog to render purchase/renewal screens and resolve a host's own
-            // package name/limit. Unlike the schema listener above, a missing document
-            // here is reported as a real EMPTY catalog (not silently skipped) — an
-            // empty/"no packages yet" state must be distinguishable from "still waiting
-            // on Firestore," since the caller must never treat a placeholder as a real,
-            // purchasable package (see ProHostRepository's own doc comment on this).
-            val packagePlansListener = db.collection(FirestoreSchema.Collections.PACKAGE_PLANS)
-                .document(PackagePlanCatalog.DOCUMENT_ID)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        Log.w(TAG, "Package plans sync note: ${error.message}")
-                        return@addSnapshotListener
-                    }
-                    val data = snapshot?.data
-                    if (data == null || data.isEmpty()) {
-                        db.collection(FirestoreSchema.Collections.PACKAGE_PLANS)
-                            .document(PackagePlanCatalog.DOCUMENT_ID)
-                            .set(PackagePlanCatalog.DEFAULT_CATALOG.toFirestoreMap(), SetOptions.merge())
-                            .addOnFailureListener { e -> Log.e(TAG, "Failed to seed package plans catalog: ${e.message}") }
-                        onPackagePlansUpdated(PackagePlanCatalog.DEFAULT_CATALOG)
-                    } else {
-                        onPackagePlansUpdated(PackagePlanCatalog.fromFirestoreMap(data))
-                    }
-                }
-            activeListeners.add(packagePlansListener)
-
             // Admin-only read (firestore.rules) — only ever attached for an admin caller
             // now, rather than unconditionally attempting it and eating a guaranteed
             // PERMISSION_DENIED for every non-admin sign-in. Before this listener
@@ -321,6 +326,24 @@ class FirestoreService(
                         }
                     }
                 activeListeners.add(auditLogListener)
+
+                val reviewQueueListener = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
+                    .whereEqualTo("isVerified", false)
+                    .whereGreaterThan("verificationRequestedAt", 0)
+                    .limit(50)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.w(TAG, "Review queue sync note: ${error.message}")
+                            return@addSnapshotListener
+                        }
+                        if (snapshot != null) {
+                            onReviewQueueUpdated(snapshot.documents.mapNotNull { doc ->
+                                doc.data?.takeIf { it["ownerId"] != null }
+                                    ?.let { data -> SpaceListing.fromFirestoreMap(doc.id, data) }
+                            })
+                        }
+                    }
+                activeListeners.add(reviewQueueListener)
             }
         } catch (e: Exception) {
             Log.w(TAG, "Live listeners attachment warning: ${e.message}")
@@ -330,6 +353,9 @@ class FirestoreService(
     fun clearListeners() {
         activeListeners.forEach { runCatching { it.remove() } }
         activeListeners.clear()
+        publicListingsRegistration?.let { runCatching { it.remove() } }
+        publicListingsRegistration = null
+        reattachPublicListings = null
     }
 
     // ==========================================
@@ -343,7 +369,7 @@ class FirestoreService(
      */
     suspend fun deleteWorkspace(spaceId: String): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS).document(spaceId).delete().await()
             true
         } catch (e: Exception) {
@@ -354,7 +380,7 @@ class FirestoreService(
 
     suspend fun saveWorkspace(space: SpaceListing): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
                 .document(space.id)
                 .set(space.toFirestoreMap(), SetOptions.merge())
@@ -374,7 +400,7 @@ class FirestoreService(
      */
     suspend fun updateWorkspaceListingFields(spaceId: String, fields: Map<String, Any?>): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
                 .document(spaceId)
                 .set(fields + ("updatedAt" to System.currentTimeMillis()), SetOptions.merge())
@@ -397,7 +423,7 @@ class FirestoreService(
      */
     suspend fun incrementSpaceCounter(spaceId: String, field: String): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
                 .document(spaceId)
                 .update(field, FieldValue.increment(1))
@@ -417,7 +443,7 @@ class FirestoreService(
      * returns whether it succeeded rather than throwing.
      */
     suspend fun recordHashtagUsage(tags: List<String>, governorate: String): Boolean {
-        val db = firestore ?: return false
+        val db = firestore ?: return localOnly
         return try {
             tags.map { it.trim().lowercase() }.filter { it.isNotBlank() }.forEach { tag ->
                 db.collection(FirestoreSchema.Collections.HASHTAG_USAGE)
@@ -437,6 +463,44 @@ class FirestoreService(
         } catch (e: Exception) {
             Log.e(TAG, "Error recording hashtag usage: ${e.message}", e)
             false
+        }
+    }
+
+    /** Marks in-app notifications read (the only fields the rules let the owner change). */
+    suspend fun markNotificationsRead(uid: String, ids: List<String>): Boolean {
+        val db = firestore ?: return localOnly
+        if (ids.isEmpty()) return true
+        return try {
+            val now = System.currentTimeMillis()
+            ids.chunked(400).forEach { chunk ->
+                val batch = db.batch()
+                chunk.forEach { id ->
+                    batch.update(
+                        db.collection(FirestoreSchema.Collections.USER_PROFILES).document(uid).collection(NOTIFICATIONS).document(id),
+                        mapOf("read" to true, "readAt" to now)
+                    )
+                }
+                batch.commit().await()
+            }
+            true
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Log.w(TAG, "markNotificationsRead failed: ${e.message}")
+            false
+        }
+    }
+
+    /** One listing by id (e.g. a booking's space outside the loaded Explore page); null if gone or unreadable. */
+    suspend fun fetchListing(spaceId: String): SpaceListing? {
+        val db = firestore ?: return null
+        if (spaceId.isBlank()) return null
+        return try {
+            val doc = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS).document(spaceId).get().await()
+            doc.data?.takeIf { it["ownerId"] != null }?.let { SpaceListing.fromFirestoreMap(doc.id, it) }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Log.w(TAG, "fetchListing failed: ${e.message}")
+            null
         }
     }
 
@@ -488,30 +552,6 @@ class FirestoreService(
         }
     }
 
-    fun observeWorkspaces(): Flow<List<Map<String, Any>>> = callbackFlow {
-        val db = firestore
-        if (db == null) {
-            trySend(emptyList())
-            close()
-            return@callbackFlow
-        }
-
-        val registration: ListenerRegistration = db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    Log.w(TAG, "Error observing workspaces: ${error.message}")
-                    close(error)
-                    return@addSnapshotListener
-                }
-                if (snapshot != null) {
-                    val list = snapshot.documents.mapNotNull { it.data }
-                    trySend(list)
-                }
-            }
-
-        awaitClose { registration.remove() }
-    }
-
     // ==========================================
     // USER PROFILES (schema.gql AppUser)
     // ==========================================
@@ -522,7 +562,7 @@ class FirestoreService(
      * Admin-on-behalf-of-another-user): role/isVerified/createdAtMillis/
      * lastSignInAtMillis/isSuspended/ownerPackageTier/ownerPackageExpiryMillis are
      * exclusively server-maintained (assignInitialRole/grantAdminRole/
-     * setAccountSuspended/playBillingRtdn/grantPackageToUser — see firestore.rules' user_profiles
+     * setAccountSuspended/entitlementManager/forceProHostUpgrade — see firestore.rules' user_profiles
      * update rule) and must never appear in [fields]. Echoing a full AppUser's
      * toFirestoreMap() back unfiltered risks writing a locally-cached, possibly-stale
      * value for one of those fields that no longer matches the real server-stored one —
@@ -531,7 +571,7 @@ class FirestoreService(
      */
     suspend fun saveUserProfile(user: AppUser): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.USER_PROFILES)
                 .document(user.id)
                 .set(user.toFirestoreMap(), SetOptions.merge())
@@ -545,7 +585,7 @@ class FirestoreService(
 
     suspend fun updateUserProfileFields(uid: String, fields: Map<String, Any?>): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.USER_PROFILES)
                 .document(uid)
                 .set(fields + ("updatedAt" to System.currentTimeMillis()), SetOptions.merge())
@@ -553,6 +593,27 @@ class FirestoreService(
             true
         } catch (e: Exception) {
             Log.e(TAG, "Error updating user profile fields: ${e.message}", e)
+            false
+        }
+    }
+
+    /**
+     * Adds or removes one saved listing with arrayUnion / arrayRemove, so a heart tap never rewrites the whole list from a
+     * possibly stale copy (two devices, a quick double tap). The server's favoritesSync counts the difference.
+     */
+    suspend fun setSavedSpace(uid: String, spaceId: String, saved: Boolean): Boolean {
+        return try {
+            val db = firestore ?: return localOnly
+            db.collection(FirestoreSchema.Collections.USER_PROFILES)
+                .document(uid)
+                .update(
+                    "savedSpaceIds", if (saved) FieldValue.arrayUnion(spaceId) else FieldValue.arrayRemove(spaceId),
+                    "updatedAt", System.currentTimeMillis()
+                )
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating saved listings: ${e.message}", e)
             false
         }
     }
@@ -566,7 +627,7 @@ class FirestoreService(
      */
     suspend fun saveFcmToken(uid: String, token: String): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.USER_PROFILES)
                 .document(uid)
                 .set(mapOf("fcmToken" to token, "updatedAt" to System.currentTimeMillis()), SetOptions.merge())
@@ -580,7 +641,7 @@ class FirestoreService(
 
     suspend fun deleteUserProfile(userId: String): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.USER_PROFILES).document(userId).delete().await()
             true
         } catch (e: Exception) {
@@ -629,7 +690,7 @@ class FirestoreService(
 
     suspend fun saveBookingRequest(booking: BookingRequest): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS)
                 .document(booking.id)
                 .set(booking.toFirestoreMap(), SetOptions.merge())
@@ -643,7 +704,7 @@ class FirestoreService(
 
     suspend fun deleteBookingRequest(bookingId: String): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS).document(bookingId).delete().await()
             true
         } catch (e: Exception) {
@@ -659,7 +720,7 @@ class FirestoreService(
         extraFields: Map<String, Any?> = emptyMap()
     ): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             val updates = mutableMapOf<String, Any?>(
                 "status" to status.name,
                 "reviewedAt" to System.currentTimeMillis()
@@ -688,7 +749,7 @@ class FirestoreService(
      */
     suspend fun updateBookingFields(requestId: String, fields: Map<String, Any?>): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS)
                 .document(requestId)
                 .set(fields, SetOptions.merge())
@@ -705,59 +766,12 @@ class FirestoreService(
     // ==========================================
 
     suspend fun saveSchema(schema: SpaceArchitectureSchema): Boolean {
-        return try {
-            val db = firestore ?: return false
-            db.collection(FirestoreSchema.Collections.SCHEMA_ARCHITECTURE)
-                .document("main")
-                .set(schema.toFirestoreMap(), SetOptions.merge())
-                .await()
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error saving schema architecture: ${e.message}", e)
-            false
-        }
-    }
-
-    // ==========================================
-    // ADMIN-MANAGED PACKAGE PLANS
-    // ==========================================
-
-    suspend fun savePackagePlans(catalog: PackagePlanCatalog): Boolean {
-        return try {
-            val db = firestore ?: return false
-            db.collection(FirestoreSchema.Collections.PACKAGE_PLANS)
-                .document(PackagePlanCatalog.DOCUMENT_ID)
-                .set(catalog.toFirestoreMap(), SetOptions.merge())
-                .await()
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error saving package plans: ${e.message}", e)
-            false
-        }
-    }
-
-    /**
-     * A merge-write of the full `packages` map (savePackagePlans above) can only
-     * ADD/overwrite keys — Firestore's merge deep-merges nested map fields, so a
-     * key simply absent from the write payload is never removed server-side. Real
-     * deletion needs an explicit FieldValue.delete() at the specific nested path.
-     * Requires the doc to already exist (update(), not set-with-merge) — true for
-     * any package that ever went through addPackagePlan/updatePackagePlan/
-     * togglePackagePlan; a still-only-local seeded default has nothing to delete
-     * server-side yet, and this simply fails harmlessly in that edge case.
-     */
-    suspend fun deletePackagePlan(planId: String): Boolean {
-        return try {
-            val db = firestore ?: return false
-            db.collection(FirestoreSchema.Collections.PACKAGE_PLANS)
-                .document(PackagePlanCatalog.DOCUMENT_ID)
-                .update("packages.$planId", com.google.firebase.firestore.FieldValue.delete())
-                .await()
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error deleting package plan: ${e.message}", e)
-            false
-        }
+        val db = firestore ?: return localOnly
+        db.collection(FirestoreSchema.Collections.SCHEMA_ARCHITECTURE)
+            .document("main")
+            .set(schema.toFirestoreMap(), SetOptions.merge())
+            .await()
+        return true
     }
 
     /** One-shot read of the currently-published version of legal document [docId], or
@@ -787,7 +801,7 @@ class FirestoreService(
      */
     suspend fun publishLegalDocumentVersion(docId: String, version: LegalDocumentVersion): Boolean {
         return try {
-            val db = firestore ?: return false
+            val db = firestore ?: return localOnly
             db.collection(LegalDocumentVersion.COLLECTION_PATH).document(docId)
                 .set(version.toFirestoreMap(), SetOptions.merge())
                 .await()
@@ -798,24 +812,6 @@ class FirestoreService(
             true
         } catch (e: Exception) {
             Log.e(TAG, "Error publishing legal document version for $docId: ${e.message}", e)
-            false
-        }
-    }
-
-    // ==========================================
-    // AUDIT LOGS
-    // ==========================================
-
-    suspend fun recordAuditLog(log: AuditSecurityLog): Boolean {
-        return try {
-            val db = firestore ?: return false
-            db.collection(FirestoreSchema.Collections.AUDIT_SECURITY_LOGS)
-                .document(log.id)
-                .set(log.toFirestoreMap(), SetOptions.merge())
-                .await()
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error recording audit log: ${e.message}", e)
             false
         }
     }

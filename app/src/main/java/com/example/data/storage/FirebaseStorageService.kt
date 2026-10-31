@@ -88,11 +88,14 @@ class FirebaseStorageService(
         fileUri: Uri,
         fileExtension: String,
         onProgress: (Float) -> Unit = {}
-    ): String? = uploadAndGetUrl(
-        ref = storage?.reference?.child("listing_verification_docs/$spaceId/verification_proof.$fileExtension"),
-        fileUri = fileUri,
-        onProgress = onProgress
-    )
+    ): String? {
+        // Returns a private gs:// reference, never a download URL: the value is stored on the
+        // listing, which every signed-in user can read, and download tokens bypass Storage
+        // rules. Admins open it through the adminVerificationDocUrl function.
+        val ref = storage?.reference?.child("listing_verification_docs/$spaceId/verification_proof.$fileExtension")
+        return if (uploadAndGetUrl(ref = ref, fileUri = fileUri, onProgress = onProgress,
+                contentType = documentContentType(fileExtension)) != null) ref?.toString() else null
+    }
 
     /**
      * Uploads the signed leasing agreement attached to a booking request.
@@ -103,10 +106,23 @@ class FirebaseStorageService(
         fileExtension: String,
         onProgress: (Float) -> Unit = {}
     ): String? = uploadAndGetUrl(
-        ref = storage?.reference?.child("booking_agreements/$bookingId/agreement.$fileExtension"),
+        // A fresh name per upload: signed leases are create-only, so a retry after a failed
+        // accept must not try to overwrite the first upload.
+        ref = storage?.reference?.child("booking_agreements/$bookingId/agreement-${System.currentTimeMillis()}.$fileExtension"),
         fileUri = fileUri,
-        onProgress = onProgress
+        onProgress = onProgress,
+        contentType = documentContentType(fileExtension)
     )
+
+    /** Explicit type so the Storage rules' document check never depends on inference. */
+    private fun documentContentType(fileExtension: String): String? = when (fileExtension.lowercase()) {
+        "pdf" -> "application/pdf"
+        "jpg", "jpeg" -> "image/jpeg"
+        "png" -> "image/png"
+        "webp" -> "image/webp"
+        "heic" -> "image/heic"
+        else -> null
+    }
 
     /**
      * Uploads a listing photo to `listings/{spaceId}/photos/{imageId}.jpg` with automatic compression.

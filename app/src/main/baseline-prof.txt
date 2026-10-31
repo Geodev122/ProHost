@@ -1,0 +1,32 @@
+# ProHost startup Baseline Profile (hand-written).
+# AGP compiles this into release builds and ProfileInstaller (pulled in by Compose) installs it,
+# so the cold-start path is AOT-compiled instead of interpreted/JIT'd on first launch.
+# Compose, Firebase and Coil ship their own library profiles; these rules cover our code on the
+# path from launch to a scrollable Explore list. Replace or extend with a generated profile
+# (androidx.baselineprofile + macrobenchmark, on a device) — see docs/MONETIZATION.md §4.
+
+# App entry
+HSPLcom/example/ProHostApplication;->**(**)**
+HSPLcom/example/MainActivity;->**(**)**
+HSPLcom/example/analytics/**;->**(**)**
+
+# Navigation shell, splash and first screen
+HSPLcom/example/ui/navigation/**;->**(**)**
+HSPLcom/example/ui/screens/SplashScreenKt**;->**(**)**
+HSPLcom/example/ui/screens/DiscoveryScreenKt**;->**(**)**
+HSPLcom/example/ui/screens/LoginAuthScreenKt**;->**(**)**
+HSPLcom/example/ui/theme/**;->**(**)**
+HSPLcom/example/ui/state/**;->**(**)**
+
+# ViewModels and data layer that run during session restore and the first listings load
+HSPLcom/example/ui/viewmodel/ProHostViewModel**;->**(**)**
+HSPLcom/example/ui/viewmodel/DiscoveryViewModel**;->**(**)**
+HSPLcom/example/ui/viewmodel/AuthViewModel**;->**(**)**
+HSPLcom/example/data/repository/**;->**(**)**
+HSPLcom/example/data/firestore/**;->**(**)**
+HSPLcom/example/data/model/**;->**(**)**
+HSPLcom/example/ui/util/SpaceCalculationUtils**;->**(**)**
+
+# Explore list/map cards
+HSPLcom/example/ui/components/CommonComponentsKt**;->**(**)**
+HSPLcom/example/ui/components/LebanonMapCanvasKt**;->**(**)**

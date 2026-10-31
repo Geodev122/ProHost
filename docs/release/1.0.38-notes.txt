@@ -1,0 +1,72 @@
+<en-US>
+What's new in ProHost 1.0.38
+• Hosts: Change price for any slot and choose to keep, update now or update next term for current tenants
+• Ask the host on WhatsApp right from the listing page
+• More reliable bookings: real dates, slots booked by others shown as taken
+• Monthly → yearly: your year starts today, plus your unused days
+• Faster email sign-in and fewer permission requests
+• Many fixes and improvements
+</en-US>
+<ar>
+الجديد في ProHost 1.0.38
+• للمضيفين: تغيير سعر أي فترة مع خيار الإبقاء على السعر القديم أو التحديث الآن أو من الفترة التالية للمستأجرين الحاليين
+• اسأل المضيف عبر واتساب مباشرة من صفحة الإعلان
+• حجوزات أكثر موثوقية: تواريخ حقيقية، والفترات المحجوزة من الآخرين تظهر محجوزة
+• من الشهري إلى السنوي: تبدأ سنتك اليوم مع إضافة الأيام غير المستخدمة
+• تسجيل دخول أسرع بالبريد وطلبات أذونات أقل
+• إصلاحات وتحسينات عديدة
+</ar>
+<fr-FR>
+Nouveautés de ProHost 1.0.38
+• Hôtes : changez le prix d'un créneau et choisissez de le garder, l'appliquer maintenant ou au prochain terme pour vos locataires
+• Contactez l'hôte sur WhatsApp depuis l'annonce
+• Réservations plus fiables : vraies dates, créneaux pris par d'autres affichés comme occupés
+• Mensuel → annuel : votre année commence aujourd'hui, plus vos jours restants
+• Connexion par e-mail plus rapide, moins d'autorisations
+• Nombreuses corrections
+</fr-FR>
+<es-ES>
+Novedades de ProHost 1.0.38
+• Anfitriones: cambia el precio de una franja y elige mantenerlo, aplicarlo ahora o en el próximo periodo para tus inquilinos
+• Pregunta al anfitrión por WhatsApp desde el anuncio
+• Reservas más fiables: fechas reales y franjas de otros mostradas como ocupadas
+• Mensual → anual: tu año empieza hoy, más tus días sin usar
+• Acceso por correo más rápido y menos permisos
+• Muchas correcciones
+</es-ES>
+<de-DE>
+Neu in ProHost 1.0.38
+• Gastgeber: Preis eines Zeitfensters ändern – für Mieter beibehalten, sofort oder ab der nächsten Periode anwenden
+• Gastgeber direkt im Inserat per WhatsApp fragen
+• Zuverlässigere Buchungen: echte Daten, von anderen gebuchte Zeiten als belegt
+• Monat → Jahr: Ihr Jahr beginnt heute, plus ungenutzte Tage
+• Schnellere E-Mail-Anmeldung, weniger Berechtigungen
+• Viele Korrekturen
+</de-DE>
+<it-IT>
+Novità di ProHost 1.0.38
+• Host: cambia il prezzo di una fascia e scegli se mantenerlo, applicarlo subito o dal prossimo periodo per gli inquilini
+• Chiedi all'host su WhatsApp dalla pagina dell'annuncio
+• Prenotazioni più affidabili: date reali, fasce prenotate da altri mostrate come occupate
+• Mensile → annuale: il tuo anno inizia oggi, più i giorni non usati
+• Accesso via e-mail più rapido e meno permessi
+• Molte correzioni
+</it-IT>
+<pt-BR>
+Novidades do ProHost 1.0.38
+• Anfitriões: altere o preço de um horário e escolha manter, aplicar agora ou no próximo período para os inquilinos
+• Pergunte ao anfitrião pelo WhatsApp na página do anúncio
+• Reservas mais confiáveis: datas reais e horários de outros mostrados como ocupados
+• Mensal → anual: seu ano começa hoje, mais os dias não usados
+• Login por e-mail mais rápido e menos permissões
+• Muitas correções
+</pt-BR>
+<tr-TR>
+ProHost 1.0.38'de yenilikler
+• Ev sahipleri: bir zaman diliminin fiyatını değiştirin; mevcut kiracılar için koruyun, hemen ya da sonraki dönemden uygulayın
+• İlan sayfasından ev sahibine WhatsApp ile sorun
+• Daha güvenilir rezervasyonlar: gerçek tarihler, başkalarının aldığı dilimler dolu görünür
+• Aylıktan yıllığa: yılınız bugün başlar, kullanılmayan günler eklenir
+• Daha hızlı e-posta girişi, daha az izin
+• Birçok düzeltme
+</tr-TR>

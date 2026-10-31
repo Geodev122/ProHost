@@ -1,6 +1,37 @@
 package com.example
 
+import com.example.data.auth.FirebaseFunctionsClient
+import com.example.data.auth.SlotPriceChangeResult
+import com.example.data.firestore.FirestoreService
 import com.example.data.model.*
+import com.example.data.repository.ProHostRepository
+
+/** Callables the repository tests reach, answered locally instead of by Cloud Functions. */
+open class FakeFunctionsClient : FirebaseFunctionsClient() {
+    override suspend fun setListingVerification(spaceId: String, verified: Boolean): Result<Unit> = Result.success(Unit)
+    override suspend fun recordAuditLog(actionType: String, details: String, severity: String): Result<Unit> = Result.success(Unit)
+
+    /** Last changeSlotPrice payload; set [changeSlotPriceError] to make the call fail. */
+    var lastChangeSlotPrice: Map<String, Any?>? = null
+    var changeSlotPriceError: Exception? = null
+    override suspend fun changeSlotPrice(
+        spaceId: String, scopeId: String, kind: String, key: String, newPrice: Double, decisions: Map<String, String>
+    ): Result<SlotPriceChangeResult> {
+        lastChangeSlotPrice = mapOf(
+            "spaceId" to spaceId, "scopeId" to scopeId, "kind" to kind, "key" to key, "newPrice" to newPrice, "decisions" to decisions
+        )
+        changeSlotPriceError?.let { return Result.failure(it) }
+        return Result.success(SlotPriceChangeResult(
+            affected = decisions.size,
+            now = decisions.values.count { it == "NOW" },
+            nextTerm = decisions.values.count { it == "NEXT_TERM" },
+            keep = decisions.values.count { it == "KEEP" }
+        ))
+    }
+}
+
+/** Repository that never touches Firebase: in-memory state only, writes succeed locally. */
+fun hermeticRepository(): ProHostRepository = ProHostRepository(FirestoreService.localOnly(), FakeFunctionsClient())
 
 /** Demo listing used by repository tests (production no longer seeds any). */
 fun demoSpaces(): List<SpaceListing> = listOf(
@@ -19,19 +50,7 @@ fun demoSpaces(): List<SpaceListing> = listOf(
                 residentPractitioners = listOf("Dr. Sami Haddad"),
                 essentialFacilities = listOf("High-Speed Wi-Fi", "Receptionist", "Sterilization Suite"),
                 equipment = listOf(EquipmentItem("EQ-1", "Exam Table", EquipmentCategory.WORKSPACES, 1, "Hydraulic exam table")),
-                rentalFormulas = listOf(
-                    RentalFormula(
-                        id = "F1",
-                        type = RentalFormulaType.SHIFT,
-                        rateUsd = 350.0,
-                        scheduleDescription = "Morning Shift (08:00 - 14:00)",
-                        daysOfWeek = listOf("Mon", "Wed", "Fri"),
-                        startHour = "08:00",
-                        endHour = "14:00",
-                        totalWeeklyHours = 18,
-                        shiftName = "Morning Shift"
-                    )
-                ),
+                pricing = RentalPricingConfig.fromLegacyFormula(TEST_FORMULA),
                 rules = PremisesRules(),
                 ownerId = "USR-OWNER-01",
                 ownerName = "Achrafieh Commercial Properties",
@@ -40,3 +59,16 @@ fun demoSpaces(): List<SpaceListing> = listOf(
                 baseMonthlyRateUsd = 450.0
             )
         )
+
+/** The rental formula the fixture listing is priced from, and the one test bookings use. */
+val TEST_FORMULA = RentalFormula(
+    id = "F1",
+    type = RentalFormulaType.SHIFT,
+    rateUsd = 350.0,
+    scheduleDescription = "Morning Shift (08:00 - 14:00)",
+    daysOfWeek = listOf("Mon", "Wed", "Fri"),
+    startHour = "08:00",
+    endHour = "14:00",
+    totalWeeklyHours = 18,
+    shiftName = "Morning Shift"
+)

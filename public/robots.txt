@@ -1,0 +1,9 @@
+# pro-host.tech
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /unsubscribe
+Disallow: /emaillink
+Disallow: /redeem
+
+Sitemap: https://pro-host.tech/sitemap.xml

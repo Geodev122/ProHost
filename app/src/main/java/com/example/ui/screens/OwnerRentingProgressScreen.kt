@@ -1,5 +1,11 @@
 package com.example.ui.screens
 
+import com.example.ui.util.localizedLabel
+import com.example.ui.util.timeRange
+import com.example.ui.util.uiText
+import com.example.R
+import androidx.compose.ui.res.stringResource
+import com.example.ui.theme.Radius
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -33,7 +39,6 @@ fun OwnerRentingProgressScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val spaces by viewModel.spaces.collectAsState()
     val allBookingRequests by viewModel.bookingRequests.collectAsState()
-    val packagePlans by viewModel.packagePlans.collectAsState()
     val hasLoadedBookingsOnce by viewModel.hasLoadedBookingsOnce.collectAsState()
     val isOffline by viewModel.isOfflineMode.collectAsState()
 
@@ -60,6 +65,10 @@ fun OwnerRentingProgressScreen(
     }
 
     var cancelTargetBooking by remember { mutableStateOf<BookingRequest?>(null) }
+    var changePriceFor by remember { mutableStateOf<BookingRequest?>(null) }
+    changePriceFor?.let { bkg ->
+        ChangePriceSheet(viewModel = viewModel, onDismiss = { changePriceFor = null }, booking = bkg)
+    }
     cancelTargetBooking?.let { bkg ->
         com.example.ui.components.CancelAcceptedBookingDialog(
             spaceTitle = bkg.spaceTitle,
@@ -75,7 +84,7 @@ fun OwnerRentingProgressScreen(
     OwnerRentingProgressScreenContent(
         ownerSpaces = ownerSpaces,
         activeBookings = activeBookings,
-        currentPackage = currentUser?.ownerPackageId?.let { packagePlans.packages[it] },
+        currentPlanId = currentUser?.ownerPackageId,
         ownerPackageExpiryMillis = currentUser?.ownerPackageExpiryMillis,
         hasLoadedBookingsOnce = hasLoadedBookingsOnce,
         isOffline = isOffline,
@@ -94,7 +103,8 @@ fun OwnerRentingProgressScreen(
         onMarkPaid = { booking ->
             viewModel.acknowledgePayment(booking.id, asHost = true, context)
         },
-        onOpenRequests = onOpenRequests
+        onOpenRequests = onOpenRequests,
+        onChangePrice = { booking -> changePriceFor = booking }
     )
 }
 
@@ -102,7 +112,7 @@ fun OwnerRentingProgressScreen(
 fun OwnerRentingProgressScreenContent(
     ownerSpaces: List<SpaceListing>,
     activeBookings: List<BookingRequest>,
-    currentPackage: PackagePlan?,
+    currentPlanId: String?,
     ownerPackageExpiryMillis: Long?,
     hasLoadedBookingsOnce: Boolean = true,
     isOffline: Boolean = false,
@@ -111,45 +121,49 @@ fun OwnerRentingProgressScreenContent(
     onCancelAcceptedBooking: (BookingRequest) -> Unit = {},
     onMarkPaid: (BookingRequest) -> Unit = {},
     onOpenRequests: () -> Unit = {},
+    onChangePrice: (BookingRequest) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // Generate Dynamic Reminders & Alerts
     // Each reminder is (isUrgent, text) — isUrgent drives icon and tint selection.
-    val reminders = remember(ownerSpaces, activeBookings, currentPackage, ownerPackageExpiryMillis) {
+    val reminders = remember(ownerSpaces, activeBookings, currentPlanId, ownerPackageExpiryMillis) {
         val list = mutableListOf<Pair<Boolean, String>>()
 
-        // 1. Package renewal reminder — host-level (currentPackage/ownerPackageExpiryMillis),
+        // 1. Package renewal reminder — host-level (currentPlanId/ownerPackageExpiryMillis),
         // not per-listing. The old per-listing SpaceListing.subscriptionExpiryMillis this
         // used to read is a dead field (set once at creation, never updated by any real
         // renewal since packages replaced the flat per-listing subscription fee).
         val daysLeft = ownerPackageExpiryMillis?.let {
             ((it - System.currentTimeMillis() + 86399999L) / (24 * 60 * 60 * 1000)).coerceAtLeast(1)
         }
-        val daysLabel = if (daysLeft == 1L) "< 1 day" else "$daysLeft days"
-        if (currentPackage != null && daysLeft != null) {
+        val daysLabel = if (daysLeft == 1L) uiText(R.string.t_1_day) else "$daysLeft days"
+        val planName = localizedLabel(com.example.data.billing.PlayCatalog.planLabel(currentPlanId))
+        if (currentPlanId != null && daysLeft != null &&
+            !com.example.data.billing.PlayCatalog.isLifetimeExpiry(ownerPackageExpiryMillis)) {
             if (daysLeft <= 7) {
-                list.add(Pair(true, "'${currentPackage.name}' renews in $daysLabel. Renew from My Listings to keep publishing new workspaces."))
+                list.add(Pair(true, uiText(R.string.x_renews_in_x_google_play_renews_it_automa, planName, daysLabel)))
             } else {
-                list.add(Pair(false, "'${currentPackage.name}' is active. Renews in $daysLabel."))
+                list.add(Pair(false, uiText(R.string.x_is_active_renews_in_x, planName, daysLabel)))
             }
         }
 
         // 2. Outside payment reminders — only for bookings not yet acknowledged as paid
         activeBookings.filter { !it.paymentAcknowledgedByHost }.forEach { booking ->
-            list.add(Pair(true, "Outside-App Rent due from Dr. ${booking.practitionerName} fo" +
-                "r slot '${booking.selectedDateTimeRange.ifBlank { booking.formula.scheduleDescription }}" +
-                "' (Amount: $${booking.totalAmountUsd.toInt()} USD)."))
+            list.add(Pair(true, uiText(
+                R.string.outside_rent_due_x_slot_x_amount_x, booking.practitionerName,
+                booking.selectedDateTimeRange.ifBlank { booking.formula.scheduleDescription }, booking.totalAmountUsd.toInt()
+            )))
         }
 
         // 3. Scheduling checklist reminder
         activeBookings.forEach { booking ->
             val daysOfWeek = booking.selectedDays.ifEmpty { booking.formula.daysOfWeek }
-            list.add(Pair(false, "Practice Schedule: Dr. ${booking.practitionerName} has an upcoming shift on ${daysOfWeek.joinToString()}" +
-                " at '${booking.spaceTitle}'."))
+            list.add(Pair(false, uiText(R.string.practice_schedule_x_has_an_upcoming_shift, booking.practitionerName, daysOfWeek.joinToString()) +
+                uiText(R.string.at_x, booking.spaceTitle)))
         }
 
         if (list.isEmpty()) {
-            list.add(Pair(false, "All clear! No pending payments or active contract alerts right now."))
+            list.add(Pair(false, uiText(R.string.all_clear_no_pending_payments_or_active_co)))
         }
         list
     }
@@ -157,7 +171,7 @@ fun OwnerRentingProgressScreenContent(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(premiumBackgroundBrush()),
+            .proHostScreenBackground(),
         contentAlignment = Alignment.TopCenter
     ) {
         LazyColumn(
@@ -165,7 +179,7 @@ fun OwnerRentingProgressScreenContent(
                 .fillMaxWidth()
                 .widthIn(max = 840.dp),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
             item {
                 Surface(
@@ -181,7 +195,7 @@ fun OwnerRentingProgressScreenContent(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             Icon(
                                 Icons.Default.EventAvailable,
@@ -190,7 +204,7 @@ fun OwnerRentingProgressScreenContent(
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
-                                text = "${activeBookings.size} Active Leases",
+                                text = stringResource(R.string.x_active_leases, activeBookings.size),
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -198,7 +212,7 @@ fun OwnerRentingProgressScreenContent(
                         }
 
                         CustomButton(
-                            text = "View Requests",
+                            text = stringResource(R.string.view_requests),
                             onClick = onOpenRequests,
                             variant = CustomButtonVariant.PRIMARY,
                             icon = Icons.Default.Inbox,
@@ -213,15 +227,15 @@ fun OwnerRentingProgressScreenContent(
             ProSurfaceCard {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md)
                 ) {
                     ProSectionHeader(
-                        title = "Alerts",
-                        subtitle = "Real-time alerts for contracts, schedules & dues",
+                        title = stringResource(R.string.alerts),
+                        subtitle = stringResource(R.string.real_time_alerts_for_contracts_schedules_d),
                         icon = Icons.Default.NotificationsActive
                     )
 
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         reminders.forEach { (isUrgent, reminderText) ->
                             Surface(
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -238,7 +252,7 @@ fun OwnerRentingProgressScreenContent(
                                         tint = if (isUrgent) MaterialTheme.proColors.warning else MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Spacer(modifier = Modifier.width(Spacing.md))
                                     Text(
                                         text = reminderText,
                                         style = MaterialTheme.typography.bodySmall,
@@ -257,8 +271,8 @@ fun OwnerRentingProgressScreenContent(
         // Active Tenancies Section Header
         item {
             ProSectionHeader(
-                title = "Active Tenancies (${activeBookings.size})",
-                subtitle = "Contract timeline, elapsed days, and practitioner contact",
+                title = stringResource(R.string.active_tenancies_x, activeBookings.size),
+                subtitle = stringResource(R.string.contract_timeline_elapsed_days_and_practit),
                 icon = Icons.Default.Schedule
             )
         }
@@ -292,12 +306,12 @@ fun OwnerRentingProgressScreenContent(
                             modifier = Modifier.size(40.dp)
                         )
                         Text(
-                            "Can't reach server",
+                            stringResource(R.string.can_t_reach_server),
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            "Check your connection — cached data may be stale.",
+                            stringResource(R.string.check_your_connection_cached_data_may_be_s),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -308,9 +322,8 @@ fun OwnerRentingProgressScreenContent(
         } else if (activeBookings.isEmpty()) {
             item {
                 ProEmptyState(
-                    title = "No Active Tenancies Yet",
-                    description = "When you approve rental booking requests, contract progress, remaining days, and practitioner commun" +
-                        "ications will appear here.",
+                    title = stringResource(R.string.no_active_tenancies_yet),
+                    description = stringResource(R.string.active_tenancies_empty_description),
                     icon = Icons.AutoMirrored.Filled.ReceiptLong
                 )
             }
@@ -329,7 +342,7 @@ fun OwnerRentingProgressScreenContent(
                 ) {
                     Column(
                         modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -338,7 +351,7 @@ fun OwnerRentingProgressScreenContent(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Dr. ${booking.practitionerName}",
+                                    text = booking.practitionerName,
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -350,12 +363,12 @@ fun OwnerRentingProgressScreenContent(
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
-                                    text = "Space: ${booking.spaceTitle}",
+                                    text = stringResource(R.string.space_x, booking.spaceTitle),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            ProStatusBadge(type = ProBadgeType.CUSTOM_SUCCESS, customText = "$remainingDays Days Left")
+                            ProStatusBadge(type = ProBadgeType.CUSTOM_SUCCESS, customText = uiText(R.string.x_days_left, remainingDays))
                         }
 
                         // Shift details badge
@@ -364,26 +377,28 @@ fun OwnerRentingProgressScreenContent(
                             shape = MaterialTheme.shapes.small,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column(modifier = Modifier.padding(Spacing.sm), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Column(modifier = Modifier.padding(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                                 val chosenDaysStr = if (booking.selectedDays.isNotEmpty()) {
                                     booking.selectedDays.joinToString(", ")
                                 } else {
                                     booking.formula.daysOfWeek.joinToString(", ")
                                 }
                                 val chosenHoursStr = if (booking.selectedStartHour.isNotBlank() && booking.selectedEndHour.isNotBlank()) {
-                                    "${booking.selectedStartHour} - ${booking.selectedEndHour}"
+                                    timeRange(booking.selectedStartHour, booking.selectedEndHour)
                                 } else {
-                                    "${booking.formula.startHour} - ${booking.formula.endHour}"
+                                    timeRange(booking.formula.startHour, booking.formula.endHour)
                                 }
 
                                 Text(
-                                    text = "Shift: $chosenDaysStr ($chosenHoursStr)",
+                                    text = stringResource(R.string.shift_x_x, chosenDaysStr, chosenHoursStr),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Rate: $${booking.formula.rateUsd.toInt()} USD / month • Agreement: $${booking.totalAmountUsd.toInt()} USD",
+                                    text = (com.example.ui.util.AttendeePricing.bookingSummary(booking)
+                                        ?: stringResource(R.string.rate_x_usdx, booking.formula.rateUsd.toInt(), com.example.ui.util.SpaceCalculationUtils.rateUnitLabel(booking.formula.type))) +
+                                        stringResource(R.string.agreement_x_usd, formatUsd(booking.totalAmountUsd)),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -398,25 +413,31 @@ fun OwnerRentingProgressScreenContent(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = if (booking.paymentAcknowledgedByHost) "✓ You marked this paid" else "Not marked paid yet",
+                                text = if (booking.paymentAcknowledgedByHost) stringResource(R.string.you_marked_this_paid_2) else stringResource(R.string.not_marked_paid_yet),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (booking.paymentAcknowledgedByHost) MaterialTheme.proColors.success else MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            if (!booking.paymentAcknowledgedByHost) {
-                                TextButton(onClick = { onMarkPaid(booking) }) {
-                                    Text("Mark as Paid", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                TextButton(onClick = { onChangePrice(booking) }) {
+                                    Text(stringResource(R.string.change_price), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                }
+                                if (!booking.paymentAcknowledgedByHost) {
+                                    TextButton(onClick = { onMarkPaid(booking) }) {
+                                        Text(stringResource(R.string.mark_as_paid), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                    }
                                 }
                             }
                         }
+                        booking.lastPriceChange?.let { PriceChangeNote(it, Modifier.fillMaxWidth()) }
 
                         // Progress Bar & Percentage
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             LinearProgressIndicator(
                                 progress = { progressFraction },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(6.dp)
-                                    .clip(RoundedCornerShape(3.dp)),
+                                    .clip(Radius.Xs),
                                 color = MaterialTheme.colorScheme.primary,
                                 trackColor = MaterialTheme.colorScheme.surfaceVariant
                             )
@@ -426,7 +447,7 @@ fun OwnerRentingProgressScreenContent(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "Duration: ${booking.durationMonths} Months (${elapsedDays}d elapsed)",
+                                    text = stringResource(R.string.duration_x_months_xd_elapsed, booking.durationMonths, elapsedDays),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier
@@ -434,11 +455,11 @@ fun OwnerRentingProgressScreenContent(
                                         .padding(end = 6.dp)
                                 )
                                 Text(
-                                    text = "${(progressFraction * 100).toInt()}% Elapsed",
+                                    text = stringResource(R.string.x_elapsed, (progressFraction * 100).toInt()),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary,
-                                    maxLines = 1
+                                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -446,11 +467,11 @@ fun OwnerRentingProgressScreenContent(
                         // Action Buttons
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             CustomButton(
-                                text = "WhatsApp",
+                                text = stringResource(R.string.whatsapp),
                                 onClick = { onWhatsAppPractitioner(booking) },
                                 variant = CustomButtonVariant.WHATSAPP,
                                 icon = Icons.AutoMirrored.Filled.Chat,
@@ -459,7 +480,7 @@ fun OwnerRentingProgressScreenContent(
                             )
 
                             CustomButton(
-                                text = "Remind Dues",
+                                text = stringResource(R.string.remind_dues),
                                 onClick = { onSendPaymentReminder(booking) },
                                 variant = CustomButtonVariant.SECONDARY,
                                 icon = Icons.Default.NotificationsActive,
@@ -477,7 +498,7 @@ fun OwnerRentingProgressScreenContent(
                             ) {
                                 Icon(
                                     Icons.Default.EventBusy,
-                                    contentDescription = "Cancel Booking",
+                                    contentDescription = stringResource(R.string.cancel_booking),
                                     tint = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.size(18.dp)
                                 )

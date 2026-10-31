@@ -1,6 +1,9 @@
 package com.example.ui.components.dialogs
 
-import android.widget.Toast
+import com.example.ui.util.uiText
+import com.example.R
+import androidx.compose.ui.res.stringResource
+import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -43,6 +47,8 @@ fun DrawerDialogsHandler(
     dialogId: String?,
     viewModel: ProHostViewModel,
     onNavigateToTab: ((String) -> Unit)? = null,
+    // A notification's "Open": its tab plus the booking it is about (role-checked by the caller).
+    onOpenNotification: ((FCMAlert, String) -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     if (dialogId == null) return
@@ -62,7 +68,6 @@ fun DrawerDialogsHandler(
 
     val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()
-    val allSpaces by viewModel.spaces.collectAsState()
     val auditLogs by viewModel.auditLogs.collectAsState()
     val fcmAlerts by viewModel.fcmAlerts.collectAsState()
 
@@ -75,8 +80,8 @@ fun DrawerDialogsHandler(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = Elevation.level3,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = Spacing.md)
@@ -93,17 +98,15 @@ fun DrawerDialogsHandler(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val title = when (dialogId) {
-                        "owner_billing" -> "Billing"
-                        "admin_audit" -> "Central Security Audits"
-                        "admin_gov" -> "Governorate Node Status"
+                        "admin_audit" -> uiText(R.string.central_security_audits)
                         // One title carrying the live unread count — this used to be a
                         // separate chrome title ("Real-time Alerts Terminal") plus a
                         // second, redundant "Notifications" heading inside the content.
                         "fcm_alerts" -> {
                             val unreadCount = fcmAlerts.count { !it.isRead }
-                            if (unreadCount > 0) "Notifications ($unreadCount new)" else "Notifications"
+                            if (unreadCount > 0) uiText(R.string.notifications_x_new, unreadCount) else uiText(R.string.notifications)
                         }
-                        else -> "Information Sheet"
+                        else -> uiText(R.string.information_sheet)
                     }
                     Text(
                         text = title,
@@ -112,7 +115,7 @@ fun DrawerDialogsHandler(
                         color = MaterialTheme.colorScheme.primary
                     )
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
                     }
                 }
 
@@ -133,50 +136,6 @@ fun DrawerDialogsHandler(
                         // "Send Payment Reminder" that was Toast-only fakery, a WhatsApp
                         // button with no cancellation option, etc.). All four now route
                         // straight to the real screen instead (see AppDrawerContent.kt).
-                        "owner_billing" -> {
-                            val purchases by viewModel.playActivePurchases.collectAsState()
-                            val playProducts by viewModel.playBillingProducts.collectAsState()
-                            val activity = androidx.activity.compose.LocalActivity.current
-                            val sdf = remember { SimpleDateFormat("MMM d, yyyy", Locale.US) }
-                            androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.refreshPlayPurchases(context) }
-
-                            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                if (purchases.isEmpty()) {
-                                    Text(
-                                        "No active Google Play subscription on this Google account.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                } else {
-                                    purchases.forEach { purchase ->
-                                        val productId = purchase.products.firstOrNull().orEmpty()
-                                        val name = playProducts.firstOrNull { it.productId == productId }?.name ?: productId
-                                        Card(modifier = Modifier.fillMaxWidth()) {
-                                            Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                                Text(name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                                Text(
-                                                    if (purchase.isAutoRenewing) "Auto-renewing" else "Canceled — active until the end of the paid period",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = if (purchase.isAutoRenewing) MaterialTheme.proColors.success else MaterialTheme.colorScheme.error
-                                                )
-                                                Text("Started ${sdf.format(Date(purchase.purchaseTime))}", style = MaterialTheme.typography.labelSmall)
-                                                purchase.orderId?.let { Text("Order $it", style = MaterialTheme.typography.labelSmall) }
-                                            }
-                                        }
-                                    }
-                                }
-                                if (activity != null) {
-                                    OutlinedButton(
-                                        onClick = { viewModel.openManageSubscriptions(activity, purchases.firstOrNull()?.products?.firstOrNull()) },
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) { Text("Manage subscription in Google Play") }
-                                    TextButton(
-                                        onClick = { viewModel.openPlayOrderHistory(activity) },
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) { Text("Payment history in Google Play") }
-                                }
-                            }
-                        }
                         "admin_audit" -> {
                             val sdfShort = remember { SimpleDateFormat("MMM d, yyyy", Locale.US) }
                             val filteredAuditLogs = remember(auditLogs, auditFromMillis, auditToMillis) {
@@ -186,18 +145,18 @@ fun DrawerDialogsHandler(
                                 }
                             }
 
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md), modifier = Modifier.fillMaxWidth()) {
                                 // Date-range filter bar
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     AssistChip(
                                         onClick = { showAuditFromPicker = true },
                                         label = {
                                             Text(
-                                                auditFromMillis?.let { "From: ${sdfShort.format(Date(it))}" } ?: "From: Any",
+                                                auditFromMillis?.let { uiText(R.string.from_x, sdfShort.format(Date(it))) } ?: uiText(R.string.from_any),
                                                 style = MaterialTheme.typography.labelSmall
                                             )
                                         },
@@ -207,15 +166,15 @@ fun DrawerDialogsHandler(
                                         onClick = { showAuditToPicker = true },
                                         label = {
                                             Text(
-                                                auditToMillis?.let { "To: ${sdfShort.format(Date(it))}" } ?: "To: Any",
+                                                auditToMillis?.let { uiText(R.string.to_x, sdfShort.format(Date(it))) } ?: uiText(R.string.to_any),
                                                 style = MaterialTheme.typography.labelSmall
                                             )
                                         },
                                         leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
                                     )
                                     if (auditFromMillis != null || auditToMillis != null) {
-                                        IconButton(onClick = { auditFromMillis = null; auditToMillis = null }, modifier = Modifier.size(28.dp)) {
-                                            Icon(Icons.Default.Close, contentDescription = "Clear date filter", modifier = Modifier.size(16.dp))
+                                        IconButton(onClick = { auditFromMillis = null; auditToMillis = null }, modifier = Modifier.size(40.dp)) {
+                                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.clear_date_filter), modifier = Modifier.size(16.dp))
                                         }
                                     }
                                 }
@@ -226,15 +185,15 @@ fun DrawerDialogsHandler(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        "${filteredAuditLogs.size} of ${auditLogs.size} entries",
+                                        stringResource(R.string.x_of_x_entries, filteredAuditLogs.size, auditLogs.size),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     CustomButton(
-                                        text = "Export CSV",
+                                        text = stringResource(R.string.export_csv),
                                         onClick = {
                                             val csv = viewModel.repository.exportAuditLogsToCsv(auditFromMillis, auditToMillis)
-                                            viewModel.shareExportData(context, "Audit Logs", csv)
+                                            viewModel.shareExportData(context, uiText(R.string.audit_logs), csv)
                                         },
                                         variant = CustomButtonVariant.PRIMARY,
                                         icon = Icons.Default.Download,
@@ -243,10 +202,10 @@ fun DrawerDialogsHandler(
                                 }
 
                                 LazyColumn(
-                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                                     modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
                                 ) {
-                                    items(filteredAuditLogs) { log ->
+                                    items(filteredAuditLogs, key = { it.id }) { log ->
                                         Card(
                                             modifier = Modifier.fillMaxWidth(),
                                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -271,7 +230,7 @@ fun DrawerDialogsHandler(
                                                 }
                                                 Text(log.details, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelSmall)
                                                 Text(
-                                                    "Actor: ${log.actorEmail} • " +
+                                                    stringResource(R.string.actor_x, log.actorEmail) +
                                                         "${SimpleDateFormat("MMM d, yyyy HH:mm", Locale.US).format(Date(log.timestamp))}",
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     style = MaterialTheme.typography.labelSmall
@@ -292,7 +251,7 @@ fun DrawerDialogsHandler(
                                             showAuditFromPicker = false
                                         }) { Text("OK") }
                                     },
-                                    dismissButton = { TextButton(onClick = { showAuditFromPicker = false }) { Text("Cancel") } }
+                                    dismissButton = { TextButton(onClick = { showAuditFromPicker = false }) { Text(stringResource(R.string.cancel)) } }
                                 ) {
                                     DatePicker(state = pickerState)
                                 }
@@ -309,143 +268,16 @@ fun DrawerDialogsHandler(
                                             showAuditToPicker = false
                                         }) { Text("OK") }
                                     },
-                                    dismissButton = { TextButton(onClick = { showAuditToPicker = false }) { Text("Cancel") } }
+                                    dismissButton = { TextButton(onClick = { showAuditToPicker = false }) { Text(stringResource(R.string.cancel)) } }
                                 ) {
                                     DatePicker(state = pickerState)
-                                }
-                            }
-                        }
-                        "admin_gov" -> {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .verticalScroll(rememberScrollState()),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    text = "Governorate Status Matrix",
-                                    fontWeight = FontWeight.Bold,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.padding(bottom = 4.dp)
-                                )
-                                
-                                // Table Header
-                                Surface(
-                                    color = MaterialTheme.colorScheme.surfaceVariant,
-                                    shape = MaterialTheme.shapes.small,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(
-                                            "Governorate",
-                                            fontWeight = FontWeight.Bold,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            modifier = Modifier.weight(2f)
-                                        )
-                                        Text(
-                                            "Active",
-                                            fontWeight = FontWeight.Bold,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            textAlign = TextAlign.Center,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        Text(
-                                            "Paused",
-                                            fontWeight = FontWeight.Bold,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            textAlign = TextAlign.Center,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        Text(
-                                            "Draft",
-                                            fontWeight = FontWeight.Bold,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            textAlign = TextAlign.Center,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        Text(
-                                            "Total",
-                                            fontWeight = FontWeight.Bold,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            textAlign = TextAlign.Center,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                    }
-                                }
-
-                                Governorate.entries.forEach { gov ->
-                                    val activeCount = allSpaces.count { it.governorate == gov && it.status == ListingStatus.ACTIVE }
-                                    val pausedCount = allSpaces.count { it.governorate == gov && it.status == ListingStatus.PAUSED }
-                                    val draftCount = allSpaces.count { it.governorate == gov && it.status == ListingStatus.DRAFT }
-                                    val totalCount = activeCount + pausedCount + draftCount
-
-                                    Card(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                                modifier = Modifier.weight(2f)
-                                            ) {
-                                                Icon(
-                                                    Icons.Default.Place,
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary,
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                                Text(gov.displayName, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
-                                            }
-                                            Text(
-                                                "$activeCount",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.proColors.success,
-                                                textAlign = TextAlign.Center,
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                            Text(
-                                                "$pausedCount",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.secondary,
-                                                textAlign = TextAlign.Center,
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                            Text(
-                                                "$draftCount",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.outline,
-                                                textAlign = TextAlign.Center,
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                            Text(
-                                                "$totalCount",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onSurface,
-                                                textAlign = TextAlign.Center,
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                        }
-                                    }
                                 }
                             }
                         }
                         "fcm_alerts" -> {
                             Column(
                                 modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                                verticalArrangement = Arrangement.spacedBy(Spacing.md)
                             ) {
                                 if (fcmAlerts.isEmpty()) {
                                     Column(
@@ -462,25 +294,39 @@ fun DrawerDialogsHandler(
                                         )
                                         Spacer(modifier = Modifier.height(Spacing.sm))
                                         Text(
-                                            text = "No notifications yet.",
+                                            text = stringResource(R.string.no_notifications_yet),
                                             fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.outline,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             style = MaterialTheme.typography.bodyMedium
                                         )
                                         Text(
-                                            text = "Real-time updates received via push messaging will appear here.",
+                                            text = stringResource(R.string.real_time_updates_received_via_push_messag),
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.outline,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             textAlign = TextAlign.Center,
                                             modifier = Modifier.padding(horizontal = Spacing.lg)
                                         )
                                     }
                                 } else {
+                                    if (fcmAlerts.any { !it.isRead }) {
+                                        TextButton(
+                                            onClick = { viewModel.markAllAlertsRead() },
+                                            modifier = Modifier.align(Alignment.End)
+                                        ) { Text(stringResource(R.string.mark_all_read), fontWeight = FontWeight.Bold) }
+                                    }
+                                    Text(
+                                        stringResource(R.string.notifications_are_kept_for_48_hours),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                     LazyColumn(
-                                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                                        modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp)
+                                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                        modifier = Modifier.fillMaxWidth()
+                                            .heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.6f).dp)
                                     ) {
-                                        items(fcmAlerts) { alert ->
+                                        items(fcmAlerts, key = { it.id }) { alert ->
+                                            // Inserted/removed rows slide and fade instead of jumping.
+                                            Box(Modifier.animateItem()) {
                                             Card(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 colors = CardDefaults.cardColors(
@@ -502,22 +348,21 @@ fun DrawerDialogsHandler(
                                                     ) {
                                                         Row(
                                                             verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                                                         ) {
                                                             Icon(
                                                                 imageVector = when (alert.category) {
-                                                                    "BOOKING_ACCEPTANCE" -> Icons.Default.CheckCircle
+                                                                    "ADMIN_SUBSCRIPTION", "ADMIN_LEAD" -> Icons.Default.AdminPanelSettings
                                                                     "BOOKING_REQUEST" -> Icons.Default.Inbox
-                                                                    "BOOKING_UPDATE" -> Icons.Default.EventNote
+                                                                    "BOOKING_UPDATE" -> Icons.AutoMirrored.Filled.EventNote
                                                                     "PACKAGE_ACTIVATED", "PACKAGE_RENEWED" -> Icons.Default.Verified
                                                                     "PACKAGE_EXPIRED" -> Icons.Default.EventBusy
                                                                     "PAYMENT_REMINDER" -> Icons.Default.CreditCard
-                                                                    "LISTING_VERIFICATION", "LISTING_VERIFICATION_REQUEST" -> Icons.Default.FactCheck
+                                                                    "LISTING_VERIFICATION", "LISTING_VERIFICATION_REQUEST" -> Icons.AutoMirrored.Filled.FactCheck
                                                                     else -> Icons.Default.Notifications
                                                                 },
                                                                 contentDescription = null,
                                                                 tint = when (alert.category) {
-                                                                    "BOOKING_ACCEPTANCE" -> MaterialTheme.proColors.success
                                                                     "PACKAGE_ACTIVATED", "PACKAGE_RENEWED" -> MaterialTheme.colorScheme.primary
                                                                     "PACKAGE_EXPIRED" -> MaterialTheme.colorScheme.error
                                                                     "PAYMENT_REMINDER" -> MaterialTheme.colorScheme.tertiary
@@ -541,19 +386,19 @@ fun DrawerDialogsHandler(
                                                             TextButton(
                                                                 onClick = { viewModel.markAlertAsRead(alert.id) },
                                                                 contentPadding = PaddingValues(0.dp),
-                                                                modifier = Modifier.height(24.dp)
+                                                                modifier = Modifier.heightIn(min = 48.dp)
                                                             ) {
                                                                 Text(
-                                                                    "Mark Read",
+                                                                    stringResource(R.string.mark_read),
                                                                     fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                                                     fontWeight = FontWeight.Bold
                                                                 )
                                                             }
                                                         } else {
                                                             Text(
-                                                                text = "Read",
+                                                                text = stringResource(R.string.read),
                                                                 style = MaterialTheme.typography.labelSmall,
-                                                                color = MaterialTheme.colorScheme.outline
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                                             )
                                                         }
                                                     }
@@ -576,13 +421,13 @@ fun DrawerDialogsHandler(
                                                         verticalAlignment = Alignment.CenterVertically
                                                     ) {
                                                         Text(
-                                                            text = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(alert.timestamp)),
+                                                            text = relativeTime(alert.timestamp),
                                                             style = MaterialTheme.typography.labelSmall,
-                                                            color = MaterialTheme.colorScheme.outline
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                                         )
 
-                                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                            if (onNavigateToTab != null) {
+                                                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                                            if (onNavigateToTab != null || onOpenNotification != null) {
                                                                 FilledTonalButton(
                                                                     onClick = {
                                                                         viewModel.markAlertAsRead(alert.id)
@@ -590,11 +435,9 @@ fun DrawerDialogsHandler(
                                                                         // category-to-tab mapping for legacy notifications.
                                                                         val resolvedTab = alert.targetTab?.takeIf { it.isNotBlank() }
                                                                             ?: when (alert.category) {
-                                                                                "BOOKING_ACCEPTANCE" ->
-                                                                                    if (currentUser?.role == UserRole.SPECIALIST)
-                                                                                        "pro_rentals"
-                                                                                    else "owner_progress"
+                                                                                "ADMIN_SUBSCRIPTION", "ADMIN_LEAD" -> "admin_console"
                                                                                 "BOOKING_REQUEST" -> "owner_requests"
+                                                                                "PRICE_CHANGE" -> "pro_rentals"
                                                                                 "PAYMENT_REMINDER", "PACKAGE_EXPIRED",
                                                                                 "PACKAGE_ACTIVATED", "PACKAGE_RENEWED" -> "owner_subscriptions"
                                                                                 "LISTING_VERIFICATION", "LISTING_VERIFICATION_REQUEST" -> "manage_listings"
@@ -603,10 +446,12 @@ fun DrawerDialogsHandler(
                                                                                         "pro_rentals"
                                                                                     else "owner_progress"
                                                                             }
-                                                                        onNavigateToTab(resolvedTab)
+                                                                        com.example.analytics.AnalyticsTracker.notificationOpen(alert.category, "in_app:$resolvedTab")
+                                                                        if (onOpenNotification != null) onOpenNotification(alert, resolvedTab)
+                                                                        else onNavigateToTab?.invoke(resolvedTab)
                                                                     },
                                                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                                                    modifier = Modifier.height(28.dp)
+                                                                    modifier = Modifier.heightIn(min = 36.dp)
                                                                 ) {
                                                                     Icon(
                                                                         Icons.AutoMirrored.Filled.ArrowForward,
@@ -614,7 +459,7 @@ fun DrawerDialogsHandler(
                                                                         modifier = Modifier.size(12.dp)
                                                                     )
                                                                     Spacer(modifier = Modifier.width(Spacing.xs))
-                                                                    Text("Open Screen", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                                                    Text(stringResource(R.string.open), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                                                                 }
                                                             }
                                                             // A "WhatsApp" quick-reply button used to live here, but FCMAlert
@@ -628,6 +473,7 @@ fun DrawerDialogsHandler(
                                                 }
                                             }
                                         }
+}
                                     }
                                 }
                             }
@@ -640,4 +486,24 @@ fun DrawerDialogsHandler(
         }
     }
 
+}
+
+/** "Just now", "5 min ago", "3 h ago", "Yesterday 14:20", or a date for anything older. */
+private fun relativeTime(timestamp: Long, now: Long = System.currentTimeMillis()): String {
+    val minutes = (now - timestamp).coerceAtLeast(0) / 60_000
+    val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(timestamp))
+    val today = java.util.Calendar.getInstance().apply { timeInMillis = now }
+    val then = java.util.Calendar.getInstance().apply { timeInMillis = timestamp }
+    val sameDay = today.get(java.util.Calendar.YEAR) == then.get(java.util.Calendar.YEAR) &&
+        today.get(java.util.Calendar.DAY_OF_YEAR) == then.get(java.util.Calendar.DAY_OF_YEAR)
+    today.add(java.util.Calendar.DAY_OF_YEAR, -1)
+    val yesterday = today.get(java.util.Calendar.YEAR) == then.get(java.util.Calendar.YEAR) &&
+        today.get(java.util.Calendar.DAY_OF_YEAR) == then.get(java.util.Calendar.DAY_OF_YEAR)
+    return when {
+        minutes < 1 -> uiText(R.string.just_now)
+        minutes < 60 -> uiText(R.string.x_min_ago, minutes)
+        sameDay -> uiText(R.string.x_h_ago, minutes / 60)
+        yesterday -> uiText(R.string.yesterday_x, time)
+        else -> SimpleDateFormat("d MMM HH:mm", Locale.getDefault()).format(Date(timestamp))
+    }
 }

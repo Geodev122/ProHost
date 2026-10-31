@@ -30,25 +30,16 @@ class ProHostMessagingService : FirebaseMessagingService() {
         serviceScope.cancel()
     }
 
-    @Suppress("DEPRECATION")
-    @Deprecated("Overrides FirebaseMessagingService.onNewToken, itself deprecated by the Firebase SDK; no in-app replacement to migrate to yet")
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        Log.d("ProHostMessaging", "New FCM token registered: ${token.take(16)}...")
-
-        // Log to our system audit trails for full admin traceability
-        val repository = ProHostRepository.getInstance()
-        repository.addAuditLog(
-            actionType = "FCM_TOKEN_REGISTERED",
-            details = "New Firebase Cloud Messaging device registration signature generated successfully: ${token.take(16)}...",
-            severity = "SECURE"
-        )
-
+        // The token is a credential for pushing to this device: it is stored only on the
+        // user's own profile, never logged or written to the audit trail.
         // Persist the token to this user's profile so a Cloud Function can actually
         // reach this device with a real push later (see notifications/*.ts). A no-op
         // if nobody's signed in yet — the post-login/registration path in
         // ProHostViewModel backfills the token once a session exists.
         val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val repository = ProHostRepository.getInstance()
         serviceScope.launch {
             repository.registerFcmToken(uid, token)
         }
@@ -68,11 +59,16 @@ class ProHostMessagingService : FirebaseMessagingService() {
 
         // Store inside the active singleton repository to immediately push updates to standard Compose UI flow
         val repository = ProHostRepository.getInstance()
+        // Same id as the stored notification (push.ts), so the Firestore snapshot of the
+        // notification centre replaces this instant copy instead of duplicating it.
         val alert = FCMAlert(
+            id = remoteMessage.data["notificationId"] ?: java.util.UUID.randomUUID().toString(),
             title = title,
             body = body,
             category = categoryType,
-            targetTab = targetTab
+            targetTab = targetTab,
+            bookingId = bookingId,
+            spaceId = spaceId
         )
         repository.addFCMAlert(alert)
 
@@ -86,7 +82,8 @@ class ProHostMessagingService : FirebaseMessagingService() {
             body,
             targetTab = targetTab,
             bookingId = bookingId,
-            spaceId = spaceId
+            spaceId = spaceId,
+            notificationType = categoryType
         )
     }
 
@@ -94,6 +91,13 @@ class ProHostMessagingService : FirebaseMessagingService() {
         private const val CHANNEL_ID = "prospace_realtime_alerts"
         private const val CHANNEL_NAME = "ProHost Real-time Alerts"
         private const val CHANNEL_DESCRIPTION = "Receives real-time updates regarding suite rental contracts, booking states, and host due reminders."
+
+        // Subscription and billing notices get their own channel so people can tune them
+        // separately (Android settings) from booking traffic.
+        private const val BILLING_CHANNEL_ID = "prohost_billing"
+        private const val BILLING_CHANNEL_NAME = "ProHost Premium & billing"
+        private const val BILLING_CHANNEL_DESCRIPTION = "Subscription activations, renewals, payment problems and expiry. Admins also receive subscriber changes here."
+        private val BILLING_CATEGORIES = setOf("PACKAGE_ACTIVATED", "PACKAGE_RENEWED", "PACKAGE_EXPIRED", "ADMIN_SUBSCRIPTION")
 
         /**
          * Core notification routine triggered by real-time Firebase Cloud Messaging and in-app system events.
@@ -117,6 +121,11 @@ class ProHostMessagingService : FirebaseMessagingService() {
                 enableVibration(true)
             }
             notificationManager.createNotificationChannel(channel)
+            notificationManager.createNotificationChannel(
+                NotificationChannel(BILLING_CHANNEL_ID, BILLING_CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH).apply {
+                    description = BILLING_CHANNEL_DESCRIPTION
+                }
+            )
         }
 
         fun showPhysicalNotification(
@@ -125,7 +134,8 @@ class ProHostMessagingService : FirebaseMessagingService() {
             body: String,
             targetTab: String? = null,
             bookingId: String? = null,
-            spaceId: String? = null
+            spaceId: String? = null,
+            notificationType: String? = null
         ) {
             // Without POST_NOTIFICATIONS (Android 13+) notify() is silently dropped; the
             // alert is still in the in-app alerts list either way.
@@ -145,6 +155,7 @@ class ProHostMessagingService : FirebaseMessagingService() {
                 if (spaceId != null) {
                     putExtra("space_id", spaceId)
                 }
+                putExtra("notification_type", notificationType ?: "GENERAL")
             }
             val pendingIntent = PendingIntent.getActivity(
                 context,
@@ -154,7 +165,8 @@ class ProHostMessagingService : FirebaseMessagingService() {
             )
 
             // Build system bar notification targeting standard safe system alert asset icons
-            val notificationBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
+            val channelId = if (notificationType in BILLING_CATEGORIES) BILLING_CHANNEL_ID else CHANNEL_ID
+            val notificationBuilder = NotificationCompat.Builder(context, channelId)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(title)
                 .setContentText(body)
@@ -169,6 +181,9 @@ class ProHostMessagingService : FirebaseMessagingService() {
                     "owner_requests" -> "View Requests"
                     "owner_progress" -> "View Progress"
                     "pro_rentals" -> "My Rentals"
+                    "owner_subscriptions" -> "Manage subscription"
+                    "admin_console" -> "Open Admin Console"
+                    "manage_listings" -> "My Listings"
                     else -> "Open Screen"
                 }
                 notificationBuilder.addAction(

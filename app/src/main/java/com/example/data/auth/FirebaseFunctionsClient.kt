@@ -11,7 +11,7 @@ import kotlinx.coroutines.tasks.await
  * token claims — is the ONLY way this app ever learns or changes a user's
  * role. Nothing here accepts a role as a trusted client-side value.
  */
-class FirebaseFunctionsClient {
+open class FirebaseFunctionsClient {
 
     private val tag = "FirebaseFunctionsClient"
 
@@ -135,35 +135,27 @@ class FirebaseFunctionsClient {
     }
 
     /**
-     * functions/src/admin/grantPackage.ts — grants a package plus the PRO_HOST role to the
-     * UID verified via [lookupUserForGrant]. [unlimited] ignores [packageId]/[durationDays]
-     * and grants unlimited listings that never expire.
+     * functions/src/admin/forceProHostUpgrade.ts — Admin "Force Upgrade → ProHost" for the
+     * UID verified via [lookupUserForGrant]. Permanent until revoked (revokeProHostRole).
      */
-    suspend fun grantPackageToUser(
-        targetUid: String,
-        packageId: String?,
-        durationDays: Int?,
-        unlimited: Boolean
-    ): Result<GrantResult> {
+    suspend fun forceProHostUpgrade(targetUid: String): Result<Unit> {
         return try {
-            val payload = mutableMapOf<String, Any>("targetUid" to targetUid, "unlimited" to unlimited)
-            if (!unlimited) {
-                packageId?.let { payload["packageId"] = it }
-                durationDays?.let { payload["durationDays"] = it }
-            }
-            val result = functions.getHttpsCallable("grantPackageToUser").call(payload).await()
-            @Suppress("UNCHECKED_CAST")
-            val data = result.data as? Map<String, Any?> ?: emptyMap()
-            Result.success(
-                GrantResult(
-                    role = data["role"] as? String ?: "PRO_HOST",
-                    packageId = data["packageId"] as? String ?: packageId.orEmpty(),
-                    expiryMillis = (data["expiryMillis"] as? Number)?.toLong(),
-                    restoredListings = (data["restoredListings"] as? Number)?.toInt() ?: 0
-                )
-            )
+            functions.getHttpsCallable("forceProHostUpgrade").call(mapOf("targetUid" to targetUid)).await()
+            Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(tag, "grantPackageToUser failed: ${e.message}", e)
+            Log.e(tag, "forceProHostUpgrade failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /** functions/src/billing/billingSyncJob.ts — Admin: re-sync Google Play subscriptions now. */
+    suspend fun runBillingSync(): Result<Map<String, Any?>> {
+        return try {
+            val result = functions.getHttpsCallable("runBillingSync").call(emptyMap<String, Any>()).await()
+            @Suppress("UNCHECKED_CAST")
+            Result.success(result.data as? Map<String, Any?> ?: emptyMap())
+        } catch (e: Exception) {
+            Log.e(tag, "runBillingSync failed: ${e.message}", e)
             Result.failure(e)
         }
     }
@@ -204,7 +196,25 @@ class FirebaseFunctionsClient {
                             name to ((dv as? Number)?.toInt() ?: 0)
                         }?.toMap() ?: emptyMap())
                     }?.toMap() ?: emptyMap(),
-                    countries = (data["countries"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                    countries = (data["countries"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                    bookingMix = (data["bookingMix"] as? List<*>)?.mapNotNull { item ->
+                        val m = item as? Map<*, *> ?: return@mapNotNull null
+                        BookingMixRow(
+                            key = m["key"] as? String ?: return@mapNotNull null,
+                            label = m["label"] as? String ?: "",
+                            requests = (m["requests"] as? Number)?.toInt() ?: 0,
+                            accepted = (m["accepted"] as? Number)?.toInt() ?: 0,
+                            acceptedRevenueUsd = (m["acceptedRevenueUsd"] as? Number)?.toDouble() ?: 0.0
+                        )
+                    } ?: emptyList(),
+                    attendeeStats = (data["attendeeStats"] as? Map<*, *>)?.let { m ->
+                        AttendeeBookingStats(
+                            requests = (m["requests"] as? Number)?.toInt() ?: 0,
+                            accepted = (m["accepted"] as? Number)?.toInt() ?: 0,
+                            acceptedAttendees = (m["acceptedAttendees"] as? Number)?.toInt() ?: 0,
+                            avgGroupSize = (m["avgGroupSize"] as? Number)?.toDouble() ?: 0.0
+                        )
+                    } ?: AttendeeBookingStats()
                 )
             )
         } catch (e: Exception) {
@@ -241,6 +251,74 @@ class FirebaseFunctionsClient {
         }
     }
 
+    // --- Admin directory (functions/src/admin/adminDirectory.ts): the console never loads
+    // whole collections; it asks the server for counts, search results and one dossier. ---
+
+    @Suppress("UNCHECKED_CAST")
+    private suspend fun callAdmin(name: String, payload: Map<String, Any?> = emptyMap()): Map<String, Any?> {
+        val result = functions.getHttpsCallable(name).call(payload).await()
+        return result.data as? Map<String, Any?> ?: emptyMap()
+    }
+
+    suspend fun adminCounts(): Result<AdminCounts> = runCatching {
+        AdminCounts.fromMap(callAdmin("adminCounts"))
+    }.onFailure { Log.e(tag, "adminCounts failed: ${it.message}", it) }
+
+    /** [kind]: "users", "listings", "bookings" or "all". */
+    suspend fun adminSearch(query: String, kind: String): Result<AdminSearchResult> = runCatching {
+        AdminSearchResult.fromMap(callAdmin("adminSearch", mapOf("query" to query.trim(), "kind" to kind)))
+    }.onFailure { Log.e(tag, "adminSearch failed: ${it.message}", it) }
+
+    suspend fun adminUserDossier(uid: String): Result<AdminUserDossier> = runCatching {
+        AdminUserDossier.fromMap(callAdmin("adminUserDossier", mapOf("uid" to uid)))
+            ?: throw IllegalStateException("Empty dossier response")
+    }.onFailure { Log.e(tag, "adminUserDossier failed: ${it.message}", it) }
+
+    /** One page (500 users) of the server-side user export; pass the returned cursor back. */
+    suspend fun adminExportUsers(cursor: String?): Result<AdminExportPage> = runCatching {
+        AdminExportPage.fromMap(callAdmin("adminExportUsers", mapOf("cursor" to cursor)))
+    }.onFailure { Log.e(tag, "adminExportUsers failed: ${it.message}", it) }
+
+    // --- Billing rescue (functions/src/billing/billingRescue.ts) ---
+
+    suspend fun billingHealthCheck(): Result<BillingHealth> = runCatching {
+        BillingHealth.fromMap(callAdmin("billingHealthCheck"))
+    }.onFailure { Log.e(tag, "billingHealthCheck failed: ${it.message}", it) }
+
+    /** A short-lived link to a listing's private verification document (admin only). */
+    suspend fun adminVerificationDocUrl(spaceId: String): Result<String> = runCatching {
+        callAdmin("adminVerificationDocUrl", mapOf("spaceId" to spaceId))["url"] as? String
+            ?: error("No document link returned")
+    }.onFailure { Log.e(tag, "adminVerificationDocUrl failed: ${it.message}", it) }
+
+    /** Publishes a synthetic Play test notification to the RTDN topic (proves topic → function). */
+    suspend fun billingRtdnSelfTest(): Result<Unit> = runCatching {
+        callAdmin("billingRtdnSelfTest")
+        Unit
+    }.onFailure { Log.e(tag, "billingRtdnSelfTest failed: ${it.message}", it) }
+
+    suspend fun adminBillingPending(): Result<List<PendingPayment>> = runCatching {
+        PendingPayment.listFrom(callAdmin("adminBillingPending"))
+    }.onFailure { Log.e(tag, "adminBillingPending failed: ${it.message}", it) }
+
+    /** Retry (no [targetUid]) or Activate for [targetUid]; [confirmReassign] after a needs_confirm answer. */
+    suspend fun adminActivatePurchase(
+        kind: String,
+        id: String,
+        targetUid: String?,
+        confirmReassign: Boolean
+    ): Result<Map<String, Any?>> = runCatching {
+        callAdmin(
+            "adminActivatePurchase",
+            mapOf("kind" to kind, "id" to id, "targetUid" to targetUid, "confirmReassign" to confirmReassign)
+        )
+    }.onFailure { Log.e(tag, "adminActivatePurchase failed: ${it.message}", it) }
+
+    /** Admin maintenance: one-time backfills. Returns the server's summary map. */
+    suspend fun runAdminMaintenance(callable: String): Result<Map<String, Any?>> = runCatching {
+        callAdmin(callable)
+    }.onFailure { Log.e(tag, "$callable failed: ${it.message}", it) }
+
     /** functions/src/roles/revokeProHostRole.ts — Admin-only downgrade to SPECIALIST. */
     suspend fun revokeProHostRole(targetUid: String): Result<Unit> {
         return try {
@@ -260,7 +338,7 @@ class FirebaseFunctionsClient {
      * denies every direct client write. actorEmail is never accepted from the
      * client; the server always uses the caller's own verified token email.
      */
-    suspend fun recordAuditLog(actionType: String, details: String, severity: String = "INFO"): Result<Unit> {
+    open suspend fun recordAuditLog(actionType: String, details: String, severity: String = "INFO"): Result<Unit> {
         return try {
             functions.getHttpsCallable("recordClientAuditLog")
                 .call(mapOf("actionType" to actionType, "details" to details, "severity" to severity))
@@ -302,10 +380,11 @@ class FirebaseFunctionsClient {
      *
      * Returns the verified expiry timestamp (ms) on success.
      */
-    suspend fun verifyAndRestorePurchase(purchaseToken: String, productId: String): Result<Long> {
+    suspend fun verifyAndRestorePurchase(purchaseToken: String, productId: String, fromCheckout: Boolean = false): Result<Long> {
         return try {
+            // The server reads the base plan from Google; the app never states what it bought.
             val result = functions.getHttpsCallable("verifyAndRestorePurchase")
-                .call(mapOf("purchaseToken" to purchaseToken, "productId" to productId))
+                .call(mapOf("purchaseToken" to purchaseToken, "productId" to productId, "fromCheckout" to fromCheckout))
                 .await()
             @Suppress("UNCHECKED_CAST")
             val data = result.data as? Map<String, Any?>
@@ -336,7 +415,7 @@ class FirebaseFunctionsClient {
     }
 
     /** Admin-only: override a listing's verified badge (functions/src/admin/listings.ts). */
-    suspend fun setListingVerification(spaceId: String, verified: Boolean): Result<Unit> {
+    open suspend fun setListingVerification(spaceId: String, verified: Boolean): Result<Unit> {
         return try {
             functions.getHttpsCallable("setListingVerification")
                 .call(mapOf("spaceId" to spaceId, "verified" to verified))
@@ -344,6 +423,38 @@ class FirebaseFunctionsClient {
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(tag, "setListingVerification failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Pro Host "Change price" (functions/src/listings/changeSlotPrice.ts): sets one slot's price and
+     * applies [decisions] (bookingId → KEEP / NOW / NEXT_TERM) to the bookings that use it.
+     */
+    open suspend fun changeSlotPrice(
+        spaceId: String,
+        scopeId: String,
+        kind: String,
+        key: String,
+        newPrice: Double,
+        decisions: Map<String, String>
+    ): Result<SlotPriceChangeResult> {
+        return try {
+            val result = functions.getHttpsCallable("changeSlotPrice")
+                .call(
+                    mapOf(
+                        "spaceId" to spaceId,
+                        "ref" to mapOf("scopeId" to scopeId, "kind" to kind, "key" to key),
+                        "newPrice" to newPrice,
+                        "decisions" to decisions
+                    )
+                )
+                .await()
+            val data = result.data as? Map<*, *>
+            fun count(k: String) = (data?.get(k) as? Number)?.toInt() ?: 0
+            Result.success(SlotPriceChangeResult(count("affected"), count("now"), count("nextTerm"), count("keep")))
+        } catch (e: Exception) {
+            Log.e(tag, "changeSlotPrice failed: ${e.message}", e)
             Result.failure(e)
         }
     }
@@ -388,7 +499,11 @@ class FirebaseFunctionsClient {
      */
     suspend fun deleteOwnAccount(): Result<Unit> {
         return try {
-            functions.getHttpsCallable("deleteOwnAccount").call().await()
+            // Cleanup of listings and files can take a while; the default 70 s callable timeout
+            // made large accounts fail on the client while the server was still working.
+            functions.getHttpsCallable("deleteOwnAccount")
+                .apply { setTimeout(180, java.util.concurrent.TimeUnit.SECONDS) }
+                .call().await()
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(tag, "deleteOwnAccount failed: ${e.message}", e)
@@ -397,64 +512,15 @@ class FirebaseFunctionsClient {
     }
 
     /**
-     * Sends an in-app email inquiry to the owner of [spaceId]
-     * (functions/src/users/sendInquiryEmail.ts). Rate-limited to 3 per 24h server-side.
+     * "Forgot password": our branded reset email (functions/src/auth/passwordReset.ts). The server
+     * answers ok whether or not an account exists, so this never reveals who has one.
      */
-    suspend fun sendInquiryEmail(spaceId: String, message: String): Result<Unit> {
+    open suspend fun sendPasswordResetLink(email: String): Result<Unit> {
         return try {
-            functions.getHttpsCallable("sendInquiryEmail")
-                .call(mapOf("spaceId" to spaceId, "message" to message))
-                .await()
+            functions.getHttpsCallable("sendPasswordResetLink").call(mapOf("email" to email)).await()
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(tag, "sendInquiryEmail failed: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
-
-    /**
-     * Generates a Firebase Auth sign-in link server-side and emails it to [email]
-     * (functions/src/auth/emailLinkAuth.ts). Replaces sendEmailOtp for new sign-ins.
-     * The client completes sign-in via signInWithEmailLink after tapping the link.
-     */
-    suspend fun sendSignInEmailLink(email: String): Result<Unit> {
-        return try {
-            functions.getHttpsCallable("sendSignInEmailLink").call(mapOf("email" to email)).await()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(tag, "sendSignInEmailLink failed: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
-
-    /** Send a 6-digit email OTP to [email] (functions/src/auth/emailOtp.ts). */
-    suspend fun sendEmailOtp(email: String): Result<Unit> {
-        return try {
-            functions.getHttpsCallable("sendEmailOtp").call(mapOf("email" to email)).await()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(tag, "sendEmailOtp failed: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
-
-    /**
-     * Verifies the OTP code the user entered and returns a Firebase custom token
-     * (functions/src/auth/emailOtp.ts). Sign in with the returned token via
-     * [FirebaseAuthService.signInWithCustomToken].
-     */
-    suspend fun verifyEmailOtp(email: String, code: String): Result<String> {
-        return try {
-            val result = functions.getHttpsCallable("verifyEmailOtp")
-                .call(mapOf("email" to email, "code" to code))
-                .await()
-            @Suppress("UNCHECKED_CAST")
-            val data = result.data as? Map<String, Any?>
-            val token = data?.get("customToken") as? String
-                ?: return Result.failure(IllegalStateException("verifyEmailOtp returned no token."))
-            Result.success(token)
-        } catch (e: Exception) {
-            Log.e(tag, "verifyEmailOtp failed: ${e.message}", e)
+            Log.w(tag, "sendPasswordResetLink failed: ${(e as? com.google.firebase.functions.FirebaseFunctionsException)?.code}")
             Result.failure(e)
         }
     }
@@ -525,5 +591,26 @@ data class AdminAnalytics(
     val byCity: Map<String, Int>,
     val bySpaceType: Map<String, Int>,
     val divisionsBySpaceType: Map<String, Map<String, Int>>,
-    val countries: List<String>
+    val countries: List<String>,
+    /** Booking requests in range by renting strategy; "PER_ATTENDEE" is its own row. */
+    val bookingMix: List<BookingMixRow> = emptyList(),
+    val attendeeStats: AttendeeBookingStats = AttendeeBookingStats()
 )
+
+data class BookingMixRow(
+    val key: String,
+    val label: String,
+    val requests: Int,
+    val accepted: Int,
+    val acceptedRevenueUsd: Double
+)
+
+data class AttendeeBookingStats(
+    val requests: Int = 0,
+    val accepted: Int = 0,
+    val acceptedAttendees: Int = 0,
+    val avgGroupSize: Double = 0.0
+)
+
+/** What changeSlotPrice did: bookings affected and how each was handled. */
+data class SlotPriceChangeResult(val affected: Int, val now: Int, val nextTerm: Int, val keep: Int)

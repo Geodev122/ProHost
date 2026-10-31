@@ -2,16 +2,17 @@ import { onMessagePublished } from "firebase-functions/v2/pubsub";
 import { getFirestore } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 import { sendPushToUser } from "../lib/push";
-import { sendEmail, hostingerSmtpSecret } from "../lib/email";
+import { sendEmail } from "../lib/email";
 import { subscriptionActivatedTemplate, subscriptionRenewedTemplate, UserContext } from "../lib/emailTemplates";
 import { recordAuditLog } from "../lib/auditLog";
-import {
-  PACKAGE_NAME,
-  queryPlaySubscription,
-  acknowledgeIfNeeded,
-  grantSubscription,
-  revokeSubscription,
-} from "./billingHelpers";
+import { PACKAGE_NAME, queryPlaySubscription, acknowledgeIfNeeded } from "./billingHelpers";
+import { isSupportedProduct, planInterval, planLabel } from "./playCatalog";
+import { logPurchaseOnce, syncSubscription } from "./subscriptionService";
+import { notifyAdminsOfSubscriptionChange } from "./adminBillingAlerts";
+import { sendGa4Event } from "../lib/ga4";
+import { resolvePurchaseUid } from "./purchaseLinks";
+import { classifyPlayError, PlaySubscription } from "./playSubscription";
+import { parkPendingActivation, resolvePendingActivation } from "./activatePurchase";
 import "../lib/admin";
 
 // Google Play subscription notification types (DeveloperNotification spec)
@@ -22,10 +23,10 @@ const SUBSCRIPTION_PURCHASED = 4;     // new subscription started
 const SUBSCRIPTION_ON_HOLD = 5;       // payment failed; Google retrying
 const SUBSCRIPTION_IN_GRACE_PERIOD = 6; // payment failed; grace period
 const SUBSCRIPTION_RESTARTED = 7;     // canceled then re-subscribed
-const SUBSCRIPTION_DEFERRED = 9;      // expiry deferred (promotional)
 const SUBSCRIPTION_PAUSED = 10;       // user paused
 const SUBSCRIPTION_REVOKED = 12;      // refunded/revoked by Google
 const SUBSCRIPTION_EXPIRED = 13;      // fully expired
+const SUBSCRIPTION_PENDING_PURCHASE_CANCELED = 20; // pending payment never completed
 
 /**
  * Google Play Real-Time Developer Notification handler.
@@ -34,12 +35,15 @@ const SUBSCRIPTION_EXPIRED = 13;      // fully expired
  * notifications → Set a Pub/Sub topic named "play-billing-rtdn". The topic must
  * exist in the same Google Cloud project.
  *
- * Subscription product IDs in Google Play Console MUST match the Firestore
- * package_plans document keys exactly (the plan's "id" field) so the RTDN
- * handler can find the right plan without an extra lookup.
+ * One product, package_pro_mrr, with base plans pro-montly / pro-yearly (playCatalog.ts).
+ * Every notification re-reads the subscription from Google (subscriptionsv2) and applies
+ * it through subscriptionService.syncSubscription; this handler only adds the pushes,
+ * emails, acknowledgement and analytics that belong to each notification type.
  */
 export const playBillingRtdn = onMessagePublished(
-  { topic: "play-billing-rtdn", secrets: [hostingerSmtpSecret] },
+  // retry: a throw makes Pub/Sub redeliver (with backoff). Only Play API failures that can
+  // clear throw; a malformed or unknown-token message returns so it never loops.
+  { topic: "play-billing-rtdn", retry: true },
   async (event) => {
     // 1. Decode the DeveloperNotification envelope
     let notification: Record<string, unknown>;
@@ -50,6 +54,14 @@ export const playBillingRtdn = onMessagePublished(
       logger.error("playBillingRtdn: failed to decode Pub/Sub message", e);
       return;
     }
+
+    // Heartbeat for Admin › Packages' billing health check. A self-test (billingRtdnSelfTest,
+    // published by the server itself) only proves topic → function; lastRtdnAt is set only by
+    // messages Google Play published, so it proves Play Console → topic as well.
+    const heartbeat = notification.selfTest === true
+      ? { lastSelfTestAt: Date.now() }
+      : { lastRtdnAt: Date.now(), lastRtdnPackage: String(notification.packageName ?? "") };
+    await getFirestore().doc("app_config/billing_health").set(heartbeat, { merge: true }).catch(() => undefined);
 
     // Test notifications (from Play Console's "Send test notification") have no
     // subscriptionNotification — just ignore them after a log line.
@@ -64,24 +76,68 @@ export const playBillingRtdn = onMessagePublished(
       return;
     }
 
-    const productId = subNote.subscriptionId as string;
+    const hintProductId = (subNote.subscriptionId as string | undefined) ?? "";
     const purchaseToken = subNote.purchaseToken as string;
     const notificationType = subNote.notificationType as number;
 
-    logger.info(`playBillingRtdn: type=${notificationType} product=${productId}`);
+    logger.info(`playBillingRtdn: type=${notificationType} product=${hintProductId}`);
 
-    // 2. Verify via Play Developer API and extract the user UID
-    let purchase: Awaited<ReturnType<typeof queryPlaySubscription>>;
+    // 2. Verify via Play Developer API (subscriptionsv2) and extract the user UID
+    let purchase: PlaySubscription;
     try {
-      purchase = await queryPlaySubscription(productId, purchaseToken);
+      purchase = await queryPlaySubscription(purchaseToken, hintProductId || undefined);
     } catch (e) {
-      logger.error(`playBillingRtdn: Play API call failed for product=${productId}`, e);
+      const err = classifyPlayError(e);
+      if (err.kind === "invalid") {
+        logger.error(`playBillingRtdn: Play does not know this purchase product=${hintProductId}: ${err.message}`);
+        return;
+      }
+      // config (401/403) or transient: throw so Pub/Sub redelivers. Dropping it here is what
+      // left paid purchases unactivated and unacknowledged until Play refunded them.
+      logger.error(`playBillingRtdn: Play API call failed [${err.kind}] product=${hintProductId}: ${err.message}`);
+      throw err;
+    }
+    const productId = purchase.productId || hintProductId;
+    // Retired plans (package_growth_mrr, package_enterprise_mrr) are ignored entirely: no
+    // record, no grant, no acknowledgement, no admin alert.
+    if (!isSupportedProduct(productId)) {
+      logger.info(`playBillingRtdn: ignored retired product ${productId} type=${notificationType}`);
       return;
     }
 
-    const uid = purchase.obfuscatedExternalAccountId;
+    // Purchases made in the app's sheet carry the uid; ones started in the Play Store
+    // (promo-code redemption, resubscribe) don't, and resolve via play_purchase_links.
+    const uid = await resolvePurchaseUid(
+      purchase.obfuscatedAccountId, purchaseToken, purchase.linkedPurchaseToken
+    );
+    if (!uid && notificationType === SUBSCRIPTION_PENDING_PURCHASE_CANCELED) {
+      logger.info(`playBillingRtdn: unlinked pending purchase canceled product=${productId}`);
+      return;
+    }
     if (!uid) {
-      const unresolvedDoc = {
+      // Acknowledge now: Play cancels and refunds anything unacknowledged for 3 days,
+      // and nobody may open the app that soon. The owner claims it on their next app
+      // open (verifyAndRestorePurchase); retrying this message would never succeed.
+      if (
+        (notificationType === SUBSCRIPTION_PURCHASED ||
+          notificationType === SUBSCRIPTION_RESTARTED ||
+          notificationType === SUBSCRIPTION_RECOVERED) &&
+        !purchase.isPending
+      ) {
+        const acked = await acknowledgeIfNeeded(productId, purchaseToken, purchase.acknowledged, "playBillingRtdn");
+        // Unacknowledged = refunded in 3 days, and no account to park it under: redeliver.
+        if (!acked) throw new Error(`playBillingRtdn: acknowledge failed for unlinked purchase product=${productId}`);
+      }
+      logger.warn(
+        `playBillingRtdn: purchase not linked to an account yet product=${productId} type=${notificationType} — waiting for in-app restore`
+      );
+      if (notificationType === SUBSCRIPTION_PURCHASED) {
+        await notifyAdminsOfSubscriptionChange(null, "UNLINKED_PURCHASE", {
+          planId: purchase.basePlanId || productId,
+          note: "started in the Play Store (e.g. promo code) — activates when its owner opens the app",
+        });
+      }
+      await getFirestore().collection("play_billing_unresolved").add({
         purchaseToken,
         productId,
         orderId: purchase.orderId,
@@ -89,163 +145,141 @@ export const playBillingRtdn = onMessagePublished(
         packageName: notification.packageName,
         timestamp: Date.now(),
         resolved: false,
-      };
-      if (notificationType === SUBSCRIPTION_PURCHASED || notificationType === SUBSCRIPTION_RECOVERED) {
-        // These can be retried — throw so Pub/Sub redelivers rather than permanently ACKing.
-        throw new Error(
-          `playBillingRtdn: no obfuscatedExternalAccountId for product=${productId} type=${notificationType} — Pub/Sub will redeliver`
-        );
-      }
-      // For revocation/expiry/hold/pause/cancel types: a retry won't help because
-      // a purchase without a UID can't be mapped to a user. Write for manual resolution.
-      logger.error(
-        `playBillingRtdn: no obfuscatedExternalAccountId for product=${productId} type=${notificationType} — writing to play_billing_unresolved`
-      );
-      await getFirestore().collection("play_billing_unresolved").add(unresolvedDoc);
+      });
       return;
     }
 
     const orderId = purchase.orderId ?? productId;
-    const expiryMs = parseInt(purchase.expiryTimeMillis ?? "0", 10);
+    const planName = planLabel(purchase.basePlanId);
 
-    if (
-      notificationType === SUBSCRIPTION_PURCHASED ||
-      notificationType === SUBSCRIPTION_RESTARTED ||
-      notificationType === SUBSCRIPTION_RECOVERED
-    ) {
-      await acknowledgeIfNeeded(productId, purchaseToken, purchase.acknowledgementState, "playBillingRtdn");
-    }
+    // 3. Apply Google's state: SubscriptionService records it and the EntitlementManager
+    //    grants or removes Pro Host. REVOKED is the one state only the notification knows.
+    const result = await syncSubscription(uid, purchaseToken, purchase, {
+      source: `rtdn:${notificationType}`,
+      override: notificationType === SUBSCRIPTION_REVOKED ? "REVOKED" : undefined,
+    });
+    logger.info(`playBillingRtdn: uid=${uid} type=${notificationType} status=${result.status} access=${result.hasAccess}`);
 
-    // 3. Dispatch by notification type
+    // 4. Side effects per notification type (the role is already settled above).
+    const emailTo = async (build: (ctx: UserContext) => { subject: string; html: string; text?: string }) => {
+      try {
+        const userData = (await getFirestore().collection("user_profiles").doc(uid).get()).data();
+        if (!userData?.email) return;
+        const ctx: UserContext = {
+          fullName: userData.fullName ?? "Member",
+          email: userData.email,
+          role: "PRO_HOST",
+          activeListingCount: (userData.activeListingCount ?? 0) as number,
+        };
+        await sendEmail({ to: userData.email, ...build(ctx) });
+      } catch (_) { /* email is best-effort */ }
+    };
     switch (notificationType) {
       case SUBSCRIPTION_PURCHASED:
-        if (expiryMs > 0) {
-          await grantSubscription(uid, productId, expiryMs, orderId);
-          await sendPushToUser(uid, "Pro Host Subscription Activated", "Welcome! Your Pro Host subscription is now active — start publishing workspace listings.", {
+        if (result.hasAccess) {
+          await sendPushToUser(uid, "ProHost Premium is active", "Welcome! Your Pro Host access is active — start publishing workspace listings.", {
             category: "PACKAGE_ACTIVATED",
             // owner_subscriptions is reachable even while the device still holds the
             // pre-upgrade SPECIALIST claim; manage_listings is not.
             targetTab: "owner_subscriptions",
           });
-          try {
-            const db = getFirestore();
-            const userSnap = await db.collection("user_profiles").doc(uid).get();
-            const userData = userSnap.data();
-            if (userData?.email) {
-              const ctx: UserContext = {
-                fullName: userData.fullName ?? "Member",
-                email: userData.email,
-                role: "PRO_HOST",
-                activeListingCount: (userData.activeListingCount ?? 0) as number,
-              };
-              const tpl = subscriptionActivatedTemplate(ctx, productId);
-              await sendEmail({ to: userData.email, ...tpl });
-            }
-          } catch (_) { /* email is best-effort */ }
-        } else {
-          logger.warn(`playBillingRtdn: type=${notificationType} has no expiryTimeMillis, skipping grant`);
+          await emailTo((ctx) => subscriptionActivatedTemplate(ctx, planName));
         }
         break;
-
       case SUBSCRIPTION_RENEWED:
-        if (expiryMs > 0) {
-          await grantSubscription(uid, productId, expiryMs, orderId);
-          await sendPushToUser(uid, "Subscription Renewed", "Your Pro Host subscription has renewed — your access continues uninterrupted.", {
+        if (result.hasAccess) {
+          await sendPushToUser(uid, "Subscription Renewed", "Your ProHost Premium subscription has renewed — your access continues uninterrupted.", {
             category: "PACKAGE_RENEWED",
             targetTab: "owner_subscriptions",
           });
-          try {
-            const db = getFirestore();
-            const userSnap = await db.collection("user_profiles").doc(uid).get();
-            const userData = userSnap.data();
-            if (userData?.email) {
-              const ctx: UserContext = {
-                fullName: userData.fullName ?? "Member",
-                email: userData.email,
-                role: "PRO_HOST",
-              };
-              const expiryDate = new Date(expiryMs).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-              const tpl = subscriptionRenewedTemplate(ctx, productId, expiryDate);
-              await sendEmail({ to: userData.email, ...tpl });
-            }
-          } catch (_) { /* email is best-effort */ }
-        } else {
-          logger.warn(`playBillingRtdn: type=${notificationType} has no expiryTimeMillis, skipping grant`);
+          const expiryDate = new Date(purchase.expiryMillis).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+          await emailTo((ctx) => subscriptionRenewedTemplate(ctx, planName, expiryDate));
         }
         break;
-
-      case SUBSCRIPTION_RECOVERED:
-      case SUBSCRIPTION_RESTARTED:
-        if (expiryMs > 0) {
-          await grantSubscription(uid, productId, expiryMs, orderId);
-        } else {
-          logger.warn(`playBillingRtdn: type=${notificationType} has no expiryTimeMillis, skipping grant`);
-        }
-        break;
-
-      case SUBSCRIPTION_DEFERRED:
-        // Promotional deferral — use grantSubscription() so it keeps the later
-        // expiry, restores any lapsed listings, and auto-publishes pending drafts.
-        if (expiryMs > 0) {
-          await grantSubscription(uid, productId, expiryMs, orderId);
-        }
-        break;
-
-      case SUBSCRIPTION_REVOKED:
-        await revokeSubscription(
-          uid, productId, orderId,
-          "Your ProHost subscription was refunded or revoked by Google Play. Your Pro Host access has ended."
+      case SUBSCRIPTION_CANCELED: {
+        // Access continues until expiry (CANCELED grants until then).
+        const until = new Date(purchase.expiryMillis).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+        await sendPushToUser(
+          uid,
+          "Subscription canceled",
+          `ProHost Premium won't renew. You keep Pro Host access until ${until}. Changed your mind? Resubscribe from ProHost Premium.`,
+          { category: "PACKAGE_EXPIRED", targetTab: "owner_subscriptions" }
         );
-        break;
-
-      case SUBSCRIPTION_EXPIRED:
-        // expirePackages.ts already handles this on its hourly sweep, but handle
-        // it here too for instant effect on the RTDN event.
-        await revokeSubscription(
-          uid, productId, orderId,
-          "Your Google Play subscription has expired. Renew in the app to restore Pro Host access."
-        );
-        break;
-
-      case SUBSCRIPTION_ON_HOLD:
-        await revokeSubscription(
-          uid, productId, orderId,
-          "Your ProHost subscription is on hold. Update your payment method in Google Play to restore Pro Host access."
-        );
-        break;
-
-      case SUBSCRIPTION_PAUSED:
-        // User-initiated pause: access should be suspended but listings stay hidden
-        // gently (same as ON_HOLD) rather than hard-deleted — RESTARTED will restore
-        // them. Use revokeSubscription so listings get isOwnerPackageLapsed=true, but
-        // send a softer message.
-        await revokeSubscription(
-          uid, productId, orderId,
-          "Your ProHost subscription is paused. Resume it in Google Play to restore your Pro Host access and listings."
-        );
-        break;
-
-      case SUBSCRIPTION_CANCELED:
-        // Access continues until expiry — just log; expirePackages sweeps it at term end.
         await recordAuditLog({
           actionType: "PLAY_BILLING_SUBSCRIPTION_CANCELED",
-          details: `uid=${uid} canceled subscription ${productId} (order ${orderId}). Access until ${new Date(expiryMs).toISOString()}.`,
+          details: `uid=${uid} canceled ${productId}/${purchase.basePlanId ?? "?"} (order ${orderId}). Access until ${new Date(purchase.expiryMillis).toISOString()}.`,
           actorEmail: "play-billing@system.prohost.app",
           severity: "INFO",
         });
         break;
-
+      }
+      case SUBSCRIPTION_RECOVERED:
+      case SUBSCRIPTION_RESTARTED:
+        if (result.hasAccess) {
+          await sendPushToUser(uid, "Welcome back to ProHost Premium", "Your subscription is active again — your Pro Host access and listings are restored.", {
+            category: "PACKAGE_ACTIVATED",
+            targetTab: "owner_subscriptions",
+          });
+        }
+        break;
       case SUBSCRIPTION_IN_GRACE_PERIOD:
         await sendPushToUser(
           uid,
           "Payment Issue — Action Needed",
-          "Your ProHost subscription payment failed. Please update your payment method in Google Play to keep your Pro Host access.",
+          "Your ProHost Premium payment failed. Update your payment method in Google Play to keep your Pro Host access.",
           { category: "PAYMENT_REMINDER", targetTab: "owner_subscriptions" }
         );
         break;
-
+      case SUBSCRIPTION_PENDING_PURCHASE_CANCELED:
+        logger.info(`playBillingRtdn: pending purchase canceled uid=${uid} product=${productId}`);
+        break;
       default:
-        logger.info(`playBillingRtdn: unhandled notificationType ${notificationType}`);
+        // RECOVERED, RESTARTED, DEFERRED, ON_HOLD, PAUSED, REVOKED, EXPIRED: the sync above
+        // granted or removed access (removeProHost sends its own notice).
+        break;
+    }
+
+    // 5. Acknowledge after the entitlement is granted (Play: verify → grant → acknowledge),
+    //    and never while payment is still pending — the 3-day window starts at PURCHASED.
+    if (
+      (notificationType === SUBSCRIPTION_PURCHASED ||
+        notificationType === SUBSCRIPTION_RESTARTED ||
+        notificationType === SUBSCRIPTION_RECOVERED) &&
+      !purchase.isPending
+    ) {
+      const acked = await acknowledgeIfNeeded(productId, purchaseToken, purchase.acknowledged, "playBillingRtdn");
+      // The grant already happened, so don't redeliver (that repeats pushes and emails):
+      // hand the acknowledgement to retryPendingPlayActivations instead.
+      if (acked) await resolvePendingActivation(purchaseToken, "granted_by_rtdn");
+      else await parkPendingActivation(uid, purchaseToken, productId, "acknowledge failed", "playBillingRtdn");
+    }
+
+    // 6. GA4 (consent-gated, never throws).
+    if (notificationType === SUBSCRIPTION_PURCHASED && result.hasAccess) {
+      await logPurchaseOnce(uid, purchaseToken, purchase);
+      return;
+    }
+    const gaEvents: Record<number, string> = {
+      [SUBSCRIPTION_RENEWED]: "subscription_renewed",
+      [SUBSCRIPTION_EXPIRED]: "subscription_expired",
+      [SUBSCRIPTION_RECOVERED]: "subscription_recovered",
+      [SUBSCRIPTION_RESTARTED]: "subscription_restarted",
+      [SUBSCRIPTION_REVOKED]: "subscription_revoked",
+      [SUBSCRIPTION_ON_HOLD]: "subscription_on_hold",
+      [SUBSCRIPTION_PAUSED]: "subscription_paused",
+      [SUBSCRIPTION_CANCELED]: "subscription_cancelled",
+      [SUBSCRIPTION_IN_GRACE_PERIOD]: "subscription_grace_period",
+    };
+    const gaEvent = gaEvents[notificationType];
+    if (gaEvent) {
+      const micros = purchase.priceMicros ?? 0;
+      await sendGa4Event(uid, gaEvent, {
+        plan: planInterval(purchase.basePlanId) ?? undefined,
+        product_id: productId,
+        currency: gaEvent === "subscription_renewed" ? purchase.currency ?? undefined : undefined,
+        value: gaEvent === "subscription_renewed" && micros > 0 ? micros / 1_000_000 : undefined,
+        trigger: "rtdn",
+      });
     }
   }
 );

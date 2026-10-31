@@ -1,5 +1,8 @@
 package com.example.ui.components
 
+import com.example.ui.util.localizedLabel
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -32,31 +35,32 @@ fun CancelAcceptedBookingDialog(
     onDismiss: () -> Unit,
     onConfirm: (reasonCode: CancellationReasonCode, note: String?) -> Unit
 ) {
+    com.example.ui.components.TrackScreen("cancel_booking", "Dialog")
     var selectedReason by remember { mutableStateOf<CancellationReasonCode?>(null) }
     var note by remember { mutableStateOf("") }
 
     Dialog(onDismissRequest = onDismiss) {
-        Card(shape = MaterialTheme.shapes.large) {
+        Card(shape = MaterialTheme.shapes.extraLarge, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
             Column(
                 modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.EventBusy, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                     Spacer(modifier = Modifier.width(Spacing.sm))
-                    Text("Cancel Accepted Booking?", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.cancel_accepted_booking), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                 }
                 Text(
-                    "This ends the active booking for \"$spaceTitle\" immediately and notifies $partyLabel. There is no in-app refund or penalty " +
-                    "— settle anything owed directly with $partyLabel.",
+                    stringResource(R.string.this_ends_the_active_booking_for_x_immedia, spaceTitle, partyLabel) +
+                    stringResource(R.string.settle_anything_owed_directly_with_x, partyLabel),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Text("Reason", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.reason), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                 LazyColumn(
                     modifier = Modifier.heightIn(max = 220.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     items(CancellationReasonCode.entries) { reason ->
                         Surface(
@@ -72,34 +76,35 @@ fun CancelAcceptedBookingDialog(
                             ) {
                                 RadioButton(selected = selectedReason == reason, onClick = { selectedReason = reason })
                                 Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text(reason.displayName, style = MaterialTheme.typography.bodySmall)
+                                Text(localizedLabel(reason.displayName), style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }
                 }
 
-                OutlinedTextField(
+                InputField(
                     value = note,
                     onValueChange = { note = it },
-                    label = { Text("Additional note (optional)") },
+                    label = stringResource(R.string.additional_note_optional),
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2,
-                    maxLines = 4
+                    maxLines = 4,
+                    singleLine = false
                 )
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     CustomButton(
-                        text = "Keep Booking",
+                        text = stringResource(R.string.keep_booking),
                         onClick = onDismiss,
                         variant = CustomButtonVariant.OUTLINED,
                         compact = true,
                         modifier = Modifier.weight(1f)
                     )
                     CustomButton(
-                        text = "Cancel Booking",
+                        text = stringResource(R.string.cancel_booking),
                         onClick = { selectedReason?.let { onConfirm(it, note.ifBlank { null }) } },
                         variant = CustomButtonVariant.DANGER,
                         enabled = selectedReason != null,

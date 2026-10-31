@@ -4,7 +4,10 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { recordAuditLog } from "../lib/auditLog";
 import { setClaimsThenFirestore } from "../lib/roles";
+import { SUBSCRIPTIONS } from "../billing/subscriptionService";
+import { linkKey } from "../billing/purchaseLinks";
 import "../lib/admin";
+import { notifyAdminsOfSubscriptionChange } from "../billing/adminBillingAlerts";
 
 interface RevokeProHostRoleData {
   targetUid?: string;
@@ -57,6 +60,8 @@ export const revokeProHostRole = onCall<RevokeProHostRoleData>(async (request) =
   }
 
   const db = getFirestore();
+  const lastPurchaseToken = (await db.collection("user_profiles").doc(targetUid).get()).data()?.lastPurchaseToken as
+    string | undefined;
   let ownedListingsCount = 0;
   try {
     await setClaimsThenFirestore(
@@ -70,6 +75,11 @@ export const revokeProHostRole = onCall<RevokeProHostRoleData>(async (request) =
             role: "SPECIALIST",
             ownerPackageId: null,
             ownerPackageExpiryMillis: null,
+            // Also ends a forced upgrade (the undo for Force Upgrade → ProHost).
+            entitlementSource: null,
+            billingStatus: null,
+            subscriptionPlatform: null,
+            subscriptionExpiry: null,
             updatedAt: Date.now(),
           },
           { merge: true }
@@ -82,9 +92,18 @@ export const revokeProHostRole = onCall<RevokeProHostRoleData>(async (request) =
         if (!ownedListings.empty) {
           const bulkWriter = db.bulkWriter();
           ownedListings.docs.forEach((doc) => {
-            bulkWriter.set(doc.ref, { isActiveSubscription: false }, { merge: true });
+            // isOwnerPackageLapsed is what Explore, the rules and booking checks read.
+            bulkWriter.update(doc.ref, { isActiveSubscription: false, isOwnerPackageLapsed: true })
+              .catch(() => undefined); // deleted meanwhile — never recreate it
           });
           await bulkWriter.close();
+        }
+        // The daily sync / a renewal RTDN must not re-grant a subscription an admin revoked
+        // (an admin Activate in the billing rescue panel clears this).
+        if (lastPurchaseToken) {
+          await db.collection(SUBSCRIPTIONS).doc(linkKey(lastPurchaseToken))
+            .update({ adminRevoked: true, adminRevokedAt: Date.now() })
+            .catch(() => undefined);
         }
       }
     );
@@ -112,5 +131,8 @@ export const revokeProHostRole = onCall<RevokeProHostRoleData>(async (request) =
     severity: "SECURE",
   });
 
+  await notifyAdminsOfSubscriptionChange(targetUid, "ADMIN_REVOKED", {
+    note: `by ${auth.token.email ?? "an admin"}; ${ownedListingsCount} listing(s) deactivated`,
+  });
   return { ok: true, targetUid };
 });

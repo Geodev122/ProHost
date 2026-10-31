@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -14,7 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.model.*
 import com.example.ui.components.*
-import com.example.ui.theme.premiumBackgroundBrush
+import com.example.ui.theme.proHostScreenBackground
 import com.example.ui.theme.Spacing
 import com.example.ui.viewmodel.ProHostViewModel
 
@@ -22,10 +24,13 @@ import com.example.ui.viewmodel.ProHostViewModel
 fun OwnerRentalRequestsScreen(
     viewModel: ProHostViewModel
 ) {
-    val isLoading by viewModel.isRestoringSession.collectAsState()
-    val errorMessage by viewModel.sessionRestoreError.collectAsState()
+    val isRestoringSession by viewModel.isRestoringSession.collectAsState()
+    val sessionError by viewModel.sessionRestoreError.collectAsState()
     val incomingRequests by viewModel.ownerIncomingRequests.collectAsState()
     val spaces by viewModel.spaces.collectAsState()
+    // Show loading only while restoring and no requests have arrived yet.
+    val isLoading = isRestoringSession && incomingRequests.isEmpty()
+    val errorMessage = if (!isLoading) sessionError else null
 
     when {
         isLoading -> {
@@ -46,8 +51,8 @@ fun OwnerRentalRequestsScreen(
         !isLoading && incomingRequests.isEmpty() -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 ProEmptyState(
-                    title = "No Rental Requests",
-                    description = "You have no incoming rental requests yet. Publish a listing to start receiving bookings.",
+                    title = stringResource(R.string.no_rental_requests),
+                    description = stringResource(R.string.you_have_no_incoming_rental_requests_yet_p),
                     icon = Icons.Default.Inbox
                 )
             }
@@ -70,9 +75,9 @@ fun OwnerRentalRequestsScreenContent(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(premiumBackgroundBrush()),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .proHostScreenBackground(),
+        contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, top = Spacing.lg, bottom = Spacing.xl),
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg)
     ) {
         item {
             Surface(
@@ -82,15 +87,15 @@ fun OwnerRentalRequestsScreenContent(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                    modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                 ) {
-                    Icon(Icons.Default.Inbox, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Inbox, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                     Text(
-                        text = "${incomingRequests.size} Total Requests",
+                        text = stringResource(R.string.x_total_requests, incomingRequests.size),
                         fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.labelMedium,
+                        style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }

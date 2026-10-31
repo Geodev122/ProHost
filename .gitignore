@@ -22,4 +22,11 @@ firebase-debug.log
 *.firebase-debug.log
 .env
 .env.local
-.claude/
+.claude/*
+!.claude/skills/
+tests/e2e/*.log
+tests/rules/*.log
+
+__pycache__/
+
+marketing/source/out/

@@ -1,5 +1,12 @@
 package com.example.ui.screens
 
+import androidx.compose.ui.res.pluralStringResource
+import com.example.ui.util.locationLine
+import com.example.ui.util.localizedLabel
+import com.example.ui.util.uiText
+import com.example.R
+import androidx.compose.ui.res.stringResource
+import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,6 +16,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -16,6 +26,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -50,6 +61,10 @@ fun SpaceDetailsScreen(
     // (list or map) — pre-selects that division and opens its availability sheet
     // immediately instead of landing on the generic whole-space view.
     intendedSubdivisionId: String? = null,
+    // Explore's "Check availability": arrive with that room's availability sheet open.
+    openAvailability: Boolean = false,
+    // After a request is sent: open My Rentals at that booking.
+    onViewRequest: (bookingId: String) -> Unit = {},
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -58,8 +73,16 @@ fun SpaceDetailsScreen(
     val liveSpace = allSpaces.find { it.id == space.id } ?: space
     val allBookingRequests by viewModel.bookingRequests.collectAsState()
 
-    val acceptedBookings = remember(allBookingRequests, liveSpace.id) {
-        allBookingRequests.filter { it.spaceId == liveSpace.id && it.status == BookingRequestStatus.ACCEPTED }
+    // Slots held by OTHER people come from the public occupancy projection (specialists can't read
+    // others' bookings); the viewer's own bookings come from their own list.
+    DisposableEffect(liveSpace.id) {
+        viewModel.watchOccupancy(liveSpace.id)
+        onDispose { viewModel.unwatchOccupancy(liveSpace.id) }
+    }
+    val occupancy by viewModel.occupancy.collectAsState()
+    val acceptedBookings = remember(allBookingRequests, occupancy, liveSpace.id) {
+        (allBookingRequests.filter { it.spaceId == liveSpace.id && it.status == BookingRequestStatus.ACCEPTED } +
+            occupancy[liveSpace.id].orEmpty()).distinctBy { it.id }
     }
 
     val myRequestsForThisSpace = remember(allBookingRequests, currentUser, liveSpace.id) {
@@ -76,7 +99,7 @@ fun SpaceDetailsScreen(
     // host's own visits don't inflate their own stats.
     LaunchedEffect(liveSpace.id) {
         if (currentUser?.id != liveSpace.ownerId) {
-            viewModel.registerSpaceView(liveSpace.id)
+            viewModel.registerSpaceView(liveSpace, intendedSubdivisionId)
         }
     }
 
@@ -102,26 +125,29 @@ fun SpaceDetailsScreen(
         currentUserRole = currentUser?.role,
         onSelectFormula = { selectedFormula = it },
         onWhatsAppClick = {
-            viewModel.launchWhatsAppInquiry(context, liveSpace, selectedFormula)
+            // General inquiry about the listing (not tied to one room or price).
+            viewModel.launchWhatsAppInquiry(context, liveSpace)
         },
         onShareClick = {
             val shareUrl = ShareLinks.forListing(liveSpace.id)
             val shareText = buildString {
                 append("🏢 ${liveSpace.title}")
-                append("\n📍 ${liveSpace.district}, ${liveSpace.governorate.displayName}")
+                append("\n📍 ${liveSpace.locationLine()}")
                 if (liveSpace.description.isNotBlank()) {
                     append("\n${liveSpace.description}")
                 }
                 append("\n\n$shareUrl")
             }
-            viewModel.shareListing(context, liveSpace.title, shareText)
+            viewModel.shareListing(context, liveSpace.title, shareText, liveSpace)
         },
         onCopyLinkClick = {
-            viewModel.copyListingLink(context, ShareLinks.forListing(liveSpace.id))
+            viewModel.copyListingLink(context, ShareLinks.forListing(liveSpace.id), liveSpace)
         },
         isSaved = currentUser?.savedSpaceIds?.contains(liveSpace.id) == true,
         onToggleSave = { viewModel.toggleSavedSpace(liveSpace.id) },
         intendedSubdivisionId = intendedSubdivisionId,
+        openAvailability = openAvailability,
+        onViewRequest = onViewRequest,
         onBack = onBack
     )
 }
@@ -129,7 +155,7 @@ fun SpaceDetailsScreen(
 /**
  * Dumb Presentation Screen for Space Details.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun SpaceDetailsScreenContent(
     space: SpaceListing,
@@ -145,6 +171,8 @@ fun SpaceDetailsScreenContent(
     isSaved: Boolean = false,
     onToggleSave: () -> Unit = {},
     intendedSubdivisionId: String? = null,
+    openAvailability: Boolean = false,
+    onViewRequest: (bookingId: String) -> Unit = {},
     onBack: () -> Unit
 ) {
     val liveSpace = space
@@ -153,26 +181,40 @@ fun SpaceDetailsScreenContent(
     val currentUser by viewModel.currentUser.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var showShareMenu by remember { mutableStateOf(false) }
-    var showInquiryDialog by remember { mutableStateOf(false) }
-    var inquiryMessage by remember { mutableStateOf("") }
     // "hidden" | "peek" | "full"
     // peek = division selected, animated slice visible above bottom of screen; press to expand
     // full = full ModalBottomSheet open
-    var availabilityPanelState by remember { mutableStateOf("hidden") }
+    val availabilityPanelStateHolder = remember { mutableStateOf("hidden") }
+    var availabilityPanelState by availabilityPanelStateHolder
     val showAvailabilityPanel = availabilityPanelState == "full"
     // Opens straight to full height: a half-expanded first stop made the long, scrollable
     // content drag the sheet instead of scrolling it.
-    val availabilitySheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val availabilitySheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     // Hosts and admins can look at availability but only specialists can request slots.
     val isSpecialistViewer = currentUserRole != UserRole.PRO_HOST && currentUserRole != UserRole.ADMIN
     // Multi-select: SHIFT_BASED, DAY_BASED, MONTHLY slots
-    var selectedSlots by remember { mutableStateOf(setOf<RentableSlot>()) }
+    val selectedSlotsState = remember { mutableStateOf(setOf<RentableSlot>()) }
+    var selectedSlots by selectedSlotsState
     // Multi-day HOURLY selection: day → set of selected start-hour strings
-    var selectedHoursPerDay by remember { mutableStateOf(mapOf<String, Set<String>>()) }
-    var showSendConfirm by remember { mutableStateOf(false) }
+    val selectedHoursPerDayState = remember { mutableStateOf(mapOf<String, Set<String>>()) }
+    var selectedHoursPerDay by selectedHoursPerDayState
+    val showSendConfirmState = remember { mutableStateOf(false) }
+    var showSendConfirm by showSendConfirmState
     var isSendingSlotRequest by remember { mutableStateOf(false) }
-    var showProfilePicRequiredDialog by remember { mutableStateOf(false) }
+    // Photo + verified phone are checked in place (RequirementsSheet) when Request is tapped;
+    // the selected slots stay put and the confirm step opens once both are done.
+    var showRequirements by remember { mutableStateOf(false) }
+    // The request just sent: drives the "Request sent" sheet (View request / WhatsApp host).
+    var sentRequest by remember { mutableStateOf<RentalBookingRequest?>(null) }
     var selectedSubdivisionId by remember { mutableStateOf<String?>(null) }
+    fun requestWithRequirements() {
+        val user = currentUser ?: return
+        // Booking funnel: Request tapped (begin_checkout), then either the confirm step or the requirements gate.
+        val sub = liveSpace.subdivisions.find { it.id == selectedSubdivisionId }
+        com.example.analytics.AnalyticsTracker.beginBookingCheckout(liveSpace, sub)
+        com.example.analytics.AnalyticsTracker.bookingSlotSelect(sub?.pricing?.strategyType?.name ?: liveSpace.pricing.strategyType.name, selectedSlots.size)
+        if (user.canTransact()) showSendConfirm = true else showRequirements = true
+    }
     val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
 
     // Real, live pricing config (SpaceCalculationUtils.buildAllSlotsForSpace) — the
@@ -186,22 +228,63 @@ fun SpaceDetailsScreenContent(
             .sortedBy { (type, _) -> type.ordinal }
     }
 
-    // Arrived here via a division-card tap on Explore — pre-select that division
-    // and open its availability sheet immediately (skip the "peek" intermediate
-    // step), instead of landing on the generic whole-space view.
+    // The single way to choose a room. The folder tabs (page and availability sheet),
+    // the Explore deep link and the card buttons all come through here, so the page,
+    // the bottom strip and the availability sheet always agree on which room is active.
+    // Switching rooms drops any slots picked for the previous one.
+    fun selectRoom(sub: Subdivision, panelState: String? = null) {
+        if (selectedSubdivisionId != sub.id) {
+            selectedSlots = emptySet()
+            selectedHoursPerDay = emptyMap()
+        }
+        // Show the room's lowest per-slot price on the bottom strip, not the sum of every
+        // open slot — representativeFormula sums whatever it's given, so pass one slot.
+        val cheapestSlot = availableSlots
+            .filter { it.sourceFormulaId == sub.id }
+            .minByOrNull { it.pricesByRecurrence[BookingRecurrence.FLAT] ?: Double.MAX_VALUE }
+        val formula = cheapestSlot?.let {
+            SpaceCalculationUtils.representativeFormula(listOf(it), BookingRecurrence.FLAT)
+        }
+        if (formula != null) onSelectFormula(formula)
+        if (selectedSubdivisionId != sub.id) com.example.analytics.AnalyticsTracker.selectRoom(liveSpace, sub)
+        selectedSubdivisionId = sub.id
+        if (panelState != null) availabilityPanelState = panelState
+    }
+
+    LaunchedEffect(availabilityPanelState == "full") {
+        if (availabilityPanelState == "full") {
+            val sub = liveSpace.subdivisions.firstOrNull { it.id == selectedSubdivisionId }
+            val open = availableSlots.count {
+                (sub == null || it.sourceFormulaId == sub.id) &&
+                    !SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings)
+            }
+            com.example.analytics.AnalyticsTracker.viewAvailability(liveSpace, sub, open)
+        }
+    }
+
+    val roomsRequester = remember { BringIntoViewRequester() }
+
+    // Arrived here via a division-card tap on Explore: that room's tab is selected and its
+    // card scrolled into view. "Check availability" on the card also opens the sheet.
     LaunchedEffect(intendedSubdivisionId, liveSpace.id) {
         val sub = intendedSubdivisionId?.let { id -> liveSpace.subdivisions.firstOrNull { it.id == id } }
         if (sub != null) {
-            val subSlots = availableSlots.filter { it.sourceFormulaId == sub.id }
-            val cheapestSlot = subSlots.minByOrNull {
-                it.pricesByRecurrence[BookingRecurrence.FLAT] ?: Double.MAX_VALUE
-            }
-            val formula = cheapestSlot?.let {
-                SpaceCalculationUtils.representativeFormula(listOf(it), BookingRecurrence.FLAT)
-            }
-            if (formula != null) onSelectFormula(formula)
-            selectedSubdivisionId = sub.id
-            availabilityPanelState = if (isSpecialistViewer) "full" else "peek"
+            selectRoom(sub, if (openAvailability && isSpecialistViewer) "full" else "peek")
+            kotlinx.coroutines.delay(150)
+            roomsRequester.bringIntoView()
+        } else if (openAvailability && isSpecialistViewer) {
+            // Explore's "Availability" without a room (whole-space listing, or a listing card rather than a room card):
+            // the sheet opens straight away too, on the first room when there are rooms.
+            val first = liveSpace.subdivisions.firstOrNull()
+            if (first != null) selectRoom(first, "full") else availabilityPanelState = "full"
+        }
+    }
+    // A space with rooms always has one active, so the sheet is never a mixed view of
+    // every room (per-attendee rooms need their own attendee count and tiers).
+    val roomIds = liveSpace.subdivisions.map { it.id }
+    LaunchedEffect(roomIds) {
+        if (roomIds.isNotEmpty() && selectedSubdivisionId !in roomIds) {
+            selectRoom(liveSpace.subdivisions.first())
         }
     }
 
@@ -210,176 +293,37 @@ fun SpaceDetailsScreenContent(
         // MyFavoritesScreen's identical fix for why this is needed.
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        space.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onToggleSave) {
-                        Icon(
-                            imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = if (isSaved) "Remove from Saved" else "Save Workspace",
-                            tint = if (isSaved) MaterialTheme.colorScheme.error else LocalContentColor.current
-                        )
-                    }
-                    Box {
-                        IconButton(onClick = { showShareMenu = true }) {
-                            Icon(Icons.Default.Share, contentDescription = "Share")
-                        }
-                        DropdownMenu(expanded = showShareMenu, onDismissRequest = { showShareMenu = false }) {
-                            DropdownMenuItem(
-                                text = { Text("Share Listing") },
-                                leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
-                                onClick = {
-                                    showShareMenu = false
-                                    onShareClick()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Copy Link") },
-                                leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
-                                onClick = {
-                                    showShareMenu = false
-                                    onCopyLinkClick()
-                                }
-                            )
-                        }
-                    }
-                }
-            )
-        },
+        // No TopAppBar — back/save/share are overlaid on the fullscreen hero instead.
         bottomBar = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                // One availability trigger, same design whether or not a division is
-                // selected — it used to switch between two differently styled bars.
-                if (isSpecialistViewer && !showAvailabilityPanel) {
-                    val stripSub = liveSpace.subdivisions.firstOrNull { it.id == selectedSubdivisionId }
-                    val hasSlots = availableSlots.isNotEmpty()
-                    val openSlotCount = availableSlots.count {
-                        (stripSub == null || it.sourceFormulaId == stripSub.id) &&
-                            !SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings)
-                    }
-                    val stripContent = if (hasSlots) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                    Surface(
-                        color = if (hasSlots) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(enabled = hasSlots) { availabilityPanelState = "full" }
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.EventAvailable, contentDescription = null, tint = stripContent, modifier = Modifier.size(20.dp))
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = stripSub?.name ?: "Check availability",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = stripContent,
-                                    maxLines = 1,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = when {
-                                        !hasSlots -> "No bookable slots configured yet"
-                                        openSlotCount > 0 -> "$openSlotCount slot(s) available · Tap to choose"
-                                        else -> "Fully booked · Tap to see the schedule"
-                                    },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = stripContent.copy(alpha = 0.8f)
-                                )
-                            }
-                            if (hasSlots) {
-                                Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Open availability", tint = stripContent)
-                            }
-                        }
-                    }
+            if (!showAvailabilityPanel) {
+                val stripSub = liveSpace.subdivisions.firstOrNull { it.id == selectedSubdivisionId }
+                val openSlotCount = availableSlots.count {
+                    (stripSub == null || it.sourceFormulaId == stripSub.id) &&
+                        !SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings)
                 }
-                // Price + action strip
-                Surface(
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 10.dp,
-                    shadowElevation = 8.dp,
-                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            val (fallbackPrice, fallbackUnit) = remember(liveSpace) { SpaceCalculationUtils.lowestPriceSummary(liveSpace) }
-                            val price = selectedFormula?.rateUsd ?: fallbackPrice
-                            val priceUnit = selectedFormula?.let { SpaceCalculationUtils.rateUnitLabel(it.type) } ?: fallbackUnit
-                            Text(
-                                text = "$${price.toInt()} USD$priceUnit",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                            Text(
-                                text = selectedFormula?.type?.displayName ?: "Full Month",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        if (currentUserRole == UserRole.PRO_HOST || currentUserRole == UserRole.ADMIN) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.secondaryContainer,
-                                shape = MaterialTheme.shapes.medium,
-                                modifier = Modifier.weight(1.5f)
-                            ) {
-                                Text(
-                                    text = "Preview Mode",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
-                                )
-                            }
-                        } else {
-                            Button(
-                                onClick = onWhatsAppClick,
-                                shape = MaterialTheme.shapes.medium,
-                                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppDarkGreen),
-                                modifier = Modifier.weight(1f),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    "WhatsApp",
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
+                val (fallbackPrice, fallbackUnit) = remember(liveSpace) { SpaceCalculationUtils.lowestPriceSummary(liveSpace) }
+                // A per-attendee room's slot prices are availability markers; its real
+                // price is per person for the whole booking.
+                val stripAttendeeSub = stripSub?.takeIf { com.example.ui.util.AttendeePricing.isPerAttendee(it) }
+                val stripPerPerson = stripAttendeeSub?.let {
+                    com.example.ui.util.AttendeePricing.lowestPricePerPerson(it, architectureSchema.attendeePackages)
                 }
+                DetailsBookingBar(
+                    roomName = stripSub?.name,
+                    showAvailability = isSpecialistViewer,
+                    hasSchedule = availableSlots.any { stripSub == null || it.sourceFormulaId == stripSub.id },
+                    openSlotCount = openSlotCount,
+                    priceUsd = stripPerPerson ?: selectedFormula?.rateUsd ?: fallbackPrice,
+                    pricePrefix = if (stripAttendeeSub != null) stringResource(R.string.price_from_prefix) else "",
+                    priceUnit = if (stripAttendeeSub != null) {
+                        SpaceCalculationUtils.PER_PERSON_UNIT
+                    } else {
+                        selectedFormula?.let { SpaceCalculationUtils.rateUnitLabel(it.type) } ?: fallbackUnit
+                    },
+                    formulaName = selectedFormula?.type?.displayName?.let { localizedLabel(it) } ?: uiText(R.string.full_month_2),
+                    isPreview = currentUserRole == UserRole.PRO_HOST || currentUserRole == UserRole.ADMIN,
+                    onOpenAvailability = { availabilityPanelState = "full" }
+                )
             }
         }
     ) { innerPadding ->
@@ -389,17 +333,13 @@ fun SpaceDetailsScreenContent(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Hero Visual Card — swipeable through every photo, not just the first
-            // (this used to hard-drop imageUrls[1..], the only place the rest of a
-            // listing's photos were ever shown). Bottom-rounded so it tucks into the
-            // content sheet below, and a bottom-anchored gradient scrim (rather than a
-            // flat overlay across the whole photo) keeps the top of the image vivid
-            // while still guaranteeing the title/location text stays legible.
+            // Fullscreen hero — fills width, extends to status bar. Back/save/share
+            // buttons float over the top-start and top-end corners with a subtle scrim.
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
-                    .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+                    .height(280.dp)
+                    .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
             ) {
                 if (liveSpace.imageUrls.isNotEmpty()) {
                     val pagerState = rememberPagerState(pageCount = { liveSpace.imageUrls.size })
@@ -428,46 +368,27 @@ fun SpaceDetailsScreenContent(
                     )
                     if (liveSpace.imageUrls.size > 1) {
                         if (pagerState.currentPage > 0) {
-                            IconButton(
+                            PhotoCarouselArrow(
+                                forward = false,
                                 onClick = { heroScope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
-                                modifier = Modifier
-                                    .align(Alignment.CenterStart)
-                                    .padding(start = 4.dp)
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Black.copy(alpha = 0.35f))
-                            ) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ArrowBackIos,
-                                    contentDescription = "Previous photo",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
+                                visualSize = 36.dp,
+                                modifier = Modifier.align(Alignment.CenterStart)
+                            )
                         }
                         if (pagerState.currentPage < liveSpace.imageUrls.size - 1) {
-                            IconButton(
+                            PhotoCarouselArrow(
+                                forward = true,
                                 onClick = { heroScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
-                                modifier = Modifier
-                                    .align(Alignment.CenterEnd)
-                                    .padding(end = 4.dp)
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Black.copy(alpha = 0.35f))
-                            ) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ArrowForwardIos,
-                                    contentDescription = "Next photo",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
+                                visualSize = 36.dp,
+                                modifier = Modifier.align(Alignment.CenterEnd)
+                            )
                         }
-                        Row(
+                        // Photo dots sit at the bottom (clear of the back / save / share row).
+                        if (liveSpace.imageUrls.size > 1) Row(
                             modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .padding(top = Spacing.md),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                         ) {
                             repeat(liveSpace.imageUrls.size) { index ->
                                 Box(
@@ -496,30 +417,95 @@ fun SpaceDetailsScreenContent(
                             )
                     )
                 }
+                // Overlay nav strip — back (start) and save/share (end), always on top.
+                // statusBarsPadding ensures buttons sit below system status bar while the
+                // hero image bleeds behind it (full bleed behind the status bar).
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HeroGlassButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), modifier = Modifier.size(22.dp))
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    Box {
+                        // Save + share as one frosted pill.
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                            contentColor = MaterialTheme.colorScheme.onSurface,
+                            shadowElevation = Elevation.level2,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(onClick = onToggleSave, modifier = Modifier.size(42.dp)) {
+                                    Icon(
+                                        if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                        contentDescription = if (isSaved) stringResource(R.string.remove_from_saved) else stringResource(R.string.save),
+                                        tint = if (isSaved) Color(0xFFE5484D) else MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(21.dp)
+                                    )
+                                }
+                                Box(
+                                    Modifier
+                                        .width(1.dp)
+                                        .height(20.dp)
+                                        .background(MaterialTheme.colorScheme.outlineVariant)
+                                )
+                                IconButton(onClick = { showShareMenu = true }, modifier = Modifier.size(42.dp)) {
+                                    Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.share), modifier = Modifier.size(20.dp))
+                                }
+                            }
+                        }
+                        DropdownMenu(
+                            expanded = showShareMenu,
+                            onDismissRequest = { showShareMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.share_listing)) },
+                                onClick = { showShareMenu = false; onShareClick() },
+                                leadingIcon = { Icon(Icons.Default.Share, null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.copy_link)) },
+                                onClick = { showShareMenu = false; onCopyLinkClick() },
+                                leadingIcon = { Icon(Icons.Default.ContentCopy, null) }
+                            )
+                        }
+                    }
+                }
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(14.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        // The category chip gives way (ellipsis) so the Verified badge always fits, even at large font sizes.
                         Surface(
                             color = Color(0x33FFFFFF),
-                            shape = MaterialTheme.shapes.small
+                            shape = MaterialTheme.shapes.small,
+                            modifier = Modifier.weight(1f, fill = false)
                         ) {
                             Text(
-                                text = "${liveSpace.spaceCategoryName ?: liveSpace.spaceType.displayName} • " +
-                                    "${if (liveSpace.isShared) "Shared Co-Working Space" else "Private Studio / Office"}",
+                                text = "${liveSpace.spaceCategoryName ?: localizedLabel(liveSpace.spaceType.displayName)} • " +
+                                    (if (liveSpace.isShared) stringResource(R.string.shared_co_working_space) else stringResource(R.string.private_studio_office)),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                 modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                             )
                         }
                         if (liveSpace.isVerified) {
-                            ProStatusBadge(type = ProBadgeType.VERIFIED_MEMBER, customText = "Verified")
+                            ProStatusBadge(type = ProBadgeType.VERIFIED_MEMBER, customText = uiText(R.string.verified))
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(Spacing.sm))
                     Text(
                         text = liveSpace.title,
                         style = MaterialTheme.typography.headlineSmall,
@@ -536,9 +522,17 @@ fun SpaceDetailsScreenContent(
                             tint = Color(0xCCFFFFFF),
                             modifier = Modifier.size(14.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
                         Text(
-                            text = "${liveSpace.district}, ${liveSpace.governorate.displayName} • ${liveSpace.floorInfo}",
+                            // Area, city (the governorate only for legacy listings without one), floor and, for an
+                            // undivided place, how many people it fits.
+                            text = listOfNotNull(
+                                // Area (when it isn't the city itself), then the listing's own "City, Country".
+                                listOf(liveSpace.district.trim().takeIf { it != liveSpace.city.trim() }.orEmpty(), liveSpace.locationLine())
+                                    .filter { it.isNotBlank() }.joinToString(", ").takeIf { it.isNotBlank() },
+                                liveSpace.floorInfo.takeIf { it.isNotBlank() },
+                                liveSpace.capacity?.takeIf { liveSpace.subdivisions.isEmpty() }?.let { stringResource(R.string.up_to_x, it) }
+                            ).joinToString(" • "),
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xCCFFFFFF),
                             maxLines = 1,
@@ -555,31 +549,12 @@ fun SpaceDetailsScreenContent(
             // still gets full access, just told honestly why it won't show up if
             // they go looking for it again.
             if (liveSpace.isOwnerPackageLapsed) {
-                Surface(
-                    color = MaterialTheme.colorScheme.tertiaryContainer,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                    ) {
-                        Icon(
-                            Icons.Default.Info,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            "This host is on verification process — their listing is temporarily hidden from new searches, but your existing " +
-                            "access here is unaffected.",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                    }
-                }
+                ProHostAlertBanner(
+                    message = stringResource(R.string.this_host_is_on_verification_process_their) +
+                        stringResource(R.string.access_here_is_unaffected),
+                    severity = ProHostAlertSeverity.INFO,
+                    modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)
+                )
             }
 
             Column(
@@ -596,27 +571,28 @@ fun SpaceDetailsScreenContent(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Your In-App Rental Request ${req.publicCode}",
+                                    text = stringResource(R.string.your_in_app_rental_request_x, req.publicCode),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "Formula: ${req.formula.scheduleDescription} • Start: ${req.startDate} (${req.durationMonths} mo)",
+                                    text = stringResource(R.string.formula_x_start_x_x_mo, req.formula.scheduleDescription, req.startDate, req.durationMonths),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 if (req.status == BookingRequestStatus.PENDING) {
                                     Text(
-                                        text = "Awaiting owner acceptance. Space hours remain open to public until confirmed.",
+                                        text = stringResource(R.string.awaiting_owner_acceptance_space_hours_rema),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.proColors.warning,
                                         fontWeight = FontWeight.SemiBold
                                     )
                                 } else if (req.status == BookingRequestStatus.ACCEPTED) {
                                     Text(
-                                        text = "Confirmed! Space hours (${req.formula.daysOfWeek.joinToString()}" +
-                                            " ${req.formula.startHour}-${req.formula.endHour}) are locked" +
-                                            ".",
+                                        text = stringResource(
+                                            R.string.confirmed_space_hours_locked_x_x_x,
+                                            req.formula.daysOfWeek.joinToString { localizedLabel(it) }, req.formula.startHour, req.formula.endHour
+                                        ),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.proColors.info,
                                         fontWeight = FontWeight.Bold
@@ -626,31 +602,49 @@ fun SpaceDetailsScreenContent(
 
                             when (req.status) {
                                 BookingRequestStatus.ACCEPTED -> ProStatusBadge(ProBadgeType.ACCEPTED_LOCKED)
-                                BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = "Pending")
-                                BookingRequestStatus.REJECTED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = "Declined")
-                                BookingRequestStatus.CANCELLED -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = "Cancelled")
+                                BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = uiText(R.string.pending))
+                                BookingRequestStatus.REJECTED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = uiText(R.string.declined))
+                                BookingRequestStatus.CANCELLED -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = uiText(R.string.cancelled))
                             }
                         }
                     }
                 }
 
-                // Owner & Verification Card
+                // Host card: who runs this space, and a WhatsApp button for general questions
+                // (the number itself is never printed; the button opens a ready-made inquiry).
                 ProSurfaceCard {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        ProMemberAvatar(
-                            name = liveSpace.ownerName,
-                            specialty = "Space Host • WhatsApp: ${liveSpace.ownerPhone}",
-                            isVerified = liveSpace.isVerified,
-                            imageUrl = liveSpace.ownerProfilePictureUrl,
-                            size = 40.dp,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        ProStatusBadge(ProBadgeType.ACTIVE_30D)
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            ProMemberAvatar(
+                                name = liveSpace.ownerName.ifBlank { uiText(R.string.space_host) },
+                                specialty = if (liveSpace.isVerified) uiText(R.string.verified_space_host) else uiText(R.string.space_host),
+                                isVerified = liveSpace.isVerified,
+                                imageUrl = liveSpace.ownerProfilePictureUrl,
+                                size = 44.dp,
+                                modifier = Modifier.weight(1f)
+                            )
+                            ProStatusBadge(ProBadgeType.ACTIVE_30D)
+                        }
+                        val isHostView = currentUserRole == UserRole.PRO_HOST || currentUserRole == UserRole.ADMIN
+                        if (!isHostView && liveSpace.ownerPhone.isNotBlank()) {
+                            Button(
+                                onClick = onWhatsAppClick,
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                                shape = MaterialTheme.shapes.medium,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = WhatsAppDarkGreen,
+                                    contentColor = androidx.compose.ui.graphics.Color.White
+                                )
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(Spacing.sm))
+                                Text(stringResource(R.string.ask_the_host_on_whatsapp), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
                 }
 
@@ -658,9 +652,9 @@ fun SpaceDetailsScreenContent(
                 // rendered anywhere on this screen.
                 if (liveSpace.description.isNotBlank()) {
                     ProSurfaceCard {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             ProSectionHeader(
-                                title = "Description",
+                                title = stringResource(R.string.description),
                                 icon = Icons.Default.Description
                             )
                             Text(
@@ -681,14 +675,14 @@ fun SpaceDetailsScreenContent(
                 // Rental Options — one card per configured subdivision (or a single
                 // "Whole Space" card when no subdivisions are set up). Tapping an
                 // available card pre-selects that subdivision and opens the availability sheet.
-                ProSurfaceCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                ProSurfaceCard(modifier = Modifier.bringIntoViewRequester(roomsRequester)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                         ProSectionHeader(
-                            title = "Rental Options",
+                            title = stringResource(R.string.rental_options),
                             subtitle = if (liveSpace.subdivisions.isNotEmpty())
-                                "${liveSpace.subdivisions.size} space${if (liveSpace.subdivisions.size == 1) "" else "s"} available — tap to see availability"
+                                pluralStringResource(R.plurals.spaces_pick_tab, liveSpace.subdivisions.size, liveSpace.subdivisions.size)
                             else
-                                "Tap the card to check live availability",
+                                stringResource(R.string.tap_the_card_to_check_live_availability),
                             icon = Icons.Default.Tune
                         )
 
@@ -700,24 +694,24 @@ fun SpaceDetailsScreenContent(
                             val priceSummary = run {
                                 val st = strategyPreviewGroups.firstOrNull()?.first
                                 when (st) {
-                                    RentalStrategyType.MONTHLY -> "$${liveSpace.pricing.monthly?.rateUsd?.toInt() ?: liveSpace.baseMonthlyRateUsd.toInt()}/mo"
-                                    RentalStrategyType.HOURLY -> "from $${liveSpace.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0}/hr"
+                                    RentalStrategyType.MONTHLY -> "$${liveSpace.pricing.monthly?.rateUsd?.toInt() ?: liveSpace.baseMonthlyRateUsd.toInt()}${SpaceCalculationUtils.strategyUnitLabel(RentalStrategyType.MONTHLY)}"
+                                    RentalStrategyType.HOURLY -> uiText(R.string.from_x_hr, liveSpace.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0)
                                     RentalStrategyType.SHIFT_BASED -> {
                                         val minPrice = liveSpace.pricing.shiftBased?.shifts
                                             ?.filter { !it.isUnavailable }?.minOfOrNull { it.price }?.toInt() ?: 0
-                                        "from $$minPrice/shift"
+                                        uiText(R.string.from_x_shift, minPrice)
                                     }
                                     RentalStrategyType.DAY_BASED -> {
                                         val minPrice = liveSpace.pricing.dayBased?.distribution?.values?.minOfOrNull { it.price }?.toInt() ?: 0
-                                        "from $$minPrice/day"
+                                        uiText(R.string.from_x_day, minPrice)
                                     }
-                                    null -> "$${liveSpace.baseMonthlyRateUsd.toInt()}/mo"
+                                    null -> SpaceCalculationUtils.lowestPriceSummary(liveSpace).let { (p, u) -> "$${p.toInt()}$u" }
                                 }
                             }
                             SubdivisionRentalCard(
                                 info = SubdivisionRentalCardInfo(
                                     name = liveSpace.title,
-                                    typeBadge = "Whole Space",
+                                    typeBadge = uiText(R.string.whole_space),
                                     imageUrls = liveSpace.imageUrls,
                                     amenities = liveSpace.essentialFacilities,
                                     hashtags = emptyList(),
@@ -734,55 +728,51 @@ fun SpaceDetailsScreenContent(
                                 }
                             )
                         } else {
-                            liveSpace.subdivisions.forEach { sub ->
+                            val rooms = liveSpace.subdivisions
+                            val sub = rooms.firstOrNull { it.id == selectedSubdivisionId } ?: rooms.first()
+                            RoomFolderTabs(
+                                rooms = rooms,
+                                selectedId = sub.id,
+                                onSelect = { selectRoom(it) }
+                            )
+                            RoomFolderPanel(firstTabSelected = sub.id == rooms.first().id) {
                                 val subSlots = availableSlots.filter { it.sourceFormulaId == sub.id }
                                 val isOccupied = subSlots.isNotEmpty() &&
                                     subSlots.all { SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
-                                val priceSummary = when (sub.pricing.strategyType) {
-                                    RentalStrategyType.MONTHLY -> "$${sub.pricing.monthly?.rateUsd?.toInt() ?: 0}/mo"
-                                    RentalStrategyType.HOURLY -> "from $${sub.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0}/hr"
+                                val perAttendeeFrom = if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) {
+                                    com.example.ui.util.AttendeePricing.lowestPricePerPerson(sub, architectureSchema.attendeePackages)
+                                } else null
+                                val priceSummary = if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) {
+                                    uiText(R.string.from_x_person, perAttendeeFrom?.toInt() ?: 0)
+                                } else when (sub.pricing.strategyType) {
+                                    RentalStrategyType.MONTHLY -> "$${sub.pricing.monthly?.rateUsd?.toInt() ?: 0}${SpaceCalculationUtils.strategyUnitLabel(RentalStrategyType.MONTHLY)}"
+                                    RentalStrategyType.HOURLY -> uiText(R.string.from_x_hr, sub.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0)
                                     RentalStrategyType.SHIFT_BASED -> {
                                         val minPrice = sub.pricing.shiftBased?.shifts?.filter { !it.isUnavailable }?.minOfOrNull { it.price }?.toInt() ?: 0
-                                        "from $$minPrice/shift"
+                                        uiText(R.string.from_x_shift, minPrice)
                                     }
                                     RentalStrategyType.DAY_BASED -> {
                                         val minPrice = sub.pricing.dayBased?.distribution?.values?.minOfOrNull { it.price }?.toInt() ?: 0
-                                        "from $$minPrice/day"
+                                        uiText(R.string.from_x_day, minPrice)
                                     }
-                                }
-                                // Shared by the whole-card tap (peek) and the explicit "Check
-                                // Availability" button (jumps straight to the full slide-up
-                                // sheet) — selects this division and its cheapest slot's price.
-                                fun selectSubdivision(targetPanelState: String) {
-                                    // Show the division's lowest per-slot price on the bottom
-                                    // strip, not the sum of every open slot for the week —
-                                    // representativeFormula sums whatever slot list it's given,
-                                    // so pass just the cheapest slot, not all of subSlots.
-                                    val cheapestSlot = subSlots.minByOrNull {
-                                        it.pricesByRecurrence[BookingRecurrence.FLAT] ?: Double.MAX_VALUE
-                                    }
-                                    val formula = cheapestSlot?.let {
-                                        SpaceCalculationUtils.representativeFormula(listOf(it), BookingRecurrence.FLAT)
-                                    }
-                                    if (formula != null) onSelectFormula(formula)
-                                    selectedSubdivisionId = sub.id
-                                    availabilityPanelState = targetPanelState
                                 }
                                 SubdivisionRentalCard(
                                     info = SubdivisionRentalCardInfo(
                                         name = sub.name,
-                                        typeBadge = sub.type.displayName,
+                                        typeBadge = localizedLabel(sub.type.displayName),
                                         imageUrls = sub.imageUrls,
                                         amenities = sub.amenities,
                                         hashtags = sub.hashtags,
-                                        priceSummary = "${sub.pricing.strategyType.displayName} · $priceSummary",
+                                        priceSummary = if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) {
+                                            uiText(R.string.per_attendee_x_slots_x, localizedLabel(sub.pricing.strategyType.displayName), priceSummary)
+                                        } else "${localizedLabel(sub.pricing.strategyType.displayName)} · $priceSummary",
                                         isOccupied = isOccupied,
                                         capacity = sub.capacity,
                                         hasCustomHours = sub.scheduleOverride != null,
-                                        isPerAttendee = sub.pricingMode == SubdivisionPricingMode.PER_ATTENDEE
+                                        isPerAttendee = com.example.ui.util.AttendeePricing.isPerAttendee(sub)
                                     ),
-                                    onClick = { selectSubdivision("peek") },
-                                    onCheckAvailability = { selectSubdivision("full") }
+                                    onClick = { selectRoom(sub, "peek") },
+                                    onCheckAvailability = { selectRoom(sub, "full") }
                                 )
                             }
                         }
@@ -791,14 +781,14 @@ fun SpaceDetailsScreenContent(
 
                 // Facilities & Utilities
                 ProSurfaceCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         ProSectionHeader(
-                            title = "Facilities & Utilities",
-                            subtitle = "${liveSpace.essentialFacilities.size} amenities included",
+                            title = stringResource(R.string.facilities_utilities),
+                            subtitle = stringResource(R.string.x_amenities_included, liveSpace.essentialFacilities.size),
                             icon = Icons.Default.Business
                         )
 
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             liveSpace.essentialFacilities.forEach { facility ->
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -829,22 +819,22 @@ fun SpaceDetailsScreenContent(
                 }
                 if (liveSpace.complementarySpecialties.isNotEmpty() || residentSpecialties.isNotEmpty()) {
                     ProSurfaceCard {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             ProSectionHeader(
-                                title = "Co-Working Synergy",
+                                title = stringResource(R.string.co_working_synergy),
                                 subtitle = "${residentSpecialties.size} peer${if (residentSpecialties.size == 1) "" else "s"} on premises",
                                 icon = Icons.Default.Groups
                             )
 
                             if (residentSpecialties.isNotEmpty()) {
                                 Text(
-                                    text = "Residents:",
+                                    text = stringResource(R.string.residents),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 LazyRow(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                                     modifier = Modifier.padding(top = 4.dp)
                                 ) {
                                     items(residentSpecialties) { spec ->
@@ -865,13 +855,13 @@ fun SpaceDetailsScreenContent(
                             }
 
                             Text(
-                                text = "Target Complementary Disciplines:",
+                                text = stringResource(R.string.target_complementary_disciplines),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                                 modifier = Modifier.padding(top = 4.dp)
                             ) {
                                 items(liveSpace.complementarySpecialties) { spec ->
@@ -899,18 +889,18 @@ fun SpaceDetailsScreenContent(
 
     // Sends one booking request covering all currently-selected slots (multi-select).
     // HOURLY multi-hour selections are treated as separate slot lines in the notes.
-    // Attendee-mode data (count + package) are forwarded when the subdivision is PER_ATTENDEE.
+    // Per-attendee rooms: the total is the attendee quote (one per-person price for the
+    // whole booking), never the slots' availability-marker prices.
     fun sendMultiSlotRequest(
         slotsToSend: List<RentableSlot>,
         hourlySelections: Map<String, Set<String>>,
         allAvailableSlots: List<RentableSlot>,
-        attendeeCount: Int = 0,
-        attendeePackage: AttendeePackage? = null
+        attendeeQuote: com.example.ui.util.AttendeePricing.Quote? = null
     ) {
         val user = currentUser
         if (user == null) return
-        if (user.profilePictureUrl.isNullOrBlank()) {
-            showProfilePicRequiredDialog = true
+        if (!user.canTransact()) {
+            showRequirements = true
             return
         }
         // Flatten HOURLY hourlySelections to RentableSlot list
@@ -920,6 +910,11 @@ fun SpaceDetailsScreenContent(
         val allSlots = (slotsToSend + hourlySlotList).distinctBy { it.label + it.day + it.startTime }
         val primarySlot = allSlots.firstOrNull() ?: return
         val strategyType = primarySlot.strategyType ?: return
+        val targetSub = liveSpace.subdivisions.find { it.id == primarySlot.sourceFormulaId }
+        if (com.example.ui.util.AttendeePricing.isPerAttendee(targetSub) && attendeeQuote == null) {
+            coroutineScope.launch { snackbarHostState.showSnackbar(uiText(R.string.choose_a_valid_number_of_attendees_first)) }
+            return
+        }
         isSendingSlotRequest = true
         coroutineScope.launch {
             val formula = SpaceCalculationUtils.representativeFormula(allSlots, BookingRecurrence.FLAT)
@@ -929,22 +924,25 @@ fun SpaceDetailsScreenContent(
             }
             val isoDate = SpaceCalculationUtils.nextDateForWeekday(primarySlot.day)
             val subdivision = liveSpace.subdivisions.find { it.id == primarySlot.sourceFormulaId }
-            val isAttendeeMode = subdivision?.pricingMode == SubdivisionPricingMode.PER_ATTENDEE
-            val price = if (isAttendeeMode && attendeePackage != null) {
-                attendeeCount * attendeePackage.pricePerAttendeeUsd
+            val isAttendeeMode = com.example.ui.util.AttendeePricing.isPerAttendee(subdivision) && attendeeQuote != null
+            val price = if (isAttendeeMode) {
+                attendeeQuote.totalUsd
             } else {
                 allSlots.sumOf { it.pricesByRecurrence[BookingRecurrence.FLAT] ?: formula.rateUsd }
             }
             val shiftLabel = if (strategyType == RentalStrategyType.SHIFT_BASED) primarySlot.groupLabel.substringAfter("• ") else ""
             val slotSummary = allSlots.joinToString("; ") { it.label }
             val notes = buildString {
-                append("Requested via live slot selection")
+                append(uiText(R.string.requested_via_live_slot_selection))
                 if (allSlots.size > 1) append(" — $slotSummary")
-                if (isAttendeeMode && attendeePackage != null) {
-                    append(" | Attendees: $attendeeCount × ${attendeePackage.name} @ \$${attendeePackage.pricePerAttendeeUsd}/pp")
+                if (isAttendeeMode) {
+                    append(" | ${com.example.ui.util.AttendeePricing.describe(attendeeQuote!!)}")
                 }
             }
-            val (request, synced) = viewModel.repository.createBookingRequest(
+            // createBookingRequest throws (e.g. "already have a pending request for this
+            // space"); never let that reach the coroutine as an uncaught crash.
+            val sendResult = try {
+                viewModel.repository.createBookingRequest(
                 space = liveSpace,
                 formula = formula,
                 practitioner = user,
@@ -963,28 +961,43 @@ fun SpaceDetailsScreenContent(
                 calculatedTotalUsd = price,
                 subdivisionId = subdivision?.id,
                 subdivisionName = subdivision?.name,
-                attendeeCount = if (isAttendeeMode) attendeeCount else 0,
-                selectedAttendeePackageId = if (isAttendeeMode) attendeePackage?.id else null,
-                attendeePackageName = if (isAttendeeMode) attendeePackage?.name else null,
-                attendeePackagePriceUsd = if (isAttendeeMode) (attendeePackage?.pricePerAttendeeUsd ?: 0.0) else 0.0
-            )
+                attendeeCount = if (isAttendeeMode) attendeeQuote?.attendees ?: 0 else 0,
+                selectedAttendeePackageId = if (isAttendeeMode) attendeeQuote?.tier?.id else null,
+                attendeePackageName = if (isAttendeeMode) attendeeQuote?.tier?.name else null,
+                attendeePackagePriceUsd = if (isAttendeeMode) attendeeQuote?.tier?.pricePerAttendeeUsd ?: 0.0 else 0.0
+                )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                isSendingSlotRequest = false
+                throw e
+            } catch (e: Exception) {
+                isSendingSlotRequest = false
+                com.example.analytics.AnalyticsTracker.bookingRequestFailed(com.example.analytics.AnalyticsTracker.errorCode(e))
+                snackbarHostState.showSnackbar(
+                    e.message?.takeIf { (e is IllegalStateException || e is IllegalArgumentException) && it.isNotBlank() }
+                        ?: uiText(R.string.couldn_t_send_your_request_check_your_conn)
+                )
+                return@launch
+            }
+            val (request, synced) = sendResult
             isSendingSlotRequest = false
             showSendConfirm = false
             if (synced) {
+                com.example.analytics.AnalyticsTracker.bookingRequest(
+                    space = liveSpace,
+                    sub = subdivision,
+                    valueUsd = price,
+                    strategy = formula.type.name,
+                    attendeeCount = if (isAttendeeMode) attendeeQuote?.attendees else null,
+                    isRebook = false
+                )
                 selectedSlots = emptySet()
                 selectedHoursPerDay = emptyMap()
                 availabilitySheetState.hide()
                 availabilityPanelState = "hidden"
-                val result = snackbarHostState.showSnackbar(
-                    message = "Request sent! The host has been notified.",
-                    actionLabel = "WhatsApp Host",
-                    duration = SnackbarDuration.Long
-                )
-                if (result == SnackbarResult.ActionPerformed) {
-                    viewModel.launchWhatsAppInquiry(context, liveSpace, formula, request)
-                }
+                sentRequest = request
             } else {
-                snackbarHostState.showSnackbar("Couldn't send your request — check your connection and try again.")
+                com.example.analytics.AnalyticsTracker.bookingRequestFailed("not_synced")
+                snackbarHostState.showSnackbar(uiText(R.string.couldn_t_send_your_request_check_your_conn))
             }
         }
     }
@@ -995,1049 +1008,117 @@ fun SpaceDetailsScreenContent(
     // shows only available slots as selectable cells. Attendee-mode block at top when
     // subdivision pricingMode == PER_ATTENDEE.
     if (showAvailabilityPanel) {
-        val sheetSlotGroups = remember(strategyPreviewGroups, selectedSubdivisionId) {
-            if (selectedSubdivisionId != null) {
-                strategyPreviewGroups.map { (type, slots) ->
-                    type to slots.filter { it.sourceFormulaId == selectedSubdivisionId }
-                }.filter { (_, slots) -> slots.isNotEmpty() }
-            } else {
-                strategyPreviewGroups
-            }
+        AvailabilitySheet(
+            liveSpace = liveSpace,
+            viewModel = viewModel,
+            acceptedBookings = acceptedBookings,
+            architectureSchema = architectureSchema,
+            strategyPreviewGroups = strategyPreviewGroups,
+            isSpecialistViewer = isSpecialistViewer,
+            selectedSubdivisionId = selectedSubdivisionId,
+            availabilitySheetState = availabilitySheetState,
+            isSendingSlotRequest = isSendingSlotRequest,
+            availabilityPanelStateHolder = availabilityPanelStateHolder,
+            selectedSlotsState = selectedSlotsState,
+            selectedHoursPerDayState = selectedHoursPerDayState,
+            showSendConfirmState = showSendConfirmState,
+            onSelectRoom = { selectRoom(it) },
+            onRequest = { requestWithRequirements() },
+            onSendRequest = { slots, hours, all, quote -> sendMultiSlotRequest(slots, hours, all, quote) }
+        )
+    }
+
+    // "Request sent": the two next steps a specialist takes — see it in My Rentals, or
+    // message the host right away (same WhatsApp text as the My Rentals card).
+    sentRequest?.let { request ->
+        com.example.ui.components.TrackScreen("request_sent")
+        // A confirming tick under the finger when the request lands (API 30+ has a dedicated CONFIRM pattern).
+        val confirmView = androidx.compose.ui.platform.LocalView.current
+        LaunchedEffect(request.id) {
+            confirmView.performHapticFeedback(
+                if (android.os.Build.VERSION.SDK_INT >= 30) android.view.HapticFeedbackConstants.CONFIRM
+                else android.view.HapticFeedbackConstants.CONTEXT_CLICK
+            )
         }
-        val selectedSubdivision = remember(selectedSubdivisionId, liveSpace) {
-            if (selectedSubdivisionId != null) liveSpace.subdivisions.find { it.id == selectedSubdivisionId } else null
-        }
-        val isAttendeeMode = selectedSubdivision?.pricingMode == SubdivisionPricingMode.PER_ATTENDEE
-        val enabledPackages = remember(architectureSchema) { architectureSchema.attendeePackages.filter { it.isEnabled } }
-
-        // Per-strategy, per-day expand state
-        var expandedDaysByStrategy by remember(sheetSlotGroups) { mutableStateOf(mapOf<RentalStrategyType, Set<String>>()) }
-        // Attendee mode fields (scoped to sheet lifetime)
-        var sheetAttendeeCount by remember { mutableStateOf(1) }
-        var sheetAttendeePackage by remember(enabledPackages) { mutableStateOf(enabledPackages.firstOrNull()) }
-
-        val dayOrder = listOf("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday","Mon","Tue","Wed","Thu","Fri","Sat","Sun")
-
-        // Total selected slot count across strategies
-        val totalSelectedSlots = selectedSlots.size + selectedHoursPerDay.values.sumOf { it.size }
-        val hasSelection = totalSelectedSlots > 0
-
-        // Attendee total cost
-        val attendeeTotalUsd = if (isAttendeeMode)
-            sheetAttendeePackage?.let { sheetAttendeeCount * it.pricePerAttendeeUsd } ?: 0.0 else 0.0
-
-        val canSubmit = hasSelection && (!isAttendeeMode || (sheetAttendeeCount > 0 && sheetAttendeePackage != null))
-
-        ProHostBottomSheet(
-            onDismissRequest = {
-                availabilityPanelState = if (selectedSubdivisionId != null) "peek" else "hidden"
-                selectedSlots = emptySet()
-                selectedHoursPerDay = emptyMap()
+        RequestSentSheet(
+            hasWhatsApp = liveSpace.ownerPhone.isNotBlank(),
+            onDismiss = { sentRequest = null },
+            onViewRequest = {
+                sentRequest = null
+                onViewRequest(request.id)
             },
-            modifier = Modifier.shadow(16.dp, SheetShape),
-            sheetState = availabilitySheetState,
-            contentWindowInsets = { WindowInsets(0) },
-            // Blue wash (matches the "Press to see option availability" trigger bar)
-            // so the trigger and the sheet it opens read as one consistent design.
-            accentTint = true
-        ) {
-            val scrollState = rememberScrollState()
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(scrollState)
-                    .navigationBarsPadding()
-                    .padding(horizontal = Spacing.lg)
-                    .padding(bottom = Spacing.xl),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                ProSectionHeader(
-                    title = "Check Availability",
-                    subtitle = if (isAttendeeMode) "Enter attendee count, then tap days to select slots." else "Tap a day to expand and select open slots.",
-                    icon = Icons.Default.EventAvailable
-                )
-
-                // ── Attendee mode block ──────────────────────────────────────
-                if (isAttendeeMode) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Text(
-                                "Attendee Details",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            // Attendee count stepper
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("Number of Attendees", style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer)
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    FilledIconButton(
-                                        onClick = { if (sheetAttendeeCount > 1) sheetAttendeeCount-- },
-                                        modifier = Modifier.size(32.dp)
-                                    ) { Icon(Icons.Default.Remove, contentDescription = "Decrease", modifier = Modifier.size(16.dp)) }
-                                    Text(
-                                        sheetAttendeeCount.toString(),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.widthIn(min = 32.dp),
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                    )
-                                    FilledIconButton(
-                                        onClick = {
-                                            val cap = selectedSubdivision?.capacity ?: 999
-                                            if (sheetAttendeeCount < cap) sheetAttendeeCount++
-                                        },
-                                        modifier = Modifier.size(32.dp)
-                                    ) { Icon(Icons.Default.Add, contentDescription = "Increase", modifier = Modifier.size(16.dp)) }
-                                }
-                            }
-                            // Package selector
-                            if (enabledPackages.isNotEmpty()) {
-                                Text("Select Package", style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer)
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    items(enabledPackages) { pkg ->
-                                        val isSelected = sheetAttendeePackage?.id == pkg.id
-                                        Surface(
-                                            onClick = { sheetAttendeePackage = pkg },
-                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-                                            shape = MaterialTheme.shapes.medium,
-                                            border = BorderStroke(
-                                                1.5.dp,
-                                                if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                                            )
-                                        ) {
-                                            Column(
-                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp).widthIn(max = 140.dp),
-                                                verticalArrangement = Arrangement.spacedBy(2.dp)
-                                            ) {
-                                                Text(
-                                                    pkg.name,
-                                                    style = MaterialTheme.typography.labelMedium,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                                                )
-                                                Text(
-                                                    "$${pkg.pricePerAttendeeUsd.toInt()}/pp",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = if (isSelected) {
-                                                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
-                                                    } else {
-                                                        MaterialTheme.colorScheme.primary
-                                                    }
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            // Total amount
-                            sheetAttendeePackage?.let { pkg ->
-                                Surface(color = MaterialTheme.colorScheme.surface, shape = MaterialTheme.shapes.small) {
-                                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                        Text("Estimated Total", style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        Text(
-                                            "$${String.format("%.2f", attendeeTotalUsd)} USD",
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                                Text(
-                                    "$sheetAttendeeCount attendees × $${pkg.pricePerAttendeeUsd.toInt()} ${pkg.name}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                if (sheetSlotGroups.isEmpty()) {
-                    Text("No slots configured for this space.", style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                } else {
-                    sheetSlotGroups.forEach { (strategyType, slots) ->
-                        // Strategy section label
-                        Text(
-                            if (isAttendeeMode) "Availability — ${strategyType.displayName}" else strategyType.displayName,
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-
-                        // Group slots by day
-                        val slotsByDay = slots.groupBy { it.day }.toList()
-                            .sortedBy { (day, _) -> dayOrder.indexOfFirst { it.equals(day, ignoreCase = true) }.let { if (it >= 0) it else 99 } }
-
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            slotsByDay.forEach { (day, daySlots) ->
-                                val lockedInDay = daySlots.count { SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
-                                val availInDay = daySlots.size - lockedInDay
-                                val isFull = availInDay == 0
-                                val expandedDays = expandedDaysByStrategy[strategyType] ?: emptySet()
-                                val isDayExpanded = expandedDays.contains(day)
-
-                                // ── Day bar ──────────────────────────────────────
-                                Surface(
-                                    onClick = {
-                                        if (!isFull) {
-                                            val current = expandedDaysByStrategy[strategyType] ?: emptySet()
-                                            expandedDaysByStrategy = expandedDaysByStrategy + (strategyType to
-                                                if (isDayExpanded) current - day else current + day)
-                                        }
-                                    },
-                                    enabled = !isFull,
-                                    color = when {
-                                        isFull -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                        isDayExpanded -> MaterialTheme.colorScheme.primaryContainer
-                                        else -> MaterialTheme.colorScheme.surfaceVariant
-                                    },
-                                    shape = if (isDayExpanded) RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp) else MaterialTheme.shapes.medium
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        // Day name
-                                        Text(
-                                            day,
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isFull) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                                else if (isDayExpanded) MaterialTheme.colorScheme.onPrimaryContainer
-                                                else MaterialTheme.colorScheme.onSurface,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        // Badges row
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            if (isFull) {
-                                                Surface(
-                                                    color = MaterialTheme.colorScheme.errorContainer,
-                                                    shape = RoundedCornerShape(4.dp)
-                                                ) {
-                                                    Text("FULL", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold,
-                                                        color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
-                                                }
-                                            } else {
-                                                // Green available badge
-                                                Surface(color = MaterialTheme.proColors.success.copy(alpha = 0.15f), shape = CircleShape) {
-                                                    Row(modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                                                        horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                        Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(MaterialTheme.proColors.success))
-                                                        Text(
-                                                            "$availInDay",
-                                                            style = MaterialTheme.typography.labelSmall,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = MaterialTheme.proColors.success
-                                                        )
-                                                    }
-                                                }
-                                                // Red rented badge
-                                                if (lockedInDay > 0) {
-                                                    Surface(color = MaterialTheme.colorScheme.error.copy(alpha = 0.12f), shape = CircleShape) {
-                                                        Row(
-                                                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                                                            horizontalArrangement = Arrangement.spacedBy(3.dp),
-                                                            verticalAlignment = Alignment.CenterVertically
-                                                        ) {
-                                                            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(MaterialTheme.colorScheme.error))
-                                                            Text(
-                                                                "$lockedInDay",
-                                                                style = MaterialTheme.typography.labelSmall,
-                                                                fontWeight = FontWeight.Bold,
-                                                                color = MaterialTheme.colorScheme.error
-                                                            )
-                                                        }
-                                                    }
-                                                }
-                                                Icon(
-                                                    imageVector = if (isDayExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(18.dp),
-                                                    tint = if (isDayExpanded) {
-                                                        MaterialTheme.colorScheme.onPrimaryContainer
-                                                    } else {
-                                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                                    }
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-
-                                // ── Expanded day body (available slots only) ──────
-                                if (isDayExpanded && !isFull) {
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.surface,
-                                        shape = RoundedCornerShape(bottomStart = 10.dp, bottomEnd = 10.dp),
-                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                                    ) {
-                                        Column(modifier = Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                            val availableSlots = daySlots.filter { !SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
-                                            when (strategyType) {
-                                                RentalStrategyType.MONTHLY -> {
-                                                    availableSlots.forEach { slot ->
-                                                        val isSelected = selectedSlots.contains(slot)
-                                                        Surface(
-                                                            onClick = { selectedSlots = if (isSelected) selectedSlots - slot else selectedSlots + slot },
-                                                            color = if (isSelected) MaterialTheme.proColors.success.copy(alpha = 0.18f) else MaterialTheme.proColors.successContainer,
-                                                            shape = MaterialTheme.shapes.small,
-                                                            border = if (isSelected) BorderStroke(1.5.dp, MaterialTheme.proColors.success) else null
-                                                        ) {
-                                                            Row(verticalAlignment = Alignment.CenterVertically,
-                                                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
-                                                                Icon(
-                                                                    imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.EventAvailable,
-                                                                    contentDescription = null,
-                                                                    tint = if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success,
-                                                                    modifier = Modifier.size(18.dp)
-                                                                )
-                                                                Spacer(modifier = Modifier.width(8.dp))
-                                                                Column {
-                                                                    Text(
-                                                                        if (isSelected) "Selected — Monthly Lease" else "Available — Monthly Lease",
-                                                                        style = MaterialTheme.typography.bodySmall,
-                                                                        fontWeight = FontWeight.Bold,
-                                                                        color = if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success
-                                                                    )
-                                                                    Text(
-                                                                        "$${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}/mo",
-                                                                        style = MaterialTheme.typography.labelSmall,
-                                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                                    )
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                                RentalStrategyType.HOURLY -> {
-                                                    Text(
-                                                        "Select time slots for $day:",
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
-                                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                        items(availableSlots.sortedBy { it.startTime }) { slot ->
-                                                            val isSelected = selectedHoursPerDay[day]?.contains(slot.startTime) == true
-                                                            Surface(
-                                                                onClick = {
-                                                                    val current = selectedHoursPerDay[day] ?: emptySet()
-                                                                    selectedHoursPerDay = selectedHoursPerDay + (day to
-                                                                        if (isSelected) current - slot.startTime else current + slot.startTime)
-                                                                },
-                                                                color = if (isSelected) MaterialTheme.proColors.success.copy(alpha = 0.22f) else MaterialTheme.proColors.successContainer,
-                                                                shape = MaterialTheme.shapes.extraSmall,
-                                                                border = if (isSelected) BorderStroke(1.5.dp, MaterialTheme.proColors.success) else null
-                                                            ) {
-                                                                Column(
-                                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                                                    horizontalAlignment = Alignment.CenterHorizontally
-                                                                ) {
-                                                                    Text(
-                                                                        slot.startTime,
-                                                                        style = MaterialTheme.typography.labelSmall,
-                                                                        fontWeight = FontWeight.Bold,
-                                                                        color = if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success
-                                                                    )
-                                                                    Text(
-                                                                        "$${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}",
-                                                                        style = MaterialTheme.typography.labelSmall,
-                                                                        color = if (isSelected) {
-                                                                            MaterialTheme.proColors.success.copy(alpha = 0.8f)
-                                                                        } else {
-                                                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                                                        }
-                                                                    )
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                                RentalStrategyType.SHIFT_BASED -> {
-                                                    availableSlots.forEach { slot ->
-                                                        val isSelected = selectedSlots.contains(slot)
-                                                        val displayLabel = slot.label
-                                                            .replace(
-                                                                Regex("^${Regex.escape(day)}\\s*[-–•]?\\s*", RegexOption.IGNORE_CASE),
-                                                                ""
-                                                            ).trim().ifBlank { slot.label }
-                                                        Surface(
-                                                            onClick = { selectedSlots = if (isSelected) selectedSlots - slot else selectedSlots + slot },
-                                                            color = if (isSelected) MaterialTheme.proColors.success.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surface,
-                                                            shape = MaterialTheme.shapes.small,
-                                                            border = BorderStroke(if (isSelected) 1.5.dp else 1.dp,
-                                                                if (isSelected) MaterialTheme.proColors.success else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                                                            modifier = Modifier.fillMaxWidth()
-                                                        ) {
-                                                            Row(
-                                                                modifier = Modifier.fillMaxWidth().padding(vertical = 7.dp, horizontal = 12.dp),
-                                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                                verticalAlignment = Alignment.CenterVertically
-                                                            ) {
-                                                                Row(
-                                                                    verticalAlignment = Alignment.CenterVertically,
-                                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                                                ) {
-                                                                    Box(
-                                                                        modifier = Modifier.size(8.dp).clip(CircleShape)
-                                                                            .background(if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success)
-                                                                    )
-                                                                    Text(
-                                                                        displayLabel,
-                                                                        style = MaterialTheme.typography.bodySmall,
-                                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                                                    )
-                                                                }
-                                                                Row(
-                                                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                                                    verticalAlignment = Alignment.CenterVertically
-                                                                ) {
-                                                                    Text(
-                                                                        "$${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}",
-                                                                        style = MaterialTheme.typography.labelSmall,
-                                                                        color = MaterialTheme.colorScheme.primary,
-                                                                        fontWeight = FontWeight.SemiBold
-                                                                    )
-                                                                    Text(
-                                                                        if (isSelected) "Selected" else "Available",
-                                                                        style = MaterialTheme.typography.labelSmall,
-                                                                        fontWeight = FontWeight.Bold,
-                                                                        color = if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success
-                                                                    )
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                                RentalStrategyType.DAY_BASED -> {
-                                                    availableSlots.forEach { slot ->
-                                                        val isSelected = selectedSlots.contains(slot)
-                                                        Surface(
-                                                            onClick = { selectedSlots = if (isSelected) selectedSlots - slot else selectedSlots + slot },
-                                                            color = if (isSelected) MaterialTheme.proColors.success.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surface,
-                                                            shape = MaterialTheme.shapes.small,
-                                                            border = BorderStroke(if (isSelected) 1.5.dp else 1.dp,
-                                                                if (isSelected) MaterialTheme.proColors.success else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                                                            modifier = Modifier.fillMaxWidth()
-                                                        ) {
-                                                            Row(
-                                                                modifier = Modifier.fillMaxWidth().padding(vertical = 7.dp, horizontal = 12.dp),
-                                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                                verticalAlignment = Alignment.CenterVertically
-                                                            ) {
-                                                                Row(
-                                                                    verticalAlignment = Alignment.CenterVertically,
-                                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                                                ) {
-                                                                    Box(
-                                                                        modifier = Modifier.size(8.dp).clip(CircleShape)
-                                                                            .background(if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success)
-                                                                    )
-                                                                    Text(slot.day, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                                                                }
-                                                                Row(
-                                                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                                                    verticalAlignment = Alignment.CenterVertically
-                                                                ) {
-                                                                    Text(
-                                                                        "$${slot.pricesByRecurrence[BookingRecurrence.FLAT]?.toInt() ?: 0}",
-                                                                        style = MaterialTheme.typography.labelSmall,
-                                                                        color = MaterialTheme.colorScheme.primary,
-                                                                        fontWeight = FontWeight.SemiBold
-                                                                    )
-                                                                    Text(
-                                                                        if (isSelected) "Selected" else "Available",
-                                                                        style = MaterialTheme.typography.labelSmall,
-                                                                        fontWeight = FontWeight.Bold,
-                                                                        color = if (isSelected) MaterialTheme.proColors.success else MaterialTheme.proColors.success
-                                                                    )
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // ── Action bar ───────────────────────────────────────────────
-                    if (!isSpecialistViewer) {
-                        Text(
-                            "Viewing as host — only professionals can request slots.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else if (canSubmit) {
-                        val slotLabel = if (totalSelectedSlots == 1) "1 Slot" else "$totalSelectedSlots Slots"
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(
-                                onClick = { showSendConfirm = true },
-                                modifier = Modifier.weight(1f),
-                                shape = MaterialTheme.shapes.medium
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Request $slotLabel", fontWeight = FontWeight.Bold)
-                            }
-                            // WhatsApp: compose structured message listing all selected slots
-                            Button(
-                                onClick = {
-                                    val slotLines = buildString {
-                                        selectedSlots.forEachIndexed { i, s ->
-                                            val unit = s.strategyType?.let { SpaceCalculationUtils.strategyUnitLabel(it) } ?: ""
-                                            val priceSuffix = s.pricesByRecurrence[BookingRecurrence.FLAT]?.let { " — \$${it.toInt()}$unit" } ?: ""
-                                            appendLine("  ${i + 1}. ${s.label}$priceSuffix")
-                                        }
-                                        selectedHoursPerDay.entries.forEachIndexed { di, (day, hrs) ->
-                                            hrs.forEachIndexed { hi, hr ->
-                                                appendLine("  ${selectedSlots.size + di * 100 + hi + 1}. $day $hr")
-                                            }
-                                        }
-                                    }.trimEnd()
-                                    val attendeeBlock = if (isAttendeeMode)
-                                        sheetAttendeePackage?.let { ap -> "\n\n👥 Attendees: $sheetAttendeeCount\n📦 Package: ${ap.name}" +
-                                            " (\$${ap.pricePerAttendeeUsd.toInt()}/pp)\n💰 Estimated Tota" +
-                                            "l: \$${String.format("%.2f", attendeeTotalUsd)} USD" } ?: ""
-                                    else ""
-                                    val message = "Hello! I'm interested in booking *${liveSpace.title}*.\n\n📍" +
-                                        " ${liveSpace.district}, ${liveSpace.governorate.displayName}" +
-                                        "\n\n🗓 Selected Slots ($totalSelectedSlots):\n$slotLines${attendeeBlock}" +
-                                        "\n\nAre these slots still available?"
-                                    try {
-                                        val whatsappUrl = "https://wa.me/${viewModel.formatWhatsAppNumber(liveSpace.ownerPhone)}" +
-                                            "?text=${java.net.URLEncoder.encode(message, "UTF-8")}"
-                                        val intent = android.content.Intent(
-                                            android.content.Intent.ACTION_VIEW,
-                                            android.net.Uri.parse(whatsappUrl)
-                                        )
-                                        context.startActivity(intent)
-                                    } catch (e: Exception) {
-                                        android.widget.Toast.makeText(context, "WhatsApp not installed", android.widget.Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppDarkGreen),
-                                shape = MaterialTheme.shapes.medium
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("WhatsApp", fontWeight = FontWeight.Bold, color = Color.White)
-                            }
-                        }
-                    }
-
-                    // Persist attendee state for the confirm popup
-                    LaunchedEffect(sheetAttendeeCount, sheetAttendeePackage) { /* captured by confirm popup via closure */ }
-                }
+            onWhatsApp = {
+                sentRequest = null
+                viewModel.launchWhatsAppInquiry(context, liveSpace, request.formula, request)
             }
-        }
+        )
+    }
 
-        // ── Confirm-and-send popup ───────────────────────────────────────────
-        if (showSendConfirm) {
-            val selectedSubdivisionForDialog = if (selectedSubdivisionId != null)
-                liveSpace.subdivisions.find { it.id == selectedSubdivisionId } else null
-            val allSheetSlots = sheetSlotGroups.flatMap { (_, s) -> s }
-            val isAttendeeModeDialog = selectedSubdivisionForDialog?.pricingMode == SubdivisionPricingMode.PER_ATTENDEE
-            val enabledPkgs = architectureSchema.attendeePackages.filter { it.isEnabled }
-            val pkgForDialog = enabledPkgs.firstOrNull {
-                it.id == (enabledPkgs.firstOrNull { p -> p.id == sheetAttendeePackage?.id }?.id)
-            } ?: sheetAttendeePackage
-
-            val totalCostForDialog = if (isAttendeeModeDialog && pkgForDialog != null)
-                sheetAttendeeCount * pkgForDialog.pricePerAttendeeUsd
-            else
-                selectedSlots.sumOf { it.pricesByRecurrence[BookingRecurrence.FLAT] ?: 0.0 } +
-                selectedHoursPerDay.entries.sumOf { (day, hrs) ->
-                    allSheetSlots.filter { it.day == day && it.startTime in hrs }.sumOf { it.pricesByRecurrence[BookingRecurrence.FLAT] ?: 0.0 }
-                }
-
-            ProHostDialog(
-                onDismissRequest = { if (!isSendingSlotRequest) showSendConfirm = false },
-                icon = { Icon(Icons.Default.EventAvailable, contentDescription = null) },
-                title = { Text("Confirm Your Request") },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // Space / location / room summary
-                        listOf(
-                            "Space" to liveSpace.title,
-                            "Location" to "${liveSpace.district}, ${liveSpace.governorate.displayName}",
-                            "Room" to (selectedSubdivisionForDialog?.name ?: "Whole Space")
-                        ).forEach { (label, value) ->
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                            }
-                        }
-                        HorizontalDivider()
-                        // Slot summary
-                        val allSelectedSlotLabels = buildList {
-                            selectedSlots.forEach { add(it.label) }
-                            selectedHoursPerDay.forEach { (day, hrs) -> hrs.forEach { hr -> add("$day $hr") } }
-                        }
-                        Text("Selected Slots (${allSelectedSlotLabels.size})",
-                            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        allSelectedSlotLabels.take(5).forEach { label ->
-                            Text("• $label", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
-                        }
-                        if (allSelectedSlotLabels.size > 5) {
-                            Text("+ ${allSelectedSlotLabels.size - 5} more slots", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        // Attendee block
-                        if (isAttendeeModeDialog && pkgForDialog != null) {
-                            HorizontalDivider()
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Attendees", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("$sheetAttendeeCount pax", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                            }
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Package", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(pkgForDialog.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                            }
-                        }
-                        HorizontalDivider()
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Estimated Total", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("$${String.format("%.2f", totalCostForDialog)} USD",
-                                style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            sendMultiSlotRequest(
-                                slotsToSend = selectedSlots.toList(),
-                                hourlySelections = selectedHoursPerDay,
-                                allAvailableSlots = sheetSlotGroups.flatMap { (_, s) -> s },
-                                attendeeCount = if (isAttendeeModeDialog) sheetAttendeeCount else 0,
-                                attendeePackage = if (isAttendeeModeDialog) pkgForDialog else null
-                            )
-                        },
-                        enabled = !isSendingSlotRequest
-                    ) {
-                        if (isSendingSlotRequest) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-                        } else {
-                            Text("Send")
-                        }
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showSendConfirm = false }, enabled = !isSendingSlotRequest) { Text("Cancel") }
+    // Email Inquiry Dialog
+    if (showRequirements) {
+        currentUser?.let { user ->
+            RequirementsSheet(
+                user = user,
+                viewModel = viewModel,
+                onDismiss = { showRequirements = false },
+                onReady = {
+                    showRequirements = false
+                    showSendConfirm = true
                 }
             )
         }
     }
 
-    // Email Inquiry Dialog
-    if (showProfilePicRequiredDialog) {
-        ProHostDialog(
-            onDismissRequest = { showProfilePicRequiredDialog = false },
-            title = { Text("Profile Photo Required") },
-            text = {
-                Text(
-                    "Please add a profile photo before sending a booking request. Hosts use your photo to verify your identity.",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            },
-            confirmButton = {
-                Button(onClick = { showProfilePicRequiredDialog = false; onBack() }) {
-                    Text("Go to Profile")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showProfilePicRequiredDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
+}
 
-    if (showInquiryDialog) {
-        ProHostDialog(
-            onDismissRequest = { showInquiryDialog = false; inquiryMessage = "" },
-            title = { Text("Email the Host") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        "Your message will be sent to the space owner by email. They can reply directly to you.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    OutlinedTextField(
-                        value = inquiryMessage,
-                        onValueChange = { inquiryMessage = it },
-                        label = { Text("Message") },
-                        placeholder = { Text("Hi, I'm interested in your space…") },
-                        minLines = 4,
-                        maxLines = 8,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.sendInquiryEmail(context, liveSpace.id, inquiryMessage)
-                        showInquiryDialog = false
-                        inquiryMessage = ""
-                    },
-                    enabled = inquiryMessage.trim().length >= 5
-                ) {
-                    Text("Send")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showInquiryDialog = false; inquiryMessage = "" }) {
-                    Text("Cancel")
-                }
+/** "Request sent": the two next steps — see it in My Rentals, or message the host on WhatsApp. */
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+internal fun RequestSentSheet(hasWhatsApp: Boolean, onDismiss: () -> Unit, onViewRequest: () -> Unit, onWhatsApp: () -> Unit) {
+    ProHostBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = Spacing.lg)
+                .padding(bottom = Spacing.xl),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        ) {
+            ProSectionHeader(
+                title = stringResource(R.string.request_sent),
+                subtitle = stringResource(R.string.the_host_has_been_notified_you_ll_get_a_pu),
+                icon = Icons.Default.CheckCircle
+            )
+            ProPrimaryButton(
+                text = stringResource(R.string.view_request),
+                onClick = onViewRequest,
+                icon = Icons.AutoMirrored.Filled.ListAlt,
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (hasWhatsApp) {
+                ProOutlinedButton(
+                    text = stringResource(R.string.message_host_on_whatsapp),
+                    onClick = onWhatsApp,
+                    icon = Icons.AutoMirrored.Filled.Chat,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
-        )
+        }
     }
 }
 
-data class SubdivisionRentalCardInfo(
-    val name: String,
-    val typeBadge: String,
-    val imageUrls: List<String>,
-    val amenities: List<String>,
-    val hashtags: List<String>,
-    val priceSummary: String,
-    val isOccupied: Boolean,
-    val capacity: Int? = null,
-    val hasCustomHours: Boolean = false,
-    val isPerAttendee: Boolean = false
-)
-
-@OptIn(ExperimentalMaterial3Api::class)
+/** A frosted white circular button over the hero photo (readable on any image). */
 @Composable
-private fun SubdivisionRentalCard(
-    info: SubdivisionRentalCardInfo,
-    onClick: () -> Unit,
-    onCheckAvailability: () -> Unit
-) {
-    val name = info.name
-    val typeBadge = info.typeBadge
-    val imageUrls = info.imageUrls
-    val amenities = info.amenities
-    val hashtags = info.hashtags
-    val priceSummary = info.priceSummary
-    val isOccupied = info.isOccupied
-    val capacity = info.capacity
-    val hasCustomHours = info.hasCustomHours
-    val isPerAttendee = info.isPerAttendee
+private fun HeroGlassButton(onClick: () -> Unit, content: @Composable () -> Unit) {
     Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (!isOccupied) Modifier.clickable(onClick = onClick) else Modifier)
+        onClick = onClick,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shadowElevation = Elevation.level2,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+        modifier = Modifier.size(42.dp)
     ) {
-        Box {
-            Column {
-                // Photo carousel
-                if (imageUrls.isNotEmpty()) {
-                    val pagerState = rememberPagerState(pageCount = { imageUrls.size })
-                    val cardScope = rememberCoroutineScope()
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(130.dp)
-                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                    ) {
-                        HorizontalPager(state = pagerState) { page ->
-                            coil.compose.AsyncImage(
-                                model = coil.request.ImageRequest.Builder(LocalContext.current).data(imageUrls[page]).size(800).build(),
-                                contentDescription = name,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                            )
-                        }
-                        if (imageUrls.size > 1) {
-                            if (pagerState.currentPage > 0) {
-                                IconButton(
-                                    onClick = { cardScope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
-                                    modifier = Modifier
-                                        .align(Alignment.CenterStart)
-                                        .padding(start = 2.dp)
-                                        .size(28.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.Black.copy(alpha = 0.35f))
-                                ) {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.ArrowBackIos,
-                                        contentDescription = "Previous photo",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                }
-                            }
-                            if (pagerState.currentPage < imageUrls.size - 1) {
-                                IconButton(
-                                    onClick = { cardScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
-                                    modifier = Modifier
-                                        .align(Alignment.CenterEnd)
-                                        .padding(end = 2.dp)
-                                        .size(28.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.Black.copy(alpha = 0.35f))
-                                ) {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.ArrowForwardIos,
-                                        contentDescription = "Next photo",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                }
-                            }
-                            Row(
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .padding(bottom = 6.dp),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                repeat(imageUrls.size) { index ->
-                                    Box(
-                                        modifier = Modifier
-                                            .size(if (pagerState.currentPage == index) 6.dp else 4.dp)
-                                            .clip(CircleShape)
-                                            .background(Color.White.copy(alpha = if (pagerState.currentPage == index) 1f else 0.5f))
-                                    )
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(80.dp)
-                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                            .background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.secondaryContainer)))
-                    ) {
-                        Icon(
-                            Icons.Default.Business,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.4f),
-                            modifier = Modifier.align(Alignment.Center).size(32.dp)
-                        )
-                    }
-                }
-
-                Column(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    // Name + type badge
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            name,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Surface(
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            shape = MaterialTheme.shapes.extraSmall
-                        ) {
-                            Text(
-                                typeBadge,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-
-                    // Pricing
-                    Text(
-                        priceSummary + if (isPerAttendee) " / person" else "",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-
-                    // Capacity / custom-hours / per-attendee badges — surfaced here so
-                    // a user isn't left to discover them only after opening the sheet.
-                    if (capacity != null || hasCustomHours || isPerAttendee) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            if (capacity != null) {
-                                Surface(
-                                    color = MaterialTheme.colorScheme.tertiaryContainer,
-                                    shape = MaterialTheme.shapes.extraSmall
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    ) {
-                                        Icon(Icons.Default.Groups, contentDescription = null, modifier = Modifier.size(12.dp))
-                                        Spacer(modifier = Modifier.width(2.dp))
-                                        Text("Up to $capacity", style = MaterialTheme.typography.labelSmall)
-                                    }
-                                }
-                            }
-                            if (hasCustomHours) {
-                                Surface(
-                                    color = MaterialTheme.colorScheme.tertiaryContainer,
-                                    shape = MaterialTheme.shapes.extraSmall
-                                ) {
-                                    Text(
-                                        "Custom hours",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Amenities chips (first 3 + overflow)
-                    if (amenities.isNotEmpty()) {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            val visible = amenities.take(3)
-                            val overflow = amenities.size - visible.size
-                            items(visible) { a ->
-                                Surface(
-                                    color = MaterialTheme.colorScheme.surface,
-                                    shape = MaterialTheme.shapes.extraSmall,
-                                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
-                                ) {
-                                    Text(
-                                        a,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                        maxLines = 1
-                                    )
-                                }
-                            }
-                            if (overflow > 0) {
-                                item {
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.surfaceVariant,
-                                        shape = MaterialTheme.shapes.extraSmall
-                                    ) {
-                                        Text(
-                                            "+$overflow more",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Hashtag chips (first 2 + overflow)
-                    if (hashtags.isNotEmpty()) {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            val visible = hashtags.take(2)
-                            val overflow = hashtags.size - visible.size
-                            items(visible) { tag ->
-                                Surface(
-                                    color = MaterialTheme.proColors.infoContainer,
-                                    shape = MaterialTheme.shapes.extraSmall
-                                ) {
-                                    Text(
-                                        "#$tag",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.proColors.onInfoContainer,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
-                            }
-                            if (overflow > 0) {
-                                item {
-                                    Surface(
-                                        color = MaterialTheme.proColors.infoContainer.copy(alpha = 0.5f),
-                                        shape = MaterialTheme.shapes.extraSmall
-                                    ) {
-                                        Text(
-                                            "[$overflow more]",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.proColors.onInfoContainer,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Explicit CTA — the whole card is also tappable (peek preview),
-                    // but this button jumps straight to the full availability sheet
-                    // so it's never left implicit that this card can be booked from.
-                    if (!isOccupied) {
-                        Button(
-                            onClick = onCheckAvailability,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.small,
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                            contentPadding = PaddingValues(vertical = 8.dp)
-                        ) {
-                            Icon(Icons.Default.EventAvailable, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Check Availability", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-
-            // Occupied overlay
-            if (isOccupied) {
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clip(MaterialTheme.shapes.medium)
-                        .background(Color.Black.copy(alpha = 0.55f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
-                        Text(
-                            "Currently Occupied",
-                            color = Color.White,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-        }
+        Box(contentAlignment = Alignment.Center) { content() }
     }
 }

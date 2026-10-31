@@ -79,7 +79,7 @@ val mockSpace1 = SpaceListing(
         EquipmentItem("EQ-1", "Hydraulic Exam Table", EquipmentCategory.WORKSPACES, 1, "Electric position control"),
         EquipmentItem("EQ-2", "Echocardiogram", EquipmentCategory.WORKSPACES, 1, "4K Color Doppler")
     ),
-    rentalFormulas = listOf(mockFormula1, mockFormula2, mockFormula3),
+    pricing = RentalPricingConfig.fromLegacyFormula(mockFormula1),
     rules = PremisesRules(
         smokingAllowed = false,
         foodAllowed = true,
@@ -112,7 +112,7 @@ val mockSpace2 = SpaceListing(
     residentPractitioners = listOf("Dr. Tariq Mansour"),
     essentialFacilities = listOf("Dental Chair", "X-Ray Autoclave", "Waiting Lounge"),
     equipment = listOf(EquipmentItem("EQ-3", "Dental Chair", EquipmentCategory.WORKSPACES, 1, "Full hydraulic")),
-    rentalFormulas = listOf(mockFormula2),
+    pricing = RentalPricingConfig.fromLegacyFormula(mockFormula2),
     rules = PremisesRules(),
     ownerId = "OWNER-01",
     ownerName = "Achrafieh Commercial Properties",
@@ -140,7 +140,7 @@ val mockSpace3 = SpaceListing(
     residentPractitioners = listOf("Dr. Maya Ziad"),
     essentialFacilities = listOf("Private Restroom", "High-Speed Internet", "Janitorial Service"),
     equipment = emptyList(),
-    rentalFormulas = listOf(mockFormula1),
+    pricing = RentalPricingConfig.fromLegacyFormula(mockFormula1),
     rules = PremisesRules(),
     ownerId = "OWNER-02",
     ownerName = "Verdun Real Estate",
@@ -168,7 +168,7 @@ val mockSpaceDraft = SpaceListing(
     residentPractitioners = emptyList(),
     essentialFacilities = listOf("24/7 Generator", "Elevator"),
     equipment = emptyList(),
-    rentalFormulas = listOf(mockFormula1),
+    pricing = RentalPricingConfig.fromLegacyFormula(mockFormula1),
     rules = PremisesRules(),
     ownerId = "OWNER-01",
     ownerName = "Achrafieh Commercial Properties",
@@ -225,14 +225,7 @@ val mockBooking2 = BookingRequest(
     paymentAcknowledgedByHost = false
 )
 
-val mockPackagePriority = PackagePlan(
-    id = "pkg_priority",
-    name = "Priority Host Plan",
-    description = "Up to 5 Verified Listings with Priority Search Ranking",
-    badgeName = "Most Popular",
-    priceUsd = 29.99,
-    isFeatured = true
-)
+val mockPlanId = com.example.data.billing.PlayCatalog.BASE_PLAN_YEARLY
 
 // ============================================================================
 // 11 PREVIEW COMPOSABLES FOR ALL REQUESTED SCREENS
@@ -267,7 +260,6 @@ fun Preview01_DiscoveryScreen() {
             onSelectStrategies = {},
             onPriceRangeChange = {},
             onToggleVerifiedOnly = {},
-            onToggleSavedOnly = {},
             onToggleSavedSpace = {},
             onResetFilters = {},
             onSelectSpace = { _, _ -> },
@@ -322,7 +314,6 @@ fun Preview03_MapViewScreen() {
             onSelectStrategies = {},
             onPriceRangeChange = {},
             onToggleVerifiedOnly = {},
-            onToggleSavedOnly = {},
             onToggleSavedSpace = {},
             onResetFilters = {},
             onSelectSpace = { _, _ -> },
@@ -366,7 +357,7 @@ fun Preview06_OwnerHubScreen() {
         OwnerHubScreenContent(
             ownerSpaces = listOf(mockSpace1, mockSpace2, mockSpaceDraft),
             allBookingRequests = listOf(mockBooking1, mockBooking2),
-            currentPackage = mockPackagePriority,
+            currentPlanId = mockPlanId,
             ownerPackageExpiryMillis = System.currentTimeMillis() + 15 * 86400000L,
             onSelectSpace = {},
             onManageSpace = {},
@@ -399,7 +390,7 @@ fun Preview08_ActiveTenanciesScreen() {
         OwnerRentingProgressScreenContent(
             ownerSpaces = listOf(mockSpace1, mockSpace2),
             activeBookings = listOf(mockBooking1),
-            currentPackage = mockPackagePriority,
+            currentPlanId = mockPlanId,
             ownerPackageExpiryMillis = System.currentTimeMillis() + 5 * 86400000L,
             onWhatsAppPractitioner = {},
             onSendPaymentReminder = {}
@@ -435,7 +426,7 @@ fun Preview11_SignInScreen() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(premiumBackgroundBrush())
+                .proHostScreenBackground()
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -492,13 +483,6 @@ fun Preview11_SignInScreen() {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Continue with Google")
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                TextButton(
-                    onClick = {},
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Sign in with Phone OTP instead")
                 }
             }
         }

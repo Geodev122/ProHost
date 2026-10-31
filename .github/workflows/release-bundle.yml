@@ -1,0 +1,167 @@
+name: ProHost - Build Play-Signed Official Release Bundle
+
+on:
+  workflow_dispatch:
+    inputs:
+      play_track:
+        description: "none = build only | probe = read Play tracks (no build, no change) | internal | production (uploads and releases)"
+        required: true
+        default: none
+        type: choice
+        options: [none, probe, internal, production]
+      rollout:
+        description: "Share of users for a production release (0.2 = 20 % staged rollout, 1 = everyone)"
+        required: false
+        default: "0.2"
+  push:
+    tags: ["v*"]
+
+jobs:
+  # Read-only look at Play (tracks, uploaded version codes, listing languages) with the CI service account.
+  play-probe:
+    name: Read Play tracks
+    if: github.event_name == 'workflow_dispatch' && inputs.play_track == 'probe'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install google-auth-library
+        run: npm install --no-save --prefix "$RUNNER_TEMP/play" google-auth-library@9.15.1
+      - name: Probe
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json" NODE_PATH="$RUNNER_TEMP/play/node_modules" \
+            node scripts/release/play-publish.js probe
+          rm -f "$RUNNER_TEMP/sa.json"
+
+  bundle-release:
+    name: Build Signed Bundle & Upload Symbols
+    if: github.event_name != 'workflow_dispatch' || inputs.play_track != 'probe'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.7.1"
+
+      - name: Restore Upload Keystore
+        env:
+          UPLOAD_KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$UPLOAD_KEYSTORE_BASE64" ]; then
+            printf '%s' "$UPLOAD_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+            echo "KEYSTORE_PATH=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
+          fi
+
+      # Play re-signs the bundle with the app-signing key, so Google sign-in and phone-auth
+      # app verification only work when that certificate is registered in Firebase — which
+      # shows up as its SHA-1 in google-services.json. Values come from repo secrets only.
+      - name: Verify Play App-Signing Fingerprints
+        env:
+          PLAY_APP_SIGNING_SHA1: ${{ secrets.PLAY_APP_SIGNING_SHA1 }}
+          PLAY_APP_SIGNING_SHA256: ${{ secrets.PLAY_APP_SIGNING_SHA256 }}
+        run: |
+          if [ -z "$PLAY_APP_SIGNING_SHA1" ] || [ -z "$PLAY_APP_SIGNING_SHA256" ]; then
+            echo "::error::PLAY_APP_SIGNING_SHA1 / PLAY_APP_SIGNING_SHA256 repository secrets are missing."
+            exit 1
+          fi
+          sha1=$(printf '%s' "$PLAY_APP_SIGNING_SHA1" | tr -d ': \n' | tr 'A-F' 'a-f')
+          sha256=$(printf '%s' "$PLAY_APP_SIGNING_SHA256" | tr -d ': \n' | tr 'A-F' 'a-f')
+          [ ${#sha1} -eq 40 ] || { echo "::error::PLAY_APP_SIGNING_SHA1 is not a 40-hex SHA-1."; exit 1; }
+          [ ${#sha256} -eq 64 ] || { echo "::error::PLAY_APP_SIGNING_SHA256 is not a 64-hex SHA-256."; exit 1; }
+          if ! grep -qi "\"certificate_hash\": *\"$sha1\"" app/google-services.json; then
+            echo "::error::The Play app-signing SHA-1 is not in app/google-services.json. Add the SHA-1 and SHA-256 in Firebase › Project settings › Android app, download google-services.json again and commit it — otherwise Google sign-in and phone SMS fail in the Play build."
+            exit 1
+          fi
+          echo "Play app-signing SHA-1 is registered in google-services.json."
+
+      - name: Build Official Release App Bundle & Crashlytics Symbols
+        env:
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'upload' }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
+          APP_CHECK_DEBUG_TOKEN: ${{ secrets.APP_CHECK_DEBUG_TOKEN }}
+        run: |
+          if [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::Add the STORE_PASSWORD and KEY_PASSWORD repository secrets (Settings › Secrets and variables › Actions) — the upload key can't be used without them."
+            exit 1
+          fi
+          if [ -z "$MAPS_API_KEY" ]; then
+            echo "::error::Add the MAPS_API_KEY repository secret — a release without it shows a blank map."
+            exit 1
+          fi
+          # The R8 mapping file uploads to Crashlytics during bundleRelease (mappingFileUploadEnabled);
+          # native symbols are zipped below for Play Console.
+          gradle :app:bundleRelease :app:extractReleaseNativeSymbolTables --no-daemon --stacktrace
+
+      - name: Zip Native Debug Symbols
+        run: |
+          mkdir -p app/build/outputs/native-debug-symbols/release
+          if [ -d "app/build/intermediates/merged_native_libs/release/mergeReleaseNativeLibs/out/lib" ]; then
+            cd app/build/intermediates/merged_native_libs/release/mergeReleaseNativeLibs/out/lib
+            zip -r "$GITHUB_WORKSPACE/app/build/outputs/native-debug-symbols/release/native-debug-symbols.zip" .
+            cd -
+          fi
+
+      - name: Verify Bundle Signature
+        run: jarsigner -verify app/build/outputs/bundle/release/app-release.aab | tail -1
+
+      # Artifact names can't hold "/" (feature branches): main keeps "prohost-release-main-N", others "…-branch-N".
+      - name: Upload Release Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: prohost-release-${{ github.ref_name == 'main' && 'main' || 'branch' }}-${{ github.run_number }}
+          if-no-files-found: error
+          path: |
+            app/build/outputs/bundle/release/app-release.aab
+            app/build/outputs/mapping/release/mapping.txt
+            app/build/outputs/native-debug-symbols/release/native-debug-symbols.zip
+
+  # Upload to Google Play and release on the chosen track — only when started by hand with a track.
+  play-publish:
+    name: Release on Google Play (${{ inputs.play_track }})
+    needs: bundle-release
+    if: github.event_name == 'workflow_dispatch' && (inputs.play_track == 'internal' || inputs.play_track == 'production')
+    runs-on: ubuntu-latest
+    concurrency: play-publish
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/download-artifact@v4
+        with:
+          name: prohost-release-${{ github.ref_name == 'main' && 'main' || 'branch' }}-${{ github.run_number }}
+          path: release
+      - name: Install google-auth-library
+        run: npm install --no-save --prefix "$RUNNER_TEMP/play" google-auth-library@9.15.1
+      - name: Upload and release
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          TRACK: ${{ inputs.play_track }}
+          ROLLOUT: ${{ inputs.play_track == 'production' && inputs.rollout || '1' }}
+        run: |
+          version=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          notes="docs/release/${version}-notes.txt"
+          [ -f "$notes" ] || { echo "::error title=play::$notes is missing"; exit 1; }
+          aab=$(find release -name app-release.aab | head -1)
+          mapping=$(find release -name mapping.txt | head -1)
+          symbols=$(find release -name native-debug-symbols.zip | head -1)
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json" NODE_PATH="$RUNNER_TEMP/play/node_modules" \
+            node scripts/release/play-publish.js publish "$TRACK" "$aab" "$notes" "$ROLLOUT" "$mapping" "$symbols"
+          rm -f "$RUNNER_TEMP/sa.json"

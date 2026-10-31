@@ -27,7 +27,7 @@ class ProHostEndToEndLifecycleTest {
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
-        repository = ProHostRepository()
+        repository = hermeticRepository()
         repository.replaceSpacesForTest(demoSpaces())
         viewModel = ProHostViewModel(repository)
     }
@@ -42,8 +42,8 @@ class ProHostEndToEndLifecycleTest {
         // 2. Discover available space
         val spaces = repository.spaces.value
         assertTrue("Spaces should be populated", spaces.isNotEmpty())
-        val targetSpace = spaces.first { it.rentalFormulas.isNotEmpty() }
-        val selectedFormula = targetSpace.rentalFormulas.first()
+        val targetSpace = spaces.first()
+        val selectedFormula = TEST_FORMULA
 
         // 3. Submit Booking Application
         val (bookingRequest, _) = repository.createBookingRequest(
@@ -84,10 +84,10 @@ class ProHostEndToEndLifecycleTest {
     }
 
     @Test
-    fun `editing an accepted booking and having the host accept it releases the original`() = kotlinx.coroutines.runBlocking {
+    fun `accepting an edit confirms it and leaves releasing the original to the server`() = kotlinx.coroutines.runBlocking {
         val practitioner = repository.login(uid = "uid-dr-edit", email = "dr.edit@prospace.lb", verifiedRole = UserRole.SPECIALIST)
-        val space = repository.spaces.value.first { it.rentalFormulas.isNotEmpty() }
-        val formula = space.rentalFormulas.first()
+        val space = repository.spaces.value.first()
+        val formula = TEST_FORMULA
 
         val (original, _) = repository.createBookingRequest(
             space = space,
@@ -115,17 +115,19 @@ class ProHostEndToEndLifecycleTest {
         // The original stays ACCEPTED until the edit is actually accepted
         assertEquals(BookingRequestStatus.ACCEPTED, repository.bookingRequests.value.find { it.id == original.id }?.status)
 
-        // Host accepts the edit — this must release (cancel) the original in the same operation
+        // Host accepts the edit. The original is released by the server (onBookingAcceptConflictGuard)
+        // in the accept's own transaction — never by a second client write, which could fail and
+        // leave two accepted versions. Locally it stays ACCEPTED until the snapshot brings the change.
         assertTrue(repository.acceptBookingRequest(edit.id, "https://storage.example.com/edit-agreement.pdf"))
         assertEquals(BookingRequestStatus.ACCEPTED, repository.bookingRequests.value.find { it.id == edit.id }?.status)
-        assertEquals(BookingRequestStatus.CANCELLED, repository.bookingRequests.value.find { it.id == original.id }?.status)
+        assertEquals(BookingRequestStatus.ACCEPTED, repository.bookingRequests.value.find { it.id == original.id }?.status)
     }
 
     @Test
     fun `test space owner rejection workflow and audit logging`() = kotlinx.coroutines.runBlocking {
         val practitioner = repository.login(uid = "uid-dr-maya", email = "dr.maya@prospace.lb", verifiedRole = UserRole.SPECIALIST)
         val space = repository.spaces.value.first()
-        val formula = space.rentalFormulas.first()
+        val formula = TEST_FORMULA
 
         val (request, _) = repository.createBookingRequest(
             space = space,
@@ -171,7 +173,7 @@ class ProHostEndToEndLifecycleTest {
 
     @Test
     fun `fresh repository starts signed out, not pre-authenticated as Super Admin`() {
-        val freshRepository = ProHostRepository()
+        val freshRepository = hermeticRepository()
         assertNull(
             "A new repository instance must start signed out — it must NOT default to a pre-authenticated Admin session",
             freshRepository.currentUser.value

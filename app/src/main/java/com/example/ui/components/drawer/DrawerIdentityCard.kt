@@ -1,7 +1,14 @@
 package com.example.ui.components.drawer
 
+import com.example.ui.util.localizedLabel
+import com.example.R
+import androidx.compose.ui.res.stringResource
+import com.example.ui.theme.Radius
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -22,17 +29,16 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.data.model.AppUser
 import com.example.data.model.publicCode
-import com.example.data.model.PackagePlan
 import com.example.data.model.UserRole
 import com.example.ui.theme.*
 
 /**
- * The rich role-tailored identity card shown at the top of every role's side drawer.
+ * The compact identity card at the top of the Profile page: a one-word 3D role tag, avatar, name and credentials,
+ * and one meta line. Verification shows on the avatar and name checks (no separate "phone verified" tag).
  */
 @Composable
 fun DrawerIdentityCard(
     user: AppUser?,
-    currentPackage: PackagePlan? = null,
     onCloseDrawer: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -55,96 +61,25 @@ fun DrawerIdentityCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(heroGradient)
-                .padding(Spacing.xl)
+                .padding(horizontal = Spacing.lg, vertical = Spacing.md)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 // Top row: Active Plan Tag + Close Drawer Arrow
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f, fill = false)
-                    ) {
-                        if (role == UserRole.PRO_HOST && user != null) {
-                            Surface(
-                                color = primaryAccent.copy(alpha = 0.35f),
-                                shape = MaterialTheme.shapes.medium,
-                                border = BorderStroke(1.dp, primaryAccent.copy(alpha = 0.8f))
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.WorkspacePremium,
-                                        contentDescription = null,
-                                        tint = pro.headerWarning,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        text = currentPackage?.badgeName?.ifBlank { currentPackage.name } ?: "Active Plan",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = pro.onBrandHeader,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-                        } else {
-                            Surface(
-                                color = when (role) {
-                                    UserRole.ADMIN -> primaryAccent.copy(alpha = 0.25f)
-                                    else -> pro.onBrandHeader.copy(alpha = 0.18f)
-                                },
-                                shape = MaterialTheme.shapes.medium,
-                                border = BorderStroke(1.dp, primaryAccent.copy(alpha = 0.6f))
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = when (role) {
-                                            UserRole.ADMIN -> Icons.Default.Shield
-                                            else -> Icons.Default.VerifiedUser
-                                        },
-                                        contentDescription = null,
-                                        tint = when (role) {
-                                            UserRole.ADMIN -> pro.headerWarning
-                                            else -> pro.onBrandHeader
-                                        },
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = when (role) {
-                                            UserRole.ADMIN -> "Super Administrator Node"
-                                            else -> "Practitioner / Specialist"
-                                        },
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = pro.onBrandHeader,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    RoleTag3D(role)
 
                     if (onCloseDrawer != null) {
                         IconButton(
                             onClick = onCloseDrawer,
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(40.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Collapse Side Drawer",
+                                contentDescription = stringResource(R.string.collapse_side_drawer),
                                 tint = pro.onBrandHeader
                             )
                         }
@@ -155,9 +90,9 @@ fun DrawerIdentityCard(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.lg)
                 ) {
-                    Box(modifier = Modifier.size(64.dp)) {
+                    Box(modifier = Modifier.size(56.dp)) {
                         val picUrl = user?.profilePictureUrl
                         if (picUrl != null) {
                             AsyncImage(
@@ -185,7 +120,7 @@ fun DrawerIdentityCard(
                                             .ifEmpty { "PS" },
                                         color = MaterialTheme.colorScheme.onSecondary,
                                         fontWeight = FontWeight.ExtraBold,
-                                        style = MaterialTheme.typography.headlineMedium
+                                        style = MaterialTheme.typography.titleLarge
                                     )
                                 }
                             }
@@ -202,7 +137,7 @@ fun DrawerIdentityCard(
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         Icons.Default.Check,
-                                        contentDescription = "Verified",
+                                        contentDescription = stringResource(R.string.verified),
                                         tint = pro.brandHeaderStart,
                                         modifier = Modifier.size(13.dp)
                                     )
@@ -214,10 +149,10 @@ fun DrawerIdentityCard(
                     Column(modifier = Modifier.weight(1f)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             Text(
-                                text = user?.fullName ?: "ProHost Member",
+                                text = user?.fullName ?: stringResource(R.string.prohost_member),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = pro.onBrandHeader,
@@ -227,7 +162,7 @@ fun DrawerIdentityCard(
                             if (user?.isVerified == true) {
                                 Icon(
                                     Icons.Default.Verified,
-                                    contentDescription = "Verified Member",
+                                    contentDescription = stringResource(R.string.verified_member),
                                     tint = if (role == UserRole.ADMIN) pro.headerWarning else pro.headerSuccess,
                                     modifier = Modifier.size(18.dp)
                                 )
@@ -235,14 +170,14 @@ fun DrawerIdentityCard(
                         }
 
                         Text(
-                            text = user?.specialty?.ifBlank { role.displayName } ?: role.displayName,
+                            text = user?.specialty?.ifBlank { localizedLabel(role.displayName) } ?: localizedLabel(role.displayName),
                             style = MaterialTheme.typography.bodyMedium,
                             color = pro.onBrandHeader.copy(alpha = 0.85f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
 
-                        Spacer(modifier = Modifier.height(2.dp))
+                        Spacer(modifier = Modifier.height(Spacing.xs))
 
                         Text(
                             text = user?.email ?: "",
@@ -259,13 +194,13 @@ fun DrawerIdentityCard(
                 // Bottom Meta: Location + Member ID
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
                         modifier = Modifier.weight(1f),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                     ) {
                         Icon(Icons.Default.LocationOn, contentDescription = null, tint = pro.onBrandHeader.copy(alpha = 0.8f), modifier = Modifier.size(14.dp))
                         Text(
@@ -281,11 +216,11 @@ fun DrawerIdentityCard(
                     Row(
                         modifier = Modifier.weight(1f),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                     ) {
                         Icon(Icons.Default.Badge, contentDescription = null, tint = pro.onBrandHeader.copy(alpha = 0.8f), modifier = Modifier.size(14.dp))
                         Text(
-                            text = "ID: ${user?.publicCode ?: "—"}",
+                            text = stringResource(R.string.id_x, user?.publicCode ?: "—"),
                             style = MaterialTheme.typography.labelSmall,
                             color = pro.onBrandHeader.copy(alpha = 0.9f),
                             fontWeight = FontWeight.Medium,
@@ -294,22 +229,51 @@ fun DrawerIdentityCard(
                         )
                     }
                 }
-
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    Surface(
-                        color = pro.onBrandHeader.copy(alpha = 0.15f),
-                        shape = MaterialTheme.shapes.small
-                    ) {
-                        Text(
-                            text = if (user?.isVerified == true) "🛡️ Phone Verified" else "Phone Unverified",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = pro.onBrandHeader,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                }
             }
+        }
+    }
+}
+
+private data class RoleLook(val label: String, val top: Color, val bottom: Color, val edge: Color, val text: Color, val icon: androidx.compose.ui.graphics.vector.ImageVector)
+
+/**
+ * One-word role tag with a raised, 3D look: a vertical gradient face with a light top rim, sitting on a darker
+ * "edge" that shows below it, plus a soft shadow. Steel Blue for Specialist, orange for Host, gold for Admin.
+ */
+@Composable
+private fun RoleTag3D(role: UserRole) {
+    val look = when (role) {
+        UserRole.ADMIN -> RoleLook("ADMIN", Color(0xFFFFDC7A), Color(0xFFE2A82A), Color(0xFF8A6410), Color(0xFF2A1E04), Icons.Default.Shield)
+        UserRole.PRO_HOST -> RoleLook("HOST", Color(0xFFFF8F63), Color(0xFFD2432F), Color(0xFF8C2819), Color.White, Icons.Default.WorkspacePremium)
+        else -> RoleLook("SPECIALIST", Color(0xFF6C9FD6), Color(0xFF3A72AE), Color(0xFF1F4268), Color.White, Icons.Default.VerifiedUser)
+    }
+    val shape = Radius.Sm
+    Box(modifier = Modifier.padding(bottom = 3.dp)) {
+        // Edge: the darker slab under the face.
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .offset(y = 3.dp)
+                .background(look.edge, shape)
+        )
+        Row(
+            modifier = Modifier
+                .shadow(4.dp, shape, ambientColor = look.edge, spotColor = look.edge)
+                .background(Brush.verticalGradient(listOf(look.top, look.bottom)), shape)
+                .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.75f), Color.White.copy(alpha = 0.1f))), shape)
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+        ) {
+            Icon(look.icon, contentDescription = null, tint = look.text, modifier = Modifier.size(14.dp))
+            Text(
+                text = localizedLabel(look.label),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 1.sp,
+                color = look.text,
+                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
         }
     }
 }

@@ -1,5 +1,9 @@
 package com.example.ui.state
 
+import com.example.data.auth.AdminCounts
+import com.example.data.auth.AdminUserDossier
+import com.example.data.auth.BillingHealth
+import com.example.data.auth.PendingPayment
 import com.example.data.model.*
 
 /**
@@ -7,14 +11,31 @@ import com.example.data.model.*
  */
 data class AdminUiState(
     val pricingState: AdminPricingState = AdminPricingState(),
-    val allSpaces: List<SpaceListing> = emptyList(),
-    val allUsers: List<AppUser> = emptyList(),
-    val allBookings: List<RentalBookingRequest> = emptyList(),
+    // The console loads nothing in bulk: real totals come from adminCounts, rows from the
+    // server search (adminDirectory.ts), plus the small live verification review queue.
+    val counts: AdminCounts? = null,
+    val userResults: List<AppUser> = emptyList(),
+    val listingResults: List<SpaceListing> = emptyList(),
+    val bookingResults: List<RentalBookingRequest> = emptyList(),
+    val reviewQueue: List<SpaceListing> = emptyList(),
+    val isSearchingUsers: Boolean = false,
+    val isSearchingListings: Boolean = false,
+    val searchError: String? = null,
+    val dossier: AdminUserDossier? = null,
+    val isLoadingDossier: Boolean = false,
+    val isExportingUsers: Boolean = false,
+    // Billing rescue (Admin › Packages): Play API health, paid purchases not active yet,
+    // and the "Activate for this user" flow (account picker + reassignment confirmation).
+    val billingHealth: BillingHealth? = null,
+    val pendingPayments: List<PendingPayment> = emptyList(),
+    val isCheckingBilling: Boolean = false,
+    val assigningPayment: PendingPayment? = null,
+    val assignCandidates: List<AppUser> = emptyList(),
+    val reassignConfirm: ReassignConfirm? = null,
+    val activatingPaymentId: String? = null,
     val auditLogs: List<AuditSecurityLog> = emptyList(),
     val schema: SpaceArchitectureSchema = SpaceArchitectureSchema(),
     val hashtagAnalytics: List<HashtagUsageEntry> = emptyList(),
-    /** Number of users with an active Google Play subscription. Wired up in AdminViewModel. */
-    val activeSubscriberCount: Int = 0,
     val selectedTab: Int = 0,
 
     // Filter and search states
@@ -64,16 +85,6 @@ data class AdminUiState(
     val addSchemaItemPresetCategory: String? = null,
     val isResetSchemaDialogOpen: Boolean = false,
 
-    // Admin-managed, purchasable Pro Host packages — replaces the old fixed
-    // Package 2/3 fee+limit inputs entirely (see PackagePlan/PackagePlanCatalog).
-    val packagePlans: PackagePlanCatalog = PackagePlanCatalog(),
-    val isAddPackagePlanDialogOpen: Boolean = false,
-
-    // Delete-package confirmation dialog — subscriber-aware (BUG-C3)
-    val isDeletePackagePlanDialogOpen: Boolean = false,
-    val pendingDeletePlanId: String? = null,
-    val pendingDeletePlanSubscriberCount: Int = 0,
-
     // Currently-published version of each of the 3 admin-manageable legal documents
     // (LegalDocumentVersion.ADMIN_MANAGED_DOC_IDS), keyed by doc id — null means
     // nothing has ever been uploaded for that doc yet. Loaded once on ViewModel init
@@ -83,31 +94,13 @@ data class AdminUiState(
     val legalDocuments: Map<String, LegalDocumentVersion?> = emptyMap(),
     val isUploadingLegalDocument: String? = null, // the docId currently mid-upload, if any
 ) {
+    /** Users search results narrowed by the role chip. */
     val filteredUsers: List<AppUser>
-        get() = allUsers.filter { user ->
-            val matchesQuery = userSearchQuery.isBlank() ||
-                    user.fullName.contains(userSearchQuery, ignoreCase = true) ||
-                    user.email.contains(userSearchQuery, ignoreCase = true) ||
-                    user.specialty.contains(userSearchQuery, ignoreCase = true) ||
-                    user.phone.contains(userSearchQuery, ignoreCase = true) ||
-                    user.city.contains(userSearchQuery, ignoreCase = true) ||
-                    user.governorate.contains(userSearchQuery, ignoreCase = true) ||
-                    user.country.contains(userSearchQuery, ignoreCase = true)
+        get() = userResults.filter { selectedUserRoleFilter == null || it.role == selectedUserRoleFilter }
 
-            val matchesRole = selectedUserRoleFilter == null || user.role == selectedUserRoleFilter
-            matchesQuery && matchesRole
-        }
-
+    /** Listings: search results, or the verification review queue when nothing is searched. */
     val filteredSpaces: List<SpaceListing>
-        get() = allSpaces.filter { space ->
-            val matchesQuery = listingSearchQuery.isBlank() ||
-                    space.title.contains(listingSearchQuery, ignoreCase = true) ||
-                    space.district.contains(listingSearchQuery, ignoreCase = true) ||
-                    space.streetAddress.contains(listingSearchQuery, ignoreCase = true) ||
-                    space.ownerName.contains(listingSearchQuery, ignoreCase = true) ||
-                    space.ownerPhone.contains(listingSearchQuery, ignoreCase = true) ||
-                    space.governorate.displayName.contains(listingSearchQuery, ignoreCase = true)
-
+        get() = (if (listingSearchQuery.isBlank()) reviewQueue else listingResults).filter { space ->
             val matchesType = space.matchesCategory(selectedListingTypeFilter)
             val matchesStatus = when (selectedListingStatusFilter) {
                 "ACTIVE_30D" -> space.isActiveSubscription
@@ -116,15 +109,8 @@ data class AdminUiState(
                 "PENDING_VERIFICATION" -> !space.verificationDocUrl.isNullOrBlank() && !space.isVerified
                 else -> true
             }
-            matchesQuery && matchesType && matchesStatus
+            matchesType && matchesStatus
         }
-
-    // "Owner"/"Host" here means the account holds the PRO_HOST role (i.e. has listed
-    // at least one workspace) — every PRO_HOST account is still also fundamentally a
-    // Specialist underneath (can book workspaces exactly like a SPECIALIST account),
-    // not a separate, mutually-exclusive user category.
-    val ownerUsers: List<AppUser>
-        get() = allUsers.filter { it.role == UserRole.PRO_HOST }
 }
 
 /**
@@ -134,5 +120,13 @@ sealed interface AdminUiEvent {
     data class ShowToast(val message: String) : AdminUiEvent
     data class PricingUpdated(val newFee: Double) : AdminUiEvent
     data class DataExportReady(val title: String, val content: String) : AdminUiEvent
+    data class OpenUrl(val url: String) : AdminUiEvent
 }
 
+/** "This purchase was made for [taggedForName] — activate it for [targetName] instead?" */
+data class ReassignConfirm(
+    val payment: PendingPayment,
+    val targetUid: String,
+    val targetName: String,
+    val taggedForName: String
+)

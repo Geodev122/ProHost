@@ -106,6 +106,20 @@ every drawer action id (`owner_billing, legal_documents, fcm_alerts, admin_audit
 ### C. Not found
 No commented-out network calls, no `TODO/FIXME` markers, and no other empty `onClick` handlers in Specialist/Host screens.
 
-## 4. Follow-ups (outside "zero structural change")
-Wire A1–A5 (an ID-upload scroll target, a drawer dot, a Pro Host "Renting Requests" entry); surface B2 errors
-through a shared `showError()`; replace A6 with `BuildConfig.VERSION_NAME`.
+## 4. Resolution (follow-up commit)
+| Gap | Fix |
+|---|---|
+| A1 | Dead `onNavigateToIdUpload` parameter removed from `KycCompletionBanner` and its call site. |
+| A2 | Photo and address steps have buttons that scroll to the profile details card (`BringIntoViewRequester`). |
+| A3 | "Renting Requests" in the Pro Host and Admin drawers shows `ProHostDrawerItem(badgeDot = pendingRequestsCount > 0)`. |
+| A4 | Pro Host and Admin drawers have a "Renting Requests" entry. |
+| A5 | Pro Host bottom nav adds My Rentals (`pro_rentals`); Pro Hosts can also open My Favorites. |
+| A6 | Footer reads `BuildConfig.VERSION_NAME`. |
+| A7 | Uses `R.string.default_web_client_id` directly; credential errors other than cancel show a message. |
+| A8 | "Generate Demo Content" only appears, and `seedDemoContent()` only runs, in debug builds. Purge stays available. |
+| B1 | `resendEmailVerification` was not in `index.ts` (never deployed); its dead source and helpers were deleted. `sendInquiryEmail` lost its only caller when "Email the Host" was removed, so the callable, Kotlin wrapper and ViewModel function were removed (CI's `--force` deploy deletes the function). |
+| B2 | User-initiated actions route thrown exceptions through `reportFailure()` (log + `toUserMessage` toast). Purchase-token recording is handled per event and failures reach `billingError`, as does a product-details failure. `resendEmailVerification` no longer shows raw error text. |
+| B4 | Unused deprecated `PendingPhoneRegistration` alias removed. |
+| New | Listing listener errors were only logged, so Explore spun forever. `FirestoreService` now reports them, `ProHostRepository.spacesLoadError` carries them, and Explore shows an error with a Retry that restarts sync. |
+
+B3, B5 and B6 are unchanged: App Check stays off on purpose (see CLAUDE.md), the deprecations wait for the next SDK bump, and B6 is correct as is.

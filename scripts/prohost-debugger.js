@@ -106,6 +106,12 @@ function esc(s) {
     .replace(/"/g, '&quot;');
 }
 
+// A screen is a file under ui/screens that declares a public `fun XxxScreen(` composable; files
+// that only hold parts of a screen (admin tabs, room cards) are not screens of their own.
+function screenFiles() {
+  return walkFiles(KT_SCREENS, '.kt').filter(f => /^fun \w+Screen\(/m.test(readSafe(f) || ''));
+}
+
 // ─── CHECK 1: Cloud Function name consistency ─────────────────────────────────
 
 function checkCloudFunctionNames() {
@@ -137,7 +143,7 @@ function checkCloudFunctionNames() {
     'onWorkspaceListingCreated','onWorkspaceListingDeleted','onWorkspaceListingStatusChanged',
     'onWorkspaceListingPublishValidation','onWorkspaceListingDeletedCleanup',
     'onBookingAcceptConflictGuard','onUserFavoritesChanged','expirePackages',
-    'bootstrapSuperAdmin','listingShareLanding','legalDocumentPage','clickEmailOtpLink',
+    'listingShareLanding','legalDocumentPage','clickEmailOtpLink',
     'playBillingRtdn','verifyEmailLink','assignInitialRole','recomputeKycLevel',
   ]);
 
@@ -225,7 +231,7 @@ function checkForcedUnwrap() {
 // ─── CHECK 5: Screens missing loading state ───────────────────────────────────
 
 function checkScreenLoading() {
-  const files = walkFiles(KT_SCREENS, '.kt');
+  const files = screenFiles();
   let missing = 0;
   for (const f of files) {
     const c = readSafe(f) || '';
@@ -242,7 +248,7 @@ function checkScreenLoading() {
 // ─── CHECK 6: Screens missing error state ─────────────────────────────────────
 
 function checkScreenError() {
-  const files = walkFiles(KT_SCREENS, '.kt');
+  const files = screenFiles();
   let missing = 0;
   for (const f of files) {
     const c = readSafe(f) || '';
@@ -259,7 +265,7 @@ function checkScreenError() {
 // ─── CHECK 7: List screens missing empty state ────────────────────────────────
 
 function checkScreenEmptyState() {
-  const files = walkFiles(KT_SCREENS, '.kt');
+  const files = screenFiles();
   let missing = 0;
   for (const f of files) {
     const c = readSafe(f) || '';
@@ -354,9 +360,12 @@ function checkDeepLinks() {
     }
   }
 
+  // Retired in 1.0.44 (email + password): the server still builds this link only for 1.0.43 apps,
+  // which register it, until Maintenance `authconfig retire` switches legacy email sign-in off.
+  const LEGACY_HOSTS = new Set(['emailotp']);
   let missing = 0;
   for (const [host, site] of usedHosts) {
-    if (!registeredHosts.has(host)) {
+    if (!registeredHosts.has(host) && !LEGACY_HOSTS.has(host)) {
       missing++;
       bug('HIGH','consistency','Deep Link Registration', site.file, site.line,
         `Deep link "prohost://${host}" is used but host "${host}" is not registered in AndroidManifest.xml.`,
@@ -428,8 +437,7 @@ function checkNavGraph() {
   const navFile = path.join(KT_UI, 'navigation/ProHostNavGraph.kt');
   const navContent = readSafe(navFile);
   if (!navContent) return;
-  const screenFiles = walkFiles(KT_SCREENS, '.kt');
-  const missing = screenFiles.filter(f => {
+  const missing = screenFiles().filter(f => {
     const name = path.basename(f, '.kt');
     return !navContent.includes(name) && !navContent.includes(name.replace('Screen', ''));
   });
@@ -468,14 +476,29 @@ function checkPaymentFlow() {
 // ─── CHECK 17: Billing purchase acknowledgement ───────────────────────────────
 
 function checkBillingFlow() {
+  // Play's order is verify → grant → acknowledge, on the backend when one exists. Either the
+  // backend acknowledges (functions/src/billing) and the app routes purchases to it, or the
+  // app acknowledges itself. Unacknowledged purchases are auto-refunded after 3 days.
   const billingFile = path.join(KT_DATA, 'billing/PlayBillingManager.kt');
-  const content = readSafe(billingFile) || '';
-  if (!content.includes('acknowledgePurchase')) {
+  const client = readSafe(billingFile) || '';
+  const fnDir = path.join(ROOT, 'functions/src/billing');
+  const rtdn = readSafe(path.join(fnDir, 'playBillingRtdn.ts')) || '';
+  // The callable and the retry job share activatePurchase.ts (verify → grant → acknowledge).
+  const restore = (readSafe(path.join(fnDir, 'verifyAndRestorePurchase.ts')) || '') +
+    (readSafe(path.join(fnDir, 'activatePurchase.ts')) || '');
+  const serverAcks = rtdn.includes('acknowledgeIfNeeded') && restore.includes('acknowledgeIfNeeded');
+  const clientRoutes = client.includes('purchaseEvents') && client.includes('queryPurchasesAsync');
+  const clientAcks = client.includes('acknowledgePurchase');
+  if (!(serverAcks && clientRoutes) && !clientAcks) {
     bug('CRITICAL','reliability','Purchase Acknowledgement Missing', relPath(billingFile), null,
-      'PlayBillingManager does not call acknowledgePurchase(). Purchases will auto-refund after 3 days.',
-      'Call acknowledgePurchase().');
+      'Purchases are neither acknowledged by the backend (RTDN + verifyAndRestorePurchase) nor by the app. Play auto-refunds them after 3 days.',
+      'Route purchases to verifyAndRestorePurchase (which acknowledges after granting), or call acknowledgePurchase().');
+  } else if (/await acknowledgeIfNeeded\([\s\S]{0,400}await grantSubscription\(/.test(restore)) {
+    bug('HIGH','reliability','Acknowledged Before Grant', 'functions/src/billing/activatePurchase.ts', null,
+      'The purchase is acknowledged before the entitlement is granted.',
+      'Grant first, then acknowledge (Play: verify → grant → acknowledge).');
   } else {
-    pass('Purchase Acknowledgement', 'PlayBillingManager calls acknowledgePurchase().');
+    pass('Purchase Acknowledgement', serverAcks ? 'Backend verifies, grants, then acknowledges; app routes every purchase to it.' : 'App acknowledges purchases.');
   }
 }
 
@@ -717,6 +740,18 @@ function checkGradleConfigAudit() {
     issues++;
   }
 
+  // 3. The Crashlytics SDK needs the Crashlytics Gradle plugin: without it no build ID is
+  //    generated and the SDK throws at startup (v1.0.33 crashed on launch this way).
+  const rootBuild = readSafe(path.join(ROOT, 'build.gradle.kts')) || '';
+  if (/implementation\(libs\.firebase\.crashlytics\)/.test(buildContent) &&
+      (!/alias\(libs\.plugins\.firebase\.crashlytics\)\s*\n/.test(buildContent) ||
+       !rootBuild.includes('alias(libs.plugins.firebase.crashlytics) apply false'))) {
+    bug('CRITICAL','gradle','Crashlytics Plugin Missing', 'app/build.gradle.kts', null,
+      'firebase-crashlytics is a dependency but the Crashlytics Gradle plugin is not applied — the app crashes on launch ("Crashlytics build ID is missing").',
+      'Apply alias(libs.plugins.firebase.crashlytics) in app/build.gradle.kts (and "apply false" in the root build.gradle.kts).');
+    issues++;
+  }
+
   if (issues === 0) pass('Gradle Build Config Audit', 'SDK targets compliant, release signing configured, R8 and shrinking enabled.');
 }
 
@@ -739,6 +774,129 @@ function checkCodeStyle() {
   }
 
   if (issues === 0) pass('Code Style Enforcement', 'Standard spacing and style guidelines adhered to.');
+}
+
+// ─── NEW CHECK 32: Analytics Hygiene (GA4 consent + PII) ─────────────────────
+
+function checkAnalyticsHygiene() {
+  const manifest = readSafe(MANIFEST) || '';
+  const analyticsDir = path.join(KT_ROOT, 'analytics') + path.sep;
+  let issues = 0;
+
+  if (!/firebase_analytics_collection_enabled"\s+android:value="false"/.test(manifest)) {
+    issues++;
+    bug('HIGH','analytics','Analytics Collected Before Consent', 'app/src/main/AndroidManifest.xml', null,
+      'firebase_analytics_collection_enabled is not "false" — GA4 would collect before the opt-in prompt.',
+      'Keep collection off in the manifest; AnalyticsConsent enables it after the user taps Allow.');
+  }
+  if (!manifest.includes('google_analytics_adid_collection_enabled')) {
+    issues++;
+    bug('MEDIUM','analytics','Advertising ID Collection Not Disabled', 'app/src/main/AndroidManifest.xml', null,
+      'google_analytics_adid_collection_enabled meta-data missing.',
+      'Add it with value "false" (the app never uses the advertising ID).');
+  }
+
+  for (const f of walkFiles(KT_ROOT, '.kt')) {
+    if (f.startsWith(analyticsDir)) continue;
+    const content = readSafe(f) || '';
+    if (/FirebaseAnalytics\.getInstance|\.logEvent\(/.test(content)) {
+      issues++;
+      bug('MEDIUM','analytics','Analytics Bypasses Tracker', relPath(f), null,
+        'Calls the Firebase Analytics SDK directly instead of AnalyticsTracker (no consent gate / PII sanitising).',
+        'Route the event through a typed AnalyticsTracker function.');
+    }
+    if (/crashlytics\.setUserId|FirebaseCrashlytics\.getInstance\(\)\.setUserId/i.test(content)) {
+      issues++;
+      bug('HIGH','analytics','Crashlytics User ID', relPath(f), null,
+        'Crashlytics must stay anonymous (privacy policy).',
+        'Remove setUserId from Crashlytics; GA4 identity lives only in AnalyticsTracker.');
+    }
+  }
+
+  const tracker = readSafe(path.join(KT_ROOT, 'analytics/AnalyticsTracker.kt')) || '';
+  if (/setUserId\((user\.)?id\)|setUserId\(uid\)/.test(tracker)) {
+    issues++;
+    bug('HIGH','analytics','GA4 User ID Is The Firebase UID', 'app/src/main/java/com/example/analytics/AnalyticsTracker.kt', null,
+      'GA4 user_id must be the display code (U-…), never the Firebase UID.',
+      'Use user.displayCode.');
+  }
+
+  if (issues === 0) pass('Analytics Hygiene', 'GA4 is opt-in, ad IDs off, all events go through AnalyticsTracker, Crashlytics stays anonymous.');
+}
+
+// ─── NEW CHECK 33: Secrets & token hygiene ────────────────────────────────────
+
+function checkSecretHygiene() {
+  let issues = 0;
+  const fnSrc = path.join(ROOT, 'functions/src');
+  const scriptsDir = path.join(ROOT, 'scripts');
+  const files = [
+    ...walkFiles(fnSrc, '.ts'),
+    ...walkFiles(scriptsDir, '.mjs'),
+    ...walkFiles(scriptsDir, '.js').filter((f) => !f.endsWith('prohost-debugger.js')),
+  ];
+  for (const f of files) {
+    const content = readSafe(f) || '';
+    // A secret/API key assigned (or used as a fallback) from a long string literal.
+    if (/(apiSecret|api_secret|secretKey|privateKey)\s*[:=][^\n;]*["'][A-Za-z0-9_\-]{16,}["']/.test(content)) {
+      issues++;
+      bug('HIGH', 'security', 'Hard-coded Secret', relPath(f), null,
+        'A secret is written as a string literal (it ends up in git history).',
+        'Read it from the request, an env var or a server-only Firestore doc; rotate the leaked value.');
+    }
+  }
+  for (const f of walkFiles(KT_ROOT, '.kt')) {
+    const content = readSafe(f) || '';
+    if (/(addAuditLog|Log\.[dwie])\([^\n]*token\.take\(/.test(content)) {
+      issues++;
+      bug('MEDIUM', 'security', 'Push Token Logged', relPath(f), null,
+        'Part of an FCM token is written to logs or the audit trail.',
+        'Store the token only on the user profile (registerFcmToken).');
+    }
+  }
+  if (issues === 0) pass('Secrets & Token Hygiene', 'No hard-coded secrets in functions/scripts; push tokens are never logged.');
+}
+
+// ─── NEW CHECK 34: Design system tokens (docs/design/UI_AUDIT.md) ─────────────
+
+function checkDesignTokens() {
+  const uiDir = path.join(KT_ROOT, 'ui') + path.sep;
+  const themeDir = path.join(KT_ROOT, 'ui/theme') + path.sep;
+  let issues = 0;
+  let rawRadius = 0, rawElevation = 0;
+  for (const f of walkFiles(KT_ROOT, '.kt')) {
+    if (!f.startsWith(uiDir) || f.startsWith(themeDir)) continue;
+    const content = readSafe(f) || '';
+    const rel = relPath(f);
+    if (/Toast\.makeText\(/.test(content) && !f.endsWith('UiMessages.kt')) {
+      issues++;
+      bug('MEDIUM', 'design', 'Toast Instead Of Snackbar', rel, null,
+        'Feedback shown with a Toast: no action/Undo, inconsistent look, easy to miss with TalkBack.',
+        'Use UiMessages.show(context, text[, actionLabel, onAction]) — the shell shows it as a Snackbar.');
+    }
+    const tiny = content.match(/fontSize\s*=\s*([0-9]|1[01])(\.\d+)?\.sp/g);
+    if (tiny) {
+      issues++;
+      bug('MEDIUM', 'design', 'Text Below 12 sp', rel, null,
+        `${tiny.length} text size(s) under the 12 sp floor.`,
+        'Use a MaterialTheme.typography style (labelSmall is the 12 sp floor).');
+    }
+    rawRadius += (content.match(/RoundedCornerShape\(\s*\d+(\.\d+)?\.dp\s*\)/g) || []).length;
+    rawElevation += (content.match(/(shadowElevation|tonalElevation|defaultElevation)\s*=\s*\d+(\.\d+)?\.dp/g) || []).length;
+  }
+  if (rawRadius > 0) {
+    issues++;
+    bug('LOW', 'design', 'Literal Corner Radii', 'app/src/main/java/com/example/ui', null,
+      `${rawRadius} RoundedCornerShape(n.dp) literals outside ui/theme.`,
+      'Use Radius.Xs/Sm/Md/Lg/Full or MaterialTheme.shapes.');
+  }
+  if (rawElevation > 0) {
+    issues++;
+    bug('LOW', 'design', 'Literal Elevations', 'app/src/main/java/com/example/ui', null,
+      `${rawElevation} elevation literals outside ui/theme.`,
+      'Use Elevation.level0..level3.');
+  }
+  if (issues === 0) pass('Design System Tokens', 'No Toasts in UI, no text under 12 sp, radii and elevations come from tokens.');
 }
 
 // ─── RUN ALL CHECKS ───────────────────────────────────────────────────────────
@@ -780,6 +938,9 @@ const checks = [
   ['Manifest Security',             checkManifestSecurity],
   ['Gradle Build Config Audit',     checkGradleConfigAudit],
   ['Code Style Enforcement',        checkCodeStyle],
+  ['Analytics Hygiene',             checkAnalyticsHygiene],
+  ['Secrets & Token Hygiene',       checkSecretHygiene],
+  ['Design System Tokens',          checkDesignTokens],
 ];
 
 for (const [label, fn] of checks) {

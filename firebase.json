@@ -16,12 +16,32 @@
   "extensions": {},
   "hosting": {
     "public": "public",
+    "cleanUrls": true,
+    "trailingSlash": false,
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
     ],
+    "redirects": [
+      { "source": "/app", "destination": "/get", "type": 302 },
+      { "source": "/download", "destination": "/get", "type": 302 },
+      { "source": "/ig", "destination": "/get?utm_source=instagram&utm_medium=social&utm_campaign=launch", "type": 302 },
+      { "source": "/fb", "destination": "/get?utm_source=facebook&utm_medium=social&utm_campaign=launch", "type": 302 },
+      { "source": "/wa", "destination": "/get?utm_source=whatsapp&utm_medium=social&utm_campaign=launch", "type": 302 },
+      { "source": "/li", "destination": "/get?utm_source=linkedin&utm_medium=social&utm_campaign=launch", "type": 302 },
+      { "source": "/qr", "destination": "/get?utm_source=qr&utm_medium=print&utm_campaign=launch", "type": 302 },
+      { "source": "/clinic-room-rental-lebanon", "destination": "/clinic-room-rental", "type": 301 },
+      { "source": "/therapy-room-rental-beirut", "destination": "/therapy-room-rental", "type": 301 },
+      { "source": "/meeting-room-rental-beirut", "destination": "/meeting-room-rental", "type": 301 },
+      { "source": "/training-room-rental-lebanon", "destination": "/training-room-rental", "type": 301 },
+      { "source": "/studio-rental-beirut", "destination": "/studio-rental", "type": 301 },
+      { "source": "/office-space-by-the-hour-lebanon", "destination": "/office-space-by-the-hour", "type": 301 }
+    ],
     "rewrites": [
+      { "source": "/sitemap.xml", "function": { "functionId": "siteSitemap", "region": "europe-west1" } },
+      { "source": "/ig-webhook", "function": { "functionId": "igWebhook", "region": "europe-west1" } },
+      { "source": "/wa-webhook", "function": { "functionId": "waWebhook", "region": "europe-west1" } },
       {
         "source": "/privacy",
         "destination": "/privacy.html"
@@ -33,6 +53,29 @@
       {
         "source": "/delete-account",
         "destination": "/delete-account.html"
+      },
+      {
+        "source": "/redeem",
+        "destination": "/redeem.html"
+      },
+      {
+        "source": "/get",
+        "destination": "/get.html"
+      },
+      {
+        "source": "/admin",
+        "destination": "/admin.html"
+      },
+      {
+        "source": "/unsubscribe",
+        "function": {
+          "functionId": "mailingUnsubscribe",
+          "region": "europe-west1"
+        }
+      },
+      {
+        "source": "/emaillink",
+        "destination": "/emaillink.html"
       },
       {
         "source": "/listing/**",
@@ -51,7 +94,50 @@
             "value": "application/json"
           }
         ]
-      }
+      },
+      { "source": "/img/**", "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }] },
+      { "source": "/media/**", "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }] },
+      { "source": "**/*.@(css|woff2|svg)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }] },
+      { "source": "/@(get|admin|emaillink|redeem|404)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }] },
+      { "source": "/@(get|admin|emaillink|redeem|404).html", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }] }
     ]
+  },
+  "emulators": {
+    "auth": {
+      "host": "127.0.0.1",
+      "port": 9099
+    },
+    "functions": {
+      "host": "127.0.0.1",
+      "port": 5001
+    },
+    "firestore": {
+      "host": "127.0.0.1",
+      "port": 8080
+    },
+    "storage": {
+      "host": "127.0.0.1",
+      "port": 9199
+    },
+    "hub": {
+      "host": "127.0.0.1",
+      "port": 4400
+    },
+    "logging": {
+      "host": "127.0.0.1",
+      "port": 4500
+    },
+    "eventarc": {
+      "host": "127.0.0.1",
+      "port": 9299
+    },
+    "tasks": {
+      "host": "127.0.0.1",
+      "port": 9499
+    },
+    "ui": {
+      "enabled": false
+    },
+    "singleProjectMode": true
   }
 }

@@ -1,0 +1,90 @@
+name: Design Screenshots
+
+# Renders key screens in light, dark, a 360 dp phone at the 1.15 text cap, RTL and Arabic (app/src/test/.../design/DesignScreenshotTest.kt)
+# and uploads them, for reviewing design changes (docs/design/UI_AUDIT.md). Separate from CI/CD: it never gates
+# a deploy.
+
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Comma-separated screen name prefixes to render (empty = all)"
+        required: false
+        default: ""
+
+  push:
+    branches: [main, "claude/**"]
+    paths:
+      - "app/src/main/java/com/example/ui/**"
+      - "app/src/main/res/**"
+      - "app/src/test/java/com/example/design/**"
+      - ".github/workflows/design-screenshots.yml"
+
+# contents: write only to store the PNGs as a commit under refs/design-shots/ (not a branch), so the images can be
+# read through the GitHub API (git trees/blobs) where artifact downloads aren't reachable.
+permissions:
+  contents: write
+
+concurrency:
+  group: design-screenshots-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  screenshots:
+    name: Render design screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.7.1"
+
+      - name: Generate Debug Keystore
+        run: |
+          keytool -genkey -v -keystore debug.keystore -storepass android \
+            -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 \
+            -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+
+      - name: Record screenshots
+        run: |
+          set -o pipefail
+          gradle :app:recordRoborazziDebug --tests "com.example.design.*" -PdesignOnly="${{ inputs.only }}" --no-daemon --stacktrace 2>&1 | tee gradle.log
+
+      # Logs aren't readable from every client; surface compile errors as annotations instead.
+      - name: Report compile errors
+        if: failure()
+        run: |
+          grep -iE "^e: |error|FAILED|aapt" gradle.log | head -40 | while IFS= read -r line; do echo "::error title=build::${line}"; done
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: design-shots
+          path: app/build/design-shots
+          retention-days: 30
+
+      - name: Store screenshots as a git commit (refs/design-shots/<branch>)
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          [ -d app/build/design-shots ] || exit 0
+          cd app/build/design-shots
+          git init -q
+          git add -A
+          git -c user.name="design-shots" -c user.email="design-shots@users.noreply.github.com" \
+            commit -q -m "Design screenshots for ${GITHUB_SHA}"
+          ref="refs/design-shots/${GITHUB_REF_NAME//\//-}"
+          git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${ref}"
+          echo "::notice title=design-shots::$(git rev-parse HEAD) ${ref} for ${GITHUB_SHA}"

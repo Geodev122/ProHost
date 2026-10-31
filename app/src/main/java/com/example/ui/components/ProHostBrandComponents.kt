@@ -1,6 +1,31 @@
 package com.example.ui.components
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.liveRegion
+import com.example.R
+import androidx.compose.ui.res.stringResource
+import com.example.ui.theme.Elevation
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.semantics.Role
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -14,6 +39,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -40,9 +66,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.SheetState
@@ -71,6 +94,7 @@ import com.example.ui.navigation.AppNavTab
 import com.example.ui.theme.DrawerShape
 import com.example.ui.theme.SheetShape
 import com.example.ui.theme.Spacing
+import com.example.ui.theme.Radius
 import com.example.ui.theme.proColors
 
 /**
@@ -166,7 +190,7 @@ fun ProHostBottomSheet(
         shape = shape,
         containerColor = container,
         contentColor = contentColorFor(surface),
-        tonalElevation = 4.dp,
+        tonalElevation = Elevation.level2,
         scrimColor = scrimColor,
         contentWindowInsets = contentWindowInsets,
         dragHandle = {
@@ -216,7 +240,8 @@ fun ProHostAlertBanner(
         contentColor = content,
         shape = if (fullBleed) RectangleShape else MaterialTheme.shapes.medium,
         border = if (fullBleed) null else BorderStroke(1.dp, accent.copy(alpha = 0.25f)),
-        modifier = modifier.fillMaxWidth()
+        // Banners appear on their own (errors, status): read them out politely.
+        modifier = modifier.fillMaxWidth().semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite }
     ) {
         Row(
             modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
@@ -276,7 +301,9 @@ fun ProHostCountBadge(count: Int, modifier: Modifier = Modifier) {
         Text(
             text = if (count > 99) "99+" else count.toString(),
             style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            softWrap = false
         )
     }
 }
@@ -284,7 +311,7 @@ fun ProHostCountBadge(count: Int, modifier: Modifier = Modifier) {
 /** Plain "something new" dot badge for use inside `BadgedBox`. */
 @Composable
 fun ProHostDotBadge(modifier: Modifier = Modifier) {
-    Badge(modifier = modifier, containerColor = MaterialTheme.colorScheme.error)
+    Badge(modifier = modifier.size(9.dp), containerColor = MaterialTheme.colorScheme.error)
 }
 
 // ---------------------------------------------------------------------------
@@ -292,9 +319,23 @@ fun ProHostDotBadge(modifier: Modifier = Modifier) {
 // ---------------------------------------------------------------------------
 
 /**
- * Role bottom navigation bar. [highlightWithSecondary] switches the active-tab accent
- * from Special Blue (Specialist) to Orange (Pro Host); both come from the theme, so the
- * accent stays legible in dark mode.
+ * Space a screen leaves at its bottom so the floating [ProHostBottomNavBar] never covers
+ * its last item. 0 when no bar floats over the screen (provided by the app shell).
+ */
+val LocalBottomNavInset = compositionLocalOf { 0.dp }
+
+/** Height the expanded floating bar takes above the system navigation bar (pill + margins). */
+val BottomNavFloatingInset = 88.dp
+
+/** Height the collapsed handle takes above the system navigation bar. */
+val BottomNavCollapsedInset = 44.dp
+
+/**
+ * Role bottom navigation: a floating pill. The active tab is a filled pill in the role
+ * accent (Steel Blue for Specialist, orange for Pro Host — [highlightWithSecondary]) with
+ * its label; the others are icons. [collapsed] shrinks it to a small handle with an up
+ * arrow (Explore's map); tapping or swiping it up calls [onExpandChange] (true), and the
+ * expanded pill shows a down arrow to collapse again when [onExpandChange] is given.
  */
 @Composable
 fun ProHostBottomNavBar(
@@ -302,62 +343,136 @@ fun ProHostBottomNavBar(
     activeTabId: String,
     onTabSelected: (String) -> Unit,
     highlightWithSecondary: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    collapsed: Boolean = false,
+    onExpandChange: ((Boolean) -> Unit)? = null
 ) {
     val accent = if (highlightWithSecondary) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
-    Column(modifier = modifier) {
-        // Role-colored strip with a soft bloom below it.
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(2.dp)
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(Color.Transparent, accent.copy(alpha = 0.6f), accent, accent.copy(alpha = 0.6f), Color.Transparent)
-                    )
-                )
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(6.dp)
-                .background(Brush.verticalGradient(listOf(accent.copy(alpha = 0.14f), Color.Transparent)))
-        )
-        NavigationBar(
-            containerColor = MaterialTheme.colorScheme.surface,
-            tonalElevation = 0.dp,
-            // No fixed height: NavigationBar adds the system nav-bar inset inside its own bounds.
-            modifier = Modifier.testTag("bottom_navigation_bar")
-        ) {
-            tabs.forEach { tab ->
-                val isSelected = activeTabId == tab.id
-                NavigationBarItem(
-                    selected = isSelected,
-                    onClick = { onTabSelected(tab.id) },
-                    icon = {
+    val onAccent = if (highlightWithSecondary) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onPrimary
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        AnimatedContent(
+            targetState = collapsed && onExpandChange != null,
+            transitionSpec = {
+                (fadeIn() togetherWith fadeOut()).using(SizeTransform(clip = false))
+            },
+            label = "BottomNavCollapse"
+        ) { isCollapsed ->
+            if (isCollapsed) {
+                Surface(
+                    onClick = { onExpandChange?.invoke(true) },
+                    shape = Radius.Full,
+                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    shadowElevation = Elevation.level3,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                    modifier = Modifier
+                        .size(width = 64.dp, height = 32.dp)
+                        .draggable(
+                            orientation = Orientation.Vertical,
+                            state = rememberDraggableState { delta -> if (delta < -6f) onExpandChange?.invoke(true) }
+                        )
+                        .testTag("bottom_navigation_handle")
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
-                            contentDescription = tab.title
+                            Icons.Default.KeyboardArrowUp,
+                            contentDescription = stringResource(R.string.show_navigation),
+                            tint = accent
                         )
-                    },
-                    label = {
-                        Text(
-                            tab.title,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            maxLines = 1
-                        )
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = accent,
-                        selectedTextColor = accent,
-                        indicatorColor = accent.copy(alpha = 0.14f),
-                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    modifier = Modifier.testTag("nav_item_${tab.id}")
-                )
+                    }
+                }
+            } else {
+                Surface(
+                    // A fully rounded floating pill on the lightest surface, soft hairline + level 3 shadow.
+                    shape = Radius.Full,
+                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    shadowElevation = Elevation.level3,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                    modifier = Modifier
+                        .widthIn(max = 480.dp)
+                        .fillMaxWidth()
+                        .heightIn(min = 64.dp)
+                        .testTag("bottom_navigation_bar")
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        tabs.forEach { tab ->
+                            BottomNavPillItem(
+                                tab = tab,
+                                selected = activeTabId == tab.id,
+                                accent = accent,
+                                onAccent = onAccent,
+                                onClick = { onTabSelected(tab.id) },
+                                // The selected pill takes its full width (its one-word label is never
+                                // cut); the icon-only tabs share what's left.
+                                modifier = if (activeTabId == tab.id) Modifier else Modifier.weight(1f, fill = false)
+                            )
+                        }
+                        if (onExpandChange != null) {
+                            IconButton(onClick = { onExpandChange(false) }, modifier = Modifier.size(40.dp)) {
+                                Icon(
+                                    Icons.Default.KeyboardArrowDown,
+                                    contentDescription = stringResource(R.string.hide_navigation),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun BottomNavPillItem(
+    tab: AppNavTab,
+    selected: Boolean,
+    accent: Color,
+    onAccent: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val container by animateColorAsState(if (selected) accent else Color.Transparent, label = "navItemContainer")
+    val content by animateColorAsState(
+        if (selected) onAccent else MaterialTheme.colorScheme.onSurfaceVariant,
+        label = "navItemContent"
+    )
+    Row(
+        modifier = modifier
+            .clip(CircleShape)
+            .selectable(selected = selected, onClick = onClick, role = Role.Tab)
+            .background(container)
+            .animateContentSize(androidx.compose.animation.core.spring(dampingRatio = 0.8f, stiffness = 500f))
+            .heightIn(min = 48.dp)
+            .padding(horizontal = if (selected) Spacing.lg else Spacing.md)
+            .testTag("nav_item_${tab.id}"),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        Icon(
+            imageVector = if (selected) tab.selectedIcon else tab.unselectedIcon,
+            contentDescription = if (selected) null else tab.title,
+            tint = content,
+            modifier = Modifier.size(22.dp)
+        )
+        if (selected) {
+            Text(
+                tab.shortLabel,
+                style = MaterialTheme.typography.labelLarge.copy(fontFamily = com.example.ui.theme.ManropeDisplay),
+                fontWeight = FontWeight.ExtraBold,
+                color = content,
+                maxLines = 1,
+                softWrap = false
+            )
         }
     }
 }
@@ -377,8 +492,9 @@ fun ProHostDrawerSheet(
             .fillMaxWidth(0.86f)
             .widthIn(max = 320.dp),
         drawerShape = DrawerShape,
+        // Plain white (no tonal tint) so the drawer matches the white pages and header.
         drawerContainerColor = MaterialTheme.colorScheme.surface,
-        drawerTonalElevation = 2.dp,
+        drawerTonalElevation = Elevation.level0,
         content = content
     )
 }
@@ -422,13 +538,13 @@ fun ProHostDrawerHeader(
                     text = subtitle,
                     style = MaterialTheme.typography.labelMedium,
                     color = pro.onBrandHeader.copy(alpha = 0.85f),
-                    maxLines = 1
+                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
             }
             IconButton(onClick = onClose, modifier = Modifier.size(40.dp)) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Collapse Drawer",
+                    contentDescription = stringResource(R.string.collapse_drawer),
                     tint = pro.onBrandHeader
                 )
             }
@@ -436,22 +552,17 @@ fun ProHostDrawerHeader(
     }
 }
 
-/** Initials avatar for the drawer header (secondary accent, theme-aware on-color). */
+/** Drawer header avatar: the shared [ProAvatar] at 52 dp on the secondary accent. */
 @Composable
-fun ProHostDrawerAvatar(initials: String, modifier: Modifier = Modifier) {
-    Box(
+fun ProHostDrawerAvatar(initials: String, modifier: Modifier = Modifier, imageUrl: String? = null) {
+    ProAvatar(
+        initials = initials,
+        size = 52.dp,
+        imageUrl = imageUrl,
+        containerColor = MaterialTheme.colorScheme.secondary,
+        contentColor = MaterialTheme.colorScheme.onSecondary,
         modifier = modifier
-            .size(52.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.secondary),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = initials,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSecondary
-        )
-    }
+    )
 }
 
 /** Compact role chip for the drawer header: filled when [emphasized], translucent otherwise. */
@@ -579,5 +690,59 @@ fun ProHostDrawerHighlight(
             }
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = pro.onBrandHeader)
         }
+    }
+}
+
+/**
+ * Shows [com.example.ui.util.UiMessages] as Snackbars (inverse surface, optional action such as Undo). While one is
+ * on screen, messages go here instead of a Toast.
+ */
+@Composable
+fun ProHostSnackbarHost(modifier: Modifier = Modifier) {
+    val state = remember { androidx.compose.material3.SnackbarHostState() }
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        com.example.ui.util.UiMessages.hosts++
+        onDispose { com.example.ui.util.UiMessages.hosts-- }
+    }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        com.example.ui.util.UiMessages.messages.collect { message ->
+            val result = state.showSnackbar(
+                message = message.text,
+                actionLabel = message.actionLabel,
+                withDismissAction = message.actionLabel == null && message.long,
+                duration = when {
+                    message.actionLabel != null -> androidx.compose.material3.SnackbarDuration.Long
+                    message.long -> androidx.compose.material3.SnackbarDuration.Long
+                    else -> androidx.compose.material3.SnackbarDuration.Short
+                }
+            )
+            if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) message.onAction?.invoke()
+        }
+    }
+    androidx.compose.material3.SnackbarHost(state, modifier = modifier.padding(horizontal = Spacing.md)) { data ->
+        androidx.compose.material3.Snackbar(
+            snackbarData = data,
+            shape = Radius.Sm,
+            containerColor = MaterialTheme.colorScheme.inverseSurface,
+            contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+            actionColor = MaterialTheme.colorScheme.inversePrimary,
+            dismissActionContentColor = MaterialTheme.colorScheme.inverseOnSurface
+        )
+    }
+}
+
+/**
+ * True when the person turned animations off (Settings › Accessibility › Remove animations, or developer animator
+ * scale 0). Transitions should then snap.
+ */
+@Composable
+fun rememberReducedMotion(): Boolean {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    return remember(context) {
+        runCatching {
+            android.provider.Settings.Global.getFloat(
+                context.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f
+            ) == 0f
+        }.getOrDefault(false)
     }
 }

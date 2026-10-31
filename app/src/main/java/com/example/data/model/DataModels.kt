@@ -328,7 +328,7 @@ data class RentalPricingConfig(
          *  Called both from fromFirestoreMap (a document with no "pricing" key at
          *  all) and eagerly from every write path that still constructs a
          *  RentalFormula/SubdivisionStrategy directly (CreateListingDialog,
-         *  SubdivisionEditorSection), so "pricing" is always correct the moment
+         *  SubdivisionForm), so "pricing" is always correct the moment
          *  it's first written, not only on a later read of a genuinely old
          *  pre-existing document. */
         fun fromLegacyFormula(formula: RentalFormula?): RentalPricingConfig {
@@ -414,6 +414,9 @@ data class Subdivision(
     val pricingMode: SubdivisionPricingMode = SubdivisionPricingMode.STRATEGY_BASED,
     val capacity: Int? = null,
     val minAttendees: Int? = null,
+    // PER_ATTENDEE only: host-defined tiers (attendee range → price per person for the
+    // whole booking). See AttendeePricing for how a booking picks its tier.
+    val attendeeTiers: List<AttendeePackage> = emptyList(),
     // Server-assigned public code ("D-XXXXXX", functions/src/ids/displayCodes.ts); echoed on save because the subdivisions array is rewritten whole.
     val displayCode: String = ""
 )
@@ -605,6 +608,8 @@ data class BookingRequest(
     val cancellationReasonCode: String? = null,
     val cancellationNote: String? = null,
     val cancelledByRole: String? = null,
+    /** Set by onBookingRequestCreated when it auto-rejects (e.g. attendee price mismatch): the host never saw it. */
+    val rejectedBySystem: Boolean = false,
     // Record-keeping only — rent settlement happens entirely outside the app
     // (cash/Whish-direct/wire transfer between host and specialist), so ProHost
     // has no way to know whether or when it actually happened. A simple mutual
@@ -618,7 +623,9 @@ data class BookingRequest(
     val attendeePackagePriceUsd: Double = 0.0,
     val isDemo: Boolean = false,
     // Server-assigned public code ("B-XXXXXX"); read-only on the client, never written back.
-    val displayCode: String = ""
+    val displayCode: String = "",
+    /** The host's latest "Change price" on a slot this booking uses — server-written, never sent back. */
+    val lastPriceChange: BookingPriceChange? = null
 ) {
     val isPending: Boolean get() = status == BookingRequestStatus.PENDING
     val isAccepted: Boolean get() = status == BookingRequestStatus.ACCEPTED
@@ -760,19 +767,56 @@ data class BookingRequest(
                 cancellationReasonCode = data["cancellationReasonCode"] as? String,
                 cancellationNote = data["cancellationNote"] as? String,
                 cancelledByRole = data["cancelledByRole"] as? String,
+                rejectedBySystem = data["rejectedBySystem"] == true,
                 paymentAcknowledgedByHost = data["paymentAcknowledgedByHost"] as? Boolean ?: false,
                 paymentAcknowledgedBySpecialist = data["paymentAcknowledgedBySpecialist"] as? Boolean ?: false,
                 attendeeCount = (data["attendeeCount"] as? Number)?.toInt() ?: 0,
                 selectedAttendeePackageId = data["selectedAttendeePackageId"] as? String,
                 attendeePackageName = data["attendeePackageName"] as? String,
                 attendeePackagePriceUsd = (data["attendeePackagePriceUsd"] as? Number)?.toDouble() ?: 0.0,
-                isDemo = data["isDemo"] as? Boolean ?: (docId.startsWith("demo-") || docId.startsWith("DEMO-"))
+                isDemo = data["isDemo"] as? Boolean ?: (docId.startsWith("demo-") || docId.startsWith("DEMO-")),
+                lastPriceChange = (data["lastPriceChange"] as? Map<*, *>)?.let { BookingPriceChange.fromFirestoreMap(it) }
             )
         }
     }
 }
 
 typealias RentalBookingRequest = BookingRequest
+
+/** How a host's price change was applied to a booking (see functions/src/listings/changeSlotPrice.ts). */
+enum class PriceChangeMode(val label: String) {
+    KEEP("Keep old price"),
+    NOW("Update now"),
+    NEXT_TERM("Next term")
+}
+
+/** One entry of a booking's price-change history (`lastPriceChange` / `priceChanges`), written by the server only. */
+data class BookingPriceChange(
+    val at: Long = 0L,
+    val slotLabel: String = "",
+    val oldPrice: Double = 0.0,
+    val newPrice: Double = 0.0,
+    val mode: PriceChangeMode = PriceChangeMode.KEEP,
+    val oldTotal: Double = 0.0,
+    val newTotal: Double = 0.0,
+    /** ISO date the new price applies from; blank when this booking's current total didn't change. */
+    val effectiveFrom: String = ""
+) {
+    val changedTotal: Boolean get() = mode != PriceChangeMode.KEEP && newTotal != oldTotal
+
+    companion object {
+        fun fromFirestoreMap(data: Map<*, *>): BookingPriceChange = BookingPriceChange(
+            at = (data["at"] as? Number)?.toLong() ?: 0L,
+            slotLabel = data["slotLabel"] as? String ?: "",
+            oldPrice = (data["oldPrice"] as? Number)?.toDouble() ?: 0.0,
+            newPrice = (data["newPrice"] as? Number)?.toDouble() ?: 0.0,
+            mode = runCatching { PriceChangeMode.valueOf(data["mode"] as? String ?: "") }.getOrDefault(PriceChangeMode.KEEP),
+            oldTotal = (data["oldTotal"] as? Number)?.toDouble() ?: 0.0,
+            newTotal = (data["newTotal"] as? Number)?.toDouble() ?: 0.0,
+            effectiveFrom = data["effectiveFrom"] as? String ?: ""
+        )
+    }
+}
 
 data class PremisesRules(
     val smokingAllowed: Boolean = false,
@@ -840,7 +884,11 @@ data class SpaceListing(
     // to governorate/coordinates for those.
     val country: String = "",
     val city: String = "",
+    /** English copy of [city] (the address fields are filled in the app's language), so search and filters match. */
+    val cityEn: String = "",
     val floorInfo: String,
+    /** How many people an undivided listing fits (its one division's "fits up to"); divisions carry their own. */
+    val capacity: Int? = null,
     val lat: Double,
     val lng: Double,
     val isShared: Boolean,
@@ -849,10 +897,6 @@ data class SpaceListing(
     val essentialFacilities: List<String>,
     val equipment: List<EquipmentItem>,
     val pricing: RentalPricingConfig = RentalPricingConfig.default(),
-    // Legacy, read-only: populated only when deserializing a document saved before
-    // RentalPricingConfig existed and never re-saved since. New saves always leave
-    // this empty — pricing lives in [pricing] instead.
-    val rentalFormulas: List<RentalFormula> = emptyList(),
     val rules: PremisesRules,
     val schedule: SpaceOperatingSchedule = SpaceOperatingSchedule(),
     val ownerId: String,
@@ -911,7 +955,6 @@ data class SpaceListing(
     // restoreListingsAfterRenewal). Admin-SDK-only, same protected-field
     // pattern as isOwnerSuspended — see firestore.rules.
     val isOwnerPackageLapsed: Boolean = false,
-    val subscriptionExpiryMillis: Long = 0L,
     val imageUrls: List<String> = emptyList(),
     val videoTourDurationSec: Int = 10,
     val baseMonthlyRateUsd: Double = 450.0,
@@ -945,6 +988,9 @@ data class SpaceListing(
     // Surfaced on OwnerAnalyticsScreen as the concrete "listing performance" signal
     // behind a specialist pressing/unpressing the heart icon.
     val favoriteCount: Int = 0,
+    // Saves per month ("yyyymm" -> count, last 13 months), server-only like favoriteCount
+    // (favoritesSync.ts; absent from toFirestoreMap). Owner Analytics' "+N this month".
+    val favoritesByMonth: Map<String, Int> = emptyMap(),
     val isDemo: Boolean = false,
     // Server-assigned public code ("L-XXXXXX"); read-only on the client, never written back.
     val displayCode: String = ""
@@ -962,7 +1008,9 @@ data class SpaceListing(
             "streetAddress" to streetAddress,
             "country" to country,
             "city" to city,
+            "cityEn" to cityEn,
             "floorInfo" to floorInfo,
+            "capacity" to capacity,
             "lat" to lat,
             "lng" to lng,
             "isShared" to isShared,
@@ -979,21 +1027,6 @@ data class SpaceListing(
                 )
             },
             "pricing" to pricing.toFirestoreMap(),
-            "rentalFormulas" to rentalFormulas.map {
-                mapOf(
-                    "id" to it.id,
-                    "type" to it.type.name,
-                    "rateUsd" to it.rateUsd,
-                    "scheduleDescription" to it.scheduleDescription,
-                    "daysOfWeek" to it.daysOfWeek,
-                    "startHour" to it.startHour,
-                    "endHour" to it.endHour,
-                    "totalWeeklyHours" to it.totalWeeklyHours,
-                    "daysCountRequired" to it.daysCountRequired,
-                    "minHours" to it.minHours,
-                    "shiftName" to it.shiftName
-                )
-            },
             "subdivisions" to subdivisions.map { sub ->
                 mapOf(
                     "id" to sub.id,
@@ -1016,7 +1049,8 @@ data class SpaceListing(
                     "scheduleOverride" to sub.scheduleOverride?.toFirestoreMap(),
                     "pricingMode" to sub.pricingMode.name,
                     "capacity" to sub.capacity,
-                    "minAttendees" to sub.minAttendees
+                    "minAttendees" to sub.minAttendees,
+                    "attendeeTiers" to sub.attendeeTiers.map { it.toFirestoreMap() }
                 )
             },
             "rules" to mapOf(
@@ -1031,7 +1065,6 @@ data class SpaceListing(
             "ownerId" to ownerId,
             "ownerName" to ownerName,
             "ownerPhone" to ownerPhone,
-            "ownerEmail" to ownerEmail,
             "ownershipProofUrl" to ownershipProofUrl,
             "ownershipDocRole" to ownershipDocRole?.name,
             "verificationDocUrl" to verificationDocUrl,
@@ -1040,18 +1073,16 @@ data class SpaceListing(
             "isActiveSubscription" to isActiveSubscription,
             "isOwnerSuspended" to isOwnerSuspended,
             "isOwnerPackageLapsed" to isOwnerPackageLapsed,
-            "subscriptionExpiryMillis" to subscriptionExpiryMillis,
             "imageUrls" to imageUrls,
             "videoTourDurationSec" to videoTourDurationSec,
             "baseMonthlyRateUsd" to baseMonthlyRateUsd,
-            "avatarEngagementViews" to avatarEngagementViews,
-            "avatarInquiryClicks" to avatarInquiryClicks,
+            // avatarEngagementViews / avatarInquiryClicks (increment-only counters) and
+            // publishBlockedReasons (publish validation output) are server-maintained and
+            // never written back from a host's save; isDemo only when true (demo seeding).
             "ownerProfilePictureUrl" to ownerProfilePictureUrl,
             "status" to status.name,
-            "publishBlockedReasons" to publishBlockedReasons,
-            "isDemo" to isDemo,
             "updatedAt" to System.currentTimeMillis()
-        )
+        ) + (if (isDemo) mapOf("isDemo" to true) else emptyMap())
     }
 
     companion object {
@@ -1078,6 +1109,8 @@ data class SpaceListing(
                 }
             } ?: emptyList()
 
+            // Legacy, read-only: a listing saved before RentalPricingConfig existed (and not yet
+            // migrated by migrateLegacyListingFields) still prices from its first formula.
             val formulasList = (data["rentalFormulas"] as? List<*>)?.mapNotNull { item ->
                 (item as? Map<*, *>)?.let { map ->
                     val typeStr = map["type"] as? String ?: RentalFormulaType.FULL_MONTH.name
@@ -1148,7 +1181,11 @@ data class SpaceListing(
                         scheduleOverride = SpaceOperatingSchedule.fromFirestoreMap(sMap["scheduleOverride"] as? Map<*, *>),
                         pricingMode = pricingMode,
                         capacity = (sMap["capacity"] as? Number)?.toInt(),
-                        minAttendees = (sMap["minAttendees"] as? Number)?.toInt()
+                        minAttendees = (sMap["minAttendees"] as? Number)?.toInt(),
+                        attendeeTiers = (sMap["attendeeTiers"] as? List<*>)
+                            ?.mapNotNull { t -> (t as? Map<*, *>)?.entries?.associate { it.key.toString() to it.value } }
+                            ?.map { AttendeePackage.fromFirestoreMap(it) }
+                            ?: emptyList()
                     )
                 }
             }?.let { rawSubs ->
@@ -1174,6 +1211,8 @@ data class SpaceListing(
                 streetAddress = data["streetAddress"] as? String ?: "Beirut Central District",
                 country = data["country"] as? String ?: "",
                 city = data["city"] as? String ?: "",
+                cityEn = data["cityEn"] as? String ?: "",
+                capacity = (data["capacity"] as? Number)?.toInt()?.takeIf { it > 0 },
                 floorInfo = data["floorInfo"] as? String ?: "Floor 1",
                 lat = (data["lat"] as? Number)?.toDouble() ?: 33.8938,
                 lng = (data["lng"] as? Number)?.toDouble() ?: 35.5018,
@@ -1184,7 +1223,6 @@ data class SpaceListing(
                 equipment = equipList,
                 pricing = (data["pricing"] as? Map<*, *>)?.let { RentalPricingConfig.fromFirestoreMap(it) }
                     ?: RentalPricingConfig.fromLegacyFormula(formulasList.firstOrNull()),
-                rentalFormulas = formulasList,
                 rules = rules,
                 schedule = schedule,
                 ownerId = data["ownerId"] as? String ?: "",
@@ -1208,7 +1246,6 @@ data class SpaceListing(
                 isActiveSubscription = data["isActiveSubscription"] as? Boolean ?: true,
                 isOwnerSuspended = data["isOwnerSuspended"] as? Boolean ?: false,
                 isOwnerPackageLapsed = data["isOwnerPackageLapsed"] as? Boolean ?: false,
-                subscriptionExpiryMillis = (data["subscriptionExpiryMillis"] as? Number)?.toLong() ?: 0L,
                 imageUrls = (data["imageUrls"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                 videoTourDurationSec = (data["videoTourDurationSec"] as? Number)?.toInt() ?: 10,
                 baseMonthlyRateUsd = (data["baseMonthlyRateUsd"] as? Number)?.toDouble() ?: 450.0,
@@ -1222,6 +1259,9 @@ data class SpaceListing(
                 subdivisions = subsList,
                 createdAtMillis = (data["createdAtMillis"] as? Number)?.toLong(),
                 favoriteCount = (data["favoriteCount"] as? Number)?.toInt() ?: 0,
+                favoritesByMonth = (data["favoritesByMonth"] as? Map<*, *>).orEmpty()
+                    .mapNotNull { (k, v) -> (k as? String)?.let { key -> (v as? Number)?.let { key to it.toInt() } } }
+                    .toMap(),
                 isDemo = data["isDemo"] as? Boolean ?: (docId.startsWith("demo-") || docId.startsWith("DEMO-"))
             )
         }
@@ -1291,7 +1331,7 @@ enum class SubscriptionBillingInterval(val displayName: String, val monthsDurati
  * (see [SpaceListing.ownershipProofUrl]), not on the user profile.
  * [createdAtMillis]/[lastSignInAtMillis] are written only by assignInitialRole.ts —
  * the account-creation and last-sign-in audit trail Admin's Users Directory export
- * relies on (see ProHostRepository.exportUsersToCsv/exportUsersToJson).
+ * relies on.
  */
 /**
  * The single rule for "has this account finished registration" — used by the cold-start
@@ -1305,7 +1345,7 @@ fun AppUser.isProfileComplete(): Boolean = role == UserRole.ADMIN || fullName.is
  * seconds before the server assigns one — a short uppercase form of the internal id.
  */
 fun publicCode(displayCode: String, internalId: String): String =
-    displayCode.ifBlank { internalId.takeLast(6).uppercase() }
+    displayCode.ifBlank { "…" }
 
 val AppUser.publicCode: String get() = publicCode(displayCode, id)
 val SpaceListing.publicCode: String get() = publicCode(displayCode, id)
@@ -1324,18 +1364,21 @@ data class AppUser(
     val governorate: String = "",
     val city: String = "",
     val isVerified: Boolean = false,
-    val subscriptionExpiryMillis: Long? = null,
-    // Server-only, written exclusively by grantEntitlement() (functions/src/lib/
-    // entitlements.ts) — the id of the admin-defined PackagePlan (package_plans/main)
-    // this account currently holds, or null if no active package. Replaces the old
-    // closed OwnerPackageTier enum; a package's real price/listing-limit/validity are
-    // resolved live from package_plans/main by this id, not stored redundantly here.
+    // Server-only (functions/src/billing/entitlementManager.ts): the Google Play base plan
+    // this account's Pro Host access comes from ("pro-montly" / "pro-yearly", see
+    // data/billing/PlayCatalog.kt), "admin_forced" for an admin Force Upgrade, or null.
+    // Google Play is the only billing authority; there is no plan catalog.
     val ownerPackageId: String? = null,
     // Server-only. Real, enforced expiry (functions/src/packages/expirePackages.ts,
     // an hourly scheduled function, clears ownerPackageId/this field once it lapses;
     // firestore.rules' withinListingLimit() also treats an expired-but-not-yet-swept
     // package as "no package" directly, closing the gap between lapse and the next sweep).
     val ownerPackageExpiryMillis: Long? = null,
+    // Server-only billing mirror of Google Play's lifecycle: "google_play" / "admin_forced",
+    // and ACTIVE, GRACE_PERIOD, ON_HOLD, PAUSED, CANCELED, EXPIRED, REVOKED, REFUNDED, PENDING.
+    // Read-only here; never included in toFirestoreMap.
+    val entitlementSource: String? = null,
+    val billingStatus: String? = null,
     // Server-only, written exclusively by assignInitialRole.ts — createdAtMillis is set
     // once, the first time this uid ever gets a role claim; lastSignInAtMillis is
     // refreshed on every subsequent call (every sign-in). Never included in
@@ -1377,8 +1420,22 @@ data class AppUser(
     // Server-assigned public code ("U-XXXXXX"); read-only on the client, never written back.
     val displayCode: String = ""
 ) {
-    val isKycComplete: Boolean
-        get() = isVerified && emailVerified && country.isNotBlank() && city.isNotBlank()
+    /**
+     * A WhatsApp number saved on the profile in international format. There is no SMS code:
+     * Firebase phone verification never delivered reliably, so the number is self-declared
+     * (hosts and guests reach each other on WhatsApp through it).
+     */
+    fun hasWhatsAppNumber(): Boolean = isPlausibleE164(phone)
+
+    /**
+     * The one rule for sending a booking request: a profile photo (hosts verify who's coming)
+     * and a WhatsApp number. Checked in place at Request time (RequirementsSheet), never as a
+     * navigation gate.
+     */
+    fun canTransact(): Boolean = hasWhatsAppNumber() && !profilePictureUrl.isNullOrBlank()
+
+    /** Hosting (Premium checkout, Pro Host profile): [canTransact] plus country and city. */
+    fun canHost(): Boolean = canTransact() && country.isNotBlank() && city.isNotBlank()
     // Full map — only for admin/server-side contexts (e.g. bootstrapping a new profile
     // from an admin console write). NEVER use for client-initiated profile updates;
     // firestore.rules blocks writes to protected fields (role, isVerified, ownerPackageId,
@@ -1398,31 +1455,12 @@ data class AppUser(
             "governorate" to governorate,
             "city" to city,
             "isVerified" to isVerified,
-            "subscriptionExpiryMillis" to subscriptionExpiryMillis,
             // ownerPackageId and ownerPackageExpiryMillis are written only by Cloud Functions
-            // (playBillingRtdn, grantPackageToUser, expirePackages) — never by client writes.
+            // (billing/entitlementManager via Google Play or forceProHostUpgrade, expirePackages) — never by client writes.
             // Including them here would overwrite entitlement state on any admin-context full
             // document write, so they are intentionally excluded.
             "savedSpaceIds" to savedSpaceIds,
             "isDemo" to isDemo,
-            "updatedAt" to System.currentTimeMillis()
-        )
-    }
-
-    // Safe client-side profile update map — only fields the user is allowed to edit.
-    // Excludes every field guarded by firestore.rules' protectedKeys list so this map
-    // never triggers a rule rejection, even after a Cloud Function has updated
-    // ownerPackageId, role, isVerified, or any other server-owned field.
-    fun toEditableFieldsMap(): Map<String, Any?> {
-        return mapOf(
-            "fullName" to fullName,
-            "specialty" to specialty,
-            "phone" to phone,
-            "profilePictureUrl" to profilePictureUrl,
-            "country" to country,
-            "governorate" to governorate,
-            "city" to city,
-            "savedSpaceIds" to savedSpaceIds,
             "updatedAt" to System.currentTimeMillis()
         )
     }
@@ -1438,7 +1476,7 @@ data class AppUser(
                 id = docId,
                 displayCode = data["displayCode"] as? String ?: "",
                 email = data["email"] as? String ?: "",
-                fullName = data["fullName"] as? String ?: "Member",
+                fullName = data["fullName"] as? String ?: "",
                 role = role,
                 specialty = data["specialty"] as? String ?: "",
                 phone = data["phone"] as? String ?: "",
@@ -1447,9 +1485,10 @@ data class AppUser(
                 governorate = data["governorate"] as? String ?: "",
                 city = data["city"] as? String ?: "",
                 isVerified = data["isVerified"] as? Boolean ?: false,
-                subscriptionExpiryMillis = (data["subscriptionExpiryMillis"] as? Number)?.toLong(),
                 ownerPackageId = data["ownerPackageId"] as? String,
                 ownerPackageExpiryMillis = (data["ownerPackageExpiryMillis"] as? Number)?.toLong(),
+                entitlementSource = data["entitlementSource"] as? String,
+                billingStatus = data["billingStatus"] as? String,
                 createdAtMillis = (data["createdAtMillis"] as? Number)?.toLong(),
                 lastSignInAtMillis = (data["lastSignInAtMillis"] as? Number)?.toLong(),
                 tosAcceptedAtMillis = (data["tosAcceptedAtMillis"] as? Number)?.toLong(),
@@ -1462,165 +1501,6 @@ data class AppUser(
             )
         }
     }
-}
-
-/**
- * A Pro Host subscription plan, linked to a Google Play product. Every plan allows
- * unlimited listings; access lasts until the renewal date Google Play reports
- * (ownerPackageExpiryMillis). Admins set only display order ([sortOrder]) and
- * [isFeatured]; [priceUsd]/[validityDays] are fallbacks shown until Play's live
- * product details load.
- */
-data class PackagePlan(
-    val id: String,
-    val name: String,
-    val description: String = "",
-    val badgeName: String = "",
-    val priceUsd: Double = 0.0,
-    val validityDays: Int = 30,
-    val isEnabled: Boolean = true,
-    val sortOrder: Int = 0,
-    /** Admin-set: featured plans receive a "Most Popular" highlight on the Subscriptions screen. */
-    val isFeatured: Boolean = false,
-    /** Google Play subscription ID; empty means the catalog id is the Play ID. */
-    val googlePlayProductId: String = "",
-    /** Admin-grant only (e.g. [UNLIMITED_GRANT_PLAN_ID]); never offered for purchase. */
-    val isGrantOnly: Boolean = false
-) {
-    fun toFirestoreMap(): Map<String, Any?> = mapOf(
-        "id" to id,
-        "name" to name,
-        "description" to description,
-        "badgeName" to badgeName,
-        "priceUsd" to priceUsd,
-        "validityDays" to validityDays,
-        "isEnabled" to isEnabled,
-        "sortOrder" to sortOrder,
-        "isFeatured" to isFeatured,
-        "googlePlayProductId" to googlePlayProductId,
-        "isGrantOnly" to isGrantOnly
-    )
-
-    companion object {
-        /** Mirrors UNLIMITED_GRANT_PLAN_ID in functions/src/lib/packagePlans.ts. */
-        const val UNLIMITED_GRANT_PLAN_ID = "admin_unlimited_grant"
-
-        /** Mirrors LIFETIME_EXPIRY_MILLIS (2100-01-01 UTC) in functions/src/lib/packagePlans.ts. */
-        const val LIFETIME_EXPIRY_MILLIS = 4_102_444_800_000L
-
-        fun isLifetimeExpiry(expiryMillis: Long?): Boolean =
-            expiryMillis != null && expiryMillis >= LIFETIME_EXPIRY_MILLIS
-
-        /** Google Play's live price when loaded; the stored fallback only if one was ever set. */
-        fun displayPrice(plan: PackagePlan, playFormattedPrice: String?): String =
-            playFormattedPrice
-                ?: if (plan.priceUsd > 0.0) "$" + String.format(java.util.Locale.US, "%.2f", plan.priceUsd)
-                else "See price in Google Play"
-
-        fun fromFirestoreMap(id: String, data: Map<String, Any?>): PackagePlan = PackagePlan(
-            id = id,
-            name = data["name"] as? String ?: "Package",
-            description = data["description"] as? String ?: "",
-            badgeName = data["badgeName"] as? String ?: "",
-            priceUsd = (data["priceUsd"] as? Number)?.toDouble() ?: 0.0,
-            validityDays = (data["validityDays"] as? Number)?.toInt() ?: 30,
-            isEnabled = data["isEnabled"] as? Boolean ?: true,
-            sortOrder = (data["sortOrder"] as? Number)?.toInt() ?: 0,
-            isFeatured = data["isFeatured"] as? Boolean ?: false,
-            googlePlayProductId = data["googlePlayProductId"] as? String ?: "",
-            isGrantOnly = data["isGrantOnly"] as? Boolean ?: false
-        )
-    }
-}
-
-/**
- * Wraps the admin-managed package catalog, stored keyed by id (a map, not a
- * list) inside package_plans/main — the map shape lets firestore.rules resolve
- * a specific package via a plain .get(id, null) chain, the same well-supported
- * idiom used throughout this app's rules, rather than a list-filter/scan.
- */
-data class PackagePlanCatalog(val packages: Map<String, PackagePlan> = emptyMap()) {
-    /** Plans offered for purchase, in display order: featured first, then admin priority (sortOrder). */
-    fun purchasablePlans(): List<PackagePlan> =
-        packages.values.filter { it.isEnabled && !it.isGrantOnly }
-            .sortedWith(compareBy({ !it.isFeatured }, { it.sortOrder }))
-
-    fun toFirestoreMap(): Map<String, Any?> = mapOf(
-        "packages" to packages.mapValues { it.value.toFirestoreMap() }
-    )
-
-    companion object {
-        const val COLLECTION_PATH = "package_plans"
-        const val DOCUMENT_ID = "main"
-
-        val DEFAULT_CATALOG = PackagePlanCatalog(
-            mapOf(
-                "package_growth_mrr" to PackagePlan(
-                    id = "package_growth_mrr",
-                    name = "Growth Plan",
-                    description = "Unlimited workspace listings",
-                    badgeName = "Growth",
-                    priceUsd = 4.99,
-                    validityDays = 30,
-                    isEnabled = true,
-                    sortOrder = 0
-                ),
-                "package_pro_mrr" to PackagePlan(
-                    id = "package_pro_mrr",
-                    name = "Pro Plan",
-                    description = "Unlimited workspace listings",
-                    badgeName = "Pro",
-                    priceUsd = 16.99,
-                    validityDays = 30,
-                    isEnabled = true,
-                    sortOrder = 1
-                ),
-                "package_enterprise_mrr" to PackagePlan(
-                    id = "package_enterprise_mrr",
-                    name = "Enterprise",
-                    description = "Unlimited workspace listings",
-                    badgeName = "Enterprise",
-                    priceUsd = 38.99,
-                    validityDays = 30,
-                    isEnabled = true,
-                    sortOrder = 2
-                )
-            )
-        )
-
-        @Suppress("UNCHECKED_CAST")
-        fun fromFirestoreMap(data: Map<String, Any?>): PackagePlanCatalog {
-            val raw = data["packages"] as? Map<String, Any?> ?: emptyMap()
-            val packages = raw.mapNotNull { (id, value) ->
-                (value as? Map<String, Any?>)?.let { id to PackagePlan.fromFirestoreMap(id, it) }
-            }.toMap()
-            return if (packages.isEmpty()) DEFAULT_CATALOG else PackagePlanCatalog(packages)
-        }
-    }
-}
-
-/**
- * Resolves an active package for [AppUser], falling back gracefully to a synthetic active
- * plan if the user's stored ownerPackageId was removed or modified by an admin update,
- * provided their package expiry timestamp is still in the future.
- */
-fun AppUser.resolveActivePackage(catalog: PackagePlanCatalog): PackagePlan? {
-    val pkgId = ownerPackageId ?: return null
-    val plan = catalog.packages[pkgId]
-    if (plan != null) return plan
-    val expiry = ownerPackageExpiryMillis
-    if (expiry != null && expiry > System.currentTimeMillis()) {
-        return PackagePlan(
-            id = pkgId,
-            name = "Pro Host Plan",
-            description = "Active subscription membership",
-            badgeName = "Pro",
-            priceUsd = 0.0,
-            validityDays = 30,
-            isEnabled = true
-        )
-    }
-    return null
 }
 
 /**
@@ -1693,14 +1573,12 @@ data class LegalDocumentVersion(
 }
 
 data class AdminPricingState(
-    val monthlySubscriptionFeeUsd: Double = 1.80,
     val baselineFeeUsd: Double = 1.80,
     val presetOptions: List<Double> = listOf(1.00, 1.50, 1.80, 2.50, 3.00, 5.00, 10.00),
     val governanceTag: String = "HOST-PACKAGING-TIERS-V2-ACTIVE"
 ) {
     fun toFirestoreMap(): Map<String, Any?> {
         return mapOf(
-            "monthlySubscriptionFeeUsd" to monthlySubscriptionFeeUsd,
             "baselineFeeUsd" to baselineFeeUsd,
             "presetOptions" to presetOptions,
             "governanceTag" to governanceTag,
@@ -1715,7 +1593,6 @@ data class AdminPricingState(
         fun fromFirestoreMap(data: Map<String, Any?>): AdminPricingState {
             val defaults = AdminPricingState()
             return AdminPricingState(
-                monthlySubscriptionFeeUsd = (data["monthlySubscriptionFeeUsd"] as? Number)?.toDouble() ?: defaults.monthlySubscriptionFeeUsd,
                 baselineFeeUsd = (data["baselineFeeUsd"] as? Number)?.toDouble() ?: defaults.baselineFeeUsd,
                 presetOptions = (data["presetOptions"] as? List<*>)?.mapNotNull { (it as? Number)?.toDouble() } ?: defaults.presetOptions,
                 governanceTag = data["governanceTag"] as? String ?: defaults.governanceTag
@@ -1724,18 +1601,45 @@ data class AdminPricingState(
     }
 }
 
+/**
+ * One entry of the in-app notification centre: user_profiles/{uid}/notifications/{id},
+ * written by functions/src/lib/push.ts for every push and kept 48 h (expireAt).
+ */
 data class FCMAlert(
     val id: String = java.util.UUID.randomUUID().toString(),
     val title: String,
     val body: String,
     val timestamp: Long = System.currentTimeMillis(),
     val isRead: Boolean = false,
-    // Server-sent categories: BOOKING_REQUEST, BOOKING_ACCEPTANCE, PAYMENT_REMINDER,
+    // Server-sent categories: BOOKING_REQUEST, BOOKING_UPDATE, PAYMENT_REMINDER,
     // PACKAGE_EXPIRED, PACKAGE_ACTIVATED, PACKAGE_RENEWED,
-    // LISTING_VERIFICATION, LISTING_VERIFICATION_REQUEST
+    // LISTING_VERIFICATION, LISTING_VERIFICATION_REQUEST, ADMIN_SUBSCRIPTION
     val category: String,
-    val targetTab: String? = null // mirrors the FCM data "targetTab" key
-)
+    val targetTab: String? = null, // mirrors the FCM data "targetTab" key
+    val bookingId: String? = null,
+    val spaceId: String? = null,
+    val expireAt: Long = timestamp + TTL_MS
+) {
+    companion object {
+        const val TTL_MS = 48L * 60 * 60 * 1000
+
+        fun fromFirestoreMap(id: String, data: Map<String, Any?>): FCMAlert {
+            val created = (data["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis()
+            return FCMAlert(
+                id = id,
+                title = data["title"] as? String ?: "ProHost",
+                body = data["body"] as? String ?: "",
+                timestamp = created,
+                isRead = data["read"] as? Boolean ?: false,
+                category = data["category"] as? String ?: "GENERAL",
+                targetTab = (data["targetTab"] as? String)?.takeIf { it.isNotBlank() },
+                bookingId = (data["bookingId"] as? String)?.takeIf { it.isNotBlank() },
+                spaceId = (data["spaceId"] as? String)?.takeIf { it.isNotBlank() },
+                expireAt = (data["expireAt"] as? Number)?.toLong() ?: (created + TTL_MS)
+            )
+        }
+    }
+}
 
 /**
  * Dynamic Space Architecture Schema Configuration Model

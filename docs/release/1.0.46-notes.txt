@@ -1,0 +1,64 @@
+<en-US>
+What's new in ProHost 1.0.46
+• Listing cards now show the city and country set by the host
+• Create listing: Back and Next always stay on screen, and Next tells you what is missing
+• Hosts see who saved their spaces: saves on each listing, new saves this month, save and inquiry rates
+• Saving a space is more reliable, with Undo
+• A fresh new look for sign-in and sign-up
+</en-US>
+<ar>
+الجديد في ProHost 1.0.46
+• بطاقات الإعلانات تعرض الآن المدينة والدولة كما حدّدها المضيف
+• إنشاء إعلان: زرّا السابق والتالي يظهران دائماً، وزر التالي يوضح ما ينقص
+• يرى المضيفون من حفظ مساحاتهم: عدد الحفظ لكل إعلان، الحفظ الجديد هذا الشهر، ونسب الحفظ والاستفسار
+• حفظ المساحات أكثر موثوقية مع إمكانية التراجع
+• مظهر جديد لتسجيل الدخول وإنشاء الحساب
+</ar>
+<fr-FR>
+Nouveautés de ProHost 1.0.46
+• Les annonces affichent la ville et le pays choisis par l'hôte
+• Créer une annonce : Retour et Suivant restent toujours visibles, et Suivant indique ce qui manque
+• Les hôtes voient qui a enregistré leurs espaces : enregistrements, nouveaux ce mois-ci, taux d'enregistrement et de demandes
+• Enregistrer un espace est plus fiable, avec Annuler
+• Un nouveau look pour la connexion et l'inscription
+</fr-FR>
+<es-ES>
+Novedades de ProHost 1.0.46
+• Los anuncios muestran la ciudad y el país que indicó el anfitrión
+• Crear anuncio: Atrás y Siguiente siempre visibles, y Siguiente indica lo que falta
+• Los anfitriones ven quién guardó sus espacios: guardados por anuncio, nuevos este mes y tasas de guardado y consultas
+• Guardar un espacio es más fiable, con Deshacer
+• Un nuevo aspecto para iniciar sesión y registrarse
+</es-ES>
+<de-DE>
+Neu in ProHost 1.0.46
+• Inserate zeigen jetzt Stadt und Land, wie vom Gastgeber angegeben
+• Inserat erstellen: Zurück und Weiter bleiben immer sichtbar, Weiter sagt, was fehlt
+• Gastgeber sehen, wer ihre Räume gemerkt hat: pro Inserat, neu diesen Monat, Merk- und Anfragequote
+• Räume merken ist zuverlässiger, mit Rückgängig
+• Neuer Look für Anmeldung und Registrierung
+</de-DE>
+<it-IT>
+Novità di ProHost 1.0.46
+• Gli annunci mostrano città e paese indicati dall'host
+• Crea annuncio: Indietro e Avanti restano sempre visibili e Avanti indica cosa manca
+• Gli host vedono chi ha salvato i loro spazi: salvataggi per annuncio, nuovi questo mese, tassi di salvataggio e richieste
+• Salvare uno spazio è più affidabile, con Annulla
+• Un nuovo look per accesso e registrazione
+</it-IT>
+<pt-BR>
+Novidades do ProHost 1.0.46
+• Os anúncios mostram a cidade e o país definidos pelo anfitrião
+• Criar anúncio: Voltar e Avançar sempre visíveis, e Avançar diz o que falta
+• Anfitriões veem quem salvou seus espaços: salvos por anúncio, novos este mês, taxas de salvamento e consultas
+• Salvar um espaço ficou mais confiável, com Desfazer
+• Um novo visual para entrar e criar conta
+</pt-BR>
+<tr-TR>
+ProHost 1.0.46'da yenilikler
+• İlan kartları artık ev sahibinin belirlediği şehir ve ülkeyi gösterir
+• İlan oluşturma: Geri ve İleri her zaman görünür, İleri neyin eksik olduğunu söyler
+• Ev sahipleri alanlarını kimlerin kaydettiğini görür: ilan başına kayıt, bu ayki yeni kayıtlar, kayıt ve talep oranları
+• Alan kaydetmek daha güvenilir, Geri Al ile
+• Giriş ve kayıt için yeni bir görünüm
+</tr-TR>

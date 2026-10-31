@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,7 +15,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -36,21 +37,21 @@ fun <T> MultiSelectDropdownField(
     optionLabel: (T) -> String,
     onSelectionChange: (Set<T>) -> Unit,
     modifier: Modifier = Modifier,
-    placeholder: String = "Any",
+    placeholder: String = stringResource(R.string.filter_any),
 ) {
     var expanded by remember { mutableStateOf(false) }
     val summary = when {
         selected.isEmpty() -> placeholder
         selected.size <= 2 -> options.filter { it in selected }.joinToString { optionLabel(it) }
-        else -> "${selected.size} selected"
+        else -> stringResource(R.string.x_selected, selected.size)
     }
     Box(modifier = modifier) {
-        OutlinedTextField(
+        InputField(
             value = summary,
             onValueChange = {},
             readOnly = true,
             singleLine = true,
-            label = { Text(label) },
+            label = label,
             trailingIcon = {
                 Icon(
                     if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
@@ -74,7 +75,7 @@ fun <T> MultiSelectDropdownField(
         ) {
             if (selected.isNotEmpty()) {
                 DropdownMenuItem(
-                    text = { Text("Clear selection") },
+                    text = { Text(stringResource(R.string.clear_selection)) },
                     leadingIcon = { Icon(Icons.Default.Clear, contentDescription = null) },
                     onClick = { onSelectionChange(emptySet()) }
                 )

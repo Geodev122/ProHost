@@ -1,16 +1,31 @@
 package com.example.ui.viewmodel
 
+import com.example.ui.util.localizedLabel
+import com.example.R
+import com.example.ui.util.uiText
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.analytics.AnalyticsTracker
 import com.example.data.model.*
 import com.example.data.repository.ProHostRepository
 import com.example.ui.state.DiscoveryFilterState
 import com.example.ui.state.DiscoveryUiState
+import com.example.ui.state.PricingFormulaFilter
 import com.example.ui.util.SpaceCalculationUtils
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 private const val SEARCH_DEBOUNCE_MS = 300L
+
+// While a search or filter is active, Explore keeps loading listing pages until this many
+// match (or the catalog ends), so a match beyond the first page is never missed.
+internal const val AUTO_LOAD_TARGET_MATCHES = 20
+// Upper bound on listings auto-loaded for one search, to keep a phone's memory in check.
+internal const val AUTO_LOAD_MAX_LISTINGS = 1000
+
+/** True when Explore should load another page for the active search (see auto-load). */
+internal fun shouldSearchMore(searchActive: Boolean, hasMore: Boolean, matches: Int, loaded: Int): Boolean =
+    searchActive && hasMore && matches < AUTO_LOAD_TARGET_MATCHES && loaded < AUTO_LOAD_MAX_LISTINGS
 
 /**
  * ViewModel managing space catalog discovery, multi-criteria filtering and debounced search.
@@ -27,6 +42,12 @@ class DiscoveryViewModel(
 
     private val _isMapViewActive = MutableStateFlow(false)
     val isMapViewActive: StateFlow<Boolean> = _isMapViewActive.asStateFlow()
+
+    // On the map the bottom navigation folds into a small handle; this is whether the
+    // person expanded it. Kept here so it survives a visit to a listing.
+    private val _navExpandedOnMap = MutableStateFlow(false)
+    val navExpandedOnMap: StateFlow<Boolean> = _navExpandedOnMap.asStateFlow()
+    fun setNavExpandedOnMap(expanded: Boolean) { _navExpandedOnMap.value = expanded }
 
     // Typing updates filterState.query immediately (the text field stays responsive);
     // the list only re-filters once typing pauses.
@@ -45,7 +66,9 @@ class DiscoveryViewModel(
         _isMapViewActive,
         repository.currentUser,
         repository.hasLoadedSpacesOnce,
-        debouncedQuery
+        debouncedQuery,
+        repository.spacesLoadError,
+        repository.hasMoreSpaces
     ) { values ->
         val spaces = (values[0] as? List<*>)?.filterIsInstance<SpaceListing>() ?: emptyList()
         val filter = values[1] as DiscoveryFilterState
@@ -54,6 +77,8 @@ class DiscoveryViewModel(
         val user = values[4] as AppUser?
         val hasLoadedOnce = values[5] as Boolean
         val query = values[6] as String
+        val loadError = values[7] as String?
+        val hasMore = values[8] as Boolean
         val savedIds = user?.savedSpaceIds ?: emptyList()
 
         // isOwnerPackageLapsed hides a listing from a fresh Discovery browse (the
@@ -75,12 +100,12 @@ class DiscoveryViewModel(
             val matchesType = filter.selectedCategoryIds.isEmpty() ||
                 filter.selectedCategoryIds.any { space.matchesCategory(it) }
             val matchesVerified = !filter.onlyVerified || space.isVerified
-            val matchesSaved = !filter.onlySaved || savedIds.contains(space.id)
-            if (!(matchesQuery && matchesType && matchesVerified && matchesSaved)) return@filter false
+            val matchesCountry = filter.selectedCountries.isEmpty() || effectiveCountry(space) in filter.selectedCountries
+            if (!(matchesQuery && matchesType && matchesVerified && matchesCountry)) return@filter false
 
             val matchingUnits = rentableUnits(space).filter { unit ->
                 (filter.selectedDivisionTypes.isEmpty() || unit.divisionType in filter.selectedDivisionTypes) &&
-                    (filter.selectedStrategies.isEmpty() || unit.strategy in filter.selectedStrategies) &&
+                    (filter.selectedStrategies.isEmpty() || unit.formula in filter.selectedStrategies) &&
                     (priceRange == null || (unit.price != null && unit.price.toFloat() in priceRange))
             }
             if (divisionLevelFilterActive && space.subdivisions.isNotEmpty()) {
@@ -91,7 +116,7 @@ class DiscoveryViewModel(
 
         val priceBounds = singleStrategy?.let { strategy ->
             val prices = liveSpaces.flatMap { rentableUnits(it) }
-                .filter { it.strategy == strategy }
+                .filter { it.formula == strategy }
                 .mapNotNull { it.price?.toFloat() }
             if (prices.isEmpty()) null else {
                 val min = kotlin.math.floor(prices.min())
@@ -100,97 +125,184 @@ class DiscoveryViewModel(
             }
         }
 
+        val searchActive = tokens.isNotEmpty() || filter.activeFilterCount > 0
+        val searchingMore = shouldSearchMore(searchActive, hasMore, filtered.size, spaces.size)
+
         DiscoveryUiState(
             filteredSpaces = filtered,
             matchingSubdivisionIds = matchingSubdivisionIds,
-            availableDivisionTypes = liveSpaces.flatMap { sp -> sp.subdivisions.map { it.type } }
-                .distinct().sortedBy { it.ordinal }
-                .ifEmpty { Level2Type.entries.toList() },
+            availableDivisionTypes = Level2Type.entries.toList(),
+            availableCountries = liveSpaces.map { effectiveCountry(it) }.distinct().sorted(),
             priceBounds = priceBounds,
             filterState = filter,
             isFilterSheetVisible = sheetVisible,
             isMapViewActive = mapActive,
-            isLoading = !hasLoadedOnce,
-            savedSpaceIds = savedIds
+            isLoading = !hasLoadedOnce && loadError == null,
+            loadError = loadError,
+            savedSpaceIds = savedIds,
+            hasMore = hasMore,
+            loadedListingCount = liveSpaces.size,
+            isSearchingMore = searchingMore,
+            loadedRawCount = spaces.size
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DiscoveryUiState())
+
+    // ---- Analytics: settled searches and list impressions (not per keystroke) ----
+    @OptIn(kotlinx.coroutines.FlowPreview::class)
+    private fun startAnalytics() {
+        viewModelScope.launch {
+            runCatching {
+                _filterState.map { it.query.trim() }
+                    .distinctUntilChanged()
+                    .debounce(1_500L)
+                    .filter { it.length >= 3 }
+                    .collect { q -> com.example.analytics.AnalyticsTracker.search(q, uiState.value.filteredSpaces.size) }
+            }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
+        }
+        viewModelScope.launch {
+            runCatching {
+                uiState.filter { !it.isLoading && it.loadError == null }
+                    .distinctUntilChangedBy { it.isMapViewActive to it.filteredSpaces.map { sp -> sp.id } }
+                    .debounce(2_000L)
+                    .collect { state ->
+                        com.example.analytics.AnalyticsTracker.viewItemList(
+                            if (state.isMapViewActive) "explore_map" else "explore_list",
+                            state.filteredSpaces
+                        )
+                    }
+            }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
+        }
+    }
+
+    // Search reaches the whole catalog: while the active search has too few matches and
+    // more pages exist, request the next page. Keyed on the loaded count, so a new request
+    // goes out only after the previous page has arrived.
+    private fun startAutoLoad() {
+        viewModelScope.launch {
+            runCatching {
+                uiState.filter { it.isSearchingMore && it.loadError == null }
+                    .distinctUntilChangedBy { it.loadedRawCount }
+                    .collect { repository.loadMoreSpaces() }
+            }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
+        }
+    }
+
+    init {
+        startAnalytics()
+        startAutoLoad()
+    }
 
     /** One bookable unit: a division, or the whole space when it has no divisions. */
     private data class RentableUnit(
         val subdivisionId: String?,
         val divisionType: Level2Type?,
-        val strategy: RentalStrategyType,
+        val formula: PricingFormulaFilter,
+        // In the formula's own unit: per person for PER_ATTENDEE.
         val price: Double?
     )
 
     private fun rentableUnits(space: SpaceListing): List<RentableUnit> =
         if (space.subdivisions.isNotEmpty()) {
             space.subdivisions.map { sub ->
-                RentableUnit(sub.id, sub.type, sub.pricing.strategyType, SpaceCalculationUtils.lowestPriceFor(sub.pricing)?.amount)
+                // A per-attendee room's slot prices are availability markers; its real price
+                // is per person, so it is its own formula with its cheapest tier as the price.
+                if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) {
+                    RentableUnit(
+                        sub.id, sub.type, PricingFormulaFilter.PER_ATTENDEE,
+                        com.example.ui.util.AttendeePricing.tiersFor(sub).minOfOrNull { it.pricePerAttendeeUsd }
+                    )
+                } else {
+                    RentableUnit(
+                        sub.id, sub.type, PricingFormulaFilter.of(sub.pricing.strategyType),
+                        SpaceCalculationUtils.lowestPriceFor(sub.pricing)?.amount
+                    )
+                }
             }
         } else {
             listOf(
                 RentableUnit(
                     subdivisionId = null,
                     divisionType = null,
-                    strategy = space.pricing.strategyType,
+                    formula = PricingFormulaFilter.of(space.pricing.strategyType),
                     price = SpaceCalculationUtils.lowestPriceFor(space.pricing)?.amount
                         ?: space.baseMonthlyRateUsd.takeIf { it > 0.0 }
                 )
             )
         }
 
+    // Listings saved before the country field existed have it blank; they are all in
+    // Lebanon (governorate is the Lebanese enum), so they still match a country filter.
+    private fun effectiveCountry(space: SpaceListing): String = space.country.trim().ifBlank { DEFAULT_COUNTRY }
+
     /** Everything a search token may match, lower-cased once per space. */
     private fun searchText(space: SpaceListing): String = buildList {
-        add(space.title); add(space.description); add(space.district); add(space.city)
+        add(space.title); add(space.description); add(space.district); add(space.city); add(space.cityEn)
         add(space.streetAddress); add(space.governorate.displayName); add(space.spaceType.displayName)
+        // Arabic users can search by the Arabic names too.
+        add(localizedLabel(space.governorate.displayName)); add(localizedLabel(space.spaceType.displayName))
         space.spaceCategoryName?.let { add(it) }
         addAll(space.complementarySpecialties)
         addAll(space.essentialFacilities)
         space.equipment.forEach { add(it.name) }
         space.subdivisions.forEach { sub ->
-            add(sub.name); add(sub.type.displayName); addAll(sub.hashtags); addAll(sub.amenities)
-            add(sub.pricing.strategyType.displayName)
+            add(sub.name); add(localizedLabel(sub.type.displayName)); addAll(sub.hashtags); addAll(sub.amenities)
+            add(localizedLabel(sub.pricing.strategyType.displayName))
+            if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) add(uiText(R.string.per_attendee_per_person))
         }
-        add(space.pricing.strategyType.displayName)
+        add(localizedLabel(space.pricing.strategyType.displayName))
     }.joinToString(" ").lowercase()
 
     fun updateSearchQuery(query: String) {
+        // The query is applied on ✓ / IME Search (the settled term is logged as `search` below).
+        if (query.isBlank() && _filterState.value.query.isNotBlank()) com.example.analytics.AnalyticsTracker.searchClear()
         _filterState.update { it.copy(query = query) }
     }
 
     fun setCategoryFilter(categoryIds: Set<String>) {
         _filterState.update { it.copy(selectedCategoryIds = categoryIds) }
+        com.example.analytics.AnalyticsTracker.filterApply("category", categoryIds.sorted().joinToString(",").ifEmpty { "any" })
     }
 
     fun setDivisionTypeFilter(types: Set<Level2Type>) {
         _filterState.update { it.copy(selectedDivisionTypes = types) }
+        com.example.analytics.AnalyticsTracker.filterApply("division_type", types.map { it.name }.sorted().joinToString(",").ifEmpty { "any" })
     }
 
-    fun setFormulaFilter(strategies: Set<RentalStrategyType>) {
+    fun setFormulaFilter(strategies: Set<PricingFormulaFilter>) {
         // A price range is only meaningful within one formula's unit — drop it when
         // the formula selection changes.
         _filterState.update {
             it.copy(selectedStrategies = strategies, priceRange = if (strategies == it.selectedStrategies) it.priceRange else null)
         }
+        com.example.analytics.AnalyticsTracker.filterApply("strategy", strategies.map { it.name }.sorted().joinToString(",").ifEmpty { "any" })
     }
 
     fun setPriceRange(range: ClosedFloatingPointRange<Float>?) {
         _filterState.update { it.copy(priceRange = range) }
+        com.example.analytics.AnalyticsTracker.filterApply("price", range?.let { "${it.start.toInt()}-${it.endInclusive.toInt()}" } ?: "any")
     }
 
     fun toggleVerifiedOnly(verifiedOnly: Boolean) {
         _filterState.update { it.copy(onlyVerified = verifiedOnly) }
+        com.example.analytics.AnalyticsTracker.filterApply("verified_only", verifiedOnly.toString())
     }
 
-    fun toggleSavedOnly(savedOnly: Boolean) {
-        _filterState.update { it.copy(onlySaved = savedOnly) }
+    fun setCountryFilter(countries: Set<String>) {
+        _filterState.update { it.copy(selectedCountries = countries) }
+        com.example.analytics.AnalyticsTracker.filterApply("country", countries.sorted().joinToString(",").ifEmpty { "any" })
     }
+
+    /** The map's camera country. Not a user filter, so it is no longer logged as filter_apply. */
+    @Suppress("UNUSED_PARAMETER")
+    fun setMapCenterCountry(country: String) = Unit
 
     fun toggleSavedSpace(spaceId: String) {
+        val wasSaved = repository.currentUser.value?.savedSpaceIds?.contains(spaceId) == true
         viewModelScope.launch {
             try {
-                repository.toggleSavedSpace(spaceId)
+                if (!repository.toggleSavedSpace(spaceId)) return@launch // heart reverted; nothing to log
+                repository.spaces.value.firstOrNull { it.id == spaceId }
+                    ?.let { com.example.analytics.AnalyticsTracker.wishlist(it, added = !wasSaved) }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -199,16 +311,44 @@ class DiscoveryViewModel(
         }
     }
 
+    // Explore's place, kept across opening a listing (the Explore screen leaves composition
+    // while details are open): list scroll position and the map camera.
+    var listScrollIndex: Int = 0
+        private set
+    var listScrollOffset: Int = 0
+        private set
+    var mapCamera: com.google.android.gms.maps.model.CameraPosition? = null
+        private set
+
+    fun saveListPosition(index: Int, offset: Int) { listScrollIndex = index; listScrollOffset = offset }
+    fun saveMapCamera(position: com.google.android.gms.maps.model.CameraPosition) { mapCamera = position }
+
+    /** Explore paging: loads the next page of active listings when one may exist. */
+    fun loadMore() = repository.loadMoreSpaces()
+
+    fun retryLoad() {
+        repository.startRealtimeSync()
+    }
+
     fun resetFilters() {
         // Keep what the user typed — Reset is about the filter sheet.
         _filterState.update { DiscoveryFilterState(query = it.query) }
+        com.example.analytics.AnalyticsTracker.filterReset()
     }
 
     fun setFilterSheetVisible(visible: Boolean) {
+        if (visible && !_isFilterSheetVisible.value) {
+            com.example.analytics.AnalyticsTracker.filterSheetOpen(_filterState.value.activeFilterCount)
+        }
         _isFilterSheetVisible.value = visible
     }
 
     fun toggleMapView() {
         _isMapViewActive.value = !_isMapViewActive.value
+        com.example.analytics.AnalyticsTracker.mapToggle(_isMapViewActive.value)
+    }
+
+    companion object {
+        const val DEFAULT_COUNTRY = "Lebanon"
     }
 }

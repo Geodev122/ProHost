@@ -89,41 +89,31 @@ object DemoDataGenerator {
         )
     }
 
+    // Demo pricing shapes (also the formula recorded on the demo bookings).
+    private val f1 = RentalFormula(
+        id = "demo-frm-01",
+        type = RentalFormulaType.SHIFT,
+        rateUsd = 350.0,
+        scheduleDescription = "Morning Shift (08:00 - 14:00)",
+        daysOfWeek = listOf("Mon", "Wed", "Fri"),
+        startHour = "08:00",
+        endHour = "14:00",
+        totalWeeklyHours = 18,
+        shiftName = "Morning Shift"
+    )
+
+    private val f2 = RentalFormula(
+        id = "demo-frm-02",
+        type = RentalFormulaType.DAY_PER_WEEK,
+        rateUsd = 600.0,
+        scheduleDescription = "Full Day Access (2 Days/Wk)",
+        daysOfWeek = listOf("Tue", "Thu"),
+        startHour = "08:00",
+        endHour = "18:00",
+        totalWeeklyHours = 20
+    )
+
     fun generateDemoListings(): List<SpaceListing> {
-        val f1 = RentalFormula(
-            id = "demo-frm-01",
-            type = RentalFormulaType.SHIFT,
-            rateUsd = 350.0,
-            scheduleDescription = "Morning Shift (08:00 - 14:00)",
-            daysOfWeek = listOf("Mon", "Wed", "Fri"),
-            startHour = "08:00",
-            endHour = "14:00",
-            totalWeeklyHours = 18,
-            shiftName = "Morning Shift"
-        )
-
-        val f2 = RentalFormula(
-            id = "demo-frm-02",
-            type = RentalFormulaType.DAY_PER_WEEK,
-            rateUsd = 600.0,
-            scheduleDescription = "Full Day Access (2 Days/Wk)",
-            daysOfWeek = listOf("Tue", "Thu"),
-            startHour = "08:00",
-            endHour = "18:00",
-            totalWeeklyHours = 20
-        )
-
-        val f3 = RentalFormula(
-            id = "demo-frm-03",
-            type = RentalFormulaType.HOURLY,
-            rateUsd = 40.0,
-            scheduleDescription = "Hourly Slot Access",
-            daysOfWeek = listOf("Mon", "Tue", "Wed", "Thu", "Fri"),
-            startHour = "08:00",
-            endHour = "20:00",
-            minHours = 2
-        )
-
         return listOf(
             SpaceListing(
                 id = "demo-space-001",
@@ -147,7 +137,6 @@ object DemoDataGenerator {
                     EquipmentItem("EQ-D2", "Echocardiogram 4K Doppler", EquipmentCategory.WORKSPACES, 1, "4K Color Doppler")
                 ),
                 pricing = RentalPricingConfig.fromLegacyFormula(f1),
-                rentalFormulas = listOf(f1, f2, f3),
                 rules = PremisesRules(
                     smokingAllowed = false,
                     foodAllowed = true,
@@ -199,7 +188,6 @@ object DemoDataGenerator {
                 essentialFacilities = listOf("Dental Chair", "X-Ray Autoclave", "Waiting Lounge"),
                 equipment = listOf(EquipmentItem("EQ-D3", "Full Dental Surgery Chair", EquipmentCategory.WORKSPACES, 1, "Hydraulic control")),
                 pricing = RentalPricingConfig.fromLegacyFormula(f2),
-                rentalFormulas = listOf(f2),
                 rules = PremisesRules(),
                 ownerId = "demo-host-01",
                 ownerName = "Dr. Elie Haddad",
@@ -230,7 +218,6 @@ object DemoDataGenerator {
                 essentialFacilities = listOf("Private Restroom", "High-Speed Internet", "Janitorial Service"),
                 equipment = emptyList(),
                 pricing = RentalPricingConfig.fromLegacyFormula(f1),
-                rentalFormulas = listOf(f1),
                 rules = PremisesRules(),
                 ownerId = "demo-host-02",
                 ownerName = "Nour El-Khoury",
@@ -260,7 +247,7 @@ object DemoDataGenerator {
                 residentPractitioners = emptyList(),
                 essentialFacilities = listOf("24/7 Generator", "Elevator"),
                 equipment = emptyList(),
-                rentalFormulas = listOf(f1),
+                pricing = RentalPricingConfig.fromLegacyFormula(f1),
                 rules = PremisesRules(),
                 ownerId = "demo-host-02",
                 ownerName = "Nour El-Khoury",
@@ -295,7 +282,7 @@ object DemoDataGenerator {
                 practitionerEmail = "demo.specialist.layla@medical.lb",
                 practitionerPhone = "+96170112233",
                 practitionerSpecialty = "Dermatologist",
-                formula = space1.rentalFormulas.first(),
+                formula = f1,
                 startDate = "2026-10-01",
                 endDate = "2026-12-31",
                 selectedDays = listOf("Mon", "Wed", "Fri"),
@@ -326,7 +313,7 @@ object DemoDataGenerator {
                 practitionerEmail = "demo.specialist.tariq@dental.lb",
                 practitionerPhone = "+9613998877",
                 practitionerSpecialty = "Orthodental Surgeon",
-                formula = space2.rentalFormulas.first(),
+                formula = f2,
                 startDate = "2026-10-15",
                 endDate = "2026-11-15",
                 selectedDays = listOf("Tue", "Thu"),
@@ -354,7 +341,7 @@ object DemoDataGenerator {
                 practitionerEmail = "demo.specialist.maya@pediatrics.lb",
                 practitionerPhone = "+96171554433",
                 practitionerSpecialty = "Pediatrician",
-                formula = space3.rentalFormulas.first(),
+                formula = f1,
                 startDate = "2026-11-01",
                 endDate = "2026-12-01",
                 selectedDays = listOf("Mon", "Tue", "Wed", "Thu", "Fri"),

@@ -1,6 +1,8 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
 import "../lib/admin";
+import { isPublicListing } from "../website/sitemapXml";
+import { listingPlace } from "./listingLocation";
 
 // ProHost's own registered marketing/App-Link domain — a real custom domain
 // connected to this same Firebase Hosting site (already carrying the
@@ -21,6 +23,23 @@ function escapeHtml(text: string): string {
     .replace(/'/g, "&#39;");
 }
 
+const APP_PACKAGE = "app.geonajjar.prohost";
+
+/**
+ * Android hand-off, run in the browser (the page is CDN-cached, so it must not vary by user agent). Instagram and other
+ * in-app browsers never fire App Links, so on Android the "Open in ProHost App" button becomes an intent link to the same
+ * https URL (the app's verified /listing filter takes it; `room` is kept), falling back to Play when the app is missing,
+ * and the page tries once to open the app by itself, falling back to this page with `noapp=1` (no loop).
+ */
+export function appHandoffScript(playUrl: string): string {
+  return `<script>(function(){var ua=navigator.userAgent||"";if(!/Android/i.test(ua))return;` +
+    `var q=new URLSearchParams(location.search),p=location.pathname,k=new URLSearchParams();if(q.get("room"))k.set("room",q.get("room"));` +
+    `var path=location.host+p+(k.toString()?"?"+k.toString():"");` +
+    `function intent(fb){return "intent://"+path+"#Intent;scheme=https;package=${APP_PACKAGE};S.browser_fallback_url="+encodeURIComponent(fb)+";end"}` +
+    `var b=document.getElementById("open-app");if(b)b.href=intent(${JSON.stringify(playUrl)});` +
+    `if(!q.get("noapp")){q.set("noapp","1");var back=location.origin+p+"?"+q.toString();setTimeout(function(){location.href=intent(back)},300)}})();</script>`;
+}
+
 function renderPage(opts: {
   title: string;
   description: string;
@@ -28,31 +47,41 @@ function renderPage(opts: {
   url: string;
   bodyHeading: string;
   bodySubtext: string;
+  /** Only real, publicly browsable listings are indexed; error/unavailable pages are noindex. */
+  indexable?: boolean;
+  /** Extra escaped HTML under the card (rooms, description, related links). */
+  extraHtml?: string;
+  jsonLd?: object;
+  /** A real listing: on Android, hand the visitor over to the app (see appHandoffScript). */
+  appHandoff?: boolean;
 }): string {
-  const { title, description, image, url, bodyHeading, bodySubtext } = opts;
+  const { title, description, image, url, bodyHeading, bodySubtext, indexable = false, extraHtml = "", jsonLd, appHandoff = false } = opts;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escapeHtml(title)}</title>
-<meta name="description" content="${escapeHtml(description)}">
+<meta name="description" content="${escapeHtml(description.slice(0, 300))}">
+<meta name="robots" content="${indexable ? "index, follow, max-image-preview:large" : "noindex, follow"}">
+<link rel="canonical" href="${escapeHtml(url)}">${jsonLd ? `
+<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, "\\u003c")}</script>` : ""}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ProHost">
 <meta property="og:title" content="${escapeHtml(title)}">
-<meta property="og:description" content="${escapeHtml(description)}">
+<meta property="og:description" content="${escapeHtml(description.slice(0, 300))}">
 <meta property="og:image" content="${escapeHtml(image)}">
 <meta property="og:url" content="${escapeHtml(url)}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${escapeHtml(title)}">
-<meta name="twitter:description" content="${escapeHtml(description)}">
+<meta name="twitter:description" content="${escapeHtml(description.slice(0, 300))}">
 <meta name="twitter:image" content="${escapeHtml(image)}">
 <link rel="icon" type="image/png" href="/logo.png">
 <style>
   :root {
     --primary: #F25F4C;
     --oxford-blue: #384152;
-    --vibrant-blue: #246BEE;
+    --vibrant-blue: #2B5A8C;
     --bg-light: #F8F9FA;
     --card-bg: #FFFFFF;
     --text-dark: #283544;
@@ -77,13 +106,19 @@ function renderPage(opts: {
   .btn { display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.25rem; border-radius: 0.6rem; font-weight: 700; font-size: 0.95rem; text-decoration: none; }
   .btn-primary { background: var(--vibrant-blue); color: #fff; }
   .btn-secondary { background: #fff; color: var(--oxford-blue); border: 1px solid var(--border-color); }
+  .more { margin-top: 1.25rem; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 1rem; padding: 1.25rem 1.5rem; }
+  .more h2 { font-size: 1.1rem; color: var(--oxford-blue); margin-bottom: .5rem; }
+  .more p, .more li { color: var(--text-dark); font-size: .95rem; }
+  .more ul { padding-left: 1.2rem; display: grid; gap: .3rem; }
+  .links { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: .4rem 1rem; font-size: .9rem; }
+  .links a { color: var(--vibrant-blue); }
   footer { text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.85rem; }
 </style>
 </head>
 <body>
   <header>
     <div class="nav-container">
-      <img src="/logo.png" alt="ProHost">
+      <a href="${CANONICAL_HOST}/"><img src="/logo.png" alt="ProHost"></a>
       <span class="brand-title"><span class="brand-pro">Pro</span><span class="brand-host">Host</span></span>
     </div>
   </header>
@@ -94,13 +129,14 @@ function renderPage(opts: {
         <h1>${escapeHtml(bodyHeading)}</h1>
         <p class="subtext">${escapeHtml(bodySubtext)}</p>
         <div class="cta-row">
-          <a class="btn btn-primary" href="${escapeHtml(url)}">Open in ProHost App</a>
+          <a class="btn btn-primary" id="open-app" href="${escapeHtml(url)}">Open in ProHost App</a>
           <a class="btn btn-secondary" href="${escapeHtml(PLAY_STORE_URL)}">Get the App</a>
         </div>
       </div>
-    </div>
+    </div>${extraHtml}
   </main>
-  <footer>ProHost &mdash; workspace rentals in Lebanon</footer>
+  <footer><a href="${CANONICAL_HOST}/" style="color:inherit">ProHost</a> &mdash; rent clinics, offices, studios and meeting rooms by the hour, shift, day or month</footer>${appHandoff ? `
+  ${appHandoffScript(PLAY_STORE_URL)}` : ""}
 </body>
 </html>`;
 }
@@ -145,7 +181,7 @@ export const listingShareLanding = onRequest(async (req, res) => {
     // Only ACTIVE listings are meant to be publicly browsable (see
     // Discovery's own status filter) — a Draft/Paused listing's title and
     // photos are not meant to leak into a link preview either.
-    if (!snap.exists || !data || data.status !== "ACTIVE") {
+    if (!snap.exists || !data || !isPublicListing(data)) {
       res.status(404).send(renderPage({
         title: "Listing not available - ProHost",
         description: "This listing is no longer available on ProHost.",
@@ -159,12 +195,9 @@ export const listingShareLanding = onRequest(async (req, res) => {
 
     const title: string = typeof data.title === "string" && data.title.trim() ? data.title : "A ProHost Listing";
     const rawDescription: string = typeof data.description === "string" ? data.description.trim() : "";
-    const district: string = typeof data.district === "string" ? data.district : "";
-    const governorateLabel: string = typeof data.governorate === "string"
-      ? data.governorate.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())
-      : "";
+    const place = listingPlace(data);
     const category: string = typeof data.spaceCategoryName === "string" ? data.spaceCategoryName : "";
-    const location = [district, governorateLabel].filter(Boolean).join(", ");
+    const location = place.text;
     const description = rawDescription.length > 0
       ? rawDescription
       : [category, location].filter(Boolean).join(" in ") || "A workspace listing on ProHost.";
@@ -172,13 +205,52 @@ export const listingShareLanding = onRequest(async (req, res) => {
       ? data.imageUrls[0]
       : FALLBACK_IMAGE;
 
+    const rooms = (Array.isArray(data.subdivisions) ? data.subdivisions : [])
+      .map((r: { name?: unknown; type?: unknown }) => ({
+        name: typeof r?.name === "string" ? r.name.trim() : "",
+        type: typeof r?.type === "string" ? r.type.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase()) : "",
+      }))
+      .filter((r: { name: string }) => r.name)
+      .slice(0, 30);
+    const where = location ? ` in ${location}` : "";
+    const pageTitle = `${title}${category ? ` · ${category}` : ""} for rent${where} | ProHost`;
+    const extraHtml = `
+    <section class="more">
+      ${rawDescription ? `<h2>About this space</h2><p>${escapeHtml(rawDescription.slice(0, 2000))}</p>` : ""}
+      ${rooms.length ? `<h2 style="margin-top:1rem">Rooms you can book</h2><ul>${rooms.map((r: { name: string; type: string }) =>
+        `<li>${escapeHtml(r.name)}${r.type ? ` · ${escapeHtml(r.type)}` : ""}</li>`).join("")}</ul>` : ""}
+      <p style="margin-top:1rem">Book by the hour, shift, day, month or per attendee and see live availability in the free ProHost app.</p>
+      <div class="links"><a href="${CANONICAL_HOST}/clinic-room-rental">Clinic rooms</a><a href="${CANONICAL_HOST}/therapy-room-rental">Therapy rooms</a><a href="${CANONICAL_HOST}/meeting-room-rental">Meeting rooms</a><a href="${CANONICAL_HOST}/office-space-by-the-hour">Offices</a><a href="${CANONICAL_HOST}/list-your-space">List your space</a></div>
+    </section>`;
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Place", "@id": `${url}#place`, name: title, url, image, description: description.slice(0, 500),
+          address: { "@type": "PostalAddress", addressLocality: place.locality || undefined, addressRegion: place.region || undefined, addressCountry: place.countryCode },
+          ...(rooms.length ? { containsPlace: rooms.map((r: { name: string; type: string }) => ({ "@type": "Room", name: r.name, ...(r.type ? { description: r.type } : {}) })) } : {}),
+        },
+        {
+          "@type": "BreadcrumbList", itemListElement: [
+            { "@type": "ListItem", position: 1, name: "ProHost", item: `${CANONICAL_HOST}/` },
+            { "@type": "ListItem", position: 2, name: title, item: url },
+          ],
+        },
+      ],
+    };
+
+    res.set("Cache-Control", "public, max-age=300, s-maxage=900");
     res.status(200).send(renderPage({
-      title: `${title} - ProHost`,
+      title: pageTitle,
       description,
       image,
       url,
       bodyHeading: title,
       bodySubtext: location ? `${category ? category + " • " : ""}${location}` : description,
+      indexable: true,
+      extraHtml,
+      jsonLd,
+      appHandoff: true,
     }));
   } catch {
     // Never let a Firestore hiccup surface as a raw 500 to a link-preview

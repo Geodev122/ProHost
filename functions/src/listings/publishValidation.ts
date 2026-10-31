@@ -1,5 +1,7 @@
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { recordAuditLog } from "../lib/auditLog";
+import { isPerAttendee, tiersFor, AttendeeTierDoc } from "../lib/attendeePricing";
+import { pricingFromLegacyFormula } from "./legacyPricing";
 
 /** Minimal shape of the parts of a workspace_listings document this validates —
  * mirrors SpaceListing.toFirestoreMap()'s key names (DataModels.kt), not the
@@ -32,6 +34,8 @@ interface RentalPricingConfigDoc {
 interface SubdivisionDoc {
   pricing?: RentalPricingConfigDoc;
   rentalStrategies?: unknown[];
+  pricingMode?: string;
+  attendeeTiers?: AttendeeTierDoc[];
 }
 
 export interface WorkspaceListingDoc {
@@ -96,17 +100,24 @@ function structuredConfigHasRealPrice(config: RentalPricingConfigDoc | undefined
  * Whether the whole space has real, priced availability. Documents written by
  * the current app always carry a "pricing" key (RentalPricingConfig.default()
  * is never omitted) — but a listing saved before that field existed, and never
- * re-saved since, has none; for those, fall back to the legacy rentalFormulas
- * list actually being non-empty (the old model's own publish requirement),
- * mirroring the same backward-compat reasoning as
- * RentalPricingConfig.fromFirestoreMap's synthesis-from-legacy path.
+ * re-saved since, has none; for those, price the first legacy formula through
+ * pricingFromLegacyFormula (legacyPricing.ts), the same synthesis the app reads.
  */
 function spaceHasRealPrice(listing: WorkspaceListingDoc): boolean {
   if (listing.pricing !== undefined) return structuredConfigHasRealPrice(listing.pricing);
-  return Array.isArray(listing.rentalFormulas) && listing.rentalFormulas.length > 0;
+  // Not yet migrated (migrateLegacyListingFields): price it exactly as the app reads it.
+  if (Array.isArray(listing.rentalFormulas) && listing.rentalFormulas.length > 0) {
+    return structuredConfigHasRealPrice(pricingFromLegacyFormula(listing.rentalFormulas[0]) as RentalPricingConfigDoc);
+  }
+  return false;
 }
 
 function subdivisionHasRealPrice(sub: SubdivisionDoc): boolean {
+  // Per-attendee: slots carry availability markers (still > 0) and the price is the
+  // room's own attendee tiers — both must exist.
+  if (isPerAttendee(sub)) {
+    return structuredConfigHasRealPrice(sub.pricing) && tiersFor(sub).length > 0;
+  }
   if (sub.pricing !== undefined) return structuredConfigHasRealPrice(sub.pricing);
   return Array.isArray(sub.rentalStrategies) && sub.rentalStrategies.length > 0;
 }

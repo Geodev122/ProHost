@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redeem your ProHost code</title>
+  <meta name="description" content="Redeem your ProHost early-subscriber code on Google Play and start your Pro Host plan.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/site.css">
+  <style>.missing { display: none; }</style>
+</head>
+<body class="center-page">
+  <nav class="topbar">
+    <a class="home" href="/">
+      <img src="/logo.png" alt="ProHost">
+      <img class="wordmark" src="/logo-wordmark.png" alt="">
+    </a>
+  </nav>
+  <main>
+   <div class="card">
+    <h1>Your early-subscriber code</h1>
+    <p>Thanks for joining ProHost early. Redeem this code on Google Play to start ProHost Premium.</p>
+
+    <div id="has-code">
+      <div class="code">
+        <output id="code" aria-label="Promo code"></output>
+        <button type="button" id="copy">Copy</button>
+      </div>
+      <p class="hint" id="hint" aria-live="polite"></p>
+    </div>
+    <p class="missing" id="no-code">This link has no code. You can still enter your code on Google Play's redeem page.</p>
+
+    <ol>
+      <li>Tap <strong>Redeem on Google Play</strong> and confirm with the Google account on your Android phone.</li>
+      <li>Install or open <strong>ProHost</strong> on the same phone and sign in to the ProHost account that should get Premium — it activates automatically within a few seconds.</li>
+      <li>Not active yet? Open <strong>Profile › ProHost Premium › Restore</strong>.</li>
+    </ol>
+
+    <a class="btn btn-primary" id="redeem" href="https://play.google.com/redeem">Redeem on Google Play</a>
+    <a class="btn btn-secondary" href="/get?utm_source=redeem&amp;utm_medium=promo_code&amp;utm_campaign=redeem">Get ProHost on Google Play</a>
+
+    <p class="fine">Codes are single-use and tied to the Google account that redeems them. A code gives you ProHost Premium free for the period Google Play shows when you redeem it; after that the subscription renews automatically at the price shown there unless you cancel before the free period ends, in Google Play › Payments &amp; subscriptions. Questions: <a href="mailto:admin@pro-host.tech">admin@pro-host.tech</a>. See our <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</p>
+   </div>
+  </main>
+  <script>
+    (function () {
+      var raw = new URLSearchParams(location.search).get("code") || "";
+      var code = raw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 32);
+      var redeem = document.getElementById("redeem");
+      if (!code) {
+        document.getElementById("has-code").style.display = "none";
+        document.getElementById("no-code").style.display = "block";
+        return;
+      }
+      document.getElementById("code").textContent = code;
+      redeem.href = "https://play.google.com/redeem?code=" + encodeURIComponent(code);
+      document.getElementById("copy").addEventListener("click", function () {
+        var hint = document.getElementById("hint");
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code).then(
+            function () { hint.textContent = "Copied."; },
+            function () { hint.textContent = "Press and hold the code to copy it."; }
+          );
+        } else {
+          hint.textContent = "Press and hold the code to copy it.";
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

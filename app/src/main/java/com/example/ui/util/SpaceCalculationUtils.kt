@@ -10,7 +10,7 @@ import java.util.Calendar
  * ([SpaceCalculationUtils.buildAllSlotsForSpace]) instead of two different models
  * that could silently disagree (the specialist view used to be a fixed
  * Morning/Afternoon/Evening grid unrelated to what the host actually configured;
- * later, both screens read only [SpaceListing.rentalFormulas] directly, which meant
+ * later, both screens read only the legacy per-listing formula list, which meant
  * neither ever saw a subdivided listing's real availability at all).
  */
 /** One rental-recurrence a [RentableSlot] can be priced under. FLAT is the only
@@ -127,9 +127,9 @@ object SpaceCalculationUtils {
                         val shift = shiftsByName[shiftNameStr] ?: return@mapNotNull null
                         if (shift.isUnavailable) return@mapNotNull null
                         RentableSlot(
-                            groupLabel = "Shift • ${shift.name.displayName}", day = day,
+                            groupLabel = "Shift • ${localizedLabel(shift.name.displayName)}", day = day,
                             startTime = hourLabel(shift.startHour), endTime = hourLabel(shift.endHour),
-                            label = "$day  ${shift.name.displayName} (${hourLabel(shift.startHour)}-${hourLabel(shift.endHour)})",
+                            label = "$day  ${localizedLabel(shift.name.displayName)} (${hourLabel(shift.startHour)}-${hourLabel(shift.endHour)})",
                             sourceFormulaId = sourceId,
                             // Single flat price per shift now (item 7b) — a single-
                             // entry map keyed FLAT, matching Monthly/Hourly's shape,
@@ -230,6 +230,7 @@ object SpaceCalculationUtils {
         req.status == BookingRequestStatus.ACCEPTED &&
             req.id != ignoreBookingId &&
             req.spaceId == spaceId &&
+            !hasEnded(req) &&
             bookingScope(req, spaceId) == slot.sourceFormulaId &&
             (req.formula.type == RentalFormulaType.FULL_MONTH ||
                 // A booking scoped to specific calendar dates (item 7b/Decision 2)
@@ -240,6 +241,82 @@ object SpaceCalculationUtils {
                 (req.selectedCalendarDates.isEmpty() &&
                     bookingDays(req).contains(slot.day) &&
                     hoursOverlap(req.formula.startHour, req.formula.endHour, slot.startTime, slot.endTime)))
+    }
+
+    /**
+     * A booking's term [start, end) as ISO dates: its calendar dates, else startDate + durationMonths;
+     * null when no term was recorded (legacy docs saved a label) — treated as ongoing.
+     * Mirrors functions/src/bookings/bookingTerms.ts.
+     */
+    fun bookingTerm(booking: RentalBookingRequest): Pair<String, String>? {
+        val fmt = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+        fun shift(iso: String, field: Int, amount: Int): String? = runCatching {
+            val cal = Calendar.getInstance().apply { time = fmt.parse(iso)!! }
+            cal.add(field, amount)
+            fmt.format(cal.time)
+        }.getOrNull()
+        val dates = booking.selectedCalendarDates.filter { Regex("\\d{4}-\\d{2}-\\d{2}").matches(it) }.sorted()
+        if (dates.isNotEmpty()) return shift(dates.last(), Calendar.DAY_OF_MONTH, 1)?.let { dates.first() to it }
+        val raw = booking.startDate.trim().take(10)
+        val start = when {
+            Regex("\\d{4}-\\d{2}-\\d{2}").matches(raw) -> raw
+            Regex("\\d{4}-\\d{2}").matches(raw) -> "$raw-01"
+            else -> return null
+        }
+        return shift(start, Calendar.MONTH, booking.durationMonths.coerceAtLeast(1))?.let { start to it }
+    }
+
+    private fun todayIso(): String = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+
+    /** True once the booking's whole term is over — it no longer locks anything. */
+    fun hasEnded(booking: RentalBookingRequest, today: String = todayIso()): Boolean =
+        bookingTerm(booking)?.let { it.second <= today } ?: false
+
+    /** Whether two bookings' terms share a day (an unknown term overlaps everything). */
+    fun termsOverlap(a: RentalBookingRequest, b: RentalBookingRequest): Boolean {
+        val ta = bookingTerm(a) ?: return true
+        val tb = bookingTerm(b) ?: return true
+        return ta.first < tb.second && tb.first < ta.second
+    }
+
+    /** Whether [booking]'s term (its calendar dates, or startDate + durationMonths) covers [isoDate]. */
+    fun bookingCoversDate(booking: RentalBookingRequest, isoDate: String): Boolean {
+        if (booking.selectedCalendarDates.isNotEmpty()) return isoDate in booking.selectedCalendarDates
+        val start = booking.startDate.trim().take(10)
+        if (start.length < 7) return true // no term recorded: treat as ongoing
+        val startKey = if (start.length == 7) "$start-01" else start
+        val fmt = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+        val end = runCatching {
+            val cal = Calendar.getInstance().apply { time = fmt.parse(startKey)!! }
+            cal.add(Calendar.MONTH, booking.durationMonths.coerceAtLeast(1))
+            fmt.format(cal.time)
+        }.getOrNull() ?: return true
+        return isoDate >= startKey && isoDate < end
+    }
+
+    /**
+     * This week's occupancy of [space] (every room): each offered slot on each of the next 7
+     * dates, booked when an accepted booking covering that date locks it. Returns
+     * (booked, total). The same rule as the host's Manage page.
+     */
+    fun weekOccupancy(space: SpaceListing, acceptedBookings: List<RentalBookingRequest>): Pair<Int, Int> {
+        val slotsByDay = buildAllSlotsForSpace(space).groupBy { it.day }
+        val iso = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+        val dayName = java.text.SimpleDateFormat("EEE", java.util.Locale.US)
+        val cal = Calendar.getInstance()
+        var booked = 0
+        var total = 0
+        repeat(7) {
+            val date = cal.time
+            val isoDate = iso.format(date)
+            val covering = acceptedBookings.filter { bookingCoversDate(it, isoDate) }
+            slotsByDay[dayName.format(date)].orEmpty().forEach { slot ->
+                total++
+                if (isCalendarDateLocked(slot, isoDate, space.id, covering)) booked++
+            }
+            cal.add(Calendar.DAY_OF_YEAR, 1)
+        }
+        return booked to total
     }
 
     /**
@@ -263,6 +340,7 @@ object SpaceCalculationUtils {
             req.id != ignoreBookingId &&
             req.spaceId == spaceId &&
             bookingScope(req, spaceId) == slot.sourceFormulaId &&
+            bookingCoversDate(req, isoDate) &&
             (req.formula.type == RentalFormulaType.FULL_MONTH ||
                 (hoursOverlap(req.formula.startHour, req.formula.endHour, slot.startTime, slot.endTime) &&
                     if (req.selectedCalendarDates.isNotEmpty()) {
@@ -291,6 +369,8 @@ object SpaceCalculationUtils {
             other.id != candidate.replacesBookingId &&
             other.status == BookingRequestStatus.ACCEPTED &&
             other.spaceId == candidate.spaceId &&
+            !hasEnded(other) &&
+            termsOverlap(other, candidate) &&
             bookingScope(other, candidate.spaceId) == bookingScope(candidate, candidate.spaceId) &&
             (other.formula.type == RentalFormulaType.FULL_MONTH ||
                 candidate.formula.type == RentalFormulaType.FULL_MONTH ||
@@ -315,43 +395,50 @@ object SpaceCalculationUtils {
         val candidates = mutableListOf<PriceDisplay>()
 
         if (space.baseMonthlyRateUsd > 0.0) {
-            candidates.add(PriceDisplay(space.baseMonthlyRateUsd, "/mo"))
+            candidates.add(PriceDisplay(space.baseMonthlyRateUsd, localizedLabel("/mo")))
         }
 
-        space.rentalFormulas.forEach { formula ->
-            if (formula.rateUsd > 0.0) {
-                val label = rateUnitLabel(formula.type)
-                candidates.add(PriceDisplay(formula.rateUsd, label))
-            }
-        }
+        // A whole-space listing (no rooms) prices from its own config.
+        if (space.subdivisions.isEmpty()) lowestPriceFor(space.pricing)?.let { candidates.add(it) }
 
         space.subdivisions.forEach { sub ->
+            if (AttendeePricing.isPerAttendee(sub)) {
+                AttendeePricing.lowestPricePerPerson(sub)?.let { candidates.add(PriceDisplay(it, PER_PERSON_UNIT)) }
+                return@forEach
+            }
             val pricing = sub.pricing
             when (pricing.strategyType) {
                 RentalStrategyType.MONTHLY -> {
                     val rate = pricing.monthly?.rateUsd ?: 0.0
-                    if (rate > 0.0) candidates.add(PriceDisplay(rate, "/mo"))
+                    if (rate > 0.0) candidates.add(PriceDisplay(rate, localizedLabel("/mo")))
                 }
                 RentalStrategyType.HOURLY -> {
                     val rates = pricing.hourly?.cellPrices?.values?.filter { it > 0.0 } ?: emptyList()
-                    rates.minOrNull()?.let { candidates.add(PriceDisplay(it, "/hr")) }
+                    rates.minOrNull()?.let { candidates.add(PriceDisplay(it, localizedLabel("/hr"))) }
                 }
                 RentalStrategyType.SHIFT_BASED -> {
                     val shiftRates = pricing.shiftBased?.shifts?.map { it.price }?.filter { it > 0.0 } ?: emptyList()
-                    shiftRates.minOrNull()?.let { candidates.add(PriceDisplay(it, "/shift")) }
+                    shiftRates.minOrNull()?.let { candidates.add(PriceDisplay(it, localizedLabel("/shift"))) }
                 }
                 RentalStrategyType.DAY_BASED -> {
                     val dayRates = pricing.dayBased?.distribution?.values?.map { it.price }?.filter { it > 0.0 } ?: emptyList()
-                    dayRates.minOrNull()?.let { candidates.add(PriceDisplay(it, "/day")) }
+                    dayRates.minOrNull()?.let { candidates.add(PriceDisplay(it, localizedLabel("/day"))) }
                 }
             }
         }
 
-        return candidates.minByOrNull { it.amount } ?: PriceDisplay(space.baseMonthlyRateUsd.coerceAtLeast(0.0), "/mo")
+        return candidates.minByOrNull { it.amount } ?: PriceDisplay(space.baseMonthlyRateUsd.coerceAtLeast(0.0), localizedLabel("/mo"))
     }
 
+    /** Unit for per-attendee rooms: one per-person price covers the whole booking. */
+    val PER_PERSON_UNIT: String get() = localizedLabel("/person")
+
     fun findLowestPriceForSubdivision(sub: com.example.data.model.Subdivision): PriceDisplay =
-        lowestPriceFor(sub.pricing) ?: PriceDisplay(0.0, strategyUnitLabel(sub.pricing.strategyType))
+        if (AttendeePricing.isPerAttendee(sub)) {
+            PriceDisplay(AttendeePricing.lowestPricePerPerson(sub) ?: 0.0, PER_PERSON_UNIT)
+        } else {
+            lowestPriceFor(sub.pricing) ?: PriceDisplay(0.0, strategyUnitLabel(sub.pricing.strategyType))
+        }
 
     /** Lowest configured price of one pricing config, in that config's own unit; null if unpriced. */
     fun lowestPriceFor(pricing: com.example.data.model.RentalPricingConfig): PriceDisplay? {
@@ -376,10 +463,10 @@ object SpaceCalculationUtils {
      * monthly one would be inventing a figure the host never set.
      */
     fun rateUnitLabel(type: RentalFormulaType): String = when (type) {
-        RentalFormulaType.HOURLY -> "/hr"
-        RentalFormulaType.SHIFT -> "/shift"
-        RentalFormulaType.DAY_PER_WEEK -> "/day"
-        RentalFormulaType.FULL_MONTH -> "/mo"
+        RentalFormulaType.HOURLY -> localizedLabel("/hr")
+        RentalFormulaType.SHIFT -> localizedLabel("/shift")
+        RentalFormulaType.DAY_PER_WEEK -> localizedLabel("/day")
+        RentalFormulaType.FULL_MONTH -> localizedLabel("/mo")
     }
 
     /**
@@ -405,7 +492,13 @@ object SpaceCalculationUtils {
      * data rather than a static baseMonthlyRateUsd/mo regardless of strategy.
      */
     fun lowestPriceSummary(space: com.example.data.model.SpaceListing): Pair<Double, String> {
-        val slots = buildAllSlotsForSpace(space)
+        // Per-attendee rooms' slot prices are availability markers, not prices.
+        val perAttendeeIds = space.subdivisions.filter { AttendeePricing.isPerAttendee(it) }.map { it.id }.toSet()
+        if (perAttendeeIds.isNotEmpty() && perAttendeeIds.size == space.subdivisions.size) {
+            val p = findLowestConfiguredPrice(space)
+            return p.amount to p.unitLabel
+        }
+        val slots = buildAllSlotsForSpace(space).filterNot { it.sourceFormulaId in perAttendeeIds }
         val cheapest = slots
             .mapNotNull { slot ->
                 val price = slot.pricesByRecurrence[BookingRecurrence.FLAT] ?: return@mapNotNull null
@@ -414,7 +507,7 @@ object SpaceCalculationUtils {
                 price to unit
             }
             .minByOrNull { (price, _) -> price }
-        return cheapest ?: (space.baseMonthlyRateUsd to "/mo")
+        return cheapest ?: (space.baseMonthlyRateUsd to localizedLabel("/mo"))
     }
 
     /**

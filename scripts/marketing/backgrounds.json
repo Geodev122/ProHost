@@ -1,0 +1,19 @@
+{
+  "_about": "Photo backgrounds for marketing/*.mp4, generated with Vertex AI Imagen (9:16, no people, no text). Edit a prompt and run Actions › Marketing backgrounds.",
+  "style": "Photorealistic editorial interior photograph, vertical 9:16 composition, natural soft daylight, modern Lebanese/Mediterranean architecture, clean and inviting, empty room with no people, no text, no logos, no watermarks, shallow depth of field, shot on a 35mm full-frame camera.",
+  "images": {
+    "office": "A bright modern private office in Beirut with a wooden desk, ergonomic chair, plants and a large window overlooking city buildings.",
+    "clinic": "A calm, modern medical consultation room with a clean desk, two chairs, a white examination bed and soft daylight.",
+    "studio": "A sunlit creative studio with white brick walls, large windows, wooden floor and a few plants.",
+    "meeting": "A modern meeting room with a long wooden table, eight upholstered chairs, a wall screen and glass walls.",
+    "cowork": "A stylish coworking space in Beirut with communal wooden tables, warm pendant lights, plants and large arched windows.",
+    "therapy": "A cozy, calm therapy room with two soft armchairs facing each other, a small side table with tissues, warm lamp light, plants and neutral tones.",
+    "training": "A professional training room set up classroom-style with rows of tables and chairs facing a projector screen, bright and modern.",
+    "coaching": "A small cozy coaching room with two chairs, a round coffee table, bookshelves, warm wood and soft window light.",
+    "dietitian": "A bright nutrition clinic consultation room with a clean desk, two chairs, a bowl of fresh fruit, a body-composition scale and green plants.",
+    "hotel": "An elegant hotel conference room with a U-shaped table, leather chairs, chandeliers, carpet and floor-to-ceiling curtains.",
+    "medical": "A modern medical center corridor with three open clinic room doors, clean white and soft blue tones, polished floor.",
+    "classroom": "A modern classroom in a training institute with rows of desks, a whiteboard and evening light coming through the windows.",
+    "yoga": "A peaceful sunlit yoga studio with light wooden floor, rolled yoga mats along the wall, large windows and hanging plants."
+  }
+}

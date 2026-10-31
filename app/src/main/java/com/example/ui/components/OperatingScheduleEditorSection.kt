@@ -1,5 +1,10 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Spacing
+
+import com.example.ui.util.localizedLabel
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -12,7 +17,7 @@ import androidx.compose.ui.unit.dp
 /**
  * The opening/closing-hour fields + day-of-week chip row shared by
  * CreateListingDialog's Step 2 (setting a listing's own operating schedule) and
- * SubdivisionEditorSection's per-division schedule-override editor — the identical
+ * SubdivisionForm's per-division schedule-override editor — the identical
  * control (same fields, same day-chip toggle behavior) previously hand-rolled
  * separately in each place. Callers own everything around this (titles, a Sunday
  * toggle, a Save button, a wizard's surrounding form) — this is just the two real
@@ -29,29 +34,29 @@ fun OperatingScheduleEditorSection(
     weekDayOptions: List<String> = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
-            OutlinedTextField(
+            InputField(
                 value = openingHour,
                 onValueChange = onOpeningHourChange,
-                label = { Text("Opens (HH:mm)") },
+                label = stringResource(R.string.opens_hh_mm),
                 modifier = Modifier.weight(1f),
                 singleLine = true
             )
-            OutlinedTextField(
+            InputField(
                 value = closingHour,
                 onValueChange = onClosingHourChange,
-                label = { Text("Closes (HH:mm)") },
+                label = stringResource(R.string.closes_hh_mm),
                 modifier = Modifier.weight(1f),
                 singleLine = true
             )
         }
 
-        Text("Operating Days", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(stringResource(R.string.operating_days), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             items(weekDayOptions) { day ->
                 val isSelected = selectedDays.contains(day)
                 FilterChip(
@@ -59,7 +64,7 @@ fun OperatingScheduleEditorSection(
                     onClick = {
                         onDaysChange(if (isSelected) selectedDays - day else selectedDays + day)
                     },
-                    label = { Text(day, style = MaterialTheme.typography.labelMedium) }
+                    label = { Text(localizedLabel(day), style = MaterialTheme.typography.labelMedium) }
                 )
             }
         }

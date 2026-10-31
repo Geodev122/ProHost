@@ -33,12 +33,13 @@ export const onWorkspaceListingDeletedCleanup = onDocumentDeleted(
       .collection("user_profiles")
       .where("savedSpaceIds", "array-contains", spaceId)
       .get();
+    // bulkWriter, not one batch: a popular listing can be saved by more than 500 people.
     if (!favoritedBy.empty) {
-      const batch = db.batch();
+      const writer = db.bulkWriter();
       favoritedBy.docs.forEach((doc) => {
-        batch.set(doc.ref, { savedSpaceIds: FieldValue.arrayRemove(spaceId) }, { merge: true });
+        void writer.update(doc.ref, { savedSpaceIds: FieldValue.arrayRemove(spaceId) }).catch(() => undefined);
       });
-      await batch.commit();
+      await writer.close();
     }
 
     // 2. Cancel every still-open booking against this listing and notify the
@@ -51,15 +52,14 @@ export const onWorkspaceListingDeletedCleanup = onDocumentDeleted(
       .get();
 
     if (!openBookings.empty) {
-      const batch = db.batch();
+      const writer = db.bulkWriter();
       openBookings.docs.forEach((doc) => {
-        batch.set(
+        void writer.update(
           doc.ref,
-          { status: "CANCELLED", rejectionReason: "The listing this request was for has been deleted." },
-          { merge: true }
-        );
+          { status: "CANCELLED", rejectionReason: "The listing this request was for has been deleted." }
+        ).catch(() => undefined);
       });
-      await batch.commit();
+      await writer.close();
 
       await Promise.all(
         openBookings.docs.map((doc) => {

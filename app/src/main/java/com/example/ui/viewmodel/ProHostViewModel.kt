@@ -1,13 +1,18 @@
 package com.example.ui.viewmodel
 
+import com.example.ui.util.localizedLabel
+import com.example.ui.util.locationLine
+import com.example.ui.util.uiText
+import com.example.R
+import com.example.ui.util.UiMessages
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.data.auth.toUserMessage
 import com.example.data.model.*
 import com.example.data.repository.ProHostRepository
 import com.example.util.guessFileExtension
@@ -96,6 +101,7 @@ class ProHostViewModel(
                         _pendingRegistrationPhone.value = firebaseUser.phoneNumber.orEmpty()
                     } else {
                         runCatching {
+                            @Suppress("DEPRECATION")
                             val token = com.google.firebase.messaging.FirebaseMessaging.getInstance().token.await()
                             repository.registerFcmToken(user.id, token)
                         }
@@ -109,7 +115,7 @@ class ProHostViewModel(
                     // Session restore took >15s — most likely a slow connection with no
                     // cached claim. currentUser stays null → ProHostNavGraph falls through
                     // to LoginAuthScreen, but we surface a banner so the user knows why.
-                    _sessionRestoreError.value = "Session restore timed out. Please sign in again."
+                    _sessionRestoreError.value = uiText(R.string.session_restore_timed_out_please_sign_in_a)
                 } catch (e: Exception) {
                     // Offline with no prior custom claim, or other transient failure.
                     // repository.currentUser stays null — LoginAuthScreen handles it.
@@ -121,8 +127,6 @@ class ProHostViewModel(
     }
 
     val pricingState: StateFlow<AdminPricingState> = repository.pricingState
-    // Admin-managed, purchasable Pro Host packages — see PackagePlan/PackagePlanCatalog.
-    val packagePlans: StateFlow<PackagePlanCatalog> = repository.packagePlans
     val spaces: StateFlow<List<SpaceListing>> = repository.spaces
     val isCloudConnected: StateFlow<Boolean> = repository.isCloudConnected
     // Admin-managed facility/category catalog — previously read only by AdminConsoleScreen
@@ -139,6 +143,11 @@ class ProHostViewModel(
     val fcmAlerts: StateFlow<List<FCMAlert>> = repository.fcmAlerts
     val isOfflineMode: StateFlow<Boolean> = repository.isOfflineMode
     val syncStatusMessage: StateFlow<String?> = repository.syncStatusMessage
+
+    fun markAllAlertsRead() {
+        com.example.analytics.AnalyticsTracker.notificationMarkRead(all = true)
+        repository.markAllAlertsRead()
+    }
 
     fun markAlertAsRead(alertId: String) {
         repository.markAlertAsRead(alertId)
@@ -191,148 +200,47 @@ class ProHostViewModel(
     // feedback of any kind. Both the dialog and these wrappers are removed; use
     // AdminViewModel's checked equivalents instead.
 
-    // --- Google Play Billing & Google Pay Integration ---
-    private var playBillingManager: com.example.data.billing.PlayBillingManager? = null
-
-    val playBillingProducts = MutableStateFlow<List<com.android.billingclient.api.ProductDetails>>(emptyList())
-    val playBillingConnected = MutableStateFlow(false)
-    val playActivePurchases = MutableStateFlow<List<com.android.billingclient.api.Purchase>>(emptyList())
-
-    // Holds a deferred launch when billing was not yet connected at the time the user tapped
-    // "Subscribe via Google Play". Cleared and retried once products arrive from Play.
-    private var _pendingRetryProductId: String? = null
-    private var _pendingRetryActivity: java.lang.ref.WeakReference<android.app.Activity>? = null
-
-    fun initPlayBilling(context: Context) {
-        if (playBillingManager == null) {
-            val manager = com.example.data.billing.PlayBillingManager(context.applicationContext, viewModelScope)
-            playBillingManager = manager
-            viewModelScope.launch {
-                try {
-                    manager.isConnected.collect { connected ->
-                        playBillingConnected.value = connected
-                    }
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    android.util.Log.e("ProHostVM", "Operation failed", e)
-                }
-            }
-            viewModelScope.launch {
-                try {
-                    manager.productDetailsList.collect { products ->
-                        playBillingProducts.value = products
-                        // Retry a deferred billing launch once the target product is available
-                        val retryId = _pendingRetryProductId
-                        val retryActivity = _pendingRetryActivity?.get()
-                        if (retryId != null && retryActivity != null && products.any { it.productId == retryId }) {
-                            _pendingRetryProductId = null
-                            _pendingRetryActivity = null
-                            launchGooglePaySubscription(retryActivity, retryId)
-                        }
-                    }
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    android.util.Log.e("ProHostVM", "Operation failed", e)
-                }
-            }
-            // Every billing outcome (no offer, launch failure, cancel, success) reaches
-            // the Subscriptions screen banners; before, nothing collected these, so a
-            // failed tap on a plan looked like nothing happened.
-            viewModelScope.launch {
-                try {
-                    manager.billingMessages.collect { message ->
-                        if (message.isError) {
-                            _billingSuccess.value = null
-                            _billingError.value = message.text
-                            dismissBillingActivationPending()
-                        } else {
-                            _billingError.value = null
-                            _billingSuccess.value = message.text
-                        }
-                    }
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    android.util.Log.e("ProHostVM", "Billing message collection failed", e)
-                }
-            }
-            viewModelScope.launch {
-                try {
-                    manager.activePurchases.collect { playActivePurchases.value = it }
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    android.util.Log.e("ProHostVM", "Operation failed", e)
-                }
-            }
-            // Load Google Play product details for whatever plans the admin catalog lists.
-            viewModelScope.launch {
-                try {
-                    packagePlans.collect { catalog ->
-                        manager.setCatalogProductIds(catalog.purchasablePlans().map { it.googlePlayProductId.ifBlank { it.id } })
-                    }
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    android.util.Log.e("ProHostVM", "Operation failed", e)
-                }
-            }
-            viewModelScope.launch {
-                try {
-                    manager.purchaseEvents.collect { purchase ->
-                        val productId = purchase.products.firstOrNull() ?: return@collect
-                        repository.recordActivePurchaseToken(productId, purchase.purchaseToken)
-                    }
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    android.util.Log.e("ProHostVM", "Operation failed", e)
-                }
-            }
-            manager.startConnection()
-        }
-    }
-
-    private val _billingError = MutableStateFlow<String?>(null)
-    val billingError: StateFlow<String?> = _billingError.asStateFlow()
-
-    private val _billingSuccess = MutableStateFlow<String?>(null)
-    val billingSuccess: StateFlow<String?> = _billingSuccess.asStateFlow()
-
-    private val _billingActivationPending = MutableStateFlow(false)
-    val billingActivationPending: StateFlow<Boolean> = _billingActivationPending.asStateFlow()
-    private var billingActivationTimeoutJob: kotlinx.coroutines.Job? = null
-
-    // Tracks the expiry the user had BEFORE launching a Play billing flow so the
-    // collectLatest observer can distinguish "RTDN updated the expiry" from
-    // "profile updated for some other reason (existing subscriber)".
-    private val _billingPriorExpiryMillis = MutableStateFlow<Long?>(null)
-
-    // Clears billingActivationPending once the Firestore listener reflects the RTDN
-    // grant — i.e. ownerPackageExpiryMillis changed from what it was at launch time.
+    // Mirrors the device's analytics choice onto the profile: server-side Measurement
+    // Protocol events (functions/src/lib/ga4.ts) only send for GRANTED, and need the
+    // app-instance id to join the same GA4 user.
     init {
         viewModelScope.launch {
-            try {
-                currentUser.collectLatest { user ->
-                    if (user?.ownerPackageExpiryMillis != null &&
-                        user.ownerPackageExpiryMillis != _billingPriorExpiryMillis.value &&
-                        _billingActivationPending.value
-                    ) {
-                        billingActivationTimeoutJob?.cancel()
-                        _billingActivationPending.value = false
-                        // Force-refresh the ID token so the new PRO_HOST claim takes effect
-                        // immediately — without this the user sees SPECIALIST navigation for
-                        // up to an hour until the token naturally expires.
-                        refreshCurrentUserRoleAfterEntitlement()
+          try {
+            var lastWritten: String? = null
+            combine(
+                currentUser.map { it?.id }.distinctUntilChanged(),
+                com.example.analytics.AnalyticsConsent.state
+            ) { uid, consent -> uid to consent }.collectLatest { (uid, consent) ->
+                if (uid == null || consent == com.example.analytics.ConsentState.UNKNOWN) return@collectLatest
+                val instanceId = if (consent == com.example.analytics.ConsentState.GRANTED) {
+                    kotlinx.coroutines.suspendCancellableCoroutine<String?> { cont ->
+                        com.example.analytics.AnalyticsTracker.fetchAppInstanceId { id -> if (cont.isActive) cont.resumeWith(Result.success(id)) }
                     }
+                } else null
+                val key = "$uid|$consent|$instanceId"
+                if (key == lastWritten) return@collectLatest
+                try {
+                    com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                        .collection("user_profiles").document(uid)
+                        .update(
+                            mapOf(
+                                "analyticsConsent" to consent.name,
+                                "analyticsConsentAtMillis" to com.example.analytics.AnalyticsConsent.decidedAtMillis,
+                                "gaAppInstanceId" to instanceId
+                            )
+                        ).await()
+                    lastWritten = key
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    android.util.Log.w("ProHostVM", "Analytics consent mirror failed", e)
                 }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
             }
+          } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+          } catch (e: Exception) {
+            android.util.Log.w("ProHostVM", "Analytics consent observer stopped", e)
+          }
         }
     }
 
@@ -357,14 +265,37 @@ class ProHostViewModel(
         }
     }
 
-    fun clearBillingMessages() {
-        _billingError.value = null
-        _billingSuccess.value = null
-    }
+    // Email + password accounts whose address isn't confirmed yet (Profile shows a reminder).
+    private val _needsEmailVerification = MutableStateFlow(false)
+    val needsEmailVerification: StateFlow<Boolean> = _needsEmailVerification.asStateFlow()
 
-    fun dismissBillingActivationPending() {
-        billingActivationTimeoutJob?.cancel()
-        _billingActivationPending.value = false
+    /** Screenshot tests only: show Profile's "Verify your email" reminder. */
+    @androidx.annotation.VisibleForTesting
+    internal fun showEmailVerificationReminderForTest() { _needsEmailVerification.value = true }
+
+    /**
+     * On app resume: reloads the Firebase user; once the person tapped the verification link, the
+     * refreshed token carries email_verified and assignInitialRole mirrors it onto the profile.
+     * Never blocks anything — email is not a requirement.
+     */
+    fun refreshEmailVerification(context: android.content.Context) {
+        val appContext = context.applicationContext
+        viewModelScope.launch {
+            try {
+                val auth = com.example.data.auth.FirebaseAuthService(appContext)
+                if (!auth.usesPassword || currentUser.value?.emailVerified == true) {
+                    _needsEmailVerification.value = false
+                    return@launch
+                }
+                val verified = auth.refreshEmailVerified()
+                if (verified) functionsClient.ensureInitialRole()
+                _needsEmailVerification.value = !verified
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.w("ProHostViewModel", "email verification refresh failed: ${e.message}")
+            }
+        }
     }
 
     fun resendEmailVerification(context: android.content.Context) {
@@ -373,190 +304,19 @@ class ProHostViewModel(
             try {
                 val result = functionsClient.resendEmailVerification()
                 val msg = if (result.isSuccess) {
-                    "Verification email sent. Check your inbox."
+                    uiText(R.string.verification_email_sent_check_your_inbox)
                 } else {
-                    val err = result.exceptionOrNull()?.message ?: "Unknown error"
-                    when {
-                        err.contains("resource-exhausted", ignoreCase = true) ||
-                        err.contains("3 times", ignoreCase = true) -> "You've already requested 3 emails today. Try again tomorrow."
-                        else -> "Could not send email: $err"
-                    }
+                    result.exceptionOrNull()?.toUserMessage(uiText(R.string.couldn_t_send_the_verification_email_pleas))
+                        ?: uiText(R.string.couldn_t_send_the_verification_email_pleas)
                 }
-                android.widget.Toast.makeText(appContext, msg, android.widget.Toast.LENGTH_LONG).show()
+                UiMessages.show(appContext, msg, long = true)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                reportFailure(appContext, e, R.string.couldn_t_send_the_verification_email_pleas)
             }
         }
     }
-
-    fun sendInquiryEmail(context: android.content.Context, spaceId: String, message: String) {
-        val appContext = context.applicationContext
-        viewModelScope.launch {
-            try {
-                val result = functionsClient.sendInquiryEmail(spaceId, message)
-                val msg = if (result.isSuccess) {
-                    "Inquiry sent to the space owner."
-                } else {
-                    val err = result.exceptionOrNull()?.message ?: "Unknown error"
-                    when {
-                        err.contains("resource-exhausted", ignoreCase = true) ->
-                            "You've reached the daily inquiry limit (3 per day). Try again tomorrow."
-                        err.contains("not-found", ignoreCase = true) -> "Listing not found."
-                        else -> "Could not send inquiry: $err"
-                    }
-                }
-                android.widget.Toast.makeText(appContext, msg, android.widget.Toast.LENGTH_LONG).show()
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
-            }
-        }
-    }
-
-    fun launchGooglePaySubscription(
-        activity: android.app.Activity,
-        productId: String
-    ) {
-        val uid = currentUser.value?.id ?: run {
-            _billingError.value = "Your session expired — please sign in again to subscribe."
-            return
-        }
-        clearBillingMessages()
-        // Persist the pending draft ID before the billing sheet opens so the RTDN
-        // Cloud Function can auto-publish it when the subscription is confirmed.
-        val draftId = _pendingAutoPublishDraftId.value
-        if (draftId != null) {
-            viewModelScope.launch {
-                try {
-                    com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                        .collection("user_profiles").document(uid)
-                        .update("pendingPlayPublishDraftId", draftId).await()
-                } catch (_: Exception) { /* non-fatal; RTDN will skip auto-publish */ }
-            }
-        }
-
-        val manager = playBillingManager ?: run {
-            initPlayBilling(activity)
-            playBillingManager
-        }
-        val product = manager?.productDetailsList?.value?.find { it.productId == productId }
-        if (product != null) {
-            // For upgrades/downgrades: pass the current active subscription's purchase token so
-            // Play can perform a proper subscription replacement (prorated billing, immediate effect).
-            val currentPlanId = currentUser.value?.ownerPackageId
-            val oldPurchaseToken = if (!currentPlanId.isNullOrBlank() && currentPlanId != productId) {
-                manager.activePurchases.value.firstOrNull { it.products.any { id -> id == currentPlanId } }?.purchaseToken
-            } else null
-
-            val launched = manager.launchSubscriptionPurchase(activity, product, userId = uid, oldPurchaseToken = oldPurchaseToken)
-            if (!launched) return
-            _billingPriorExpiryMillis.value = currentUser.value?.ownerPackageExpiryMillis
-            _billingActivationPending.value = true
-            billingActivationTimeoutJob?.cancel()
-            billingActivationTimeoutJob = viewModelScope.launch {
-                try {
-                    kotlinx.coroutines.delay(5 * 60 * 1000L)
-                    _billingActivationPending.value = false
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    android.util.Log.e("ProHostVM", "Operation failed", e)
-                }
-            }
-        } else {
-            // Store the intent and retry automatically once products load from Play
-            _pendingRetryProductId = productId
-            _pendingRetryActivity = java.lang.ref.WeakReference(activity)
-            Toast.makeText(activity, "Connecting to Google Play Store…", Toast.LENGTH_SHORT).show()
-            // Merges into productDetailsList, whose collector above retries this launch.
-            manager?.queryProductDetailsForId(productId) { found ->
-                if (found == null) {
-                    _pendingRetryProductId = null
-                    _pendingRetryActivity = null
-                    // Billing callbacks may arrive off the main thread: use state, not a Toast.
-                    _billingError.value = "This plan isn't available in Google Play right now (product \"$productId\")."
-                }
-            }
-        }
-    }
-
-    fun openManageSubscriptions(activity: android.app.Activity, productId: String? = null) {
-        playBillingManager?.openManageSubscriptions(activity, productId) ?: run {
-            val uri = if (!productId.isNullOrBlank()) {
-                "https://play.google.com/store/account/subscriptions?sku=$productId&package=${activity.packageName}"
-            } else {
-                "https://play.google.com/store/account/subscriptions?package=${activity.packageName}"
-            }
-            openUriOrToast(activity, uri)
-        }
-    }
-
-    fun openRedeemPromoCode(activity: android.app.Activity, code: String? = null) {
-        playBillingManager?.openRedeemPromoCode(activity, code) ?: run {
-            val suffix = if (!code.isNullOrBlank()) "?code=${Uri.encode(code.trim())}" else ""
-            openUriOrToast(activity, "${com.example.data.billing.PlayBillingManager.REDEEM_CODE_URL}$suffix")
-        }
-    }
-
-    fun showBillingInAppMessages(activity: android.app.Activity) {
-        playBillingManager?.showInAppMessages(activity) {
-            refreshPlayPurchases(activity)
-        }
-    }
-
-    private fun openUriOrToast(activity: android.app.Activity, uri: String) {
-        try {
-            activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)))
-        } catch (e: android.content.ActivityNotFoundException) {
-            Toast.makeText(activity, "No app available to open this link.", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    /**
-     * Fetches a single Play subscription product by its Play Console product ID. Used by the
-     * Admin Console "Refresh from Play" button to auto-populate plan name and price from the
-     * live Play Store catalog. Initialises the billing client if not already connected.
-     * Callback is invoked on the main thread.
-     */
-    fun fetchPlayProductDetails(context: Context, productId: String, onResult: (com.android.billingclient.api.ProductDetails?) -> Unit) {
-        val manager = playBillingManager ?: run { initPlayBilling(context); playBillingManager }
-        manager?.queryProductDetailsForId(productId, onResult) ?: onResult(null)
-    }
-
-    fun refreshPlayPurchases(context: Context) {
-        val manager = playBillingManager ?: run { initPlayBilling(context); playBillingManager } ?: return
-        // If the user already has a Firestore entitlement, just refresh the local
-        // purchases cache — no server call needed.
-        if (currentUser.value?.ownerPackageId != null) {
-            manager.queryActivePurchases()
-            return
-        }
-        // No entitlement yet — query Play and, if an active purchase is found,
-        // verify it server-side to restore the entitlement (handles dropped RTDNs).
-        viewModelScope.launch {
-            runCatching {
-                manager.queryActivePurchases()
-                // Wait for the state flow to reflect the fresh query result.
-                val purchases = manager.activePurchases.drop(1).first()
-                val activePurchase = purchases.firstOrNull {
-                    it.purchaseState == com.android.billingclient.api.Purchase.PurchaseState.PURCHASED
-                } ?: return@runCatching
-                val productId = activePurchase.products.firstOrNull() ?: return@runCatching
-                repository.verifyAndRestorePlayPurchase(activePurchase.purchaseToken, productId)
-                    .onSuccess { android.util.Log.i("ProHostViewModel", "verifyAndRestorePurchase: restored product=$productId") }
-                    .onFailure { android.util.Log.w("ProHostViewModel", "verifyAndRestorePurchase failed: ${it.message}") }
-            }.onFailure { e -> android.util.Log.e("ProHostViewModel", "restorePlayPurchases error: ${e.message}") }
-        }
-    }
-
-    fun openPlayOrderHistory(activity: android.app.Activity) {
-        playBillingManager?.openOrderHistory(activity)
-            ?: openUriOrToast(activity, com.example.data.billing.PlayBillingManager.ORDER_HISTORY_URL)
-    }
-
 
     // Set by OwnerHubScreen right before redirecting to Subscriptions after a
     // NoActivePackage Publish rejection — the id of
@@ -573,26 +333,9 @@ class ProHostViewModel(
         _pendingAutoPublishDraftId.value = draftId
     }
 
-    private fun clearPendingAutoPublishDraft() {
-        _pendingAutoPublishDraftId.value = null
-    }
+    /** Google Play Billing (Premium screen, Profile link, app-resume hooks). */
+    val billing = BillingController(viewModelScope, repository, currentUser, pendingAutoPublishDraftId)
 
-    /**
-     * Re-reads the signed-in user's role from a force-refreshed Firebase Auth ID
-     * token and reflects it into currentUser — the client-side counterpart of
-     * grantEntitlement()'s grantProHostRoleIfNeeded() (see entitlements.ts). Called
-     * once a package payment is confirmed settled, so a SPECIALIST who
-     * just got promoted to PRO_HOST sees Pro Host navigation immediately, without
-     * needing to sign out and back in. Mirrors how AuthFlow.resolveVerifiedRole()
-     * already resolves role at sign-in — role always comes from the custom claim,
-     * never trusted from Firestore's user_profiles.role mirror field alone.
-     */
-    private suspend fun refreshCurrentUserRoleAfterEntitlement() {
-        val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser ?: return
-        val claim = com.example.data.auth.FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = true) ?: return
-        val role = runCatching { UserRole.valueOf(claim) }.getOrNull() ?: return
-        repository.login(uid = firebaseUser.uid, email = firebaseUser.email ?: "", verifiedRole = role)
-    }
 
     // payBookingViaWhish (booking rent settlement inside the app) is gone —
     // Specialist and Pro Host settle rent entirely outside the app now. Host
@@ -662,19 +405,20 @@ class ProHostViewModel(
                 details = "Owner attempted to publish without an active subscription.",
                 severity = "WARN"
             )
+            com.example.analytics.AnalyticsTracker.listingPublishBlocked("no_active_package")
             return ListingCreateResult.NoActivePackage
         }
 
         // Reports the real Firestore result now — this used to return an
         // unconditional true for a listing that was never actually persisted.
-        return if (repository.addSpaceListing(listing)) ListingCreateResult.Success else ListingCreateResult.Failed
-    }
-
-    /** True when the signed-in host can't publish (no active subscription). Admins never need one. */
-    fun needsActivePackage(): Boolean {
-        val user = currentUser.value ?: return false
-        if (user.role == UserRole.ADMIN) return false
-        return !hasActivePackage(user)
+        val saved = repository.addSpaceListing(listing)
+        if (saved) {
+            if (listing.status == ListingStatus.ACTIVE) com.example.analytics.AnalyticsTracker.listingPublish(listing)
+            else com.example.analytics.AnalyticsTracker.listingDraftSaved(listing)
+        } else {
+            com.example.analytics.AnalyticsTracker.appError("listing_publish", "write_failed")
+        }
+        return if (saved) ListingCreateResult.Success else ListingCreateResult.Failed
     }
 
     private fun hasActivePackage(user: AppUser?): Boolean {
@@ -690,13 +434,51 @@ class ProHostViewModel(
     // existing repository methods (which already safely preserve isVerified/
     // isActiveSubscription/subscriptionExpiryMillis/ownerId regardless of caller).
     suspend fun updateOwnerListing(updated: SpaceListing): Boolean {
-        return repository.updateSpaceListing(updated)
+        return repository.updateSpaceListing(updated).also { ok ->
+            if (ok) com.example.analytics.AnalyticsTracker.listingUpdate(updated)
+        }
+    }
+
+    /**
+     * Pro Host "Change price" (ChangePriceSheet): one slot's new price plus, per affected booking,
+     * whether it keeps its price, updates now or from the next term. [onDone] gets true on success.
+     */
+    fun changeSlotPrice(
+        context: Context,
+        space: SpaceListing,
+        slot: com.example.ui.util.PriceChange.PriceSlot,
+        newPrice: Double,
+        decisions: Map<String, PriceChangeMode>,
+        onDone: (Boolean) -> Unit
+    ) {
+        val appContext = context.applicationContext
+        viewModelScope.launch {
+            try {
+                val result = repository.changeSlotPrice(space.id, slot.ref, newPrice, decisions).getOrThrow()
+                com.example.analytics.AnalyticsTracker.listingPriceChange(
+                    space, slot.ref.kind.name, newPrice > slot.price,
+                    result.affected, result.now, result.nextTerm, result.keep
+                )
+                val note = when {
+                    result.affected == 0 -> uiText(R.string.price_updated)
+                    result.affected == 1 -> uiText(R.string.price_updated_the_tenant_requester_was_not)
+                    else -> uiText(R.string.price_updated_x_tenants_requesters_were_no, result.affected)
+                }
+                UiMessages.show(appContext, note, long = true)
+                onDone(true)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                reportFailure(appContext, e, R.string.couldn_t_change_the_price_please_try_again)
+                onDone(false)
+            }
+        }
     }
 
     suspend fun deleteOwnerListing(spaceId: String): Boolean {
         _pendingDeletionIds.add(spaceId)
         val result = repository.deleteSpaceListing(spaceId)
-        if (!result) _pendingDeletionIds.remove(spaceId)
+        if (!result) _pendingDeletionIds.remove(spaceId) else com.example.analytics.AnalyticsTracker.listingDelete()
         return result
     }
 
@@ -717,12 +499,38 @@ class ProHostViewModel(
     // to PRO_HOST the moment their Google Play subscription activates — never a free,
     // client-invocable "upgrade" call.
 
+    // Accepted-booking occupancy per listing (public projection), watched while a listing is open.
+    private val _occupancy = MutableStateFlow<Map<String, List<RentalBookingRequest>>>(emptyMap())
+    val occupancy: StateFlow<Map<String, List<RentalBookingRequest>>> = _occupancy.asStateFlow()
+    private val occupancyListeners = mutableMapOf<String, com.google.firebase.firestore.ListenerRegistration>()
+    private val occupancyWatchers = mutableMapOf<String, Int>()
+
+    /** Starts (or shares) the live occupancy feed for [spaceId]; pair with [unwatchOccupancy]. */
+    fun watchOccupancy(spaceId: String) {
+        occupancyWatchers[spaceId] = (occupancyWatchers[spaceId] ?: 0) + 1
+        if (spaceId in occupancyListeners) return
+        repository.firestoreService.listenOccupancy(spaceId) { list ->
+            _occupancy.update { it + (spaceId to list) }
+        }?.let { occupancyListeners[spaceId] = it }
+    }
+
+    fun unwatchOccupancy(spaceId: String) {
+        val left = (occupancyWatchers[spaceId] ?: 1) - 1
+        if (left > 0) { occupancyWatchers[spaceId] = left; return }
+        occupancyWatchers.remove(spaceId)
+        occupancyListeners.remove(spaceId)?.remove()
+        _occupancy.update { it - spaceId }
+    }
+
     override fun onCleared() {
+        occupancyListeners.values.forEach { it.remove() }
+        occupancyListeners.clear()
         super.onCleared()
-        playBillingManager?.endConnection()
+        billing.endConnection()
     }
 
     fun logout() {
+        com.example.analytics.AnalyticsTracker.logout()
         // Run in viewModelScope so repository.logout() (suspend) completes the
         // FCM-token-clear write *before* signOut() invalidates the auth context —
         // previously repository.logout() launched a fire-and-forget coroutine that
@@ -748,6 +556,7 @@ class ProHostViewModel(
     suspend fun deleteAccount(): Result<Unit> {
         val result = functionsClient.deleteOwnAccount()
         if (result.isSuccess) {
+            com.example.analytics.AnalyticsTracker.accountDeleted()
             com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
             // The profile doc (and its fcmToken field) is already gone server-side —
             // skip the token-clear write here, since it would otherwise just
@@ -757,8 +566,53 @@ class ProHostViewModel(
         return result
     }
 
-    fun logSecurityAction(actionType: String, details: String, severity: String = "INFO") {
-        repository.addAuditLog(actionType, details, severity)
+    /**
+     * Uploads [uri] as the signed-in user's profile photo and saves it. Returns null on success,
+     * else a message to show (RequirementsSheet keeps the booking selection either way).
+     */
+    /** Saves the WhatsApp number (the phone step of RequirementsSheet / KycScreen); null on success, else a message. */
+    suspend fun saveWhatsAppNumber(e164Phone: String, source: String = "requirements"): String? = try {
+        if (repository.saveWhatsAppNumber(e164Phone)) {
+            com.example.analytics.AnalyticsTracker.kycComplete(source)
+            null
+        } else uiText(R.string.the_number_couldn_t_be_saved_check_your_co)
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        android.util.Log.e("ProHostVM", "saveWhatsAppNumber failed", e)
+        com.example.analytics.AnalyticsTracker.appError("whatsapp_number_save", com.example.analytics.AnalyticsTracker.errorCode(e))
+        e.toUserMessage(uiText(R.string.the_number_couldn_t_be_saved_please_try_ag))
+    }
+
+    suspend fun updateProfilePhoto(context: Context, uri: android.net.Uri): String? {
+        val uid = currentUser.value?.id ?: return uiText(R.string.your_session_expired_please_sign_in_again_2)
+        return try {
+            val url = com.example.data.storage.FirebaseStorageService.getInstance()
+                .uploadProfilePicture(uid, uri, context.applicationContext)
+                ?: return uiText(R.string.the_photo_couldn_t_be_uploaded_check_your)
+            val saved = repository.updateProfilePicture(url)
+            com.example.analytics.AnalyticsTracker.profilePhotoUpload(saved, "requirements")
+            if (saved) null else uiText(R.string.the_photo_couldn_t_be_saved_please_try_aga)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            com.example.analytics.AnalyticsTracker.profilePhotoUpload(false, "requirements")
+            reportFailure(context.applicationContext, e, R.string.the_photo_couldn_t_be_uploaded_please_try)
+            uiText(R.string.the_photo_couldn_t_be_uploaded_please_try)
+        }
+    }
+
+    /** Saves country + city (RequirementsSheet hosting step); returns an error message or null. */
+    suspend fun updateAddress(context: Context, country: String, city: String): String? = try {
+        if (repository.updateAddress(country, city)) {
+            com.example.analytics.AnalyticsTracker.profileUpdate("address")
+            null
+        } else uiText(R.string.your_address_couldn_t_be_saved_please_try)
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        reportFailure(context.applicationContext, e, R.string.your_address_couldn_t_be_saved_please_try)
+        uiText(R.string.your_address_couldn_t_be_saved_please_try)
     }
 
     suspend fun updateProfile(
@@ -771,13 +625,17 @@ class ProHostViewModel(
         profilePictureUrl: String? = null
     ): Boolean {
         return repository.updateCurrentUserProfile(name, specialty, phone, country, governorate, city, profilePictureUrl)
+            .also { if (it) com.example.analytics.AnalyticsTracker.profileUpdate("profile") }
     }
 
     // Fires exactly once per space-detail view (call from a LaunchedEffect(space.id),
     // not on every recomposition) — real engagement data replacing the old fixed 850
     // placeholder.
-    fun registerSpaceView(spaceId: String) {
-        repository.incrementSpaceViewCount(spaceId)
+    fun registerSpaceView(space: SpaceListing, subdivisionId: String? = null) {
+        repository.incrementSpaceViewCount(space.id)
+        // The opened listing itself (also when it isn't in the loaded Explore page: deep link, paging),
+        // with the room the person tapped.
+        com.example.analytics.AnalyticsTracker.viewItem(space, space.subdivisions.firstOrNull { it.id == subdivisionId })
     }
 
     // --- WhatsApp Direct Connection ---
@@ -789,65 +647,74 @@ class ProHostViewModel(
         subdivision: Subdivision? = null
     ) {
         val user = currentUser.value
-        val professionalName = user?.fullName ?: "Specialist Member"
-        val specialty = user?.specialty?.ifBlank { "Independent Specialist" } ?: "Independent Specialist"
+        val professionalName = user?.fullName?.takeIf { it.isNotBlank() } ?: uiText(R.string.a_prohost_specialist)
+        val specialty = user?.specialty?.takeIf { it.isNotBlank() } ?: uiText(R.string.independent_specialist)
         val cleanPhone = formatWhatsAppNumber(space.ownerPhone)
         if (cleanPhone.isBlank()) {
-            Toast.makeText(context, "This host hasn't added a WhatsApp number yet.", Toast.LENGTH_SHORT).show()
+            UiMessages.show(context, context.getString(R.string.this_host_hasn_t_added_a_whatsapp_number_y))
             return
         }
 
-        // The price line always carries the unit of the formula it came from.
-        val formulaText = when {
+        val attendeeLine = request?.let { com.example.ui.util.AttendeePricing.bookingSummary(it) }
+        val priceLabel = when {
+            attendeeLine != null -> uiText(R.string.per_attendee_x, attendeeLine)
             subdivision != null -> {
                 val price = com.example.ui.util.SpaceCalculationUtils.findLowestPriceForSubdivision(subdivision)
-                val priceText = if (price.amount > 0.0) " · from $${price.amount.toInt()}${price.unitLabel}" else ""
-                "${subdivision.name} — ${subdivision.pricing.strategyType.displayName}$priceText"
+                if (price.amount > 0.0) uiText(R.string.from_xx, price.amount.toInt(), price.unitLabel) else localizedLabel(subdivision.pricing.strategyType.displayName)
             }
             selectedFormula != null -> {
                 val unit = com.example.ui.util.SpaceCalculationUtils.rateUnitLabel(selectedFormula.type)
-                "${selectedFormula.type.displayName} (${selectedFormula.scheduleDescription}) @ $${selectedFormula.rateUsd.toInt()}$unit"
+                "\$${selectedFormula.rateUsd.toInt()}$unit"
             }
             else -> {
                 val price = com.example.ui.util.SpaceCalculationUtils.findLowestConfiguredPrice(space)
-                "Starting from $${price.amount.toInt()}${price.unitLabel}"
+                uiText(R.string.from_xx, price.amount.toInt(), price.unitLabel)
             }
         }
+        val roomLabel = subdivision?.name ?: selectedFormula?.scheduleDescription?.takeIf { it.isNotBlank() }
 
-        val requestSnippet = if (request != null) {
-            val daysStr = if (request.selectedDays.isNotEmpty()) request.selectedDays.joinToString() else request.formula.daysOfWeek.joinToString()
-            val timesStr = if (request.selectedStartHour.isNotBlank() && request.selectedEndHour.isNotBlank()) {
-                "${request.selectedStartHour} - ${request.selectedEndHour}"
-            } else {
-                "${request.formula.startHour} - ${request.formula.endHour}"
-            }
-            val shiftStr = if (request.selectedShift.isNotBlank()) " (${request.selectedShift})" else ""
-
-            "\n\n[In-App Booking Request Details]\n" +
-            (if (request.displayCode.isNotBlank()) "• Request: ${request.displayCode}\n" else "") +
-            "• Formula: ${request.formula.type.displayName} - ${request.formula.scheduleDescription}\n" +
-            "• Chosen Availability: $daysStr @ $timesStr$shiftStr\n" +
-            "• Start Date: ${request.startDate}" +
-                (if (request.formula.type == RentalFormulaType.FULL_MONTH) {
-                    " (${request.durationMonths} month${if (request.durationMonths > 1) "s" else ""})"
-                } else "") + "\n" +
-            "• Total Agreement Value: $${request.totalAmountUsd.toInt()} USD\n" +
-            "• Specialist Notes: ${request.clinicalNotes}\n" +
-            "• In-App Status: PENDING HOST APPROVAL"
+        val bookingDetails = if (request != null) {
+            val daysStr = request.selectedDays.takeIf { it.isNotEmpty() }?.joinToString() ?: request.formula.daysOfWeek.joinToString()
+            val timesStr = if (request.selectedStartHour.isNotBlank() && request.selectedEndHour.isNotBlank())
+                "${request.selectedStartHour}–${request.selectedEndHour}"
+            else "${request.formula.startHour}–${request.formula.endHour}"
+            val shiftStr = request.selectedShift.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""
+            val durationStr = if (request.formula.type == RentalFormulaType.FULL_MONTH)
+                " · ${request.durationMonths} month${if (request.durationMonths > 1) "s" else ""}" else ""
+            buildString {
+                appendLine()
+                appendLine()
+                appendLine(uiText(R.string.booking_details))
+                if (request.displayCode.isNotBlank()) appendLine(uiText(R.string.request_x_2, request.displayCode))
+                appendLine(uiText(R.string.schedule_x_xx, daysStr, timesStr, shiftStr))
+                appendLine(uiText(R.string.start_xx, request.startDate, durationStr))
+                if (attendeeLine != null) appendLine(uiText(R.string.attendees_x, attendeeLine))
+                appendLine(uiText(R.string.total_x_usd_2, request.totalAmountUsd.toInt()))
+                if (request.clinicalNotes.isNotBlank()) appendLine(uiText(R.string.notes_x, request.clinicalNotes))
+            }.trimEnd()
         } else ""
 
-        val rawMessage = "Hello ${space.ownerName},\n\n" +
-                "I am ${professionalName} (${specialty}).\n\n" +
-                "I am contacting you regarding your space \"${space.title}\" located in ${space.district}, ${space.governorate.displayName} on ProHost.\n" +
-                "Selected Formula: ${formulaText}$requestSnippet\n\n" +
-                "I would like to finalize payment and walk-through details.\n" +
-                "Listing Ref: ProHost ${space.publicCode}"
+        val rawMessage = buildString {
+            appendLine(uiText(R.string.hi_x, space.ownerName))
+            appendLine()
+            appendLine(uiText(R.string.i_m_x_x_and_i_found_your_space_on_prohost, professionalName, specialty))
+            appendLine()
+            appendLine("*Space:* ${space.title}")
+            appendLine(uiText(R.string.location_x, space.locationLine()))
+            if (roomLabel != null) appendLine(uiText(R.string.room_area_x, roomLabel))
+            appendLine("*Price:* $priceLabel")
+            append(bookingDetails)
+            appendLine()
+            appendLine()
+            append(uiText(R.string.i_d_love_to_discuss_availability_and_next, space.publicCode))
+        }
 
         try {
             val encoded = URLEncoder.encode(rawMessage, "UTF-8")
             val url = "https://wa.me/$cleanPhone?text=$encoded"
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             context.startActivity(intent)
+            com.example.analytics.AnalyticsTracker.generateLead(space, subdivision)
             repository.incrementSpaceInquiryCount(space.id)
             repository.addAuditLog(
                 actionType = "WHATSAPP_INQUIRY_SPECIALIST_TO_HOST",
@@ -856,13 +723,13 @@ class ProHostViewModel(
                 severity = "INFO"
             )
         } catch (e: Exception) {
-            Toast.makeText(context, "Could not launch WhatsApp. Showing copied message.", Toast.LENGTH_SHORT).show()
+            UiMessages.show(context, context.getString(R.string.could_not_launch_whatsapp_showing_copied_m))
         }
     }
 
     fun launchWhatsAppToPractitioner(context: Context, request: RentalBookingRequest) {
         val user = currentUser.value
-        val ownerName = user?.fullName ?: "Workspace Host"
+        val ownerName = user?.fullName ?: uiText(R.string.workspace_host)
         val daysStr = if (request.selectedDays.isNotEmpty()) request.selectedDays.joinToString() else request.formula.daysOfWeek.joinToString()
         val timesStr = if (request.selectedStartHour.isNotBlank() && request.selectedEndHour.isNotBlank()) {
             "${request.selectedStartHour} - ${request.selectedEndHour}"
@@ -870,15 +737,15 @@ class ProHostViewModel(
             "${request.formula.startHour} - ${request.formula.endHour}"
         }
 
-        val rawMessage = "Hello ${request.practitionerName},\n\n" +
-                "I am $ownerName regarding your booking request (${request.publicCode}) for space \"${request.spaceTitle}\".\n" +
-                "Requested Schedule: $daysStr @ $timesStr (${request.formula.type.displayName}).\n" +
-                "Status: ${request.status.displayName}\n\n" +
-                "Let's discuss onboarding and walk-through details."
+        val rawMessage = uiText(R.string.hello_x, request.practitionerName) +
+                uiText(R.string.i_am_x_regarding_your_booking_request_x_fo, ownerName, request.publicCode, request.spaceTitle) +
+                uiText(R.string.requested_schedule_x_x_x, daysStr, timesStr, localizedLabel(request.formula.type.displayName)) +
+                uiText(R.string.status_x, localizedLabel(request.status.displayName)) +
+                uiText(R.string.let_s_discuss_onboarding_and_walk_through)
 
         val cleanPhone = formatWhatsAppNumber(request.practitionerPhone)
         if (cleanPhone.isBlank()) {
-            Toast.makeText(context, "This professional hasn't added a WhatsApp number yet.", Toast.LENGTH_SHORT).show()
+            UiMessages.show(context, context.getString(R.string.this_professional_hasn_t_added_a_whatsapp))
             return
         }
         try {
@@ -886,13 +753,14 @@ class ProHostViewModel(
             val url = "https://wa.me/$cleanPhone?text=$encoded"
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             context.startActivity(intent)
+            com.example.analytics.AnalyticsTracker.contactSpecialist()
             repository.addAuditLog(
                 actionType = "WHATSAPP_INQUIRY_HOST_TO_SPECIALIST",
                 details = "$ownerName contacted specialist ${request.practitionerName} via WhatsApp about booking #${request.id} ('${request.spaceTitle}')",
                 severity = "INFO"
             )
         } catch (e: Exception) {
-            Toast.makeText(context, "Could not launch WhatsApp.", Toast.LENGTH_SHORT).show()
+            UiMessages.show(context, context.getString(R.string.could_not_launch_whatsapp))
         }
     }
 
@@ -977,11 +845,14 @@ class ProHostViewModel(
         val attendeePackagePriceUsd = submission.attendeePackagePriceUsd
         val user = currentUser.value
         if (user == null) {
-            Toast.makeText(context, "Please log in to submit a rental request", Toast.LENGTH_SHORT).show()
+            UiMessages.show(context, context.getString(R.string.please_log_in_to_submit_a_rental_request))
             return
         }
-        if (user.profilePictureUrl.isNullOrBlank()) {
-            Toast.makeText(context, "Please add a profile picture before making booking requests.", Toast.LENGTH_LONG).show()
+        // The one transact rule (CLAUDE.md): profile photo + phone verified in Firebase Auth.
+        if (!user.canTransact()) {
+            UiMessages.show(context,
+                context.getString(R.string.add_a_profile_photo_and_your_whatsapp_numb),
+                long = true)
             return
         }
 
@@ -1009,20 +880,35 @@ class ProHostViewModel(
                     attendeePackageName = attendeePackageName,
                     attendeePackagePriceUsd = attendeePackagePriceUsd
                 )
+                if (synced) {
+                    com.example.analytics.AnalyticsTracker.bookingRequest(
+                        space = space,
+                        sub = space.subdivisions.firstOrNull { it.id == subdivisionId },
+                        // The total actually stored on the request (the repository fills a 0 estimate).
+                        valueUsd = request.totalAmountUsd,
+                        strategy = formula.type.name,
+                        attendeeCount = attendeeCount.takeIf { it > 0 },
+                        // This path serves the Rebook and Edit dialogs: no replaced booking = rebook.
+                        isRebook = replacesBookingId == null,
+                        isEdit = replacesBookingId != null
+                    )
+                } else {
+                    // The write didn't reach Firestore: offline, or refused (e.g. the listing stopped
+                    // taking bookings). Not necessarily a connection problem.
+                    com.example.analytics.AnalyticsTracker.bookingRequestFailed("not_synced")
+                }
 
-                Toast.makeText(
-                    appContext,
+                UiMessages.show(appContext,
                     if (synced) {
                         if (replacesBookingId != null) {
-                            "Edit request sent! Your current booking stays active until the host approves this change."
+                            appContext.getString(R.string.edit_request_sent_your_current_booking_sta)
                         } else {
-                            "Rental request sent! Space hours remain open until owner approval."
+                            appContext.getString(R.string.rental_request_sent_space_hours_remain_ope)
                         }
                     } else {
-                        "Couldn't reach the server to send your request — check your connection and try again. The host has not been notified."
+                        appContext.getString(R.string.couldn_t_reach_the_server_to_send_your_req)
                     },
-                    Toast.LENGTH_LONG
-                ).show()
+                    long = true)
 
                 if (alsoOpenWhatsApp) {
                     launchWhatsAppInquiry(context, space, formula, request)
@@ -1030,8 +916,13 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "submitBookingRequest error", e)
-                Toast.makeText(appContext, "Failed to send request — please check your connection and try again.", Toast.LENGTH_LONG).show()
+                com.example.analytics.AnalyticsTracker.bookingRequestFailed(com.example.analytics.AnalyticsTracker.errorCode(e))
+                // "You already have a pending booking request for this space." is meant for the user.
+                if ((e is IllegalStateException || e is IllegalArgumentException) && !e.message.isNullOrBlank()) {
+                    UiMessages.show(appContext, e.message, long = true)
+                } else {
+                    reportFailure(appContext, e, R.string.failed_to_send_request_please_check_your_c)
+                }
             }
         }
     }
@@ -1045,7 +936,7 @@ class ProHostViewModel(
      * functions/src/notifications/bookingNotifications.ts), not a local alert on
      * this device, so nothing needs to be posted here.
      */
-    fun acceptBookingRequest(context: Context, requestId: String, agreementUri: Uri) {
+    fun acceptBookingRequest(context: Context, requestId: String, agreementUri: Uri? = null) {
         val appContext = context.applicationContext
         viewModelScope.launch {
             try {
@@ -1054,32 +945,39 @@ class ProHostViewModel(
                 val requestCode = bookingRequests.value.firstOrNull { it.id == requestId }?.publicCode
                     ?: publicCode("", requestId)
                 repository.findAcceptConflict(requestId)?.let { clash ->
-                    Toast.makeText(
-                        appContext,
-                        "Can't accept $requestCode — it overlaps accepted booking ${clash.publicCode} " +
+                    UiMessages.show(appContext,
+                        appContext.getString(R.string.can_t_accept_x_it_overlaps_accepted_bookin, requestCode, clash.publicCode) +
                             "(${clash.practitionerName}, ${clash.selectedDateTimeRange}).",
-                        Toast.LENGTH_LONG
-                    ).show()
+                        long = true)
                     return@launch
                 }
-                val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
-                val ext = guessFileExtension(context, agreementUri, "pdf")
-                val agreementUrl = storageService.uploadBookingAgreement(requestId, agreementUri, ext)
-                if (agreementUrl == null) {
-                    Toast.makeText(appContext, "Could not upload the agreement. Please try again.", Toast.LENGTH_LONG).show()
-                    return@launch
-                }
+                val agreementUrl = if (agreementUri != null) {
+                    val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
+                    val ext = guessFileExtension(context, agreementUri, "pdf")
+                    storageService.uploadBookingAgreement(requestId, agreementUri, ext).also {
+                        if (it == null) {
+                            UiMessages.show(appContext, appContext.getString(R.string.could_not_upload_space_rules_please_try_ag), long = true)
+                            return@launch
+                        }
+                    }
+                } else null
                 val success = repository.acceptBookingRequest(requestId, agreementUrl)
                 if (success) {
-                    Toast.makeText(appContext, "Booking request $requestCode accepted! Agreement saved.", Toast.LENGTH_LONG).show()
+                    bookingRequests.value.firstOrNull { it.id == requestId }.let { b ->
+                        com.example.analytics.AnalyticsTracker.bookingAccepted(
+                            b?.totalAmountUsd, b?.formula?.type?.name, isEdit = !b?.replacesBookingId.isNullOrBlank()
+                        )
+                    }
+                    val msg = if (agreementUrl != null) uiText(R.string.booking_accepted_space_rules_shared) else uiText(R.string.booking_accepted)
+                    UiMessages.show(appContext, "$requestCode — $msg", long = true)
                 } else {
-                    Toast.makeText(appContext, "Could not finalize acceptance. Please try again.", Toast.LENGTH_LONG).show()
+                    UiMessages.show(appContext, appContext.getString(R.string.could_not_finalize_acceptance_please_try_a), long = true)
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
                 android.util.Log.e("ProHostVM", "acceptBookingRequest error", e)
-                Toast.makeText(appContext, "Failed to accept booking — please check your connection and try again.", Toast.LENGTH_LONG).show()
+                UiMessages.show(appContext, appContext.getString(R.string.failed_to_accept_booking_please_check_your), long = true)
             }
         }
     }
@@ -1095,15 +993,16 @@ class ProHostViewModel(
             try {
                 val result = functionsClient.sendPaymentReminder(bookingId)
                 if (result.isSuccess) {
-                    Toast.makeText(appContext, "Payment Reminder Sent to $practitionerName!", Toast.LENGTH_LONG).show()
+                    com.example.analytics.AnalyticsTracker.paymentReminderSent()
+                    UiMessages.show(appContext, appContext.getString(R.string.payment_reminder_sent_to_x, practitionerName), long = true)
                 } else {
-                    Toast.makeText(appContext, "Could not send the reminder. Please try again.", Toast.LENGTH_LONG).show()
+                    UiMessages.show(appContext, appContext.getString(R.string.could_not_send_the_reminder_please_try_aga), long = true)
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
                 android.util.Log.e("ProHostVM", "sendPaymentReminder error", e)
-                Toast.makeText(appContext, "Failed to send reminder — please check your connection and try again.", Toast.LENGTH_LONG).show()
+                UiMessages.show(appContext, appContext.getString(R.string.failed_to_send_reminder_please_check_your), long = true)
             }
         }
     }
@@ -1114,15 +1013,16 @@ class ProHostViewModel(
             try {
                 val success = repository.rejectBookingRequest(requestId, note)
                 if (success) {
-                    Toast.makeText(appContext, "Booking Request #${requestId} Declined. Space hours remain available.", Toast.LENGTH_SHORT).show()
+                    com.example.analytics.AnalyticsTracker.bookingRejected(bookingRequests.value.firstOrNull { it.id == requestId }?.formula?.type?.name)
+                    UiMessages.show(appContext, appContext.getString(R.string.booking_request_x_declined_space_hours_rem, requestId))
                 } else {
-                    Toast.makeText(appContext, "Could not decline the request — check your connection and try again.", Toast.LENGTH_LONG).show()
+                    UiMessages.show(appContext, appContext.getString(R.string.could_not_decline_the_request_check_your_c), long = true)
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
                 android.util.Log.e("ProHostVM", "rejectBookingRequest error", e)
-                Toast.makeText(appContext, "Failed to decline request — please check your connection and try again.", Toast.LENGTH_LONG).show()
+                UiMessages.show(appContext, appContext.getString(R.string.failed_to_decline_request_please_check_you), long = true)
             }
         }
     }
@@ -1133,15 +1033,16 @@ class ProHostViewModel(
             try {
                 val success = repository.cancelBookingRequest(requestId)
                 if (success) {
-                    Toast.makeText(appContext, "Booking Request #${requestId} Cancelled", Toast.LENGTH_SHORT).show()
+                    com.example.analytics.AnalyticsTracker.bookingCancelled(by = "specialist", reasonCode = "pending_withdrawn")
+                    UiMessages.show(appContext, appContext.getString(R.string.booking_request_x_cancelled, requestId))
                 } else {
-                    Toast.makeText(appContext, "Could not cancel the request — check your connection and try again.", Toast.LENGTH_LONG).show()
+                    UiMessages.show(appContext, appContext.getString(R.string.could_not_cancel_the_request_check_your_co), long = true)
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
                 android.util.Log.e("ProHostVM", "cancelBookingRequest error", e)
-                Toast.makeText(appContext, "Failed to cancel request — please check your connection and try again.", Toast.LENGTH_LONG).show()
+                UiMessages.show(appContext, appContext.getString(R.string.failed_to_cancel_request_please_check_your), long = true)
             }
         }
     }
@@ -1169,33 +1070,45 @@ class ProHostViewModel(
                     cancelledByUid = user.id,
                     cancelledByRole = user.role.name
                 )
-                Toast.makeText(
-                    appContext,
-                    if (success) "Booking cancelled. The other party has been notified." else "Could not cancel this booking — please try again.",
-                    Toast.LENGTH_LONG
-                ).show()
+                // Which side of THIS booking cancelled (a Pro Host can be the renter of an old booking).
+                val cancelled = bookingRequests.value.firstOrNull { it.id == requestId }
+                if (success) com.example.analytics.AnalyticsTracker.bookingCancelled(
+                    by = when {
+                        user.role == UserRole.ADMIN -> "admin"
+                        cancelled?.practitionerId == user.id -> "specialist"
+                        else -> "host"
+                    },
+                    reasonCode = reasonCode.name
+                )
+                UiMessages.show(appContext,
+                    if (success) appContext.getString(R.string.booking_cancelled_the_other_party_has_been) else appContext.getString(R.string.could_not_cancel_this_booking_please_try_a),
+                    long = true)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
                 android.util.Log.e("ProHostVM", "cancelAcceptedBooking error", e)
-                Toast.makeText(appContext, "Failed to cancel booking — please check your connection and try again.", Toast.LENGTH_LONG).show()
+                UiMessages.show(appContext, appContext.getString(R.string.failed_to_cancel_booking_please_check_your), long = true)
             }
         }
     }
 
-    /** "Mark as Paid" — record-keeping only; asHost decides which side's own flag gets set. */
+    /** uiText(R.string.mark_as_paid) — record-keeping only; asHost decides which side's own flag gets set. */
     fun acknowledgePayment(requestId: String, asHost: Boolean, context: Context) {
         val appContext = context.applicationContext
         viewModelScope.launch {
             try {
                 val success = repository.acknowledgePayment(requestId, asHost)
+                if (success) {
+                    val amount = bookingRequests.value.firstOrNull { it.id == requestId }?.totalAmountUsd
+                    com.example.analytics.AnalyticsTracker.paymentAcknowledged(amount)
+                }
                 if (!success) {
-                    Toast.makeText(appContext, "Couldn't save that — please try again.", Toast.LENGTH_SHORT).show()
+                    UiMessages.show(appContext, appContext.getString(R.string.couldn_t_save_that_please_try_again))
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                reportFailure(appContext, e, R.string.couldn_t_save_that_please_try_again)
             }
         }
     }
@@ -1209,13 +1122,24 @@ class ProHostViewModel(
         spaceId: String,
         docUrl: String,
         docType: ListingVerificationDocType
-    ): Boolean = repository.requestOwnListingVerification(spaceId, docUrl, docType)
+    ): Boolean = repository.requestOwnListingVerification(spaceId, docUrl, docType).also { ok ->
+        if (ok) com.example.analytics.AnalyticsTracker.listingVerificationRequest()
+    }
 
-    /** Toggles [spaceId] in the current user's personal saved/favorites list. */
-    fun toggleSavedSpace(spaceId: String) {
+    /** Toggles [spaceId] in the current user's personal saved/favorites list. With [context], a removal offers Undo. */
+    fun toggleSavedSpace(spaceId: String, context: Context? = null) {
+        val wasSaved = currentUser.value?.savedSpaceIds?.contains(spaceId) == true
         viewModelScope.launch {
             try {
-                repository.toggleSavedSpace(spaceId)
+                // Analytics and Undo only for a write that landed (the repository reverts the heart otherwise).
+                if (!repository.toggleSavedSpace(spaceId)) {
+                    context?.let { UiMessages.show(it, it.getString(R.string.saved_update_failed)) }
+                    return@launch
+                }
+                spaces.value.firstOrNull { it.id == spaceId }?.let { com.example.analytics.AnalyticsTracker.wishlist(it, added = !wasSaved) }
+                if (wasSaved && context != null) {
+                    UiMessages.show(context, context.getString(R.string.removed_from_saved), actionLabel = uiText(R.string.undo), onAction = { toggleSavedSpace(spaceId) })
+                }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -1225,23 +1149,37 @@ class ProHostViewModel(
     }
 
     /** Saves (or re-saves) a Draft listing — never blocked by the package listing limit. */
-    suspend fun saveListingDraft(listing: SpaceListing): Boolean {
-        return repository.saveListingDraft(listing)
+    /** [autosave]: the wizard's debounced background save — not a user action, so not logged. */
+    suspend fun saveListingDraft(listing: SpaceListing, autosave: Boolean = false): Boolean {
+        return repository.saveListingDraft(listing).also { ok ->
+            if (ok && !autosave) com.example.analytics.AnalyticsTracker.listingDraftSaved(listing)
+        }
     }
 
     /** Pause/Resume a published listing, or publish a Draft — see setListingStatus's doc comment. */
     fun setListingStatus(spaceId: String, status: ListingStatus, context: Context) {
         val appContext = context.applicationContext
+        val previous = spaces.value.firstOrNull { it.id == spaceId }?.status
         viewModelScope.launch {
             try {
                 val success = repository.setListingStatus(spaceId, status)
+                if (success) com.example.analytics.AnalyticsTracker.listingStatusChange(previous?.name, status.name)
+                // Pause and resume are reversible: say what happened and offer the way back.
+                if (success && previous != null && previous != ListingStatus.DRAFT && previous != status) {
+                    UiMessages.show(
+                        appContext,
+                        if (status == ListingStatus.PAUSED) appContext.getString(R.string.listing_paused) else appContext.getString(R.string.listing_is_live_again),
+                        actionLabel = uiText(R.string.undo),
+                        onAction = { setListingStatus(spaceId, previous, appContext) }
+                    )
+                }
                 if (!success) {
-                    Toast.makeText(appContext, "Couldn't update this listing — please try again.", Toast.LENGTH_SHORT).show()
+                    UiMessages.show(appContext, appContext.getString(R.string.couldn_t_update_this_listing_please_try_ag))
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                reportFailure(appContext, e, R.string.couldn_t_update_this_listing_please_try_ag)
             }
         }
     }
@@ -1260,71 +1198,39 @@ class ProHostViewModel(
         viewModelScope.launch {
             try {
                 val success = repository.addBlackoutSlot(spaceId, slot)
-                Toast.makeText(
-                    appContext,
-                    if (success) "$dayOfWeek $startTime - $endTime is no longer offered" else "Couldn't switch that slot off — please try again",
-                    Toast.LENGTH_SHORT
-                ).show()
+                if (success) {
+                    com.example.analytics.AnalyticsTracker.blackoutAdd()
+                    UiMessages.show(appContext, appContext.getString(R.string.x_x_x_is_no_longer_offered, dayOfWeek, startTime, endTime),
+                        actionLabel = uiText(R.string.undo), onAction = { removeBlackoutSlot(spaceId, slot.id, appContext) })
+                } else {
+                    UiMessages.show(appContext, appContext.getString(R.string.couldn_t_switch_that_slot_off_please_try_a))
+                }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                reportFailure(appContext, e, R.string.couldn_t_switch_that_slot_off_please_try_a_2)
             }
         }
     }
 
     fun removeBlackoutSlot(spaceId: String, slotId: String, context: Context) {
         val appContext = context.applicationContext
+        val removed = spaces.value.firstOrNull { it.id == spaceId }?.schedule?.blackoutSlots?.firstOrNull { it.id == slotId }
         viewModelScope.launch {
             try {
                 val success = repository.removeBlackoutSlot(spaceId, slotId)
-                Toast.makeText(
-                    appContext,
-                    if (success) "Slot is back on offer" else "Couldn't switch that slot on — please try again",
-                    Toast.LENGTH_SHORT
-                ).show()
+                if (success) {
+                    com.example.analytics.AnalyticsTracker.blackoutRemove()
+                    UiMessages.show(appContext, appContext.getString(R.string.slot_is_back_on_offer), actionLabel = removed?.let { uiText(R.string.undo) }, onAction = removed?.let { slot ->
+                        { addBlackoutSlot(spaceId, slot.dayOfWeek, slot.startTime, slot.endTime, slot.reason, appContext) }
+                    })
+                } else {
+                    UiMessages.show(appContext, appContext.getString(R.string.couldn_t_switch_that_slot_on_please_try_ag))
+                }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
-            }
-        }
-    }
-
-    fun updateSpaceOperatingSchedule(
-        spaceId: String,
-        openingHour: String,
-        closingHour: String,
-        operatingDays: List<String>,
-        isSundayOperating: Boolean,
-        context: Context
-    ) {
-        // Used to return silently here, so a missing space produced no feedback at
-        // all — indistinguishable from the button doing nothing.
-        val currentSpace = spaces.value.find { it.id == spaceId }
-        if (currentSpace == null) {
-            Toast.makeText(context, "Couldn't load this listing — reopen it and try again", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val updatedSchedule = currentSpace.schedule.copy(
-            openingHour = openingHour,
-            closingHour = closingHour,
-            operatingDays = operatingDays,
-            isSundayOperating = isSundayOperating
-        )
-        val appContext = context.applicationContext
-        viewModelScope.launch {
-            try {
-                val success = repository.updateSpaceSchedule(spaceId, updatedSchedule)
-                Toast.makeText(
-                    appContext,
-                    if (success) "Operating schedule updated!" else "Failed to update schedule — please try again",
-                    Toast.LENGTH_SHORT
-                ).show()
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                reportFailure(appContext, e, R.string.couldn_t_switch_that_slot_on_please_try_ag_2)
             }
         }
     }
@@ -1342,72 +1248,20 @@ class ProHostViewModel(
         val shiftName: String = "Shift"
     )
 
-    fun addCustomFormula(
-        spaceId: String,
-        spec: CustomFormulaSpec,
-        context: Context
-    ) {
-        val formula = RentalFormula(
-            id = "FRM-" + (1000..9999).random(),
-            type = spec.type,
-            rateUsd = spec.rateUsd,
-            scheduleDescription = spec.description,
-            daysOfWeek = spec.daysOfWeek,
-            startHour = spec.startHour,
-            endHour = spec.endHour,
-            totalWeeklyHours = spec.weeklyHours,
-            daysCountRequired = spec.daysCountRequired,
-            minHours = spec.minHours,
-            shiftName = spec.shiftName
-        )
-        val appContext = context.applicationContext
-        viewModelScope.launch {
-            try {
-                val success = repository.addRentalFormula(spaceId, formula)
-                Toast.makeText(
-                    appContext,
-                    if (success) "New formula '${spec.type.displayName}' added!" else "Failed to add formula — please try again",
-                    Toast.LENGTH_SHORT
-                ).show()
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
-            }
-        }
-    }
-
-    fun deleteFormula(spaceId: String, formulaId: String, context: Context) {
-        val appContext = context.applicationContext
-        viewModelScope.launch {
-            try {
-                val success = repository.deleteRentalFormula(spaceId, formulaId)
-                Toast.makeText(
-                    appContext,
-                    if (success) "Rental formula deleted" else "Failed to delete formula — please try again",
-                    Toast.LENGTH_SHORT
-                ).show()
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
-            }
-        }
-    }
-
-    /** Adds one room/desk to an already-published listing — see SubdivisionEditorSection. */
+    /** Adds one room/desk to an already-published listing — see SubdivisionForm. */
     fun addSubdivision(spaceId: String, subdivision: Subdivision, context: Context) {
         val appContext = context.applicationContext
         viewModelScope.launch {
             try {
                 val success = repository.addSubdivision(spaceId, subdivision)
+                if (success) com.example.analytics.AnalyticsTracker.subdivisionAdd(subdivision)
                 if (!success) {
-                    Toast.makeText(appContext, "Couldn't add this room — please try again", Toast.LENGTH_SHORT).show()
+                    UiMessages.show(appContext, appContext.getString(R.string.couldn_t_add_this_room_please_try_again))
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                reportFailure(appContext, e, R.string.couldn_t_add_this_room_please_try_again_2)
             }
         }
     }
@@ -1417,28 +1271,17 @@ class ProHostViewModel(
         viewModelScope.launch {
             try {
                 val success = repository.removeSubdivision(spaceId, subdivisionId)
+                if (success) com.example.analytics.AnalyticsTracker.subdivisionRemove()
                 if (!success) {
-                    Toast.makeText(appContext, "Couldn't remove this room — please try again", Toast.LENGTH_SHORT).show()
+                    UiMessages.show(appContext, appContext.getString(R.string.couldn_t_remove_this_room_please_try_again))
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("ProHostVM", "Operation failed", e)
+                reportFailure(appContext, e, R.string.couldn_t_remove_this_room_please_try_again_2)
             }
         }
     }
-
-    // Availability Analytics per Space
-    fun getAcceptedBookingsForSpace(spaceId: String): List<RentalBookingRequest> {
-        return bookingRequests.value.filter { it.spaceId == spaceId && it.status == BookingRequestStatus.ACCEPTED }
-    }
-
-    fun getPendingBookingsForSpace(spaceId: String): List<RentalBookingRequest> {
-        return bookingRequests.value.filter { it.spaceId == spaceId && it.status == BookingRequestStatus.PENDING }
-    }
-
-    // --- Data Export Hub ---
-    fun getJsonExport(): String = repository.exportToJson()
 
     fun shareExportData(context: Context, format: String, content: String) {
         val intent = Intent(Intent.ACTION_SEND).apply {
@@ -1446,7 +1289,7 @@ class ProHostViewModel(
             putExtra(Intent.EXTRA_SUBJECT, "ProHost - $format Export")
             putExtra(Intent.EXTRA_TEXT, content)
         }
-        context.startActivity(Intent.createChooser(intent, "Export ProHost Data"))
+        context.startActivity(Intent.createChooser(intent, uiText(R.string.export_prohost_data)))
     }
 
     /**
@@ -1459,19 +1302,29 @@ class ProHostViewModel(
      * uses an export-specific subject/chooser title that would read oddly
      * here.
      */
-    fun shareListing(context: Context, title: String, content: String) {
+    fun shareListing(context: Context, title: String, content: String, space: SpaceListing? = null) {
+        space?.let { com.example.analytics.AnalyticsTracker.share(it, "share_sheet") }
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_SUBJECT, title)
             putExtra(Intent.EXTRA_TEXT, content)
         }
-        context.startActivity(Intent.createChooser(intent, "Share Listing"))
+        context.startActivity(Intent.createChooser(intent, uiText(R.string.share_listing)))
     }
 
     /** Copies a listing's public share link (com.example.util.ShareLinks) to the clipboard. */
-    fun copyListingLink(context: Context, url: String) {
+    fun copyListingLink(context: Context, url: String, space: SpaceListing? = null) {
+        space?.let { com.example.analytics.AnalyticsTracker.share(it, "copy_link") }
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText("ProHost Listing Link", url))
-        Toast.makeText(context, "Link copied to clipboard", Toast.LENGTH_SHORT).show()
+        UiMessages.show(context, context.getString(R.string.link_copied_to_clipboard))
+    }
+
+    /** [fallback] is a string resource: shown in the app language, while app_error's area comes from its English text. */
+    private fun reportFailure(appContext: Context, e: Exception, @androidx.annotation.StringRes fallback: Int) {
+        val english = com.example.ui.util.UiText.english(fallback)
+        android.util.Log.e("ProHostVM", english, e)
+        com.example.analytics.AnalyticsTracker.appError(com.example.analytics.AnalyticsTracker.areaKey(english), com.example.analytics.AnalyticsTracker.errorCode(e))
+        UiMessages.show(appContext, e.toUserMessage(uiText(fallback)), long = true)
     }
 }

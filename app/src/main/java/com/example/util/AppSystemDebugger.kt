@@ -138,7 +138,8 @@ object AppSystemDebugger {
             val currentSpaces = repository.spaces.value
             val currentBookings = repository.bookingRequests.value
             val cloudConnected = repository.isCloudConnected.value
-            val offlineMode = repository.isOfflineMode.value
+            // The hermetic test repository has no Firestore by design — not a failure.
+            val offlineMode = repository.isOfflineMode.value || repository.isLocalOnly
             results.add(
                 DiagnosticItem(
                     category = "Firebase",
@@ -267,7 +268,7 @@ object AppSystemDebugger {
             // diagnostics. A diagnostics tool should never mutate production state or
             // fabricate a privileged identity to do so — this now only inspects existing
             // state.
-            val hasBookableSpace = repository.spaces.value.any { it.rentalFormulas.isNotEmpty() }
+            val hasBookableSpace = repository.spaces.value.any { com.example.ui.util.SpaceCalculationUtils.buildAllSlotsForSpace(it).isNotEmpty() }
             val bookingRequestsReachable = runCatching { repository.bookingRequests.value }.isSuccess
             results.add(
                 DiagnosticItem(

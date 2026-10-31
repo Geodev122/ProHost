@@ -1,0 +1,286 @@
+{
+  "_about": "Voiceover lines for marketing/*.mp4 (15 s each). Each line starts at `at` seconds and must end before `end` (the scene change). `style` is the acting direction. Brand names are spelled in Arabic so the voice says them naturally.",
+  "dialect": "You are a native Lebanese Arabic speaker from Beirut, narrating an Instagram reel in the second person to the viewer. Speak natural, everyday Lebanese dialect (Levantine), never Egyptian and never Modern Standard Arabic; say ق as a glottal stop like Beirutis do. Sound like a real person talking to a friend: relaxed, warm, conversational rhythm, natural breaths and small pauses, a smile in the voice. Never theatrical, never a TV announcer. English words (ProHost, Premium, app, booking, request, shift, clinic, studio, meeting room, monthly, yearly) are said naturally in English, the way Lebanese professionals say them.",
+  "posts": [
+    {
+      "id": "post1_hosts",
+      "voice": "Achird",
+      "gender": "male",
+      "persona": "Friendly, confident narrator in his 30s talking to space owners.",
+      "lines": [
+        {
+          "at": 0.25,
+          "end": 3.55,
+          "style": "Curious and empathetic, like you know exactly what they're going through; a natural question at the end.",
+          "text": "عِنْدَك office، clinic أو studio… وقاعِد فاضي نُصّ الجِمْعَة؟"
+        },
+        {
+          "at": 3.8,
+          "end": 8.05,
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "مع ProHost، أَجّْرو بِالساعَة، بِالـ shift، بِاليوم أو بِالشَّهِر."
+        },
+        {
+          "at": 8.4,
+          "end": 11.4,
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "الـ requests، الـ bookings والأَسْعار… بِـ app واحِد."
+        },
+        {
+          "at": 11.65,
+          "end": 15.9,
+          "style": "Warm, confident invitation, smiling.",
+          "text": "نَزِّل ProHost، وأَوَّل أَرْبَعَة أَشْهُر Premium مَجّانِي، بِالـ monthly."
+        }
+      ]
+    },
+    {
+      "id": "post2_app",
+      "voice": "Sulafat",
+      "gender": "female",
+      "persona": "Warm narrator in her late 20s presenting an app she loves.",
+      "lines": [
+        {
+          "at": 0.3,
+          "end": 2.9,
+          "style": "Curious and empathetic, like you know exactly what they're going through; a natural question at the end.",
+          "text": "بَدَّك مَحَل تِشْتِغِل فيه… مِش عَقْد؟"
+        },
+        {
+          "at": 3.1,
+          "end": 5.9,
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "مع ProHost، الـ clinics والـ offices كِلُّن عَ الـ map."
+        },
+        {
+          "at": 6.1,
+          "end": 8.7,
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "احْجُز بِالساعَة، وِحْكي الـ host عَ WhatsApp."
+        },
+        {
+          "at": 8.9,
+          "end": 11.4,
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "وإذا عِنْدَك space، أَجّْرا مِن نَفْس الـ app."
+        },
+        {
+          "at": 11.7,
+          "end": 15.9,
+          "style": "Warm, confident invitation, smiling.",
+          "text": "نَزِّل ProHost، وأَوَّل أَرْبَعَة أَشْهُر Premium مَجّانِي، بِالـ monthly."
+        }
+      ]
+    },
+    {
+      "id": "post3_psychologist",
+      "voice": "Algieba",
+      "gender": "male",
+      "persona": "Calm, gentle narrator in his 30s.",
+      "lines": [
+        {
+          "at": 0.3,
+          "end": 4.55,
+          "style": "Curious and empathetic, like you know exactly what they're going through; a natural question at the end.",
+          "text": "إنتَ psychologist، وما بْتِحْتاج clinic كِل الجِمْعَة… بَس يومين؟"
+        },
+        {
+          "at": 4.8,
+          "end": 10.9,
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "هَلَّأ فيك، مع ProHost، تِحْجُز الـ morning shift التَّلاتا والخَميس، وتِدْفَع بَس عَ وَئْتَك."
+        },
+        {
+          "at": 11.15,
+          "end": 15.9,
+          "style": "Warm, confident invitation straight to the viewer, smiling; a little lift on 'بْنُصّ السِّعِر'.",
+          "text": "نَزِّل ProHost، الـ booking بِبَلاش… وإذا عِنْدَك space، أَوَّل أَرْبَعَة أَشْهُر Premium مَجّانِي."
+        }
+      ]
+    },
+    {
+      "id": "post4_trainer",
+      "voice": "Despina",
+      "gender": "female",
+      "persona": "Energetic, friendly narrator in her 30s.",
+      "lines": [
+        {
+          "at": 0.3,
+          "end": 4.55,
+          "style": "Curious and empathetic, like you know exactly what they're going through; a natural question at the end.",
+          "text": "إنتَ trainer، وعِنْدَك workshop لَتْمَنْطَعْش شَخْص… وما في قاعَة؟"
+        },
+        {
+          "at": 4.8,
+          "end": 10.9,
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "مع ProHost، الـ conference room بِسِعْر عَ الشَّخْص: بِتْحُط العَدَد، بْتْزيد coffee break، وبْتِبْعَت الـ request."
+        },
+        {
+          "at": 11.15,
+          "end": 15.9,
+          "style": "Warm, confident invitation straight to the viewer, smiling; a little lift on 'بْنُصّ السِّعِر'.",
+          "text": "نَزِّل ProHost، الـ booking بِبَلاش… وإذا عِنْدَك space، أَوَّل أَرْبَعَة أَشْهُر Premium مَجّانِي."
+        }
+      ]
+    },
+    {
+      "id": "post5_lifecoach",
+      "voice": "Umbriel",
+      "gender": "male",
+      "persona": "Easy-going, positive narrator in his late 20s.",
+      "lines": [
+        {
+          "at": 0.3,
+          "end": 4.55,
+          "style": "Curious and empathetic, like you know exactly what they're going through; a natural question at the end.",
+          "text": "إنتَ life coach، وعِنْدَك جَلْسْتَيْن اليوم… ليش تِدْفَع إيجار شَهِر؟"
+        },
+        {
+          "at": 4.8,
+          "end": 10.9,
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "أَخيراً فيك تِحْجُز room بِالساعَة: بْتْشوف شو فاضي، بِتْنَقّي الساعَة، وخَلْصِت."
+        },
+        {
+          "at": 11.15,
+          "end": 15.9,
+          "style": "Warm, confident invitation straight to the viewer, smiling; a little lift on 'بْنُصّ السِّعِر'.",
+          "text": "نَزِّل ProHost، الـ booking بِبَلاش… وإذا عِنْدَك space، أَوَّل أَرْبَعَة أَشْهُر Premium مَجّانِي."
+        }
+      ]
+    },
+    {
+      "id": "post6_dietitian",
+      "voice": "Callirrhoe",
+      "gender": "female",
+      "persona": "Warm, encouraging narrator in her 30s.",
+      "lines": [
+        {
+          "at": 0.3,
+          "end": 4.55,
+          "style": "Curious and empathetic, like you know exactly what they're going through; a natural question at the end.",
+          "text": "إنتَ dietitian وجاهِز لَـ clinic إِلَك… بَس بلا عَقْد طَويل؟"
+        },
+        {
+          "at": 4.8,
+          "end": 10.9,
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "مع ProHost بْتِسْتَأْجِر clinic جاهْزِة شَهِر بِشَهِر، وبْتْكَبِّر وَئْت ما بَدَّك."
+        },
+        {
+          "at": 11.15,
+          "end": 15.9,
+          "style": "Warm, confident invitation straight to the viewer, smiling; a little lift on 'بْنُصّ السِّعِر'.",
+          "text": "نَزِّل ProHost، الـ booking بِبَلاش… وإذا عِنْدَك space، أَوَّل أَرْبَعَة أَشْهُر Premium مَجّانِي."
+        }
+      ]
+    },
+    {
+      "id": "post7_hotel",
+      "voice": "Charon",
+      "gender": "male",
+      "persona": "Calm, friendly business narrator in his 40s.",
+      "lines": [
+        {
+          "at": 0.3,
+          "end": 4.55,
+          "style": "Curious and empathetic, like you know exactly what they're going through; a natural question at the end.",
+          "text": "عِنْدَك hotel، والـ meeting rooms فاضْيِة أَغْلَب أيّام الجِمْعَة؟"
+        },
+        {
+          "at": 4.8,
+          "end": 10.9,
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "مع ProHost، بْتْأَجِّرُن بِاليوم أو عَ الشَّخْص، وبْتِقْبَل الـ requests بِكَبْسِة."
+        },
+        {
+          "at": 11.15,
+          "end": 15.9,
+          "style": "Warm, confident invitation straight to the viewer, smiling; a little lift on 'بْنُصّ السِّعِر'.",
+          "text": "نَزِّل ProHost، وأَوَّل أَرْبَعَة أَشْهُر Premium مَجّانِي، بِالـ monthly."
+        }
+      ]
+    },
+    {
+      "id": "post8_medical",
+      "voice": "Achernar",
+      "gender": "female",
+      "persona": "Composed, kind narrator in her 30s.",
+      "lines": [
+        {
+          "at": 0.3,
+          "end": 4.55,
+          "style": "Curious and empathetic, like you know exactly what they're going through; a natural question at the end.",
+          "text": "عِنْدَك medical center، والـ clinics فاضْيِة كِل بَعْد الضُّهِر؟"
+        },
+        {
+          "at": 4.8,
+          "end": 10.9,
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "هَلَّأ فيك تْأَجِّرُن بِالـ shift لَدَكاتْرِة وأَخِصّائِيّين، وإنتَ بْتْوافِق عَ كِل request."
+        },
+        {
+          "at": 11.15,
+          "end": 15.9,
+          "style": "Warm, confident invitation straight to the viewer, smiling; a little lift on 'بْنُصّ السِّعِر'.",
+          "text": "نَزِّل ProHost، وأَوَّل أَرْبَعَة أَشْهُر Premium مَجّانِي، بِالـ monthly."
+        }
+      ]
+    },
+    {
+      "id": "post9_institute",
+      "voice": "Iapetus",
+      "gender": "male",
+      "persona": "Upbeat, clear narrator in his 30s.",
+      "lines": [
+        {
+          "at": 0.3,
+          "end": 4.55,
+          "style": "Curious and empathetic, like you know exactly what they're going through; a natural question at the end.",
+          "text": "عِنْدَك training center، والصُّفوف فاضْيِة كِل مَسا وكِل weekend؟"
+        },
+        {
+          "at": 4.8,
+          "end": 10.9,
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "مع ProHost، بْتْأَجِّرُن بِالساعَة أو عَ الشَّخْص، والـ requests بْتوصَلَك عَ الـ app."
+        },
+        {
+          "at": 11.15,
+          "end": 15.9,
+          "style": "Warm, confident invitation straight to the viewer, smiling; a little lift on 'بْنُصّ السِّعِر'.",
+          "text": "نَزِّل ProHost، وأَوَّل أَرْبَعَة أَشْهُر Premium مَجّانِي، بِالـ monthly."
+        }
+      ]
+    },
+    {
+      "id": "post10_studio",
+      "voice": "Vindemiatrix",
+      "gender": "female",
+      "persona": "Bright, gentle narrator in her late 20s.",
+      "lines": [
+        {
+          "at": 0.3,
+          "end": 4.55,
+          "style": "Curious and empathetic, like you know exactly what they're going through; a natural question at the end.",
+          "text": "عِنْدَك yoga studio، وما بْيِمْتِلي قَبِل السِّتّة؟"
+        },
+        {
+          "at": 4.8,
+          "end": 10.9,
+          "style": "Relaxed and upbeat, explaining the solution simply, like telling a friend about something that works.",
+          "text": "أَخيراً فيك تْأَجِّر الساعات الفاضْيِة لَـ instructors كِل جِمْعَة، مع ProHost."
+        },
+        {
+          "at": 11.15,
+          "end": 15.9,
+          "style": "Warm, confident invitation straight to the viewer, smiling; a little lift on 'بْنُصّ السِّعِر'.",
+          "text": "نَزِّل ProHost، وأَوَّل أَرْبَعَة أَشْهُر Premium مَجّانِي، بِالـ monthly."
+        }
+      ]
+    }
+  ],
+  "length": 16.0,
+  "output": "marketing/audio/voiceovers-arabic"
+}

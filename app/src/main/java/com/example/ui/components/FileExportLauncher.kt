@@ -1,7 +1,8 @@
 package com.example.ui.components
 
+import com.example.R
+import com.example.ui.util.UiMessages
 import android.net.Uri
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
@@ -39,13 +40,11 @@ fun rememberFileExportLauncher(mimeType: String): (fileName: String, content: St
             context.contentResolver.openOutputStream(uri)?.use { stream ->
                 stream.write(content.toByteArray(Charsets.UTF_8))
             }
-            Toast.makeText(context, "Saved.", Toast.LENGTH_SHORT).show()
+            UiMessages.show(context, context.getString(R.string.saved))
         } catch (e: Exception) {
-            Toast.makeText(
-                context,
-                com.example.util.friendlyErrorMessage(e, "Couldn't save file. Please try again."),
-                Toast.LENGTH_LONG
-            ).show()
+            UiMessages.show(context,
+                com.example.util.friendlyErrorMessage(e, context.getString(R.string.couldn_t_save_file_please_try_again)),
+                long = true)
         }
     }
 

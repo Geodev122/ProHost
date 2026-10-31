@@ -8,7 +8,7 @@
 ## 🔒 1. SECURITY & PRIVACY (Play Store Policy Mandatory Requirements)
 
 ### 🛑 MUST NOT HAVE:
-- **No Hardcoded Secrets in Client Code**: Never embed private API keys (e.g., Whish Money secret key, GCP service account credentials) inside client Kotlin code. Secrets must remain exclusively in Firebase Cloud Functions environment variables / Secret Manager.
+- **No Hardcoded Secrets in Client Code**: Never embed private API keys (e.g., service account credentials) inside client Kotlin code. Secrets must remain exclusively in Firebase Cloud Functions environment variables / Secret Manager.
 - **No Over-Permissioning**: Do not request unneeded Android permissions in `AndroidManifest.xml` (e.g., `READ_EXTERNAL_STORAGE` on Android 13+, `CAMERA`, `RECEIVE_SMS`, or `SYSTEM_ALERT_WINDOW` unless actively used).
 - **No Unencrypted HTTP Connections**: No `http://` URLs in code or web views. All endpoints must be HTTPS (`https://`).
 - **No PII Logging**: No printing sensitive user data (phone numbers, full names, authentication tokens) using `Log.d`, `Log.v`, or `println()` in release builds.
@@ -20,7 +20,7 @@
 - **Accurate Play Console Data Safety Declaration**: Correctly declare collected data types:
   - *Location*: Approximate & Precise (for workspace search and mapping).
   - *Personal Info*: Name, Email, Phone Number, Speciality.
-  - *Financial Info*: Whish payment transaction history.
+  - *Financial Info*: Google Play Billing subscription purchase history.
 
 ---
 

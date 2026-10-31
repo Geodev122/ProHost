@@ -10,6 +10,10 @@ import com.google.firebase.crashlytics.FirebaseCrashlytics
 class ProHostApplication : Application() {
     override fun onCreate() {
         super.onCreate()
+        val english = createConfigurationContext(
+            android.content.res.Configuration(resources.configuration).apply { setLocale(java.util.Locale.ENGLISH) }
+        ).resources
+        com.example.ui.util.UiText.init(resources, english)
         try {
             if (FirebaseApp.getApps(this).isEmpty()) {
                 FirebaseApp.initializeApp(this)
@@ -17,6 +21,8 @@ class ProHostApplication : Application() {
             }
             initCrashlytics()
             initAppCheck()
+            // Opt-in: AnalyticsConsent keeps collection off until the person accepts.
+            com.example.analytics.AnalyticsTracker.init(this, if (BuildConfig.DEBUG) "debug" else "release")
         } catch (e: Exception) {
             Log.e("ProHostApplication", "Failed to initialize FirebaseApp or App Check: ${e.message}", e)
         }

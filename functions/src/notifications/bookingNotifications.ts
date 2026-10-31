@@ -1,7 +1,8 @@
+import { logger } from "firebase-functions/v2";
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { getFirestore } from "firebase-admin/firestore";
 import { sendPushToUser } from "../lib/push";
-import { sendEmail, hostingerSmtpSecret } from "../lib/email";
+import { sendEmail } from "../lib/email";
 import {
   newBookingRequestTemplate,
   bookingAcceptedTemplate,
@@ -9,7 +10,45 @@ import {
   UserContext,
   BookingContext,
 } from "../lib/emailTemplates";
+import {
+  isPerAttendee,
+  quote,
+  describeBooking,
+  AttendeeSubdivisionDoc,
+  AttendeeTierDoc,
+} from "../lib/attendeePricing";
 import "../lib/admin";
+import { sendGa4Event } from "../lib/ga4";
+
+/**
+ * Server check for per-attendee bookings (the client computes the total, so it must
+ * not be trusted): the count must fit the room's limits and tiers, and the stored
+ * per-person price and total must match the room's current pricing. Returns a
+ * user-facing reason when the request must be rejected, else null.
+ */
+async function attendeeBookingProblem(booking: FirebaseFirestore.DocumentData): Promise<string | null> {
+  const db = getFirestore();
+  const count = Number(booking.attendeeCount ?? 0);
+  if (!booking.subdivisionId) {
+    return count > 0 ? "This space isn't priced per attendee." : null;
+  }
+  const listingSnap = await db.collection("workspace_listings").doc(String(booking.spaceId)).get();
+  const subs = (listingSnap.data()?.subdivisions ?? []) as AttendeeSubdivisionDoc[];
+  const sub = subs.find((s) => s.id === booking.subdivisionId);
+  if (!isPerAttendee(sub)) {
+    return count > 0 ? "This room isn't priced per attendee." : null;
+  }
+  const schemaSnap = await db.doc("schema_architecture/main").get();
+  const fallback = (schemaSnap.data()?.attendeePackages ?? []) as AttendeeTierDoc[];
+  const q = sub ? quote(sub, count, fallback) : null;
+  if (!q) return "The number of attendees is outside this room's limits.";
+  const total = Number(booking.totalAmountUsd ?? 0);
+  const perPerson = Number(booking.attendeePackagePriceUsd ?? 0);
+  if (Math.abs(total - q.totalUsd) > 0.01 || Math.abs(perPerson - (q.tier.pricePerAttendeeUsd ?? 0)) > 0.01) {
+    return "The price no longer matches this room's attendee pricing. Please send a new request.";
+  }
+  return null;
+}
 
 /**
  * Real cross-device push the moment a Specialist fires a booking request — the
@@ -19,15 +58,47 @@ import "../lib/admin";
  * Firestore listener. This is the server side that was missing.
  */
 export const onBookingRequestCreated = onDocumentCreated(
-  { document: "booking_requests/{bookingId}", secrets: [hostingerSmtpSecret] },
+  { document: "booking_requests/{bookingId}" },
   async (event) => {
     const booking = event.data?.data();
     if (!booking) return;
 
+    // Fail closed: a per-attendee booking whose price can't be checked never reaches the
+    // host (one retry for a transient read error first).
+    let problem: string | null;
+    try {
+      problem = await attendeeBookingProblem(booking)
+        .catch(() => attendeeBookingProblem(booking));
+    } catch (e) {
+      logger.error("onBookingRequestCreated: couldn't verify the attendee price", e);
+      problem = "We couldn't confirm the price for this request. Please send it again.";
+    }
+    if (problem) {
+      // Never reaches the host; the status change notifies the specialist with the reason.
+      // Only while still PENDING, and never recreating a booking deleted meanwhile.
+      const ref = event.data?.ref;
+      const rejected = ref ? await getFirestore().runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists || snap.data()?.status !== "PENDING") return false;
+        tx.update(ref, { status: "REJECTED", rejectionReason: problem, rejectedBySystem: true, reviewedAt: Date.now() });
+        return true;
+      }) : false;
+      if (!rejected) return;
+      if (typeof booking.practitionerId === "string") {
+        await sendGa4Event(booking.practitionerId, "booking_auto_rejected", { reason: "attendee_price_mismatch" });
+      }
+      return;
+    }
+
+    const attendeeSummary = describeBooking(booking);
+    // An edit of an existing booking reads as such, so the host knows accepting it replaces the old one.
+    const isEdit = typeof booking.replacesBookingId === "string" && booking.replacesBookingId.length > 0;
     await sendPushToUser(
       booking.ownerId,
-      "New Booking Request",
-      `${booking.practitionerName ?? "A specialist"} requested "${booking.spaceTitle ?? "your workspace"}" — ${booking.selectedDateTimeRange ?? ""}`.trim(),
+      isEdit ? "Booking Change Request" : "New Booking Request",
+      isEdit
+        ? `${booking.practitionerName ?? "A specialist"} wants to change their booking at "${booking.spaceTitle ?? "your workspace"}" to ${booking.selectedDateTimeRange ?? "new times"}. Accepting replaces the current booking.`
+        : `${booking.practitionerName ?? "A specialist"} requested "${booking.spaceTitle ?? "your workspace"}" — ${booking.selectedDateTimeRange ?? ""}${attendeeSummary ? ` · ${attendeeSummary}` : ""}`.trim(),
       {
         category: "BOOKING_REQUEST",
         targetTab: "owner_requests",
@@ -51,7 +122,8 @@ export const onBookingRequestCreated = onDocumentCreated(
           specialistName: booking.practitionerName ?? "A specialist",
           ownerName: booking.ownerName ?? ownerData.fullName ?? "Host",
           dateRange: booking.selectedDateTimeRange ?? "",
-          totalUsd: (booking.totalAmount ?? booking.totalUsd ?? 0) as number,
+          totalUsd: Number(booking.totalAmountUsd ?? 0),
+          attendeeSummary,
         };
         const tpl = newBookingRequestTemplate(ownerCtx, bookingCtx);
         await sendEmail({ to: ownerData.email, ...tpl });
@@ -65,7 +137,7 @@ export const onBookingRequestCreated = onDocumentCreated(
  * accept/reject in real time too, not just whenever they next open the app.
  */
 export const onBookingRequestStatusChanged = onDocumentUpdated(
-  { document: "booking_requests/{bookingId}", secrets: [hostingerSmtpSecret] },
+  { document: "booking_requests/{bookingId}" },
   async (event) => {
     const before = event.data?.before?.data();
     const after = event.data?.after?.data();
@@ -99,7 +171,9 @@ export const onBookingRequestStatusChanged = onDocumentUpdated(
             specialistName: practData.fullName ?? after.practitionerName ?? "Specialist",
             ownerName: after.ownerName ?? "Host",
             dateRange: after.selectedDateTimeRange ?? "",
-            totalUsd: (after.totalAmount ?? after.totalUsd ?? 0) as number,
+            totalUsd: Number(after.totalAmountUsd ?? 0),
+            attendeeSummary: describeBooking(after),
+            rejectionReason: after.rejectionReason ?? null,
           };
           const tpl = bookingAcceptedTemplate(specialistCtx, bookingCtx);
           await sendEmail({ to: practData.email, ...tpl });
@@ -108,10 +182,12 @@ export const onBookingRequestStatusChanged = onDocumentUpdated(
     } else if (after.status === "REJECTED") {
       await sendPushToUser(
         after.practitionerId,
-        "Booking Request Declined",
-        `${after.ownerName ?? "The host"} declined your request for "${after.spaceTitle ?? "the workspace"}"${after.rejectionReason ? `: ${after.rejectionReason}` : "."}`,
+        after.rejectedBySystem ? "Booking Request Not Sent" : "Booking Request Declined",
+        after.rejectedBySystem
+          ? `Your request for "${after.spaceTitle ?? "the workspace"}" couldn't be sent: ${after.rejectionReason ?? "please try again."}`
+          : `${after.ownerName ?? "The host"} declined your request for "${after.spaceTitle ?? "the workspace"}"${after.rejectionReason ? `: ${after.rejectionReason}` : "."}`,
         {
-          category: "BOOKING_ACCEPTANCE",
+          category: "BOOKING_UPDATE",
           targetTab: "pro_rentals",
           bookingId: event.params.bookingId,
         }
@@ -132,12 +208,38 @@ export const onBookingRequestStatusChanged = onDocumentUpdated(
             specialistName: practData.fullName ?? after.practitionerName ?? "Specialist",
             ownerName: after.ownerName ?? "Host",
             dateRange: after.selectedDateTimeRange ?? "",
-            totalUsd: (after.totalAmount ?? after.totalUsd ?? 0) as number,
+            totalUsd: Number(after.totalAmountUsd ?? 0),
+            attendeeSummary: describeBooking(after),
+            rejectionReason: after.rejectionReason ?? null,
           };
           const tpl = bookingRejectedTemplate(specialistCtx, bookingCtx);
           await sendEmail({ to: practData.email, ...tpl });
         }
       } catch (_) { /* email is best-effort */ }
+    } else if (after.status === "CANCELLED" && after.supersededBy) {
+      // Replaced by an accepted edit (bookingConflictGuard): the specialist just got the edit
+      // confirmed and the host accepted it — nothing to announce.
+      return;
+    } else if (after.status === "CANCELLED" && before.status === "PENDING") {
+      // A request withdrawn before the host answered: the host's queue changes, tell them.
+      // An admin withdrawal tells both sides.
+      const byAdmin = after.cancelledByRole === "ADMIN";
+      if (after.ownerId) {
+        await sendPushToUser(
+          after.ownerId,
+          "Request withdrawn",
+          `${byAdmin ? "An administrator" : (after.practitionerName ?? "The specialist")} withdrew the request for "${after.spaceTitle ?? "your workspace"}".`,
+          { category: "BOOKING_UPDATE", targetTab: "owner_requests", bookingId: event.params.bookingId }
+        );
+      }
+      if (byAdmin && after.practitionerId) {
+        await sendPushToUser(
+          after.practitionerId,
+          "Request withdrawn",
+          `An administrator withdrew your request for "${after.spaceTitle ?? "the workspace"}".`,
+          { category: "BOOKING_UPDATE", targetTab: "pro_rentals", bookingId: event.params.bookingId }
+        );
+      }
     } else if (after.status === "CANCELLED" && before.status === "ACCEPTED") {
       // Early termination (ProSpaceRepository.cancelAcceptedBooking) — notify
       // whichever side didn't initiate it. cancelledByRole is stamped by that
@@ -146,15 +248,38 @@ export const onBookingRequestStatusChanged = onDocumentUpdated(
       // which never sets cancelledByRole and isn't a real termination event
       // worth pushing about — the practitioner already knows, they just got
       // their edit accepted).
-      if (!after.cancelledByRole) return;
-      const cancelledByHost = after.cancelledByRole === "PRO_HOST" || after.cancelledByRole === "ADMIN";
+      if (!after.cancelledByRole) {
+        // The rules let only the host (or an admin) cancel an accepted booking without a role,
+        // meant for "superseded by an accepted edit". If no accepted edit actually replaces this
+        // booking, it was a plain host cancellation: the specialist must hear about it.
+        const replacement = await getFirestore().collection("booking_requests")
+          .where("replacesBookingId", "==", event.params.bookingId)
+          .where("status", "==", "ACCEPTED")
+          .limit(1)
+          .get();
+        if (!replacement.empty) return;
+      }
+      const cancelledByHost = !after.cancelledByRole || after.cancelledByRole === "PRO_HOST" || after.cancelledByRole === "ADMIN";
       const recipientId = cancelledByHost ? after.practitionerId : after.ownerId;
       const initiatorLabel = cancelledByHost ? (after.ownerName ?? "The host") : (after.practitionerName ?? "The specialist");
       const targetTab = cancelledByHost ? "pro_rentals" : "owner_progress";
+      const reason = after.cancellationReasonCode ?
+        ` (${String(after.cancellationReasonCode).replace(/_/g, " ").toLowerCase()})` : "";
+      if (after.cancelledByRole === "ADMIN") {
+        // An admin ended it: both sides hear about it.
+        for (const [uid, tab] of [[after.practitionerId, "pro_rentals"], [after.ownerId, "owner_progress"]] as const) {
+          if (typeof uid === "string" && uid) {
+            await sendPushToUser(uid, "Booking Cancelled",
+              `An administrator ended the accepted booking for "${after.spaceTitle ?? "the workspace"}"${reason}.`,
+              { category: "BOOKING_UPDATE", targetTab: tab, bookingId: event.params.bookingId });
+          }
+        }
+        return;
+      }
       await sendPushToUser(
         recipientId,
         "Booking Cancelled",
-        `${initiatorLabel} ended the accepted booking for "${after.spaceTitle ?? "the workspace"}" early${after.cancellationReasonCode ? ` (${String(after.cancellationReasonCode).replace(/_/g, " ").toLowerCase()})` : ""}.`,
+        `${initiatorLabel} ended the accepted booking for "${after.spaceTitle ?? "the workspace"}" early${reason}.`,
         {
           category: "BOOKING_UPDATE",
           targetTab,

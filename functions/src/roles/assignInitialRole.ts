@@ -5,9 +5,9 @@ import { getFirestore } from "firebase-admin/firestore";
 import { DEFAULT_ROLE, isAppRole } from "../lib/roles";
 import { recordAuditLog } from "../lib/auditLog";
 import { enforcePlayIntegrity } from "../lib/playIntegrity";
-import { hostingerSmtpSecret } from "../lib/email";
 import { emailVerificationSecret, sendEmailVerificationInternal } from "../auth/emailVerification";
 import * as logger from "firebase-functions/logger";
+import { emailVerifiedByToken } from "../auth/emailVerifiedRule";
 import "../lib/admin";
 
 /**
@@ -104,7 +104,7 @@ async function validateRegistrationDraft(draft: RegistrationDraft, callerUid: st
 }
 
 export const assignInitialRole = onCall(
-  { secrets: [hostingerSmtpSecret, emailVerificationSecret] },
+  { secrets: [emailVerificationSecret] },
   async (request) => {
     const auth = request.auth;
   if (!auth) {
@@ -143,6 +143,12 @@ export const assignInitialRole = onCall(
     Boolean(auth.token.phone_number) ||
     (Boolean(auth.token.email) && Boolean(auth.token.email_verified));
   const now = Date.now();
+  // Email/Google sign-ups are verified by signing in: mirror it onto the profile on every
+  // sign-in (never un-set it — a later phone sign-in doesn't undo a proven address).
+  const emailVerifiedUpdate =
+    emailVerifiedByToken(auth.token) && profileSnap.data()?.emailVerified !== true
+      ? { emailVerified: true, emailVerifiedAt: now }
+      : {};
 
   const existingRole = auth.token.role;
   if (isAppRole(existingRole)) {
@@ -153,7 +159,7 @@ export const assignInitialRole = onCall(
       ? { email: auth.token.email }
       : {};
     await db.collection("user_profiles").doc(auth.uid).set(
-      { isVerified, lastSignInAtMillis: now, updatedAt: now, ...emailUpdate },
+      { isVerified, lastSignInAtMillis: now, updatedAt: now, ...emailUpdate, ...emailVerifiedUpdate },
       { merge: true }
     );
     return { role: existingRole, assigned: false };
@@ -176,9 +182,7 @@ export const assignInitialRole = onCall(
       ...(registration && !profileSnap.data()?.tosAcceptedAtMillis
         ? { tosAcceptedAtMillis: now, consentVersion: CURRENT_CONSENT_VERSION }
         : {}),
-      ...(auth.token.email_verified === true
-        ? { emailVerified: true, emailVerifiedAt: now }
-        : {}),
+      ...emailVerifiedUpdate,
       updatedAt: now,
     },
     { merge: true }
@@ -191,9 +195,14 @@ export const assignInitialRole = onCall(
     severity: "INFO",
   });
 
-  // Send email verification link on first-time registration for non-Google/unverified emails
-  if (registration && auth.token.email_verified !== true) {
-    sendEmailVerificationInternal(auth.uid).catch((e) =>
+  // Email + password sign-ups ("password" provider) get a verification link at registration;
+  // it never blocks the app (email is not a requirement). Google accounts arrive verified and
+  // legacy email-link sign-ins ("emailLink") proved the address already. Awaited: work left
+  // running after a Cloud Run response is CPU-throttled and could be dropped.
+  const signInProvider = (auth.token.firebase as { sign_in_provider?: string } | undefined)?.sign_in_provider ?? "";
+  const isEmailLinkUser = signInProvider === "emailLink";
+  if (registration && auth.token.email_verified !== true && !isEmailLinkUser) {
+    await sendEmailVerificationInternal(auth.uid).catch((e) =>
       logger.warn("email_verification_send_failed", { uid: auth.uid, error: String(e) })
     );
   }

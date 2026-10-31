@@ -1,3 +1,5 @@
+import { HttpsError } from "firebase-functions/v2/https";
+import { logger } from "firebase-functions/v2";
 /**
  * The set of roles this app recognizes, mirroring the Kotlin UserRole enum
  * (app/src/main/java/com/example/data/model/DataModels.kt). Kept as a small,
@@ -52,15 +54,14 @@ export async function setClaimsThenFirestore(
     try {
       await auth.setCustomUserClaims(uid, previousClaims ?? null);
     } catch (rollbackErr) {
-      throw new Error(
-        `Role change for ${uid} failed while writing Firestore AND could not be rolled back — ` +
-          `Auth claim and Firestore are now out of sync and need manual review. ` +
-          `Original error: ${err}. Rollback error: ${rollbackErr}`
+      logger.error(
+        "Role change failed while writing Firestore AND could not be rolled back — Auth claim and " +
+          "Firestore are out of sync and need manual review.",
+        { err: String(err), rollbackErr: String(rollbackErr) }
       );
+      throw new HttpsError("internal", "The role change couldn't be completed. Please try again.");
     }
-    throw new Error(
-      `Role change for ${uid} failed while writing Firestore; the Auth claim change was rolled back. ` +
-        `Original error: ${err}`
-    );
+    logger.error("Role change failed while writing Firestore; the Auth claim change was rolled back.", { err: String(err) });
+    throw new HttpsError("internal", "The role change couldn't be completed. Please try again.");
   }
 }

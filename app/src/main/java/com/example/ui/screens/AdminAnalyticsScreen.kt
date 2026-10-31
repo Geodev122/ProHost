@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import com.example.ui.theme.Spacing
+
+import com.example.ui.theme.Radius
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -34,6 +37,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -93,7 +97,7 @@ fun AdminAnalyticsScreen(adminViewModel: AdminViewModel = viewModel()) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg)
     ) {
         item {
             FiltersCard(
@@ -111,7 +115,7 @@ fun AdminAnalyticsScreen(adminViewModel: AdminViewModel = viewModel()) {
         when {
             state.error != null && data == null -> item {
                 ProSurfaceCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         Text("Couldn't load analytics", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                         Text(state.error.orEmpty(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                         OutlinedButton(onClick = adminViewModel::loadAnalytics) { Text("Try again") }
@@ -132,6 +136,7 @@ fun AdminAnalyticsScreen(adminViewModel: AdminViewModel = viewModel()) {
                         onBackfill = adminViewModel::backfillProHostUpgradeDates
                     )
                 }
+                item { BookingMixCard(data = data) }
                 item {
                     ListingsCard(
                         data = data,
@@ -158,7 +163,7 @@ private fun FiltersCard(
 ) {
     var countryMenuOpen by remember { mutableStateOf(false) }
     ProSurfaceCard {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             ProSectionHeader(
                 title = "Platform Analytics",
                 subtitle = "Pro Host upgrades and published listings",
@@ -173,7 +178,7 @@ private fun FiltersCard(
             )
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 RangePreset.entries.forEach { preset ->
                     val selected = presetFor(fromMillis, toMillis) == preset
@@ -199,7 +204,7 @@ private fun FiltersCard(
             Box {
                 OutlinedButton(onClick = { countryMenuOpen = true }, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Default.Public, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(Spacing.sm))
                     Text(country ?: "All countries", modifier = Modifier.weight(1f))
                     Icon(Icons.Default.ArrowDropDown, contentDescription = null)
                 }
@@ -225,7 +230,7 @@ private fun presetFor(fromMillis: Long?, toMillis: Long?): RangePreset? {
 private fun UpgradesCard(data: AdminAnalytics, fromMillis: Long?, toMillis: Long?, onBackfill: () -> Unit) {
     val buckets = remember(data.upgrades, fromMillis, toMillis) { bucketUpgrades(data.upgrades, fromMillis, toMillis) }
     ProSurfaceCard {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             ProSectionHeader(
                 title = "Pro Host Upgrades",
                 subtitle = "${data.upgradesTotal} upgrade${if (data.upgradesTotal == 1) "" else "s"} in this period",
@@ -243,7 +248,7 @@ private fun UpgradesCard(data: AdminAnalytics, fromMillis: Long?, toMillis: Long
             if (data.proHostsWithoutDate > 0) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.History, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
+                    Spacer(Modifier.width(Spacing.sm))
                     Text(
                         "${data.proHostsWithoutDate} current Pro Host(s) upgraded before dates were recorded.",
                         style = MaterialTheme.typography.labelSmall,
@@ -314,7 +319,7 @@ private fun BarChart(buckets: List<Pair<Long, Int>>, bucket: Bucket) {
     }
     Column {
         Text("Peak: $maxCount per ${bucket.name.lowercase()}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(Spacing.xs))
         Canvas(modifier = Modifier.fillMaxWidth().height(160.dp)) {
             drawLine(gridColor, Offset(0f, size.height), Offset(size.width, size.height), strokeWidth = 1f)
             drawLine(gridColor, Offset(0f, 0f), Offset(size.width, 0f), strokeWidth = 1f)
@@ -346,7 +351,7 @@ private fun ListingsCard(data: AdminAnalytics, country: String?, hasRange: Boole
     var showAllCities by remember { mutableStateOf(false) }
     var expandedType by remember { mutableStateOf<String?>(null) }
     ProSurfaceCard {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             ProSectionHeader(
                 title = "Listing Performance",
                 subtitle = "${data.listingsTotal} published listing${if (data.listingsTotal == 1) "" else "s"}" +
@@ -411,10 +416,53 @@ private fun ListingsCard(data: AdminAnalytics, country: String?, hasRange: Boole
 }
 
 @Composable
+private fun BookingMixCard(data: AdminAnalytics) {
+    val totalRequests = data.bookingMix.sumOf { it.requests }
+    ProSurfaceCard {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            ProSectionHeader(
+                title = "Booking Mix",
+                subtitle = "$totalRequests booking request${if (totalRequests == 1) "" else "s"} by renting strategy",
+                icon = Icons.Default.Insights
+            )
+            if (data.bookingMix.isEmpty()) {
+                Text(
+                    "No booking requests in this period.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                val max = data.bookingMix.maxOf { it.requests }
+                data.bookingMix.forEach { row ->
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                        BarRow(label = row.label, count = row.requests, max = max)
+                        Text(
+                            "${row.accepted} accepted · $${"%,.0f".format(java.util.Locale.US, row.acceptedRevenueUsd)} accepted value",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            val a = data.attendeeStats
+            if (a.requests > 0) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                SectionTitle("Per-attendee bookings", Icons.Default.Category)
+                Text(
+                    "${a.requests} requested · ${a.accepted} accepted · ${a.acceptedAttendees} attendees accepted · " +
+                        "average group ${"%.1f".format(java.util.Locale.US, a.avgGroupSize)}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun SectionTitle(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-        Spacer(Modifier.width(6.dp))
+        Spacer(Modifier.width(Spacing.sm))
         Text(text, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
     }
 }
@@ -422,7 +470,7 @@ private fun SectionTitle(text: String, icon: androidx.compose.ui.graphics.vector
 @Composable
 private fun RankedBars(counts: Map<String, Int>, onClick: ((String) -> Unit)? = null) {
     val max = counts.values.maxOrNull() ?: 1
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         counts.entries.sortedByDescending { it.value }.forEach { (label, count) ->
             BarRow(label = label, count = count, max = max, onClick = onClick?.let { cb -> { cb(label) } })
         }
@@ -441,7 +489,7 @@ private fun BarRow(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
+            .clip(Radius.Xs)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(vertical = 2.dp)
     ) {
@@ -454,7 +502,7 @@ private fun BarRow(
             Modifier
                 .fillMaxWidth()
                 .height(6.dp)
-                .clip(RoundedCornerShape(3.dp))
+                .clip(Radius.Xs)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             if (fraction > 0f) {
@@ -462,7 +510,7 @@ private fun BarRow(
                     Modifier
                         .fillMaxWidth(fraction)
                         .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp))
+                        .clip(Radius.Xs)
                         .background(MaterialTheme.colorScheme.primary)
                 )
             }

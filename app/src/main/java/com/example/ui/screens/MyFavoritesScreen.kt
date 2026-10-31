@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,8 +16,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.ui.components.ShimmerLoadingList
 import com.example.data.model.SpaceListing
 import com.example.ui.components.ProEmptyState
+import com.example.ui.components.ProHostAlertBanner
+import com.example.ui.components.ProHostAlertSeverity
 import com.example.ui.theme.Spacing
 import com.example.ui.viewmodel.ProHostViewModel
 
@@ -35,10 +40,14 @@ fun MyFavoritesScreen(
     onNavigateToExplore: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val isLoading by viewModel.isRestoringSession.collectAsState()
-    val errorMessage by viewModel.sessionRestoreError.collectAsState()
+    val isRestoringSession by viewModel.isRestoringSession.collectAsState()
+    val sessionError by viewModel.sessionRestoreError.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
     val allSpaces by viewModel.spaces.collectAsState()
+    // Show loading only while the session is still restoring AND no spaces have loaded yet.
+    // Once spaces arrive, show the real content regardless of session state.
+    val isLoading = isRestoringSession && allSpaces.isEmpty() && currentUser == null
+    val errorMessage = if (!isLoading) sessionError else null
 
     val savedIds = currentUser?.savedSpaceIds.orEmpty().toSet()
     val savedSpaces = allSpaces.filter { it.id in savedIds }
@@ -62,48 +71,23 @@ fun MyFavoritesScreen(
         // Nested inside the app-shell Scaffold's already-inset content area — its
         // default contentWindowInsets would otherwise re-apply the status-bar-height
         // top inset a second time, producing extra blank space above this TopAppBar.
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = {
-            TopAppBar(
-                title = {
-                    if (savedSpaces.isNotEmpty()) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shape = MaterialTheme.shapes.small
-                        ) {
-                            Text(
-                                text = "${savedSpaces.size} Saved",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
-                            )
-                        }
-                    }
-                }
-            )
-        }
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { innerPadding ->
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+        // Loading fades into the content instead of popping.
+        androidx.compose.animation.Crossfade(targetState = isLoading, label = "savedLoading") { loadingNow ->
+        if (loadingNow) {
+            ShimmerLoadingList(modifier = Modifier.padding(innerPadding), itemHeight = 200.dp)
         } else if (errorMessage != null) {
-            Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
-                Text(
-                    text = errorMessage ?: "",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(Spacing.lg)
-                )
+            Box(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(Spacing.lg)) {
+                ProHostAlertBanner(message = errorMessage ?: "", severity = ProHostAlertSeverity.ERROR)
             }
         } else if (savedSpaces.isEmpty() && unavailableIds.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
                 ProEmptyState(
-                    title = "No Favorites Yet",
-                    description = "Tap the heart icon on any workspace to save it here for quick access later.",
+                    title = stringResource(R.string.nothing_saved_yet),
+                    description = stringResource(R.string.tap_the_heart_on_any_space_to_keep_it_here),
                     icon = Icons.Filled.FavoriteBorder,
-                    actionButtonText = "Explore Workspaces",
+                    actionButtonText = stringResource(R.string.explore_spaces),
                     onActionClick = onNavigateToExplore
                 )
             }
@@ -113,45 +97,50 @@ fun MyFavoritesScreen(
                     .fillMaxSize()
                     .padding(innerPadding),
                 contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, top = Spacing.lg, bottom = 80.dp),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                verticalArrangement = Arrangement.spacedBy(Spacing.lg)
             ) {
                 groupedSavedSpaces.forEach { (category, spacesInCategory) ->
-                    item(key = "header_$category") {
+                    item(key = "header_$category", contentType = "header") {
                         Text(
                             text = "$category (${spacesInCategory.size})",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(top = if (category == groupedSavedSpaces.firstKey()) 0.dp else Spacing.sm)
                         )
                     }
                     items(spacesInCategory, key = { it.id }) { space ->
+                        // Inserted/removed rows slide and fade instead of jumping.
+                        Box(Modifier.animateItem()) {
                         SpaceListingCard(
                             space = space,
                             onClick = { onSelectSpace(space) },
                             onQuickWhatsApp = { viewModel.launchWhatsAppInquiry(context, space, null) },
                             isSaved = true,
-                            onToggleSave = { viewModel.toggleSavedSpace(space.id) }
+                            onToggleSave = { viewModel.toggleSavedSpace(space.id, context) }
                         )
                     }
+}
                 }
                 if (unavailableIds.isNotEmpty()) {
                     item(key = "header_unavailable") {
                         Text(
-                            text = "No Longer Available (${unavailableIds.size})",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            text = stringResource(R.string.no_longer_available_x, unavailableIds.size),
+                            style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = if (groupedSavedSpaces.isEmpty()) 0.dp else Spacing.sm)
                         )
                     }
                     items(unavailableIds.toList(), key = { it }) { spaceId ->
+                        // Inserted/removed rows slide and fade instead of jumping.
+                        Box(Modifier.animateItem()) {
                         UnavailableFavoriteCard(
-                            onRemove = { viewModel.toggleSavedSpace(spaceId) }
+                            onRemove = { viewModel.toggleSavedSpace(spaceId, context) }
                         )
                     }
+}
                 }
             }
+        }
         }
     }
 }
@@ -161,7 +150,8 @@ private fun UnavailableFavoriteCard(onRemove: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
             modifier = Modifier
@@ -172,19 +162,19 @@ private fun UnavailableFavoriteCard(onRemove: () -> Unit) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "No longer available",
+                    text = stringResource(R.string.no_longer_available),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "This saved listing was paused, unpublished, or removed by its host.",
-                    style = MaterialTheme.typography.labelSmall,
+                    text = stringResource(R.string.this_saved_listing_was_paused_unpublished),
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            TextButton(onClick = onRemove) {
-                Text("Remove")
+            TextButton(shape = MaterialTheme.shapes.medium, onClick = onRemove) {
+                Text(stringResource(R.string.remove), color = MaterialTheme.colorScheme.error, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
             }
         }
     }

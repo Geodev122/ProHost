@@ -34,8 +34,12 @@ fun Throwable.toUserMessage(fallback: String): String {
             serverMessage ?: fallback
         Code.NOT_FOUND, Code.UNIMPLEMENTED ->
             "This service is temporarily unavailable. Please try again shortly."
+        // A function may throw UNAVAILABLE itself with a real explanation (billing: "your
+        // payment is safe…"); only a transport failure (it carries the IOException as its
+        // cause) gets the generic connection text.
         Code.UNAVAILABLE, Code.DEADLINE_EXCEEDED ->
-            "Can't reach the server right now. Please check your connection and try again."
+            serverMessage?.takeIf { e.cause == null && it.contains(' ') }
+                ?: "Can't reach the server right now. Please check your connection and try again."
         else -> fallback
     }
 }

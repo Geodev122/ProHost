@@ -23,7 +23,7 @@ class DemoContentSeedingAndPurgeTest {
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
-        repository = ProHostRepository()
+        repository = hermeticRepository()
     }
 
     @Test
