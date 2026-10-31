@@ -1359,7 +1359,8 @@ async function aitest(arg, db) {
   for (const t of ["How can I list my clinic room and how much is it?"]) {
     try {
       const lang = /[\u0600-\u06FF]/.test(t) ? "Arabic, reply in Arabic" : "English, reply in English";
-      const { out } = await runAgent(cfg, knowledge, [], t, undefined, NEW_STATE, `LANGUAGE OF THEIR COMMENT: ${lang}.\n${commentModeContext(t)}\n${offersContext(offers)}`);
+      const { out, unusable } = await runAgent(cfg, knowledge, [], t, undefined, NEW_STATE, `LANGUAGE OF THEIR COMMENT: ${lang}.\n${commentModeContext(t)}\n${offersContext(offers)}`);
+      if (unusable) notice(`[comment answer] UNUSABLE MODEL OUTPUT ${unusable.replace(/\n/g, " ")}`);
       notice(`[comment answer] "${t}" -> DM (${out.messages.length} msg, buttons ${out.buttons.join("+") || "-"}): ${out.messages.join(" ").replace(/\n/g, " ").slice(0, 420)}`);
     } catch (e) { notice(`[comment answer] "${t}" ERROR ${String(e.message).slice(0, 140)}`); }
   }

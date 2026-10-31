@@ -225,7 +225,7 @@ export function advance(st: ConvState, out: AgentOutput, search?: SearchCriteria
   return { state, persist: consent && (lead.name || lead.email) ? lead : null };
 }
 
-export interface AgentRun { out: AgentOutput; usage: Pick<LlmResult, "inputTokens" | "outputTokens" | "cacheReadTokens" | "model"> }
+export interface AgentRun { /** First 400 characters of the model's last answer when it was unusable (diagnostics only; never sent to a person). */ unusable?: string; out: AgentOutput; usage: Pick<LlmResult, "inputTokens" | "outputTokens" | "cacheReadTokens" | "model"> }
 
 /** The model sometimes returns text that is not the JSON we asked for (or truncated JSON): salvage plain prose, else give up. */
 export function salvage(raw: string): AgentOutput | null {
@@ -249,5 +249,5 @@ export async function runAgent(cfg: AiConfig, knowledge: string, turns: Turn[], 
   }
   // A broken answer never pauses the person for a human (that silenced whole conversations): a polite reply, flagged to learn.
   const final = out ?? { reply: fallback, messages: [fallback], awaitReply: false, askEmail: false, lang: "en", buttons: (brand.buttons.whatsapp ? ["whatsapp"] : []) as ButtonId[], handoff: false, confidence: 0, learn: true, stage: "answer" as Stage, askConsent: false, consentGiven: null, lead: {}, memory: "", search: null, searchReady: false, listings: [] };
-  return { out: final, usage: { inputTokens: res.inputTokens, outputTokens: res.outputTokens, cacheReadTokens: res.cacheReadTokens, model: res.model } };
+  return { ...(out ? {} : { unusable: `[${res.stopReason ?? "?"}] ${res.text.slice(0, 400)}` }), out: final, usage: { inputTokens: res.inputTokens, outputTokens: res.outputTokens, cacheReadTokens: res.cacheReadTokens, model: res.model } };
 }

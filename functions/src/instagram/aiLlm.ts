@@ -14,7 +14,7 @@ export interface AiConfig {
   /** Anthropic API only: workspace id (wrkspc_…), sent as anthropic-workspace-id when the key is not tied to one workspace. Not a secret. */
   workspaceId?: string;
 }
-export interface LlmResult { text: string; inputTokens: number; outputTokens: number; cacheReadTokens: number; model: string }
+export interface LlmResult { stopReason?: string; text: string; inputTokens: number; outputTokens: number; cacheReadTokens: number; model: string }
 
 type Fetch = typeof fetch;
 const PROJECT = process.env.GCLOUD_PROJECT || "prohost-f766f";
@@ -101,7 +101,7 @@ export async function complete(cfg: AiConfig, system: string, knowledge: string,
   try {
     type Reply = {
       content?: Array<{ type: string; text?: string }>; usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number };
-      error?: { message?: string }; model?: string;
+      error?: { message?: string }; model?: string; stop_reason?: string;
     };
     let res = await f(url, { method: "POST", headers, body: JSON.stringify(body), signal: ctl.signal });
     let json = (await res.json().catch(() => ({}))) as Reply;
@@ -113,7 +113,7 @@ export async function complete(cfg: AiConfig, system: string, knowledge: string,
     }
     if (!res.ok) throw new LlmError(res.status, (json.error?.message ?? `HTTP ${res.status}`).slice(0, 300));
     const text = (json.content ?? []).filter((c) => c.type === "text").map((c) => c.text ?? "").join("").trim();
-    return { text, inputTokens: json.usage?.input_tokens ?? 0, outputTokens: json.usage?.output_tokens ?? 0, cacheReadTokens: json.usage?.cache_read_input_tokens ?? 0, model: json.model ?? cfg.model };
+    return { text, inputTokens: json.usage?.input_tokens ?? 0, outputTokens: json.usage?.output_tokens ?? 0, cacheReadTokens: json.usage?.cache_read_input_tokens ?? 0, model: json.model ?? cfg.model, stopReason: json.stop_reason };
   } finally {
     clearTimeout(timer);
   }
