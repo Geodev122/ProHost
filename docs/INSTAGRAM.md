@@ -97,3 +97,28 @@ email, a DM to @geo_elnajjat (Meta's 24 h window only) and WhatsApp once set up 
 - Instagram has no API to like a comment; the public thank-you is the visible acknowledgement.
 - `igCommentPoll` fetches new comments of the latest 5 posts every minute and runs them through the same pipeline; it catches comments the webhook did not deliver (an unpublished Meta app only delivers events for accounts with an app role). Check it with Maintenance `igsmoke` ("comment poller") or the sheet row `health_comment_poll`.
 - Status keys: `ai_comments` (default on), `ai_comment_dm` (default on). `igtest` sends synthetic positive / question / negative / neutral comments in dry-run.
+
+
+## Multi-brand and platforms
+
+One backend serves any number of brands; each brand has Instagram and/or WhatsApp Business accounts. ProHost is brand `prohost` and keeps its
+original collections (`ig_*`, `app_config/instagram*`) and sheet tab names; every other brand lives in `ig_brands/{brandId}` (profile, platforms,
+sub-collections events/contacts/threads/leads/learn/rules/stats, `private/secrets`, `private/knowledge`). All server-only (rules + rules tests).
+
+Add a brand (IG Control Room › + New brand): the console appends a row to the sheet's `Brands` tab; within a minute `igSheetSync` creates
+`ig_brands/{id}` (dry-run, AI off) and the brand's prefixed tabs. Then, per platform (Platforms tab/page):
+- **Instagram**: Professional account added as tester on the Meta app (or its own app); paste the access token (the server asks Meta whose account
+  it is, fills the account id, subscribes the account), the app secret and a verify token you choose. Callback URL `https://pro-host.tech/ig-webhook`
+  (shared; the verify token tells brands apart, `entry.id` routes events, the brand's own app secret must have signed them).
+- **WhatsApp Business**: phone number id + WABA id on the Platforms tab, permanent token, app secret, verify token. Callback
+  `https://pro-host.tech/wa-webhook` (`waWebhook`; routed by `metadata.phone_number_id`). People are keyed `wa:<number>`; free-form replies only
+  inside 24 h of their last message (`sendWhatsAppTemplate` exists for approved templates; nothing sends one automatically yet).
+- **Secrets** typed in the Secrets tab are validated, stored in `ig_brands/{id}/private/secrets` (ProHost Instagram keeps its flat
+  `app_config/instagram`) and blanked in the sheet (`registrySync.ts`).
+- **Profile / Buttons / Playbooks / Sources** tabs define who the brand is. The prompt is `buildSystemPrompt(brand)`: a locked core (AI disclosure,
+  grounding, consent, output format — `aiAgent.ts corePrompt`, guarded by tests) + the brand's playbooks + persona. ProHost-only data providers (Play
+  offers, listings finder, account lookup, release notes) are `integrations`, on for ProHost only.
+- **Build knowledge** (Status `build_knowledge = request`): `knowledgeBuilder.ts` reads the Sources (public https pages, public GitHub files, Drive
+  docs/PDFs shared with the service account, pasted text), the brand's AI drafts sections into `KnowledgeDraft`; rows set to `approved` become the
+  live knowledge base. Nothing unreviewed reaches the agent.
+- Rules have a `platform` column (all / instagram / whatsapp).

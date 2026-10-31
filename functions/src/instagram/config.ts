@@ -69,6 +69,12 @@ export interface AiSettings {
 export const DEFAULT_AI: AiSettings = { enabled: false, provider: "vertex", model: "claude-haiku-4-5@20251001", region: "global", dailyCap: 300, perPersonPerHour: 12, comments: true, commentDm: true };
 
 const TTL_MS = 60 * 1000;
+/** ProHost's engine defaults (its links, its wording); every other brand starts with no links and its own name in the hand-over line. */
+export function baseSettings(brand: BrandProfile): EngineSettings {
+  if (brand.id === PROHOST_PROFILE.id) return DEFAULT_SETTINGS;
+  return { ...DEFAULT_SETTINGS, vars: {}, handoffReply: `Thanks! I'm ${brand.assistantName}, so I've passed this to the ${brand.name} team and a person will reply here soon.` };
+}
+
 const cache = new Map<string, { config: IgConfig; at: number }>();
 
 export function parseConfig(d: Record<string, unknown> | undefined, brand: BrandProfile = PROHOST_PROFILE, wa: Partial<WhatsAppPlatform> = {}): IgConfig {
@@ -81,7 +87,7 @@ export function parseConfig(d: Record<string, unknown> | undefined, brand: Brand
     mode: d?.mode === "live" ? "live" : "dry-run",
     killSwitch: Boolean(d?.killSwitch),
     adminEmail: str(d?.adminEmail) || brand.contactEmail || "admin@pro-host.tech", sheetId: str(d?.sheetId), anthropicKey: str(d?.anthropicKey), geminiKey: str(d?.geminiKey), ai: { ...DEFAULT_AI, ...((d?.ai ?? {}) as Partial<AiSettings>) },
-    settings: { ...DEFAULT_SETTINGS, ...s, vars: { ...DEFAULT_SETTINGS.vars, ...(s.vars ?? {}) } },
+    settings: { ...baseSettings(brand), ...s, vars: { ...baseSettings(brand).vars, ...(s.vars ?? {}) } },
   };
 }
 

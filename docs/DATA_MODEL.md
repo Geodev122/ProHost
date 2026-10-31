@@ -86,3 +86,11 @@ own config documents (`app_config/instagram`, `instagram_knowledge`, `instagram_
   `versions`). Public read, server write: `system_metadata`. Signed-in read, server write: `hashtag_usage`.
 - Retired (read-only for old apps or denied): `package_plans`, `promo_campaigns`, `subscription_formulas`,
   `whish_transactions`.
+
+
+## Instagram multi-brand registry (server-only)
+
+`ig_brands/{brandId}`: profile (name, assistantName, purpose, persona, knowledgeBase, buttons, playbooks, integrations, tabPrefix, contactEmail, languages),
+operating settings (mode, killSwitch, settings, ai, sheetId, enabled) and `platforms.instagram` / `platforms.whatsapp` (account ids, app ids). Sub-collections:
+events, contacts, threads, leads, learn, rules, stats, `private/secrets` (tokens, app secrets, AI keys), `private/knowledge`. The first brand, `prohost`, keeps
+the original `ig_*` collections and `app_config/instagram*`, plus an optional `ig_brands/prohost` profile overlay.

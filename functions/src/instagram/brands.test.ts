@@ -76,3 +76,14 @@ test("a brand's config comes from its document and its private secrets, never mi
   assert.equal(off.enabled, false);
   assert.equal(off.mode, "dry-run");
 });
+
+test("a new brand never inherits ProHost's links or wording from the engine defaults", () => {
+  const acme = parseConfig({}, blankProfile("acme", "Acme"));
+  assert.deepEqual(acme.settings.vars, {});
+  assert.match(acme.settings.handoffReply, /Acme/);
+  assert.ok(!/ProHost/i.test(JSON.stringify(acme.settings)));
+  const pro = parseConfig({}, PROHOST_PROFILE);
+  assert.equal(pro.settings.vars.link_play, "https://pro-host.tech/ig");
+  const custom = parseConfig({ settings: { vars: { book: "https://acme.test/book" } } }, blankProfile("acme", "Acme"));
+  assert.deepEqual(custom.settings.vars, { book: "https://acme.test/book" });
+});

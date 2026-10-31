@@ -1,0 +1,939 @@
+<title>IG Control Room</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#F7F9FC;--surface:#FFFFFF;--sunken:#EEF2F7;--line:#E3E8EF;--line2:#C9D3E0;
+  --ink:#1F2A37;--muted:#5D6B7E;--faint:#8592A4;
+  --steel:#2B5A8C;--steel-ink:#FFFFFF;--steel-soft:#E5EDF6;--steel-line:#B7CBE1;
+  --navy:#1C2A40;--navy-line:#33445F;--navy-ink:#FFFFFF;
+  --orange:#F25F4C;--cta:#D44432;--cta-ink:#FFFFFF;--orange-soft:#FFECE9;
+  --good:#1C7046;--good-soft:#E0F1E7;--warn:#8A5200;--warn-soft:#FAEED7;--bad:#B3261E;--bad-soft:#FBE5E3;
+  --head:'Plus Jakarta Sans','Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --r:10px;--shadow:0 1px 2px rgba(16,32,60,.05),0 18px 40px -26px rgba(16,32,60,.35);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0F1722;--surface:#16202E;--sunken:#1B2738;--line:#26354A;--line2:#3A4B62;
+  --ink:#E3E9F1;--muted:#9AA7B8;--faint:#6F7C8E;
+  --steel:#93B8E0;--steel-ink:#0F1722;--steel-soft:#1A2A3C;--steel-line:#34506F;
+  --navy:#0B1320;--navy-line:#26354A;
+  --orange:#FF8575;--cta:#FF8575;--cta-ink:#2A0F0A;--orange-soft:#2E1915;
+  --good:#6FD39C;--good-soft:#12291D;--warn:#F2BE63;--warn-soft:#33270F;--bad:#FF9289;--bad-soft:#3A1A1C;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 18px 40px -26px rgba(0,0,0,.7);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1722;--surface:#16202E;--sunken:#1B2738;--line:#26354A;--line2:#3A4B62;
+  --ink:#E3E9F1;--muted:#9AA7B8;--faint:#6F7C8E;
+  --steel:#93B8E0;--steel-ink:#0F1722;--steel-soft:#1A2A3C;--steel-line:#34506F;
+  --navy:#0B1320;--navy-line:#26354A;
+  --orange:#FF8575;--cta:#FF8575;--cta-ink:#2A0F0A;--orange-soft:#2E1915;
+  --good:#6FD39C;--good-soft:#12291D;--warn:#F2BE63;--warn-soft:#33270F;--bad:#FF9289;--bad-soft:#3A1A1C;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 18px 40px -26px rgba(0,0,0,.7);color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;padding-block:0 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--head);letter-spacing:-.015em;text-wrap:balance;margin:0}
+h2{font-size:1.25rem;font-weight:800;line-height:1.2}h3{font-size:1rem;font-weight:700}p{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--steel);outline-offset:2px}
+.muted{color:var(--muted)}.mini{font-size:12.5px;color:var(--muted)}.mono{font-family:var(--mono);font-size:.92em}.num{font-variant-numeric:tabular-nums}
+.brandbar{background:var(--navy);color:#fff;margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px))) calc(-1 * max(16px,env(safe-area-inset-right,0px)));padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px))}
+.bb{max-width:1100px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding-block:12px}
+.tile{width:34px;height:34px;border-radius:9px;background:#fff;display:grid;place-items:center;flex:none}.tile img{width:24px;height:auto}
+.word{font:800 1.15rem/1 var(--head)}.word i{font-style:normal;color:var(--orange)}
+.prod{font:600 .92rem var(--head);color:#C9D3E0}
+.pills{margin-left:auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pill{border-radius:999px;padding:3px 11px;font-weight:700;font-size:12px;letter-spacing:.04em;border:1px solid var(--navy-line);color:#C9D3E0;white-space:nowrap}
+.pill.live{background:#1C7046;border-color:#1C7046;color:#fff}.pill.dry{background:#8A5200;border-color:#8A5200;color:#fff}.pill.kill{background:#B3261E;border-color:#B3261E;color:#fff}
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px))) calc(-1 * max(16px,env(safe-area-inset-right,0px)));padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px));border-bottom:1px solid var(--line)}
+.nav-in{max-width:1100px;margin:0 auto;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.nav button{border:0;background:none;padding:12px 14px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+.nav button[aria-current=page]{color:var(--steel);border-bottom-color:var(--orange)}
+main{max-width:1100px;margin:18px auto 0;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);min-width:0}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.sp{margin-left:auto}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;min-width:0}
+.stat b{display:block;font:800 1.55rem/1.1 var(--head)}.stat span{font-size:12.5px;color:var(--muted)}
+.stat.good b{color:var(--good)}.stat.warn b{color:var(--warn)}.stat.bad b{color:var(--bad)}
+.btn{border:1px solid var(--line2);background:var(--surface);border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer}
+.btn:hover{background:var(--sunken)}.btn.pri{background:var(--steel);border-color:var(--steel);color:var(--steel-ink)}.btn.cta{background:var(--cta);border-color:var(--cta);color:var(--cta-ink)}
+.btn.sm{padding:4px 10px;font-size:13px}.btn.danger{color:var(--bad)}.btn[disabled]{opacity:.5;cursor:default}
+.chip{display:inline-block;border-radius:6px;padding:1px 8px;font-size:12px;font-weight:600;background:var(--steel-soft);color:var(--steel);border:1px solid var(--steel-line);white-space:nowrap}
+.chip.good{background:var(--good-soft);color:var(--good);border-color:transparent}.chip.warn{background:var(--warn-soft);color:var(--warn);border-color:transparent}.chip.bad{background:var(--bad-soft);color:var(--bad);border-color:transparent}.chip.mute{background:var(--sunken);color:var(--muted);border-color:var(--line)}
+.banner{border-radius:var(--r);padding:10px 14px;border:1px solid;font-size:13.5px}
+.banner.warn{background:var(--warn-soft);color:var(--warn);border-color:transparent}.banner.bad{background:var(--bad-soft);color:var(--bad);border-color:transparent}.banner.good{background:var(--good-soft);color:var(--good);border-color:transparent}.banner.info{background:var(--steel-soft);color:var(--steel);border-color:var(--steel-line)}
+label.f{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:13px;min-width:0}label.f small{font-weight:400;color:var(--muted)}
+input[type=text],input[type=password],input[type=number],input[type=url],select,textarea{width:100%;border:1px solid var(--line2);border-radius:8px;padding:8px 10px;background:var(--surface)}
+textarea{min-height:70px;resize:vertical}
+.form{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}.form .wide{grid-column:1/-1}
+.rule{display:flex;flex-direction:column;gap:8px}.rule.off{opacity:.62}
+.sw{position:relative;width:42px;height:24px;flex:none}.sw input{opacity:0;position:absolute;inset:0;margin:0;cursor:pointer;z-index:1}
+.sw i{position:absolute;inset:0;border-radius:999px;background:var(--line2);transition:.15s}.sw i:after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.15s}
+.sw input:checked+i{background:var(--good)}.sw input:checked+i:after{left:21px}.sw input:focus-visible+i{outline:3px solid var(--steel);outline-offset:2px}
+.bubble{background:var(--steel-soft);border:1px solid var(--steel-line);border-radius:14px 14px 14px 4px;padding:9px 12px;max-width:520px;white-space:pre-wrap;overflow-wrap:anywhere}
+.bubble.pub{background:var(--sunken);border-color:var(--line)}
+.logrow{display:grid;grid-template-columns:130px 1fr;gap:4px 12px;padding:10px 0;border-top:1px solid var(--line)}
+.logrow:first-child{border-top:0}.logrow .what{min-width:0;overflow-wrap:anywhere}
+.bars{display:flex;align-items:flex-end;gap:8px;height:110px}.bars>div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;height:100%;font-size:11px;color:var(--muted)}
+.bars .col{width:100%;display:flex;flex-direction:column-reverse;border-radius:5px 5px 0 0;overflow:hidden;background:var(--sunken)}
+.bar{height:8px;border-radius:4px;background:var(--steel)}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden}.seg button{border:0;background:var(--surface);padding:7px 14px;font-weight:600;cursor:pointer}.seg button[aria-pressed=true]{background:var(--steel);color:var(--steel-ink)}
+.overlay{position:fixed;inset:0;background:rgba(10,20,35,.55);z-index:20;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:20px max(12px,env(safe-area-inset-left,0px))}
+.sheet{background:var(--bg);border-radius:14px;width:100%;max-width:760px;padding:18px;display:flex;flex-direction:column;gap:14px;margin-block:auto}
+.steps{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}.steps li{display:flex;gap:10px;align-items:flex-start}
+.dot{width:22px;height:22px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:12px;font-weight:800;background:var(--sunken);color:var(--muted)}.dot.ok{background:var(--good);color:#fff}.dot.no{background:var(--warn-soft);color:var(--warn)}
+.toast{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;border-radius:10px;padding:10px 16px;z-index:30;max-width:92vw}
+.empty{padding:26px 10px;text-align:center;color:var(--muted)}
+.copy{font-family:var(--mono);background:var(--sunken);border:1px solid var(--line);border-radius:6px;padding:2px 6px;font-size:12.5px;overflow-wrap:anywhere}
+@media(max-width:560px){.logrow{grid-template-columns:1fr}.pills{margin-left:0}}
+.bsel{display:flex;align-items:center;gap:6px}.bsel select{background:#0B1320;color:#fff;border:1px solid var(--navy-line);border-radius:8px;padding:5px 8px;max-width:190px}
+.mark{font:800 1.05rem var(--head);color:var(--navy)}
+.srcrow{display:grid;grid-template-columns:90px 1fr minmax(0,180px) auto;gap:8px;align-items:center;margin-top:8px}.srcrow .srcstat{grid-column:1/-1}
+.srcstat.bad,.mini.bad{color:var(--bad)}.okc{color:var(--good)}
+.btnrow{display:grid;grid-template-columns:110px minmax(0,1.4fr) repeat(4,minmax(0,1fr)) auto;gap:6px;margin-top:8px;align-items:center}
+.draft{border-top:1px solid var(--line);padding-top:10px;margin-top:10px;display:flex;flex-direction:column;gap:8px}
+.secret{display:flex;flex-direction:column;gap:4px}
+.row input[type=password],.row input[type=text]{min-width:0}
+@media(max-width:700px){.srcrow{grid-template-columns:1fr}.btnrow{grid-template-columns:1fr 1fr}.bsel select{max-width:130px}}
+.secret .row{flex-wrap:nowrap}.secret .row input{flex:1}
+
+</style>
+<div id="app"></div>
+<script>
+(function(){
+/* ---- Rules engine: JS copy of functions/src/instagram/engine.ts + rulesSheet.ts (parity-tested against the compiled backend). ---- */
+const TRIGGERS = ['comment', 'story_reply', 'story_mention', 'dm_keyword', 'dm_welcome', 'dm_default'];
+const TRIGGER_LABEL = { comment: 'Comment', story_reply: 'Story reply', story_mention: 'Story mention', dm_keyword: 'DM keyword', dm_welcome: 'First DM (welcome)', dm_default: 'Any other DM' };
+const RULE_COLUMNS = ['id', 'enabled', 'name', 'trigger', 'keywords', 'match', 'post_id', 'comment_reply', 'private_reply', 'dm_text', 'button_label', 'button_url', 'quick_replies', 'cooldown_hours', 'tags', 'priority', 'platform'];
+const DEFAULTS = { optOutWords: ['stop', 'unsubscribe', 'cancel'], handoffWords: ['agent', 'human', 'support', 'help me'], handoffHours: 24, hourlyCap: 60, sentThisHour: 0, utcOffsetMinutes: 0, vars: {}, optOutReply: "Done, you won't get any more automatic messages from us. Write to us any time if you change your mind.", handoffReply: "Thanks! I'm an automated assistant, so I've passed this to the team and a person will reply here soon." };
+
+const normalize = s => String(s || '').normalize('NFD').replace(/[̀-ًͯ-ٰٟ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+const words = s => normalize(s).replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+function matchesKeyword(text, keyword, style) {
+  const kw = normalize(keyword); if (!kw) return false;
+  if (style === 'word') { const k = words(keyword); if (!k) return normalize(text).includes(kw); return (' ' + words(text) + ' ').includes(' ' + k + ' '); }
+  return normalize(text).includes(kw);
+}
+const matchesRule = (rule, text) => rule.keywords.length === 0 || rule.keywords.some(k => matchesKeyword(text, k, rule.match));
+const renderTpl = (t, vars) => String(t).replace(/\{([a-z_]+)\}/g, (_m, k) => (vars[k] != null ? vars[k] : '')).replace(/[ \t]+\n/g, '\n').trim();
+function inActiveHours(now, s) {
+  if (s.activeFromHour == null || s.activeToHour == null || s.activeFromHour === s.activeToHour) return true;
+  const h = new Date(now + s.utcOffsetMinutes * 60000).getUTCHours();
+  return s.activeFromHour < s.activeToHour ? h >= s.activeFromHour && h < s.activeToHour : h >= s.activeFromHour || h < s.activeToHour;
+}
+const ignored = reason => ({ kind: 'ignored', reason, steps: [], tags: [] });
+function triggersFor(ev, contact) {
+  if (ev.kind === 'comment') return ['comment'];
+  if (ev.kind === 'story_reply') return ['story_reply'];
+  if (ev.kind === 'story_mention') return ['story_mention'];
+  return contact.seenBefore ? ['dm_keyword', 'dm_default'] : ['dm_keyword', 'dm_welcome'];
+}
+function buildSteps(rule, ev, vars, rand) {
+  const steps = [], button = rule.buttonLabel && rule.buttonUrl ? { buttonLabel: rule.buttonLabel, buttonUrl: rule.buttonUrl } : {};
+  if (ev.kind === 'comment' && ev.commentId) {
+    if (rule.commentReplies.length) {
+      const pick = rule.commentReplies[Math.min(rule.commentReplies.length - 1, Math.floor(rand() * rule.commentReplies.length))], t = renderTpl(pick, vars);
+      if (t) steps.push({ type: 'comment_reply', commentId: ev.commentId, text: t });
+    }
+    const priv = renderTpl(rule.privateReply || rule.dm || '', vars);
+    if (priv) steps.push(Object.assign({ type: 'private_reply', commentId: ev.commentId, text: priv }, button));
+    return steps;
+  }
+  const dm = renderTpl(rule.dm || rule.privateReply || '', vars);
+  if (dm) steps.push(Object.assign({ type: 'dm', recipientId: ev.senderId, text: dm }, button, rule.quickReplies.length ? { quickReplies: rule.quickReplies.slice(0, 13) } : {}));
+  return steps;
+}
+function decide(ev, rules, contact, settings, now, rand) {
+  rand = rand || Math.random;
+  const text = ev.kind === 'postback' ? (ev.payload || ev.text) : ev.text;
+  const isMessage = ev.kind === 'dm' || ev.kind === 'postback' || ev.kind === 'story_reply';
+  if (contact.optedOut) return ignored('person opted out');
+  if (contact.handoffUntil && contact.handoffUntil > now) return ignored('paused for a human reply');
+  if (settings.sentThisHour >= settings.hourlyCap) return ignored('hourly cap of ' + settings.hourlyCap + ' replies reached');
+  if (!inActiveHours(now, settings)) return ignored('outside active hours');
+  if (!text.trim() && ev.kind !== 'story_mention' && ev.kind !== 'story_reply') return ignored('empty message');
+  if (isMessage) {
+    if (settings.optOutWords.some(w => matchesKeyword(text, w, 'word'))) return { kind: 'opt_out', reason: 'opt-out word', steps: [{ type: 'dm', recipientId: ev.senderId, text: settings.optOutReply }], tags: ['opted-out'] };
+    if (settings.handoffWords.some(w => matchesKeyword(text, w, 'word'))) return { kind: 'handoff', reason: 'asked for a human', steps: [{ type: 'dm', recipientId: ev.senderId, text: settings.handoffReply }], tags: ['handoff'] };
+  }
+  const triggers = triggersFor(ev, contact);
+  const cands = rules.filter(r => r.enabled && triggers.includes(r.trigger))
+    .filter(r => !r.platform || r.platform === 'all' || r.platform === (ev.channel || 'instagram'))
+    .filter(r => ev.kind !== 'comment' || !r.mediaId || r.mediaId === ev.mediaId)
+    .filter(r => r.trigger === 'dm_welcome' || r.trigger === 'dm_default' || matchesRule(r, text))
+    .sort((a, b) => b.priority - a.priority || (b.keywords.length > 0) - (a.keywords.length > 0) || triggers.indexOf(a.trigger) - triggers.indexOf(b.trigger));
+  if (!cands.length) return ignored('no rule matched');
+  const rule = cands.find(r => { const last = contact.lastRuleAt && contact.lastRuleAt[r.id]; return !(r.cooldownHours > 0 && last && now - last < r.cooldownHours * 3600000); });
+  if (!rule) return ignored('"' + cands[0].name + '" already replied to this person within its cooldown');
+  const vars = Object.assign({}, settings.vars, { username: ev.username || '', first_name: ev.username || 'there' });
+  const steps = buildSteps(rule, ev, vars, rand);
+  if (!steps.length) return ignored('"' + rule.name + '" matched but has no reply text');
+  return { kind: 'replied', reason: 'rule "' + rule.name + '"', ruleId: rule.id, ruleName: rule.name, steps, tags: rule.tags };
+}
+
+/* ---- Rules sheet <-> rules ---- */
+const splitList = (v, re) => String(v || '').split(re).map(s => s.trim()).filter(Boolean);
+const truthy = v => /^(true|yes|y|1|on|✓|✔)$/i.test(String(v || '').trim());
+function validateRule(r) {
+  const errs = [];
+  if (!r.id) errs.push('id is missing');
+  if (!TRIGGERS.includes(r.trigger)) errs.push('pick a trigger');
+  if (!r.commentReplies.length && !r.privateReply && !r.dm) errs.push('write at least one reply (public comment reply, private reply or DM)');
+  if (r.buttonUrl && !/^https:\/\//i.test(r.buttonUrl)) errs.push('button link must start with https://');
+  if (r.buttonUrl && !r.buttonLabel) errs.push('a button link needs a button label');
+  return errs;
+}
+function parseRules(values) {
+  const rules = [], errors = [];
+  if (!values.length) return { rules, errors };
+  const header = values[0].map(h => String(h).trim().toLowerCase()), seen = new Set();
+  const col = (row, n) => String(row[header.indexOf(n)] == null ? '' : row[header.indexOf(n)]).trim();
+  values.slice(1).forEach((row, i) => {
+    if (row.every(c => !String(c || '').trim())) return;
+    const id = col(row, 'id').replace(/[^A-Za-z0-9_-]/g, ''); if (!id || seen.has(id)) { errors.push('row ' + (i + 2) + ': id missing or duplicate'); return; }
+    const m = col(row, 'match').toLowerCase(), cd = col(row, 'cooldown_hours');
+    const r = {
+      id, name: col(row, 'name') || id, enabled: truthy(col(row, 'enabled')), trigger: col(row, 'trigger').toLowerCase(),
+      keywords: splitList(col(row, 'keywords'), /\s*,\s*/), match: m === 'contains' || m === 'any' ? m : 'word', mediaId: col(row, 'post_id') || undefined,
+      commentReplies: splitList(col(row, 'comment_reply'), /\s*\|\s*/), privateReply: col(row, 'private_reply') || undefined, dm: col(row, 'dm_text') || undefined,
+      buttonLabel: col(row, 'button_label') || undefined, buttonUrl: col(row, 'button_url') || undefined, quickReplies: splitList(col(row, 'quick_replies'), /\s*,\s*/),
+      cooldownHours: cd !== '' && Number.isFinite(Number(cd)) ? Math.max(0, Number(cd)) : 24, tags: splitList(col(row, 'tags'), /\s*,\s*/), priority: Number(col(row, 'priority')) || 0,
+      platform: ['instagram', 'whatsapp'].includes(col(row, 'platform').toLowerCase()) ? col(row, 'platform').toLowerCase() : 'all',
+    };
+    const e = validateRule(r); if (e.length) { errors.push('row ' + (i + 2) + ' (' + id + '): ' + e[0]); return; }
+    seen.add(id); rules.push(r);
+  });
+  return { rules, errors };
+}
+const safeCell = v => { v = String(v == null ? '' : v); return /^[=+\-@]/.test(v) ? "'" + v : v; };
+const ruleToRow = r => [r.id, r.enabled ? 'TRUE' : 'FALSE', r.name, r.trigger, r.keywords.join(', '), r.match, r.mediaId || '', r.commentReplies.join(' | '), r.privateReply || '', r.dm || '', r.buttonLabel || '', r.buttonUrl || '', r.quickReplies.join(', '), String(r.cooldownHours), r.tags.join(', '), String(r.priority), r.platform && r.platform !== 'all' ? r.platform : ''].map(safeCell);
+const blankRule = () => ({ id: '', name: '', enabled: false, trigger: 'comment', keywords: [], match: 'word', mediaId: undefined, commentReplies: [], privateReply: undefined, dm: undefined, buttonLabel: undefined, buttonUrl: undefined, quickReplies: [], cooldownHours: 24, tags: [], priority: 0, platform: 'all' });
+function settingsFromStatus(map) {
+  const out = {}, num = (k, lo, hi) => { const raw = (map[k] || '').trim(), n = Number(raw); return raw !== '' && Number.isFinite(n) && n >= lo && n <= hi ? Math.round(n) : undefined; };
+  const list = k => { const l = splitList(map[k], /\s*,\s*/); return l.length ? l : undefined; }, text = k => (map[k] || '').trim() || undefined;
+  const set = (k, v) => { if (v !== undefined) out[k] = v; };
+  set('hourlyCap', num('hourly_cap', 1, 1000)); set('handoffHours', num('handoff_hours', 1, 168)); set('activeFromHour', num('active_from', 0, 23)); set('activeToHour', num('active_to', 0, 23));
+  set('utcOffsetMinutes', num('utc_offset_minutes', -720, 840)); set('optOutWords', list('opt_out_words')); set('handoffWords', list('handoff_words')); set('optOutReply', text('opt_out_reply')); set('handoffReply', text('handoff_reply'));
+  const vars = {}; Object.keys(map).forEach(k => { if (k.startsWith('var_') && /^[a-z_]+$/.test(k.slice(4)) && String(map[k]).trim()) vars[k.slice(4)] = String(map[k]).trim(); });
+  if (Object.keys(vars).length) out.vars = vars;
+  return out;
+}
+
+
+/* ---- Ready-made ProHost replies ---- */
+const PROHOST_TEMPLATES = [
+  { title: 'Send the app link when someone comments', hint: 'Public reply + private DM with the Google Play link', r: { name: 'Play link on comment', trigger: 'comment', keywords: ['link', 'app', 'download'], commentReplies: ['Sent you a DM! 📩', 'Check your DMs 👋'], privateReply: "Here's the ProHost app: {link_play}\nProHost for iPhone is coming soon.", tags: ['lead'], priority: 1 } },
+  { title: 'Story reply thank-you', hint: 'Answers anyone who replies to a story', r: { name: 'Story reply thanks', trigger: 'story_reply', keywords: [], dm: 'Thanks for the reply, {first_name}! Get ProHost on Google Play: {link_play} (iPhone coming soon).', tags: ['story'] } },
+  { title: 'Welcome DM with quick choices', hint: 'First message from a new person', r: { name: 'First DM welcome', trigger: 'dm_welcome', keywords: [], dm: 'Hi {first_name}! Welcome to ProHost, where you rent or list spaces by the hour, day or month. Which are you?', quickReplies: ['Host', 'Professional'], tags: ['welcome'] } },
+  { title: 'I want to list my space', hint: 'Host questions, with the launch offer', r: { name: 'Hosts: how to list', trigger: 'dm_keyword', keywords: ['host', 'list my space', 'landlord', 'owner'], dm: 'Great! You publish your space with ProHost Premium. Right now: 4 months free on the monthly plan, or 50% off your first year. Start here: {link_play}', buttonLabel: 'Get ProHost', buttonUrl: 'https://pro-host.tech/ig', tags: ['host'], priority: 2 } },
+  { title: 'I need a room', hint: 'Professionals looking for a space', r: { name: 'Professionals: find a room', trigger: 'dm_keyword', keywords: ['professional', 'need a room', 'rent a room', 'book'], dm: 'Browsing and booking is free on ProHost. Search rooms by the hour, day or month, then send a booking request: {link_play}', tags: ['professional'], priority: 2 } },
+  { title: 'Is there an iPhone version?', hint: 'iOS question', r: { name: 'iOS coming soon', trigger: 'dm_keyword', keywords: ['ios', 'iphone', 'apple', 'app store'], dm: 'ProHost for iPhone is coming soon! Meanwhile it is on Google Play: {link_play}', tags: ['ios'], priority: 3 } },
+  { title: 'Anyone who mentions us in a story', hint: 'Thank-you DM', r: { name: 'Story mention thanks', trigger: 'story_mention', keywords: [], dm: 'Thank you for the mention, {first_name}! 🙌 Get ProHost: {link_play}', tags: ['mention'] } },
+  { title: 'Catch-all DM answer', hint: 'Anything else, once a day', r: { name: 'Default DM answer', trigger: 'dm_default', keywords: [], dm: 'Thanks for writing! Get the app here: {link_play}. A person from our team will follow up if you need more help.', priority: -1, cooldownHours: 24 } },
+];
+
+
+/* Generic starters for any other brand (no links of their own yet: use {first_name} and add a button). */
+const GENERIC_TEMPLATES = [
+  { title: 'Welcome DM', hint: 'First message from a new person', r: { name: 'First DM welcome', trigger: 'dm_welcome', keywords: [], dm: 'Hi {first_name}! Thanks for writing. How can we help?', tags: ['welcome'] } },
+  { title: 'Story reply thank-you', hint: 'Answers anyone who replies to a story', r: { name: 'Story reply thanks', trigger: 'story_reply', keywords: [], dm: 'Thanks for the reply, {first_name}! 🙌', tags: ['story'] } },
+  { title: 'Comment: send details by DM', hint: 'Public reply + private DM when someone asks for info', r: { name: 'Info on comment', trigger: 'comment', keywords: ['info', 'price', 'details', 'link'], commentReplies: ['Sent you a DM! 📩', 'Check your DMs 👋'], privateReply: 'Hi {first_name}, here are the details you asked for.', tags: ['lead'], priority: 1 } },
+  { title: 'Catch-all DM answer', hint: 'Anything else, once a day', r: { name: 'Default DM answer', trigger: 'dm_default', keywords: [], dm: 'Thanks for writing! A member of our team will follow up if you need more help.', priority: -1, cooldownHours: 24 } },
+];
+const templates = () => (S.brand === LEGACY ? PROHOST_TEMPLATES : GENERIC_TEMPLATES);
+
+/* ---- State and Google Sheets I/O (one spreadsheet holds every brand; non-ProHost tabs carry the brand prefix) ---- */
+const SHEET_ID = '1cyZ03fpBArHF1_GeYZkK4k0XImccR4xfVnkyO3mSLA8';
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/edit';
+const LEGACY = 'prohost';
+const WEBHOOKS = { instagram: 'https://pro-host.tech/ig-webhook', whatsapp: 'https://pro-host.tech/wa-webhook' };
+const BRAND_TABS = ['Rules', 'Log', 'Contacts', 'Status', 'Knowledge', 'Learn', 'Leads', 'Profile', 'Buttons', 'Playbooks', 'Sources', 'KnowledgeDraft'];
+const SECRET_KEYS = { instagram: ['access_token', 'app_secret', 'verify_token'], whatsapp: ['access_token', 'app_secret', 'verify_token'], ai: ['anthropic_key', 'gemini_key'] };
+
+const emptyB = () => ({ ready: false, rules: [], ruleErrors: [], log: [], contacts: [], knowledge: [], learn: [], leads: [], status: {}, profile: {}, buttons: [], playbooks: [], sources: [], draft: [] });
+const S = {
+  view: 'dash', inbox: 'log', mcp: null, dl: null, brand: LEGACY, brands: [], platforms: [], secrets: {}, B: emptyB(),
+  loaded: false, busy: false, err: '', syncedAt: 0, logFilter: 'all', logQ: '', peopleQ: '', confirmLive: false,
+  sim: { kind: 'comment', channel: 'instagram', text: 'link please', username: 'rana', mediaId: '', first: true, optedOut: false, handoff: false, disabled: false },
+  editor: null, tpl: false, kedit: null, pedit: null, newBrand: false, building: false,
+};
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const prefixOf = id => (id === LEGACY ? '' : id + '_');
+const tabA1 = (tab, range, brand) => "'" + ((brand == null ? prefixOf(S.brand) : prefixOf(brand)) + tab).replace(/'/g, "''") + "'!" + range;
+const gA1 = (tab, range) => "'" + tab + "'!" + range;
+const sheetCall = (tool, input) => S.mcp.callTool('Google Sheets', tool, Object.assign({ spreadsheetId: SHEET_ID }, input), { cache: false }).then(r => (r && r.payload) || r || {});
+const getVals = async range => (await sheetCall('get_values', { range })).values || [];
+const putVals = (range, values) => sheetCall('update_values', { range, values });
+const parseTime = s => { const m = /^(\d{4})-(\d\d)-(\d\d) (\d\d):(\d\d):(\d\d)$/.exec(String(s || '')); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) : 0; };
+const ago = ms => { if (!ms) return 'never'; const s = Math.max(0, Math.round((Date.now() - ms) / 1000)); return s < 60 ? s + 's ago' : s < 3600 ? Math.round(s / 60) + ' min ago' : s < 86400 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' d ago'; };
+const when = ms => ms ? new Date(ms).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+const truthyS = v => /^(true|yes|y|1|on|✓|✔)$/i.test(String(v || '').trim());
+const falsyS = v => /^(false|no|n|0|off)$/i.test(String(v || '').trim());
+const cur = () => S.brands.find(b => b.id === S.brand) || { id: S.brand, name: S.brand, enabled: true };
+const platformRow = (brand, platform) => S.platforms.find(p => p.brandId === brand && p.platform === platform);
+const secretInfo = (brand, platform, key) => S.secrets[brand + '|' + platform + '|' + key] || null;
+
+function friendly(e) {
+  const m = String((e && e.message) || e || ''), c = e && e.code;
+  if (c === 'server_not_connected' || /not.?connected/i.test(m)) return 'Google Sheets is not connected for this page. Add it under claude.ai Settings › Connectors, then press Refresh.';
+  if (c === 'needs_reauth') return 'The Google Sheets connection expired. Reconnect it in claude.ai Settings › Connectors.';
+  if (c === 'not_in_manifest' || c === 'consent_required' || c === 'approval_required') return 'This page was not allowed to use Google Sheets. Allow it when asked, then press Refresh.';
+  if (/not found|404|Unable to parse range/i.test(m)) return 'A sheet tab was not found yet (' + m.slice(0, 90) + '). New brands get their tabs within a minute.';
+  if (/permission|403|forbidden/i.test(m)) return 'No access to the control-room sheet from this account.';
+  return m || 'Could not reach the sheet.';
+}
+
+/* ---- Loading ---- */
+async function loadRegistry() {
+  const [bv, pv, sv] = await Promise.all([getVals(gA1('Brands', 'A1:E60')), getVals(gA1('Platforms', 'A1:J200')), getVals(gA1('Secrets', 'A1:E300')).catch(() => [])]);
+  S.brands = bv.slice(1).filter(r => (r[0] || '').trim()).map((r, i) => ({ row: i + 2, id: String(r[0]).trim().toLowerCase(), name: (r[1] || r[0]).trim(), enabled: !falsyS(r[2] || ''), note: r[4] || '' }));
+  if (!S.brands.some(b => b.id === LEGACY)) S.brands.unshift({ row: 0, id: LEGACY, name: 'ProHost', enabled: true, note: '' });
+  S.platforms = pv.slice(1).map((r, i) => ({ row: i + 2, brandId: String(r[0] || '').trim().toLowerCase(), platform: String(r[1] || '').trim().toLowerCase(), accountId: r[2] || '', appId: r[3] || '', wabaId: r[4] || '', phoneId: r[5] || '', templateName: r[6] || '', templateLang: r[7] || 'en', enabled: !falsyS(r[8] || 'TRUE'), status: r[9] || '' })).filter(p => p.brandId && p.platform);
+  S.secrets = {};
+  sv.slice(1).forEach((r, i) => { const k = String(r[0] || '').toLowerCase() + '|' + String(r[1] || '').toLowerCase() + '|' + String(r[2] || '').toLowerCase(); if (k !== '||') S.secrets[k] = { row: i + 2, status: r[4] || '' }; });
+}
+
+async function loadBrand() {
+  const id = S.brand, B = emptyB();
+  try {
+    const [rv, lv, cv, sv, kv, nv, ldv, pv, bv, pbv, srv, dv] = await Promise.all([
+      getVals(tabA1('Rules', 'A1:Q500')), getVals(tabA1('Log', 'A1:J2001')), getVals(tabA1('Contacts', 'A1:G501')), getVals(tabA1('Status', 'A1:B100')),
+      getVals(tabA1('Knowledge', 'A1:B200')).catch(() => []), getVals(tabA1('Learn', 'A1:F300')).catch(() => []), getVals(tabA1('Leads', 'A1:O500')).catch(() => []),
+      getVals(tabA1('Profile', 'A1:B60')).catch(() => []), getVals(tabA1('Buttons', 'A1:K40')).catch(() => []), getVals(tabA1('Playbooks', 'A1:C40')).catch(() => []),
+      getVals(tabA1('Sources', 'A1:D40')).catch(() => []), getVals(tabA1('KnowledgeDraft', 'A1:D100')).catch(() => []),
+    ]);
+    const pr = parseRules(rv); B.rules = pr.rules; B.ruleErrors = pr.errors;
+    B.log = lv.slice(1).filter(r => r.some(c => c)).map(r => ({ t: parseTime(r[0]), kind: r[1] || '', person: r[2] || '', text: r[3] || '', rule: r[4] || '', status: r[5] || '', reason: r[6] || '', reply: r[7] || '', error: r[8] || '', id: r[9] || '' })).sort((a, b) => b.t - a.t);
+    B.contacts = cv.slice(1).filter(r => r[0]).map(r => ({ id: r[0], username: r[1] || '', last: parseTime(r[2]), text: r[3] || '', tags: r[4] || '', opted: /^true$/i.test(r[5] || ''), handoff: r[6] || '' }));
+    B.knowledge = kv.slice(1).map((r, i) => ({ row: i + 2, q: r[0] || '', a: r[1] || '' })).filter(r => r.q || r.a);
+    B.learn = nv.slice(1).map((r, i) => ({ row: i + 2, time: r[0] || '', lang: r[1] || '', q: r[2] || '', times: r[3] || '1', status: r[4] || 'open', id: r[5] || '' })).filter(r => r.q);
+    const seen = {}; ldv.slice(1).filter(r => r[0] && r[9]).forEach(r => { seen[r[9]] = { time: r[0], ig: r[1] || '', name: r[2] || '', email: r[3] || '', role: r[4] || '', need: r[5] || '', lang: r[6] || '', consent: r[7] || '', id: r[9], whatsapp: r[10] || '', source: r[11] || '', profession: r[13] || '', city: r[14] || '' }; });
+    B.leads = Object.values(seen).sort((a, b) => (a.time < b.time ? 1 : -1));
+    sv.forEach(r => { const k = String(r[0] || '').trim().toLowerCase(); if (k && k !== 'key') B.status[k] = String(r[1] == null ? '' : r[1]); });
+    pv.slice(1).forEach(r => { const k = String(r[0] || '').trim().toLowerCase(); if (k) B.profile[k] = String(r[1] == null ? '' : r[1]); });
+    const bh = (bv[0] || []).map(h => String(h).trim().toLowerCase());
+    B.buttons = bv.slice(1).filter(r => (r[0] || '').trim()).map(r => ({ id: String(r[0]).trim(), url: r[bh.indexOf('url')] || '', labels: { en: r[bh.indexOf('label_en')] || '', ar: r[bh.indexOf('label_ar')] || '', fr: r[bh.indexOf('label_fr')] || '', es: r[bh.indexOf('label_es')] || '' } }));
+    B.playbooks = pbv.slice(1).filter(r => (r[0] || '').trim()).map(r => ({ name: r[0], enabled: !falsyS(r[1] || 'TRUE'), text: r[2] || '' }));
+    B.sources = srv.slice(1).map((r, i) => ({ row: i + 2, type: (r[0] || '').trim().toLowerCase(), ref: r[1] || '', note: r[2] || '', status: r[3] || '' })).filter(r => r.type || r.ref);
+    B.draft = dv.slice(1).map((r, i) => ({ row: i + 2, section: r[0] || '', text: r[1] || '', sources: r[2] || '', status: (r[3] || '').toLowerCase() })).filter(r => r.section);
+    B.ready = rv.length > 0 && sv.length > 0;
+  } catch (e) { S.B = B; throw e; }
+  S.B = B;
+}
+
+async function refreshAll(quiet) {
+  if (!S.mcp || S.busy) return; S.busy = true; if (!quiet) render();
+  try {
+    await loadRegistry();
+    if (!S.brands.some(b => b.id === S.brand)) S.brand = LEGACY;
+    await loadBrand().catch(e => { S.B = emptyB(); S.err = friendly(e); throw e; });
+    S.loaded = true; S.err = ''; S.syncedAt = Date.now();
+  } catch (e) { S.err = S.err || friendly(e); S.loaded = S.loaded || S.brands.length > 0; }
+  S.busy = false;
+  // A background refresh never replaces a form someone is typing in (the data is updated, the page is redrawn after the next save).
+  const typing = quiet && (Object.keys(dirty).length || Array.from(document.querySelectorAll('input[type=password]')).some(i => i.value));
+  if (!typing) render();
+}
+
+/* ---- Writes ---- */
+async function setKV(tab, obj, limit) {
+  const sv = await getVals(tabA1(tab, 'A1:B100')), rows = {}; let used = 1;
+  sv.forEach((r, i) => { const k = String(r[0] || '').trim().toLowerCase(); if (k) { rows[k] = i + 1; if (!limit || i + 1 < limit) used = Math.max(used, i + 1); } });
+  for (const k of Object.keys(obj)) {
+    let n = rows[k]; if (!n) { n = ++used; rows[k] = n; if (limit && n >= limit) throw new Error(tab + ' tab is full'); }
+    await putVals(tabA1(tab, 'A' + n + ':B' + n), [[k, safeCell(obj[k])]]);
+  }
+}
+const setStatus = obj => setKV('Status', obj, 40);
+const setProfile = obj => setKV('Profile', obj);
+
+async function writeTable(tab, header, rows, oldCount) {
+  const table = [header].concat(rows.map(r => r.map(safeCell)));
+  for (let i = rows.length; i < oldCount; i++) table.push(header.map(() => ''));
+  await putVals(tabA1(tab, 'A1:' + String.fromCharCode(64 + header.length) + table.length), table);
+}
+const saveButtons = list => writeTable('Buttons', ['id', 'url', 'label_en', 'label_ar', 'label_fr', 'label_es'], list.map(b => [b.id, b.url, b.labels.en, b.labels.ar, b.labels.fr, b.labels.es]), S.B.buttons.length);
+const savePlaybooks = list => writeTable('Playbooks', ['name', 'enabled', 'text'], list.map(p => [p.name, p.enabled ? 'TRUE' : 'FALSE', p.text]), S.B.playbooks.length);
+const saveSources = list => writeTable('Sources', ['type', 'url_or_text', 'note', 'status'], list.map(s => [s.type, s.ref, s.note, s.status || '']), S.B.sources.length);
+const setDraftStatus = (row, status) => putVals(tabA1('KnowledgeDraft', 'D' + row), [[status]]);
+const saveDraftRow = (d) => putVals(tabA1('KnowledgeDraft', 'A' + d.row + ':D' + d.row), [[safeCell(d.section), safeCell(d.text), safeCell(d.sources), d.status]]);
+
+async function writeRules(mutator) {
+  const values = await getVals(tabA1('Rules', 'A1:Q500'));
+  const header = (values[0] || RULE_COLUMNS).map(h => String(h).trim().toLowerCase());
+  let rows = values.slice(1).filter(r => r.some(c => String(c || '').trim())).map(r => { const d = {}; RULE_COLUMNS.forEach(c => { const i = header.indexOf(c); d[c] = i >= 0 && r[i] != null ? String(r[i]) : ''; }); return d; });
+  const before = rows.length; rows = mutator(rows) || rows;
+  const table = [RULE_COLUMNS.slice()].concat(rows.map(d => RULE_COLUMNS.map(c => d[c] == null ? '' : d[c])));
+  for (let i = rows.length; i < before; i++) table.push(RULE_COLUMNS.map(() => ''));
+  await putVals(tabA1('Rules', 'A1:Q' + table.length), table);
+}
+const ruleDict = r => { const row = ruleToRow(r), d = {}; RULE_COLUMNS.forEach((c, i) => { d[c] = row[i]; }); return d; };
+async function saveRule(rule, isNew) {
+  await writeRules(rows => {
+    const i = rows.findIndex(d => d.id === rule.id);
+    if (isNew && i >= 0) throw new Error('A rule with the id "' + rule.id + '" already exists.');
+    if (i >= 0) rows[i] = ruleDict(rule); else rows.push(ruleDict(rule));
+    return rows;
+  });
+}
+const deleteRule = id => writeRules(rows => rows.filter(d => d.id !== id));
+const toggleRule = (id, on) => writeRules(rows => { const d = rows.find(x => x.id === id); if (d) d.enabled = on ? 'TRUE' : 'FALSE'; return rows; });
+
+async function writeKnowledge(rows) {
+  const table = [['question', 'answer']].concat(rows.map(r => [safeCell(r.q), safeCell(r.a)]));
+  for (let i = rows.length; i < S.B.knowledge.length; i++) table.push(['', '']);
+  await putVals(tabA1('Knowledge', 'A1:B' + table.length), table);
+}
+const saveKnowledgeRow = (row, q, a) => writeKnowledge(row ? S.B.knowledge.map(r => r.row === row ? { row, q, a } : r) : S.B.knowledge.concat([{ row: 0, q, a }]));
+const deleteKnowledgeRow = row => writeKnowledge(S.B.knowledge.filter(r => r.row !== row));
+async function answerLearn(item, answer) { await writeKnowledge(S.B.knowledge.concat([{ row: 0, q: item.q, a: answer }])); await putVals(tabA1('Learn', 'E' + item.row), [['answered']]); }
+const dismissLearn = item => putVals(tabA1('Learn', 'E' + item.row), [['ignored']]);
+
+/* Registry: brands, platforms, secrets */
+async function createBrand(name) {
+  const id = brandIdFrom(name);
+  if (!id) throw new Error('Use a name that starts with a letter (2-20 letters or digits).');
+  if (S.brands.some(b => b.id === id)) throw new Error('A brand with the id "' + id + '" already exists.');
+  const n = (await getVals(gA1('Brands', 'A1:A60'))).length + 1;
+  await putVals(gA1('Brands', 'A' + n + ':E' + n), [[id, safeCell(name.trim()), 'TRUE', '', 'created in the console']]);
+  return id;
+}
+const brandIdFrom = name => { const id = String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '').replace(/^[0-9]+/, '').slice(0, 20); return /^[a-z][a-z0-9]{1,19}$/.test(id) ? id : ''; };
+async function savePlatform(p) {
+  const values = [p.brandId, p.platform, p.accountId, p.appId, p.wabaId, p.phoneId, safeCell(p.templateName), p.templateLang || 'en', p.enabled ? 'TRUE' : 'FALSE'];
+  const row = p.row || (await getVals(gA1('Platforms', 'A1:A200'))).length + 1;
+  await putVals(gA1('Platforms', 'A' + row + ':I' + row), [values]);
+}
+async function saveSecrets(brand, platform, entries) {
+  const sv = await getVals(gA1('Secrets', 'A1:E300')); let next = sv.length + 1;
+  for (const [key, value] of entries) {
+    let row = 0; sv.forEach((r, i) => { if (String(r[0] || '').toLowerCase() === brand && String(r[1] || '').toLowerCase() === platform && String(r[2] || '').toLowerCase() === key) row = i + 1; });
+    if (!row) { row = next++; await putVals(gA1('Secrets', 'A' + row + ':C' + row), [[brand, platform, key]]); }
+    await putVals(gA1('Secrets', 'D' + row + ':E' + row), [[value, 'pending · the server takes it in within a minute']]);
+  }
+}
+const randomToken = () => { const a = new Uint8Array(16); (window.crypto || window.msCrypto).getRandomValues(a); return Array.from(a, x => ('0' + x.toString(16)).slice(-2)).join(''); };
+
+/* ---- Derived ---- */
+const engineSettings = () => { const o = settingsFromStatus(S.B.status); const dv = Object.assign({}, DEFAULTS); if (S.brand !== LEGACY) { dv.vars = {}; } return Object.assign({}, dv, o, { vars: Object.assign({}, dv.vars, o.vars || {}) }); };
+const effectiveMode = () => { const st = S.B.status, kill = /^(true|yes|1|on)$/i.test(st.kill_switch || ''); return kill ? 'kill' : (st.mode || '').toLowerCase() === 'live' ? 'live' : 'dry'; };
+function explainError(m) {
+  m = String(m || ''); if (!m) return '';
+  if (/190|access token|session has expired|invalid oauth/i.test(m)) return 'The access token expired or was revoked. Paste a new token in Platforms.';
+  if (/outside of allowed window|allowed window|24.?hour|2018278|131047/i.test(m)) return 'More than 24 hours since this person last wrote, so the platform blocks the message (WhatsApp then needs an approved template).';
+  if (/cannot message|2534014|user not found|can.?t be (?:messaged|found)/i.test(m)) return "The platform won't let us message this person (privacy settings, or they restricted messages).";
+  if (/already|duplicate|2534022|private repl/i.test(m)) return 'A private reply was already sent for this comment (Instagram allows one).';
+  if (/permission|\(#10\)|\(#200\)|not authorized/i.test(m)) return 'Missing permission. The Meta app needs the messaging permissions, and public accounts need Meta App Review.';
+  if (/rate|limit|#4\b|#17|#32|too many/i.test(m)) return 'Rate limit hit; we retried and gave up. It resolves by itself.';
+  if (/circuit/i.test(m)) return 'Sending is paused because of too many errors in the last hour. Fix the cause, then it resumes by itself.';
+  return m;
+}
+const slug = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+
+/* ---- Views ---- */
+const VIEWS = [['dash', 'Overview'], ['brand', 'Brand'], ['platforms', 'Platforms'], ['agent', 'Agent'], ['rules', 'Rules'], ['know', 'Knowledge'], ['inbox', 'Inbox'], ['sim', 'Simulator']];
+const STATUS_CHIP = { sent: 'good', 'dry-run': 'warn', failed: 'bad', paused: 'bad', flagged: 'bad', ignored: 'mute' };
+const chip = (t, c) => '<span class="chip ' + (c || '') + '">' + esc(t) + '</span>';
+const statusChip = s => chip(s || '—', STATUS_CHIP[s] || 'mute');
+const kindLabel = k => ({ comment: 'Comment', story_reply: 'Story reply', story_mention: 'Story mention', dm: 'DM', postback: 'Button' }[k] || k);
+const val = (k, d) => { const v = S.B.status[k]; return esc(v != null && v !== '' ? v : (d == null ? '' : d)); };
+const isOn = k => /^(true|yes|1|on)$/i.test(S.B.status[k] || '');
+const aiOn = () => isOn('ai_enabled');
+const fld = (label, id, value, o) => { o = o || {}; return '<label class="f' + (o.wide ? ' wide' : '') + '">' + label + (o.hint ? ' <small>' + o.hint + '</small>' : '') + (o.area ? '<textarea id="' + id + '" rows="' + (o.rows || 4) + '"' + (o.ph ? ' placeholder="' + esc(o.ph) + '"' : '') + '>' + esc(value) + '</textarea>' : '<input type="' + (o.type || 'text') + '" id="' + id + '" value="' + esc(value) + '"' + (o.ph ? ' placeholder="' + esc(o.ph) + '"' : '') + (o.max ? ' maxlength="' + o.max + '"' : '') + (o.type === 'password' ? ' autocomplete="new-password" spellcheck="false"' : '') + '>') + '</label>'; };
+const sw = (act, on, label, data) => '<label class="row"><span class="sw"><input type="checkbox" data-act="' + act + '"' + (data ? ' ' + data : '') + (on ? ' checked' : '') + ' aria-label="' + esc(label) + '"><i></i></span><span>' + esc(label) + '</span></label>';
+const g = id => ($(id) ? $(id).value.trim() : '');
+
+function modePill() {
+  const m = effectiveMode();
+  return m === 'live' ? '<span class="pill live">LIVE</span>' : m === 'kill' ? '<span class="pill kill">KILL SWITCH ON</span>' : '<span class="pill dry">DRY-RUN</span>';
+}
+function renderHeader() {
+  return '<header class="brandbar"><div class="bb"><span class="tile">' + (S.brand === LEGACY ? '<img alt="" src="data:image/png;base64,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">' : '<b class="mark">' + esc((cur().name || '?').charAt(0).toUpperCase()) + '</b>') + '</span><span class="word">Control<i>Room</i></span>' +
+    '<label class="bsel"><span class="mini" style="color:#C9D3E0">Brand</span><select id="brandsel" aria-label="Brand">' + S.brands.map(b => '<option value="' + esc(b.id) + '"' + (b.id === S.brand ? ' selected' : '') + '>' + esc(b.name) + (b.enabled ? '' : ' (off)') + '</option>').join('') + '</select></label>' +
+    '<button class="btn sm" data-act="newbrand" style="background:transparent;color:#fff;border-color:var(--navy-line)">+ New brand</button>' +
+    '<div class="pills">' + (S.loaded ? modePill() : '') + '<span class="pill">' + (S.busy ? 'syncing…' : S.syncedAt ? 'updated ' + ago(S.syncedAt) : 'not loaded') + '</span><button class="btn sm" data-act="refresh" style="background:transparent;color:#fff;border-color:var(--navy-line)">Refresh</button></div></div></header>' +
+    '<nav class="nav" aria-label="Sections"><div class="nav-in">' + VIEWS.map(v => '<button data-view="' + v[0] + '"' + (S.view === v[0] ? ' aria-current="page"' : '') + '>' + v[1] + '</button>').join('') + '</div></nav>';
+}
+
+/* ---- Overview ---- */
+function stats(windowMs) {
+  const from = Date.now() - windowMs, rows = S.B.log.filter(r => r.t >= from), c = { total: rows.length, sent: 0, 'dry-run': 0, failed: 0, ignored: 0, paused: 0 };
+  rows.forEach(r => { if (c[r.status] != null) c[r.status]++; });
+  c.people = new Set(rows.map(r => r.person)).size; return c;
+}
+function platformState(p) {
+  const row = platformRow(S.brand, p), st = row ? row.status : '';
+  return { row, ok: /^connected/i.test(st), text: st || 'not set up' };
+}
+function dashView() {
+  if (!S.loaded) return '';
+  if (!S.B.ready) return notReady();
+  const a = stats(864e5), w = stats(7 * 864e5), st = S.B.status, m = effectiveMode();
+  const daysLeft = st.health_token_days_left === '' || st.health_token_days_left == null ? null : Number(st.health_token_days_left);
+  const lastEv = S.B.log[0] ? S.B.log[0].t : 0, enabled = S.B.rules.filter(r => r.enabled).length;
+  const days = []; for (let i = 6; i >= 0; i--) { const d0 = new Date(); d0.setUTCHours(0, 0, 0, 0); const s = d0.getTime() - i * 864e5, rs = S.B.log.filter(r => r.t >= s && r.t < s + 864e5); days.push({ label: new Date(s).toLocaleDateString([], { weekday: 'short', timeZone: 'UTC' }), sent: rs.filter(r => r.status === 'sent').length, dry: rs.filter(r => r.status === 'dry-run').length, bad: rs.filter(r => r.status === 'failed' || r.status === 'paused').length, ign: rs.filter(r => r.status === 'ignored').length, n: rs.length }); }
+  const max = Math.max(1, ...days.map(d => d.n));
+  const byRule = {}; S.B.log.filter(r => r.t >= Date.now() - 7 * 864e5 && r.rule).forEach(r => { byRule[r.rule] = (byRule[r.rule] || 0) + 1; });
+  const top = Object.entries(byRule).sort((x, y) => y[1] - x[1]).slice(0, 6), topMax = top.length ? top[0][1] : 1;
+  const ig = platformState('instagram'), wa = platformState('whatsapp');
+  const kb = (S.B.profile.knowledge_base || '').length;
+  const steps = [
+    [true, 'Control-room sheet connected', 'Tabs for ' + cur().name + ' are readable.'],
+    [!!(S.B.profile.name || '').trim() && kb > 200, 'Brand profile and knowledge filled in', kb > 200 ? (kb + ' characters of knowledge') : 'Add what the business does under Brand, or build it from your website under Brand › Sources.'],
+    [ig.ok || wa.ok, 'A platform is connected', 'Instagram: ' + ig.text + ' · WhatsApp: ' + wa.text],
+    [S.B.log.length > 0, 'Messages are arriving', S.B.log.length ? 'Last event ' + ago(lastEv) : 'Send a test message to the connected account, then press Refresh.'],
+    [enabled > 0 || aiOn(), 'A rule or the AI agent is switched on', enabled + ' of ' + S.B.rules.length + ' rules on · AI agent ' + (aiOn() ? 'on' : 'off')],
+    [daysLeft == null || daysLeft >= 14, 'Access token healthy', daysLeft == null ? 'No expiry known.' : daysLeft + ' days left'],
+    [m === 'live', 'Mode is LIVE', m === 'live' ? 'Replies are really sent.' : m === 'kill' ? 'Kill switch is on.' : 'Dry-run: replies are logged, not sent.'],
+  ];
+  return (S.B.ruleErrors.length || st.health_rule_errors ? '<div class="banner warn"><b>Some rule rows are ignored:</b> ' + esc(S.B.ruleErrors.concat(st.health_rule_errors ? [st.health_rule_errors] : []).join(' • ')) + '</div>' : '') +
+    (st.health_profile_errors ? '<div class="banner warn"><b>Profile tab:</b> ' + esc(st.health_profile_errors) + '</div>' : '') +
+    (st.health_last_api_error ? '<div class="banner bad"><b>Last platform error:</b> ' + esc(explainError(st.health_last_api_error)) + '</div>' : '') +
+    (m === 'dry' ? '<div class="banner info"><b>Dry-run.</b> Nothing is sent yet. The log shows what would be sent. Switch to LIVE under Agent when you are happy.</div>' : '') +
+    '<div class="grid"><div class="stat"><b>' + a.total + '</b><span>events, last 24 h</span></div><div class="stat good"><b>' + a.sent + '</b><span>replies sent</span></div><div class="stat warn"><b>' + a['dry-run'] + '</b><span>would send (dry-run)</span></div><div class="stat ' + (a.failed + a.paused ? 'bad' : '') + '"><b>' + (a.failed + a.paused) + '</b><span>failed or paused</span></div><div class="stat"><b>' + a.people + '</b><span>people, 24 h</span></div><div class="stat"><b>' + w.total + '</b><span>events, 7 days</span></div></div>' +
+    '<div class="card"><div class="row"><h3>Last 7 days</h3></div><div class="bars" role="img" aria-label="Events per day">' +
+    days.map(d => '<div><div class="col" style="height:' + (d.n ? Math.max(6, Math.round(d.n / max * 82)) : 3) + 'px">' + [[d.sent, 'var(--good)'], [d.dry, 'var(--warn)'], [d.bad, 'var(--bad)'], [d.ign, 'var(--line2)']].map(([n, c]) => n ? '<span style="flex:' + n + ';background:' + c + '"></span>' : '').join('') + '</div><span>' + d.n + '</span><span>' + d.label + '</span></div>').join('') + '</div></div>' +
+    '<div class="form"><div class="card"><h3>Top rules, 7 days</h3>' + (top.length ? top.map(([n, c]) => '<div style="margin-top:10px"><div class="row"><span>' + esc(n) + '</span><b class="sp num">' + c + '</b></div><div class="bar" style="width:' + Math.round(c / topMax * 100) + '%"></div></div>').join('') : '<p class="empty">No rule has replied yet.</p>') +
+    '<div class="mini" style="margin-top:12px">AI replies today: <b>' + esc(st.health_ai_replies_today || '0') + '</b> · tokens ' + esc(st.health_ai_tokens_today || '-') + '</div></div>' +
+    '<div class="card"><h3>Go-live checklist</h3><ul class="steps" style="margin-top:10px">' + steps.map(s => '<li><span class="dot ' + (s[0] ? 'ok' : 'no') + '">' + (s[0] ? '✓' : '!') + '</span><div><b>' + esc(s[1]) + '</b><div class="mini">' + esc(s[2]) + '</div></div></li>').join('') + '</ul></div></div>' +
+    '<div class="card mini">Backend sync ' + (st.health_synced_at ? esc(st.health_synced_at) + ' UTC' : 'has not run yet') + ' · sent this hour ' + esc(st.health_sent_this_hour || '0') + ' · hourly cap ' + esc(String(engineSettings().hourlyCap)) + ' · <a href="' + SHEET_URL + '" target="_blank" rel="noopener">open the sheet</a></div>';
+}
+function notReady() {
+  return '<div class="card"><h3>Setting up ' + esc(cur().name) + '…</h3><p class="mini" style="margin-top:6px">The server creates this brand\'s tabs in the sheet within about a minute (it runs every minute). Press Refresh to check. Nothing else is needed.</p><div class="row" style="margin-top:10px"><button class="btn pri" data-act="refresh">Refresh</button></div></div>';
+}
+
+/* ---- Brand ---- */
+const INTEG = [['integration_offers', 'Live Premium offers from Google Play'], ['integration_listings', 'Live listings catalogue and space finder'], ['integration_account_lookup', 'App account lookup by email'], ['integration_release', 'Release notes ("what\'s new")']];
+function brandView() {
+  if (!S.loaded) return '';
+  if (!S.B.ready) return notReady();
+  const P = S.B.profile, isPro = S.brand === LEGACY, kb = P.knowledge_base || '';
+  const needBuild = S.B.status.build_knowledge || '';
+  return '<h2>' + esc(cur().name) + '</h2><p class="mini">Everything the assistant knows about this business. Saved to the sheet; the server applies it within a minute.</p>' +
+    '<div class="card"><h3>Identity</h3><div class="form" style="margin-top:10px">' +
+    fld('Brand name', 'b_name', P.name || cur().name) + fld('Assistant name <small>how it introduces itself, e.g. "Acme\'s automated assistant"</small>', 'b_aname', P.assistant_name || '') +
+    fld('Contact email <small>alerts and the fallback reply</small>', 'b_email', P.contact_email || '', { type: 'text' }) + fld('Languages <small>comma separated, e.g. en, ar, fr</small>', 'b_langs', P.languages || 'en') +
+    fld('Purpose <small>one sentence: what the assistant helps people with</small>', 'b_purpose', P.purpose || '', { wide: true, area: true, rows: 2 }) +
+    fld('Voice and selling approach <small>how it sounds and sells; cannot override the locked rules (Agent › Locked core)</small>', 'b_persona', P.persona || '', { wide: true, area: true, rows: 7 }) +
+    '</div><div class="row" style="margin-top:12px"><span class="mini sp">Name, assistant name, contact, languages, purpose and voice</span><button class="btn pri" data-act="saveidentity">Save identity</button></div></div>' +
+    '<div class="card"><div class="row"><h3>Business knowledge</h3><span class="sp mini num" id="kbcount">' + kb.length + ' characters</span></div><p class="mini" style="margin:4px 0 8px">What the assistant answers from: products, how it works, prices only as stated, contact, policies. Build it from your sources below, or write it yourself. Without knowledge the assistant only says it does not know.</p>' +
+    '<textarea id="b_kb" rows="14" style="width:100%">' + esc(kb) + '</textarea><div class="row" style="margin-top:10px"><span class="mini sp">Max about 45,000 characters</span><button class="btn pri" data-act="saveknowledgebase">Save knowledge</button></div></div>' +
+    sourcesCard(needBuild) + draftCard() + buttonsCard() +
+    '<div class="card"><h3>Data providers</h3><p class="mini" style="margin:4px 0 8px">' + (isPro ? 'ProHost-only connections to its own app data. They stay on for ProHost.' : 'These read ProHost\'s own app data (Google Play offers, listings, accounts). They are off for other brands and cannot be turned on from here.') + '</p>' +
+    INTEG.map(([k, label]) => '<div class="row" style="margin-top:6px">' + (isPro ? sw('integ', !/^false$/i.test(P[k] || 'TRUE'), label, 'data-k="' + k + '"') : '<span class="dot no">–</span><span class="muted">' + esc(label) + ': off</span>') + '</div>').join('') + '</div>';
+}
+function sourcesCard(needBuild) {
+  const rows = S.B.sources;
+  return '<div class="card"><div class="row"><h3>Knowledge sources</h3><span class="sp"></span><button class="btn sm" data-act="addsource">+ Add source</button></div>' +
+    '<p class="mini" style="margin:4px 0 8px"><b>url</b> a public https page · <b>repo</b> a public GitHub repo (or <span class="mono">…repo#docs/FAQ.md</span>) · <b>drive</b> a Google Doc, PDF or Word file shared with the service account · <b>text</b> pasted text.</p>' +
+    (rows.length ? rows.map((s, i) => '<div class="srcrow" data-src="' + i + '"><select data-f="type" aria-label="Type">' + ['url', 'repo', 'drive', 'text'].map(t => '<option' + (s.type === t ? ' selected' : '') + '>' + t + '</option>').join('') + '</select><input type="text" data-f="ref" value="' + esc(s.ref) + '" placeholder="https://… or text" aria-label="Link or text"><input type="text" data-f="note" value="' + esc(s.note) + '" placeholder="Label" aria-label="Label"><button class="btn sm danger" data-act="delsource" data-i="' + i + '" aria-label="Remove source">✕</button>' + (s.status ? '<div class="mini srcstat' + (/^FAILED/.test(s.status) ? ' bad' : '') + '">' + esc(s.status) + '</div>' : '') + '</div>').join('') : '<p class="empty">No sources yet.</p>') +
+    '<div class="row" style="margin-top:12px"><span class="mini sp">' + (/^(request|working)/i.test(needBuild) ? 'Building…' : needBuild ? esc(needBuild) : '') + '</span><button class="btn" data-act="savesources">Save sources</button><button class="btn cta" data-act="buildknowledge"' + (S.building ? ' disabled' : '') + '>Build knowledge</button></div></div>';
+}
+function draftCard() {
+  const d = S.B.draft;
+  if (!d.length) return '';
+  const pending = d.filter(x => x.status === 'draft').length;
+  return '<div class="card"><div class="row"><h3>Review the draft</h3><span class="sp mini">' + pending + ' to review</span></div><p class="mini" style="margin:4px 0 8px">The AI drafted this from your sources. Edit anything, then approve the sections that are right. Approved sections become the live knowledge within a minute. Nothing reaches the assistant until you approve it.</p>' +
+    d.map(x => '<div class="draft" data-draft="' + x.row + '"><div class="row"><b>' + esc(x.section) + '</b>' + chip(x.status || 'draft', x.status === 'applied' ? 'good' : x.status === 'approved' ? 'warn' : 'mute') + '<span class="mini sp">' + esc(x.sources) + '</span></div><textarea data-f="text" rows="4">' + esc(x.text) + '</textarea><div class="row"><button class="btn sm pri" data-act="approve" data-row="' + x.row + '">Approve</button><button class="btn sm" data-act="draftsave" data-row="' + x.row + '">Save edit</button><button class="btn sm danger" data-act="reject" data-row="' + x.row + '">Reject</button></div></div>').join('') + '</div>';
+}
+function buttonsCard() {
+  const b = S.B.buttons;
+  return '<div class="card"><div class="row"><h3>Buttons</h3><span class="sp"></span><button class="btn sm" data-act="addbutton">+ Add button</button></div><p class="mini" style="margin:4px 0 8px">Links the assistant can attach to a message (a Book, Website or WhatsApp button). Labels max 20 characters, https links only. Leave a language empty to use English.</p>' +
+    (b.length ? b.map((x, i) => '<div class="btnrow" data-btn="' + i + '"><input type="text" data-f="id" value="' + esc(x.id) + '" placeholder="id e.g. book" aria-label="Button id"><input type="text" data-f="url" value="' + esc(x.url) + '" placeholder="https://…" aria-label="Link"><input type="text" data-f="en" value="' + esc(x.labels.en) + '" placeholder="English label" maxlength="20" aria-label="English label"><input type="text" data-f="ar" value="' + esc(x.labels.ar) + '" placeholder="Arabic" maxlength="20" aria-label="Arabic label" dir="rtl"><input type="text" data-f="fr" value="' + esc(x.labels.fr) + '" placeholder="French" maxlength="20" aria-label="French label"><input type="text" data-f="es" value="' + esc(x.labels.es) + '" placeholder="Spanish" maxlength="20" aria-label="Spanish label"><button class="btn sm danger" data-act="delbutton" data-i="' + i + '" aria-label="Remove button">✕</button></div>').join('') : '<p class="empty">No buttons yet.</p>') +
+    '<div class="row" style="margin-top:12px"><span class="mini sp"></span><button class="btn pri" data-act="savebuttons">Save buttons</button></div></div>';
+}
+
+/* ---- Platforms ---- */
+const PLAT = {
+  instagram: { name: 'Instagram', blurb: 'Comments, story replies and DMs of one Instagram professional account (Instagram login API).', idLabel: 'Instagram account id', idHint: 'filled in automatically when you save a valid access token' },
+  whatsapp: { name: 'WhatsApp Business', blurb: 'Chats on one WhatsApp Business Cloud API number. Free-form replies work for 24 hours after the person last wrote.', idLabel: 'Phone number id', idHint: 'from Meta › WhatsApp › API setup (not the phone number itself)' },
+};
+function secretLine(brand, platform, key, label) {
+  const info = secretInfo(brand, platform, key), st = info ? info.status : '';
+  const good = /^set /.test(st), pend = /^pending/.test(st), bad = /^REJECTED/.test(st);
+  return '<div class="secret"><label class="f">' + label + '<span class="row"><input type="password" id="sec_' + platform + '_' + key + '" autocomplete="new-password" spellcheck="false" placeholder="' + (good ? 'saved — paste a new value to replace' : 'paste it here') + '">' + (key === 'verify_token' ? '<button class="btn sm" type="button" data-act="gentoken" data-target="sec_' + platform + '_' + key + '">Generate</button>' : '') + '</span></label>' + (st ? '<div class="mini ' + (bad ? 'bad' : good ? 'okc' : '') + '">' + chip(bad ? 'rejected' : good ? 'saved' : pend ? 'pending' : '—', bad ? 'bad' : good ? 'good' : 'warn') + ' ' + esc(st) + '</div>' : '<div class="mini">' + chip('not set', 'mute') + '</div>') + '</div>';
+}
+function platformCard(key) {
+  const meta = PLAT[key], row = platformRow(S.brand, key) || { brandId: S.brand, platform: key, accountId: '', appId: '', wabaId: '', phoneId: '', templateName: '', templateLang: 'en', enabled: true, status: '', row: 0 };
+  const st = platformState(key), wa = key === 'whatsapp';
+  return '<div class="card" data-plat="' + key + '"><div class="row"><h3>' + meta.name + '</h3>' + chip(st.ok ? 'connected' : 'not connected', st.ok ? 'good' : 'warn') + '<span class="sp mini">' + esc(st.row ? st.row.status : '') + '</span></div><p class="mini" style="margin:4px 0 10px">' + meta.blurb + '</p>' +
+    '<div class="form">' + (wa ? fld('Phone number id <small>' + meta.idHint + '</small>', 'p_' + key + '_phone', row.phoneId) + fld('WhatsApp Business account id', 'p_' + key + '_waba', row.wabaId) : fld(meta.idLabel + ' <small>' + meta.idHint + '</small>', 'p_' + key + '_acct', row.accountId)) +
+    fld('App ID <small>empty = the shared Meta app</small>', 'p_' + key + '_app', row.appId) + (wa ? fld('Template name <small>approved template for messages outside 24 h</small>', 'p_' + key + '_tpl', row.templateName) + fld('Template language', 'p_' + key + '_lang', row.templateLang) : '') + '</div>' +
+    '<div class="row" style="margin-top:10px">' + sw('platenabled', row.enabled, 'Enabled', 'data-p="' + key + '"') + '<span class="sp"></span><button class="btn pri" data-act="saveplatform" data-p="' + key + '">Save platform</button></div>' +
+    '<h3 style="margin-top:18px">Credentials</h3><p class="mini" style="margin:4px 0 8px">Typed here, taken in by the server within a minute, checked with Meta, stored server-side only, and then <b>erased from the sheet</b>. The page never shows them again. Leave a field empty to keep the saved value.</p>' +
+    '<div class="form">' + SECRET_KEYS[key].map(k => secretLine(S.brand, key, k, { access_token: 'Access token', app_secret: 'App secret (app\'s Basic settings)', verify_token: 'Webhook verify token (you choose it)' }[k])).join('') + '</div>' +
+    '<div class="row" style="margin-top:10px"><span class="mini sp">Secrets sit in your Google Sheet only until the server collects them; sheet version history may keep a copy in your Drive.</span><button class="btn pri" data-act="savesecrets" data-p="' + key + '">Save credentials</button></div>' +
+    '<h3 style="margin-top:18px">Connect it in Meta</h3><ul class="steps" style="margin-top:8px"><li><span class="dot no">1</span><div>Callback URL <span class="copy">' + WEBHOOKS[key] + '</span> <button class="btn sm" data-act="copy" data-t="' + WEBHOOKS[key] + '">Copy</button></div></li><li><span class="dot no">2</span><div>Verify token: the same value you saved above.</div></li><li><span class="dot no">3</span><div>' + (wa ? 'Subscribe the app to the <b>messages</b> field of the WhatsApp Business Account.' : 'Subscribe to <b>comments, messages, messaging_postbacks</b>; the server also subscribes the account when a valid token is saved.') + '</div></li></ul></div>';
+}
+function platformsView() {
+  if (!S.loaded) return '';
+  return '<h2>Platforms of ' + esc(cur().name) + '</h2><p class="mini">Each platform has its own account, app and credentials. A brand can use one or both; the same assistant and rules answer on both (a rule can be limited to one platform).</p>' + platformCard('instagram') + platformCard('whatsapp');
+}
+
+/* ---- Agent ---- */
+function agentView() {
+  if (!S.loaded) return '';
+  if (!S.B.ready) return notReady();
+  const st = S.B.status, es = engineSettings(), tz = -new Date().getTimezoneOffset();
+  const vars = Object.keys(st).filter(k => k.startsWith('var_')).map(k => k.slice(4) + ' = ' + st[k]).join('\n');
+  const prov = st.ai_provider || 'vertex';
+  const keyNeeded = prov === 'gemini' ? 'gemini_key' : prov === 'anthropic' ? 'anthropic_key' : '';
+  return '<div class="row"><h2>Agent</h2><span class="sp"></span>' + sw('aitoggle', aiOn(), aiOn() ? 'AI agent on' : 'AI agent off') + '</div>' +
+    '<p class="mini">Answers DMs no keyword rule handled, in the language the person writes, from this brand\'s knowledge. It always says it is an AI. Quiet while the kill switch is on; logs without sending in dry-run.</p>' +
+    '<div class="card"><h3>Mode</h3><p class="mini" style="margin:4px 0 10px">Dry-run records what would be sent. LIVE sends real replies to real people.</p><div class="row"><div class="seg" role="group" aria-label="Mode"><button data-act="mode" data-m="dry-run" aria-pressed="' + ((st.mode || '').toLowerCase() !== 'live') + '">Dry-run</button><button data-act="mode" data-m="live" aria-pressed="' + ((st.mode || '').toLowerCase() === 'live') + '">Live</button></div>' +
+    '<label class="row" style="margin-left:auto"><span><b>Kill switch</b><br><span class="mini">Stops all sending within a minute</span></span><span class="sw"><input type="checkbox" data-act="kill"' + (isOn('kill_switch') ? ' checked' : '') + ' aria-label="Kill switch"><i></i></span></label></div>' +
+    (S.confirmLive ? '<div class="banner warn" style="margin-top:12px"><b>Go LIVE for ' + esc(cur().name) + '?</b> Matching messages will get real replies. Turn off any other automation tool on the same account first or people get two answers.<div class="row" style="margin-top:8px"><button class="btn cta" data-act="golive">Yes, go live</button><button class="btn" data-act="cancellive">Not yet</button></div></div>' : '') + '</div>' +
+    '<div class="card"><h3>AI settings</h3><div class="form" style="margin-top:10px"><label class="f">Provider<select id="ai_provider"><option value="vertex"' + (prov === 'vertex' ? ' selected' : '') + '>Claude on Google Vertex AI (no key)</option><option value="anthropic"' + (prov === 'anthropic' ? ' selected' : '') + '>Anthropic API key</option><option value="gemini"' + (prov === 'gemini' ? ' selected' : '') + '>Gemini API key</option></select></label>' +
+    fld('Model', 'ai_model', st.ai_model || '', { ph: 'claude-haiku-4-5@20251001' }) + fld('Vertex region', 'ai_region', st.ai_region || '', { ph: 'global' }) + fld('Max AI replies per day', 'ai_cap', st.ai_daily_cap || '', { type: 'number', ph: '300' }) + fld('Max AI replies per person per hour', 'ai_pp', st.ai_per_person_per_hour || '', { type: 'number', ph: '12' }) +
+    '<div class="f">Public comments<div class="row">' + sw('aicomments', !/^(false|no|0|off)$/i.test(st.ai_comments || 'TRUE'), 'Answer by intent') + sw('aicommentdm', !/^(false|no|0|off)$/i.test(st.ai_comment_dm || 'TRUE'), 'Thank + one opening DM') + '</div></div></div>' +
+    (keyNeeded ? '<div class="form" style="margin-top:12px">' + secretLine(S.brand, 'ai', keyNeeded, prov === 'gemini' ? 'Gemini API key' : 'Anthropic API key') + '</div><div class="row" style="margin-top:6px"><button class="btn" data-act="savesecrets" data-p="ai">Save key</button></div>' : '') +
+    '<div class="row" style="margin-top:12px"><span class="mini sp">Saved to the Status tab; live within a minute.</span><button class="btn pri" data-act="aisave">Save AI settings</button></div></div>' +
+    playbooksCard() + coreCard() +
+    '<div class="card"><h3>Replies and safety</h3><div class="form" style="margin-top:10px">' +
+    fld('Max replies per hour (all platforms)', 'k_cap', st.hourly_cap || '', { type: 'number', ph: String(es.hourlyCap) }) + fld('Pause for a human (hours)', 'k_hh', st.handoff_hours || '', { type: 'number', ph: String(es.handoffHours) }) +
+    fld('Active from hour <small>0-23, empty = always</small>', 'k_af', st.active_from || '', { type: 'number' }) + fld('Active until hour', 'k_at', st.active_to || '', { type: 'number' }) +
+    fld('Time zone, minutes from UTC <small>this browser: ' + tz + '</small>', 'k_tz', st.utc_offset_minutes || '', { type: 'number', ph: '0' }) + '<span></span>' +
+    fld('Opt-out words <small>comma separated; the person gets no more automatic messages</small>', 'k_oo', st.opt_out_words || '', { wide: true, ph: es.optOutWords.join(', ') }) +
+    fld('Opt-out confirmation', 'k_oor', st.opt_out_reply || '', { wide: true, area: true, rows: 2, ph: es.optOutReply }) +
+    fld('Ask-for-a-human words', 'k_hw', st.handoff_words || '', { wide: true, ph: es.handoffWords.join(', ') }) +
+    fld('Hand-over reply', 'k_hr', st.handoff_reply || '', { wide: true, area: true, rows: 2, ph: es.handoffReply }) +
+    fld('Variables <small>one per line, name = value; use as {name} in rules</small>', 'k_vars', vars, { wide: true, area: true, rows: 4, ph: 'book = https://example.com/book' }) +
+    '</div><div class="row" style="margin-top:12px"><span class="mini sp">Empty fields use the defaults shown in grey.</span><button class="btn pri" data-act="savesettings">Save settings</button></div></div>';
+}
+function playbooksCard() {
+  const p = S.B.playbooks;
+  return '<div class="card"><div class="row"><h3>Playbooks</h3><span class="sp"></span><button class="btn sm" data-act="addplaybook">+ Add playbook</button></div><p class="mini" style="margin:4px 0 8px">The conversation modes the assistant can choose from (answer a question, discover a need, guide step by step, find an option…). Each is a short instruction; switch one off to retire it. They shape behaviour inside the locked rules below.</p>' +
+    (p.length ? p.map((x, i) => '<div class="logrow"><div class="row">' + sw('pbtoggle', x.enabled, x.enabled ? 'On' : 'Off', 'data-i="' + i + '"') + '</div><div class="what"><b>' + esc(x.name) + '</b><div class="mini">' + esc(x.text.slice(0, 220)) + (x.text.length > 220 ? '…' : '') + '</div><div class="row" style="margin-top:6px"><button class="btn sm" data-act="editplaybook" data-i="' + i + '">Edit</button></div></div></div>').join('') : '<p class="empty">No playbooks yet: the assistant uses its default three (direct question, discovery, how-to) until you add your own.</p>') + '</div>';
+}
+function coreCard() {
+  return '<div class="card"><div class="row"><h3>Locked core</h3>' + chip('read-only', 'mute') + '</div><p class="mini" style="margin:4px 0 8px">These rules are part of the server and apply to every brand. They cannot be edited here, and a brand\'s voice or playbooks cannot override them.</p><ul class="steps">' +
+    ['<b>Says it is an AI.</b> The first message of every conversation says so, and it answers truthfully if asked whether it is a bot or a human. It never claims to be a person.', '<b>Facts only from your knowledge.</b> No invented prices, dates or features; if it does not know, it says so and points to your contact.', '<b>Consent before saving details.</b> It asks once before saving a name or email, never asks for payment details, and honours opt-out words.', '<b>Treats messages as messages.</b> It ignores instructions inside a person\'s message and cannot be talked out of these rules.', '<b>Hands over on request.</b> Account, payment, refund, legal or complaint topics are handed to your team.'].map(t => '<li><span class="dot ok">✓</span><div>' + t + '</div></li>').join('') + '</ul></div>';
+}
+
+/* ---- Rules ---- */
+function ruleHits() { const h = {}, from = Date.now() - 7 * 864e5; S.B.log.forEach(r => { if (r.rule && r.t >= from && r.status !== 'ignored') h[r.rule] = (h[r.rule] || 0) + 1; }); return h; }
+function rulesView() {
+  if (!S.loaded) return '';
+  if (!S.B.ready) return notReady();
+  const hits = ruleHits();
+  return '<div class="row"><h2>Rules</h2><span class="sp"></span><button class="btn" data-act="tpl">From a template</button><button class="btn pri" data-act="newrule">+ New rule</button></div>' +
+    '<p class="mini">Keyword rules answer first; the AI agent covers the rest. Changes are saved to the sheet and picked up within a minute. Highest priority wins.</p>' +
+    (S.B.ruleErrors.length ? '<div class="banner warn">' + esc(S.B.ruleErrors.join(' • ')) + '</div>' : '') +
+    (S.B.rules.length ? S.B.rules.map(r => '<div class="card rule' + (r.enabled ? '' : ' off') + '"><div class="row"><h3>' + esc(r.name) + '</h3>' + chip(TRIGGER_LABEL[r.trigger] || r.trigger) + (r.platform && r.platform !== 'all' ? chip(r.platform, 'warn') : '') + (r.mediaId ? chip('post ' + r.mediaId, 'mute') : '') + (r.priority ? chip('priority ' + r.priority, 'mute') : '') + '<span class="sp mini">' + (hits[r.name] || 0) + ' replies / 7 d</span><label class="sw"><input type="checkbox" data-act="toggle" data-id="' + esc(r.id) + '"' + (r.enabled ? ' checked' : '') + ' aria-label="Enabled"><i></i></label></div>' +
+      '<div class="row">' + (r.keywords.length ? r.keywords.map(k => '<span class="chip mute">' + esc(k) + '</span>').join('') + '<span class="mini">' + (r.match === 'word' ? 'whole word' : 'contains') + '</span>' : '<span class="mini">any ' + esc((TRIGGER_LABEL[r.trigger] || '').toLowerCase()) + '</span>') + '</div>' +
+      r.commentReplies.slice(0, 2).map(t => '<div class="bubble pub">' + esc(t) + '</div>').join('') + ((r.privateReply || r.dm) ? '<div class="bubble">' + esc(r.privateReply || r.dm) + '</div>' : '') +
+      '<div class="row mini">cooldown ' + r.cooldownHours + ' h' + (r.tags.length ? ' · tags ' + esc(r.tags.join(', ')) : '') + '<span class="sp"></span><button class="btn sm" data-act="edit" data-id="' + esc(r.id) + '">Edit</button><button class="btn sm" data-act="dup" data-id="' + esc(r.id) + '">Duplicate</button><button class="btn sm danger" data-act="del" data-id="' + esc(r.id) + '">Delete</button></div></div>').join('') : '<div class="card empty">No rules yet. Start from a template, or rely on the AI agent.</div>');
+}
+function editorView() {
+  const e = S.editor; if (!e) return '';
+  const r = e.rule, v = x => esc(x == null ? '' : x), vars = Object.keys(engineSettings().vars).map(k => '{' + k + '}').join(' ');
+  return '<div class="overlay" data-overlay><div class="sheet" role="dialog" aria-modal="true" aria-label="Rule editor"><div class="row"><h2>' + (e.isNew ? 'New rule' : 'Edit rule') + '</h2><button class="btn sm sp" data-act="closeedit">Close</button></div>' +
+    '<div class="form" id="ed">' +
+    '<label class="f">Name<input type="text" id="e_name" value="' + v(r.name) + '"></label>' +
+    '<label class="f">When<select id="e_trigger">' + TRIGGERS.map(t => '<option value="' + t + '"' + (r.trigger === t ? ' selected' : '') + '>' + TRIGGER_LABEL[t] + '</option>').join('') + '</select></label>' +
+    '<label class="f">Applies on<select id="e_platform">' + [['all', 'All platforms'], ['instagram', 'Instagram only'], ['whatsapp', 'WhatsApp only']].map(o => '<option value="' + o[0] + '"' + ((r.platform || 'all') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></label>' +
+    '<label class="f wide">Keywords <small>comma separated; leave empty to match everything of this kind. Case and accents are ignored; emoji work.</small><input type="text" id="e_keywords" value="' + v(r.keywords.join(', ')) + '"></label>' +
+    '<label class="f">Match style<select id="e_match"><option value="word"' + (r.match === 'word' ? ' selected' : '') + '>Whole word or phrase</option><option value="contains"' + (r.match !== 'word' ? ' selected' : '') + '>Contains</option></select></label>' +
+    '<label class="f" id="e_postwrap">Only on this post <small>post id; empty = any post</small><input type="text" id="e_post" value="' + v(r.mediaId) + '"></label>' +
+    '<label class="f wide" id="e_cwrap">Public comment replies <small>one per line; one is picked at random</small><textarea id="e_creply">' + v(r.commentReplies.join('\n')) + '</textarea></label>' +
+    '<label class="f wide" id="e_pwrap">Private reply to the comment <small>sent as a DM, once per comment</small><textarea id="e_priv">' + v(r.privateReply) + '</textarea></label>' +
+    '<label class="f wide" id="e_dwrap">Direct message <small>variables: {first_name} {username} ' + esc(vars) + '</small><textarea id="e_dm">' + v(r.dm) + '</textarea></label>' +
+    '<label class="f">Button label <small>max 20 characters</small><input type="text" id="e_bl" maxlength="20" value="' + v(r.buttonLabel) + '"></label>' +
+    '<label class="f">Button link <small>https://</small><input type="url" id="e_bu" value="' + v(r.buttonUrl) + '"></label>' +
+    '<label class="f wide" id="e_qwrap">Quick replies <small>comma separated, shown under the DM</small><input type="text" id="e_qr" value="' + v(r.quickReplies.join(', ')) + '"></label>' +
+    '<label class="f">Reply to the same person at most once every (hours)<input type="number" id="e_cd" min="0" value="' + v(r.cooldownHours) + '"></label>' +
+    '<label class="f">Priority <small>higher wins</small><input type="number" id="e_prio" value="' + v(r.priority) + '"></label>' +
+    '<label class="f wide">Tags <small>added to the person, comma separated</small><input type="text" id="e_tags" value="' + v(r.tags.join(', ')) + '"></label>' +
+    '<label class="f"><span>Switched on</span><label class="sw"><input type="checkbox" id="e_on"' + (r.enabled ? ' checked' : '') + '><i></i></label></label></div>' +
+    '<div id="e_err" class="banner bad" hidden></div><div class="row"><span class="mini sp">id: <span class="mono">' + esc(r.id || '(from the name)') + '</span></span><button class="btn" data-act="closeedit">Cancel</button><button class="btn pri" data-act="saverule">Save to sheet</button></div></div></div>';
+}
+function collectRule() {
+  const e = S.editor, r = Object.assign({}, e.rule);
+  r.name = g('e_name'); r.trigger = g('e_trigger'); r.platform = g('e_platform') || 'all'; r.keywords = splitList(g('e_keywords'), /\s*,\s*/); r.match = g('e_match');
+  r.mediaId = g('e_post') || undefined; r.commentReplies = ($('e_creply') ? $('e_creply').value : '').split('\n').map(s => s.replace(/\|/g, '/').trim()).filter(Boolean);
+  r.privateReply = g('e_priv') || undefined; r.dm = g('e_dm') || undefined; r.buttonLabel = g('e_bl') || undefined; r.buttonUrl = g('e_bu') || undefined;
+  r.quickReplies = splitList(g('e_qr'), /\s*,\s*/).slice(0, 13); r.cooldownHours = Math.max(0, Number(g('e_cd')) || 0); r.priority = Number(g('e_prio')) || 0; r.tags = splitList(g('e_tags'), /\s*,\s*/); r.enabled = !!($('e_on') && $('e_on').checked);
+  if (r.trigger !== 'comment') { r.commentReplies = []; r.mediaId = undefined; }
+  if (!r.id) { const base = slug(r.name) || 'rule'; let id = base, n = 2; const taken = new Set(S.B.rules.map(x => x.id)); while (taken.has(id)) id = base + '-' + n++; r.id = id; }
+  return r;
+}
+function tplView() {
+  const T = templates();
+  return '<div class="overlay" data-overlay><div class="sheet" role="dialog" aria-modal="true" aria-label="Templates"><div class="row"><h2>Start from a template</h2><button class="btn sm sp" data-act="closetpl">Close</button></div><p class="mini">A template opens in the editor, switched off, so you can adjust it before saving.</p>' +
+    T.map((t, i) => '<div class="card"><div class="row"><div><b>' + esc(t.title) + '</b><div class="mini">' + esc(t.hint) + '</div></div><button class="btn sm sp" data-act="usetpl" data-i="' + i + '">Use</button></div></div>').join('') + '</div></div>';
+}
+
+/* ---- Knowledge ---- */
+function knowView() {
+  if (!S.loaded) return '';
+  if (!S.B.ready) return notReady();
+  const open = S.B.learn.filter(l => l.status === 'open');
+  return '<h2>Knowledge</h2><p class="mini">Answers you approve here win over the business knowledge when they differ. Questions the assistant could not answer are collected below.</p>' +
+    '<div class="card"><h3>Questions it could not answer' + (open.length ? ' (' + open.length + ')' : '') + '</h3><p class="mini" style="margin:4px 0 8px">Write the right answer once; from then on the assistant uses it.</p>' +
+    (open.length ? open.map(l => '<div class="logrow"><div><div class="mini">' + esc(l.time) + '</div>' + (l.lang ? chip(l.lang, 'mute') : '') + '</div><div class="what"><div>“' + esc(l.q) + '”</div><textarea data-learn="' + l.row + '" placeholder="Your answer, in English (the assistant translates when it replies)"></textarea><div class="row"><button class="btn sm pri" data-act="learnsave" data-row="' + l.row + '">Save answer</button><button class="btn sm" data-act="learnskip" data-row="' + l.row + '">Ignore</button></div></div></div>').join('') : '<p class="empty">Nothing waiting.</p>') + '</div>' +
+    '<div class="card"><div class="row"><h3>Approved answers (' + S.B.knowledge.length + ')</h3><span class="sp"></span><button class="btn sm pri" data-act="kadd">+ Add</button></div>' +
+    (S.B.knowledge.length ? S.B.knowledge.map(k => '<div class="logrow"><div class="row"><button class="btn sm" data-act="kedit" data-row="' + k.row + '">Edit</button></div><div class="what"><b>' + esc(k.q) + '</b><div class="mini">' + esc(k.a) + '</div></div></div>').join('') : '<p class="empty">No approved answers yet.</p>') + '</div>';
+}
+function kEditor() {
+  const k = S.kedit;
+  return '<div class="overlay" data-overlay><div class="sheet" role="dialog" aria-modal="true"><div class="row"><h2>' + (k.row ? 'Edit answer' : 'New answer') + '</h2><button class="btn sm sp" data-act="kclose">Close</button></div><label class="f">Question<input type="text" id="k_q" value="' + esc(k.q) + '"></label><label class="f">Answer<textarea id="k_a" style="min-height:120px">' + esc(k.a) + '</textarea></label><div class="row"><span class="sp"></span>' + (k.row ? '<button class="btn danger" data-act="kdel" data-row="' + k.row + '">Delete</button>' : '') + '<button class="btn pri" data-act="ksave">Save</button></div></div></div>';
+}
+function pEditor() {
+  const p = S.pedit;
+  return '<div class="overlay" data-overlay><div class="sheet" role="dialog" aria-modal="true"><div class="row"><h2>' + (p.i >= 0 ? 'Edit playbook' : 'New playbook') + '</h2><button class="btn sm sp" data-act="pclose">Close</button></div><label class="f">Name<input type="text" id="pb_name" value="' + esc(p.name) + '"></label><label class="f">Instruction <small>start with a letter and a bracket, e.g. "G) BOOKING (…): what to do". Max 6,000 characters.</small><textarea id="pb_text" style="min-height:200px">' + esc(p.text) + '</textarea></label><div class="row"><span class="sp"></span>' + (p.i >= 0 ? '<button class="btn danger" data-act="pdel">Delete</button>' : '') + '<button class="btn pri" data-act="psave">Save</button></div></div></div>';
+}
+function newBrandView() {
+  return '<div class="overlay" data-overlay><div class="sheet" role="dialog" aria-modal="true" aria-label="New brand"><div class="row"><h2>New brand</h2><button class="btn sm sp" data-act="nbclose">Close</button></div><p class="mini">A brand is one business with its own accounts, knowledge, rules and settings. It starts in dry-run with the AI agent off and nothing connected.</p><label class="f">Brand name<input type="text" id="nb_name" placeholder="Acme Dental" autocomplete="off"></label><div id="nb_err" class="banner bad" hidden></div><div class="row"><span class="sp"></span><button class="btn" data-act="nbclose">Cancel</button><button class="btn pri" data-act="nbcreate">Create brand</button></div></div></div>';
+}
+
+/* ---- Simulator ---- */
+function simView() {
+  if (!S.loaded) return '';
+  const s = S.sim;
+  return '<h2>Simulator</h2><p class="mini">Type what a person would write and see which keyword rule answers and what is sent. Uses the same engine as the server with this brand\'s saved rules and settings. (The AI agent answers whatever no rule handles; it is not simulated.)</p>' +
+    '<div class="card"><div class="form"><label class="f">Platform<select id="s_channel"><option value="instagram"' + (s.channel === 'instagram' ? ' selected' : '') + '>Instagram</option><option value="whatsapp"' + (s.channel === 'whatsapp' ? ' selected' : '') + '>WhatsApp</option></select></label>' +
+    '<label class="f">What happens<select id="s_kind">' + [['comment', 'Someone comments on a post'], ['story_reply', 'Someone replies to a story'], ['story_mention', 'Someone mentions us in a story'], ['dm', 'Someone sends a message']].map(o => '<option value="' + o[0] + '"' + (s.kind === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></label>' +
+    '<label class="f">Their name<input type="text" id="s_user" value="' + esc(s.username) + '"></label>' +
+    '<label class="f wide">Their text<input type="text" id="s_text" value="' + esc(s.text) + '" autocomplete="off"></label>' +
+    '<label class="f">Post id <small>comments only</small><input type="text" id="s_media" value="' + esc(s.mediaId) + '"></label>' +
+    '<div class="f"><span>Situation</span><label class="row"><input type="checkbox" id="s_first"' + (s.first ? ' checked' : '') + '> First time they write to us</label><label class="row"><input type="checkbox" id="s_opt"' + (s.optedOut ? ' checked' : '') + '> They opted out earlier</label><label class="row"><input type="checkbox" id="s_hand"' + (s.handoff ? ' checked' : '') + '> A human is handling them</label><label class="row"><input type="checkbox" id="s_dis"' + (s.disabled ? ' checked' : '') + '> Include switched-off rules</label></div></div></div>' +
+    '<div id="simout"></div>';
+}
+function simOut() {
+  const s = S.sim, settings = engineSettings(), now = Date.now();
+  const ev = { id: 'sim', kind: s.kind, channel: s.channel, senderId: 'sim-user', username: s.username, text: s.kind === 'story_mention' ? '' : s.text, mediaId: s.mediaId || undefined, commentId: s.kind === 'comment' ? 'sim-comment' : undefined, timestamp: now };
+  const rules = S.B.rules.map(r => s.disabled ? Object.assign({}, r, { enabled: true }) : r);
+  const d = decide(ev, rules, { seenBefore: !s.first, optedOut: s.optedOut, handoffUntil: s.handoff ? now + 3600000 : 0 }, settings, now, () => 0);
+  const label = { replied: ['good', 'Replies'], ignored: ['mute', 'Does nothing'], opt_out: ['warn', 'Opts the person out'], handoff: ['warn', 'Hands over to a human'] }[d.kind];
+  return '<div class="card"><div class="row"><h3>Result</h3>' + chip(label[1], label[0]) + '<span class="mini">' + esc(d.reason) + '</span></div>' +
+    (d.steps.length ? d.steps.map(st => '<div style="margin-top:10px"><div class="mini">' + ({ comment_reply: 'Public reply under the comment', private_reply: 'Private reply (DM tied to the comment)', dm: 'Direct message' }[st.type]) + '</div><div class="bubble ' + (st.type === 'comment_reply' ? 'pub' : '') + '">' + esc(st.text) + '</div>' + (st.buttonLabel ? '<div class="mini">Button: <b>' + esc(st.buttonLabel) + '</b> → ' + esc(st.buttonUrl) + '</div>' : '') + (st.quickReplies ? '<div class="row" style="margin-top:4px">' + st.quickReplies.map(q => chip(q)).join('') + '</div>' : '') + '</div>').join('') : '<p class="empty">Nothing would be sent' + (d.kind === 'ignored' && d.reason === 'no rule matched' ? ' by a keyword rule; the AI agent would answer a message if it is on.' : '.') + '</p>') +
+    (d.tags.length ? '<div class="mini" style="margin-top:10px">Tags added: ' + esc(d.tags.join(', ')) + '</div>' : '') + '</div>';
+}
+
+/* ---- Inbox ---- */
+function filteredLog() {
+  const q = normalize(S.logQ);
+  return S.B.log.filter(r => (S.logFilter === 'all' || (S.logFilter === 'failed' ? r.status === 'failed' || r.status === 'paused' : r.status === S.logFilter)) && (!q || normalize([r.person, r.text, r.rule, r.reply, r.error, r.reason].join(' ')).includes(q)));
+}
+function logList() {
+  const rows = filteredLog().slice(0, 200);
+  return rows.length ? '<div class="card">' + rows.map(r => '<div class="logrow"><div><div class="num">' + esc(when(r.t)) + '</div><div class="mini">' + esc(ago(r.t)) + '</div></div><div class="what"><div class="row">' + statusChip(r.status) + chip(kindLabel(r.kind), 'mute') + (/^wa:/.test(r.person) ? chip('WhatsApp', 'mute') : '') + '<b>' + esc(r.person) + '</b>' + (r.rule ? '<span class="mini">→ ' + esc(r.rule) + '</span>' : '') + '</div>' +
+    (r.text ? '<div>“' + esc(r.text) + '”</div>' : '') + (r.reply ? '<div class="mini">' + (r.status === 'dry-run' ? 'Would send: ' : r.status === 'sent' ? 'Sent: ' : '') + esc(r.reply) + '</div>' : '') +
+    (r.error ? '<div class="banner bad" style="margin-top:6px"><b>' + esc(explainError(r.error)) + '</b>' + (explainError(r.error) !== r.error ? '<div class="mini mono">' + esc(r.error) + '</div>' : '') + '</div>' : (r.status === 'ignored' && r.reason ? '<div class="mini">Skipped: ' + esc(r.reason) + '</div>' : '')) + '</div></div>').join('') + '</div>' : '<div class="card empty">No events match.</div>';
+}
+function peopleList() {
+  const q = normalize(S.peopleQ), rows = S.B.contacts.filter(p => !q || normalize([p.username, p.id, p.text, p.tags].join(' ')).includes(q));
+  return rows.length ? '<div class="card">' + rows.map(p => '<div class="logrow"><div><b>' + esc(p.username || p.id) + '</b><div class="mini">' + esc(ago(p.last)) + '</div></div><div class="what"><div class="row">' + (p.opted ? chip('Opted out', 'bad') : '') + (p.handoff ? chip('Human until ' + p.handoff, 'warn') : '') + p.tags.split(',').map(t => t.trim()).filter(Boolean).map(t => chip(t)).join('') + '</div><div class="mini">Last message: ' + esc(p.text) + '</div></div></div>').join('') + '</div>' : '<div class="card empty">No people yet. They appear after their first message or comment.</div>';
+}
+function leadsList() {
+  return '<div class="card"><div class="row"><h3>Leads (' + S.B.leads.length + ')</h3><span class="sp mini">saved only after the person said yes</span><button class="btn sm" data-act="exportleads">Export CSV</button></div>' +
+    (S.B.leads.length ? S.B.leads.slice(0, 80).map(l => '<div class="logrow"><div><b>' + esc(l.name || 'No name') + '</b><div class="mini">' + esc(l.time) + '</div></div><div class="what"><div>' + esc(l.email || '(no email yet)') + (l.whatsapp ? ' · ' + esc(l.whatsapp) : '') + (l.ig ? ' · @' + esc(l.ig) : '') + '</div><div class="mini">' + esc([l.role, l.profession, l.city, l.need].filter(Boolean).join(' · ')) + '</div></div></div>').join('') : '<p class="empty">No leads yet.</p>') + '</div>';
+}
+function inboxView() {
+  if (!S.loaded) return '';
+  if (!S.B.ready) return notReady();
+  const c = f => f === 'all' ? S.B.log.length : S.B.log.filter(r => f === 'failed' ? r.status === 'failed' || r.status === 'paused' : r.status === f).length;
+  const seg = '<div class="seg" role="group" aria-label="Inbox section">' + [['log', 'Live log'], ['people', 'People'], ['leads', 'Leads']].map(o => '<button data-act="inboxsec" data-s="' + o[0] + '" aria-pressed="' + (S.inbox === o[0]) + '">' + o[1] + '</button>').join('') + '</div>';
+  if (S.inbox === 'people') return '<div class="row"><h2>Inbox</h2>' + seg + '<span class="sp"></span><input type="text" id="p_q" placeholder="Search…" value="' + esc(S.peopleQ) + '" style="max-width:240px"><button class="btn" data-act="exportpeople">Export CSV</button></div><p class="mini">The most recent ' + S.B.contacts.length + ' people. Opt-outs and human handovers are respected automatically.</p><div id="peoplelist">' + peopleList() + '</div>';
+  if (S.inbox === 'leads') return '<div class="row"><h2>Inbox</h2>' + seg + '</div>' + leadsList();
+  return '<div class="row"><h2>Inbox</h2>' + seg + '<span class="sp mini">refreshes every minute</span></div><div class="row">' +
+    [['all', 'All'], ['sent', 'Sent'], ['dry-run', 'Dry-run'], ['failed', 'Failed'], ['ignored', 'Ignored']].map(f => '<button class="btn sm' + (S.logFilter === f[0] ? ' pri' : '') + '" data-act="logf" data-f="' + f[0] + '">' + f[1] + ' ' + c(f[0]) + '</button>').join('') +
+    '<input type="text" id="l_q" placeholder="Search person, text, rule…" value="' + esc(S.logQ) + '" style="max-width:260px" class="sp"></div><div id="loglist">' + logList() + '</div>';
+}
+
+/* ---- Shell, actions and boot ---- */
+/* Typing is never lost to a refresh: edited fields are remembered and put back after every re-render, until the section is saved. */
+const dirty = {};
+const fieldKey = el => el.id ? '#' + el.id : (el.dataset && el.dataset.f && el.closest('[data-src],[data-btn],[data-draft]') ? (function (r) { return Object.keys(r.dataset).filter(k => k === 'src' || k === 'btn' || k === 'draft').map(k => k + r.dataset[k]).join('') + '.' + el.dataset.f; })(el.closest('[data-src],[data-btn],[data-draft]')) : '');
+function restoreDirty() {
+  Object.keys(dirty).forEach(k => {
+    let el = null;
+    if (k[0] === '#') el = document.getElementById(k.slice(1));
+    else { const m = /^(src|btn|draft)(\d+)\.(\w+)$/.exec(k); if (m) { const row = document.querySelector('[data-' + m[1] + '="' + m[2] + '"]'); el = row && row.querySelector('[data-f="' + m[3] + '"]'); } }
+    if (el && el.type !== 'checkbox') el.value = dirty[k];
+  });
+}
+function render() {
+  const keep = document.activeElement && document.activeElement.id;
+  const body = S.err && !S.loaded ? '<div class="card banner bad">' + esc(S.err) + '<div class="row" style="margin-top:8px"><button class="btn" data-act="refresh">Try again</button></div></div>' :
+    !S.loaded ? '<div class="card empty">Loading from the sheet…</div>' :
+    (S.err ? '<div class="banner bad">' + esc(S.err) + '</div>' : '') + ({ dash: dashView, brand: brandView, platforms: platformsView, agent: agentView, rules: rulesView, know: knowView, inbox: inboxView, sim: simView }[S.view])();
+  $('app').innerHTML = renderHeader() + '<main>' + body + '</main>' + (S.editor ? editorView() : '') + (S.tpl ? tplView() : '') + (S.kedit ? kEditor() : '') + (S.pedit ? pEditor() : '') + (S.newBrand ? newBrandView() : '');
+  restoreDirty();
+  if (S.view === 'sim' && S.loaded) $('simout').innerHTML = simOut();
+  if (S.editor) syncEditorVisibility();
+  if (keep && $(keep) && ['l_q', 'p_q', 's_text', 's_user', 's_media'].includes(keep)) { try { $(keep).focus(); } catch (e) { /* ignore */ } }
+}
+function syncEditorVisibility() {
+  const c = $('e_trigger') && $('e_trigger').value === 'comment';
+  ['e_postwrap', 'e_cwrap', 'e_pwrap'].forEach(i => { if ($(i)) $(i).hidden = !c; });
+  if ($('e_qwrap')) $('e_qwrap').hidden = c;
+}
+
+let toastTimer;
+function toast(msg) { let t = $('toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); } t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 4000); }
+const guard = async (fn, okMsg) => { try { await fn(); if (okMsg) toast(okMsg); return true; } catch (e) { toast(friendly(e)); return false; } };
+const csvCell = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+const saveFile = (filename, csv) => { if (!S.dl) return toast('Saving files is not available here.'); return guard(() => S.dl.save({ filename, data: new Blob([csv], { type: 'text/csv' }) })); };
+const rowsOf = (sel, fields) => Array.from(document.querySelectorAll(sel)).map(row => { const o = {}; fields.forEach(f => { const el = row.querySelector('[data-f="' + f + '"]'); o[f] = el ? el.value.trim() : ''; }); return o; });
+const readSources = () => rowsOf('[data-src]', ['type', 'ref', 'note']).map((o, i) => Object.assign({ status: (S.B.sources[i] || {}).status || '' }, o));
+const readButtons = () => rowsOf('[data-btn]', ['id', 'url', 'en', 'ar', 'fr', 'es']).map(o => ({ id: o.id.toLowerCase().replace(/[^a-z0-9_]/g, ''), url: o.url, labels: { en: o.en, ar: o.ar, fr: o.fr, es: o.es } }));
+const platformValues = p => ({ brandId: S.brand, platform: p, accountId: g('p_' + p + '_acct').replace(/\s+/g, ''), appId: g('p_' + p + '_app').replace(/\s+/g, ''), wabaId: g('p_' + p + '_waba').replace(/\s+/g, ''), phoneId: g('p_' + p + '_phone').replace(/\s+/g, ''), templateName: g('p_' + p + '_tpl'), templateLang: g('p_' + p + '_lang') || 'en', enabled: !!(document.querySelector('[data-act="platenabled"][data-p="' + p + '"]') || {}).checked, row: (platformRow(S.brand, p) || {}).row || 0 });
+
+document.addEventListener('click', async ev => {
+  const nav = ev.target.closest('[data-view]'); if (nav) { Object.keys(dirty).forEach(k => delete dirty[k]); S.view = nav.dataset.view; try { localStorage.setItem('croom.view', S.view); } catch (e) { /* ignore */ } render(); return; }
+  if (ev.target.matches('[data-overlay]')) { S.editor = null; S.tpl = false; S.kedit = null; S.pedit = null; S.newBrand = false; render(); return; }
+  const b = ev.target.closest('[data-act]'); if (!b || b.type === 'checkbox') return;
+  const act = b.dataset.act, id = b.dataset.id;
+  const done = async (ok, msg) => { if (ok) { if (msg) toast(msg); Object.keys(dirty).forEach(k => delete dirty[k]); await refreshAll(true); } };
+  if (act === 'refresh') return refreshAll();
+  if (act === 'newbrand') { S.newBrand = true; return render(); }
+  if (act === 'nbclose') { S.newBrand = false; return render(); }
+  if (act === 'nbcreate') {
+    const box = $('nb_err'); b.disabled = true; box.hidden = true;
+    try { const nid = await createBrand(g('nb_name')); S.newBrand = false; S.brand = nid; try { localStorage.setItem('croom.brand', nid); } catch (e) { /* ignore */ } S.view = 'brand'; toast('Brand created. Its tabs are ready within about a minute.'); S.brands.push({ row: 0, id: nid, name: g('nb_name') || nid, enabled: true }); S.B = emptyB(); render(); setTimeout(() => refreshAll(true), 70000); }
+    catch (e) { b.disabled = false; box.hidden = false; box.textContent = friendly(e); }
+    return;
+  }
+  if (act === 'inboxsec') { S.inbox = b.dataset.s; return render(); }
+  if (act === 'copy') { try { await navigator.clipboard.writeText(b.dataset.t); toast('Copied'); } catch (e) { toast('Select the address and copy it.'); } return; }
+  if (act === 'gentoken') { const el = $(b.dataset.target); if (el) { el.type = 'text'; el.value = randomToken(); toast('Copy this token into Meta, then save.'); } return; }
+
+  /* brand */
+  if (act === 'saveidentity') {
+    const name = g('b_name'); if (!name) return toast('The brand needs a name.');
+    return done(await guard(() => setProfile({ name, assistant_name: g('b_aname'), purpose: g('b_purpose'), contact_email: g('b_email'), languages: g('b_langs'), persona: $('b_persona').value.trim() }), 'Saved. The server applies it within a minute.'));
+  }
+  if (act === 'saveknowledgebase') { const t = $('b_kb').value.trim().slice(0, 45000); return done(await guard(() => setProfile({ knowledge_base: t }), 'Knowledge saved. The server applies it within a minute.')); }
+  if (act === 'integ') return;
+  if (act === 'addsource') { S.B.sources = readSources().concat([{ type: 'url', ref: '', note: '', status: '' }]); return render(); }
+  if (act === 'delsource') { const l = readSources(); l.splice(+b.dataset.i, 1); S.B.sources = l; return render(); }
+  if (act === 'savesources') { const l = readSources().filter(s => s.ref); return done(await guard(() => saveSources(l), 'Sources saved'), ''); }
+  if (act === 'buildknowledge') {
+    const l = readSources().filter(s => s.ref); if (!l.length) return toast('Add at least one source first.');
+    S.building = true; render();
+    const ok = await guard(async () => { await saveSources(l); await setStatus({ build_knowledge: 'request' }); }, 'Building. This takes a minute or two; press Refresh to see the draft.');
+    S.building = false; return done(ok);
+  }
+  if (act === 'approve' || act === 'reject' || act === 'draftsave') {
+    const row = +b.dataset.row, d = S.B.draft.find(x => x.row === row), area = document.querySelector('[data-draft="' + row + '"] textarea'); if (!d) return;
+    const next = Object.assign({}, d, { text: area ? area.value.trim() : d.text, status: act === 'approve' ? 'approved' : act === 'reject' ? 'rejected' : d.status });
+    return done(await guard(() => saveDraftRow(next), act === 'approve' ? 'Approved. It goes live within a minute.' : act === 'reject' ? 'Rejected' : 'Saved'));
+  }
+  if (act === 'addbutton') { S.B.buttons = readButtons().concat([{ id: '', url: 'https://', labels: { en: '', ar: '', fr: '', es: '' } }]); return render(); }
+  if (act === 'delbutton') { const l = readButtons(); l.splice(+b.dataset.i, 1); S.B.buttons = l; return render(); }
+  if (act === 'savebuttons') {
+    const l = readButtons().filter(x => x.id || x.url !== 'https://'), bad = l.find(x => !/^[a-z][a-z0-9_]{0,23}$/.test(x.id) || !/^https:\/\//i.test(x.url) || !x.labels.en);
+    if (bad) return toast('Each button needs an id (letters, digits, _), an https link and an English label.');
+    if (new Set(l.map(x => x.id)).size !== l.length) return toast('Button ids must be different.');
+    return done(await guard(() => saveButtons(l), 'Buttons saved'));
+  }
+
+  /* platforms */
+  if (act === 'saveplatform') { const v = platformValues(b.dataset.p); return done(await guard(() => savePlatform(v), 'Saved. The server connects it within a minute.')); }
+  if (act === 'savesecrets') {
+    const p = b.dataset.p, entries = SECRET_KEYS[p].map(k => [k, ($('sec_' + p + '_' + k) || {}).value || '']).filter(e => e[1].trim()).map(e => [e[0], e[1].trim()]);
+    if (!entries.length) return toast('Paste at least one value first.');
+    if (p !== 'ai' && !platformRow(S.brand, p)) await guard(() => savePlatform(platformValues(p)));
+    const ok = await guard(() => saveSecrets(S.brand, p, entries), 'Sent to the server. It is checked with Meta and erased from the sheet within a minute.');
+    entries.forEach(e => { const el = $('sec_' + p + '_' + e[0]); if (el) el.value = ''; });
+    return done(ok);
+  }
+
+  /* agent */
+  if (act === 'mode') { if (b.dataset.m === 'live') { S.confirmLive = true; return render(); } S.confirmLive = false; return done(await guard(() => setStatus({ mode: 'dry-run' }), 'Dry-run: nothing will be sent')); }
+  if (act === 'cancellive') { S.confirmLive = false; return render(); }
+  if (act === 'golive') { S.confirmLive = false; return done(await guard(() => setStatus({ mode: 'live' }), 'LIVE. Replies are really sent from now on')); }
+  if (act === 'aisave') { return done(await guard(() => setStatus({ ai_provider: g('ai_provider'), ai_model: g('ai_model'), ai_region: g('ai_region'), ai_daily_cap: g('ai_cap'), ai_per_person_per_hour: g('ai_pp') }), 'AI settings saved')); }
+  if (act === 'savesettings') {
+    const vars = {}; (($('k_vars') || {}).value || '').split('\n').forEach(line => { const m = /^\s*([a-z_]+)\s*=\s*(.+)$/.exec(line); if (m) vars[m[1]] = m[2].trim(); });
+    const old = Object.keys(S.B.status).filter(k => k.startsWith('var_') && !vars[k.slice(4)]); const obj = { hourly_cap: g('k_cap'), handoff_hours: g('k_hh'), active_from: g('k_af'), active_to: g('k_at'), utc_offset_minutes: g('k_tz'), opt_out_words: g('k_oo'), opt_out_reply: g('k_oor'), handoff_words: g('k_hw'), handoff_reply: g('k_hr') };
+    Object.keys(vars).forEach(k => { obj['var_' + k] = vars[k]; }); old.forEach(k => { obj[k] = ''; });
+    return done(await guard(() => setStatus(obj), 'Settings saved'));
+  }
+  if (act === 'addplaybook') { S.pedit = { i: -1, name: '', text: '' }; return render(); }
+  if (act === 'editplaybook') { const p = S.B.playbooks[+b.dataset.i]; if (p) { S.pedit = { i: +b.dataset.i, name: p.name, text: p.text }; render(); } return; }
+  if (act === 'pclose') { S.pedit = null; return render(); }
+  if (act === 'psave') {
+    const name = g('pb_name'), text = $('pb_text').value.trim().slice(0, 6000); if (!name || !text) return toast('Write a name and the instruction.');
+    const l = S.B.playbooks.map(p => Object.assign({}, p)); if (S.pedit.i >= 0) { l[S.pedit.i].name = name; l[S.pedit.i].text = text; } else l.push({ name, enabled: true, text });
+    S.pedit = null; return done(await guard(() => savePlaybooks(l), 'Playbook saved'));
+  }
+  if (act === 'pdel') { const l = S.B.playbooks.filter((_p, i) => i !== S.pedit.i); S.pedit = null; return done(await guard(() => savePlaybooks(l), 'Deleted')); }
+
+  /* rules */
+  if (act === 'newrule') { S.editor = { isNew: true, rule: blankRule() }; return render(); }
+  if (act === 'tpl') { S.tpl = true; return render(); }
+  if (act === 'closetpl') { S.tpl = false; return render(); }
+  if (act === 'usetpl') { const t = templates()[+b.dataset.i]; S.tpl = false; S.editor = { isNew: true, rule: Object.assign(blankRule(), JSON.parse(JSON.stringify(t.r)), { enabled: false }) }; return render(); }
+  if (act === 'edit') { const r = S.B.rules.find(x => x.id === id); if (r) { S.editor = { isNew: false, rule: JSON.parse(JSON.stringify(r)) }; render(); } return; }
+  if (act === 'dup') { const r = S.B.rules.find(x => x.id === id); if (r) { const c = JSON.parse(JSON.stringify(r)); c.id = ''; c.name = r.name + ' copy'; c.enabled = false; S.editor = { isNew: true, rule: c }; render(); } return; }
+  if (act === 'del') { if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = 'Really delete?'; return; } return done(await guard(() => deleteRule(id), 'Rule deleted')); }
+  if (act === 'closeedit') { S.editor = null; return render(); }
+  if (act === 'saverule') {
+    const rule = collectRule(), errs = validateRule(rule), box = $('e_err');
+    if (errs.length) { box.hidden = false; box.textContent = errs[0]; return; }
+    b.disabled = true; box.hidden = true;
+    try { await saveRule(rule, S.editor.isNew); S.editor = null; toast('Saved. The engine picks it up within a minute.'); await refreshAll(true); } catch (e) { b.disabled = false; box.hidden = false; box.textContent = friendly(e); }
+    return;
+  }
+
+  /* knowledge, inbox */
+  if (act === 'kadd') { S.kedit = { row: 0, q: '', a: '' }; return render(); }
+  if (act === 'kedit') { const k = S.B.knowledge.find(x => String(x.row) === b.dataset.row); if (k) { S.kedit = { row: k.row, q: k.q, a: k.a }; render(); } return; }
+  if (act === 'kclose') { S.kedit = null; return render(); }
+  if (act === 'ksave') { const q = g('k_q'), a = g('k_a'); if (!q || !a) return toast('Write both the question and the answer.'); const row = S.kedit.row; S.kedit = null; return done(await guard(() => saveKnowledgeRow(row, q, a), 'Saved. The assistant uses it within a minute.')); }
+  if (act === 'kdel') { const row = +b.dataset.row; S.kedit = null; return done(await guard(() => deleteKnowledgeRow(row), 'Deleted')); }
+  if (act === 'learnsave') { const item = S.B.learn.find(x => String(x.row) === b.dataset.row), box = document.querySelector('[data-learn="' + b.dataset.row + '"]'), a = box ? box.value.trim() : ''; if (!item || !a) return toast('Write the answer first.'); return done(await guard(() => answerLearn(item, a), 'Saved. The assistant now knows it.')); }
+  if (act === 'learnskip') { const item = S.B.learn.find(x => String(x.row) === b.dataset.row); if (item) return done(await guard(() => dismissLearn(item))); return; }
+  if (act === 'logf') { S.logFilter = b.dataset.f; return render(); }
+  if (act === 'exportleads') return saveFile(S.brand + '-leads.csv', ['time,instagram,name,email,whatsapp,role,profession,city,need,language,consent'].concat(S.B.leads.map(l => [l.time, l.ig, l.name, l.email, l.whatsapp, l.role, l.profession, l.city, l.need, l.lang, l.consent].map(csvCell).join(','))).join('\n'));
+  if (act === 'exportpeople') return saveFile(S.brand + '-people.csv', ['id,username,last_seen,last_message,tags,opted_out,human_until'].concat(S.B.contacts.map(p => [p.id, p.username, p.last ? new Date(p.last).toISOString() : '', p.text, p.tags, p.opted ? 'yes' : '', p.handoff].map(csvCell).join(','))).join('\n'));
+});
+
+document.addEventListener('change', async ev => {
+  const t = ev.target, a = t.dataset && t.dataset.act;
+  const done = async ok => { if (ok) { Object.keys(dirty).forEach(k => delete dirty[k]); await refreshAll(true); } };
+  if (t.id === 'brandsel') { Object.keys(dirty).forEach(k => delete dirty[k]); S.brand = t.value; try { localStorage.setItem('croom.brand', S.brand); } catch (e) { /* ignore */ } S.B = emptyB(); S.loaded = true; S.busy = false; render(); return refreshAll(); }
+  if (a === 'toggle') return done(await guard(() => toggleRule(t.dataset.id, t.checked), t.checked ? 'Rule on' : 'Rule off'));
+  if (a === 'aitoggle') return done(await guard(() => setStatus({ ai_enabled: t.checked ? 'TRUE' : 'FALSE' }), t.checked ? 'AI agent ON' : 'AI agent off'));
+  if (a === 'kill') return done(await guard(() => setStatus({ kill_switch: t.checked ? 'TRUE' : 'FALSE' }), t.checked ? 'Kill switch ON: nothing is sent' : 'Kill switch off'));
+  if (a === 'aicomments') return done(await guard(() => setStatus({ ai_comments: t.checked ? 'TRUE' : 'FALSE' }), 'Saved'));
+  if (a === 'aicommentdm') return done(await guard(() => setStatus({ ai_comment_dm: t.checked ? 'TRUE' : 'FALSE' }), 'Saved'));
+  if (a === 'integ') return done(await guard(() => setProfile({ [t.dataset.k]: t.checked ? 'TRUE' : 'FALSE' }), 'Saved'));
+  if (a === 'pbtoggle') { const l = S.B.playbooks.map(p => Object.assign({}, p)); l[+t.dataset.i].enabled = t.checked; return done(await guard(() => savePlaybooks(l), t.checked ? 'Playbook on' : 'Playbook off')); }
+  if (a === 'platenabled') return;
+  if (t.id === 'e_trigger') syncEditorVisibility();
+  if (t.id && t.id.startsWith('s_')) simRead();
+});
+document.addEventListener('input', ev => {
+  const t = ev.target;
+  if (t.matches && t.matches('input:not([type=checkbox]):not([type=password]),textarea,select') && !/^(l_q|p_q|s_)/.test(t.id || '') && !t.closest('.overlay')) { const k = fieldKey(t); if (k) dirty[k] = t.value; }
+  if (t.id === 'l_q') { S.logQ = t.value; $('loglist').innerHTML = logList(); }
+  if (t.id === 'p_q') { S.peopleQ = t.value; $('peoplelist').innerHTML = peopleList(); }
+  if (t.id === 'b_kb' && $('kbcount')) $('kbcount').textContent = t.value.length + ' characters';
+  if (t.id && t.id.startsWith('s_')) simRead();
+});
+function simRead() {
+  const s = S.sim, v = i => ($(i) ? $(i).value : '');
+  s.channel = v('s_channel') || 'instagram'; s.kind = v('s_kind'); s.username = v('s_user').trim(); s.text = v('s_text'); s.mediaId = v('s_media').trim();
+  s.first = $('s_first').checked; s.optedOut = $('s_opt').checked; s.handoff = $('s_hand').checked; s.disabled = $('s_dis').checked;
+  $('simout').innerHTML = simOut();
+}
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && (S.editor || S.tpl || S.kedit || S.pedit || S.newBrand)) { S.editor = null; S.tpl = false; S.kedit = null; S.pedit = null; S.newBrand = false; render(); } });
+
+async function boot() {
+  try { const v = localStorage.getItem('croom.view'); if (v && VIEWS.some(x => x[0] === v)) S.view = v; const b = localStorage.getItem('croom.brand'); if (b) S.brand = b; } catch (e) { /* ignore */ }
+  render();
+  try { S.mcp = window.claude ? await window.claude.use('mcp') : null; S.dl = window.claude ? await window.claude.use('downloads') : null; } catch (e) { S.mcp = null; }
+  if (!S.mcp) { S.err = 'Google Sheets access is not available in this view. Open the page in claude.ai and allow the Google Sheets connector.'; return render(); }
+  await refreshAll();
+  setInterval(() => { if (!document.hidden && !S.editor && !S.kedit && !S.pedit && !S.busy && !S.newBrand) refreshAll(true); }, 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - S.syncedAt > 30000 && !S.editor) refreshAll(true); });
+}
+boot();
+
+})();
+</script>

@@ -425,6 +425,12 @@ plan + recurring price + date;
   Shared field rules: `lib/officeLeadFields.ts`. Live check: Maintenance `officeleadsmoke` (form + simulated DM lead).
   Story art `marketing/social/story_office(_ar).html` (`story.css`, bundled Inter + Cairo fonts, rendered by `render_posts.py`);
   the link sticker can't be added by the API: the owner posts the Story from the Instagram app.
+- Multi-brand agent (`docs/INSTAGRAM.md` "Multi-brand and platforms", console source `tools/control-room/`): `brands.ts` (profile; ProHost = built-in default,
+  `prohostPlaybooks.ts`), `store.ts` (ProHost keeps its original `ig_*` collections, other brands live under `ig_brands/{id}`; never name those
+  collections dynamically elsewhere — `readOnlyAccess.test.ts`), `config.ts` `loadConfig(brandId)` / `loadAllConfigs()`, routing by account id with each
+  brand's own app secret (`routing.ts`), WhatsApp channel (`whatsapp.ts`, `waWebhook`, people keyed `wa:`), registry/secrets sync (`registrySync.ts`,
+  `registryTabs.ts`, `sheetTabs.ts`), `knowledgeBuilder.ts`. A new brand never inherits ProHost links or wording (`baseSettings`). The prompt's core
+  (AI disclosure etc.) is code, not brand data: brands add persona and playbooks only. After changing the console, rebuild and republish the artifact.
 - No AI-presenter video: the Veo / Gemini-image avatar reel pipeline was removed (Oct 2026, Google Cloud Generative AI
   policy warning on prohost-f766f). Never bring back synthetic people, first-person testimonials by an AI character,
   or prompts that make generated media pass as real. Remaining Google generative use (Gemini TTS narration, Lyria music,

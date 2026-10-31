@@ -50,6 +50,19 @@ export const PROHOST_BUTTONS: Record<string, BrandButton> = {
   office: { url: "https://pro-host.tech/list-your-office?utm_source=instagram&utm_medium=dm&utm_campaign=office_sourcing", labels: { en: "List your office", ar: "سجّل مكتبك", fr: "Inscrire mon cabinet", es: "Registrar mi consulta" } },
 };
 
+/** Where ProHost's business knowledge lives (public pages only; its app repository is private). Seeded into the Sources tab. */
+export const PROHOST_SOURCES: string[][] = [
+  ["url", "https://pro-host.tech/", "Home: what ProHost is, hosts and professionals, FAQ", ""],
+  ["url", "https://pro-host.tech/list-your-space", "Hosts: how to list a space", ""],
+  ["url", "https://pro-host.tech/clinic-room-rental", "Clinic rooms by the hour", ""],
+  ["url", "https://pro-host.tech/therapy-room-rental", "Therapy rooms", ""],
+  ["url", "https://pro-host.tech/meeting-room-rental", "Meeting rooms", ""],
+  ["url", "https://pro-host.tech/training-room-rental", "Training rooms", ""],
+  ["url", "https://pro-host.tech/studio-rental", "Studios", ""],
+  ["url", "https://pro-host.tech/partner", "Strategic partners", ""],
+  ["url", "https://pro-host.tech/list-your-office", "Office-owner offer", ""],
+];
+
 export const BLANK_INTEGRATIONS: Integrations = { offers: false, listings: false, accountLookup: false, release: false };
 
 export const PROHOST_PROFILE: BrandProfile = {

@@ -1,5 +1,5 @@
 import { sheets_v4 } from "googleapis";
-import { BrandProfile, PROHOST_PROFILE, blankProfile } from "./brands";
+import { BrandProfile, PROHOST_PROFILE, PROHOST_SOURCES, blankProfile } from "./brands";
 import { BRAND_COLUMNS, BUTTON_COLUMNS, PLATFORM_COLUMNS, PLAYBOOK_COLUMNS, SECRET_COLUMNS, SOURCE_COLUMNS, buttonRows, playbookRows, profileRows } from "./registryTabs";
 import { CONTACT_COLUMNS, LEAD_COLUMNS, LOG_COLUMNS, RULE_COLUMNS } from "./rulesSheet";
 
@@ -24,6 +24,7 @@ function seed(base: string, profile: BrandProfile): string[][] {
   if (base === "Profile") return profileRows(profile);
   if (base === "Buttons") return buttonRows(profile.buttons);
   if (base === "Playbooks") return playbookRows(profile.playbooks);
+  if (base === "Sources" && profile.id === PROHOST_PROFILE.id) return PROHOST_SOURCES;
   return [];
 }
 
