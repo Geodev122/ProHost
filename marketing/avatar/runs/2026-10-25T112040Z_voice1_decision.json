@@ -1,5 +1,0 @@
-{
-  "at": "2026-10-25T11:20:40Z",
-  "stage": "voice1_decision",
-  "note": "cta1 keeps the take's own Lebanese voice (s5v_d, 5/5): Seed-VC conversion scored 2/5 (22 kHz) and 1/5 (44 kHz, 100 steps) on its words. hook = s1v_d converted to the hook voice (Lebanese 5/5)."
-}

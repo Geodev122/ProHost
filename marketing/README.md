@@ -219,12 +219,6 @@ Quiet until 6 PM? Your free hours can pay. 🧘 Instructors book them every week
 - **Music:** `scripts/marketing/music.json` → Actions › "Marketing music (manual)" → `audio/music/`.
 - **Backgrounds:** `scripts/marketing/backgrounds.json` → Actions › "Marketing backgrounds (manual)" → `backgrounds/`.
 - **Videos:** see `source/README.md` (render → mix → export).
-- **AI-avatar Reel** (`02-reels-arabic-9x16/12-office-sourcing-avatar.mp4`, office sourcing, first month free via the
-  form, then $8.99/month): presenter from `avatar/reference/character_sheet.jpg` (`scripts/marketing/avatar_refs.py`), shots
-  in `scripts/marketing/avatar_shots.json` → Actions › "Marketing AI avatar (manual)": `keyframes` (Gemini image), `clips`
-  (Veo fast, capped at 48 s per run, cost in `avatar/report.json`), `check` (Gemini transcribes the lip-synced lines) →
-  `python source/reel_v3_compose.py` (cuts to the voice, overlay `source/reel_office_v3.html`, score). Shots 1 and 5 are
-  Veo's own lip-synced voice, the rest the v2 voice-over. Post it from the Instagram app with **AI info** switched on.
 
 
 ## Instagram grid, posts 4-6 and the DM Story (`social/`)

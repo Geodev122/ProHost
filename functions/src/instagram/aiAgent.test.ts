@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { AgentOutput, BUTTON_URLS, salvage, NEW_STATE, advance, buildMessages, buttonLabel, cleanLead, contextBlock, parseAgentJson, runAgent, sanitizeReply, toStepButtons } from "./aiAgent";
+import { AgentOutput, BUTTON_URLS, FALLBACK_REPLY, SYSTEM_PROMPT, salvage, NEW_STATE, advance, buildMessages, buttonLabel, cleanLead, contextBlock, parseAgentJson, runAgent, sanitizeReply, toStepButtons } from "./aiAgent";
 import { buildKnowledge } from "./aiKnowledge";
 
 const OUT: AgentOutput = { reply: "x", messages: ["x"], awaitReply: false, askEmail: false, lang: "en", buttons: [], handoff: false, confidence: 1, learn: false, stage: "answer", askConsent: false, consentGiven: null, lead: {}, memory: "", search: null, searchReady: false, listings: [] };
@@ -169,4 +169,11 @@ test("an office lead is persisted only after consent, with all its fields", () =
   assert.equal(persist?.whatsapp, "+96170123456");
   assert.equal(persist?.kind, "office_owner");
   assert.equal(advance(NEW_STATE, out).persist, null, "consent in the same turn it was asked does not count");
+});
+
+test("the agent always identifies as an AI and never poses as a person", () => {
+  assert.match(SYSTEM_PROMPT, /AI DISCLOSURE/);
+  assert.match(SYSTEM_PROMPT, /automated AI assistant/);
+  assert.doesNotMatch(SYSTEM_PROMPT, /honest person on the team/);
+  assert.match(FALLBACK_REPLY, /automated assistant/);
 });

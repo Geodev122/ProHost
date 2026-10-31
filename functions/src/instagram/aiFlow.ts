@@ -82,10 +82,10 @@ export function nudgeTopic(lang: Lang, kind?: string, city?: string): string {
 }
 
 const CLOSE_THANKS: Record<Lang, (n: string) => string> = {
-  en: (n) => `Thank you${n ? " " + n : ""}! I have to go now to help others waiting for me, but I'm always here if you need anything. Take care!`,
-  ar: (n) => `شكراً${n ? " " + n : ""}! علي أن أذهب الآن لمساعدة أشخاص آخرين بانتظاري، وأنا دائماً هنا إن احتجت أي شيء. اعتنِ بنفسك!`,
-  fr: (n) => `Merci${n ? " " + n : ""} ! Je dois y aller pour aider d'autres personnes qui m'attendent, mais je reste là si besoin. Prends soin de toi !`,
-  es: (n) => `¡Gracias${n ? " " + n : ""}! Tengo que irme a ayudar a otras personas que me esperan, pero aquí estoy para lo que necesites. ¡Cuídate!`,
+  en: (n) => `Thank you${n ? " " + n : ""}! I'm ProHost's automated assistant and I'm here whenever you need anything. Take care!`,
+  ar: (n) => `شكراً${n ? " " + n : ""}! أنا المساعد الآلي لـ ProHost وأنا هنا متى احتجت أي شيء. اعتنِ بنفسك!`,
+  fr: (n) => `Merci${n ? " " + n : ""} ! Je suis l'assistant automatique de ProHost et je reste là si besoin. Prends soin de toi !`,
+  es: (n) => `¡Gracias${n ? " " + n : ""}! Soy el asistente automático de ProHost y aquí estoy para lo que necesites. ¡Cuídate!`,
 };
 
 export const closingThanks = (lang: Lang, name?: string) => CLOSE_THANKS[lang](firstName(name));

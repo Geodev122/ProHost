@@ -27,7 +27,7 @@ Share the sheet (Editor) with the functions' runtime service account. Mode stays
 Story art `public/social/story_list_your_office(_ar).jpg`, posted from the Instagram app with a link sticker to
 `https://pro-host.tech/list-your-office?utm_source=instagram&utm_medium=story&utm_campaign=office_sourcing` (add `&lang=ar`
 for the Arabic story). Rules `office-dm` (dm_keyword), `office-story` (story_reply) and `office-comment` (comment, under the
-AI-avatar reel "Comment office") answer OFFICE / مكتب by asking "shall I register you here for the free month?", with the form
+office-sourcing post "Comment office") answer OFFICE / مكتب by asking "shall I register you here for the free month?", with the form
 as a button. They carry the tag `consent-asked`: `webhook.ts` seeds that question into `ig_threads` (consentAsked), so the
 person's answer goes to the AI agent, a "yes" counts as consent and the agent's intake (mode F in `aiAgent.ts`) collects name,
 email, WhatsApp, profession and city, one per message. The lead (`ig_leads/<ig id>`, kind `office_owner`) is recorded by

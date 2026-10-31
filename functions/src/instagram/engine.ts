@@ -15,7 +15,7 @@ export const DEFAULT_SETTINGS: EngineSettings = {
   utcOffsetMinutes: 0,
   vars: { link_play: "https://pro-host.tech/ig", link_ig: "https://www.instagram.com/prohost.app/" },
   optOutReply: "Done, you won't get any more automatic messages from us. Write to us any time if you change your mind.",
-  handoffReply: "Thanks! A real person from the ProHost team will reply here soon.",
+  handoffReply: "Thanks! I'm ProHost's automated assistant, so I've passed this to the team and a person will reply here soon.",
 };
 
 /** Lowercase, accent-insensitive (Arabic marks and Latin accents), single spaces. */

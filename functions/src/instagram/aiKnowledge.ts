@@ -38,11 +38,11 @@ CONTACT
 - WhatsApp (admin team): +961 76 701 865 (https://wa.me/96176701865)
 - Email: admin@pro-host.tech
 - Strategic partners: https://pro-host.tech/partner
-- Practitioners who own an office (psychologists, life coaches, therapists…) can rent it out by the hour on ProHost and get their first month of Premium free when they register through the office campaign: they comment "office" under our reel or reply OFFICE, and we register them right here in the DM (name, email, WhatsApp number, profession, city, after they agree), or they fill the 30-second form https://pro-host.tech/list-your-office (the "office" button). The ProHost team then contacts them on WhatsApp to set up the listing and the free month.
+- Practitioners who own an office (psychologists, life coaches, therapists…) can rent it out by the hour on ProHost and get their first month of Premium free when they register through the office campaign: they comment "office" under our posts or reply OFFICE, and we register them right here in the DM (name, email, WhatsApp number, profession, city, after they agree), or they fill the 30-second form https://pro-host.tech/list-your-office (the "office" button). The ProHost team then contacts them on WhatsApp to set up the listing and the free month.
 - Website contact form: https://pro-host.tech/#contact
 
 NOT KNOWN / DO NOT ANSWER
-Anything about specific listings, availability, someone's account, payments, refunds, legal terms beyond the website, or other companies. Say a team member will help and offer WhatsApp or email.`;
+Anything about specific listings, availability, someone's account, payments, refunds, legal terms beyond the website, or other companies. Say the ProHost team can help and offer WhatsApp or email.`;
 
 export interface KnowledgeItem { q: string; a: string }
 

@@ -15,10 +15,10 @@ const PUBLIC_SEE_DM: Record<CommentLang, string[]> = {
   es: ["¡Gracias por tu interés @{u}! Te enviamos la respuesta por mensaje privado 📩", "¡Buena pregunta @{u}! Revisa tus mensajes privados 📩"],
 };
 const DM_HOOK: Record<CommentLang, string> = {
-  en: "Hi @{u}, thank you so much for the love on our post 🙌 Out of curiosity, what kind of work do you do, and are you looking for a space to rent or one to list?",
-  ar: "أهلاً @{u}، شكراً جزيلاً على لطفك في تعليقك 🙌 من باب الفضول، ما هو مجال عملك، وهل تبحث عن مساحة لتستأجرها أم لديك مساحة تريد عرضها؟",
-  fr: "Bonjour @{u}, merci beaucoup pour votre gentil commentaire 🙌 Par curiosité, quel est votre métier, et cherchez-vous un espace à louer ou un espace à proposer ?",
-  es: "Hola @{u}, muchas gracias por tu comentario 🙌 Por curiosidad, ¿a qué te dedicas y buscas un espacio para alquilar o uno para publicar?",
+  en: "Hi @{u}, I'm ProHost's automated assistant, thank you for the love on our post 🙌 Out of curiosity, what kind of work do you do, and are you looking for a space to rent or one to list? Reply STOP and I won't message you again.",
+  ar: "أهلاً @{u}، أنا المساعد الآلي لـ ProHost، شكراً على لطفك في تعليقك 🙌 من باب الفضول، ما هو مجال عملك، وهل تبحث عن مساحة لتستأجرها أم لديك مساحة تريد عرضها؟ أرسل STOP ولن أراسلك مجدداً.",
+  fr: "Bonjour @{u}, je suis l'assistant automatique de ProHost, merci pour votre gentil commentaire 🙌 Par curiosité, quel est votre métier, et cherchez-vous un espace à louer ou un espace à proposer ? Répondez STOP et je ne vous écrirai plus.",
+  es: "Hola @{u}, soy el asistente automático de ProHost, gracias por tu comentario 🙌 Por curiosidad, ¿a qué te dedicas y buscas un espacio para alquilar o uno para publicar? Responde STOP y no te escribiré más.",
 };
 
 const pick = <T>(list: T[], seed: string): T => {

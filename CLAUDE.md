@@ -373,8 +373,10 @@ plan + recurring price + date;
   question is the consent for ONE read-only lookup (`lookupInsight`: role, Premium, listings, rentals, profile gaps); the email is unverified,
   so facts are never recited back and "not found" reads like "no" (no probing); only a coarse tag (`insight`) is kept on `ig_threads`.
   Offers/prices come ONLY from `liveOffersText` (Play via `readPlayCatalog`, cached 15 min in `app_config/instagram_offers`, promo/upgrade
-  offers excluded); if unavailable the agent quotes nothing. Silence: `igFollowUps` (every minute) sends one nudge 2 min after our last
-  question and a goodbye 2 min later, only inside Meta's 24 h window; thanks/ok/bye (`isExitIntent`) ends the chat with a warm goodbye
+  offers excluded); if unavailable the agent quotes nothing. AI disclosure: the agent says in its first message that it is ProHost's automated AI assistant,
+  answers truthfully if asked whether it is a bot, and its canned lines (`FALLBACK_REPLY`, handoff, goodbyes, comment DM hook with a STOP
+  opt-out) never pose as a person (Google Cloud policy warning, Oct 2026; `aiAgent.test.ts` guards it). Silence: `igFollowUps` sends one
+  nudge 3 h after the person went quiet, no goodbye, only inside Meta's 24 h window; thanks/ok/bye (`isExitIntent`) ends the chat with a warm goodbye
   without a model call. Never reintroduce hard-coded offer text in the knowledge or prompt.
 - DM continuity + memory + listing finder (`dmPoller.ts`, `aiMemory.ts`, `aiListings.ts`, `docs/INSTAGRAM.md` "Conversation flow"):
   `igDmPoll` reads replies via the Conversations API every minute (the unpublished Meta app gets no webhook for the public —
@@ -423,14 +425,10 @@ plan + recurring price + date;
   Shared field rules: `lib/officeLeadFields.ts`. Live check: Maintenance `officeleadsmoke` (form + simulated DM lead).
   Story art `marketing/social/story_office(_ar).html` (`story.css`, bundled Inter + Cairo fonts, rendered by `render_posts.py`);
   the link sticker can't be added by the API: the owner posts the Story from the Instagram app.
-- Reels with the AI presenter (Reel Studio, `.claude/skills/prohost-reel/SKILL.md`): one spec per reel
-  (`marketing/reels/<id>/spec.json`) → `scripts/marketing/reel_studio.py` / workflow "Marketing Reel Studio". On-camera
-  lines (owner's latest call, 25 Oct 2026, after hearing every lip-sync variant): **native Veo takes used as they come** —
-  picture, voice and lips all from Veo (office reel: `s1n`, `s5n`; same script and Beirut accent prompt, best of 4 takes by
-  the Gemini check), never a redrawn mouth. `fit_voice.py` (TTS fitted onto Veo's mouth) stays available, not the
-  default. Voice-1 scenes hold the frame still (montage `steady`). Voice 2 = Charon narrator over closed-lip footage.
-  Never Wav2Lip, LatentSync-on-CPU or voice conversion. Sync check: workflow "Marketing lip-sync check" (SyncNet).
-  The project has 0 Vertex GPU quota.
+- No AI-presenter video: the Veo / Gemini-image avatar reel pipeline was removed (Oct 2026, Google Cloud Generative AI
+  policy warning on prohost-f766f). Never bring back synthetic people, first-person testimonials by an AI character,
+  or prompts that make generated media pass as real. Remaining Google generative use (Gemini TTS narration, Lyria music,
+  Imagen empty rooms, the optional Gemini DM provider) is listed in `docs/GEMINI_USE.md`; keep that file current.
 - Payment reminders go to the user's own calendar via `PaymentCalendar` (insert intent, monthly
   RRULE) — no calendar permission, no Google Calendar API.
 

@@ -24,3 +24,12 @@ test("comment mode context quotes the comment safely and asks for ONE message", 
   assert.match(c, /ONE single DM/);
   assert.ok(!c.includes('"now"'));
 });
+
+test("the opening DM says it is an automated assistant and offers an opt-out in every language", () => {
+  for (const lang of ["en", "ar", "fr", "es"] as const) {
+    const t = dmHook(lang, "sam");
+    assert.match(t, /ProHost/);
+    assert.match(t, /STOP/);
+  }
+  assert.match(dmHook("en", "sam"), /automated assistant/);
+});
