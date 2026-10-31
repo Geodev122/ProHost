@@ -1,6 +1,7 @@
-import { getFirestore } from "firebase-admin/firestore";
 import "../lib/admin";
 import { DEFAULT_SETTINGS } from "./engine";
+import { BrandProfile, PROHOST_PROFILE, blankProfile, parseProfile } from "./brands";
+import { LEGACY_BRAND, brandConfigRef, brandRef, brandSecretsRef, isLegacyBrand, listBrandIds } from "./store";
 import { EngineSettings } from "./types";
 
 /**
@@ -10,7 +11,30 @@ import { EngineSettings } from "./types";
  *   settings: partial EngineSettings (optOutWords, handoffWords, hourlyCap, activeFromHour, ...)
  *   adminEmail
  */
+export interface WhatsAppPlatform {
+  /** WhatsApp Business Cloud API: the number the brand talks from, its business account, the Meta app (may differ from Instagram's). */
+  phoneNumberId: string;
+  wabaId: string;
+  appId: string;
+  appSecret: string;
+  accessToken: string;
+  verifyToken: string;
+  /** Approved template used outside the 24 h window (name + language). */
+  templateName: string;
+  templateLang: string;
+  enabled: boolean;
+}
+export const BLANK_WHATSAPP: WhatsAppPlatform = { phoneNumberId: "", wabaId: "", appId: "", appSecret: "", accessToken: "", verifyToken: "", templateName: "", templateLang: "en", enabled: false };
+
 export interface IgConfig {
+  /** Which brand this configuration belongs to ("prohost" = the original single account). */
+  brandId: string;
+  /** False = the brand is switched off in the console: no webhook handling, polling or follow-ups. */
+  enabled: boolean;
+  brand: BrandProfile;
+  whatsapp: WhatsAppPlatform;
+  /** Instagram app id (informational; the shared Meta app by default). */
+  appId: string;
   appSecret: string;
   verifyToken: string;
   accessToken: string;
@@ -45,32 +69,84 @@ export interface AiSettings {
 export const DEFAULT_AI: AiSettings = { enabled: false, provider: "vertex", model: "claude-haiku-4-5@20251001", region: "global", dailyCap: 300, perPersonPerHour: 12, comments: true, commentDm: true };
 
 const TTL_MS = 60 * 1000;
-let cached: { config: IgConfig; at: number } | null = null;
+const cache = new Map<string, { config: IgConfig; at: number }>();
 
-export function parseConfig(d: Record<string, unknown> | undefined): IgConfig {
+export function parseConfig(d: Record<string, unknown> | undefined, brand: BrandProfile = PROHOST_PROFILE, wa: Partial<WhatsAppPlatform> = {}): IgConfig {
   const s = (d?.settings ?? {}) as Partial<EngineSettings>;
   const str = (v: unknown) => (typeof v === "string" ? v : "");
   return {
+    brandId: brand.id, enabled: d?.enabled !== false, brand, whatsapp: { ...BLANK_WHATSAPP, ...wa }, appId: str(d?.appId),
     appSecret: str(d?.appSecret), verifyToken: str(d?.verifyToken), accessToken: str(d?.accessToken),
     igUserId: str(d?.igUserId), username: str(d?.username), tokenExpiresAt: Number(d?.tokenExpiresAt) || 0,
     mode: d?.mode === "live" ? "live" : "dry-run",
     killSwitch: Boolean(d?.killSwitch),
-    adminEmail: str(d?.adminEmail) || "admin@pro-host.tech", sheetId: str(d?.sheetId), anthropicKey: str(d?.anthropicKey), geminiKey: str(d?.geminiKey), ai: { ...DEFAULT_AI, ...((d?.ai ?? {}) as Partial<AiSettings>) },
+    adminEmail: str(d?.adminEmail) || brand.contactEmail || "admin@pro-host.tech", sheetId: str(d?.sheetId), anthropicKey: str(d?.anthropicKey), geminiKey: str(d?.geminiKey), ai: { ...DEFAULT_AI, ...((d?.ai ?? {}) as Partial<AiSettings>) },
     settings: { ...DEFAULT_SETTINGS, ...s, vars: { ...DEFAULT_SETTINGS.vars, ...(s.vars ?? {}) } },
   };
 }
 
-export async function loadConfig(force = false): Promise<IgConfig> {
-  if (!force && cached && Date.now() - cached.at < TTL_MS) return cached.config;
-  const snap = await getFirestore().collection("app_config").doc("instagram").get();
-  const config = parseConfig(snap.data());
-  cached = { config, at: Date.now() };
+/**
+ * A non-legacy brand keeps its settings in `ig_brands/{id}` (platforms.instagram / platforms.whatsapp for the account ids)
+ * and its secrets in `ig_brands/{id}/private/secrets`; this flattens them into the shape `parseConfig` reads.
+ */
+export function flattenBrand(doc: Record<string, unknown> | undefined, secrets: Record<string, unknown> | undefined): { flat: Record<string, unknown>; wa: Partial<WhatsAppPlatform> } {
+  const d = doc ?? {};
+  const platforms = (d.platforms ?? {}) as Record<string, Record<string, unknown>>;
+  const ig = platforms.instagram ?? {};
+  const w = platforms.whatsapp ?? {};
+  const sec = (secrets ?? {}) as Record<string, Record<string, unknown> | string>;
+  const sIg = (sec.instagram ?? {}) as Record<string, unknown>;
+  const sWa = (sec.whatsapp ?? {}) as Record<string, unknown>;
+  const str = (v: unknown) => (typeof v === "string" ? v : "");
+  return {
+    flat: {
+      ...d, appId: ig.appId, igUserId: ig.igUserId, username: ig.username, tokenExpiresAt: ig.tokenExpiresAt,
+      appSecret: sIg.appSecret, accessToken: sIg.accessToken, verifyToken: sIg.verifyToken,
+      anthropicKey: str(sec.anthropicKey), geminiKey: str(sec.geminiKey),
+    },
+    wa: {
+      phoneNumberId: str(w.phoneNumberId), wabaId: str(w.wabaId), appId: str(w.appId), templateName: str(w.templateName), templateLang: str(w.templateLang) || "en", enabled: w.enabled === true,
+      appSecret: str(sWa.appSecret), accessToken: str(sWa.accessToken), verifyToken: str(sWa.verifyToken),
+    },
+  };
+}
+
+export async function loadConfig(brandId: string = LEGACY_BRAND, force = false): Promise<IgConfig> {
+  const hit = cache.get(brandId);
+  if (!force && hit && Date.now() - hit.at < TTL_MS) return hit.config;
+  let config: IgConfig;
+  if (isLegacyBrand(brandId)) {
+    const [snap, profile, wa] = await Promise.all([brandConfigRef(brandId).get(), brandRef(LEGACY_BRAND).get(), brandSecretsRef(LEGACY_BRAND).get()]);
+    // ProHost: the original flat document for Instagram, plus the optional registry overlay for profile and WhatsApp.
+    const platforms = ((profile.data()?.platforms ?? {}) as Record<string, Record<string, unknown>>);
+    const fl = flattenBrand({ platforms: { whatsapp: platforms.whatsapp } }, wa.data());
+    config = parseConfig(snap.data(), parseProfile(PROHOST_PROFILE, profile.data()), fl.wa);
+  } else {
+    const [doc, secrets] = await Promise.all([brandRef(brandId).get(), brandSecretsRef(brandId).get()]);
+    const { flat, wa } = flattenBrand(doc.data(), secrets.data());
+    const name = typeof doc.data()?.name === "string" ? (doc.data()?.name as string) : brandId;
+    config = parseConfig(flat, parseProfile(blankProfile(brandId, name), doc.data()), wa);
+  }
+  cache.set(brandId, { config, at: Date.now() });
   return config;
 }
 
-export function clearConfigCache(): void { cached = null; }
+/** Every brand's configuration (ProHost first). A brand that fails to load is skipped, never fatal for the others. */
+export async function loadAllConfigs(force = false): Promise<IgConfig[]> {
+  const out: IgConfig[] = [];
+  for (const id of await listBrandIds()) {
+    try {
+      const c = await loadConfig(id, force);
+      if (c.enabled) out.push(c);
+    } catch { /* skipped */ }
+  }
+  return out;
+}
+
+export function clearConfigCache(brandId?: string): void { if (brandId) cache.delete(brandId); else cache.clear(); }
 
 /** Sends only when live, not killed, and fully configured. Everything else is a dry run. */
-export function canSend(c: IgConfig): boolean {
-  return c.mode === "live" && !c.killSwitch && !!c.accessToken && !!c.igUserId;
+export function canSend(c: IgConfig, channel: "instagram" | "whatsapp" = "instagram"): boolean {
+  if (c.mode !== "live" || c.killSwitch) return false;
+  return channel === "whatsapp" ? c.whatsapp.enabled && !!c.whatsapp.accessToken && !!c.whatsapp.phoneNumberId : !!c.accessToken && !!c.igUserId;
 }

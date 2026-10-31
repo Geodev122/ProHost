@@ -1,8 +1,8 @@
-import { getFirestore } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import "../lib/admin";
-import { IgConfig, loadConfig } from "./config";
+import { IgConfig, loadAllConfigs } from "./config";
+import { brandCol } from "./store";
 import { listComments, listRecentMedia } from "./graph";
 import { freshComments, toEvent } from "./commentFeed";
 import { handleEvent } from "./webhook";
@@ -13,7 +13,7 @@ import { handleEvent } from "./webhook";
  * baseline: old comments are never answered. Returns how many comments were processed.
  */
 export async function pollComments(config: IgConfig, now: number, deps = { listRecentMedia, listComments, handleEvent }): Promise<number> {
-  const ref = getFirestore().collection("ig_stats").doc("comment_poll");
+  const ref = brandCol(config.brandId, "stats").doc("comment_poll");
   const state = (await ref.get()).data();
   if (!state?.since) { await ref.set({ since: now, lastRun: now, lastError: "", processed: 0 }); return 0; }
   const creds = { igUserId: config.igUserId, token: config.accessToken };
@@ -37,12 +37,13 @@ export async function pollComments(config: IgConfig, now: number, deps = { listR
 }
 
 export const igCommentPoll = onSchedule({ schedule: "every 1 minutes", timeoutSeconds: 120, memory: "256MiB" }, async () => {
-  try {
-    const config = await loadConfig();
-    if (!config.accessToken || !config.igUserId) return;
-    const n = await pollComments(config, Date.now());
-    if (n) logger.info("igCommentPoll", { processed: n });
-  } catch (e) {
-    logger.error("igCommentPoll failed", { message: (e as Error).message });
+  for (const config of await loadAllConfigs()) {
+    if (!config.accessToken || !config.igUserId) continue;
+    try {
+      const n = await pollComments(config, Date.now());
+      if (n) logger.info("igCommentPoll", { brand: config.brandId, processed: n });
+    } catch (e) {
+      logger.error("igCommentPoll failed", { brand: config.brandId, message: (e as Error).message });
+    }
   }
 });

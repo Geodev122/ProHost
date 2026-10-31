@@ -173,7 +173,7 @@ test("an office lead is persisted only after consent, with all its fields", () =
 
 test("the agent always identifies as an AI and never poses as a person", () => {
   assert.match(SYSTEM_PROMPT, /AI DISCLOSURE/);
-  assert.match(SYSTEM_PROMPT, /automated AI assistant/);
+  assert.match(SYSTEM_PROMPT, /You are not a person: you are an AI/);
   assert.doesNotMatch(SYSTEM_PROMPT, /honest person on the team/);
   assert.match(FALLBACK_REPLY, /automated assistant/);
 });

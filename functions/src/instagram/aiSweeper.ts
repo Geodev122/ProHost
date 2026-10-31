@@ -3,8 +3,10 @@ import * as logger from "firebase-functions/logger";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import "../lib/admin";
 import { WaitingThread, nextFollowUp } from "./aiFlow";
-import { IgConfig, canSend, loadConfig } from "./config";
-import { sendStep } from "./graph";
+import { IgConfig, canSend, loadAllConfigs } from "./config";
+import { brandCol } from "./store";
+import { senderFor } from "./sender";
+import { Channel, Step } from "./types";
 import { liveOffersText } from "./aiOffers";
 
 /**
@@ -12,9 +14,9 @@ import { liveOffersText } from "./aiOffers";
  * looking for; no goodbye, the chat stays open. Only threads the agent itself is waiting on (`dueAt`), always inside Meta's 24 h window,
  * never for opted-out or handed-over people.
  */
-export async function runFollowUps(config: IgConfig, now: number, send = sendStep): Promise<number> {
+export async function runFollowUps(config: IgConfig, now: number, send?: (creds: unknown, step: Step) => Promise<unknown>): Promise<number> {
   const db = getFirestore();
-  const due = await db.collection("ig_threads").where("dueAt", "<=", now).limit(50).get();
+  const due = await brandCol(config.brandId, "threads").where("dueAt", "<=", now).limit(50).get();
   let done = 0;
   for (const doc of due.docs) {
     const t = doc.data() as WaitingThread;
@@ -28,14 +30,15 @@ export async function runFollowUps(config: IgConfig, now: number, send = sendSte
       return true;
     });
     if (!claimed) continue;
-    const contact = (await db.collection("ig_contacts").doc(doc.id).get()).data() ?? {};
+    const contact = (await brandCol(config.brandId, "contacts").doc(doc.id).get()).data() ?? {};
     const blocked = contact.optedOut === true || Number(contact.handoffUntil ?? 0) > now;
-    let status = blocked ? "ignored" : canSend(config) ? "sent" : "dry-run";
+    const channel: Channel = doc.id.startsWith("wa:") ? "whatsapp" : "instagram";
+    let status = blocked ? "ignored" : canSend(config, channel) ? "sent" : "dry-run";
     let error = "";
     if (status === "sent") {
-      try { await send({ igUserId: config.igUserId, token: config.accessToken }, { type: "dm", recipientId: doc.id, text: fu.text }); } catch (e) { status = "failed"; error = (e as Error).message.slice(0, 300); }
+      try { const step: Step = { type: "dm", recipientId: doc.id, text: fu.text }; if (send) await send({ igUserId: config.igUserId, token: config.accessToken }, step); else await senderFor(config, channel)(step); } catch (e) { status = "failed"; error = (e as Error).message.slice(0, 300); }
     }
-    await db.collection("ig_events").doc(`fu_${doc.id}_${now}`).set({
+    await brandCol(config.brandId, "events").doc(`fu_${doc.id}_${now}`).set({
       kind: "dm", senderId: doc.id, username: String(contact.username ?? ""), text: "(silence: nudge)", status,
       reason: blocked ? "follow-up skipped: opted out or handed to a human" : "AI agent · silence nudge", ruleName: "AI agent", replies: fu.text, error, createdAt: now, processedAt: now, synced: false,
     }).catch(() => undefined);
@@ -45,13 +48,14 @@ export async function runFollowUps(config: IgConfig, now: number, send = sendSte
 }
 
 export const igFollowUps = onSchedule({ schedule: "every 1 minutes", timeoutSeconds: 60, memory: "256MiB" }, async () => {
-  try {
-    const config = await loadConfig();
-    if (!config.ai.enabled) return;
-    const n = await runFollowUps(config, Date.now());
-    if (n) logger.info("igFollowUps", { sent: n });
-    await liveOffersText(Date.now()).catch(() => undefined); // keeps the offers cache fresh even when nobody writes
-  } catch (e) {
-    logger.error("igFollowUps failed", { message: (e as Error).message });
+  for (const config of await loadAllConfigs()) {
+    if (!config.ai.enabled) continue;
+    try {
+      const n = await runFollowUps(config, Date.now());
+      if (n) logger.info("igFollowUps", { brand: config.brandId, sent: n });
+    } catch (e) {
+      logger.error("igFollowUps failed", { brand: config.brandId, message: (e as Error).message });
+    }
   }
+  await liveOffersText(Date.now()).catch(() => undefined); // keeps ProHost's offers cache fresh even when nobody writes
 });

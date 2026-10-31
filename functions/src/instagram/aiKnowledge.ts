@@ -5,7 +5,7 @@ import { RELEASE_KNOWLEDGE } from "./aiRelease.generated";
  * The owner adds answers in the sheet's Knowledge tab (mirrored into app_config/instagram_knowledge); those win over this text.
  * Prices and offers are deliberately absent: they come live from Google Play (aiOffers.ts).
  */
-export const BASE_KNOWLEDGE = `ABOUT PROHOST
+export const PROHOST_KNOWLEDGE_BASE = `ABOUT PROHOST
 ProHost is a mobile app (Android, on Google Play) that connects space owners ("hosts") with professionals who need a room. Hosts list clinics, therapy rooms, offices, studios, classrooms, meeting rooms and coworking desks. Professionals (therapists, doctors, trainers, coaches, consultants, freelancers) find and book them.
 Website: https://pro-host.tech . Instagram: @prohost.app . Download link: https://pro-host.tech/ig
 Android only today. The iPhone app is coming soon; people can leave their email on the website to be told when it is ready.
@@ -44,11 +44,14 @@ CONTACT
 NOT KNOWN / DO NOT ANSWER
 Anything about specific listings, availability, someone's account, payments, refunds, legal terms beyond the website, or other companies. Say the ProHost team can help and offer WhatsApp or email.`;
 
+/** Kept under its old name for the tests. */
+export const BASE_KNOWLEDGE = PROHOST_KNOWLEDGE_BASE;
+
 export interface KnowledgeItem { q: string; a: string }
 
-export function buildKnowledge(extra: KnowledgeItem[]): string {
-  const base = `${BASE_KNOWLEDGE}\n\n${RELEASE_KNOWLEDGE}`;
+export function buildKnowledge(extra: KnowledgeItem[], base: string = PROHOST_KNOWLEDGE_BASE, release: string = RELEASE_KNOWLEDGE): string {
+  const text = [base.trim(), release.trim()].filter(Boolean).join("\n\n") || "(No business knowledge has been added for this brand yet: say you do not know and offer the contact.)";
   const owner = extra.filter((i) => i.q.trim() && i.a.trim()).slice(0, 80)
     .map((i) => `Q: ${i.q.trim().slice(0, 300)}\nA: ${i.a.trim().slice(0, 900)}`).join("\n\n");
-  return owner ? `${base}\n\nOWNER-APPROVED ANSWERS (these override anything above if they conflict)\n${owner}` : base;
+  return owner ? `${text}\n\nOWNER-APPROVED ANSWERS (these override anything above if they conflict)\n${owner}` : text;
 }

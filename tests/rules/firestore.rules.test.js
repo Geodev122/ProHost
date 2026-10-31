@@ -223,12 +223,24 @@ describe("workspace_listings", () => {
 
 describe("instagram automation collections", () => {
   test("rules, events, contacts, stats and its config are server-only", async () => {
-    for (const [col, id] of [["ig_rules", "r1"], ["ig_events", "c_1"], ["ig_contacts", "u1"], ["ig_stats", "errors"], ["ig_threads", "u1"], ["ig_learn", "q1"], ["ig_leads", "u1"], ["app_config", "instagram"], ["app_config", "instagram_knowledge"], ["app_config", "instagram_offers"]]) {
+    for (const [col, id] of [["ig_rules", "r1"], ["ig_events", "c_1"], ["ig_contacts", "u1"], ["ig_stats", "errors"], ["ig_threads", "u1"], ["ig_learn", "q1"], ["ig_leads", "u1"], ["ig_brands", "acme"], ["app_config", "instagram"], ["app_config", "instagram_knowledge"], ["app_config", "instagram_offers"]]) {
       await assertFails(getDoc(doc(specCtx(), col, id)));
       await assertFails(setDoc(doc(specCtx(), col, id), { text: "x" }));
       await assertFails(getDoc(doc(hostCtx(), col, id)));
       await assertFails(setDoc(doc(hostCtx(), col, id), { text: "x" }));
       await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), col, id)));
+    }
+  });
+});
+
+describe("instagram multi-brand registry", () => {
+  test("brand documents, their sub-collections and secrets are server-only", async () => {
+    for (const path of [["ig_brands", "acme", "private", "secrets"], ["ig_brands", "acme", "events", "c_1"], ["ig_brands", "acme", "threads", "u1"]]) {
+      await assertFails(getDoc(doc(specCtx(), ...path)));
+      await assertFails(setDoc(doc(specCtx(), ...path), { text: "x" }));
+      await assertFails(getDoc(doc(hostCtx(), ...path)));
+      await assertFails(setDoc(doc(hostCtx(), ...path), { text: "x" }));
+      await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), ...path)));
     }
   });
 });

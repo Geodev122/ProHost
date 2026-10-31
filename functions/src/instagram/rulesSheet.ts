@@ -3,7 +3,7 @@ import { MatchStyle, Rule, TRIGGERS, Trigger } from "./types";
 /** Column order of the Rules tab in the "ProHost IG Automations" sheet (the artifact writes the same order). */
 export const RULE_COLUMNS = [
   "id", "enabled", "name", "trigger", "keywords", "match", "post_id", "comment_reply", "private_reply", "dm_text",
-  "button_label", "button_url", "quick_replies", "cooldown_hours", "tags", "priority",
+  "button_label", "button_url", "quick_replies", "cooldown_hours", "tags", "priority", "platform",
 ] as const;
 
 export const LOG_COLUMNS = ["time", "kind", "person", "text", "rule", "status", "reason", "reply", "error", "event_id"] as const;
@@ -47,6 +47,7 @@ export function parseRulesSheet(values: string[][]): ParsedRules {
       quickReplies: split(col(row, "quick_replies"), /\s*,\s*/),
       cooldownHours: Number.isFinite(cd) && col(row, "cooldown_hours") !== "" ? Math.max(0, cd) : 24,
       tags: split(col(row, "tags"), /\s*,\s*/), priority: Number(col(row, "priority")) || 0,
+      ...(["instagram", "whatsapp"].includes(col(row, "platform").toLowerCase()) ? { platform: col(row, "platform").toLowerCase() as "instagram" | "whatsapp" } : {}),
     });
   });
   return { rules, errors };
@@ -57,7 +58,7 @@ export function ruleToRow(r: Rule): string[] {
   return [
     r.id, r.enabled ? "TRUE" : "FALSE", r.name, r.trigger, r.keywords.join(", "), r.match, r.mediaId ?? "",
     r.commentReplies.join(" | "), r.privateReply ?? "", r.dm ?? "", r.buttonLabel ?? "", r.buttonUrl ?? "",
-    r.quickReplies.join(", "), String(r.cooldownHours), r.tags.join(", "), String(r.priority),
+    r.quickReplies.join(", "), String(r.cooldownHours), r.tags.join(", "), String(r.priority), r.platform ?? "",
   ];
 }
 

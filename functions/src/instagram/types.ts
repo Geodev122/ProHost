@@ -1,12 +1,15 @@
 /** Shared shapes for the Instagram automation (webhook → engine → Graph API). See docs/INSTAGRAM.md. */
 
 export type EventKind = "comment" | "story_reply" | "story_mention" | "dm" | "postback";
+export type Channel = "instagram" | "whatsapp";
 
 /** One thing a person did to @prohost.app, normalized from Meta's webhook payload. */
 export interface IgEvent {
   /** Stable id used to dedupe Meta's retries (comment id, message id, or a hash of the postback). */
   id: string;
   kind: EventKind;
+  /** Where it came from; absent = Instagram (the original channel). WhatsApp people are keyed `wa:<number>`. */
+  channel?: Channel;
   /** Instagram-scoped id of the person (recipient of our reply). */
   senderId: string;
   username?: string;
@@ -49,6 +52,8 @@ export interface Rule {
   tags: string[];
   /** Higher wins when several rules match. */
   priority: number;
+  /** Which channel the rule applies to; absent = all. */
+  platform?: "all" | Channel;
 }
 
 export interface ContactState {

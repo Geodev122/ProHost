@@ -1,14 +1,18 @@
-import { FieldValue, getFirestore } from "firebase-admin/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import { onRequest } from "firebase-functions/v2/https";
 import "../lib/admin";
-import { IgConfig, canSend, loadConfig } from "./config";
+import { IgConfig, canSend, loadAllConfigs } from "./config";
+import { LEGACY_BRAND, brandCol } from "./store";
 import { aiDecide, commentDecide } from "./aiRuntime";
 import { IN_CONVERSATION, decide } from "./engine";
 import { inConversation, seedFromComment } from "./aiMemory";
-import { GraphError, sendStep } from "./graph";
+import { GraphError } from "./graph";
+import { senderFor } from "./sender";
+import { WaError } from "./whatsapp";
 import { alertAdmin } from "./notify";
 import { parseWebhook } from "./parse";
+import { brandForVerifyToken, routeEntries } from "./routing";
 import { verifySignature } from "./signature";
 import { ContactState, Decision, IgEvent, Rule } from "./types";
 
@@ -17,36 +21,47 @@ const BREAKER_ERRORS = 5;
 
 /** pro-host.tech/ig-webhook (hosting rewrite). GET = Meta's handshake, POST = events. */
 export const igWebhook = onRequest({ cors: false, memory: "256MiB", timeoutSeconds: 60 }, async (req, res) => {
-  const config = await loadConfig();
+  const configs = await loadAllConfigs();
   if (req.method === "GET") {
-    const ok = req.query["hub.mode"] === "subscribe" && !!config.verifyToken && req.query["hub.verify_token"] === config.verifyToken;
+    // Meta's handshake carries no account id: the verify token tells which brand is being connected.
+    const token = String(req.query["hub.verify_token"] ?? "");
+    const ok = req.query["hub.mode"] === "subscribe" && !!brandForVerifyToken(configs, token);
     if (ok) res.status(200).type("text/plain").send(String(req.query["hub.challenge"] ?? ""));
     else res.status(403).send("Forbidden");
     return;
   }
   if (req.method !== "POST") { res.status(405).send("Method not allowed"); return; }
-  if (!verifySignature(req.rawBody, req.get("x-hub-signature-256"), config.appSecret)) {
-    logger.warn("ig webhook: bad signature");
-    res.status(403).send("Bad signature");
-    return;
+  const body = req.body as { entry?: Array<{ id?: unknown }> };
+  const entries = Array.isArray(body?.entry) ? body.entry : [];
+  const { work, unowned } = routeEntries(configs, entries, req.rawBody, req.get("x-hub-signature-256"));
+  for (const account of unowned) logger.warn("ig webhook: no brand owns this account", { account });
+  if (!work.length) {
+    // No entry matched (or no signature fit): keep the old single-account behaviour for the original brand.
+    const legacy = configs.find((c) => c.brandId === LEGACY_BRAND);
+    if (!legacy || !verifySignature(req.rawBody, req.get("x-hub-signature-256"), legacy.appSecret)) {
+      logger.warn("ig webhook: bad signature");
+      res.status(403).send("Bad signature");
+      return;
+    }
   }
   // Acknowledge-by-completing: events are processed inline (seconds); Meta retries on non-200.
   try {
-    for (const event of parseWebhook(req.body)) await handleEvent(config, event);
+    for (const { config, entry } of work) for (const event of parseWebhook({ entry: [entry] })) await handleEvent(config, event);
   } catch (e) {
     logger.error("ig webhook: processing failed", { message: (e as Error).message });
   }
   res.status(200).send("EVENT_RECEIVED");
 });
 
-async function loadRules(): Promise<Rule[]> {
-  const snap = await getFirestore().collection("ig_rules").get();
+async function loadRules(brandId: string): Promise<Rule[]> {
+  const snap = await brandCol(brandId, "rules").get();
   return snap.docs.map((d) => ({ ...(d.data() as Rule), id: d.id }));
 }
 
 export async function handleEvent(config: IgConfig, event: IgEvent, now = Date.now()): Promise<Decision | null> {
-  const db = getFirestore();
-  const eventRef = db.collection("ig_events").doc(event.id);
+  const bid = config.brandId;
+  const channel = event.channel ?? "instagram";
+  const eventRef = brandCol(bid, "events").doc(event.id);
   // Dedupe: Meta retries; create() fails if we already stored this event.
   try {
     await eventRef.create({ kind: event.kind, senderId: event.senderId, username: event.username ?? "", text: event.text.slice(0, 500), mediaId: event.mediaId ?? "", status: "processing", createdAt: now, synced: false });
@@ -54,14 +69,14 @@ export async function handleEvent(config: IgConfig, event: IgEvent, now = Date.n
     return null;
   }
 
-  const contactRef = db.collection("ig_contacts").doc(event.senderId);
+  const contactRef = brandCol(bid, "contacts").doc(event.senderId);
   const contact = ((await contactRef.get()).data() ?? {}) as ContactState & { tags?: string[]; username?: string };
-  const stats = (await db.collection("ig_stats").doc("hour_" + Math.floor(now / HOUR)).get()).data();
+  const stats = (await brandCol(bid, "stats").doc("hour_" + Math.floor(now / HOUR)).get()).data();
   const settings = { ...config.settings, sentThisHour: Number(stats?.sent) || 0 };
-  const rules = await loadRules();
+  const rules = await loadRules(bid);
   // Mid-conversation with the agent (it wrote within 24 h): the reply goes to the agent, not to a keyword rule.
   const conversation = event.kind === "dm" && config.ai.enabled &&
-    inConversation((await db.collection("ig_threads").doc(event.senderId).get()).data(), now);
+    inConversation((await brandCol(bid, "threads").doc(event.senderId).get()).data(), now);
   let decision = decide(event, rules, contact, settings, now, Math.random, { conversation });
   // The AI agent answers DMs no keyword rule handled, replaces the generic welcome / catch-all DM rules, and owns live conversations.
   if (event.kind === "dm") {
@@ -84,19 +99,19 @@ export async function handleEvent(config: IgConfig, event: IgEvent, now = Date.n
     if (ai && (ai.kind !== "ignored" || ai.flag)) decision = ai;
   }
 
-  let status: string = decision.flag ? "flagged" : decision.kind === "ignored" ? "ignored" : canSend(config) ? "sent" : "dry-run";
+  let status: string = decision.flag ? "flagged" : decision.kind === "ignored" ? "ignored" : canSend(config, channel) ? "sent" : "dry-run";
   let error = "";
   if (decision.steps.length && status === "sent") {
-    if (await breakerOpen(now)) {
+    if (await breakerOpen(bid, now)) {
       status = "paused";
       error = "circuit breaker open: too many recent API errors";
     } else {
       try {
         for (const [i, step] of decision.steps.entries()) {
           if (i > 0 && decision.pauseMs) await new Promise((r) => setTimeout(r, decision.pauseMs));
-          await sendStep({ igUserId: config.igUserId, token: config.accessToken }, step);
+          await senderFor(config, channel)(step);
         }
-        await db.collection("ig_stats").doc("hour_" + Math.floor(now / HOUR)).set({ sent: FieldValue.increment(decision.steps.length), hour: Math.floor(now / HOUR) }, { merge: true });
+        await brandCol(bid, "stats").doc("hour_" + Math.floor(now / HOUR)).set({ sent: FieldValue.increment(decision.steps.length), hour: Math.floor(now / HOUR) }, { merge: true });
       } catch (e) {
         status = "failed";
         error = (e as Error).message.slice(0, 300);
@@ -109,13 +124,13 @@ export async function handleEvent(config: IgConfig, event: IgEvent, now = Date.n
   const priv = decision.steps.find((st) => st.type === "private_reply");
   if (event.kind === "comment" && decision.ruleId && priv?.text && (status === "sent" || status === "dry-run")) {
     // A rule tagged "consent-asked" (office-comment) asks "shall I register you?" in its private reply: a yes counts as consent.
-    await seedRuleReply(event, priv.text, now, decision.tags.includes("consent-asked")).catch(() => undefined);
+    await seedRuleReply(bid, event, priv.text, now, decision.tags.includes("consent-asked")).catch(() => undefined);
   }
   // Same for a DM / story-reply rule tagged "consent-asked" (office-dm, office-story): the answer goes to the agent's intake.
   const firstDm = decision.steps.find((st) => st.type === "dm");
   if ((event.kind === "dm" || event.kind === "story_reply") && decision.ruleId && decision.tags.includes("consent-asked") && firstDm?.text &&
       (status === "sent" || status === "dry-run")) {
-    await seedRuleReply(event, firstDm.text, now, true, event.kind === "dm" ? "" : "(reply to our story)").catch(() => undefined);
+    await seedRuleReply(bid, event, firstDm.text, now, true, event.kind === "dm" ? "" : "(reply to our story)").catch(() => undefined);
   }
 
   if (decision.flag === "negative") {
@@ -134,8 +149,8 @@ export async function handleEvent(config: IgConfig, event: IgEvent, now = Date.n
   return decision;
 }
 
-async function seedRuleReply(event: IgEvent, reply: string, now: number, consentAsked = false, label?: string): Promise<void> {
-  const ref = getFirestore().collection("ig_threads").doc(event.senderId);
+async function seedRuleReply(bid: string, event: IgEvent, reply: string, now: number, consentAsked = false, label?: string): Promise<void> {
+  const ref = brandCol(bid, "threads").doc(event.senderId);
   const t = (await ref.get()).data() ?? {};
   const turns = seedFromComment(Array.isArray(t.turns) ? t.turns : [], event.text, reply, now, label);
   await ref.set({ turns, at: now, lastAgentAt: now, closed: false, nudges: 0, state: { ...(t.state ?? {}), awaiting: "reply", ...(consentAsked ? { consentAsked: true } : {}) },
@@ -153,18 +168,18 @@ function flatten(update: Record<string, unknown>): Record<string, unknown> {
   return out;
 }
 
-async function breakerOpen(now: number): Promise<boolean> {
-  const snap = await getFirestore().collection("ig_stats").doc("errors").get();
+async function breakerOpen(bid: string, now: number): Promise<boolean> {
+  const snap = await brandCol(bid, "stats").doc("errors").get();
   const d = snap.data();
   return !!d && Number(d.count) >= BREAKER_ERRORS && now - Number(d.lastAt) < HOUR;
 }
 
 async function recordFailure(config: IgConfig, e: unknown, now: number): Promise<void> {
-  const ref = getFirestore().collection("ig_stats").doc("errors");
+  const ref = brandCol(config.brandId, "stats").doc("errors");
   const d = (await ref.get()).data();
   const fresh = d && now - Number(d.lastAt) < HOUR;
   const count = (fresh ? Number(d?.count) : 0) + 1;
   await ref.set({ count, lastAt: now, lastError: (e as Error).message.slice(0, 300) });
-  const permanent = e instanceof GraphError && (e.code === 190 || e.status === 401);
-  if (count === BREAKER_ERRORS || permanent) await alertAdmin(config, permanent ? "Instagram token rejected" : "Instagram replies paused", (e as Error).message);
+  const permanent = (e instanceof GraphError || e instanceof WaError) && (e.code === 190 || e.status === 401);
+  if (count === BREAKER_ERRORS || permanent) await alertAdmin(config, permanent ? "Access token rejected" : "Replies paused", (e as Error).message);
 }

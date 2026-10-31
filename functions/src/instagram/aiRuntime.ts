@@ -1,4 +1,5 @@
-import { FieldValue, getFirestore } from "firebase-admin/firestore";
+import { FieldValue } from "firebase-admin/firestore";
+import { brandCol, brandKnowledgeRef } from "./store";
 import * as logger from "firebase-functions/logger";
 import "../lib/admin";
 import { AiConfig, LlmError } from "./aiLlm";
@@ -19,17 +20,20 @@ import { FLOW_TTL_MS, Turn, aliasId, appendTurns, importHistory } from "./aiMemo
 import { ListingRow, catalogOverview, cleanCriteria, formatMatches, listingButtons, listingsCatalog, searchListings } from "./aiListings";
 
 const HOUR = 3_600_000;
-let kCache: { text: string; at: number } | null = null;
+const kCache = new Map<string, { text: string; at: number }>();
 
-async function loadKnowledge(now: number): Promise<string> {
-  if (kCache && now - kCache.at < 60_000) return kCache.text;
+/** The brand's knowledge: its business text (+ ProHost's release notes where that integration is on) and the owner-approved Q/A. */
+async function loadKnowledge(config: IgConfig, now: number): Promise<string> {
+  const hit = kCache.get(config.brandId);
+  if (hit && now - hit.at < 60_000) return hit.text;
   let items: KnowledgeItem[] = [];
   try {
-    const d = (await getFirestore().collection("app_config").doc("instagram_knowledge").get()).data();
+    const d = (await brandKnowledgeRef(config.brandId).get()).data();
     items = Array.isArray(d?.items) ? (d.items as KnowledgeItem[]) : [];
   } catch { /* base knowledge only */ }
-  kCache = { text: buildKnowledge(items), at: now };
-  return kCache.text;
+  const text = buildKnowledge(items, config.brand.knowledgeBase, config.brand.integrations.release ? undefined : "");
+  kCache.set(config.brandId, { text, at: now });
+  return text;
 }
 
 const ignored = (reason: string): Decision => ({ kind: "ignored", reason, steps: [], tags: [] });
@@ -47,22 +51,21 @@ export function priorState(thread: Record<string, unknown>, now: number): ConvSt
  * The thread of a commenter Instagram did not identify (`u:<username>`, see commentFeed.ts) is moved onto their real id
  * the first time they DM us, so the agent remembers the comment it answered.
  */
-async function relinkAlias(senderId: string, username: string | undefined, thread: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function relinkAlias(bid: string, senderId: string, username: string | undefined, thread: Record<string, unknown>): Promise<Record<string, unknown>> {
   if (!username || senderId.startsWith("u:")) return thread;
-  const db = getFirestore();
-  const aliasRef = db.collection("ig_threads").doc(aliasId(username));
+  const aliasRef = brandCol(bid, "threads").doc(aliasId(username));
   const alias = (await aliasRef.get()).data();
   if (!alias) return thread;
   const turns = appendTurns(Array.isArray(alias.turns) ? alias.turns as Turn[] : [], Array.isArray(thread.turns) ? thread.turns as Turn[] : []);
   const merged = { ...alias, ...thread, turns };
-  await db.collection("ig_threads").doc(senderId).set(merged, { merge: true });
+  await brandCol(bid, "threads").doc(senderId).set(merged, { merge: true });
   await aliasRef.delete().catch(() => undefined);
   return merged;
 }
 
 /** Earlier messages of this person's Instagram conversation (team, ManyChat, older chats), for a thread we have no turns of. */
 async function instagramHistory(config: IgConfig, event: IgEvent): Promise<Turn[]> {
-  if (!config.accessToken || !config.igUserId) return [];
+  if (event.channel === "whatsapp" || !config.accessToken || !config.igUserId) return [];
   try {
     const creds = { igUserId: config.igUserId, token: config.accessToken };
     const conv = (await listConversations(creds, 1, fetch, event.senderId))[0];
@@ -94,15 +97,15 @@ export async function aiDecide(config: IgConfig, event: IgEvent, now: number, f?
   if (!ai.enabled) return null;
   const apiKey = ai.provider === "gemini" ? config.geminiKey : ai.provider === "anthropic" ? config.anthropicKey : "";
   if (ai.provider !== "vertex" && !apiKey) return ignored(`AI agent: no ${ai.provider} key configured (run igsetup with the GitHub secret)`);
-  const db = getFirestore();
-  const threadRef = db.collection("ig_threads").doc(event.senderId);
+  const bid = config.brandId;
+  const threadRef = brandCol(bid, "threads").doc(event.senderId);
   let thread: Record<string, unknown> = (await threadRef.get()).data() ?? {};
-  thread = await relinkAlias(event.senderId, event.username, thread).catch(() => thread);
+  thread = await relinkAlias(bid, event.senderId, event.username, thread).catch(() => thread);
   let turns: Turn[] = Array.isArray(thread.turns) ? (thread.turns as Turn[]) : [];
   if (!turns.length) turns = await instagramHistory(config, event);
   const times = (Array.isArray(thread.aiTimes) ? (thread.aiTimes as number[]) : []).filter((t) => now - t < HOUR);
   if (times.length >= ai.perPersonPerHour) return ignored(`AI agent: limit of ${ai.perPersonPerHour} replies per person per hour reached`);
-  const dayRef = db.collection("ig_stats").doc("ai_" + dayKey(now));
+  const dayRef = brandCol(bid, "stats").doc("ai_" + dayKey(now));
   if ((Number((await dayRef.get()).data()?.calls) || 0) >= ai.dailyCap) return ignored(`AI agent: daily cap of ${ai.dailyCap} replies reached`);
 
   const cfg: AiConfig = { provider: ai.provider, model: ai.model, region: ai.region, apiKey };
@@ -121,18 +124,20 @@ export async function aiDecide(config: IgConfig, event: IgEvent, now: number, f?
 
   // First name from their Instagram profile, once (also for chats a comment opened).
   let name = String(thread.name ?? prior.name ?? "");
-  if (!name && config.accessToken && config.igUserId) {
+  if (!name && event.channel === "whatsapp") name = (event.username ?? "").trim().split(/\s+/)[0]?.replace(/[^\p{L}\p{M}'-]/gu, "").slice(0, 30) ?? "";
+  else if (!name && config.accessToken && config.igUserId) {
     const profile = await getProfile({ igUserId: config.igUserId, token: config.accessToken }, event.senderId).catch(() => null);
     name = (profile?.name ?? "").trim().split(/\s+/)[0]?.replace(/[^\p{L}\p{M}'-]/gu, "").slice(0, 30) ?? "";
   }
 
-  const rows = await catalog(now);
+  const integ = config.brand.integrations;
+  const rows = integ.listings ? await catalog(now) : null;
   let extra = `LANGUAGE OF THEIR LAST MESSAGE (from the server): ${/[\u0600-\u06FF]/.test(event.text) ? "Arabic script, reply in Arabic" : "Latin script, reply in the language of their words (English unless they clearly write French, Spanish or Arabic in Latin letters); never switch to Arabic because of the name or the country"}.\n` +
-    offersContext(await liveOffersText(now).catch(() => "")) + "\n" +
-    (rows ? catalogOverview(rows) : "LIVE LISTINGS: unavailable right now; do not set searchReady, point them to Explore in the app.");
+    (integ.offers ? offersContext(await liveOffersText(now).catch(() => "")) + "\n" : "") +
+    (integ.listings ? (rows ? catalogOverview(rows) : "LIVE LISTINGS: unavailable right now; do not set searchReady, point them to Explore in the app.") : "");
   let insightTagValue = String(thread.insight ?? "");
   if (insightTagValue) extra += `\nACCOUNT (coarse, from an earlier consented lookup; never recite it): ${insightTagValue}.`;
-  const mail = prior.awaiting === "email" ? findEmail(event.text) : null;
+  const mail = prior.awaiting === "email" && integ.accountLookup ? findEmail(event.text) : null;
   if (mail) {
     const insight = await lookupInsight(mail, now);
     insightTagValue = insightTag(insight);
@@ -141,23 +146,23 @@ export async function aiDecide(config: IgConfig, event: IgEvent, now: number, f?
     extra = `ACCOUNT LOOKUP: the person said they are new (or declined). No lookup was made. Continue with download, the Premium offers and the steps.\n${extra}`;
   }
   const state0: ConvState = { ...prior, ...(name ? { name } : {}) };
-  const knowledge = await loadKnowledge(now);
+  const knowledge = await loadKnowledge(config, now);
   let run: AgentRun;
   let calls = 1;
   let search = prior.search;
   let matches: ReturnType<typeof searchListings> = [];
   try {
-    run = await runAgent(cfg, knowledge, turns, event.text, f, state0, extra, now, lastContactMs);
+    run = await runAgent(cfg, knowledge, turns, event.text, f, state0, extra, now, lastContactMs, config.brand);
     if (run.out.search) search = cleanCriteria(run.out.search, prior.search);
     // Enough is known about the space they want: search the live catalogue, then let the agent present the results.
     if (run.out.searchReady && rows && search) {
       matches = searchListings(rows, { ...search, exclude: prior.sent }, now);
       const first = run.usage;
-      run = await runAgent(cfg, knowledge, turns, event.text, f, { ...state0, search }, `${extra}\n${formatMatches(matches, search)}`, now, lastContactMs);
+      run = await runAgent(cfg, knowledge, turns, event.text, f, { ...state0, search }, `${extra}\n${formatMatches(matches, search)}`, now, lastContactMs, config.brand);
       run.usage = { ...run.usage, inputTokens: run.usage.inputTokens + first.inputTokens, outputTokens: run.usage.outputTokens + first.outputTokens, cacheReadTokens: run.usage.cacheReadTokens + first.cacheReadTokens };
       calls = 2;
       if (!matches.length) {
-        await db.collection("ig_learn").doc(`${dayKey(now)}_nomatch_${event.id.slice(-10)}`).set({ question: `No listing for: ${JSON.stringify(search).slice(0, 300)}`, lang: run.out.lang, at: now, asked: 1, synced: false }).catch(() => undefined);
+        await brandCol(bid, "learn").doc(`${dayKey(now)}_nomatch_${event.id.slice(-10)}`).set({ question: `No listing for: ${JSON.stringify(search).slice(0, 300)}`, lang: run.out.lang, at: now, asked: 1, synced: false }).catch(() => undefined);
       }
     }
   } catch (e) {
@@ -171,7 +176,7 @@ export async function aiDecide(config: IgConfig, event: IgEvent, now: number, f?
   if (linkButtons.length) out.listings = linkButtons.map((b) => decodeURIComponent(b.url.split("/listing/")[1].split("?")[0]));
   if (out.confidence === 0 && out.learn) {
     // The model's answer was unusable twice: the fallback text went out; tell the owner once a day.
-    const flagRef = db.collection("ig_stats").doc("ai_" + dayKey(now));
+    const flagRef = brandCol(bid, "stats").doc("ai_" + dayKey(now));
     const flagged = (await flagRef.get()).data()?.fallbackAlerted === true;
     if (!flagged) {
       await flagRef.set({ fallbackAlerted: true }, { merge: true }).catch(() => undefined);
@@ -191,7 +196,7 @@ export async function aiDecide(config: IgConfig, event: IgEvent, now: number, f?
 
   // A lead is stored only after the person said yes to the consent question (see advance()).
   if (persist) {
-    const leadRef = db.collection("ig_leads").doc(event.senderId);
+    const leadRef = brandCol(bid, "leads").doc(event.senderId);
     const before = (await leadRef.get()).data();
     // Office owners (intake mode F) are recorded in the contact book and alerted by website/officeLeadSync.ts (onOfficeLeadSaved).
     const office = persist.kind === "office_owner" ? { tags: officeLeadTags(persist.profession ?? "") } : {};
@@ -202,13 +207,13 @@ export async function aiDecide(config: IgConfig, event: IgEvent, now: number, f?
   }
   if (out.learn || out.confidence < 0.5) {
     const id = `${dayKey(now)}_${event.id.slice(-10)}`;
-    await db.collection("ig_learn").doc(id).set({ question: event.text.slice(0, 400), lang: out.lang, at: now, asked: 1, synced: false }).catch(() => undefined);
+    await brandCol(bid, "learn").doc(id).set({ question: event.text.slice(0, 400), lang: out.lang, at: now, asked: 1, synced: false }).catch(() => undefined);
   }
   if (out.handoff) {
     await alertAdmin(config, "Instagram: someone needs a human", `${event.username || event.senderId} wrote: "${event.text.slice(0, 300)}". The agent answered and paused itself for this person for ${config.settings.handoffHours} h.`).catch(() => undefined);
   }
   // Listing buttons first (they are the answer), then the agent's own buttons; Instagram allows 3.
-  const buttons = [...linkButtons, ...toStepButtons(out)].slice(0, 3);
+  const buttons = [...linkButtons, ...toStepButtons(out, config.brand.buttons)].slice(0, 3);
   return {
     kind: out.handoff ? "handoff" : "replied",
     reason: `AI agent · ${out.stage} · exchange ${state.exchanges}${matches.length ? ` · ${linkButtons.length} listing link(s)` : calls === 2 ? " · no listing matched" : ""}${persist ? " · lead saved" : ""} (conf ${out.confidence.toFixed(2)}, ${out.lang}, ${usage.inputTokens}+${usage.outputTokens} tok)`,
@@ -237,8 +242,8 @@ export async function commentDecide(config: IgConfig, event: IgEvent, now: numbe
   if (kind === "spam") return { kind: "ignored", reason: "promotional or link comment: not answered", steps: [], tags: ["spam"], flag: "spam" };
   if (kind === "neutral") return ignored("comment needs no answer (neutral)");
 
-  const db = getFirestore();
-  const threadRef = db.collection("ig_threads").doc(event.senderId);
+  const bid = config.brandId;
+  const threadRef = brandCol(bid, "threads").doc(event.senderId);
   const thread = (await threadRef.get()).data() ?? {};
   const turns: Turn[] = Array.isArray(thread.turns) ? (thread.turns as Turn[]) : [];
   const prior = priorState(thread, now);
@@ -261,14 +266,15 @@ export async function commentDecide(config: IgConfig, event: IgEvent, now: numbe
   if (ai.provider !== "vertex" && !apiKey) return ignored(`AI agent: no ${ai.provider} key configured`);
   const times = (Array.isArray(thread.aiTimes) ? (thread.aiTimes as number[]) : []).filter((t) => now - t < HOUR);
   if (times.length >= ai.perPersonPerHour) return ignored(`AI agent: limit of ${ai.perPersonPerHour} replies per person per hour reached`);
-  const dayRef = db.collection("ig_stats").doc("ai_" + dayKey(now));
+  const dayRef = brandCol(bid, "stats").doc("ai_" + dayKey(now));
   if ((Number((await dayRef.get()).data()?.calls) || 0) >= ai.dailyCap) return ignored(`AI agent: daily cap of ${ai.dailyCap} replies reached`);
   const cfg: AiConfig = { provider: ai.provider, model: ai.model, region: ai.region, apiKey };
-  const rows = await catalog(now);
-  const extra = `LANGUAGE OF THEIR COMMENT: ${lang === "ar" ? "Arabic, reply in Arabic" : lang === "fr" ? "French, reply in French" : lang === "es" ? "Spanish, reply in Spanish" : "English, reply in English"}.\n${commentModeContext(event.text)}\n${offersContext(await liveOffersText(now).catch(() => ""))}\n${rows ? catalogOverview(rows) : ""}\nDo not set searchReady in comment mode: ask what they need instead, the search happens in the DM chat.`;
+  const integ = config.brand.integrations;
+  const rows = integ.listings ? await catalog(now) : null;
+  const extra = `LANGUAGE OF THEIR COMMENT: ${lang === "ar" ? "Arabic, reply in Arabic" : lang === "fr" ? "French, reply in French" : lang === "es" ? "Spanish, reply in Spanish" : "English, reply in English"}.\n${commentModeContext(event.text)}\n${integ.offers ? offersContext(await liveOffersText(now).catch(() => "")) : ""}\n${rows ? catalogOverview(rows) : ""}\nDo not set searchReady in comment mode: ask what they need instead, the search happens in the DM chat.`;
   let run: AgentRun;
   try {
-    run = await runAgent(cfg, await loadKnowledge(now), turns, event.text, f, prior, extra, now);
+    run = await runAgent(cfg, await loadKnowledge(config, now), turns, event.text, f, prior, extra, now, 0, config.brand);
   } catch (e) {
     const status = e instanceof LlmError ? e.status : 0;
     logger.warn("ig comment agent failed", { status, message: (e as Error).message.slice(0, 200) });
@@ -276,7 +282,7 @@ export async function commentDecide(config: IgConfig, event: IgEvent, now: numbe
   }
   const { out, usage } = run;
   const text = out.messages.join(" ").slice(0, 600);
-  const button = toStepButtons(out)[0];
+  const button = toStepButtons(out, config.brand.buttons)[0];
   const search = out.search ? cleanCriteria(out.search, prior.search) : prior.search;
   const { state } = advance(prior, { ...out, listings: [] }, search);
   await Promise.all([

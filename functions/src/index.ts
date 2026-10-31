@@ -58,6 +58,7 @@ export { websiteContact, websiteSubscribe, mailingUnsubscribe } from "./website/
 export { websiteOfficeLead } from "./website/officeLeads";
 export { onOfficeLeadSaved } from "./website/officeLeadSync";
 export { igWebhook } from "./instagram/webhook";
+export { waWebhook } from "./instagram/whatsappWebhook";
 export { igSheetSync } from "./instagram/sheetsBridge";
 export { igFollowUps } from "./instagram/aiSweeper";
 export { igCommentPoll } from "./instagram/commentPoller";

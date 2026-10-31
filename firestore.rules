@@ -551,6 +551,17 @@ service cloud.firestore {
     match /ig_leads/{id} {
       allow read, write: if false;
     }
+    // Brand registry of the multi-brand agent: profile, platforms, sub-collections (events, contacts, threads, ...) and
+    // private/secrets (tokens, app secrets, AI keys). Functions only.
+    match /ig_brands/{brand} {
+      allow read, write: if false;
+      match /private/{id} {
+        allow read, write: if false;
+      }
+      match /{sub}/{id} {
+        allow read, write: if false;
+      }
+    }
     // Server-only config (app_config/ga4 holds the GA4 Measurement Protocol API secret,
     // read by functions/src/lib/ga4.ts via the Admin SDK). Set in the Firebase console.
     match /app_config/{key} {

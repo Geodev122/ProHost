@@ -116,6 +116,7 @@ export function decide(
   const triggers = triggersFor(event, contact);
   const candidates = rules
     .filter((r) => r.enabled && triggers.includes(r.trigger))
+    .filter((r) => !r.platform || r.platform === "all" || r.platform === (event.channel ?? "instagram"))
     .filter((r) => event.kind !== "comment" || !r.mediaId || r.mediaId === event.mediaId)
     .filter((r) => r.trigger === "dm_welcome" || r.trigger === "dm_default" || matchesRule(r, text))
     .sort((a, b) =>
