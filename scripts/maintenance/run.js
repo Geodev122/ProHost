@@ -1336,7 +1336,13 @@ async function hostingcheck(arg) {
   } catch (e) { notice(`live channel: ${e.message}`); }
   try { const st = await api("GET", `projects/prohost-f766f/sites/${site}`); notice(`site: ${JSON.stringify(st).slice(0, 300)}`); } catch (e) { notice(`site: ${e.message}`); }
   try {
-    const rels = (await api("GET", `sites/${site}/releases?pageSize=4`)).releases || [];
+    const all = (await api("GET", `sites/${site}/releases?pageSize=25`)).releases || [];
+    for (const r of all.slice(0, 14)) {
+      const vn = r.version && r.version.name; let cfg = {};
+      try { cfg = (await api("GET", vn)).config || {}; } catch (e) { cfg = { err: e.message }; }
+      notice(`release ${(vn || "").split("/").pop()} ${r.releaseTime} ${r.type} files=${(r.version && r.version.fileCount) || "?"} rewrites=${(cfg.rewrites || []).length} wa=${(cfg.rewrites || []).some((x) => x.path === "/wa-webhook" || x.glob === "/wa-webhook")} headers=${(cfg.headers || []).length} redirects=${(cfg.redirects || []).length} ${cfg.err || ""}`);
+    }
+    const rels = all.slice(0, 4);
     notice(`releases: ${rels.map((r) => `${(r.version && r.version.name || "").split("/").pop()}@${r.releaseTime} ${r.type} ${(r.version && r.version.status) || ""} files=${(r.version && r.version.fileCount) || "?"}`).join(" | ")}`);
     const vname = rels[0] && rels[0].version && rels[0].version.name;
     if (vname) {
