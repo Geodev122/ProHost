@@ -104,6 +104,18 @@ requires v8.0.0+ for any app selling in-app products/subscriptions.
   and reverted to `false`: testers' debug APKs carry no Play Integrity token, so enforcement
   rejects every callable for them (delete account, role assignment, email sign-in).
 
+## Google Play policy (announced 29 Oct 2026)
+
+- `targetSdk` is 37, so the location policy applies: one-time "Locate Me" requests
+  (`ListingLocationMapPicker.kt`, `LebanonMapCanvas.kt`) must use the Android 17 location button on
+  API 37+ (mandatory 27 Jan 2027). `ACCESS_FINE_LOCATION` is kept for the listing-pin picker and needs
+  the Play Console fine-location declaration; country detection (`PhoneCountryDetector`) stays coarse-only.
+- Not applicable today (don't add without a Console declaration): local network, contacts, AppFunctions,
+  MANAGE_EXTERNAL_STORAGE, accessibility service, SMS/call log.
+- Console to-dos: fine-location declaration, Data safety update, trader status (Nov 2026), Japan
+  authorisation only if selling in Japan. Any future eligibility-based subscription discount (e.g. student)
+  must disclose criteria, verification and post-eligibility price in-app.
+
 ## Signing material
 
 - By the owner's choice, `my-upload-key.jks` (upload key) and its store/key passwords
