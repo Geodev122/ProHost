@@ -1334,6 +1334,19 @@ async function hostingcheck(arg) {
     const rel = live.release || {};
     notice(`live release: ${rel.version ? rel.version.name.split("/").pop() : "none"} ${rel.releaseTime || ""} ${(rel.version && rel.version.status) || ""} files=${(rel.version && rel.version.fileCount) || "?"}`);
   } catch (e) { notice(`live channel: ${e.message}`); }
+  try { const st = await api("GET", `sites/${site}`); notice(`site: ${JSON.stringify(st).slice(0, 300)}`); } catch (e) { notice(`site: ${e.message}`); }
+  try {
+    const rels = (await api("GET", `sites/${site}/releases?pageSize=4`)).releases || [];
+    notice(`releases: ${rels.map((r) => `${(r.version && r.version.name || "").split("/").pop()}@${r.releaseTime} ${r.type} ${(r.version && r.version.status) || ""} files=${(r.version && r.version.fileCount) || "?"}`).join(" | ")}`);
+    const vname = rels[0] && rels[0].version && rels[0].version.name;
+    if (vname) {
+      const v = await api("GET", vname);
+      notice(`version config: public=${JSON.stringify((v.config || {}).redirects ? "has redirects" : "no redirects")} rewrites=${((v.config || {}).rewrites || []).length} cleanUrls=${(v.config || {}).cleanUrls}`);
+      const fl = await api("GET", `${vname}/files?pageSize=40&status=ACTIVE`).catch((e) => ({ files: [], err: e.message }));
+      notice(`version files: ${(fl.files || []).slice(0, 12).map((f) => f.path).join(" ")} ${fl.err || ""}`);
+    }
+  } catch (e) { notice(`releases: ${e.message}`); }
+  try { const ch = (await api("GET", `sites/${site}/channels`)).channels || []; notice(`channels: ${ch.map((c) => `${c.name.split("/").pop()}:${c.url}`).join(" | ")}`); } catch (e) { notice(`channels: ${e.message}`); }
   let domains = [];
   try {
     domains = ((await api("GET", `sites/${site}/customDomains`)).customDomains || []);
@@ -1349,7 +1362,7 @@ async function hostingcheck(arg) {
     const tx = await dns.resolveTxt(host).catch(() => []);
     notice(`dns ${host}: A=${Array.isArray(a) ? a.join(",") : a} CNAME=${cn.join(",") || "-"} TXT=${tx.map((t) => t.join("")).filter((t) => /firebase|hosting|google/i.test(t)).join(" | ") || "-"}`);
   }
-  for (const url of ["https://prohost-f766f.web.app/", "https://prohost-f766f.firebaseapp.com/", "https://pro-host.tech/", "https://www.pro-host.tech/"]) {
+  for (const url of ["https://prohost-f766f.web.app/", "https://prohost-f766f.web.app/index.html", "https://prohost-f766f.web.app/__/firebase/init.json", "https://prohost-f766f.firebaseapp.com/", "https://pro-host.tech/", "https://www.pro-host.tech/"]) {
     try {
       const r = await fetch(url, { redirect: "manual" });
       const body = (await r.text()).replace(/\s+/g, " ");
