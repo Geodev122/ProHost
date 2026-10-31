@@ -1336,16 +1336,18 @@ async function geminiprobe() {
   }
 }
 
-// Runs the real DM-agent prompt + website knowledge through Gemini on sample questions (no Instagram, nothing is sent).
+// Runs the real DM-agent prompt + website knowledge through Claude (Anthropic API) or Gemini on sample questions (no Instagram, nothing is sent).
 async function aitest(arg, db) {
-  const key = process.env.GEMINI_API_KEY || "";
-  if (!key) throw new Error("GEMINI_API_KEY GitHub secret is missing");
+  // A model id starting with "claude" runs on the Anthropic API (ANTHROPIC_API_KEY); anything else on Gemini (GEMINI_API_KEY).
+  const claude = /^claude/i.test((arg || "").trim());
+  const key = (claude ? process.env.ANTHROPIC_API_KEY : process.env.GEMINI_API_KEY) || "";
+  if (!key) throw new Error(`${claude ? "ANTHROPIC_API_KEY" : "GEMINI_API_KEY"} GitHub secret is missing`);
   const { runAgent, advance, NEW_STATE } = require(`${LIB}/instagram/aiAgent`);
   const { buildKnowledge } = require(`${LIB}/instagram/aiKnowledge`);
   const { formatOffers, offersContext } = require(`${LIB}/instagram/aiOffers`);
   const { isExitIntent, isNo, findEmail } = require(`${LIB}/instagram/aiFlow`);
   const model = (arg || "").trim() || "gemini-3.1-flash-lite";
-  const cfg = { provider: "gemini", model, region: "", apiKey: key };
+  const cfg = { provider: claude ? "anthropic" : "gemini", model, region: "", apiKey: key };
   const knowledge = buildKnowledge([]);
   let offers = "";
   try { offers = formatOffers((await serverTask(db, "playCatalog")).basePlans); } catch (e) { notice(`offers unavailable: ${String(e.message).slice(0, 120)}`); }
