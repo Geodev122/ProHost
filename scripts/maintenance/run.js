@@ -50,8 +50,7 @@
 //                                                    account (image post or Story) from https://pro-host.tech/social/<file>; without ID it only prints the plan
 //                                                    (dry run). Never publishes the same item twice (ig_stats/published); needs instagram_business_content_publish.
 //   node scripts/maintenance/run.js aiprobe         which Claude model/region the project can call on Vertex AI (functions service account)
-//   node scripts/maintenance/run.js geminiprobe     which Gemini Flash-Lite models the GEMINI_API_KEY secret can call (answers a test in Arabic)
-//   node scripts/maintenance/run.js aitest [MODEL]  runs the DM agent prompt on sample questions through Gemini (nothing is sent anywhere)
+//   node scripts/maintenance/run.js aitest [MODEL]  runs the DM agent prompt on sample questions through Claude (nothing is sent anywhere)
 //   node scripts/maintenance/run.js prodcheck        production readiness (read-only apart from one RTDN self-test
 //                                                    message): deployed functions + indexes, public pages, Play catalog
 //                                                    as this account sees it, RTDN topic → function, then the audit
@@ -1032,10 +1031,9 @@ async function igsetup(db, sheetId) {
     mode: current.mode === "live" ? "live" : "dry-run", killSwitch: Boolean(current.killSwitch),
     ...(sheetId ? { sheetId: sheetId.trim() } : {}),
     ...(process.env.ANTHROPIC_API_KEY ? { anthropicKey: process.env.ANTHROPIC_API_KEY } : {}),
-    ...(process.env.GEMINI_API_KEY ? { geminiKey: process.env.GEMINI_API_KEY } : {}),
+    geminiKey: admin.firestore.FieldValue.delete(), // the Gemini text provider was removed (Oct 2026)
   }, { merge: true });
   if (process.env.ANTHROPIC_API_KEY) notice("Anthropic API key stored (only used when ai_provider = anthropic)");
-  if (process.env.GEMINI_API_KEY) notice("Gemini API key stored (only used when ai_provider = gemini)");
   notice(`app_config/instagram saved (mode ${current.mode === "live" ? "live" : "dry-run"}${sheetId ? ", sheet linked" : current.sheetId ? ", sheet already linked" : ", NO sheet linked yet"})`);
 
   try {
@@ -1314,41 +1312,71 @@ async function aiquota(db, arg) {
   res.rows.forEach((r) => notice(`QUOTA ${r.quotaId} | ${JSON.stringify(r.dimensions)} | value=${r.value} ${r.unit} | raw=${r.raw}`));
 }
 
-// Gemini API (AI Studio key from the GEMINI_API_KEY GitHub secret): lists the Flash-Lite models this key can use and
-// asks each one for a small JSON answer in Arabic, so the model name, access and free-tier limits are proven live.
-async function geminiprobe() {
-  const key = process.env.GEMINI_API_KEY || "";
-  if (!key) throw new Error("GEMINI_API_KEY GitHub secret is missing");
-  const list = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", { headers: { "x-goog-api-key": key } });
-  const lj = await list.json().catch(() => ({}));
-  if (!list.ok) throw new Error(`models list HTTP ${list.status}: ${String((lj.error && lj.error.message) || "").slice(0, 200)}`);
-  const names = (lj.models || []).map((m) => String(m.name).replace(/^models\//, "")).filter((n) => /gemini/.test(n) && !/embedding|image|tts|live|audio/.test(n));
-  notice(`key works: ${names.length} Gemini text model(s); flash-lite: ${names.filter((n) => /flash-lite/.test(n)).join(", ") || "none"}`);
-  const tryModels = names.filter((n) => /flash-lite/.test(n)).slice(0, 4).concat(names.filter((n) => /flash/.test(n) && !/lite/.test(n)).slice(0, 2));
-  for (const model of tryModels) {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-      body: JSON.stringify({ systemInstruction: { parts: [{ text: "Reply in the same language as the user. Return only JSON {\"reply\": string}." }] }, contents: [{ role: "user", parts: [{ text: "كيف أحمّل التطبيق؟" }] }], generationConfig: { maxOutputTokens: 120, responseMimeType: "application/json" } }),
-    });
+// Why does pro-host.tech not show the site? Reads Firebase Hosting through its API (sites, live release, custom domains and the DNS
+// records each one still needs), resolves the domain's DNS and fetches both the default address and the custom domain.
+// Code "connect" also tries to add pro-host.tech and www.pro-host.tech to the site (then re-run to read the DNS records to set).
+async function hostingcheck(arg) {
+  const { google } = require(path.join(__dirname, "../../functions/node_modules/googleapis"));
+  const dns = require("dns").promises;
+  const auth = new google.auth.GoogleAuth({ scopes: ["https://www.googleapis.com/auth/cloud-platform", "https://www.googleapis.com/auth/firebase"] });
+  const api = async (method, url, body) => {
+    const token = await auth.getAccessToken();
+    const r = await fetch(`https://firebasehosting.googleapis.com/v1beta1/${url}`, { method, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
     const j = await r.json().catch(() => ({}));
-    const text = (((j.candidates || [])[0] || {}).content || {}).parts ? j.candidates[0].content.parts.map((p) => p.text || "").join("") : "";
-    notice(`${r.ok ? "✓" : "✗"} ${model}: ${r.ok ? text.slice(0, 120) + ` (in ${(j.usageMetadata || {}).promptTokenCount}, out ${(j.usageMetadata || {}).candidatesTokenCount})` : `${r.status} ${String((j.error && j.error.message) || "").slice(0, 220)}`}`);
+    if (!r.ok) throw new Error(`${method} ${url}: HTTP ${r.status} ${String((j.error && j.error.message) || "").slice(0, 200)}`);
+    return j;
+  };
+  const sites = await api("GET", "projects/prohost-f766f/sites").catch((e) => { notice(`sites: ${e.message}`); return { sites: [] }; });
+  notice(`sites: ${(sites.sites || []).map((x) => `${x.name.split("/").pop()}(${x.type || "?"}, ${x.defaultUrl})`).join(" | ") || "none readable"}`);
+  const site = "prohost-f766f";
+  try {
+    const live = await api("GET", `sites/${site}/channels/live`);
+    const rel = live.release || {};
+    notice(`live release: ${rel.version ? rel.version.name.split("/").pop() : "none"} ${rel.releaseTime || ""} ${(rel.version && rel.version.status) || ""} files=${(rel.version && rel.version.fileCount) || "?"}`);
+  } catch (e) { notice(`live channel: ${e.message}`); }
+  let domains = [];
+  try {
+    domains = ((await api("GET", `sites/${site}/customDomains`)).customDomains || []);
+    for (const d of domains) {
+      const need = (((d.requiredDnsUpdates || {}).desired || [])).map((x) => `${x.domainName}: ${(x.records || []).map((r) => `${r.type} ${r.rdata}${r.requiredAction ? ` [${r.requiredAction}]` : ""}`).join(", ")}`).join(" ; ");
+      notice(`customDomain ${d.name.split("/").pop()}: host=${d.hostState} ownership=${d.ownershipState} cert=${d.certState}${(d.issues || []).length ? ` issues=${JSON.stringify(d.issues).slice(0, 200)}` : ""}${need ? ` DNS needs: ${need}` : ""}`);
+    }
+    if (!domains.length) notice("customDomains: none are connected to this site");
+  } catch (e) { notice(`customDomains: ${e.message}`); }
+  for (const host of ["pro-host.tech", "www.pro-host.tech"]) {
+    const a = await dns.resolve4(host).catch((e) => `ERR ${e.code}`);
+    const cn = await dns.resolveCname(host).catch(() => []);
+    const tx = await dns.resolveTxt(host).catch(() => []);
+    notice(`dns ${host}: A=${Array.isArray(a) ? a.join(",") : a} CNAME=${cn.join(",") || "-"} TXT=${tx.map((t) => t.join("")).filter((t) => /firebase|hosting|google/i.test(t)).join(" | ") || "-"}`);
+  }
+  for (const url of ["https://prohost-f766f.web.app/", "https://prohost-f766f.firebaseapp.com/", "https://pro-host.tech/", "https://www.pro-host.tech/"]) {
+    try {
+      const r = await fetch(url, { redirect: "manual" });
+      const body = (await r.text()).replace(/\s+/g, " ");
+      const title = (/<title>([^<]*)/i.exec(body) || [])[1] || "";
+      notice(`GET ${url} -> ${r.status} ${r.headers.get("location") || ""} title="${title.slice(0, 70)}" ${r.status >= 400 ? body.slice(0, 120) : ""}`);
+    } catch (e) { notice(`GET ${url} -> ERR ${String(e.message).slice(0, 100)}`); }
+  }
+  if ((arg || "").trim() === "connect") {
+    for (const host of ["pro-host.tech", "www.pro-host.tech"]) {
+      if (domains.some((d) => d.name.endsWith("/" + host))) { notice(`connect ${host}: already on the site`); continue; }
+      try { await api("POST", `sites/${site}/customDomains?customDomainId=${host}`, host.startsWith("www.") ? { redirectTarget: "pro-host.tech" } : {}); notice(`connect ${host}: requested; re-run hostingcheck to read the DNS records`); }
+      catch (e) { notice(`connect ${host}: ${e.message}`); }
+    }
   }
 }
 
-// Runs the real DM-agent prompt + website knowledge through Claude (Anthropic API) or Gemini on sample questions (no Instagram, nothing is sent).
+// Runs the real DM-agent prompt + website knowledge through Claude (Anthropic API) on sample questions (no Instagram, nothing is sent).
 async function aitest(arg, db) {
-  // A model id starting with "claude" runs on the Anthropic API (ANTHROPIC_API_KEY); anything else on Gemini (GEMINI_API_KEY).
-  const claude = /^claude/i.test((arg || "").trim());
-  const key = (claude ? process.env.ANTHROPIC_API_KEY : process.env.GEMINI_API_KEY) || "";
-  if (!key) throw new Error(`${claude ? "ANTHROPIC_API_KEY" : "GEMINI_API_KEY"} GitHub secret is missing`);
+  const key = process.env.ANTHROPIC_API_KEY || "";
+  if (!key) throw new Error("ANTHROPIC_API_KEY GitHub secret is missing");
   const { runAgent, advance, NEW_STATE } = require(`${LIB}/instagram/aiAgent`);
   const { buildKnowledge } = require(`${LIB}/instagram/aiKnowledge`);
   const { formatOffers, offersContext } = require(`${LIB}/instagram/aiOffers`);
   const { isExitIntent, isNo, findEmail } = require(`${LIB}/instagram/aiFlow`);
-  const model = (arg || "").trim() || "gemini-3.1-flash-lite";
+  const model = (arg || "").trim() || "claude-haiku-5-5";
   const stored = ((await db.collection("app_config").doc("instagram").get()).data() || {}).ai || {};
-  const cfg = { provider: claude ? "anthropic" : "gemini", model, region: "", apiKey: key, workspaceId: claude ? (process.env.ANTHROPIC_WORKSPACE_ID || stored.workspaceId || "") : "" };
+  const cfg = { provider: "anthropic", model, region: "", apiKey: key, workspaceId: process.env.ANTHROPIC_WORKSPACE_ID || stored.workspaceId || "" };
   const knowledge = buildKnowledge([]);
   let offers = "";
   try { offers = formatOffers((await serverTask(db, "playCatalog")).basePlans); } catch (e) { notice(`offers unavailable: ${String(e.message).slice(0, 120)}`); }
@@ -1660,6 +1688,7 @@ async function smsauth(db, arg) {
   else if (task === "mailtest") { await mailtest(db); await emailauth(db); }
   else if (task === "clearstalesecrets") await clearstalesecrets();
   else if (task === "prodcheck") await prodcheck(db, auth);
+  else if (task === "hostingcheck") await hostingcheck(arg);
   else if (task === "authorphans") await authorphans(db, auth);
   else if (task === "authuser") await authuser(db, auth, arg);
   else if (task === "logerrors") await logerrors(arg);
@@ -1675,7 +1704,6 @@ async function smsauth(db, arg) {
   else if (task === "igmedia") await igmedia(db);
   else if (task === "igpublish") await igpublish(db, (arg || "").trim());
   else if (task === "aiprobe") await aiprobe(db);
-  else if (task === "geminiprobe") await geminiprobe();
   else if (task === "aitest") await aitest(arg, db);
   else if (task === "aiquota") await aiquota(db, arg);
   else if (task === "playcatalog") await playcatalog(db);

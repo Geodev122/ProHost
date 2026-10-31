@@ -59,14 +59,13 @@ test("brand ids", () => {
 test("a brand's config comes from its document and its private secrets, never mixed with another brand's", () => {
   const { flat, wa } = flattenBrand(
     { name: "Acme", mode: "live", platforms: { instagram: { igUserId: "111", username: "acme", appId: "app1" }, whatsapp: { phoneNumberId: "222", wabaId: "333", enabled: true, templateName: "hello" } } },
-    { instagram: { appSecret: "s1", accessToken: "t1", verifyToken: "v1" }, whatsapp: { accessToken: "wt", appSecret: "ws", verifyToken: "wv" }, geminiKey: "g" },
+    { instagram: { appSecret: "s1", accessToken: "t1", verifyToken: "v1" }, whatsapp: { accessToken: "wt", appSecret: "ws", verifyToken: "wv" } },
   );
   const c = parseConfig(flat, blankProfile("acme", "Acme"), wa);
   assert.equal(c.brandId, "acme");
   assert.equal(c.igUserId, "111");
   assert.equal(c.accessToken, "t1");
   assert.equal(c.appSecret, "s1");
-  assert.equal(c.geminiKey, "g");
   assert.equal(c.mode, "live");
   assert.equal(c.whatsapp.phoneNumberId, "222");
   assert.equal(c.whatsapp.accessToken, "wt");

@@ -29,9 +29,9 @@ test("Secrets tab: only rows with a value are taken in, with strict platform/key
   const { entries, errors } = parseSecrets([
     ["brand_id", "platform", "key", "value", "status"],
     ["acme", "instagram", "access_token", "IGQWRP-secret-token-value", "set …1234"], ["acme", "instagram", "app_secret", "", ""],
-    ["acme", "ai", "gemini_key", "AIzaSyExampleKey1234", ""], ["acme", "instagram", "nonsense", "longenoughvalue", ""], ["acme", "sms", "access_token", "longenoughvalue", ""], ["acme", "whatsapp", "access_token", "short", ""],
+    ["acme", "ai", "anthropic_key", "sk-ant-ExampleKey1234", ""], ["acme", "instagram", "nonsense", "longenoughvalue", ""], ["acme", "sms", "access_token", "longenoughvalue", ""], ["acme", "whatsapp", "access_token", "short", ""],
   ]);
-  assert.deepEqual(entries.map((e) => `${e.platform}/${e.key}`), ["instagram/access_token", "ai/gemini_key"]);
+  assert.deepEqual(entries.map((e) => `${e.platform}/${e.key}`), ["instagram/access_token", "ai/anthropic_key"]);
   assert.equal(errors.length, 3);
   assert.equal(maskedTail("abcdefghij1234"), "…1234");
   assert.ok(!JSON.stringify(errors).includes("longenoughvalue"), "errors never echo the value");
@@ -68,5 +68,5 @@ test("an Instagram token is checked against Meta and tells whose account it is",
   const wa = await checkSecret({ ...entry, platform: "whatsapp" }, "", deps);
   assert.equal(wa.ok, false);
   assert.equal((await checkSecret({ ...entry, platform: "whatsapp" }, "777", deps)).ok, true);
-  assert.equal((await checkSecret({ ...entry, platform: "ai", key: "gemini_key" }, "", deps)).message, "stored");
+  assert.equal((await checkSecret({ ...entry, platform: "ai", key: "anthropic_key" }, "", deps)).message, "stored");
 });

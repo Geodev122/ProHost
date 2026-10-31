@@ -106,7 +106,7 @@ export function aiFromStatus(status: Map<string, string>): Record<string, unknow
   const out: Record<string, unknown> = {};
   const t = (k: string) => (status.get(k) ?? "").trim();
   out.enabled = /^(true|yes|1|on)$/i.test(t("ai_enabled"));
-  if (["anthropic", "vertex", "gemini"].includes(t("ai_provider"))) out.provider = t("ai_provider");
+  if (["anthropic", "vertex"].includes(t("ai_provider"))) out.provider = t("ai_provider");
   if (/^[A-Za-z0-9@._-]{3,80}$/.test(t("ai_model"))) out.model = t("ai_model");
   if (/^[a-z0-9-]{3,30}$/.test(t("ai_region"))) out.region = t("ai_region");
   if (/^wrkspc_[A-Za-z0-9]{10,40}$/.test(t("ai_workspace_id"))) out.workspaceId = t("ai_workspace_id");

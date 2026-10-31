@@ -69,8 +69,8 @@ test("a draft is built from the sources and parsed into reviewable sections; not
   assert.match(prompt, /Call \+1 555 0100/);
   const none = await buildKnowledgeDraft(config, [{ type: "url", ref: "https://acme.test/missing", note: "", row: 2 }], { fetch: fakeFetch, drive: () => { throw new Error("x"); }, complete });
   assert.equal(none.error, "none of the sources could be read");
-  const noKey = await buildKnowledgeDraft({ ...config, ai: { ...config.ai, provider: "gemini" } }, [{ type: "text", ref: "x", note: "", row: 2 }], { fetch: fakeFetch, drive: () => { throw new Error("x"); }, complete });
-  assert.match(noKey.error, /no gemini key/);
+  const noKey = await buildKnowledgeDraft({ ...config, ai: { ...config.ai, provider: "anthropic" } }, [{ type: "text", ref: "x", note: "", row: 2 }], { fetch: fakeFetch, drive: () => { throw new Error("x"); }, complete });
+  assert.match(noKey.error, /no anthropic key/);
   assert.deepEqual(parseDraft("nonsense"), []);
 });
 

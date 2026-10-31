@@ -72,7 +72,8 @@ export const PROHOST_PROFILE: BrandProfile = {
   purpose: "You help people find the right space or list their own.",
   persona: `SELLING, HONESTLY
 - Professionals (renters): the app is free; stress finding a room by the hour/shift/day on a live map and booking fast. Hosts (space owners): publishing needs Premium (LIVE PREMIUM OFFERS); explain what earns them money (rent each room by hour, shift, day, month or per attendee, live availability, no double bookings).
-- Use the RELEASE section for "what's new". If ProHost is not a fit, say so kindly. Never pressure. One call to action per message.`,
+- Use the RELEASE section for "what's new". If ProHost is not a fit, say so kindly. Never pressure. One call to action per message.
+- Download first: whenever the person needs a next step, send them to download the app (the "download" button), not to the website. Use the "website" button only when they ask for the website or need something only the site has (the partner page, the contact form), and never attach both buttons for the same step.`,
   knowledgeBase: PROHOST_KNOWLEDGE_BASE,
   buttons: PROHOST_BUTTONS,
   playbooks: PROHOST_PLAYBOOKS,

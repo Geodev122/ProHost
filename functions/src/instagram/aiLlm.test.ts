@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildBody, buildGeminiBody, complete, vertexUrl } from "./aiLlm";
+import { buildBody, complete, vertexUrl } from "./aiLlm";
 
 test("vertex url for a region and for global", () => {
   assert.equal(vertexUrl("m@1", "europe-west1", "p"), "https://europe-west1-aiplatform.googleapis.com/v1/projects/p/locations/europe-west1/publishers/anthropic/models/m@1:rawPredict");
@@ -23,26 +23,6 @@ test("anthropic call sends the key, parses text and usage; errors carry the stat
   assert.equal(seen?.url, "https://api.anthropic.com/v1/messages"); assert.equal(seen?.headers["x-api-key"], "K");
   const bad = (async () => ({ ok: false, status: 403, json: async () => ({ error: { message: "denied" } }) }) as Response) as unknown as typeof fetch;
   await assert.rejects(() => complete({ provider: "anthropic", model: "m", region: "", apiKey: "K" }, "s", "", [{ role: "user", content: "x" }], 50, bad), (e: { status: number }) => e.status === 403);
-});
-
-test("gemini call: key header, system prompt, roles mapped, text + usage parsed", async () => {
-  let seen: { url: string; headers: Record<string, string>; body: Record<string, unknown> } | undefined;
-  const ok = (async (url: string, init: RequestInit) => { seen = { url, headers: init.headers as Record<string, string>, body: JSON.parse(String(init.body)) }; return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: " {\"reply\":\"hi\"} " }] } }], usageMetadata: { promptTokenCount: 11, candidatesTokenCount: 3, cachedContentTokenCount: 5 }, modelVersion: "gemini-x" }) } as Response; }) as unknown as typeof fetch;
-  const r = await complete({ provider: "gemini", model: "gemini-x", region: "", apiKey: "G" }, "sys", "KB", [{ role: "user", content: "a" }, { role: "assistant", content: "b" }, { role: "user", content: "c" }], 100, ok);
-  assert.deepEqual([r.text, r.inputTokens, r.outputTokens, r.cacheReadTokens], ['{"reply":"hi"}', 11, 3, 5]);
-  assert.equal(seen?.url, "https://generativelanguage.googleapis.com/v1beta/models/gemini-x:generateContent");
-  assert.equal(seen?.headers["x-goog-api-key"], "G");
-  assert.deepEqual((seen?.body.contents as Array<{ role: string }>).map((c) => c.role), ["user", "model", "user"]);
-  assert.ok(JSON.stringify(buildGeminiBody("s", "K", [], 1)).includes("responseMimeType"));
-});
-
-test("gemini falls back to the stable lite alias when the first model is overloaded, but not on a bad key", async () => {
-  const urls: string[] = [];
-  const busy = (async (url: string) => { urls.push(url); return url.includes("gemini-new") ? { ok: false, status: 503, json: async () => ({ error: { message: "high demand" } }) } as Response : { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: "{}" }] } }] }) } as Response; }) as unknown as typeof fetch;
-  const r = await complete({ provider: "gemini", model: "gemini-new", region: "", apiKey: "G" }, "s", "", [{ role: "user", content: "x" }], 50, busy);
-  assert.equal(r.text, "{}"); assert.deepEqual(urls.map((u) => u.split("/models/")[1].split(":")[0]), ["gemini-new", "gemini-flash-lite-latest"]);
-  const denied = (async () => ({ ok: false, status: 400, json: async () => ({ error: { message: "API key not valid" } }) }) as Response) as unknown as typeof fetch;
-  await assert.rejects(() => complete({ provider: "gemini", model: "gemini-new", region: "", apiKey: "bad" }, "s", "", [{ role: "user", content: "x" }], 50, denied), (e: { status: number }) => e.status === 400);
 });
 
 test("the Anthropic API call carries the workspace id header only when one is set", async () => {

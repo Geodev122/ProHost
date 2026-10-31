@@ -15,7 +15,7 @@ export const SOURCE_COLUMNS = ["type", "url_or_text", "note", "status"] as const
 export const SECRET_KEYS: Record<string, readonly string[]> = {
   instagram: ["access_token", "app_secret", "verify_token"],
   whatsapp: ["access_token", "app_secret", "verify_token"],
-  ai: ["anthropic_key", "gemini_key"],
+  ai: ["anthropic_key"],
 };
 export const PLATFORMS = ["instagram", "whatsapp"] as const;
 

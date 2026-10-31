@@ -49,14 +49,12 @@ export interface IgConfig {
   sheetId: string;
   /** Only for provider "anthropic" (Vertex needs no key: the functions' service account is used). */
   anthropicKey: string;
-  /** Gemini API key from Google AI Studio (provider "gemini"). */
-  geminiKey: string;
   ai: AiSettings;
 }
 
 export interface AiSettings {
   enabled: boolean;
-  provider: "vertex" | "anthropic" | "gemini";
+  provider: "vertex" | "anthropic";
   model: string;
   region: string;
   /** Anthropic workspace id for keys that are not scoped to one workspace (not a secret; Status ai_workspace_id). */
@@ -88,7 +86,7 @@ export function parseConfig(d: Record<string, unknown> | undefined, brand: Brand
     igUserId: str(d?.igUserId), username: str(d?.username), tokenExpiresAt: Number(d?.tokenExpiresAt) || 0,
     mode: d?.mode === "live" ? "live" : "dry-run",
     killSwitch: Boolean(d?.killSwitch),
-    adminEmail: str(d?.adminEmail) || brand.contactEmail || "admin@pro-host.tech", sheetId: str(d?.sheetId), anthropicKey: str(d?.anthropicKey), geminiKey: str(d?.geminiKey), ai: { ...DEFAULT_AI, ...((d?.ai ?? {}) as Partial<AiSettings>) },
+    adminEmail: str(d?.adminEmail) || brand.contactEmail || "admin@pro-host.tech", sheetId: str(d?.sheetId), anthropicKey: str(d?.anthropicKey), ai: { ...DEFAULT_AI, ...((d?.ai ?? {}) as Partial<AiSettings>) },
     settings: { ...baseSettings(brand), ...s, vars: { ...baseSettings(brand).vars, ...(s.vars ?? {}) } },
   };
 }
@@ -110,7 +108,7 @@ export function flattenBrand(doc: Record<string, unknown> | undefined, secrets: 
     flat: {
       ...d, appId: ig.appId, igUserId: ig.igUserId, username: ig.username, tokenExpiresAt: ig.tokenExpiresAt,
       appSecret: sIg.appSecret, accessToken: sIg.accessToken, verifyToken: sIg.verifyToken,
-      anthropicKey: str(sec.anthropicKey), geminiKey: str(sec.geminiKey),
+      anthropicKey: str(sec.anthropicKey),
     },
     wa: {
       phoneNumberId: str(w.phoneNumberId), wabaId: str(w.wabaId), appId: str(w.appId), templateName: str(w.templateName), templateLang: str(w.templateLang) || "en", enabled: w.enabled === true,

@@ -4,7 +4,7 @@ const SHEET_URL = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/edit'
 const LEGACY = 'prohost';
 const WEBHOOKS = { instagram: 'https://pro-host.tech/ig-webhook', whatsapp: 'https://pro-host.tech/wa-webhook' };
 const BRAND_TABS = ['Rules', 'Log', 'Contacts', 'Status', 'Knowledge', 'Learn', 'Leads', 'Profile', 'Buttons', 'Playbooks', 'Sources', 'KnowledgeDraft'];
-const SECRET_KEYS = { instagram: ['access_token', 'app_secret', 'verify_token'], whatsapp: ['access_token', 'app_secret', 'verify_token'], ai: ['anthropic_key', 'gemini_key'] };
+const SECRET_KEYS = { instagram: ['access_token', 'app_secret', 'verify_token'], whatsapp: ['access_token', 'app_secret', 'verify_token'], ai: ['anthropic_key'] };
 
 const emptyB = () => ({ ready: false, rules: [], ruleErrors: [], log: [], contacts: [], knowledge: [], learn: [], leads: [], status: {}, profile: {}, buttons: [], playbooks: [], sources: [], draft: [] });
 const S = {

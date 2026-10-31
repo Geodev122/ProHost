@@ -95,7 +95,7 @@ async function catalog(now: number): Promise<ListingRow[] | null> {
 export async function aiDecide(config: IgConfig, event: IgEvent, now: number, f?: typeof fetch): Promise<Decision | null> {
   const ai = config.ai;
   if (!ai.enabled) return null;
-  const apiKey = ai.provider === "gemini" ? config.geminiKey : ai.provider === "anthropic" ? config.anthropicKey : "";
+  const apiKey = ai.provider === "anthropic" ? config.anthropicKey : "";
   if (ai.provider !== "vertex" && !apiKey) return ignored(`AI agent: no ${ai.provider} key configured (run igsetup with the GitHub secret)`);
   const bid = config.brandId;
   const threadRef = brandCol(bid, "threads").doc(event.senderId);
@@ -262,7 +262,7 @@ export async function commentDecide(config: IgConfig, event: IgEvent, now: numbe
   }
 
   // question: the answer goes to DMs as the one private reply Instagram allows per comment
-  const apiKey = ai.provider === "gemini" ? config.geminiKey : ai.provider === "anthropic" ? config.anthropicKey : "";
+  const apiKey = ai.provider === "anthropic" ? config.anthropicKey : "";
   if (ai.provider !== "vertex" && !apiKey) return ignored(`AI agent: no ${ai.provider} key configured`);
   const times = (Array.isArray(thread.aiTimes) ? (thread.aiTimes as number[]) : []).filter((t) => now - t < HOUR);
   if (times.length >= ai.perPersonPerHour) return ignored(`AI agent: limit of ${ai.perPersonPerHour} replies per person per hour reached`);
