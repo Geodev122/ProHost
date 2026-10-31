@@ -57,3 +57,18 @@ test("the Anthropic API call carries the workspace id header only when one is se
   assert.equal(seen[0]["anthropic-workspace-id"], undefined);
   assert.equal(seen[1]["anthropic-workspace-id"], "wrkspc_01ABCDEFGHIJKL");
 });
+
+test("a model that rejects temperature is asked again without it", async () => {
+  const bodies: Array<Record<string, unknown>> = [];
+  const f = (async (_u: string, init: RequestInit) => {
+    const b = JSON.parse(String(init.body)) as Record<string, unknown>;
+    bodies.push(b);
+    return b.temperature !== undefined
+      ? { ok: false, status: 400, json: async () => ({ error: { message: "`temperature` is deprecated for this model." } }) }
+      : { ok: true, status: 200, json: async () => ({ content: [{ type: "text", text: "ok" }], usage: { input_tokens: 1, output_tokens: 1 }, model: "m" }) };
+  }) as unknown as typeof fetch;
+  const r = await complete({ provider: "anthropic", model: "claude-haiku-5-5", region: "", apiKey: "k" }, "s", "", [{ role: "user", content: "x" }], 10, f);
+  assert.equal(r.text, "ok");
+  assert.equal(bodies.length, 2);
+  assert.equal(bodies[1].temperature, undefined);
+});

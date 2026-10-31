@@ -99,11 +99,18 @@ export async function complete(cfg: AiConfig, system: string, knowledge: string,
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
   try {
-    const res = await f(url, { method: "POST", headers, body: JSON.stringify(body), signal: ctl.signal });
-    const json = (await res.json().catch(() => ({}))) as {
+    type Reply = {
       content?: Array<{ type: string; text?: string }>; usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number };
       error?: { message?: string }; model?: string;
     };
+    let res = await f(url, { method: "POST", headers, body: JSON.stringify(body), signal: ctl.signal });
+    let json = (await res.json().catch(() => ({}))) as Reply;
+    // Newer Claude models refuse a `temperature`: send the request again without it (same answer shape).
+    if (res.status === 400 && /temperature/i.test(json.error?.message ?? "") && body.temperature !== undefined) {
+      delete body.temperature;
+      res = await f(url, { method: "POST", headers, body: JSON.stringify(body), signal: ctl.signal });
+      json = (await res.json().catch(() => ({}))) as Reply;
+    }
     if (!res.ok) throw new LlmError(res.status, (json.error?.message ?? `HTTP ${res.status}`).slice(0, 300));
     const text = (json.content ?? []).filter((c) => c.type === "text").map((c) => c.text ?? "").join("").trim();
     return { text, inputTokens: json.usage?.input_tokens ?? 0, outputTokens: json.usage?.output_tokens ?? 0, cacheReadTokens: json.usage?.cache_read_input_tokens ?? 0, model: json.model ?? cfg.model };
