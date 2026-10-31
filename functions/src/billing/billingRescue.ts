@@ -11,7 +11,8 @@ import { linkKey, setAdminOverride } from "./purchaseLinks";
 import { notifyAdminsOfSubscriptionChange } from "./adminBillingAlerts";
 import { healthFromProbe, hoursUntilRefund, rescueHint } from "./billingRescueLogic";
 import "../lib/admin";
-import { PLAY_PRODUCT_ID, isSupportedProduct, planInterval } from "./playCatalog";
+import { isSupportedProduct, planInterval } from "./playCatalog";
+import { readPlayCatalog } from "./playCatalogLive";
 
 /**
  * Admin › Packages: billing health check and "Payments needing attention".
@@ -64,20 +65,21 @@ export const billingHealthCheck = onCall(async (request) => {
   const playApi = healthFromProbe(kind);
   // The Play catalog as Google Play holds it: base plans of package_pro_mrr with their real
   // ids, states and billing periods (the app tells monthly/yearly apart by period).
-  let catalog: { basePlanId: string; state: string; period: string | null; interval: string | null }[] = [];
+  // Offers ride along (`offers`: id · state · eligibility · phases) so an admin can see why an
+  // offer isn't on the Premium screen (inactive, new-customers-only, not available in LB…).
+  let catalog: { basePlanId: string; state: string; period: string | null; interval: string | null; offers: string[] }[] = [];
   let catalogError: string | null = null;
   try {
-    const publisher = await getPlayPublisher();
-    const res = await publisher.monetization.subscriptions.get({ packageName: PACKAGE_NAME, productId: PLAY_PRODUCT_ID });
-    catalog = (res.data.basePlans ?? []).map((bp) => {
-      const period = bp.autoRenewingBasePlanType?.billingPeriodDuration ?? bp.prepaidBasePlanType?.billingPeriodDuration ?? null;
-      return {
-        basePlanId: bp.basePlanId ?? "",
-        state: bp.state ?? "UNKNOWN",
-        period,
-        interval: period === "P1M" ? "monthly" : period === "P1Y" ? "yearly" : planInterval(bp.basePlanId),
-      };
-    });
+    const live = await readPlayCatalog();
+    catalog = live.basePlans.map((bp) => ({
+      basePlanId: bp.basePlanId,
+      state: bp.state,
+      period: bp.period,
+      interval: bp.period === "P1M" ? "monthly" : bp.period === "P1Y" ? "yearly" : planInterval(bp.basePlanId),
+      offers: bp.offers.map((o) => `${o.offerId} · ${o.state} · ${o.eligibility} · ` +
+        o.phases.map((p) => `${p.recurrenceCount}×${p.duration} ${p.pricing.LB}`).join(" → ") +
+        (o.availableIn.LB ? "" : " · not offered in LB")),
+    }));
   } catch (e) {
     catalogError = classifyPlayError(e).message.slice(0, 200);
   }

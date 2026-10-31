@@ -19,7 +19,8 @@ def main():
     out_dir.mkdir(exist_ok=True)
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path=CHROME, args=["--force-color-profile=srgb"])
-        pg = b.new_page(viewport={"width": 1080, "height": 1350}, device_scale_factor=1)
+        W, H = (int(v) for v in os.environ.get("VIEWPORT", "1080x1350").split("x"))
+        pg = b.new_page(viewport={"width": W, "height": H}, device_scale_factor=1)
         pg.goto((HERE / name).as_uri())
         pg.wait_for_function("document.fonts.ready.then(() => true)")
         pg.wait_for_function("Array.from(document.images).every(i => i.complete)")

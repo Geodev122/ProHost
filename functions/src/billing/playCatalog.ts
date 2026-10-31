@@ -10,7 +10,8 @@ export const PLAY_PRODUCT_ID = "package_pro_mrr";
 /** Known base plan ids (the original monthly id is spelled "montly" in Play Console). */
 export const BASE_PLAN_MONTHLY = "pro-montly";
 export const BASE_PLAN_YEARLY = "pro-yearly";
-const MONTHLY_IDS = new Set([BASE_PLAN_MONTHLY, "pro-monthly"]);
+/** "pro-month1" replaced the original monthly plan (Oct 2026); the older ids stay readable for old purchases. */
+const MONTHLY_IDS = new Set([BASE_PLAN_MONTHLY, "pro-monthly", "pro-month1"]);
 const YEARLY_IDS = new Set([BASE_PLAN_YEARLY]);
 
 /**

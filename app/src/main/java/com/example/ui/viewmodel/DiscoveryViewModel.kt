@@ -1,5 +1,8 @@
 package com.example.ui.viewmodel
 
+import com.example.ui.util.localizedLabel
+import com.example.R
+import com.example.ui.util.uiText
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.analytics.AnalyticsTracker
@@ -233,21 +236,25 @@ class DiscoveryViewModel(
 
     /** Everything a search token may match, lower-cased once per space. */
     private fun searchText(space: SpaceListing): String = buildList {
-        add(space.title); add(space.description); add(space.district); add(space.city)
+        add(space.title); add(space.description); add(space.district); add(space.city); add(space.cityEn)
         add(space.streetAddress); add(space.governorate.displayName); add(space.spaceType.displayName)
+        // Arabic users can search by the Arabic names too.
+        add(localizedLabel(space.governorate.displayName)); add(localizedLabel(space.spaceType.displayName))
         space.spaceCategoryName?.let { add(it) }
         addAll(space.complementarySpecialties)
         addAll(space.essentialFacilities)
         space.equipment.forEach { add(it.name) }
         space.subdivisions.forEach { sub ->
-            add(sub.name); add(sub.type.displayName); addAll(sub.hashtags); addAll(sub.amenities)
-            add(sub.pricing.strategyType.displayName)
-            if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) add("per attendee per person")
+            add(sub.name); add(localizedLabel(sub.type.displayName)); addAll(sub.hashtags); addAll(sub.amenities)
+            add(localizedLabel(sub.pricing.strategyType.displayName))
+            if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) add(uiText(R.string.per_attendee_per_person))
         }
-        add(space.pricing.strategyType.displayName)
+        add(localizedLabel(space.pricing.strategyType.displayName))
     }.joinToString(" ").lowercase()
 
     fun updateSearchQuery(query: String) {
+        // The query is applied on ✓ / IME Search (the settled term is logged as `search` below).
+        if (query.isBlank() && _filterState.value.query.isNotBlank()) com.example.analytics.AnalyticsTracker.searchClear()
         _filterState.update { it.copy(query = query) }
     }
 
@@ -285,17 +292,15 @@ class DiscoveryViewModel(
         com.example.analytics.AnalyticsTracker.filterApply("country", countries.sorted().joinToString(",").ifEmpty { "any" })
     }
 
-    fun setMapCenterCountry(country: String) {
-        if (country.isNotBlank()) {
-            AnalyticsTracker.filterApply("map_center_country", country)
-        }
-    }
+    /** The map's camera country. Not a user filter, so it is no longer logged as filter_apply. */
+    @Suppress("UNUSED_PARAMETER")
+    fun setMapCenterCountry(country: String) = Unit
 
     fun toggleSavedSpace(spaceId: String) {
         val wasSaved = repository.currentUser.value?.savedSpaceIds?.contains(spaceId) == true
         viewModelScope.launch {
             try {
-                repository.toggleSavedSpace(spaceId)
+                if (!repository.toggleSavedSpace(spaceId)) return@launch // heart reverted; nothing to log
                 repository.spaces.value.firstOrNull { it.id == spaceId }
                     ?.let { com.example.analytics.AnalyticsTracker.wishlist(it, added = !wasSaved) }
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -332,6 +337,9 @@ class DiscoveryViewModel(
     }
 
     fun setFilterSheetVisible(visible: Boolean) {
+        if (visible && !_isFilterSheetVisible.value) {
+            com.example.analytics.AnalyticsTracker.filterSheetOpen(_filterState.value.activeFilterCount)
+        }
         _isFilterSheetVisible.value = visible
     }
 

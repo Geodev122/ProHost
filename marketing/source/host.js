@@ -70,8 +70,8 @@ document.body.innerHTML = `
   <div class="small abs" id="ok" style="left:0;right:0;top:215px;text-align:center;color:var(--steel);letter-spacing:4px">LAUNCH OFFER</div>
   <div class="abs" id="ob" style="left:375px;top:270px;width:330px;height:330px;border-radius:50%;display:grid;place-items:center;text-align:center;color:#fff;
     background:radial-gradient(circle at 35% 30%,#ff8a75,var(--orange) 55%,var(--orange-d));box-shadow:0 30px 70px rgba(242,95,76,.45)">
-    <div><div style="font-weight:800;font-size:112px;line-height:.9;letter-spacing:-4px">50%</div><div style="font-weight:800;font-size:42px;letter-spacing:2px">OFF</div></div></div>
-  <div class="h3 abs" id="oS" style="left:0;right:0;top:650px;text-align:center;font-size:48px">your first <span class="orange">ProHost Premium</span><br>subscription</div>
+    <div><div style="font-weight:800;font-size:112px;line-height:.9;letter-spacing:-4px">4</div><div style="font-weight:800;font-size:37px;line-height:1.05;letter-spacing:2px">MONTHS<br>FREE</div></div></div>
+  <div class="h3 abs" id="oS" style="left:0;right:0;top:650px;text-align:center;font-size:48px">of <span class="orange">ProHost Premium</span><br>on the monthly plan</div>
   <div class="brandbar" id="bb" style="top:830px"></div>
   <div class="abs" id="gp" style="left:0;right:0;top:965px;text-align:center"><span class="gp"></span></div>
   <div class="abs small" id="ff" style="left:0;right:0;top:1125px;text-align:center;color:var(--muted);font-weight:500;font-size:23px;line-height:1.5">

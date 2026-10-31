@@ -195,14 +195,14 @@ export const assignInitialRole = onCall(
     severity: "INFO",
   });
 
-  // Send email verification link only for email/password users who haven't verified yet.
-  // Email-link users (signInProvider "emailLink") already clicked a link to authenticate,
-  // so their address is implicitly verified — no second email needed. Google Sign-In users
-  // already have email_verified=true and are excluded by that check.
+  // Email + password sign-ups ("password" provider) get a verification link at registration;
+  // it never blocks the app (email is not a requirement). Google accounts arrive verified and
+  // legacy email-link sign-ins ("emailLink") proved the address already. Awaited: work left
+  // running after a Cloud Run response is CPU-throttled and could be dropped.
   const signInProvider = (auth.token.firebase as { sign_in_provider?: string } | undefined)?.sign_in_provider ?? "";
-  const isEmailLinkUser = signInProvider === "emailLink" || signInProvider.includes("email");
+  const isEmailLinkUser = signInProvider === "emailLink";
   if (registration && auth.token.email_verified !== true && !isEmailLinkUser) {
-    sendEmailVerificationInternal(auth.uid).catch((e) =>
+    await sendEmailVerificationInternal(auth.uid).catch((e) =>
       logger.warn("email_verification_send_failed", { uid: auth.uid, error: String(e) })
     );
   }

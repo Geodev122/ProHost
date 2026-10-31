@@ -6,12 +6,28 @@
 //   node scripts/maintenance/run.js j8               production data hygiene (backup → cleanup)
 //   node scripts/maintenance/run.js retiregrowth     retired plans (growth/enterprise): holders → permanent grant, rows closed
 //   node scripts/maintenance/run.js occupancy        rebuild booking_occupancy from ACCEPTED bookings
+//   node scripts/maintenance/run.js favrecount [apply] listing save counts (favoriteCount) recounted from user_profiles.savedSpaceIds,
+//                                                    the owner's own save excluded; dry run prints counts only, apply writes
+//   node scripts/maintenance/run.js officeleadsmoke  live check of pro-host.tech/list-your-office: posts ONE test lead from
+//                                                    admin@pro-host.tech to websiteOfficeLead and checks the address-book tag, the
+//                                                    Leads-tab queue (ig_leads) and the admin email (no personal data printed)
 //   node scripts/maintenance/run.js emailauth        read-only: why sign-in emails fail (Auth config, mail, limits)
 //   node scripts/maintenance/run.js enableemaillink  turn on Firebase Auth "Email link (passwordless)" sign-in
 //   node scripts/maintenance/run.js mailtest         queue one test email to the extension's reply-to (owner) address
 //   node scripts/maintenance/run.js clearstalesecrets drop retired HOSTINGER_* secret bindings that block deploys
 //   node scripts/maintenance/run.js authorphans      read-only: Auth users with no profile, grouped by provider, day and
 //                                                    test-robot domain (no emails printed)
+//   node scripts/maintenance/run.js authuser UID     read-only: one account — Auth record, profile, audit log and the
+//                                                    sign-in calls around its creation, with a verdict on how it got in
+//                                                    (no provider = email 6-digit code: custom-token sign-in)
+//   node scripts/maintenance/run.js authconfig [apply|retire] email + password sign-in config: dry run prints it; apply sets
+//                                                    the password policy (8+, lowercase, number) and the authorized
+//                                                    domain; retire turns the old email code / magic link off
+//   node scripts/maintenance/run.js passwordinvites [send|resend] accounts from the retired email code / magic link:
+//                                                    dry run counts them; send mails each a 30-day "set your password" link
+//   node scripts/maintenance/run.js integrity [enable] Play Integrity: API state + a dummy decode with the functions'
+//                                                    own credentials (400 = OK, 403 = body says what's missing)
+//   node scripts/maintenance/run.js logerrors [HOURS] read-only: function errors and warnings over HOURS (default 48), grouped
 //   node scripts/maintenance/run.js mailingcode CODE set (or rotate) the pro-host.tech/admin access code; stores only a
 //                                                    salted scrypt hash in app_config/mailing_admin and signs out all
 //                                                    admin sessions. Without CODE: reports whether a code is set.
@@ -19,6 +35,22 @@
 //                                                    address book, preview, a test campaign to admin@pro-host.tech
 //                                                    (waits for delivery), one contact-form request from
 //                                                    admin@pro-host.tech (waits for the email), /admin and /unsubscribe
+//   node scripts/maintenance/run.js igsetup [SHEET_ID] Instagram automation: stores IG_APP_SECRET / IG_ACCESS_TOKEN / IG_VERIFY_TOKEN
+//                                                    (GitHub secrets) in the server-only app_config/instagram, checks the token
+//                                                    belongs to the Instagram account, subscribes the webhook fields and
+//                                                    optionally stores the control-room Sheet id. Prints masked results only.
+//   node scripts/maintenance/run.js igsmoke          Instagram automation live check: webhook handshake, wrong token / bad
+//                                                    signature rejected, signed empty event accepted, config + health summary
+//   node scripts/maintenance/run.js igtest           Instagram pipeline test in dry-run: posts a signed synthetic comment ("link please"), a story reply, a text-less story reaction and a
+//                                                    STOP DM from a fake person to /ig-webhook, waits for the engine's decision
+//                                                    and prints what it would send. Refuses unless mode is dry-run. Sends nothing.
+//   node scripts/maintenance/run.js igmedia         read-only: the account's latest posts (type, slides, caption, permalink, a temporary image URL) and whether
+//                                                    the token may publish (content_publishing_limit); used to analyse the live grid
+//   node scripts/maintenance/run.js igpublish [ID]  publishes ONE item of marketing/social/captions.json (post11 | post12 | post13 | story | story_office | story_office_ar) to the Instagram
+//                                                    account (image post or Story) from https://pro-host.tech/social/<file>; without ID it only prints the plan
+//                                                    (dry run). Never publishes the same item twice (ig_stats/published); needs instagram_business_content_publish.
+//   node scripts/maintenance/run.js aiprobe         which Claude model/region the project can call on Vertex AI (functions service account)
+//   node scripts/maintenance/run.js aitest [MODEL]  runs the DM agent prompt on sample questions through Claude (nothing is sent anywhere)
 //   node scripts/maintenance/run.js prodcheck        production readiness (read-only apart from one RTDN self-test
 //                                                    message): deployed functions + indexes, public pages, Play catalog
 //                                                    as this account sees it, RTDN topic → function, then the audit
@@ -62,14 +94,26 @@ async function audit(db, auth) {
   }
   let authUsers = 0;
   let authNoProfile = 0;
+  const methods = {};
+  const odd = [];
   let page;
   do {
     const r = await auth.listUsers(1000, page);
-    r.users.forEach((u) => { authUsers++; if (!ids.has(u.uid)) authNoProfile++; });
+    r.users.forEach((u) => {
+      authUsers++;
+      if (!ids.has(u.uid)) authNoProfile++;
+      const m = signInMethod(u);
+      methods[m] = (methods[m] || 0) + 1;
+      // Every provider-less account should be an email-code sign-in (verified email, custom token).
+      if (m.startsWith("none") && m !== "none(email-code)") {
+        odd.push(`${m}:${maskEmail(u.email) || "-"}:${u.metadata.creationTime.slice(5, 16)}`);
+      }
+    });
     page = r.pageToken;
   } while (page);
   notice(`profiles=${profiles.size} orphanProfiles=${orphanProfiles} profilesWithoutCode=${profilesNoCode} ` +
     `legacyProfileFields=${legacyProfileFields} authUsers=${authUsers} authUsersWithoutProfile=${authNoProfile}`);
+  notice(`signInMethods=${JSON.stringify(methods).replace(/[{}"]/g, "")} unexplainedProviderless=[${odd.slice(0, 20).join(", ")}]`);
 
   const listings = await db.collection("workspace_listings").get();
   let legacy = 0; let demo = 0; let noCode = 0; let ownerEmail = 0;
@@ -124,6 +168,7 @@ async function audit(db, auth) {
     rows.push(`${code || "?"}:${r.productId}:needsAdmin=${!!r.needsAdmin}`);
   }
   notice(`parkedPurchases=[${rows.join(", ")}]`);
+
 }
 
 async function j8(db, auth) {
@@ -246,6 +291,37 @@ async function retiregrowth(db) {
     actorEmail: "maintenance@pro-host.tech",
     severity: "SECURE",
   }).then(() => "recorded"));
+}
+
+async function favrecount(db, arg) {
+  // Counts only (no ids, no people). The trigger keeps favoriteCount current; this fixes drift and
+  // the self-saves the old trigger counted.
+  const { recountFavorites } = require(`${LIB}/users/favoritesSync`);
+  await step(arg === "apply" ? "favrecount apply" : "favrecount (dry run)", async () => {
+    const savedBy = new Map();
+    for (const d of (await db.collection("user_profiles").select("savedSpaceIds").get()).docs) {
+      const ids = d.get("savedSpaceIds");
+      for (const id of new Set(Array.isArray(ids) ? ids.filter((x) => typeof x === "string" && x) : [])) {
+        if (!savedBy.has(id)) savedBy.set(id, []);
+        savedBy.get(id).push(d.id);
+      }
+    }
+    const listings = await db.collection("workspace_listings").select("ownerId", "favoriteCount").get();
+    const w = arg === "apply" ? db.bulkWriter() : null;
+    let changed = 0, up = 0, down = 0, total = 0;
+    for (const d of listings.docs) {
+      if (!d.get("ownerId")) continue; // ownerless ghost docs are ignored everywhere
+      const want = recountFavorites(savedBy.get(d.id) || [], d.get("ownerId"));
+      const have = typeof d.get("favoriteCount") === "number" ? d.get("favoriteCount") : 0;
+      total += want;
+      if (want !== have) {
+        changed++; if (want > have) up++; else down++;
+        if (w) w.update(d.ref, { favoriteCount: want });
+      }
+    }
+    if (w) await w.close();
+    return `listings=${listings.size} changed=${changed} (up ${up}, down ${down}) totalSaves=${total}${w ? " written" : " — run with code apply to write"}`;
+  });
 }
 
 async function occupancy(db) {
@@ -492,6 +568,247 @@ async function authorphans(db, auth) {
   notice(`auditLog14d=${j(types)}`);
 }
 
+const maskEmail = (e) => { if (!e) return ""; const at = e.indexOf("@"); return at <= 0 ? "***" : `${e[0]}***${e.slice(at)}`; };
+const redact = (v) => String(v || "").replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, (m) => maskEmail(m)).replace(/\s+/g, " ");
+// Sign-in method from the Auth record: no provider = custom token = the email 6-digit code (verifyEmailOtp /
+// clickEmailOtpLink create the user with the Admin SDK and return a custom token).
+const signInMethod = (u) => {
+  const p = (u.providerData || []).map((x) => x.providerId).sort().join("+");
+  if (p) return p;
+  if (u.email) return u.emailVerified ? "none(email-code)" : "none(email-unverified)";
+  return u.phoneNumber ? "none(phone)" : "none(no-email)";
+};
+async function logEntries(filter, pageSize = 200) {
+  const res = await googleApi("https://logging.googleapis.com/v2/entries:list", {
+    method: "POST",
+    body: JSON.stringify({ resourceNames: [`projects/${process.env.GCLOUD_PROJECT}`], filter, orderBy: "timestamp asc", pageSize }),
+  });
+  if (!res.ok) throw new Error(`logs HTTP ${res.status}`);
+  return (await res.json()).entries || [];
+}
+
+async function authuser(db, auth, uid) {
+  if (!/^[A-Za-z0-9]{20,40}$/.test(String(uid || ""))) throw new Error("pass the Auth uid in the code input");
+  let u;
+  try { u = await auth.getUser(uid); } catch (e) {
+    if (e.code !== "auth/user-not-found") throw e;
+    notice("auth: no Auth user with this uid (deleted?)");
+  }
+  if (u) {
+    notice(`auth: method=${signInMethod(u)} providers=[${(u.providerData || []).map((p) => p.providerId).join(",")}] ` +
+      `email=${maskEmail(u.email)} emailVerified=${u.emailVerified} phone=${u.phoneNumber ? "yes" : "no"} disabled=${u.disabled} ` +
+      `created=${u.metadata.creationTime} lastSignIn=${u.metadata.lastSignInTime} lastRefresh=${u.metadata.lastRefreshTime || "-"} ` +
+      `claims=${JSON.stringify(u.customClaims || {})}`);
+  }
+  const snap = await db.collection("user_profiles").doc(uid).get();
+  if (!snap.exists) notice("profile: none (registration form never submitted)");
+  else {
+    const p = snap.data();
+    const ts = (v) => (v && v.toDate ? v.toDate().toISOString() : v ? new Date(v).toISOString() : "-");
+    notice(`profile: code=${p.displayCode || "-"} role=${p.role || "-"} complete=${!!String(p.fullName || "").trim()} ` +
+      `photo=${!!p.profilePictureUrl} whatsapp=${!!p.phone} country=${p.country || "-"} city=${p.city ? "yes" : "no"} ` +
+      `emailVerified=${!!p.emailVerified} specialty=${p.specialty ? "yes" : "no"} createdAt=${ts(p.createdAtMillis)} ` +
+      `lastSignIn=${ts(p.lastSignInAtMillis)} tosAccepted=${ts(p.tosAcceptedAtMillis)} suspended=${!!p.isSuspended} ` +
+      `package=${p.ownerPackageId || "-"} analyticsConsent=${p.analyticsConsent ?? "-"}`);
+  }
+  const listings = (await db.collection("workspace_listings").where("ownerId", "==", uid).count().get()).data().count;
+  const bookings = (await db.collection("booking_requests").where("practitionerId", "==", uid).count().get()).data().count;
+  notice(`activity: listings=${listings} bookingsAsSpecialist=${bookings}`);
+  // Audit entries name the account in `details` (uid) or `actorEmail`; scan the last 60 days.
+  const recent = await db.collection("audit_security_logs").where("timestamp", ">=", Date.now() - 60 * 24 * 3600 * 1000).get();
+  const acts = recent.docs.filter((d) => String(d.data().details || "").includes(uid) ||
+    (u?.email && d.data().actorEmail === u.email))
+    .map((d) => `${d.data().actionType}@${new Date(d.data().timestamp || 0).toISOString().slice(0, 16)}`);
+  notice(`auditLog60d: ${acts.length ? acts.join(", ") : "none"}`);
+  if (!u) return;
+
+  // Sign-in calls around the account's creation (Cloud Run request logs + the functions' own logs).
+  await step("signInCallsAroundCreation", async () => {
+    const t = new Date(u.metadata.creationTime).getTime();
+    const from = new Date(t - 15 * 60 * 1000).toISOString();
+    const to = new Date(t + 15 * 60 * 1000).toISOString();
+    const svcs = ["sendemailotp", "verifyemailotp", "clickemailotplink", "sendsigninemaillink", "assigninitialrole"];
+    const entries = await logEntries(`timestamp>="${from}" AND timestamp<="${to}" AND ` +
+      `resource.labels.service_name=(${svcs.map((s) => `"${s}"`).join(" OR ")})`, 300);
+    const rows = {};
+    for (const e of entries) {
+      const svc = e.resource?.labels?.service_name;
+      const what = e.httpRequest ? `${e.httpRequest.requestMethod} ${e.httpRequest.status}` :
+        redact(e.jsonPayload?.message || e.textPayload || "").slice(0, 60);
+      const k = `${svc} ${what}`;
+      rows[k] = rows[k] || { n: 0, first: e.timestamp };
+      rows[k].n++;
+    }
+    const masked = maskEmail(u.email);
+    const otpForThisAddress = entries.some((e) => e.jsonPayload?.message === "email_otp_sent" && e.jsonPayload?.email === masked);
+    const linkForThisAddress = entries.some((e) => e.jsonPayload?.message === "sign_in_link_sent" && e.jsonPayload?.email === masked);
+    const okVerify = entries.some((e) => ["verifyemailotp", "clickemailotplink"].includes(e.resource?.labels?.service_name) &&
+      e.httpRequest && e.httpRequest.status < 400);
+    const method = signInMethod(u);
+    const verdict = method === "none(email-code)" && (okVerify || otpForThisAddress) ? "email 6-digit code (custom token) — expected" :
+      method.includes("google.com") ? "Google sign-in" :
+      method === "password" ? (u.passwordHash ? "email + password" : "email magic link (no password yet)") : `UNEXPLAINED (${method}; no matching code verification in the logs)`;
+    notice(`verdict: ${verdict} | codeEmailedToThisAddress=${otpForThisAddress} magicLinkSent=${linkForThisAddress} codeVerifiedOk=${okVerify}`);
+    return Object.entries(rows).map(([k, v]) => `${v.first.slice(11, 19)} ${v.n}x ${k}`).join(" | ") || "no sign-in calls in ±15 min";
+  });
+}
+
+// Function logs over the last N hours (default 48), grouped. GitHub shows at most 10 notices per step, so this
+// is its own task: one notice per severity, the top groups in each.
+async function logerrors(arg) {
+  const [h, needle] = String(arg || "").split(/:(.*)/s);
+  const hours = Math.min(Math.max(parseInt(h, 10) || 48, 1), 720);
+  const since = new Date(Date.now() - hours * 3600 * 1000).toISOString();
+  if (needle) {
+    // "HOURS:text" — the full text of a few entries containing `text` (where they come from and what they say).
+    const entries = await logEntries(`timestamp>="${since}" AND severity>=WARNING AND "${needle.replace(/"/g, "")}"`, 200);
+    notice(`matches=${entries.length} for "${needle}"`);
+    for (const e of entries.slice(-6)) {
+      notice(`${e.timestamp} ${e.severity} log=${String(e.logName || "").split("/").pop()} res=${e.resource?.type} ` +
+        `${JSON.stringify(e.resource?.labels || {})} method=${e.protoPayload?.methodName || "-"} ` +
+        `msg=${redact(e.protoPayload?.status?.message || e.jsonPayload?.message || e.textPayload || "").slice(0, 600)} ` +
+        `fields=${redact(JSON.stringify({ ...(e.jsonPayload || {}), message: undefined, uid: undefined })).slice(0, 300)}`);
+    }
+    return;
+  }
+  for (const [label, sev] of [["errors", "severity>=ERROR"], ["warnings", "severity=WARNING"]]) {
+    await step(`${label}${hours}h`, async () => {
+      const entries = await logEntries(`${sev} AND (resource.type="cloud_run_revision" OR resource.type="cloud_function") ` +
+        `AND timestamp>="${since}"`, 1000);
+      const groups = {};
+      for (const e of entries) {
+        const m = redact(e.jsonPayload?.message || e.textPayload || e.protoPayload?.status?.message ||
+          (e.httpRequest ? `HTTP ${e.httpRequest.status} ${e.httpRequest.requestMethod}` : "")).slice(0, 80);
+        const k = `${e.resource?.labels?.service_name || e.resource?.labels?.function_name || "?"}: ${m}`;
+        groups[k] = groups[k] || { n: 0, last: e.timestamp };
+        groups[k].n++;
+        if (e.timestamp > groups[k].last) groups[k].last = e.timestamp;
+      }
+      return `${entries.length} entries${entries.length === 1000 ? "+" : ""}` + (entries.length ? " — " +
+        Object.entries(groups).sort((x, y) => y[1].n - x[1].n).slice(0, 14)
+          .map(([k, v]) => `${v.n}x ${k} (last ${v.last.slice(5, 16)})`).join(" || ") : "");
+    });
+  }
+}
+
+// ─── Email + password sign-in (1.0.44) ───────────────────────────────────────────
+
+const PASSWORD_POLICY = {
+  enforcementState: "ENFORCE",
+  forceUpgradeOnSignin: false,
+  constraints: { requireLowercase: true, requireNumeric: true, minLength: 8, maxLength: 4096 },
+};
+
+async function authconfig(db, auth, arg) {
+  const project = process.env.GCLOUD_PROJECT;
+  const cfgUrl = `https://identitytoolkit.googleapis.com/admin/v2/projects/${project}/config`;
+  const read = async () => {
+    const r = await googleApi(cfgUrl);
+    if (!r.ok) throw new Error(`HTTP ${r.status} ${(await r.text()).slice(0, 200)}`);
+    return r.json();
+  };
+  if (arg === "apply") {
+    await step("passwordPolicy", async () => {
+      await auth.projectConfigManager().updateProjectConfig({ passwordPolicyConfig: PASSWORD_POLICY });
+      return "ENFORCE: min 8, a lowercase letter, a number";
+    });
+    await step("emailPasswordAndDomain", async () => {
+      const c = await read();
+      const domains = new Set(c.authorizedDomains || []);
+      domains.add("pro-host.tech");
+      const res = await googleApi(`${cfgUrl}?updateMask=signIn.email.enabled,authorizedDomains`, {
+        method: "PATCH",
+        body: JSON.stringify({ signIn: { email: { enabled: true } }, authorizedDomains: [...domains] }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
+      return `email/password enabled, authorizedDomains=${[...domains].join(",")}`;
+    });
+  } else if (arg === "retire") {
+    await step("retireLegacyEmail", async () => {
+      const res = await googleApi(`${cfgUrl}?updateMask=signIn.email.passwordRequired`, {
+        method: "PATCH", body: JSON.stringify({ signIn: { email: { enabled: true, passwordRequired: true } } }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
+      await db.doc("app_config/auth").set({ legacyEmailSignIn: false, retiredAt: Date.now() }, { merge: true });
+      return "magic link off (passwordRequired=true); app_config/auth.legacyEmailSignIn=false";
+    });
+  }
+  await step("authConfig", async () => {
+    const c = await read();
+    const pc = await auth.projectConfigManager().getProjectConfig();
+    const sw = (await db.doc("app_config/auth").get()).data() || {};
+    return `signIn.email=${JSON.stringify(c.signIn?.email || {}).replace(/[{}"]/g, "")} ` +
+      `authorizedDomains=${(c.authorizedDomains || []).join(",")} ` +
+      `enumerationProtection=${c.emailPrivacyConfig?.enableImprovedEmailPrivacy === true} ` +
+      `passwordPolicy=${JSON.stringify(pc.passwordPolicyConfig || "none").replace(/"/g, "")} ` +
+      `legacyEmailSignIn=${sw.legacyEmailSignIn !== false}${sw.retiredAt ? ` retiredAt=${new Date(sw.retiredAt).toISOString()}` : ""}`;
+  });
+}
+
+async function passwordinvites(db, auth, arg) {
+  const { needsPasswordSetup, factsOf, sendPasswordSetupInvite, INVITES } = require(`${LIB}/auth/passwordReset`);
+  const targets = [];
+  let page;
+  do {
+    const r = await auth.listUsers(1000, page);
+    for (const u of r.users) {
+      const cat = needsPasswordSetup(factsOf(u));
+      if (cat) targets.push({ uid: u.uid, email: u.email, cat, created: u.metadata.creationTime });
+    }
+    page = r.pageToken;
+  } while (page);
+  const invited = new Set((await db.collection(INVITES).select().get()).docs.map((d) => d.id));
+  const counts = {};
+  targets.forEach((t) => { counts[t.cat] = (counts[t.cat] || 0) + 1; });
+  notice(`needPassword=${targets.length} ${JSON.stringify(counts).replace(/[{}"]/g, "")} alreadyInvited=${targets.filter((t) => invited.has(t.uid)).length}`);
+  notice(`accounts: ${targets.map((t) => `${maskEmail(t.email)}(${t.cat}${invited.has(t.uid) ? ",invited" : ""})`).join(", ") || "none"}`);
+  if (arg !== "send" && arg !== "resend") { notice("dry run — run with code=send to mail them"); return; }
+  const sent = [];
+  for (const t of targets) {
+    if (invited.has(t.uid) && arg !== "resend") continue;
+    if (await sendPasswordSetupInvite(t.uid, t.email, t.cat)) sent.push(t.email);
+  }
+  notice(`invitesQueued=${sent.length}`);
+  await step("inviteDelivery", async () => {
+    const end = Date.now() + 120 * 1000;
+    let states = {};
+    while (Date.now() < end) {
+      states = {};
+      for (const email of sent) {
+        const m = await db.collection("mail").where("to", "==", email).orderBy("createdAt", "desc").limit(1).get()
+          .catch(() => db.collection("mail").where("to", "==", email).get());
+        const st = m.docs[0]?.data().delivery?.state ?? "NOT_PICKED_UP";
+        states[st] = (states[st] || 0) + 1;
+      }
+      if (!Object.keys(states).some((k) => ["NOT_PICKED_UP", "PENDING", "PROCESSING", "RETRY"].includes(k))) break;
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+    return JSON.stringify(states).replace(/[{}"]/g, "") || "nothing sent";
+  });
+}
+
+async function integrity(db, arg) {
+  const project = process.env.GCLOUD_PROJECT;
+  const svc = `https://serviceusage.googleapis.com/v1/projects/${project}/services/playintegrity.googleapis.com`;
+  if (arg === "enable") {
+    await step("enableApi", async () => {
+      const r = await googleApi(`${svc}:enable`, { method: "POST", body: "{}" });
+      return `HTTP ${r.status} ${(await r.text()).replace(/\s+/g, " ").slice(0, 160)}`;
+    });
+  }
+  await step("apiState", async () => {
+    const r = await googleApi(svc);
+    if (!r.ok) return `HTTP ${r.status} ${(await r.text()).replace(/\s+/g, " ").slice(0, 160)}`;
+    return (await r.json()).state;
+  });
+  await step("decodeProbe", async () => {
+    const r = await serverTask(db, "integrityProbe");
+    const verdict = r.status === 400 ? "OK — credentials, scope and Play Console link work (only the dummy token is rejected)" :
+      r.status === 403 ? "BLOCKED — see body (API off, Cloud project not linked in Play Console, or permission)" : "unexpected";
+    return `status=${r.status} ${verdict} body=${r.body}`;
+  });
+}
+
 async function prodcheck(db, auth) {
   const project = process.env.GCLOUD_PROJECT;
   // 1. Every function the code exports is deployed, ACTIVE, and on the expected runtime.
@@ -612,7 +929,14 @@ async function prodcheck(db, auth) {
       if (!r.ok || !/rel="canonical"/.test(html) || /noindex/.test(html)) bad.push(`${u.replace("https://pro-host.tech", "")}=${r.status}`);
     }
     const robots = await (await fetch("https://pro-host.tech/robots.txt")).text();
-    return `sitemap urls=${locs.length} (listings=${locs.filter((l) => l.includes("/listing/")).length}) problems=[${bad.join(" ")}] robotsSitemap=${/Sitemap: https:\/\/pro-host.tech\/sitemap.xml/.test(robots)}`;
+    // Retired country-named slugs (-lebanon / -beirut) must still 301 to their country-neutral pages.
+    const { LEGACY_SLUGS } = require(path.join(__dirname, "../website/seo-pages"));
+    const lost = [];
+    for (const [oldSlug, newSlug] of Object.entries(LEGACY_SLUGS)) {
+      const r = await fetch(`https://pro-host.tech/${oldSlug}`, { redirect: "manual" });
+      if (r.status !== 301 || !(r.headers.get("location") || "").endsWith(`/${newSlug}`)) lost.push(`${oldSlug}=${r.status}`);
+    }
+    return `sitemap urls=${locs.length} (listings=${locs.filter((l) => l.includes("/listing/")).length}) problems=[${bad.join(" ")}] legacyRedirects=${lost.length ? `BROKEN[${lost.join(" ")}]` : `${Object.keys(LEGACY_SLUGS).length} ok`} robotsSitemap=${/Sitemap: https:\/\/pro-host.tech\/sitemap.xml/.test(robots)}`;
   });
   // 4. The Play catalog as this (CI) account sees it (needs the androidpublisher scope and the account
   //    invited in Play Console › Users and permissions). Read-only: base plans and their offers.
@@ -678,6 +1002,233 @@ async function mailingcode(db, code) {
   notice(`mailing admin code set (${code.trim().length} digits); ${sessions.size} old admin session(s) signed out`);
 }
 
+const maskId = (v) => (v ? `${String(v).slice(0, 4)}…${String(v).slice(-3)}` : "(none)");
+
+async function igsetup(db, sheetId) {
+  const secret = process.env.IG_APP_SECRET || "";
+  const token = process.env.IG_ACCESS_TOKEN || "";
+  const verify = process.env.IG_VERIFY_TOKEN || "";
+  const missing = [["IG_APP_SECRET", secret], ["IG_ACCESS_TOKEN", token], ["IG_VERIFY_TOKEN", verify]].filter(([, v]) => !v).map(([k]) => k);
+  if (missing.length) throw new Error(`missing GitHub secrets: ${missing.join(", ")} (Settings › Secrets and variables › Actions)`);
+  const graph = require(`${LIB}/instagram/graph`);
+  const me = await graph.whoAmI(token);
+  if (!me.id) throw new Error("the access token did not return an Instagram account");
+  notice(`token belongs to @${me.username} (id ${maskId(me.id)})`);
+
+  let expiresAt = Date.now() + 60 * 86400000;
+  let accessToken = token;
+  try {
+    const r = await graph.refreshToken(token);
+    if (r.token) { accessToken = r.token; expiresAt = Date.now() + r.expiresInSec * 1000; notice(`token refreshed, valid ${Math.floor(r.expiresInSec / 86400)} days`); }
+  } catch (e) {
+    notice(`token not refreshed yet (${String(e.message).slice(0, 80)}); assuming 60 days from now`);
+  }
+
+  const ref = db.collection("app_config").doc("instagram");
+  const current = (await ref.get()).data() || {};
+  await ref.set({
+    appSecret: secret, verifyToken: verify, accessToken, igUserId: me.id, username: me.username, tokenExpiresAt: expiresAt,
+    mode: current.mode === "live" ? "live" : "dry-run", killSwitch: Boolean(current.killSwitch),
+    ...(sheetId ? { sheetId: sheetId.trim() } : {}),
+    ...(process.env.ANTHROPIC_API_KEY ? { anthropicKey: process.env.ANTHROPIC_API_KEY } : {}),
+    geminiKey: admin.firestore.FieldValue.delete(), // the Gemini text provider was removed (Oct 2026)
+  }, { merge: true });
+  if (process.env.ANTHROPIC_API_KEY) notice("Anthropic API key stored (only used when ai_provider = anthropic)");
+  notice(`app_config/instagram saved (mode ${current.mode === "live" ? "live" : "dry-run"}${sheetId ? ", sheet linked" : current.sheetId ? ", sheet already linked" : ", NO sheet linked yet"})`);
+
+  try {
+    const ok = await graph.subscribeApp({ igUserId: me.id, token: accessToken });
+    notice(`webhook subscription for @${me.username}: ${ok ? "active" : "not confirmed"}`);
+  } catch (e) {
+    fail(`webhook subscription failed: ${String(e.message).slice(0, 200)} (set the callback URL in the Meta app first)`);
+  }
+  const sid = sheetId || current.sheetId;
+  if (sid) {
+    try {
+      const { google } = require(path.join(__dirname, "../../functions/node_modules/googleapis"));
+      const sheets = google.sheets({ version: "v4", auth: new google.auth.GoogleAuth({ scopes: ["https://www.googleapis.com/auth/spreadsheets"] }) });
+      await require(`${LIB}/instagram/sheetsBridge`).ensureTabs(sheets, sid);
+      notice("sheet tabs OK (Rules, Log, Contacts, Status)");
+    } catch (e) {
+      notice(`sheet not reachable from this account yet (${String(e.message).slice(0, 100)}); the runtime service account must be an Editor of the sheet`);
+    }
+  }
+}
+
+async function igsmoke(db) {
+  const BASE = "https://pro-host.tech/ig-webhook";
+  const verify = process.env.IG_VERIFY_TOKEN || "";
+  const secret = process.env.IG_APP_SECRET || "";
+  if (!verify || !secret) throw new Error("IG_VERIFY_TOKEN and IG_APP_SECRET GitHub secrets are required");
+  const check = (name, ok, extra) => (ok ? notice(`✓ ${name}${extra ? ` (${extra})` : ""}`) : fail(`✗ ${name}${extra ? ` (${extra})` : ""}`));
+  const g1 = await fetch(`${BASE}?hub.mode=subscribe&hub.verify_token=${encodeURIComponent(verify)}&hub.challenge=smoke123`);
+  check("handshake echoes the challenge", g1.status === 200 && (await g1.text()) === "smoke123", `HTTP ${g1.status}`);
+  const g2 = await fetch(`${BASE}?hub.mode=subscribe&hub.verify_token=wrong&hub.challenge=x`);
+  check("wrong verify token is refused", g2.status === 403, `HTTP ${g2.status}`);
+  const body = JSON.stringify({ object: "instagram", entry: [] });
+  const bad = await fetch(BASE, { method: "POST", headers: { "Content-Type": "application/json", "X-Hub-Signature-256": "sha256=00" }, body });
+  check("bad signature is refused", bad.status === 403, `HTTP ${bad.status}`);
+  const { sign } = require(`${LIB}/instagram/signature`);
+  const good = await fetch(BASE, { method: "POST", headers: { "Content-Type": "application/json", "X-Hub-Signature-256": sign(body, secret) }, body });
+  check("signed empty event is accepted", good.status === 200, `HTTP ${good.status}`);
+
+  const c = (await db.collection("app_config").doc("instagram").get()).data() || {};
+  const rules = await db.collection("ig_rules").get();
+  const last = await db.collection("ig_events").orderBy("createdAt", "desc").limit(1).get();
+  const left = c.tokenExpiresAt ? Math.floor((c.tokenExpiresAt - Date.now()) / 86400000) : null;
+  const sync = (await db.collection("ig_stats").doc("sync").get()).data();
+  const poll = (await db.collection("ig_stats").doc("comment_poll").get()).data();
+  const dmPoll = (await db.collection("ig_stats").doc("dm_poll").get()).data();
+  const pollLine = (label, d, what) => (d ? `${label}: ${d.lastError ? "FAILING " + String(d.lastError).slice(0, 200) : "ok"}, last run ${new Date(d.lastRun).toISOString()}, ${what} ${d.processed || 0}` : `${label}: has not run yet (first run sets the baseline)`);
+  notice(`${pollLine("comment poller", poll, "comments processed")} · ${pollLine("DM poller", dmPoll, "DMs processed")}`);
+  // The DM poller reads replies through the Conversations API (needs instagram_business_manage_messages on the token).
+  try {
+    const { listConversations, listMessages } = require(`${LIB}/instagram/graph`);
+    const creds = { igUserId: String(c.igUserId || ""), token: String(c.accessToken || "") };
+    const convs = await listConversations(creds, 10);
+    const msgs = convs.length ? await listMessages(creds, convs[0].id, 5) : [];
+    notice(`conversations API: ok · ${convs.length} recent conversation(s), newest updated ${convs[0] ? new Date(convs[0].updated).toISOString() : "-"} · its last ${msgs.length} message(s) readable${msgs.some((m) => m.text) ? " with text" : ""}`);
+  } catch (e) {
+    fail(`conversations API: ${String(e.message).slice(0, 250)} (the DM poller cannot read replies: the token needs instagram_business_manage_messages)`);
+  }
+  notice(sync ? `sheet sync: ${sync.ok ? "ok" : "FAILING"} at ${new Date(sync.at).toISOString()} ${sync.ok ? `(${String(sync.note || "")})` : String(sync.error || "").slice(0, 300)}` : "sheet sync: never ran since this version deployed");
+  notice(`account @${c.username || "?"} · mode ${c.mode || "dry-run"}${c.killSwitch ? " · KILL SWITCH ON" : ""} · rules ${rules.size} · token ${left === null ? "?" : left + " days"} left · sheet ${c.sheetId ? "linked" : "NOT linked"} · last event ${last.empty ? "none yet" : new Date(last.docs[0].get("createdAt")).toISOString()}`);
+}
+
+async function igtest(db) {
+  const secret = process.env.IG_APP_SECRET || "";
+  if (!secret) throw new Error("IG_APP_SECRET GitHub secret is required");
+  const cfg = (await db.collection("app_config").doc("instagram").get()).data() || {};
+  if (cfg.mode === "live" && !cfg.killSwitch) throw new Error("mode is LIVE: igtest only runs in dry-run (or with the kill switch on)");
+  if (!cfg.igUserId) throw new Error("run igsetup first");
+  const { sign } = require(`${LIB}/instagram/signature`);
+  const fake = `igtest${Date.now()}`;
+  const post = async (body) => {
+    const raw = JSON.stringify(body);
+    const r = await fetch("https://pro-host.tech/ig-webhook", { method: "POST", headers: { "Content-Type": "application/json", "X-Hub-Signature-256": sign(raw, secret) }, body: raw });
+    return r.status;
+  };
+  const wait = async (id) => {
+    for (let i = 0; i < 30; i++) {
+      const d = await db.collection("ig_events").doc(id).get();
+      if (d.exists && d.get("status") && d.get("status") !== "processing") return d.data();
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    return null;
+  };
+  const show = (label, d) => notice(d ? `${label}: status=${d.status} rule="${d.ruleName || "-"}" reason="${d.reason}" replies="${String(d.replies || "").slice(0, 160)}"` : `${label}: no result in 30 s`);
+  const now = Math.floor(Date.now() / 1000);
+  const cid = `${fake}c`;
+  notice(`comment accepted: HTTP ${await post({ object: "instagram", entry: [{ id: cfg.igUserId, time: now, changes: [{ field: "comments", value: { id: cid, text: "link please", from: { id: fake, username: "igtest_user" }, media: { id: "igtest_media" } } }] }] })}`);
+  show("comment 'link please'", await wait(`c_${cid}`));
+  const comment = async (label, text) => {
+    const id = `${fake}k${label}`;
+    const sender = `${fake}ck${label}`;
+    const code = await post({ object: "instagram", entry: [{ id: cfg.igUserId, time: now, changes: [{ field: "comments", value: { id, text, from: { id: sender, username: `igtest_${label}` }, media: { id: "igtest_media" } } }] }] });
+    notice(`comment ${label} accepted: HTTP ${code}`);
+    show(`comment ${label} "${text}"`, await wait(`c_${id}`));
+    await db.collection("ig_contacts").doc(sender).delete();
+    await db.collection("ig_threads").doc(sender).delete();
+  };
+  if ((cfg.ai || {}).enabled) {
+    await comment("positive", "❤️🔥 love this, thank you");
+    await comment("question", "How can I list my clinic room? price?");
+    await comment("negative", "this looks like a scam");
+    await comment("neutral", "I was there last summer with my cousins");
+  } else notice("AI agent is off: comment-agent cases skipped");
+  const mid = `${fake}m`;
+  notice(`STOP dm accepted: HTTP ${await post({ object: "instagram", entry: [{ id: cfg.igUserId, time: now, messaging: [{ sender: { id: fake }, recipient: { id: cfg.igUserId }, timestamp: now * 1000, message: { mid, text: "STOP" } }] }] })}`);
+  show("DM 'STOP'", await wait(`m_${mid}`));
+  const story = async (label, text) => {
+    const sid = `${fake}s${label}`;
+    const code = await post({ object: "instagram", entry: [{ id: cfg.igUserId, time: now, messaging: [{ sender: { id: `${fake}${label}` }, recipient: { id: cfg.igUserId }, timestamp: now * 1000, message: { mid: sid, ...(text ? { text } : {}), reply_to: { story: { id: "igtest_story", url: "https://example.invalid" } } } }] }] });
+    notice(`story ${label} accepted: HTTP ${code}`);
+    show(`story ${label}`, await wait(`m_${sid}`));
+    await db.collection("ig_contacts").doc(`${fake}${label}`).delete();
+  };
+  const dmAi = async (label, text) => {
+    const sid = `${fake}a${label}`;
+    const sender = `${fake}ai${label}`;
+    const code = await post({ object: "instagram", entry: [{ id: cfg.igUserId, time: now, messaging: [{ sender: { id: sender }, recipient: { id: cfg.igUserId }, timestamp: now * 1000, message: { mid: sid, text } }] }] });
+    notice(`AI dm ${label} accepted: HTTP ${code}`);
+    show(`AI dm ${label} "${text}"`, await wait(`m_${sid}`));
+    await db.collection("ig_contacts").doc(sender).delete();
+    await db.collection("ig_threads").doc(sender).delete();
+  };
+  if ((cfg.ai || {}).enabled) {
+    await dmAi("en", "how can I list my clinic room and what does it cost?");
+    await dmAi("ar", "كيف أحمّل التطبيق وهل يوجد نسخة للآيفون؟");
+  } else notice("AI agent is off (Status ai_enabled): AI DM cases skipped");
+  await story("reply", "love this!");
+  await story("reaction", "");
+  await db.collection("ig_contacts").doc(fake).delete();
+  notice("fake contact removed; the two test events stay in the log (they reach the sheet Log tab within a minute)");
+}
+
+async function officeleadsmoke(db) {
+  const { leadDocId } = require(`${LIB}/website/officeLeads`);
+  const email = "admin@pro-host.tech";
+  const start = Date.now();
+  await step("officeleadsmoke page", async () => `HTTP ${(await fetch("https://pro-host.tech/list-your-office")).status}`);
+  // Both paths end in onOfficeLeadSaved (website/officeLeadSync.ts), which records each email|WhatsApp once: a fresh test
+  // number per run makes this run record again.
+  const testWa = "+961700" + String(start).slice(-5);
+  await step("officeleadsmoke submit", async () => {
+    const r = await fetch("https://europe-west1-prohost-f766f.cloudfunctions.net/websiteOfficeLead", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data: { name: "ProHost smoke test", email, whatsapp: testWa, profession: "Life coach", city: "Test",
+        message: "Automated live check (maintenance officeleadsmoke).", consent: true, lang: "en", utm_source: "maintenance", utm_medium: "smoke" } }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (j.error) throw new Error(`${j.error.status} ${j.error.message}`);
+    return "accepted";
+  });
+  await new Promise((res) => setTimeout(res, 8000));
+  await step("officeleadsmoke address book", async () => {
+    const q = await db.collection("mailing_list").where("email", "==", email).limit(1).get();
+    const tags = q.empty ? [] : q.docs[0].get("tags") || [];
+    if (!tags.includes("insta-leads-story")) throw new Error("tag insta-leads-story missing");
+    return `tags ${tags.filter((t) => t !== "partner" && t !== "strategic-sponsor" && t !== "usd-24000").join(", ")}`;
+  });
+  await step("officeleadsmoke leads tab queue", async () => {
+    let d = await db.collection("ig_leads").doc(leadDocId(email)).get();
+    if (!d.exists) throw new Error("ig_leads row missing");
+    for (let i = 0; i < 20 && !(Number(d.get("recordedAt")) >= start); i++) {
+      await new Promise((res) => setTimeout(res, 3000));
+      d = await db.collection("ig_leads").doc(leadDocId(email)).get();
+    }
+    if (!(Number(d.get("recordedAt")) >= start)) throw new Error("not recorded by onOfficeLeadSaved within 60 s");
+    return `source ${d.get("source")}, synced ${d.get("synced")}, recorded ${d.get("recordedFor")}`;
+  });
+  // The DM agent's intake writes the same kind of doc after consent (instagram/aiRuntime.ts): simulate one.
+  await step("officeleadsmoke dm intake", async () => {
+    const ref = db.collection("ig_leads").doc("smoke_dm");
+    await ref.set({ kind: "office_owner", name: "ProHost smoke test (DM)", email: "admin+dmsmoke@pro-host.tech", whatsapp: "+961710" + String(start).slice(-5),
+      profession: "Psychologist", city: "Test", role: "Psychologist", need: "list my office", lang: "en", instagram: "prohost.smoke",
+      source: "instagram_dm", tags: ["insta-leads-story", "prospect", "office-owner", "psychologist"], consentAt: start, updatedAt: start, synced: false });
+    for (let i = 0; i < 20; i++) {
+      await new Promise((res) => setTimeout(res, 3000));
+      const d = await ref.get();
+      if (Number(d.get("recordedAt")) >= start) {
+        const q = await db.collection("mailing_list").where("email", "==", "admin+dmsmoke@pro-host.tech").limit(1).get();
+        const c = q.empty ? null : q.docs[0];
+        if (!c || !(c.get("sources") || []).includes("instagram_dm")) throw new Error("recorded, but no instagram_dm contact-book entry");
+        return `recorded; contact book tags ${(c.get("tags") || []).join(", ")}`;
+      }
+    }
+    throw new Error("onOfficeLeadSaved did not record the DM lead within 60 s");
+  });
+  await step("officeleadsmoke whatsapp", async () => {
+    const d = (await db.collection("app_config").doc("whatsapp").get()).data() || {};
+    return d.enabled ? `on, last alert: ${d.lastResult || "none yet"}` : "off (set up at pro-host.tech/admin › WhatsApp alerts)";
+  });
+  await step("officeleadsmoke admin email", async () => {
+    const q = await db.collection("mail").orderBy("message.subject").startAt("[ProHost Office lead]").endAt("[ProHost Office lead]\uf8ff").limit(20).get();
+    const states = q.docs.map((d) => d.get("delivery.state") || "PENDING");
+    return q.empty ? "no office-lead mail found" : `${q.size} office-lead mail(s): ${[...new Set(states)].join(", ")}`;
+  });
+}
+
 async function mailingsmoke(db, code) {
   const FN = "https://europe-west1-prohost-f766f.cloudfunctions.net/";
   const call = async (name, data) => {
@@ -722,6 +1273,434 @@ async function mailingsmoke(db, code) {
   else await waitMail(db.collection("mail").where(admin.firestore.FieldPath.documentId(), "==", last.id), "contact form email to admin");
 }
 
+
+// Live Play catalog / subscriptions, read by the functions' own service account (invited in Play Console)
+// through the onMaintenanceRequest trigger: write maintenance_requests/{id}, wait for the result.
+async function serverTask(db, task, arg = null) {
+  const ref = db.collection("maintenance_requests").doc();
+  await ref.set({ task, arg, createdAt: Date.now() });
+  for (let i = 0; i < 60; i++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    const d = (await ref.get()).data();
+    if (d && d.status) {
+      await ref.delete().catch(() => {});
+      if (d.status !== "done") throw new Error(`${task} failed: ${d.result}`);
+      return JSON.parse(d.result);
+    }
+  }
+  throw new Error(`${task}: no answer from onMaintenanceRequest in 120 s (is it deployed?)`);
+}
+
+// Repairs Play Console slips through the Play API (functions' service account): a promo offer stranded on an
+// inactive base plan is copied onto the live monthly plan, and claimed offers limited to "any subscription in this
+// app" are widened to "this subscription". Dry run unless the code is "apply".
+async function playofferfix(db, arg) {
+  const apply = arg === "apply";
+  await step("playOfferFix", async () => {
+    const res = await serverTask(db, "playOfferFix", apply ? "apply" : null);
+    res.steps.forEach((s) => notice(`playOfferFix ${s.step}: ${s.action} → ${s.result}`));
+    return `${apply ? "applied" : "dry run (code: apply to write)"}: ${res.steps.length} step(s)`;
+  });
+  if (apply) await playcatalog(db);
+}
+
+async function aiquota(db, arg) {
+  const res = await serverTask(db, "aiQuota", arg === "request" || arg === "status" ? arg : null);
+  if (res.lines) { res.lines.forEach((l) => notice(`QUOTA STATUS ${l}`)); return; }
+  if (res.results) { res.results.forEach((r) => notice(`QUOTA REQUEST ${r}`)); return; }
+  notice(`Cloud Quotas: ${res.note}; ${res.rows.length} global Haiku 4.5 row(s)`);
+  res.rows.forEach((r) => notice(`QUOTA ${r.quotaId} | ${JSON.stringify(r.dimensions)} | value=${r.value} ${r.unit} | raw=${r.raw}`));
+}
+
+// Why does pro-host.tech not show the site? Reads Firebase Hosting through its API (sites, live release, custom domains and the DNS
+// records each one still needs), resolves the domain's DNS and fetches both the default address and the custom domain.
+// Code "connect" also tries to add pro-host.tech and www.pro-host.tech to the site (then re-run to read the DNS records to set).
+async function hostingcheck(arg) {
+  const { google } = require(path.join(__dirname, "../../functions/node_modules/googleapis"));
+  const dns = require("dns").promises;
+  const auth = new google.auth.GoogleAuth({ scopes: ["https://www.googleapis.com/auth/cloud-platform", "https://www.googleapis.com/auth/firebase"] });
+  const api = async (method, url, body) => {
+    const token = await auth.getAccessToken();
+    const r = await fetch(`https://firebasehosting.googleapis.com/v1beta1/${url}`, { method, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(`${method} ${url}: HTTP ${r.status} ${String((j.error && j.error.message) || "").slice(0, 200)}`);
+    return j;
+  };
+  const sites = await api("GET", "projects/prohost-f766f/sites").catch((e) => { notice(`sites: ${e.message}`); return { sites: [] }; });
+  notice(`sites: ${(sites.sites || []).map((x) => `${x.name.split("/").pop()}(${x.type || "?"}, ${x.defaultUrl})`).join(" | ") || "none readable"}`);
+  const site = "prohost-f766f";
+  try {
+    const live = await api("GET", `sites/${site}/channels/live`);
+    const rel = live.release || {};
+    notice(`live release: ${rel.version ? rel.version.name.split("/").pop() : "none"} ${rel.releaseTime || ""} ${(rel.version && rel.version.status) || ""} files=${(rel.version && rel.version.fileCount) || "?"}`);
+  } catch (e) { notice(`live channel: ${e.message}`); }
+  try { const st = await api("GET", `projects/prohost-f766f/sites/${site}`); notice(`site: ${JSON.stringify(st).slice(0, 300)}`); } catch (e) { notice(`site: ${e.message}`); }
+  try {
+    const all = (await api("GET", `sites/${site}/releases?pageSize=25`)).releases || [];
+    for (const r of all.slice(0, 14)) {
+      const vn = r.version && r.version.name; let cfg = {};
+      try { cfg = (await api("GET", vn)).config || {}; } catch (e) { cfg = { err: e.message }; }
+      notice(`release ${(vn || "").split("/").pop()} ${r.releaseTime} ${r.type} files=${(r.version && r.version.fileCount) || "?"} rewrites=${(cfg.rewrites || []).length} wa=${(cfg.rewrites || []).some((x) => x.path === "/wa-webhook" || x.glob === "/wa-webhook")} headers=${(cfg.headers || []).length} redirects=${(cfg.redirects || []).length} ${cfg.err || ""}`);
+    }
+    const rels = all.slice(0, 4);
+    notice(`releases: ${rels.map((r) => `${(r.version && r.version.name || "").split("/").pop()}@${r.releaseTime} ${r.type} ${(r.version && r.version.status) || ""} files=${(r.version && r.version.fileCount) || "?"}`).join(" | ")}`);
+    const vname = rels[0] && rels[0].version && rels[0].version.name;
+    if (vname) {
+      const v = await api("GET", vname);
+      notice(`version config: public=${JSON.stringify((v.config || {}).redirects ? "has redirects" : "no redirects")} rewrites=${((v.config || {}).rewrites || []).length} cleanUrls=${(v.config || {}).cleanUrls}`);
+      const fl = await api("GET", `${vname}/files?pageSize=40&status=ACTIVE`).catch((e) => ({ files: [], err: e.message }));
+      notice(`version files: ${(fl.files || []).slice(0, 12).map((f) => f.path).join(" ")} ${fl.err || ""}`);
+    }
+  } catch (e) { notice(`releases: ${e.message}`); }
+  try { const ch = (await api("GET", `sites/${site}/channels`)).channels || []; notice(`channels: ${ch.map((c) => `${c.name.split("/").pop()}:${c.url}`).join(" | ")}`); } catch (e) { notice(`channels: ${e.message}`); }
+  let domains = [];
+  try {
+    domains = ((await api("GET", `projects/prohost-f766f/sites/${site}/customDomains`)).customDomains || []);
+    for (const d of domains) {
+      const need = (((d.requiredDnsUpdates || {}).desired || [])).map((x) => `${x.domainName}: ${(x.records || []).map((r) => `${r.type} ${r.rdata}${r.requiredAction ? ` [${r.requiredAction}]` : ""}`).join(", ")}`).join(" ; ");
+      notice(`customDomain ${d.name.split("/").pop()}: host=${d.hostState} ownership=${d.ownershipState} cert=${d.certState}${(d.issues || []).length ? ` issues=${JSON.stringify(d.issues).slice(0, 200)}` : ""}${need ? ` DNS needs: ${need}` : ""}`);
+    }
+    if (!domains.length) notice("customDomains: none are connected to this site");
+  } catch (e) { notice(`customDomains: ${e.message}`); }
+  for (const host of ["pro-host.tech", "www.pro-host.tech"]) {
+    const a = await dns.resolve4(host).catch((e) => `ERR ${e.code}`);
+    const cn = await dns.resolveCname(host).catch(() => []);
+    const tx = await dns.resolveTxt(host).catch(() => []);
+    notice(`dns ${host}: A=${Array.isArray(a) ? a.join(",") : a} CNAME=${cn.join(",") || "-"} TXT=${tx.map((t) => t.join("")).filter((t) => /firebase|hosting|google/i.test(t)).join(" | ") || "-"}`);
+  }
+  const rel = /^release:([0-9a-f]{8,20})$/.exec((arg || "").trim());
+  if (rel) {
+    // Puts an earlier version back on the live channel (a rollback; the next normal deploy replaces it again).
+    try {
+      const out = await api("POST", `projects/prohost-f766f/sites/${site}/channels/live/releases?versionName=${encodeURIComponent(`projects/-/sites/${site}/versions/${rel[1]}`)}`, { message: "rollback test from hostingcheck" });
+      notice(`released ${rel[1]} on live: ${(out.name || "").split("/").pop()} ${out.releaseTime || ""}`);
+      await new Promise((r) => setTimeout(r, 25000));
+    } catch (e) { notice(`release ${rel[1]}: ${e.message}`); }
+  }
+  for (const url of ["https://prohost-f766f.web.app/", "https://prohost-f766f.web.app/index.html", "https://prohost-f766f.web.app/__/firebase/init.json", "https://prohost-f766f.firebaseapp.com/", "https://pro-host.tech/", "https://www.pro-host.tech/"]) {
+    try {
+      const r = await fetch(url, { redirect: "manual" });
+      const body = (await r.text()).replace(/\s+/g, " ");
+      const title = (/<title>([^<]*)/i.exec(body) || [])[1] || "";
+      notice(`GET ${url} -> ${r.status} ${r.headers.get("location") || ""} title="${title.slice(0, 70)}" ${r.status >= 400 ? body.slice(0, 120) : ""}`);
+    } catch (e) { notice(`GET ${url} -> ERR ${String(e.message).slice(0, 100)}`); }
+  }
+  if ((arg || "").trim() === "connect") {
+    for (const host of ["pro-host.tech", "www.pro-host.tech"]) {
+      if (domains.some((d) => d.name.endsWith("/" + host))) { notice(`connect ${host}: already on the site`); continue; }
+      try { await api("POST", `projects/prohost-f766f/sites/${site}/customDomains?customDomainId=${host}`, host.startsWith("www.") ? { redirectTarget: "pro-host.tech" } : {}); notice(`connect ${host}: requested; re-run hostingcheck to read the DNS records`); }
+      catch (e) { notice(`connect ${host}: ${e.message}`); }
+    }
+  }
+}
+
+// Runs the real DM-agent prompt + website knowledge through Claude (Anthropic API) on sample questions (no Instagram, nothing is sent).
+async function aitest(arg, db) {
+  const key = process.env.ANTHROPIC_API_KEY || "";
+  if (!key) throw new Error("ANTHROPIC_API_KEY GitHub secret is missing");
+  const { runAgent, advance, NEW_STATE } = require(`${LIB}/instagram/aiAgent`);
+  const { buildKnowledge } = require(`${LIB}/instagram/aiKnowledge`);
+  const { formatOffers, offersContext } = require(`${LIB}/instagram/aiOffers`);
+  const { isExitIntent, isNo, findEmail } = require(`${LIB}/instagram/aiFlow`);
+  const model = (arg || "").trim() || "claude-haiku-5-5";
+  const stored = ((await db.collection("app_config").doc("instagram").get()).data() || {}).ai || {};
+  const cfg = { provider: "anthropic", model, region: "", apiKey: key, workspaceId: process.env.ANTHROPIC_WORKSPACE_ID || stored.workspaceId || "" };
+  const knowledge = buildKnowledge([]);
+  let offers = "";
+  try { offers = formatOffers((await serverTask(db, "playCatalog")).basePlans); } catch (e) { notice(`offers unavailable: ${String(e.message).slice(0, 120)}`); }
+  notice(`LIVE OFFERS given to the agent: ${offers.replace(/\n/g, " ").slice(0, 300) || "(none)"}`);
+  const { classifyComment } = require(`${LIB}/instagram/commentClass`);
+  const { commentModeContext } = require(`${LIB}/instagram/aiComment`);
+  notice(`[comment class] ${["❤️🔥", "شكرا", "price?", "this is a scam", "check my page www.x.com", "I was there last summer"].map((t) => `"${t}"->${classifyComment(t)}`).join(", ")}`);
+  for (const t of ["How can I list my clinic room and how much is it?"]) {
+    try {
+      const lang = /[\u0600-\u06FF]/.test(t) ? "Arabic, reply in Arabic" : "English, reply in English";
+      const { out, unusable } = await runAgent(cfg, knowledge, [], t, undefined, NEW_STATE, `LANGUAGE OF THEIR COMMENT: ${lang}.\n${commentModeContext(t)}\n${offersContext(offers)}`);
+      if (unusable) notice(`[comment answer] UNUSABLE MODEL OUTPUT ${unusable.replace(/\n/g, " ")}`);
+      notice(`[comment answer] "${t}" -> DM (${out.messages.length} msg, buttons ${out.buttons.join("+") || "-"}): ${out.messages.join(" ").replace(/\n/g, " ").slice(0, 420)}`);
+    } catch (e) { notice(`[comment answer] "${t}" ERROR ${String(e.message).slice(0, 140)}`); }
+  }
+  // Conversations that continue (comment-opened, returning after days) and the listing finder against the LIVE catalogue.
+  const { toListingRow, catalogOverview, cleanCriteria, searchListings, formatMatches, listingButtons } = require(`${LIB}/instagram/aiListings`);
+  const { isPublicListing } = require(`${LIB}/website/sitemapXml`);
+  const live = (await db.collection("workspace_listings").where("status", "==", "ACTIVE").limit(500).get()).docs.filter((d) => isPublicListing(d.data())).map((d) => toListingRow(d.id, d.data(), 0));
+  const overview = catalogOverview(live);
+  notice(`catalogue given to the agent: ${overview.slice(0, 400)}`);
+  const hook = "Thanks for the love! 🙏 Are you looking for a space to work from, or do you have one to rent out?";
+  const scenarios = [
+    // [name, seed turns, seed state, lastContactMs, lines]
+    ["comment-continues", [{ r: "u", t: "(public comment under our post) love this 😍" }, { r: "a", t: hook }], { ...NEW_STATE, exchanges: 1, awaiting: "reply" }, 0,
+      ["ok sure, I'm a dentist and I need a room", "Beirut, by the hour, just me and an assistant", "do you have anything cheaper?"]],
+    ["office-finder", [], NEW_STATE, 0, ["Hi, I'm looking for an office", "Jounieh or Beirut", "monthly, for 3 people, budget around 500$"]],
+    // Comment "office" under the reel -> office-comment private reply (consent-asked) -> the agent's intake (mode F).
+    ["office-intake", [{ r: "u", t: "(public comment under our post) office" }, { r: "a", t: "أهلا! 🙌 شكراً على تعليقك. إذا عندك عيادة أو مكتب، فيك تأجّرو بالساعة على ProHost بين جلساتك، وأوّل شهر علينا مجّاني.\nبتحب سجّلك هون؟ بدّي منك بس اسمك، إيميلك ورقم الواتساب." }],
+      { ...NEW_STATE, consentAsked: true, awaiting: "reply" }, 0,
+      ["اي أكيد", "اسمي كريم حداد", "karim.test@example.com", "+961 70 123 456", "psychologist ببيروت"]],
+    ["returning-memory", [{ r: "u", t: "I'm a physio, I need a room two mornings a week" }, { r: "a", t: "Got it! The ProHost app shows rooms by the hour on a live map; here is the link." }],
+      { ...NEW_STATE, exchanges: 2, name: "Nada", memory: "Nada is a physiotherapist in Jounieh; needs a quiet room two mornings a week, books by the hour; we sent her the app link." }, 3 * 86_400_000,
+      ["hi again! any rooms near me now?"]],
+  ];
+  for (const [name, seedTurns, seedState, gap, lines] of scenarios) {
+    let turns = seedTurns.slice(), state = { ...seedState }, log = [];
+    for (const line of lines) {
+      if (isExitIntent(line, state.awaiting)) { log.push(`USER: ${line} -> (closing, no model)`); break; }
+      try {
+        const lang = /[\u0600-\u06FF]/.test(line) || /[\u0600-\u06FF]/.test(turns.map((x) => x.t).join(" ")) ? "Arabic script, reply in Lebanese Arabic" : "Latin script, reply in English";
+        const extra = `LANGUAGE OF THEIR LAST MESSAGE (from the server): ${lang}.\n${offersContext(offers)}\n${overview}`;
+        let { out, usage } = await runAgent(cfg, knowledge, turns, line, undefined, state, extra, 0, turns.length ? gap : 0);
+        let search = out.search ? cleanCriteria(out.search, state.search) : state.search;
+        let links = [];
+        if (out.searchReady && search) {
+          const m = searchListings(live, { ...search, exclude: state.sent }, Date.now());
+          ({ out, usage } = await runAgent(cfg, knowledge, turns, line, undefined, { ...state, search }, `${extra}\n${formatMatches(m, search)}`, 0, turns.length ? gap : 0));
+          links = m.length ? listingButtons(m, out.listings) : [];
+          log.push(`[search ${JSON.stringify(search)} -> ${m.length} match(es)]`);
+        }
+        const adv = advance(state, { ...out, listings: links.length ? out.listings : [] }, search);
+        state = adv.state;
+        if (adv.persist) log.push(`[lead saved: ${Object.entries(adv.persist).map(([k, v]) => `${k}=${k === "email" || k === "whatsapp" ? "✓" : v}`).join(", ")}]`);
+        turns = turns.concat([{ r: "u", t: line }, { r: "a", t: out.reply }]);
+        log.push(`USER: ${line} -> BOT(${out.stage}${links.length ? `, links: ${links.map((l) => l.label).join(" | ")}` : ""}): ${out.messages.join(" / ").replace(/\n/g, " ").slice(0, 240)}`);
+      } catch (e) { log.push(`USER: ${line} -> ERROR ${String(e.message).slice(0, 120)}`); break; }
+    }
+    notice(`[${name}] ${log.join(" || ")} || MEMORY: ${(state.memory || "-").slice(0, 200)}`);
+  }
+  notice(`flow helpers: no=${isNo("no")} email=${findEmail("it's a@b.co")} exit=${isExitIntent("thanks")}`);
+}
+
+async function igmedia(db) {
+  const cfg = (await db.collection("app_config").doc("instagram").get()).data() || {};
+  if (!cfg.accessToken || !cfg.igUserId) throw new Error("run igsetup first");
+  const G = "https://graph.instagram.com/v23.0";
+  const get = async (u) => {
+    const r = await fetch(u, { headers: { Authorization: `Bearer ${cfg.accessToken}` } });
+    const j = await r.json().catch(() => ({}));
+    if (j.error) throw new Error(`${j.error.code || r.status}: ${j.error.message}`);
+    return j;
+  };
+  const list = await get(`${G}/${cfg.igUserId}/media?fields=id,media_type,media_product_type,caption,permalink,timestamp,media_url,thumbnail_url,like_count,comments_count,children{media_type,media_url}&limit=12`);
+  const rows = list.data || [];
+  notice(`posts on the account: ${rows.length}`);
+  rows.forEach((m, i) => {
+    const kids = (m.children && m.children.data) || [];
+    notice(`#${i + 1} ${m.media_type}/${m.media_product_type || "-"} ${m.timestamp} likes=${m.like_count ?? "-"} comments=${m.comments_count ?? "-"} slides=${kids.length || 1} ${m.permalink} caption="${String(m.caption || "").replace(/\n/g, " ⏎ ").slice(0, 700)}"`);
+    kids.forEach((k, j) => notice(`#${i + 1}.${j + 1} ${k.media_type}`));
+  });
+  // Save the pictures into the repo (the workflow commits marketing/live) so the design can be studied; the CDN is not reachable from the sandbox.
+  const fs = require("fs");
+  const dir = path.join(__dirname, "../../marketing/live");
+  fs.mkdirSync(dir, { recursive: true });
+  const files = [];
+  rows.forEach((m, i) => {
+    const kids = (m.children && m.children.data) || [];
+    (kids.length ? kids : [m]).forEach((k, j) => files.push({ url: k.media_url || k.thumbnail_url, name: `post${String(i + 1).padStart(2, "0")}${kids.length ? `-slide${j + 1}` : ""}.${k.media_type === "VIDEO" ? "mp4" : "jpg"}` }));
+  });
+  for (const f of files) {
+    if (!f.url) continue;
+    const r = await fetch(f.url);
+    fs.writeFileSync(path.join(dir, f.name), Buffer.from(await r.arrayBuffer()));
+    notice(`saved marketing/live/${f.name} (${r.status})`);
+  }
+  try {
+    const lim = await get(`${G}/${cfg.igUserId}/content_publishing_limit?fields=quota_usage,config`);
+    notice(`publishing: ALLOWED (limit info ${JSON.stringify(lim.data || lim)})`);
+  } catch (e) {
+    notice(`publishing: NOT confirmed (${String(e.message).slice(0, 220)}). If this mentions permission/scope, add instagram_business_content_publish to the Meta app and regenerate the token.`);
+  }
+}
+
+async function igpublish(db, id) {
+  const cfg = (await db.collection("app_config").doc("instagram").get()).data() || {};
+  if (!cfg.accessToken || !cfg.igUserId) throw new Error("run igsetup first");
+  const items = JSON.parse(require("fs").readFileSync(path.join(__dirname, "../../marketing/social/captions.json"), "utf8"));
+  const G = "https://graph.instagram.com/v23.0";
+  const api = async (method, url, body) => {
+    const r = await fetch(url, { method, headers: { Authorization: `Bearer ${cfg.accessToken}`, ...(body ? { "Content-Type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined });
+    const j = await r.json().catch(() => ({}));
+    if (j.error) throw new Error(`${j.error.code || r.status}: ${j.error.message}`);
+    return j;
+  };
+  const ref = db.collection("ig_stats").doc("published");
+  const done = (await ref.get()).data() || {};
+  const wanted = id ? [id] : Object.keys(items);
+  for (const key of wanted) {
+    const it = items[key];
+    if (!it) throw new Error(`unknown item ${key}`);
+    const url = `https://pro-host.tech/social/${it.file}`;
+    if (!id) { notice(`plan ${key}: ${it.story ? "STORY" : "IMAGE post"}${it.manual ? " (post from the Instagram app with a link sticker: " + it.link + ")" : ""} ${url} ${done[key] ? "(already published: " + done[key].permalink + ")" : ""}${it.caption ? " caption=" + JSON.stringify(it.caption.slice(0, 120)) : ""}`); continue; }
+    if (done[key]) { notice(`${key}: already published ${done[key].permalink}, nothing to do`); continue; }
+    let ok = false;
+    for (let i = 0; i < 40 && !ok; i++) { const h = await fetch(url, { method: "HEAD" }); ok = h.status === 200; if (!ok) await new Promise((r) => setTimeout(r, 15000)); }
+    if (!ok) throw new Error(`${url} is not reachable yet (deploy pending?)`);
+    // Stories: an .mp4 is a video Story, anything else an image Story. The API can't add a link sticker, so a Story that
+    // needs one (manual: true) is meant to be posted from the Instagram app; publishing it here posts it without the sticker.
+    const body = it.story ? { media_type: "STORIES", ...(/\.mp4$/i.test(it.file) ? { video_url: url } : { image_url: url }) } : { image_url: url, caption: it.caption };
+    const created = await api("POST", `${G}/${cfg.igUserId}/media`, body);
+    for (let i = 0; i < 40; i++) {
+      const st = await api("GET", `${G}/${created.id}?fields=status_code,status`);
+      if (st.status_code === "FINISHED") break;
+      if (st.status_code === "ERROR" || st.status_code === "EXPIRED") throw new Error(`container ${st.status_code}: ${st.status}`);
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+    const pub = await api("POST", `${G}/${cfg.igUserId}/media_publish`, { creation_id: created.id });
+    const info = await api("GET", `${G}/${pub.id}?fields=permalink,media_type,timestamp`);
+    await ref.set({ [key]: { mediaId: pub.id, permalink: info.permalink || "", at: Date.now() } }, { merge: true });
+    notice(`${key}: PUBLISHED ${info.media_type} ${info.permalink || pub.id}`);
+  }
+}
+
+async function aiprobe(db) {
+  const rows = await serverTask(db, "aiProbe");
+  rows.forEach((r) => notice(`${r.ok ? "✓" : "✗"} ${r.model} @ ${r.region}: ${r.detail}`));
+  const ok = rows.filter((r) => r.ok);
+  notice(ok.length ? `Vertex Claude works: first usable = ${ok[0].model} @ ${ok[0].region}` : "No Claude model answered on Vertex yet: enable Vertex AI API + Claude Haiku in Model Garden and grant the functions service account 'Vertex AI User' (see the errors above)");
+}
+
+async function playcatalog(db) {
+  let cat = null;
+  await step("playCatalogLive", async () => {
+    cat = await serverTask(db, "playCatalog");
+    const lines = [];
+    for (const bp of cat.basePlans) {
+      lines.push(`BASE ${bp.basePlanId} ${bp.state} ${bp.period} LB=${bp.prices.LB}${bp.availableIn.LB ? "" : " (not for new subscribers in LB)"} US=${bp.prices.US} regions=${bp.regionCount}`);
+      for (const o of bp.offers) {
+        lines.push(`  OFFER ${o.offerId} ${o.state} | ${o.eligibility} | tags=[${o.tags.join(",")}] | LB ${o.availableIn.LB ? "on" : "OFF"} regions=${o.regionCount}${o.otherRegions ? "+other" : ""}`);
+        for (const p of o.phases) lines.push(`    phase ${p.recurrenceCount}x${p.duration} LB=${p.pricing.LB} US=${p.pricing.US}`);
+      }
+      if (!bp.offers.length) lines.push("  (no offers)");
+    }
+    lines.forEach((l) => console.log(l));
+    // The detail as one annotation too (ids, prices, eligibility only — no people), readable without the raw log.
+    notice(`playCatalogDetail: ${lines.map((l) => l.trim()).join(" ; ")}`);
+    return `${cat.basePlans.length} base plans, ${cat.basePlans.reduce((n, b) => n + b.offers.length, 0)} offers (details in the log)`;
+  });
+  // Strict Play: Play Console is the only billing config, so its mistakes are flagged here (lintOffers).
+  await step("playOfferLint", async () => {
+    if (!cat) throw new Error("catalog not read (see playCatalogLive)");
+    const lint = cat.lint || [];
+    lint.forEach((w) => console.log(`WARN ${w}`));
+    if (lint.length) notice(`playOfferLintDetail: ${lint.join(" ; ")}`);
+    return lint.length ? `${lint.length} warning(s) — fix them in Play Console (details in the log)` : "no warnings";
+  });
+  // The promo card is a Play offer now (tags promo, code-…, ends-…); the old Firestore campaign doc is retired.
+  await step("retiredPromoDoc", async () => {
+    const ref = db.collection("promo_campaigns").doc("current");
+    if (!(await ref.get()).exists) return "none";
+    await ref.delete();
+    return "deleted promo_campaigns/current (retired; the promo is configured in Play Console)";
+  });
+  await step("playSubscriptionsLive", async () => {
+    const res = await serverTask(db, "playSubscriptions");
+    res.rows.forEach((r) => console.log(JSON.stringify(r)));
+    return `${res.count} recorded subscriptions (details in the log)`;
+  });
+  // Redeem-code plumbing: purchases made outside the app (Play Store / promo code) waiting to be claimed.
+  await step("redeemPlumbing", async () => {
+    const [links, unresolved, pending] = await Promise.all([
+      db.collection("play_purchase_links").get(),
+      db.collection("play_billing_unresolved").where("resolved", "==", false).get(),
+      db.collection("play_billing_pending").where("resolved", "==", false).get(),
+    ]);
+    const kinds = {};
+    links.docs.forEach((d) => { const k = d.get("adminOverride") ? "adminOverride" : d.get("claimedVia") || d.get("source") || "link"; kinds[k] = (kinds[k] || 0) + 1; });
+    return `purchaseLinks=${links.size} ${JSON.stringify(kinds)} unlinkedOpen=${unresolved.size} parkedOpen=${pending.size}`;
+  });
+}
+
+
+
+// Phone VERIFICATION (not sign-in) diagnosis: is Phone enabled, which countries may receive SMS (SMS region
+// policy), test numbers, and are the app's signing fingerprints registered in Firebase? arg "allow:SY,..." adds
+// those regions to the SMS region policy (touches only smsRegionConfig; the log says what changed).
+async function smsauth(db, arg) {
+  const project = process.env.GCLOUD_PROJECT;
+  const base = `https://identitytoolkit.googleapis.com/admin/v2/projects/${project}/config`;
+  let config = null;
+  await step("smsConfig", async () => {
+    const res = await googleApi(base);
+    if (!res.ok) return `HTTP ${res.status} ${(await res.text()).slice(0, 200)}`;
+    config = await res.json();
+    const r = config.smsRegionConfig || {};
+    const allow = r.allowlistOnly?.allowedRegions, deny = r.allowByDefault?.disallowedRegions;
+    const policy = allow ? `ALLOWLIST ${allow.join(",")} (SY ${allow.includes("SY") ? "allowed" : "NOT allowed"})`
+      : deny ? `DENYLIST ${deny.join(",")} (SY ${deny.includes("SY") ? "BLOCKED" : "allowed"})`
+      : "no region policy (all regions the provider supports)";
+    // SMS fraud protection (reCAPTCHA / toll-fraud rules) can silently drop sends in every country.
+    const rc = config.recaptchaConfig || {};
+    const fraud = `recaptchaPhoneEnforcement=${rc.phoneEnforcementState || "unset"} tollFraudRules=${JSON.stringify(rc.tollFraudManagedRules || []).slice(0, 160)} ` +
+      `useSmsTollFraudProtection=${rc.useSmsTollFraudProtection === true} useSmsBotScore=${rc.useSmsBotScore === true}`;
+    return `phoneEnabled=${config.signIn?.phoneNumber?.enabled === true} policy=${policy} ${fraud} ` +
+      `testNumbers=${Object.keys(config.signIn?.phoneNumber?.testPhoneNumbers || {}).length} ` +
+      `quotaConfigured=${Object.keys(config.quota?.signUpQuotaConfig || {}).length > 0}`;
+  });
+  await step("smsRegionFix", async () => {
+    if (!arg || !arg.startsWith("allow:")) return "skipped (pass allow:SY to add regions to the policy)";
+    if (!config) return "config not read";
+    const want = arg.slice(6).split(",").map((x) => x.trim().toUpperCase()).filter(Boolean);
+    const r = config.smsRegionConfig || {};
+    let next, note;
+    if (r.allowlistOnly) {
+      const have = r.allowlistOnly.allowedRegions || [];
+      const add = want.filter((x) => !have.includes(x));
+      if (!add.length) return `already allowed: ${want.join(",")}`;
+      next = { allowlistOnly: { allowedRegions: [...have, ...add] } };
+      note = `allowlist += ${add.join(",")}`;
+    } else if (r.allowByDefault) {
+      const have = r.allowByDefault.disallowedRegions || [];
+      const keep = have.filter((x) => !want.includes(x));
+      if (keep.length === have.length) return `not on the denylist: ${want.join(",")}`;
+      next = { allowByDefault: { disallowedRegions: keep } };
+      note = `denylist -= ${want.filter((x) => have.includes(x)).join(",")}`;
+    } else return "no region policy set: nothing to change in Firebase (the block is elsewhere)";
+    const res = await googleApi(`${base}?updateMask=smsRegionConfig`, { method: "PATCH", body: JSON.stringify({ smsRegionConfig: next }) });
+    return res.ok ? `updated: ${note}` : `HTTP ${res.status} ${(await res.text()).slice(0, 300)} (change it in Firebase Console › Authentication › Settings › SMS region policy)`;
+  });
+  // APIs phone verification depends on (Identity Toolkit sends the SMS; Android Device Verification / Play
+  // Integrity prove the app) and whether billing is on (real SMS beyond test numbers needs it).
+  await step("smsApisAndBilling", async () => {
+    const out = [];
+    const names = ["identitytoolkit.googleapis.com", "androidcheck.googleapis.com", "playintegrity.googleapis.com",
+      "firebaseappcheck.googleapis.com", "recaptchaenterprise.googleapis.com"];
+    const qs = names.map((n) => `names=projects/${project}/services/${n}`).join("&");
+    const svc = await googleApi(`https://serviceusage.googleapis.com/v1/projects/${project}/services:batchGet?${qs}`);
+    if (svc.ok) {
+      const j = await svc.json();
+      out.push(...(j.services || []).map((x) => `${x.config?.name}=${x.state}`));
+    } else out.push(`serviceusage HTTP ${svc.status}`);
+    const bill = await googleApi(`https://cloudbilling.googleapis.com/v1/projects/${project}/billingInfo`);
+    out.push(bill.ok ? `billingEnabled=${(await bill.json()).billingEnabled === true}` : `billing HTTP ${bill.status}`);
+    return out.join(" ");
+  });
+  // API keys: an Android restriction that omits the app's package/fingerprint, or an API target list that
+  // leaves out Identity Toolkit, breaks phone verification exactly like a missing SHA.
+  await step("apiKeyRestrictions", async () => {
+    const res = await googleApi(`https://apikeys.googleapis.com/v2/projects/${project}/locations/global/keys`);
+    if (!res.ok) return `HTTP ${res.status} ${(await res.text()).slice(0, 160)}`;
+    const keys = (await res.json()).keys || [];
+    return keys.map((k) => {
+      const r = k.restrictions || {};
+      const android = r.androidKeyRestrictions ? `android(${(r.androidKeyRestrictions.allowedApplications || []).map((a) => a.packageName).join("|")} apps=${(r.androidKeyRestrictions.allowedApplications || []).length})` : "";
+      const targets = (r.apiTargets || []).map((t) => t.service.replace(".googleapis.com", "")).join("|");
+      return `${k.displayName || k.uid}: ${android || "no-android-restriction"} apis=${targets || "any"}`;
+    }).join(" ;; ") || "no keys listed";
+  });
+  // Fingerprints registered for the Android app vs the Play app-signing secrets (values never printed).
+  await step("androidFingerprints", async () => {
+    const list = await googleApi(`https://firebase.googleapis.com/v1beta1/projects/${project}/androidApps`);
+    if (!list.ok) return `HTTP ${list.status} ${(await list.text()).slice(0, 160)}`;
+    const app = ((await list.json()).apps || []).find((a) => a.packageName === "app.geonajjar.prohost");
+    if (!app) return "Android app app.geonajjar.prohost not found in Firebase";
+    const sha = await googleApi(`https://firebase.googleapis.com/v1beta1/${app.name}/sha`);
+    if (!sha.ok) return `HTTP ${sha.status} ${(await sha.text()).slice(0, 160)}`;
+    const certs = ((await sha.json()).certificates || []).map((c) => String(c.shaHash || "").toLowerCase());
+    const norm = (v) => String(v || "").replace(/[: \n]/g, "").toLowerCase();
+    const want = { playSha1: norm(process.env.PLAY_APP_SIGNING_SHA1), playSha256: norm(process.env.PLAY_APP_SIGNING_SHA256) };
+    const has = (h) => h ? certs.includes(h) : "secret-missing";
+    return `registered=${certs.length} (sha1=${certs.filter((c) => c.length === 40).length} sha256=${certs.filter((c) => c.length === 64).length}) ` +
+      `playAppSigningSha1Registered=${has(want.playSha1)} playAppSigningSha256Registered=${has(want.playSha256)}`;
+  });
+}
+
 (async () => {
   require(`${LIB}/lib/admin`);
   const db = admin.firestore();
@@ -730,14 +1709,33 @@ async function mailingsmoke(db, code) {
   if (task === "audit") await audit(db, auth);
   else if (task === "j8") { await j8(db, auth); await audit(db, auth); }
   else if (task === "occupancy") await occupancy(db);
+  else if (task === "favrecount") await favrecount(db, (arg || "").trim());
   else if (task === "retiregrowth") { await retiregrowth(db); await audit(db, auth); }
   else if (task === "emailauth") await emailauth(db);
   else if (task === "enableemaillink") { await enableemaillink(); await emailauth(db); }
   else if (task === "mailtest") { await mailtest(db); await emailauth(db); }
   else if (task === "clearstalesecrets") await clearstalesecrets();
   else if (task === "prodcheck") await prodcheck(db, auth);
+  else if (task === "hostingcheck") await hostingcheck(arg);
   else if (task === "authorphans") await authorphans(db, auth);
+  else if (task === "authuser") await authuser(db, auth, arg);
+  else if (task === "logerrors") await logerrors(arg);
+  else if (task === "authconfig") await authconfig(db, auth, arg);
+  else if (task === "passwordinvites") await passwordinvites(db, auth, arg);
+  else if (task === "integrity") await integrity(db, arg);
   else if (task === "mailingcode") await mailingcode(db, arg);
   else if (task === "mailingsmoke") await mailingsmoke(db, arg);
+  else if (task === "officeleadsmoke") await officeleadsmoke(db);
+  else if (task === "igsetup") await igsetup(db, arg);
+  else if (task === "igsmoke") await igsmoke(db);
+  else if (task === "igtest") await igtest(db);
+  else if (task === "igmedia") await igmedia(db);
+  else if (task === "igpublish") await igpublish(db, (arg || "").trim());
+  else if (task === "aiprobe") await aiprobe(db);
+  else if (task === "aitest") await aitest(arg, db);
+  else if (task === "aiquota") await aiquota(db, arg);
+  else if (task === "playcatalog") await playcatalog(db);
+  else if (task === "smsauth") await smsauth(db, arg);
+  else if (task === "playofferfix") await playofferfix(db, arg);
   else throw new Error(`unknown task ${task}`);
 })().catch((e) => { fail(`${e && e.message}`); process.exit(1); });

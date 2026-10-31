@@ -3,7 +3,7 @@
 ## Google Play Billing
 
 **Google Play is the only billing authority.** One subscription, `package_pro_mrr`, with a monthly and a yearly
-base plan (known ids `pro-montly`/`pro-monthly` and `pro-yearly`) — `data/billing/PlayCatalog.kt` (app) and
+base plan (known ids `pro-montly`/`pro-monthly`/`pro-month1`, live `pro-monthly1`, and `pro-yearly`) — `data/billing/PlayCatalog.kt` (app) and
 `functions/src/billing/playCatalog.ts` (server). Plans are told apart by **kind** (`PlayCatalog.PlanKind`): the app
 classifies Play's ProductDetails by recurring billing period (`PlayOfferText.kindOf` / `plansByKind`, P1M/P1Y), stored ids
 by `kindOf`/`planInterval` (known ids, then "month"/"year" in the id). Never compare against an exact id list again —
@@ -19,8 +19,27 @@ app versions), `grantPackageToUser` is gone. Never reintroduce local plans, pric
 App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; Play requires v8+).
 
 - Prices, periods, trials and "Save XX%" come only from the Billing SDK (`PlayOfferText`, per base plan:
-  `preferredOffer(details, basePlanId)`). Checkout always passes the chosen base plan's offer token —
-  picking one offer per product made the yearly plan unbuyable. Monthly ↔ yearly passes the old token
+  `preferredOffer(details, basePlanId)` → pure `pickOffer`: free trial, else deepest discount, else base plan).
+  Checkout always passes the chosen base plan's offer token — picking one offer per product made the yearly plan
+  unbuyable. Plan cards render `PlayOfferText.summary()` (`OfferSummary`, pure `summarize`, unit-tested in
+  `PlayOfferTextTest`): with an offer the headline is the price paid now, the regular price struck through,
+  "% OFF" ribbon, "for your first month/year", "then $X / month"; `PlanExplainer` (box under the CTA for the
+  selected tile, either plan) states today's price, the date the regular price starts (`regularPriceStartsAt`) and how
+  to cancel — "HOW YOUR OFFER WORKS" with an offer, "HOW IT WORKS" (plain renewal terms) without one. Members
+  switching plans never see offers. An offer edited in Play Console that "doesn't show" is almost always
+  eligibility: Play returns "new customers" offers only to accounts that never had the subscription — check the live
+  catalog with Maintenance task `playcatalog` or Admin › Packages › Billing health (offers listed per base plan).
+  Only the selected plan card is orange (ribbon, price); the other card and the explainer use steel.
+  Promo card (e.g. PROHOST2026) is **Play config only**: an offer tagged `promo` + `code-…` (+ `ends-YYYYMMDD`,
+  `early-launch`) — `data/billing/PlayPromo.kt` (unit-tested) reads it from ProductDetails; no Firestore doc, no server counter
+  (`promo_campaigns` is retired, rules deny all; `playcatalog` deletes the old doc). "Redeem code" (red dot while live) opens a
+  sheet with `PromoCountdownCard` + the one-time-code field. A promo offer must sit on an ACTIVE base plan: Play Console
+  can't resume an offer whose base plan is inactive ("An unexpected error has occurred … (5A39FA1E)"); Maintenance
+  `playofferfix` (dry run; code `apply`) copies it onto the live monthly plan and widens claimed offers from "any
+  subscription in this app" to "this subscription" (`billing/playOfferFix.ts`; lint flags both). Checkout offer = `OfferChoice` (`PlayBillingManager`): plan cards
+  `Preferred` (`preferredOffer` skips `promo` offers), switches `BasePlanOnly` (regular prices shown ⇒ charged), promo
+  `Specific(offerId)`; a missing offer aborts with a billing message. `lintOffers` (`playCatalogLive.ts`, Maintenance
+  `playcatalog` step `playOfferLint`) flags Play Console slips (≥ 90 % off, promo tags, the website's offer claims in `offerClaims.ts`: monthly 1 month free (offer `free-4-months` keeps its id; its phase became P1M in Oct 2026), yearly 50 % off year one; monthly price $8.99 — the static pages, `public/admin.html` email template, marketing README/voiceover scripts and videos must state them; `offerClaims.test.ts` enforces it). Monthly ↔ yearly passes the old token
   (`SubscriptionUpdateParams`). The screen is "ProHost Premium" (`OwnerSubscriptionsScreen.kt`).
 - Product queries use the Billing 8+ callback `queryProductDetailsAsync(params) { billingResult,
   queryProductDetailsResult -> }` (`productDetailsList` / `unfetchedProductList`). Never cast the callback
@@ -52,7 +71,7 @@ plan + recurring price + date;
   "Switch to …" with Play's replacement modes (to yearly `CHARGE_FULL_PRICE`: full yearly price now + unused monthly
   days credited as extra time, never `CHARGE_PRORATED_PRICE`, which keeps the monthly renewal date; to monthly `DEFERRED`);
   trial disclosure; `SubscriptionTermsFooter` (renewal, cancel, "only publishing needs Premium", Terms &
-  Privacy). Profile has a "Manage subscription" settings link. Play's transactional in-app messages show on
+  Privacy). Profile has a "Manage subscription" settings link. The Owner Analytics listing-health card reads the server mirror `isOwnerPackageLapsed`, never the admin listing toggle `isActiveSubscription`. Play's transactional in-app messages show on
   every app resume for Play subscribers (`showBillingInAppMessages`, re-syncs on SUBSCRIPTION_STATUS_UPDATED).
 - Admins get a push for every subscription change (`billing/adminBillingAlerts.ts`
   `notifyAdminsOfSubscriptionChange`, category `ADMIN_SUBSCRIPTION`, opens `admin_console`): new subscriber,
@@ -88,12 +107,35 @@ plan + recurring price + date;
 - One completeness rule: `AppUser.isProfileComplete()` (blank `fullName` ⇒ registration form,
   ADMIN exempt). Use it for cold start and every sign-in path; never re-introduce a
   `phone.isBlank()` gate — email/Google users have no phone until KYC.
-- Email sign-in has no "does this email exist" lookup (always empty under enumeration
-  protection). `AuthViewModel.startEmailSignIn` sends a magic link and falls back to a 6-digit
-  code when the link callable is unavailable. Show callable errors via
-  `Throwable.toUserMessage()` / `friendlyErrorMessage()` — never a raw `e.message` ("NOT_FOUND").
-- The email-code path creates the Auth user server-side, so `isNewUser` is false for brand-new
-  people — decide registration from the stored profile, not `isNewUser`.
+- Sign-in is a staged, intent-first path (1.0.45): Welcome ("Create an account" / "I already have an account") → providers
+  (Google, Apple slot behind `AuthProviders.APPLE_ENABLED`, email) → email → password, one `AuthStepScaffold` per step
+  (`ui/screens/auth/AuthSteps.kt`, coordinator `LoginAuthScreen`); registration is three steps (profile, place, WhatsApp +
+  terms). Adding a provider = an `AuthProvider` entry + its gateway call.
+- Sign-in is **email + password or Google** (1.0.44). Email enumeration protection stays on: wrong email and wrong
+  password read the same (`AuthError.INVALID_CREDENTIALS`), and Forgot password always answers "if an account exists…".
+  `AuthViewModel` (`signIn`, `createAccount`, `requestPasswordReset`, `startGoogleSignIn`) runs over `AuthGateway`
+  (`FirebaseAuthService`) and `SessionFinisher` (integrity token → `assignInitialRole`), both faked in
+  `AuthViewModelTest`. Firebase error codes map through `AuthError` (`data/auth/AuthErrors.kt`) — never show Firebase's
+  English text or a raw `e.message`; callable errors go through `Throwable.toUserMessage()`. The password policy is
+  enforced by Firebase (Identity Platform `passwordPolicyConfig`: min 8, a lowercase letter, a number — Maintenance
+  `authconfig apply`) and mirrored by `util/PasswordRules.kt` for the sign-up checklist; keep both identical.
+  Credential Manager offers a saved password / authorized Google account once on the sign-in step and saves the password
+  after success. Decide registration from the stored profile (`isProfileComplete`), not `isNewUser`.
+- Forgot password: `sendPasswordResetLink` callable (`auth/passwordReset.ts`, `takeEmailSendSlot("pwreset")`, Admin
+  `generatePasswordResetLink` → branded EN+AR mail) with Firebase's own `sendPasswordResetEmail` as the client fallback
+  when the callable is unreachable. Links open Firebase's hosted action handler and continue to `pro-host.tech/get`
+  (`lib/authLinks.ts`). People who used the retired email code / magic link set a first password through the same reset
+  (it works for provider-less accounts); Maintenance `passwordinvites` (dry run · `send` · `resend`) mails them a 30-day
+  `passwordSetupLink` (token hash in server-only `auth_password_invites/{uid}`, GET confirm page, POST → fresh reset link,
+  because mail scanners open links; selection = `needsPasswordSetup`, unit-tested).
+- Legacy email sign-in (6-digit code `sendEmailOtp`/`verifyEmailOtp`/`clickEmailOtpLink`, magic link `sendSignInEmailLink`)
+  stays only for 1.0.43 apps and is switched off by `app_config/auth.legacyEmailSignIn = false` (Maintenance
+  `authconfig retire`, which also sets Identity Toolkit `passwordRequired`): the callables then throw
+  `failed-precondition` "Email codes were replaced by passwords. Update ProHost…" (`lib/authConfig.ts`). The app has no
+  email-link or `emailotp` deep link any more; never bring the code or link sign-in back.
+- Email verification never blocks (email is not a requirement): `assignInitialRole` mails the verification link to
+  password accounts; the app re-checks on resume (`ProHostViewModel.refreshEmailVerification`) and Profile shows
+  "Verify your email · Resend" (`needsEmailVerification`).
 - Session lock (biometric/PIN) was removed on purpose; `MainActivity` is a `ComponentActivity`.
   Screenshots/screen recording are allowed on purpose (owner, Oct 2026): never re-add `FLAG_SECURE`.
 - People see server-assigned display codes, never Firebase UIDs/doc ids: `U-`/`L-`/`D-`/`B-` +
@@ -104,7 +146,8 @@ plan + recurring price + date;
 - Price units: `SpaceCalculationUtils.strategyUnitLabel` / `rateUnitLabel` /
   `lowestPriceFor`. Never hard-code "/mo" (WhatsApp texts used to).
 - User-initiated `ProHostViewModel` actions must surface thrown exceptions via
-  `reportFailure(appContext, e, fallback)`, not only `Log.e`. Explore's load error comes from
+  `reportFailure(appContext, e, R.string.fallback)` (a string resource: shown translated, `app_error` area from its
+  English text), not only `Log.e`. Explore's load error comes from
   `ProHostRepository.spacesLoadError` (listener failures), never from `sessionRestoreError`.
 - Pro Hosts are landlord-only: firestore.rules blocks them from creating bookings. They keep
   the My Rentals tab (read-only, for bookings made before upgrading; Re-book/Edit hidden)
@@ -135,15 +178,19 @@ plan + recurring price + date;
   (`adminCounts` / `adminSearch` / `adminUserDossier` / `adminExportUsers`; query classifier `adminQuery.ts`,
   unit-tested). Name/title prefix search uses the server-only `searchName` field kept by triggers
   (`backfillSearchNames` fills old docs). Never re-add admin collection listeners or client-side admin lists.
-- Verification rules (the only two): `AppUser.canTransact(phoneLinked)` = photo + verified phone, checked
-  in place when a specialist sends a booking request; `AppUser.canHost(phoneLinked)` = that + country and
-  city, checked at Premium checkout and after a plan activates. `hasVerifiedPhone` alone gates the Pro Host
-  workspaces. My Rentals, browsing and Saved are never gated; there is no `isKycComplete` and email is never
-  a requirement. "Verified phone" = `hasVerifiedPhone(PhoneLink.isLinked())` (phone linked in Firebase
-  Auth) — never `isVerified`, which email verification also sets. Missing steps are collected by the one
-  shared `RequirementsSheet` (photo, `PhoneVerificationSection` — the same body `KycScreen` uses — and the
-  address step with `requireAddress`), opened over the booking page, Premium or Profile's
-  `KycCompletionBanner`.
+- Verification rules (the only two): `AppUser.canTransact()` = photo + WhatsApp number, checked in place when a
+  specialist sends a booking request; `AppUser.canHost()` = that + country and city, checked at Premium checkout and after
+  a plan activates. `hasWhatsAppNumber()` (profile `phone` in international form, `isPlausibleE164`) alone gates the Pro
+  Host workspaces. My Rentals, browsing and Saved are never gated; there is no `isKycComplete` and email is never a
+  requirement. **There is no SMS code anywhere** (owner, Oct 2026: Firebase phone verification never delivered, in any
+  country): the number is self-declared, entered on the registration form or in `WhatsAppNumberSection` (`KycScreen.kt`,
+  saved by `ProHostViewModel.saveWhatsAppNumber`; it always prefills from the profile's `phone`). The registration form
+  requires it and offers Android's Phone Number Hint (`ui/components/PhoneNumberHint.kt`: system SIM-number picker, no
+  permission; opened once when the form appears, and "Use this phone's number" in both places) — a Google account never
+  exposes a phone number. Never reintroduce `verifyPhoneNumber`/phone sign-in, and never use
+  `isVerified` (phone-auth claim, legacy accounts only) as the phone check. Missing steps are collected by the one shared
+  `RequirementsSheet` (photo, `WhatsAppNumberSection`, and the address step with `requireAddress`), opened over the booking
+  page, Premium or Profile's `KycCompletionBanner`.
 - Email verification is server-mirrored: `assignInitialRole` sets `emailVerified` on every sign-in when
   `emailVerifiedByToken` (email_verified claim or Google provider, `auth/emailVerifiedRule.ts`); the email
   code path marks the Auth user verified; `backfillEmailVerified` (admin) fixes existing profiles.
@@ -152,6 +199,8 @@ plan + recurring price + date;
   (`ui/util/SupportContact.kt`) and Sign out live in Profile › More; full-screen destinations (Premium) get a
   back arrow (`ProHostFullScreenTopAppBar(isBackNavigation)`), other tabs a bar without ☰ (`showMenu = false`).
   Pro Host / Admin keep header + drawer. There is no "Saved only" filter and no drawer Billing dialog.
+- Pro Host bottom tabs: Listings · Explore · Rentals · Profile (`PRO_HOST_BOTTOM_TABS`); Renting Progress is a drawer
+  destination (`PRO_HOST_FULLSCREEN_TABS`, still reachable by id from pushes and notifications).
 - Bottom nav is a floating pill (`ProHostBottomNavBar`): active tab = filled pill in the role accent (Steel Blue
   specialist, orange Pro Host) with its one-word `AppNavTab.shortLabel` (never truncated; the other tabs are icons).
   It overlays the content (not `Scaffold.bottomBar`); screens leave `LocalBottomNavInset` free at their bottom (the
@@ -162,16 +211,11 @@ plan + recurring price + date;
   faint dot texture in light theme only (one shader tile, not per-dot drawing). The shell Scaffold is transparent over it;
   drawer and app bars use `surface` with tonal elevation 0 (no blue tint); cards keep their 1 dp outline. Never
   `.background(premiumBackgroundBrush())` a screen directly.
-- Phone verification (`FirebaseAuthService`): never fake a "code sent"; failures map by type
-  (`verificationFailureMessage`); resend reuses the `ForceResendingToken`; re-verifying an account that already has a
-  phone uses `updatePhoneNumber`. Instant verification (`onVerificationCompleted`) links and finishes KYC.
-- Email sign-in links are handled every time (`AuthViewModel.onEmailLinkArrived`; never a session-long "consumed" flag —
-  that blocked every returning user's link after the first sign-in). The saved address (`pending_email_link`) is read with
-  `peekPendingEmailLink` and cleared only after a successful sign-in; a link without one asks for the email
-  (`linkAwaitingEmail` dialog); `restorePendingEmail` refills the address after process death so resend/code never send "".
-- Email sign-in layer 1 (`sendSignInLinkToEmail`) returns a `Result`; its Firebase error code is logged as
-  `auth_error(method=email_link_native)` before falling back. Diagnose delivery with the Maintenance workflow
-  task `emailauth` (Auth config, mail queue states, send limits).
+- `FirebaseAuthService` has no phone methods. Legacy
+  phone-auth accounts keep their Firebase `phone_number` claim (rules still tie `isVerified` to it); maintenance `smsauth`
+  remains only as a diagnostic.
+- Diagnose auth mail delivery with the Maintenance task `emailauth` (Auth config, mail queue states, send limits) and the
+  password setup with `authconfig` (dry run prints the policy, authorized domains, email sign-in settings).
 - Brand blue is Steel Blue `#2B5A8C` (dark `#93B8E0`, `SteelBlue` in `Color.kt`); never reintroduce `#246BEE`. Tapping a room in Explore opens
   the listing on that room's card (the sheet opens only from Availability / Check availability); after a request the "Request sent" sheet offers "View request" (opens My Rentals
   highlighting it) and "Message host on WhatsApp".
@@ -191,11 +235,16 @@ plan + recurring price + date;
 - Explore filters: country matching uses `effectiveCountry` (blank = Lebanon, legacy listings) and the
   Country dropdown is always shown. "Pricing formula" options are `PricingFormulaFilter` (four strategies
   + PER_ATTENDEE, priced per person from the cheapest tier); never list `RentalStrategyType.entries` there.
-- Explore draws its own header (`ExploreOverlayHeader`; no app bar for specialists): Map|List segmented toggle
-  top-left, logo + name centre, notifications top-right, search (draft applied only on ✓ / IME Search) under the
-  toggle and filters under the bell. Transparent with floating controls on the map; on the list it has the list
-  background and sits above it in the layout (never overlapping). Map results follow `searchedBounds`, updated
-  only by the "Search this area" pill after a gesture pan/zoom.
+- Explore draws its own header (`ExploreOverlayHeader`; no shell app bar for any role), one row: search top-left (Pro Host /
+  Admin get a ☰ control before it, `onOpenMenu`), the Map|List toggle top-centre wrapped in one pill with the brand logo and
+  filters top-right. Explore cards: 16:9 photo, two-line title, "Availability" opens the listing with its sheet up
+  (`onOpenAvailability`). No notification bell on Explore (notifications are the bell of the other tabs'
+  app bar). Search is a draft applied only on ✓ / IME Search and opens a full-width field under the row. Transparent with
+  floating controls on the map; on the list it has the list background and sits above it in the layout (never
+  overlapping). Map results follow `searchedBounds`, updated only by the "Search this area" pill after a gesture pan/zoom.
+- Profile identity card (`DrawerIdentityCard`): one-word 3D role tag (Specialist steel blue · Host orange · Admin gold,
+  `RoleTag3D`), no separate "phone verified" tag (verification shows as the avatar and name checks). The specialist's
+  "Become a Pro Host" button carries a "FOR SPACE OWNERS" tag.
 - The listing page's bottom bar is `DetailsBookingBar` (`RoomCards.kt`): room chip + live availability, price and the
   Availability action (Preview mode for hosts/admins) — no Message button. WhatsApp is the host card's "Ask the host on
   WhatsApp" button under the photos (general inquiry via `launchWhatsAppInquiry(context, space)`; the number is never
@@ -215,6 +264,11 @@ plan + recurring price + date;
   proxied sandbox run it in CI, not locally. Production readiness: Maintenance task `prodcheck` (deployed functions vs
   exports, indexes, Cloud Billing, functions answering, public pages, audit); `authorphans` explains Auth users with no
   profile (abandoned Google registrations: the profile is created only when the registration form is submitted).
+  Auth users with **no provider** in the console are legacy email 6-digit-code sign-ins (created with the Admin SDK and
+  signed in by custom token, before 1.0.44); they get a `password` provider once they set a password. Inspect one account with Maintenance `authuser`
+  (uid in `code`): Auth record, profile, audit log, sign-in calls around creation and a verdict; `audit` lists sign-in
+  methods and any provider-less account that is not a verified-email code sign-in; `logerrors` (hours in `code`, default 48)
+  groups function errors and warnings. GitHub keeps only 10 notices per step, so keep each task under 10.
   A deploy failing with Secret Manager "requires billing to be enabled" means the GCP billing account lapsed — every
   function bound to a secret (`assignInitialRole`) then 500s; re-enable billing and redeploy.
 - Security rules are unit-tested in the emulator (`tests/rules`, CI job "Security Rules Tests"); add a test with
@@ -233,14 +287,14 @@ plan + recurring price + date;
 - Never `set(..., merge: true)` / batch-set a counter or flag onto a document that might not exist
   (a deleted listing): it recreates a ghost doc. Use `update()` and skip not-found
   (see `favoritesSync.ts`). Analytics and the admin feed ignore ownerless listing docs.
-- Email: no mail server of ours (Hostinger retired). Firebase Auth's built-in mailer sends magic links (the app calls
-  `sendSignInLinkToEmail` first); everything else goes through `sendEmail()` → `mail/{id}` → the Trigger Email
+- Email: no mail server of ours (Hostinger retired). Auth mail (reset, verification, invites) is generated with the Admin SDK's
+  action links and, like everything else, goes through `sendEmail()` → `mail/{id}` → the Trigger Email
   extension (installed from the console, not in firebase.json). Never add an SMTP client back. `docs/EMAIL.md`.
-- Unauthenticated email callables (`sendEmailOtp`, `sendSignInEmailLink`) must call
+- Unauthenticated email callables (`sendPasswordResetLink`, legacy `sendEmailOtp`/`sendSignInEmailLink`) must call
   `takeEmailSendSlot` (5/hour per address) and throw `HttpsError` (never plain `Error`, which
   reaches users as a generic internal error). Throwing inside a Firestore transaction rolls its
   writes back — return an outcome and throw after commit. Server-only collections
-  (`email_otps`, `email_send_limits`) need explicit deny rules.
+  (`email_otps`, `email_send_limits`, `auth_password_invites`) need explicit deny rules.
 - In-app notification centre: `sendPushToUser` (`functions/src/lib/push.ts`) stores every push in
   `user_profiles/{uid}/notifications/{id}` (48 h `expireAt`, `read`) before sending FCM (with `notificationId`), even
   without a device token; `pruneExpiredNotifications` deletes expired ones hourly (collection-group index on
@@ -268,6 +322,11 @@ plan + recurring price + date;
   filled soft green (free) / soft red (booked) with no status words.
 - Per-attendee Shift rooms: shifts carry `AVAILABILITY_MARKER_PRICE` (`RentalPricingConfigEditor` in availability mode
   and `AttendeePricing.markShifts` when the room is built) — otherwise `hasRealPrice()` fails and Save never enables.
+- Permission prompts look native: runtime permissions are the system dialogs; every in-app pre/post prompt or consent uses
+  `SystemStylePermissionDialog` (`ui/components/PermissionPrompts.kt`, Android 12+ permission-dialog look: centred icon,
+  "Allow **ProHost** to …?", stacked equal-weight choices). Location goes through `rememberLocationAccess` (rationale →
+  system prompt → "Open settings" when blocked for good → Play services' "turn on location" dialog), never a toast.
+  The notification prompt waits for the first-launch analytics choice (`MainActivity`), so prompts never stack.
 - No camera / photo-library permissions (Play Photo & Video Permissions policy): the manifest strips CAMERA,
   READ_MEDIA_IMAGES/VIDEO and READ_EXTERNAL_STORAGE (`tools:node="remove"`); photos come from `PickVisualMedia` /
   `GetContent`, "Take Photo" hands off via `TakePicture` (needs no permission when CAMERA isn't declared — declaring it
@@ -284,16 +343,155 @@ plan + recurring price + date;
   extension's `delivery.state` (`mailingAdminCampaign`, Retry failed). Template: `website/mailTemplates.ts`
   (unit-tested). `/unsubscribe` (→ `mailingUnsubscribe`) confirms on GET and unsubscribes on POST. Live check: Maintenance
   task `mailingsmoke` with the code. All four collections are server-only (rules + rules tests).
-- SEO (pro-host.tech): search landing pages (`/clinic-room-rental-lebanon`, `/therapy-room-rental-beirut`, `/meeting-room-rental-beirut`,
-  `/training-room-rental-lebanon`, `/studio-rental-beirut`, `/office-space-by-the-hour-lebanon`, `/list-your-space`, Arabic `/ar`) are
-  generated — edit `scripts/website/seo-pages.js` and run `node scripts/website/build-seo-pages.js` (never hand-edit the HTML);
-  shared CSS `public/landing.css`. Hosting uses `cleanUrls`. `/sitemap.xml` is the `siteSitemap` function (static pages +
-  publicly browsable listings, `website/sitemapXml.ts`, unit-tested — add new pages to `STATIC_PAGES`); `/listing/{id}`
-  (`listingShareLanding`) is indexable only for listings passing `isPublicListing`, with Place/BreadcrumbList JSON-LD.
-  Utility pages (`/get`, `/admin`, `/redeem`, `/emaillink`) are noindex. Maintenance `prodcheck` step `seo` verifies it live.
+- SEO (pro-host.tech): ProHost is open to every market, so the website names **no country or city**: no "Lebanon"/"Beirut" in
+  slugs, titles, copy, JSON-LD (`areaServed`, `addressCountry`) or the OG image. Search landing pages (`/clinic-room-rental`,
+  `/therapy-room-rental`, `/meeting-room-rental`, `/training-room-rental`, `/studio-rental`, `/office-space-by-the-hour`,
+  `/list-your-space`, Arabic `/ar`) are generated — edit `scripts/website/seo-pages.js` and run
+  `node scripts/website/build-seo-pages.js` (never hand-edit the HTML); shared CSS `public/landing.css`. The retired
+  `-lebanon` / `-beirut` slugs (`LEGACY_SLUGS`) are 301-redirected in `firebase.json`; `sitemapXml.test.ts` fails if one
+  comes back or a sitemap page has no file/canonical. Hosting uses `cleanUrls`. `/sitemap.xml` is the `siteSitemap`
+  function (static pages + publicly browsable listings, `website/sitemapXml.ts`, unit-tested — add new pages to
+  `STATIC_PAGES`); `/listing/{id}` (`listingShareLanding`) is indexable only for listings passing `isPublicListing`, with
+  Place/BreadcrumbList JSON-LD whose place comes from the listing itself (`listings/listingLocation.ts`: stored
+  country/city win; only legacy blank-country listings inside Lebanon count as Lebanon, like the app's `effectiveCountry`).
+  The legal pages (terms governing law and arbitration seat, privacy) are a separate, deliberate decision.
+  Share cards: `scripts/website/build-og-images.js` renders 1200x630 previews in the home-hero look (`public/img/og-hero.jpg` for `/`, `/ar` and policy pages, `public/img/og/<slug>.jpg` per landing page; commit the JPGs after changing a headline). Titles stay <= 60 chars, descriptions <= 160. The sitemap carries the en/ar hreflang pair.
+  `/partner` (generated by `partner()` in `build-seo-pages.js`, noindex, not in the sitemap) is the strategic-partner offer linked from the outreach email's closing line; its form posts `websiteContact` with `topic: "partner"` (tagged subject, X-ProHost headers, address-book tags; `docs/EMAIL.md`).
+  Utility pages (`/get`, `/admin`, `/redeem`, `/emaillink`) are noindex. Maintenance `prodcheck` step `seo` verifies the
+  sitemap pages and the legacy 301s live.
   Play screenshots: `play/screenshots/` (rendered from `source/shots.html`); listing text: `play/store-listing/`.
+- Data model: `docs/DATA_MODEL.md` (collections, who writes/reads, whole place vs divisions). The Instagram agent reads app
+  data and writes only `ig_*` + its `app_config/instagram*` docs — `instagram/readOnlyAccess.test.ts` fails otherwise.
+- Instagram automation (@prohost.app, `functions/src/instagram/`, `docs/INSTAGRAM.md`): `igWebhook` (`/ig-webhook`) → pure `engine.ts` →
+  `graph.ts` (Instagram login API, fixed version). Starts and stays `dry-run` until the sheet's Status `mode` is `live`; `kill_switch` stops sends.
+  Rules live in the Google Sheet "ProHost IG Automations" (`igSheetSync` mirrors Rules/Status in, Log/Contacts out); the IG Control Room artifact
+  edits that sheet (an artifact can't call functions). Secrets only via GitHub secrets + Maintenance `igsetup`/`igsmoke` — never in chat/code/logs;
+  collections `ig_*` are server-only. The engine's matching is mirrored in the artifact Simulator (keep both identical; `engine.test.ts` has the cases).
+- AI DM agent conversation flow (`aiAgent.ts`, `aiFlow.ts`, `aiRuntime.ts`, `aiOffers.ts`, `aiAccountInsight.ts`, `aiSweeper.ts`): how-to questions are answered
+  like a person, as separate DMs (`messages`, up to 3, pause between them, buttons on the last): greet by first name (Instagram profile fetch,
+  fallback "Hey there"), ask permission to look up the account by registration email ("no" = new), then guide. An email sent in reply to that
+  question is the consent for ONE read-only lookup (`lookupInsight`: role, Premium, listings, rentals, profile gaps); the email is unverified,
+  so facts are never recited back and "not found" reads like "no" (no probing); only a coarse tag (`insight`) is kept on `ig_threads`.
+  Offers/prices come ONLY from `liveOffersText` (Play via `readPlayCatalog`, cached 15 min in `app_config/instagram_offers`, promo/upgrade
+  offers excluded); if unavailable the agent quotes nothing. AI disclosure: the agent says in its first message that it is ProHost's automated AI assistant,
+  answers truthfully if asked whether it is a bot, and its canned lines (`FALLBACK_REPLY`, handoff, goodbyes, comment DM hook with a STOP
+  opt-out) never pose as a person (Google Cloud policy warning, Oct 2026; `aiAgent.test.ts` guards it). Silence: `igFollowUps` sends one
+  nudge 3 h after the person went quiet, no goodbye, only inside Meta's 24 h window; thanks/ok/bye (`isExitIntent`) ends the chat with a warm goodbye
+  without a model call. Never reintroduce hard-coded offer text in the knowledge or prompt.
+- DM continuity + memory + listing finder (`dmPoller.ts`, `aiMemory.ts`, `aiListings.ts`, `docs/INSTAGRAM.md` "Conversation flow"):
+  `igDmPoll` reads replies via the Conversations API every minute (the unpublished Meta app gets no webhook for the public —
+  that is why replies to our private-reply DMs went unanswered); a person the agent wrote to within 24 h is in a live
+  conversation (engine `DecideOptions.conversation`): keyword rules step aside, only a bare opt-out word or a clear request for
+  a person interrupts. Threads keep 40 turns for good + a model-written `memory`; never reintroduce a TTL that wipes history.
+  The finder searches public listings server-side (pure `searchListings`) and sends only validated
+  `pro-host.tech/listing/{id}?room=` buttons; listing prices come from `listings/listingPrices.ts` (mirror of
+  `SpaceCalculationUtils.lowestPriceFor` — keep identical). The listing landing page hands Android to the app
+  (`appHandoffScript`, client-side because the page is CDN-cached); the app opens `?room=` and fetches listings outside the
+  loaded page (`ListingDeepLink`, `ProHostNavGraph`). One silence nudge after 3 h, no goodbye.
+- Comment agent (`commentClass.ts`, `aiComment.ts`, `commentDecide` in `aiRuntime.ts`, poller `commentPoller.ts`/`commentFeed.ts`): a public comment no
+  keyword rule matched is classified by intent without a model (positive / question / negative / spam / neutral, en·ar·fr·es). Positive: public
+  thanks + at most ONE opening DM per person per day (private reply, Status `ai_comment_dm`). Question: public "see your DMs" + the answer as the one
+  private reply Instagram allows per comment (model, live offers), saved as the first turns of `ig_threads` so the DM chat continues. Negative: nothing
+  sent, never liked, event status `flagged` + admin email (`Decision.flag`). Status `ai_comments` turns the agent off. Instagram's API has NO endpoint
+  to like a comment: never promise likes. `igCommentPoll` (every minute) reads the 5 latest media's comments from the API and feeds them through
+  `handleEvent` (dedupe by `c_<id>`), so comments are caught even when the unpublished Meta app delivers no webhook; first run only sets a baseline;
+  health in `ig_stats/comment_poll`, `igsmoke` and the sheet row `health_comment_poll`.
+- Instagram feed/Story publishing: the grid style (flat navy/off-white, checkmark logo, Inter ExtraBold headline, one orange rule + block) is documented in `marketing/README.md`
+  ("Instagram grid"). Assets live in `public/social/`, captions in `marketing/social/captions.json`, publishing goes only through Maintenance `igpublish`
+  (idempotent via `ig_stats/published`); keep the light/dark alternation, no prices/offers in graphics unless they match `offerClaims.ts`.
+- Listing location (1.0.46): cards and texts print `SpaceListing.locationLine()` (`ui/util/ListingLocation.kt`, unit-tested) =
+  the listing's own city, country in the app language. The `governorate` enum defaults to BEIRUT, so it is only a fallback
+  for legacy Lebanese listings; never print `district, governorate` again.
+- Saves (1.0.46): the heart is `FirestoreService.setSavedSpace` (arrayUnion/arrayRemove; rules cap `savedSpaceIds` at 300);
+  `users/favoritesSync.ts` (`retry: true`, unit-tested) applies each difference in a transaction: owner's own save ignored,
+  missing listing skipped, `lastFavoriteEvents` de-duplicates retries, `favoritesByMonth` / `unsavesByMonth` per UTC month
+  (server-only, rules + tests). Maintenance `favrecount` (dry run · `apply`) rebuilds `favoriteCount`. Pro Hosts see it in
+  existing slots only (`SaveStats`): My Listings "N saved", Owner Analytics "+N this month" and save / inquiry rates.
+  GA4 wishlist events and Undo fire only after the write succeeded.
+- Auth steps draw `AuthBackdrop` (blurred `auth_background.webp` from `scripts/marketing/blur_background.py` + surface scrim)
+  inside `AuthStepScaffold`; don't put `proHostScreenBackground()` back there.
+- Office-sourcing leads (1.0.46): two ways in, one recording path. (1) `pro-host.tech/list-your-office` (generated by
+  `listYourOffice()` in `build-seo-pages.js`, noindex, EN + Arabic toggle) → `websiteOfficeLead` validates and queues
+  `ig_leads/web_<hash>` (kind `office_owner`). (2) The DM agent's intake (`aiAgent.ts` mode F: consent once, then name, email,
+  WhatsApp, profession, city; `Lead.kind/whatsapp/profession/city`, `office` button) writes `ig_leads/<ig id>` after consent.
+  Comment "office" (rule `office-comment`) and the `office-dm` / `office-story` rules ask "shall I register you?" and carry the
+  tag `consent-asked`, which `webhook.ts` seeds into `ig_threads` so the person's yes counts as consent and the agent continues.
+  `onOfficeLeadSaved` (`website/officeLeadSync.ts`, unit-tested) records each email|WhatsApp once (`recordedFor` claimed in a
+  transaction): `recordOfficeLead` → contact book (tags `insta-leads-story`/`prospect`/`office-owner`/profession), admin push
+  `ADMIN_LEAD`, admin email, Instagram DM to `OWNER_INSTAGRAM` (Meta's 24 h window only) and WhatsApp
+  (`lib/whatsappAlerts.ts`, off until set up at `/admin` › WhatsApp alerts: Cloud API phone number ID, admin number,
+  approved template with one `{{1}}`, write-only token in server-only `app_config/whatsapp`; never put the token in the sheet).
+  The sheet's Leads tab ends with whatsapp, source, tags, profession, city; Status row `health_whatsapp_alerts` shows on/off.
+  Shared field rules: `lib/officeLeadFields.ts`. Live check: Maintenance `officeleadsmoke` (form + simulated DM lead).
+  Story art `marketing/social/story_office(_ar).html` (`story.css`, bundled Inter + Cairo fonts, rendered by `render_posts.py`);
+  the link sticker can't be added by the API: the owner posts the Story from the Instagram app.
+- Multi-brand agent (`docs/INSTAGRAM.md` "Multi-brand and platforms", console source `tools/control-room/`): `brands.ts` (profile; ProHost = built-in default,
+  `prohostPlaybooks.ts`), `store.ts` (ProHost keeps its original `ig_*` collections, other brands live under `ig_brands/{id}`; never name those
+  collections dynamically elsewhere — `readOnlyAccess.test.ts`), `config.ts` `loadConfig(brandId)` / `loadAllConfigs()`, routing by account id with each
+  brand's own app secret (`routing.ts`), WhatsApp channel (`whatsapp.ts`, `waWebhook`, people keyed `wa:`), registry/secrets sync (`registrySync.ts`,
+  `registryTabs.ts`, `sheetTabs.ts`), `knowledgeBuilder.ts`. A new brand never inherits ProHost links or wording (`baseSettings`). The prompt's core
+  (AI disclosure etc.) is code, not brand data: brands add persona and playbooks only. After changing the console, rebuild and republish the artifact.
+- No AI-presenter video: the Veo / Gemini-image avatar reel pipeline was removed (Oct 2026, Google Cloud Generative AI
+  policy warning on prohost-f766f). Never bring back synthetic people, first-person testimonials by an AI character,
+  or prompts that make generated media pass as real. Remaining Google generative use (Gemini TTS narration, Lyria music,
+  Imagen empty rooms, the optional Gemini DM provider) is listed in `docs/GEMINI_USE.md`; keep that file current.
 - Payment reminders go to the user's own calendar via `PaymentCalendar` (insert intent, monthly
   RRULE) — no calendar permission, no Google Calendar API.
+
+## Design system and languages (1.0.43)
+
+- Follow `.claude/skills/prohost-design/` for any UI change; verify with the Design Screenshots workflow (light, dark,
+  small = 360 dp phone at the text cap, RTL, Arabic) via `.claude/skills/prohost-design/scripts/fetch_shots.py`. Plan:
+  `docs/design/UI_AUDIT.md`.
+- Text size follows the phone only up to Android's "Large" step: `FontScaleCap` (1.15, `MainActivity.attachBaseContext`,
+  owner's choice — text stays adequate and fits small phones). Never remove the cap or design for larger scales.
+- Tokens only: `MaterialTheme.colorScheme` (surface ladder defined), `Radius.Xs/Sm/Md/Lg/Full`, `Elevation.level0–3`,
+  `Spacing`, typography (Manrope headings, 12 sp floor). NIGHTHAWK "Design System Tokens" flags Toasts in UI, text under
+  12 sp and literal radii/elevations.
+- One of each: `ProCard(variant, onClick)` (ModernCard/ProSurfaceCard delegate to it), main action colours
+  `proPrimaryButtonColors()` / `ProPrimaryButton` (orange), `ProHostAlertBanner`, `ProHostCountBadge`/`ProHostDotBadge`,
+  `PhotoCarouselArrow` (48 dp), dialogs on 28 dp `surfaceContainerHigh`.
+- Feedback goes through `UiMessages.show(context, text, actionLabel?, onAction?)` → Snackbar above the nav pill
+  (`ProHostSnackbarHost`; Toast only when no shell is on screen). Reversible actions offer Undo.
+- Page changes fade/rise in the shell (`rememberReducedMotion()` snaps when animations are off).
+- Strings: user-facing text lives in `res/values/strings.xml` with Arabic in `res/values-ar/strings.xml` (keep keys and
+  placeholders identical). In composables use `stringResource`; elsewhere `uiText(R.string.x, args)` (`ui/util/UiText.kt`,
+  initialised in `ProHostApplication`). Fixed English labels from the data layer (enum `displayName`, Play badges, shift and
+  day names) are translated only at display sites with `localizedLabel()` — stored values, comparisons and analytics stay
+  English. New strings: add both languages; `scripts/i18n/` re-runs the extraction passes. Admin-only tools stay English.
+- Per-app language: `res/xml/locales_config.xml` (en, ar) + Profile › More › Language.
+- Counted sentences are `res/values*/plurals.xml` (Arabic needs zero/one/two/few/many/other): `pluralStringResource` in
+  composables, `uiPlural(R.plurals.x, count, args)` elsewhere. Resource strings that end or start with a space use
+  `\u0020` (aapt trims plain spaces, which glued joined sentences together: "AllowProHostto"). Never split a sentence into
+  two resources mid-word. One avatar: `ProAvatar(size)`. Phone numbers render LTR (`PhoneNumberField`).
+- Text fields are `InputField` (never a raw `OutlinedTextField` outside admin tools). The listing wizard
+  (`CreateListingDialog`, title "Create listing") is a full-screen page with `WizardStepBar`; Back steps back. Step 1:
+  category `SelectField` (single-choice dropdown, sibling of `MultiSelectDropdownField`), space name, ONE brand cover photo
+  (`imageUrls[0]`), the pin (`ListingLocationMapPicker` → `ResolvedAddress`: street/area/city in the app's language, the
+  country by its English name and `SpaceListing.cityEn`, which Explore search and the Instagram finder also match), address,
+  description. Step 2 has no visitor policy (kept on old listings). Step 3 = division cards (`DivisionCards`), each edited in
+  `DivisionSheet` (`SubdivisionForm`: live `DivisionCard` preview, type chips, `ChoiceGrid` for strategy and fixed vs
+  per-person, amenity chips, capacity, "More options" for hashtags and own hours); one division (not per-attendee, no own hours) is saved as the whole place
+  (`ui/util/ListingDivisions.kt`, unit-tested: its pricing becomes `pricing`, `subdivisions` stays empty) and an undivided
+  listing reopens as one card. One editor everywhere: new listing, Continue draft and Edit (My Listings card and the
+  Manage page's pencil, both `EditListingDialog`) are the same wizard; Edit saves from the header on any step and every step
+  is tappable; closing never loses work (new/draft → saved as a draft, edit → "Discard your changes?"); a division with
+  live bookings can't be deleted and a booked listing keeps its shape (`activeBookingsFor`, `keepDivided`). Terms: `docs/design/GLOSSARY.md` (sentence case, one helper line at most). Dark mode has its own splash art
+  (`drawable-night-*`, `values-night/colors.xml`).
+- The Design Screenshots harness covers screens and every sheet/dialog/form (`OVERLAYS`, `TAPS` in
+  `DesignScreenshotTest`); add a new overlay there when you add one.
+
+## Google Play releases
+
+- `docs/release/published.txt` = the version live on Play production. The Instagram agent's release knowledge
+  (`gen-agent-release.js`) only describes notes up to it, so bump it when a release reaches production, never before.
+- `release-bundle.yml` (manual): `play_track` none = build only; probe = read Play tracks (no build, no change);
+  internal / production = build, upload the `.aab` + R8 mapping + native symbols, release with
+  `docs/release/<version>-notes.txt` (a listing language without its exact note takes the same base language, e.g.
+  en-GB ← en-US; the store listing currently has only en-GB) — production as a staged rollout
+  (`rollout`, default 0.2). Script: `scripts/release/play-publish.js`. It uses the CI service account, which must be invited
+  in Play Console › Users and permissions with release permissions; a 403 names the account. A version code Play has
+  seen before is refused: bump `versionCode` for every upload.
 
 ## Jetpack Compose hygiene
 
@@ -365,8 +563,8 @@ plan + recurring price + date;
 - Admin Revoke Pro Host (`revokeProHostRole`) lapses the host's listings (`isOwnerPackageLapsed`) and marks the Play
   subscription `adminRevoked` in `subscriptions/{id}`, so `syncSubscription` never re-grants it; an admin Activate in the
   billing rescue panel clears the flag. An unchanged re-grant still finishes a half-done grant (lapsed listings, parked draft).
-- Email bodies escape every user-supplied value with `esc()` (`lib/emailTemplates.ts`). The email-code link
-  (`clickEmailOtpLink`) shows a confirm page on GET and consumes the code only on POST, because mail scanners open links.
+- Email bodies escape every user-supplied value with `esc()` (`lib/emailTemplates.ts`). Links that act (`passwordSetupLink`,
+  legacy `clickEmailOtpLink`) show a confirm page on GET and act only on POST, because mail scanners open links.
 - `grantProHost`/`removeProHost` return early for deleted accounts (no ghost profile, no RTDN retry storm) and write
   with `update()`; a PRO_HOST claim whose profile `role` mirror lagged is repaired on the next sync.
 - Only `package_pro_mrr` exists (`isSupportedProduct`). Retired plans are ignored everywhere with no admin alert; the client
@@ -385,8 +583,9 @@ plan + recurring price + date;
 - The "Activating your subscription" banner shows only after Play returns PURCHASED and clears on any
   billing message (cancel, pending, error) or server answer. `toUserMessage` passes a function's own
   UNAVAILABLE message through; only transport failures get the generic connection text.
-- NIGHTHAWK's "Orphaned Module: billingHelpers / purchaseLinks / playCatalog / priceChange" and "compileSdk below 34" MEDIUMs are
-  false positives (both are imported by other modules; compileSdk is 37).
+- NIGHTHAWK's "Orphaned Module" MEDIUMs (billingHelpers, purchaseLinks, playCatalog, playCatalogLive, offerClaims, sitemapXml, priceChange, …) and "compileSdk below 34" are
+  false positives (both are imported by other modules; compileSdk is 37), as is "Screen Loading State" on
+  `SpaceDetailsScreen` (the nav graph opens it only with an already-loaded listing).
 - `main` history shows NIGHTHAWK checks are sometimes extended directly on `main` (not always
   routed through a feature-branch PR) — before adding new checks or fixing findings on a
   feature branch, `git fetch origin main` and check `git merge-base --is-ancestor <branch-tip>
@@ -402,6 +601,10 @@ plan + recurring price + date;
   `FirebaseAnalytics`/`logEvent` elsewhere (NIGHTHAWK "Analytics Hygiene"). No PII params; listing/room
   ids are `publicCode`s. GA4 `user_id` is the display code (`U-…`), never the UID. Crashlytics stays
   without a user id.
+- Screens: the shell's page name comes only from `analytics/ScreenNames.kt` (never a raw tab id); every sheet, dialog or
+  step calls `TrackScreen(name)` (`ui/components/TrackScreen.kt`), which stacks on the page and re-reports the page when it
+  closes. Funnel: `begin_checkout` on the listing page's Request tap, `requirements_shown`/`kyc_start` from
+  RequirementsSheet. Autosaves and camera moves are never events.
 - Log at ViewModel success/failure points, not in UI, except UI-only moments (screen views in
   `ProHostAppRoot`, availability sheet, booking dialog). `reportFailure` also logs `app_error`.
 - Server events: `functions/src/lib/ga4.ts` `sendGa4Event(uid, …)` — consent-gated on
@@ -423,6 +626,23 @@ plan + recurring price + date;
   after those logs show real app traffic is verified. It was flipped to `true` on main (v1.0.26)
   and reverted to `false`: testers' debug APKs carry no Play Integrity token, so enforcement
   rejects every callable for them (delete account, role assignment, email sign-in).
+- Play Integrity (`lib/playIntegrity.ts`, called by `assignInitialRole`): the decode uses a token scoped to
+  `https://www.googleapis.com/auth/playintegrity` (googleapis `GoogleAuth`) — firebase-admin's unscoped token got 403 on
+  every decode, so integrity was never enforced before 1.0.44. Decode failures still allow sign-in but log
+  `play_integrity_decode_failed {status, body}`; success logs `play_integrity_ok`. Maintenance `integrity` checks the API
+  and decodes a dummy token (400 = credentials and Play Console link OK, 403 = not linked / no access; `code=enable`).
+
+## Google Play policy (announced 29 Oct 2026)
+
+- `targetSdk` is 37, so the location policy applies: one-time "Locate Me" requests
+  (`ListingLocationMapPicker.kt`, `LebanonMapCanvas.kt`) must use the Android 17 location button on
+  API 37+ (mandatory 27 Jan 2027). `ACCESS_FINE_LOCATION` is kept for the listing-pin picker and needs
+  the Play Console fine-location declaration; country detection (`PhoneCountryDetector`) stays coarse-only.
+- Not applicable today (don't add without a Console declaration): local network, contacts, AppFunctions,
+  MANAGE_EXTERNAL_STORAGE, accessibility service, SMS/call log.
+- Console to-dos: fine-location declaration, Data safety update, trader status (Nov 2026), Japan
+  authorisation only if selling in Japan. Any future eligibility-based subscription discount (e.g. student)
+  must disclose criteria, verification and post-eligibility price in-app.
 
 ## Signing material
 

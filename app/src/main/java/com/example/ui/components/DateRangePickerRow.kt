@@ -1,5 +1,10 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Spacing
+
+import com.example.ui.util.uiText
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -52,22 +57,22 @@ fun DateRangePickerRow(
 
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
         AssistChip(
             onClick = { showFromPicker = true },
-            label = { Text(fromMillis?.let { "From: ${sdfShort.format(Date(it))}" } ?: "From: Any", style = MaterialTheme.typography.labelSmall) },
+            label = { Text(fromMillis?.let { uiText(R.string.from_x, sdfShort.format(Date(it))) } ?: uiText(R.string.from_any), style = MaterialTheme.typography.labelSmall) },
             leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
         )
         AssistChip(
             onClick = { showToPicker = true },
-            label = { Text(toMillis?.let { "To: ${sdfShort.format(Date(it))}" } ?: "To: Any", style = MaterialTheme.typography.labelSmall) },
+            label = { Text(toMillis?.let { uiText(R.string.to_x, sdfShort.format(Date(it))) } ?: uiText(R.string.to_any), style = MaterialTheme.typography.labelSmall) },
             leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
         )
         if (fromMillis != null || toMillis != null) {
-            IconButton(onClick = { onFromChange(null); onToChange(null) }, modifier = Modifier.size(28.dp)) {
-                Icon(Icons.Default.Close, contentDescription = "Clear date filter", modifier = Modifier.size(16.dp))
+            IconButton(onClick = { onFromChange(null); onToChange(null) }, modifier = Modifier.size(40.dp)) {
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.clear_date_filter), modifier = Modifier.size(16.dp))
             }
         }
     }
@@ -82,7 +87,7 @@ fun DateRangePickerRow(
                     showFromPicker = false
                 }) { Text("OK") }
             },
-            dismissButton = { TextButton(shape = MaterialTheme.shapes.medium, onClick = { showFromPicker = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(shape = MaterialTheme.shapes.medium, onClick = { showFromPicker = false }) { Text(stringResource(R.string.cancel)) } }
         ) {
             DatePicker(state = pickerState)
         }
@@ -99,7 +104,7 @@ fun DateRangePickerRow(
                     showToPicker = false
                 }) { Text("OK") }
             },
-            dismissButton = { TextButton(shape = MaterialTheme.shapes.medium, onClick = { showToPicker = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(shape = MaterialTheme.shapes.medium, onClick = { showToPicker = false }) { Text(stringResource(R.string.cancel)) } }
         ) {
             DatePicker(state = pickerState)
         }

@@ -1,10 +1,17 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Spacing
+
+import com.example.R
+import androidx.compose.ui.res.stringResource
+import com.example.ui.theme.Elevation
+import com.example.ui.util.UiMessages
 import android.Manifest
 import android.content.pm.PackageManager
+import android.content.Context
+import android.location.Address
 import android.location.Geocoder
 import android.location.Location
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -34,11 +41,64 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
+/**
+ * What a pin resolved to. Street, area and city are in the app's language (an Arabic app fills Arabic); the country is its
+ * standard English name (filters and search compare English names) and [cityEn] keeps an English copy of the city.
+ */
+data class ResolvedAddress(
+    val lat: Double,
+    val lng: Double,
+    val street: String = "",
+    val area: String = "",
+    val city: String = "",
+    val country: String = "",
+    val countryCode: String = "",
+    val cityEn: String = ""
+)
+
+/** English country name for an ISO code ("LB" → "Lebanon"), else [fallback]. */
+fun englishCountryName(countryCode: String, fallback: String?): String =
+    countryCode.takeIf { it.isNotBlank() }?.let { Locale("", it).getDisplayCountry(Locale.ENGLISH) }?.takeIf { it.isNotBlank() }
+        ?: fallback.orEmpty()
+
+/** Reverse-geocodes a pin twice when needed: once in the app's language for display, once in English for the copies. */
+@Suppress("DEPRECATION")
+suspend fun reverseGeocode(context: Context, lat: Double, lng: Double): ResolvedAddress = withContext(Dispatchers.IO) {
+    val appLocale = context.resources.configuration.locales[0] ?: Locale.getDefault()
+    fun lookup(locale: Locale): Address? =
+        runCatching { Geocoder(context, locale).getFromLocation(lat, lng, 1)?.firstOrNull() }.getOrNull()
+    val local = lookup(appLocale)
+    val english = if (appLocale.language == Locale.ENGLISH.language) local else lookup(Locale.ENGLISH) ?: local
+    toResolvedAddress(lat, lng, local, english)
+}
+
+/** Forward-geocodes a typed address (no pin dropped) the same way; null when nothing matches. */
+@Suppress("DEPRECATION")
+suspend fun forwardGeocode(context: Context, query: String): ResolvedAddress? = withContext(Dispatchers.IO) {
+    val hit = runCatching { Geocoder(context, Locale.ENGLISH).getFromLocationName(query, 1)?.firstOrNull() }.getOrNull()
+        ?: return@withContext null
+    reverseGeocode(context, hit.latitude, hit.longitude)
+}
+
+private fun toResolvedAddress(lat: Double, lng: Double, local: Address?, english: Address?): ResolvedAddress {
+    val code = (english ?: local)?.countryCode.orEmpty()
+    return ResolvedAddress(
+        lat = lat,
+        lng = lng,
+        street = listOfNotNull(local?.thoroughfare, local?.subThoroughfare).filter { it.isNotBlank() }.joinToString(" "),
+        area = (local?.subLocality ?: local?.subAdminArea).orEmpty(),
+        city = (local?.locality ?: local?.subAdminArea).orEmpty(),
+        country = englishCountryName(code, english?.countryName ?: local?.countryName),
+        countryCode = code,
+        cityEn = (english?.locality ?: english?.subAdminArea).orEmpty()
+    )
+}
+
 @Composable
 fun ListingLocationMapPicker(
     initialLat: Double?,
     initialLng: Double?,
-    onLocationConfirmed: (lat: Double, lng: Double, street: String, city: String, country: String) -> Unit,
+    onLocationConfirmed: (ResolvedAddress) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -77,52 +137,17 @@ fun ListingLocationMapPicker(
                 }
                 .addOnFailureListener {
                     isLocating = false
-                    Toast.makeText(context, "GPS signal unavailable", Toast.LENGTH_SHORT).show()
+                    UiMessages.show(context, context.getString(R.string.gps_signal_unavailable))
                 }
         }
     }
 
-    val requestPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val fineGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
-        val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
-        if (fineGranted || coarseGranted) {
-            requestHighAccuracyLocation()
-        } else {
-            Toast.makeText(context, "Location permission declined.", Toast.LENGTH_SHORT).show()
-        }
-    }
+    // Permission, blocked-permission and location-off prompts are all native (PermissionPrompts.kt).
+    val requestLocation = rememberLocationAccess { requestHighAccuracyLocation() }
 
-    @Suppress("DEPRECATION")
     suspend fun resolveLocationAndConfirm(latLng: LatLng) {
-        withContext(Dispatchers.IO) {
-            try {
-                val geocoder = Geocoder(context, Locale.ENGLISH)
-                val addresses = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1)
-
-                if (!addresses.isNullOrEmpty()) {
-                    val address = addresses[0]
-                    val streetStr = listOf(address.thoroughfare ?: "", address.subLocality ?: "")
-                        .filter { it.isNotBlank() }.joinToString(", ")
-                    val cityStr = listOf(address.locality ?: "", address.subAdminArea ?: "")
-                        .filter { it.isNotBlank() }.joinToString(", ")
-                    val countryStr = address.countryName ?: ""
-
-                    withContext(Dispatchers.Main) {
-                        onLocationConfirmed(latLng.latitude, latLng.longitude, streetStr, cityStr, countryStr)
-                    }
-                } else {
-                    withContext(Dispatchers.Main) {
-                        onLocationConfirmed(latLng.latitude, latLng.longitude, "", "", "")
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    onLocationConfirmed(latLng.latitude, latLng.longitude, "", "", "")
-                }
-            }
-        }
+        val resolved = reverseGeocode(context, latLng.latitude, latLng.longitude)
+        onLocationConfirmed(resolved)
     }
 
     Box(modifier = modifier.clipToBounds()) {
@@ -146,7 +171,7 @@ fun ListingLocationMapPicker(
         // Custom Crosshair Center Pin Overlay
         Icon(
             imageVector = Icons.Default.MyLocation,
-            contentDescription = "Center Crosshair",
+            contentDescription = stringResource(R.string.center_crosshair),
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier
                 .align(Alignment.Center)
@@ -172,35 +197,22 @@ fun ListingLocationMapPicker(
                 shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
-                shadowElevation = 6.dp
+                shadowElevation = Elevation.level3
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Text("Mark Pin Location", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.mark_pin_location), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                 }
             }
         }
 
         // GPS Locate FAB (Bottom Right inside bounds)
         FloatingActionButton(
-            onClick = {
-                val finePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-                val coarsePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-                if (finePerm == PackageManager.PERMISSION_GRANTED || coarsePerm == PackageManager.PERMISSION_GRANTED) {
-                    requestHighAccuracyLocation()
-                } else {
-                    requestPermissionLauncher.launch(
-                        arrayOf(
-                            Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION
-                        )
-                    )
-                }
-            },
+            onClick = { requestLocation() },
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
             shape = CircleShape,
@@ -212,7 +224,7 @@ fun ListingLocationMapPicker(
             if (isLocating) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
             } else {
-                Icon(Icons.Default.MyLocation, contentDescription = "Locate Me", modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.MyLocation, contentDescription = stringResource(R.string.locate_me), modifier = Modifier.size(20.dp))
             }
         }
     }

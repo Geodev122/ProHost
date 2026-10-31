@@ -130,6 +130,8 @@ service cloud.firestore {
         (isAdmin() || request.resource.data.get('isVerified', false) == false) &&
         // favoriteCount only ever grows via the onUserFavoritesChanged trigger.
         (isAdmin() || request.resource.data.get('favoriteCount', 0) == 0) &&
+        // Save history (favoritesSync.ts) is server-only from the first write.
+        !request.resource.data.keys().hasAny(["favoritesByMonth", "unsavesByMonth", "lastFavoriteEvents"]) &&
         // displayCode is minted server-side only when absent; a client-chosen one
         // could impersonate another listing's public code.
         !('displayCode' in request.resource.data) &&
@@ -160,6 +162,8 @@ service cloud.firestore {
           (isAdmin() || (role() == "PRO_HOST" && resource.data.ownerId == request.auth.uid && !isSuspended())) &&
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(
             ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId", "isOwnerSuspended", "isOwnerPackageLapsed", "favoriteCount", "displayCode", "createdAtMillis", "searchName",
+             // save history kept by favoritesSync.ts (Owner Analytics "+N this month")
+             "favoritesByMonth", "unsavesByMonth", "lastFavoriteEvents",
              // admin review-queue stamp, set only by requestListingVerification. (Counters,
              // publishBlockedReasons and isDemo are still echoed by released app versions on
              // every save, so they stay owner-writable; strangers may only +1 a counter.)
@@ -292,7 +296,10 @@ service cloud.firestore {
         // phone linked in Firebase Auth, never this field.)
         (isAdmin() ||
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(["email"]) ||
-          request.resource.data.email == request.auth.token.get('email', ''));
+          request.resource.data.email == request.auth.token.get('email', '')) &&
+        // Saved listings are capped (favoritesSync.ts reads at most 300).
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(["savedSpaceIds"]) ||
+          request.resource.data.savedSpaceIds.size() <= 300);
 
       allow delete: if isAdmin();
 
@@ -490,6 +497,11 @@ service cloud.firestore {
     match /email_send_limits/{key} {
       allow read, write: if false;
     }
+    // "Set your password" invites for accounts from the retired email code / magic link
+    // (functions/src/auth/passwordReset.ts): token hashes, server-only.
+    match /auth_password_invites/{uid} {
+      allow read, write: if false;
+    }
     // Public, person-free projection of ACCEPTED bookings (functions/src/bookings/occupancyProjection.ts):
     // listing, room, schedule and term only — what locks a slot. Any signed-in user reads it so
     // specialists see slots other people hold; only the server writes it.
@@ -515,6 +527,40 @@ service cloud.firestore {
     }
     match /mailing_admin_sessions/{id} {
       allow read, write: if false;
+    }
+    // Instagram automation (functions/src/instagram/*): rules mirrored from the control-room sheet, webhook events,
+    // people who wrote to @prohost.app and counters. Functions only; the artifact reaches them through the sheet.
+    match /ig_rules/{id} {
+      allow read, write: if false;
+    }
+    match /ig_events/{id} {
+      allow read, write: if false;
+    }
+    match /ig_contacts/{id} {
+      allow read, write: if false;
+    }
+    match /ig_stats/{id} {
+      allow read, write: if false;
+    }
+    match /ig_threads/{id} {
+      allow read, write: if false;
+    }
+    match /ig_learn/{id} {
+      allow read, write: if false;
+    }
+    match /ig_leads/{id} {
+      allow read, write: if false;
+    }
+    // Brand registry of the multi-brand agent: profile, platforms, sub-collections (events, contacts, threads, ...) and
+    // private/secrets (tokens, app secrets, AI keys). Functions only.
+    match /ig_brands/{brand} {
+      allow read, write: if false;
+      match /private/{id} {
+        allow read, write: if false;
+      }
+      match /{sub}/{id} {
+        allow read, write: if false;
+      }
     }
     // Server-only config (app_config/ga4 holds the GA4 Measurement Protocol API secret,
     // read by functions/src/lib/ga4.ts via the Admin SDK). Set in the Firebase console.
@@ -606,6 +652,14 @@ service cloud.firestore {
     }
     // Retired Whish payments archive: server-only.
     match /whish_transactions/{id} {
+      allow read, write: if false;
+    }
+    // Retired promo-code campaign doc: the promo card is a Play offer now (app PlayPromo). Closed to clients.
+    match /promo_campaigns/{id} {
+      allow read, write: if false;
+    }
+    // Maintenance workflow ↔ onMaintenanceRequest (live Play catalog / subscription audits): server-only.
+    match /maintenance_requests/{id} {
       allow read, write: if false;
     }
 

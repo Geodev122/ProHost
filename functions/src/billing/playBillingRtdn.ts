@@ -278,6 +278,7 @@ export const playBillingRtdn = onMessagePublished(
         product_id: productId,
         currency: gaEvent === "subscription_renewed" ? purchase.currency ?? undefined : undefined,
         value: gaEvent === "subscription_renewed" && micros > 0 ? micros / 1_000_000 : undefined,
+        trigger: "rtdn",
       });
     }
   }

@@ -1,0 +1,19 @@
+/* Feed-post system continued from the three live posts (@prohost.app, 18 Oct): pure typography on flat navy or off-white,
+   the checkmark logo top-left, one thin orange rule, one orange call-to-action block. 4:5, 1080x1350; the profile grid shows a 3:4 centre crop,
+   so nothing sits within 70 px of the left/right edges. */
+:root { --navy: #001f4e; --orange: #fd631d; --paper: #fefefc; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1080px; height: 1350px; overflow: hidden; }
+body { font-family: "Inter", "Inter Display", "Helvetica Neue", Arial, sans-serif; position: relative; -webkit-font-smoothing: antialiased; }
+.dark { background: var(--navy); color: #fff; }
+.light { background: var(--paper); color: var(--navy); }
+.logo { position: absolute; left: 76px; top: 118px; display: flex; align-items: center; gap: 26px; }
+.logo img { width: 138px; height: auto; display: block; }
+.logo span { font-weight: 800; font-size: 104px; letter-spacing: -4.5px; line-height: 1; }
+.eyebrow { position: absolute; left: 76px; top: 352px; font-weight: 600; font-size: 29px; letter-spacing: 6px; text-transform: uppercase; }
+.h { position: absolute; left: 72px; right: 60px; font-weight: 800; font-size: 134px; line-height: 1.04; letter-spacing: -5.2px; }
+.rule { position: absolute; left: 76px; width: 270px; height: 7px; background: var(--orange); }
+.sub { position: absolute; left: 76px; right: 90px; font-weight: 400; font-size: 54px; line-height: 1.22; letter-spacing: -1.2px; }
+.dark .sub { color: rgba(255, 255, 255, .94); }
+.cta { position: absolute; left: 76px; right: 140px; background: var(--orange); color: var(--navy); font-weight: 800; letter-spacing: -1.6px; }
+.band { position: absolute; left: 0; right: 0; bottom: 0; background: var(--orange); color: var(--navy); }

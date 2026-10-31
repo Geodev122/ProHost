@@ -165,6 +165,11 @@ describe("user_profiles", () => {
   test("a suspended user can't edit their profile", async () => {
     await assertFails(updateDoc(doc(spec2Ctx(), "user_profiles", SPEC2), { fullName: "X" }));
   });
+  test("saved listings are capped at 300", async () => {
+    const ids = (n) => Array.from({ length: n }, (_, i) => `L${i}`);
+    await assertSucceeds(updateDoc(doc(specCtx(), "user_profiles", SPEC), { savedSpaceIds: ids(300) }));
+    await assertFails(updateDoc(doc(specCtx(), "user_profiles", SPEC), { savedSpaceIds: ids(301) }));
+  });
   test("profiles are private", async () => {
     await assertFails(getDoc(doc(specCtx(), "user_profiles", HOST)));
   });
@@ -181,15 +186,61 @@ describe("workspace_listings", () => {
     await assertFails(updateDoc(doc(hostCtx(), "workspace_listings", "L1"), { isVerified: true }));
     await assertFails(updateDoc(doc(specCtx(), "workspace_listings", "L1"), { title: "Hijacked" }));
   });
+  test("save counts and save history are server-only", async () => {
+    await assertFails(updateDoc(doc(hostCtx(), "workspace_listings", "L1"), { favoriteCount: 99 }));
+    await assertFails(updateDoc(doc(hostCtx(), "workspace_listings", "L1"), { favoritesByMonth: { "202610": 99 } }));
+    await assertFails(updateDoc(doc(hostCtx(), "workspace_listings", "L1"), { unsavesByMonth: {} }));
+    await assertFails(setDoc(doc(hostCtx(), "workspace_listings", "L9"), { ownerId: HOST, status: "DRAFT", title: "X", favoritesByMonth: { "202610": 5 } }));
+  });
   test("server-only collections are closed", async () => {
     await assertFails(getDoc(doc(specCtx(), "display_codes", "U-AAAAAA")));
     await assertFails(setDoc(doc(specCtx(), "mail", "m1"), { to: "a@b.c" }));
+    await assertFails(setDoc(doc(hostCtx(), "maintenance_requests", "r1"), { task: "playCatalog" }));
+    await assertFails(getDoc(doc(specCtx(), "maintenance_requests", "r1")));
+  });
+  test("retired promo campaign doc: nobody reads or writes it (the promo is a Play offer)", async () => {
+    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), "promo_campaigns", "current"), { code: "PROHOST2026", active: true }));
+    await assertFails(getDoc(doc(specCtx(), "promo_campaigns", "current")));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "promo_campaigns", "current")));
+    await assertFails(setDoc(doc(hostCtx(), "promo_campaigns", "current"), { code: "FREE", active: true }));
+    await assertFails(updateDoc(doc(specCtx(), "promo_campaigns", "current"), { redeemed: 0 }));
+  });
+  test("sign-in secrets and the auth switch are server-only (own account included)", async () => {
+    for (const [col, id] of [["email_otps", "a@b.c"], ["email_send_limits", "otp_x"], ["auth_password_invites", "spec1"], ["app_config", "auth"]]) {
+      await assertFails(getDoc(doc(specCtx(), col, id)));
+      await assertFails(setDoc(doc(specCtx(), col, id), { legacyEmailSignIn: true, tokenHash: "x" }));
+      await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), col, id)));
+    }
   });
   test("website address book, messages, campaigns and admin sessions are server-only", async () => {
     for (const col of ["mailing_list", "mailing_messages", "mail_campaigns", "mailing_admin_sessions"]) {
       await assertFails(getDoc(doc(specCtx(), col, "x1")));
       await assertFails(setDoc(doc(specCtx(), col, "x1"), { email: "a@b.c", subscribed: true }));
       await assertFails(getDoc(doc(hostCtx(), col, "x1")));
+    }
+  });
+});
+
+describe("instagram automation collections", () => {
+  test("rules, events, contacts, stats and its config are server-only", async () => {
+    for (const [col, id] of [["ig_rules", "r1"], ["ig_events", "c_1"], ["ig_contacts", "u1"], ["ig_stats", "errors"], ["ig_threads", "u1"], ["ig_learn", "q1"], ["ig_leads", "u1"], ["ig_brands", "acme"], ["app_config", "instagram"], ["app_config", "instagram_knowledge"], ["app_config", "instagram_offers"]]) {
+      await assertFails(getDoc(doc(specCtx(), col, id)));
+      await assertFails(setDoc(doc(specCtx(), col, id), { text: "x" }));
+      await assertFails(getDoc(doc(hostCtx(), col, id)));
+      await assertFails(setDoc(doc(hostCtx(), col, id), { text: "x" }));
+      await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), col, id)));
+    }
+  });
+});
+
+describe("instagram multi-brand registry", () => {
+  test("brand documents, their sub-collections and secrets are server-only", async () => {
+    for (const path of [["ig_brands", "acme", "private", "secrets"], ["ig_brands", "acme", "events", "c_1"], ["ig_brands", "acme", "threads", "u1"]]) {
+      await assertFails(getDoc(doc(specCtx(), ...path)));
+      await assertFails(setDoc(doc(specCtx(), ...path), { text: "x" }));
+      await assertFails(getDoc(doc(hostCtx(), ...path)));
+      await assertFails(setDoc(doc(hostCtx(), ...path), { text: "x" }));
+      await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), ...path)));
     }
   });
 });

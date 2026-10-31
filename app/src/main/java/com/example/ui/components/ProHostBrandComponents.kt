@@ -1,5 +1,10 @@
 package com.example.ui.components
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.liveRegion
+import com.example.R
+import androidx.compose.ui.res.stringResource
+import com.example.ui.theme.Elevation
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
@@ -89,6 +94,7 @@ import com.example.ui.navigation.AppNavTab
 import com.example.ui.theme.DrawerShape
 import com.example.ui.theme.SheetShape
 import com.example.ui.theme.Spacing
+import com.example.ui.theme.Radius
 import com.example.ui.theme.proColors
 
 /**
@@ -184,7 +190,7 @@ fun ProHostBottomSheet(
         shape = shape,
         containerColor = container,
         contentColor = contentColorFor(surface),
-        tonalElevation = 4.dp,
+        tonalElevation = Elevation.level2,
         scrimColor = scrimColor,
         contentWindowInsets = contentWindowInsets,
         dragHandle = {
@@ -234,7 +240,8 @@ fun ProHostAlertBanner(
         contentColor = content,
         shape = if (fullBleed) RectangleShape else MaterialTheme.shapes.medium,
         border = if (fullBleed) null else BorderStroke(1.dp, accent.copy(alpha = 0.25f)),
-        modifier = modifier.fillMaxWidth()
+        // Banners appear on their own (errors, status): read them out politely.
+        modifier = modifier.fillMaxWidth().semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite }
     ) {
         Row(
             modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
@@ -304,7 +311,7 @@ fun ProHostCountBadge(count: Int, modifier: Modifier = Modifier) {
 /** Plain "something new" dot badge for use inside `BadgedBox`. */
 @Composable
 fun ProHostDotBadge(modifier: Modifier = Modifier) {
-    Badge(modifier = modifier, containerColor = MaterialTheme.colorScheme.error)
+    Badge(modifier = modifier.size(9.dp), containerColor = MaterialTheme.colorScheme.error)
 }
 
 // ---------------------------------------------------------------------------
@@ -359,12 +366,12 @@ fun ProHostBottomNavBar(
             if (isCollapsed) {
                 Surface(
                     onClick = { onExpandChange?.invoke(true) },
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    shadowElevation = 10.dp,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    shape = Radius.Full,
+                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    shadowElevation = Elevation.level3,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
                     modifier = Modifier
-                        .size(width = 56.dp, height = 32.dp)
+                        .size(width = 64.dp, height = 32.dp)
                         .draggable(
                             orientation = Orientation.Vertical,
                             state = rememberDraggableState { delta -> if (delta < -6f) onExpandChange?.invoke(true) }
@@ -374,25 +381,26 @@ fun ProHostBottomNavBar(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             Icons.Default.KeyboardArrowUp,
-                            contentDescription = "Show navigation",
+                            contentDescription = stringResource(R.string.show_navigation),
                             tint = accent
                         )
                     }
                 }
             } else {
                 Surface(
-                    shape = RoundedCornerShape(28.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    shadowElevation = 10.dp,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    // A fully rounded floating pill on the lightest surface, soft hairline + level 3 shadow.
+                    shape = Radius.Full,
+                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    shadowElevation = Elevation.level3,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
                     modifier = Modifier
                         .widthIn(max = 480.dp)
                         .fillMaxWidth()
-                        .height(64.dp)
+                        .heightIn(min = 64.dp)
                         .testTag("bottom_navigation_bar")
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = Spacing.sm),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
@@ -412,7 +420,7 @@ fun ProHostBottomNavBar(
                             IconButton(onClick = { onExpandChange(false) }, modifier = Modifier.size(40.dp)) {
                                 Icon(
                                     Icons.Default.KeyboardArrowDown,
-                                    contentDescription = "Hide navigation",
+                                    contentDescription = stringResource(R.string.hide_navigation),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -443,12 +451,12 @@ private fun BottomNavPillItem(
             .clip(CircleShape)
             .selectable(selected = selected, onClick = onClick, role = Role.Tab)
             .background(container)
-            .animateContentSize()
+            .animateContentSize(androidx.compose.animation.core.spring(dampingRatio = 0.8f, stiffness = 500f))
             .heightIn(min = 48.dp)
-            .padding(horizontal = if (selected) 14.dp else 10.dp)
+            .padding(horizontal = if (selected) Spacing.lg else Spacing.md)
             .testTag("nav_item_${tab.id}"),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         Icon(
             imageVector = if (selected) tab.selectedIcon else tab.unselectedIcon,
@@ -459,8 +467,8 @@ private fun BottomNavPillItem(
         if (selected) {
             Text(
                 tab.shortLabel,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelLarge.copy(fontFamily = com.example.ui.theme.ManropeDisplay),
+                fontWeight = FontWeight.ExtraBold,
                 color = content,
                 maxLines = 1,
                 softWrap = false
@@ -486,7 +494,7 @@ fun ProHostDrawerSheet(
         drawerShape = DrawerShape,
         // Plain white (no tonal tint) so the drawer matches the white pages and header.
         drawerContainerColor = MaterialTheme.colorScheme.surface,
-        drawerTonalElevation = 0.dp,
+        drawerTonalElevation = Elevation.level0,
         content = content
     )
 }
@@ -530,13 +538,13 @@ fun ProHostDrawerHeader(
                     text = subtitle,
                     style = MaterialTheme.typography.labelMedium,
                     color = pro.onBrandHeader.copy(alpha = 0.85f),
-                    maxLines = 1
+                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
             }
             IconButton(onClick = onClose, modifier = Modifier.size(40.dp)) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Collapse Drawer",
+                    contentDescription = stringResource(R.string.collapse_drawer),
                     tint = pro.onBrandHeader
                 )
             }
@@ -544,34 +552,17 @@ fun ProHostDrawerHeader(
     }
 }
 
-/** Drawer header avatar: the profile photo, or initials (secondary accent) when there is none. */
+/** Drawer header avatar: the shared [ProAvatar] at 52 dp on the secondary accent. */
 @Composable
 fun ProHostDrawerAvatar(initials: String, modifier: Modifier = Modifier, imageUrl: String? = null) {
-    var photoFailed by remember(imageUrl) { mutableStateOf(false) }
-    Box(
+    ProAvatar(
+        initials = initials,
+        size = 52.dp,
+        imageUrl = imageUrl,
+        containerColor = MaterialTheme.colorScheme.secondary,
+        contentColor = MaterialTheme.colorScheme.onSecondary,
         modifier = modifier
-            .size(52.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.secondary),
-        contentAlignment = Alignment.Center
-    ) {
-        if (!imageUrl.isNullOrBlank() && !photoFailed) {
-            coil.compose.AsyncImage(
-                model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
-                    .data(imageUrl).size(200).build(),
-                contentDescription = null,
-                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-                onError = { photoFailed = true }
-            )
-        } else {
-            Text(
-                text = initials,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSecondary
-            )
-        }
-    }
+    )
 }
 
 /** Compact role chip for the drawer header: filled when [emphasized], translucent otherwise. */
@@ -699,5 +690,59 @@ fun ProHostDrawerHighlight(
             }
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = pro.onBrandHeader)
         }
+    }
+}
+
+/**
+ * Shows [com.example.ui.util.UiMessages] as Snackbars (inverse surface, optional action such as Undo). While one is
+ * on screen, messages go here instead of a Toast.
+ */
+@Composable
+fun ProHostSnackbarHost(modifier: Modifier = Modifier) {
+    val state = remember { androidx.compose.material3.SnackbarHostState() }
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        com.example.ui.util.UiMessages.hosts++
+        onDispose { com.example.ui.util.UiMessages.hosts-- }
+    }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        com.example.ui.util.UiMessages.messages.collect { message ->
+            val result = state.showSnackbar(
+                message = message.text,
+                actionLabel = message.actionLabel,
+                withDismissAction = message.actionLabel == null && message.long,
+                duration = when {
+                    message.actionLabel != null -> androidx.compose.material3.SnackbarDuration.Long
+                    message.long -> androidx.compose.material3.SnackbarDuration.Long
+                    else -> androidx.compose.material3.SnackbarDuration.Short
+                }
+            )
+            if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) message.onAction?.invoke()
+        }
+    }
+    androidx.compose.material3.SnackbarHost(state, modifier = modifier.padding(horizontal = Spacing.md)) { data ->
+        androidx.compose.material3.Snackbar(
+            snackbarData = data,
+            shape = Radius.Sm,
+            containerColor = MaterialTheme.colorScheme.inverseSurface,
+            contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+            actionColor = MaterialTheme.colorScheme.inversePrimary,
+            dismissActionContentColor = MaterialTheme.colorScheme.inverseOnSurface
+        )
+    }
+}
+
+/**
+ * True when the person turned animations off (Settings › Accessibility › Remove animations, or developer animator
+ * scale 0). Transitions should then snap.
+ */
+@Composable
+fun rememberReducedMotion(): Boolean {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    return remember(context) {
+        runCatching {
+            android.provider.Settings.Global.getFloat(
+                context.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f
+            ) == 0f
+        }.getOrDefault(false)
     }
 }

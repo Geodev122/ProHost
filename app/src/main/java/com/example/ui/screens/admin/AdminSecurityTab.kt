@@ -1,12 +1,12 @@
 package com.example.ui.screens
 
+import com.example.ui.util.UiMessages
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -66,7 +66,7 @@ internal fun AdminSecurityAuditTab(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg)
     ) {
         item {
             var auditExportFromMillis by remember { mutableStateOf<Long?>(null) }
@@ -74,7 +74,7 @@ internal fun AdminSecurityAuditTab(
             val exportAuditCsvFile = rememberFileExportLauncher(mimeType = "text/csv")
 
             ProSurfaceCard(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     ProSectionHeader(
                         title = "Security & Audit",
                         icon = Icons.Default.Shield
@@ -110,7 +110,7 @@ internal fun AdminSecurityAuditTab(
         item {
             val context = LocalContext.current
             ProSurfaceCard(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     ProSectionHeader(
                         title = "Legal Documents",
                         subtitle = "Upload to publish new version",
@@ -195,9 +195,18 @@ internal fun AdminSecurityAuditTab(
             }
         }
 
+        if (uiState.auditLogs.isEmpty()) {
+            item(key = "audit_empty") {
+                ProEmptyState(
+                    title = "No audit entries yet",
+                    description = "Security and billing actions appear here as they happen.",
+                    icon = Icons.Default.Shield
+                )
+            }
+        }
         items(uiState.auditLogs, key = { it.id }) { log ->
             ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -243,7 +252,7 @@ internal fun AdminSecurityAuditTab(
                         text = "Actor: ${log.actorEmail} • IP: ${log.ipAddress} • ID: ${log.id}",
                         style = MaterialTheme.typography.bodySmall,
                         fontFamily = FontFamily.Monospace,
-                        fontSize = 10.sp,
+                        fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -272,8 +281,8 @@ internal fun AdminExportDataDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surface,
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.85f)
@@ -283,7 +292,7 @@ internal fun AdminExportDataDialog(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -330,7 +339,7 @@ internal fun AdminExportDataDialog(
                 // Action Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     CustomButton(
                         text = "Copy Text",
@@ -338,7 +347,7 @@ internal fun AdminExportDataDialog(
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             val clip = ClipData.newPlainText(title, content)
                             clipboard.setPrimaryClip(clip)
-                            Toast.makeText(context, "Copied to clipboard!", Toast.LENGTH_SHORT).show()
+                            UiMessages.show(context, "Copied to clipboard!")
                         },
                         modifier = Modifier.weight(1f),
                         variant = CustomButtonVariant.OUTLINED,

@@ -1,6 +1,6 @@
 import { onRequest } from "firebase-functions/v2/https";
+import { emailVerificationLink } from "../lib/authLinks";
 import { defineSecret } from "firebase-functions/params";
-import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { createHmac } from "crypto";
 import * as logger from "firebase-functions/logger";
@@ -44,8 +44,6 @@ function verifyToken(token: string, secret: string): VerificationPayload {
 // token lifecycle. HMAC-JWT is only verified by the legacy verifyEmailLink endpoint
 // below, kept so links already sitting in inboxes still resolve.
 
-const VERIFICATION_CONTINUE_URL = "https://prohost-f766f.web.app/emaillink";
-
 export async function sendEmailVerificationInternal(uid: string): Promise<void> {
   const db = getFirestore();
   const profileSnap = await db.collection("user_profiles").doc(uid).get();
@@ -53,9 +51,7 @@ export async function sendEmailVerificationInternal(uid: string): Promise<void> 
   if (!profileData?.email || profileData.emailVerified === true) return;
 
   try {
-    const link = await getAuth().generateEmailVerificationLink(profileData.email, {
-      url: VERIFICATION_CONTINUE_URL,
-    });
+    const link = await emailVerificationLink(profileData.email);
     const userCtx: UserContext = {
       fullName: (profileData.fullName as string | undefined)?.trim() || "there",
       email: profileData.email,

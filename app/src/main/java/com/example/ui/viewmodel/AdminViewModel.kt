@@ -338,7 +338,6 @@ class AdminViewModel(
     // --- Navigation & Pricing ---
     fun setSelectedTab(tabIndex: Int) {
         _uiState.update { it.copy(selectedTab = tabIndex) }
-        com.example.analytics.AnalyticsTracker.screen("admin_tab_$tabIndex", "AdminConsole")
     }
 
     private val _grantAccess = MutableStateFlow(GrantAccessUiState())

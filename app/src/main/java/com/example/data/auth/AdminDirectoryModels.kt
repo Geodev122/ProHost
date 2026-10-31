@@ -190,13 +190,15 @@ data class BillingHealth(
             lastSelfTestAt = m.long("lastSelfTestAt"),
             pendingCount = m.int("pendingCount"),
             unlinkedCount = m.int("unlinkedCount"),
-            catalog = (m["catalog"] as? List<*>).orEmpty().mapNotNull { row ->
-                val r = row as? Map<*, *> ?: return@mapNotNull null
-                listOfNotNull(
+            // One line per base plan, then one "↳ offer" line per offer (id · state · eligibility · phases).
+            catalog = (m["catalog"] as? List<*>).orEmpty().flatMap { row ->
+                val r = row as? Map<*, *> ?: return@flatMap emptyList()
+                val plan = listOfNotNull(
                     r["basePlanId"] as? String,
                     r["state"] as? String,
                     (r["period"] as? String)?.let { p -> (r["interval"] as? String)?.let { "$p ($it)" } ?: p }
                 ).joinToString(" · ")
+                listOf(plan) + (r["offers"] as? List<*>).orEmpty().mapNotNull { (it as? String)?.let { o -> "   ↳ offer $o" } }
             },
             catalogError = m["catalogError"] as? String
         )

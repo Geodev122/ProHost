@@ -18,10 +18,12 @@ object PlayCatalog {
 
     enum class PlanKind { MONTHLY, YEARLY }
 
-    /** Known base plan ids (Play Console spells the original monthly id "pro-montly"). */
+    /** Known base plan ids (Play Console spells the original monthly id "pro-montly"; "pro-month1" replaced it). */
     const val BASE_PLAN_MONTHLY = "pro-montly"
     const val BASE_PLAN_YEARLY = "pro-yearly"
-    private val MONTHLY_IDS = setOf(BASE_PLAN_MONTHLY, "pro-monthly")
+    /** Retired monthly ids: kept only to read old purchases; a current plan of the same kind wins over them. */
+    val LEGACY_MONTHLY_IDS = setOf(BASE_PLAN_MONTHLY, "pro-monthly")
+    private val MONTHLY_IDS = LEGACY_MONTHLY_IDS + "pro-month1"
     private val YEARLY_IDS = setOf(BASE_PLAN_YEARLY)
 
     /** ownerPackageId of an admin "Force Upgrade → ProHost" (permanent until revoked). */

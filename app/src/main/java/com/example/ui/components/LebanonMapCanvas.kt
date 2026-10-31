@@ -1,5 +1,11 @@
 package com.example.ui.components
 
+import com.example.ui.util.localizedLabel
+import com.example.ui.util.uiText
+import com.example.R
+import androidx.compose.ui.res.stringResource
+import com.example.ui.theme.Elevation
+import com.example.ui.util.UiMessages
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -7,7 +13,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.location.Location
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -305,29 +310,20 @@ fun LebanonMapCanvas(
                                     cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(latLng, 14f))
                                 }
                             } else {
-                                Toast.makeText(context, "Cannot determine location.", Toast.LENGTH_SHORT).show()
+                                UiMessages.show(context, context.getString(R.string.cannot_determine_location))
                             }
                         }
                     }
                 }
                 .addOnFailureListener {
                     isLocating = false
-                    Toast.makeText(context, "GPS signal unavailable", Toast.LENGTH_SHORT).show()
+                    UiMessages.show(context, context.getString(R.string.gps_signal_unavailable))
                 }
         }
     }
 
-    val requestPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val fineGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
-        val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
-        if (fineGranted || coarseGranted) {
-            requestHighAccuracyLocation()
-        } else {
-            Toast.makeText(context, "Location permission declined.", Toast.LENGTH_SHORT).show()
-        }
-    }
+    // Permission, blocked-permission and location-off prompts are all native (PermissionPrompts.kt).
+    val requestLocation = rememberLocationAccess { requestHighAccuracyLocation() }
 
     fun calculateDistanceKm(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Double {
         val r = 6371.0
@@ -486,7 +482,7 @@ fun LebanonMapCanvas(
                         Marker(
                             state = markerState,
                             title = space.title,
-                            snippet = space.spaceType.displayName,
+                            snippet = localizedLabel(space.spaceType.displayName),
                             icon = markerIconFor(space, isSelected),
                             anchor = androidx.compose.ui.geometry.Offset(0.5f, 1.0f),
                             zIndex = if (isSelected) 2f else 1f,
@@ -512,7 +508,7 @@ fun LebanonMapCanvas(
                         val markerState = remember(centLat, centLng) { MarkerState(position = LatLng(centLat, centLng)) }
                         Marker(
                             state = markerState,
-                            title = "${group.size} workspaces here",
+                            title = stringResource(R.string.x_workspaces_here, group.size),
                             snippet = group.take(3).joinToString(", ") { it.title },
                             icon = clusterIconFor(group.size, hasSelected),
                             anchor = androidx.compose.ui.geometry.Offset(0.5f, 0.5f),
@@ -539,7 +535,7 @@ fun LebanonMapCanvas(
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                shadowElevation = 6.dp,
+                shadowElevation = Elevation.level3,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(top = if (topControls != null) 124.dp else 12.dp)
@@ -547,7 +543,7 @@ fun LebanonMapCanvas(
                 Row(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     Icon(
                         Icons.Default.Public,
@@ -556,7 +552,7 @@ fun LebanonMapCanvas(
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Map Center: $detectedCenterCountry",
+                        text = stringResource(R.string.map_center_x, detectedCenterCountry.toString()),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -567,20 +563,7 @@ fun LebanonMapCanvas(
 
         // FLOATING HIGH-ACCURACY GPS CONTROLLER (Bottom Right)
         FloatingActionButton(
-            onClick = {
-                val finePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-                val coarsePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-                if (finePerm == PackageManager.PERMISSION_GRANTED || coarsePerm == PackageManager.PERMISSION_GRANTED) {
-                    requestHighAccuracyLocation()
-                } else {
-                    requestPermissionLauncher.launch(
-                        arrayOf(
-                            Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION
-                        )
-                    )
-                }
-            },
+            onClick = { requestLocation() },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = 16.dp, bottom = (if (!isStripCollapsed) 135.dp else 24.dp) + bottomInset)
@@ -592,7 +575,7 @@ fun LebanonMapCanvas(
             if (isLocating) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = SteelBlue)
             } else {
-                Icon(Icons.Default.MyLocation, contentDescription = "High-Accuracy GPS Locate")
+                Icon(Icons.Default.MyLocation, contentDescription = stringResource(R.string.high_accuracy_gps_locate))
             }
         }
 
@@ -611,13 +594,13 @@ fun LebanonMapCanvas(
                     onClick = { isStripCollapsed = !isStripCollapsed },
                     shape = MaterialTheme.shapes.extraLarge,
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                    shadowElevation = 3.dp,
+                    shadowElevation = Elevation.level2,
                     modifier = Modifier.padding(bottom = 6.dp)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                     ) {
                         Icon(
                             imageVector = if (isStripCollapsed) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
@@ -627,9 +610,9 @@ fun LebanonMapCanvas(
                         )
                         Text(
                             text = if (isStripCollapsed) {
-                                "Show Workspaces (${sortedSpaces.sumOf { if (it.subdivisions.isNotEmpty()) it.subdivisions.size else 1 }})"
+                                uiText(R.string.show_workspaces_x, sortedSpaces.sumOf { if (it.subdivisions.isNotEmpty()) it.subdivisions.size else 1 })
                             } else {
-                                "Collapse Map List"
+                                uiText(R.string.collapse_map_list)
                             },
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
@@ -648,7 +631,7 @@ fun LebanonMapCanvas(
                     state = listState,
                     flingBehavior = rememberSnapFlingBehavior(lazyListState = listState),
                     contentPadding = PaddingValues(horizontal = Spacing.md),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 8.dp)
@@ -662,7 +645,7 @@ fun LebanonMapCanvas(
                         )
                         val typePalette = getMarkerPalette(space, false, spaceTypeSchema)
                         val displayName = sub?.name ?: space.title
-                        val typeBadge = sub?.type?.displayName ?: space.spaceType.displayName
+                        val typeBadge = sub?.type?.displayName ?: localizedLabel(space.spaceType.displayName)
                         val lowestPrice = if (sub != null) {
                             com.example.ui.util.SpaceCalculationUtils.findLowestPriceForSubdivision(sub)
                         } else {
@@ -698,7 +681,7 @@ fun LebanonMapCanvas(
                             Row(
                                 modifier = Modifier.padding(10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                             ) {
                                 Box(
                                     modifier = Modifier
@@ -732,7 +715,6 @@ fun LebanonMapCanvas(
                                             Text(
                                                 text = typeBadge,
                                                 style = MaterialTheme.typography.labelSmall,
-                                                fontSize = 9.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.onPrimary,
                                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
@@ -748,12 +730,11 @@ fun LebanonMapCanvas(
                                             Text(
                                                 text = lowestPrice.unitLabel,
                                                 style = MaterialTheme.typography.labelSmall,
-                                                fontSize = 9.sp,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
-                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Spacer(modifier = Modifier.height(Spacing.xs))
                                     Text(
                                         text = displayName,
                                         style = MaterialTheme.typography.bodySmall,
@@ -766,7 +747,6 @@ fun LebanonMapCanvas(
                                         Text(
                                             text = space.title,
                                             style = MaterialTheme.typography.labelSmall,
-                                            fontSize = 9.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
@@ -774,7 +754,7 @@ fun LebanonMapCanvas(
                                     }
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                                     ) {
                                         Icon(
                                             Icons.Default.KeyboardArrowUp,
@@ -783,9 +763,8 @@ fun LebanonMapCanvas(
                                             tint = MaterialTheme.colorScheme.primary
                                         )
                                         Text(
-                                            text = "Select choices, and Request",
+                                            text = stringResource(R.string.select_choices_and_request),
                                             style = MaterialTheme.typography.labelSmall,
-                                            fontSize = 9.sp,
                                             color = MaterialTheme.colorScheme.primary
                                         )
                                     }
@@ -838,16 +817,16 @@ private fun SearchThisAreaPill(visible: Boolean, onClick: () -> Unit) {
             shape = RoundedCornerShape(50),
             color = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            shadowElevation = 6.dp,
-            tonalElevation = 2.dp
+            shadowElevation = Elevation.level3,
+            tonalElevation = Elevation.level2
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp)
             ) {
                 Icon(Icons.Default.TravelExplore, contentDescription = null, modifier = Modifier.size(18.dp))
-                Text("Search this area", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.search_this_area), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
             }
         }
     }

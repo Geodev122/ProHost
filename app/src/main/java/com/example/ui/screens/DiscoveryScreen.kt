@@ -1,5 +1,14 @@
 package com.example.ui.screens
 
+import com.example.ui.util.uiPlural
+import com.example.ui.util.locationLine
+import com.example.ui.util.localizedLabel
+import com.example.ui.util.uiText
+import com.example.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import com.example.ui.theme.Radius
+import com.example.ui.theme.Elevation
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -34,7 +43,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.selectable
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -56,16 +64,19 @@ fun DiscoveryScreen(
     viewModel: ProHostViewModel,
     onSelectSpace: (SpaceListing, String?) -> Unit,
     discoveryViewModel: DiscoveryViewModel = viewModel(),
-    // Shown in Explore's own floating header when the shell has no app bar (specialists).
-    unreadAlertCount: Int = 0,
-    onAlertsClick: (() -> Unit)? = null
+    // Explore has no app bar: its floating header carries the logo next to the Map | List toggle.
+    showBrand: Boolean = false,
+    // Pro Host / Admin: a ☰ control in the header opens their drawer.
+    onOpenMenu: (() -> Unit)? = null,
+    // A card's Availability button: the listing opens with its availability sheet up.
+    onOpenAvailability: ((SpaceListing, String?) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val uiState by discoveryViewModel.uiState.collectAsState()
     val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
     val categoryOptions = remember(architectureSchema) {
         architectureSchema.spaceTypes.filter { it.isEnabled }.ifEmpty {
-            SpaceType.values().map { SchemaItem(id = it.name, name = it.displayName, category = "SPACE_TYPE") }
+            SpaceType.values().map { SchemaItem(id = it.name, name = localizedLabel(it.displayName), category = "SPACE_TYPE") }
         }
     }
 
@@ -118,8 +129,19 @@ fun DiscoveryScreen(
         onListPositionSaved = { index, offset -> discoveryViewModel.saveListPosition(index, offset) },
         initialMapCamera = discoveryViewModel.mapCamera,
         onMapCameraSaved = { discoveryViewModel.saveMapCamera(it) },
-        unreadAlertCount = unreadAlertCount,
-        onAlertsClick = onAlertsClick,
+        showBrand = showBrand,
+        onOpenMenu = onOpenMenu,
+        onOpenAvailability = onOpenAvailability?.let { open ->
+            { space: SpaceListing, subId: String? ->
+                com.example.analytics.AnalyticsTracker.selectItem(
+                    if (uiState.isMapViewActive) "explore_map" else "explore_list",
+                    space,
+                    space.subdivisions.firstOrNull { it.id == subId },
+                    uiState.filteredSpaces.indexOfFirst { it.id == space.id }.takeIf { it >= 0 }
+                )
+                open(space, subId)
+            }
+        },
         onMapGesture = { discoveryViewModel.setNavExpandedOnMap(false) }
     )
 }
@@ -132,7 +154,7 @@ fun DiscoveryScreen(
 fun DiscoveryScreenContent(
     spaces: List<SpaceListing>,
     filterState: DiscoveryFilterState,
-    categoryOptions: List<SchemaItem> = SpaceType.values().map { SchemaItem(id = it.name, name = it.displayName, category = "SPACE_TYPE") },
+    categoryOptions: List<SchemaItem> = SpaceType.values().map { SchemaItem(id = it.name, name = localizedLabel(it.displayName), category = "SPACE_TYPE") },
     divisionTypeOptions: List<Level2Type> = Level2Type.entries.toList(),
     availableCountries: List<String> = emptyList(),
     priceBounds: ClosedFloatingPointRange<Float>? = null,
@@ -168,8 +190,9 @@ fun DiscoveryScreenContent(
     onListPositionSaved: (index: Int, offset: Int) -> Unit = { _, _ -> },
     initialMapCamera: com.google.android.gms.maps.model.CameraPosition? = null,
     onMapCameraSaved: (com.google.android.gms.maps.model.CameraPosition) -> Unit = {},
-    unreadAlertCount: Int = 0,
-    onAlertsClick: (() -> Unit)? = null,
+    showBrand: Boolean = false,
+    onOpenMenu: (() -> Unit)? = null,
+    onOpenAvailability: ((SpaceListing, String?) -> Unit)? = null,
     onMapGesture: () -> Unit = {}
 ) {
     val bottomNavInset = LocalBottomNavInset.current
@@ -218,8 +241,8 @@ fun DiscoveryScreenContent(
                         onToggleMapView = onToggleMapView,
                         onSearchQueryChange = onSearchQueryChange,
                         onOpenFilters = { onSetFilterSheetVisible(true) },
-                        unreadAlertCount = unreadAlertCount,
-                        onAlertsClick = onAlertsClick,
+                        showBrand = showBrand,
+                        onOpenMenu = onOpenMenu,
                         modifier = Modifier.align(Alignment.TopStart)
                     )
                 }
@@ -239,8 +262,8 @@ fun DiscoveryScreenContent(
                 onToggleMapView = onToggleMapView,
                 onSearchQueryChange = onSearchQueryChange,
                 onOpenFilters = { onSetFilterSheetVisible(true) },
-                unreadAlertCount = unreadAlertCount,
-                onAlertsClick = onAlertsClick
+                showBrand = showBrand,
+                onOpenMenu = onOpenMenu
             )
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             // List View
@@ -249,10 +272,10 @@ fun DiscoveryScreenContent(
             } else if (loadError != null) {
                 Box(modifier = Modifier.fillMaxSize().padding(top = 8.dp, bottom = bottomNavInset)) {
                     ProEmptyState(
-                        title = "Couldn't Load Workspaces",
+                        title = stringResource(R.string.couldn_t_load_workspaces),
                         description = loadError,
                         icon = Icons.Default.WifiOff,
-                        actionButtonText = "Retry",
+                        actionButtonText = stringResource(R.string.retry),
                         onActionClick = onRetryLoad
                     )
                 }
@@ -264,16 +287,16 @@ fun DiscoveryScreenContent(
             } else if (spaces.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize().padding(top = 8.dp, bottom = bottomNavInset)) {
                     ProEmptyState(
-                        title = "No Workspaces Found",
+                        title = stringResource(R.string.no_workspaces_found),
                         description = if (searchQuery.isNotBlank()) {
-                            "Nothing matches \"${searchQuery.trim()}\" with the current filters."
+                            uiText(R.string.nothing_matches_x_with_the_current_filters, searchQuery.trim())
                         } else {
-                            "Try a different space type, division type or pricing formula."
+                            uiText(R.string.try_a_different_space_type_division_type_o)
                         },
                         icon = Icons.Default.SearchOff,
                         // Search and filters run over the loaded page: offer the next one
                         // before suggesting the person change their search.
-                        actionButtonText = if (hasMore) "Search More Listings" else "Reset All Filters",
+                        actionButtonText = if (hasMore) stringResource(R.string.search_more_listings) else stringResource(R.string.reset_all_filters),
                         onActionClick = {
                             if (hasMore) {
                                 onLoadMore()
@@ -296,7 +319,7 @@ fun DiscoveryScreenContent(
                             .fillMaxWidth()
                             .widthIn(max = 840.dp),
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp + bottomNavInset),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                        verticalArrangement = Arrangement.spacedBy(Spacing.lg)
                     ) {
                     // Flatten: one card per (matching) subdivision, or one card for a
                     // whole-space listing.
@@ -317,6 +340,7 @@ fun DiscoveryScreenContent(
                                 subdivision = sub,
                                 isSaved = savedSpaceIds.contains(space.id),
                                 onClick = { onSelectSpace(space, sub.id) },
+                                onAvailability = onOpenAvailability?.let { open -> { open(space, sub.id) } },
                                 onQuickWhatsApp = { onQuickWhatsApp(space, sub) },
                                 onToggleSave = { onToggleSavedSpace(space.id) }
                             )
@@ -325,6 +349,7 @@ fun DiscoveryScreenContent(
                                 space = space,
                                 isSaved = savedSpaceIds.contains(space.id),
                                 onClick = { onSelectSpace(space, null) },
+                                onAvailability = onOpenAvailability?.let { open -> { open(space, null) } },
                                 onQuickWhatsApp = { onQuickWhatsApp(space, null) },
                                 onToggleSave = { onToggleSavedSpace(space.id) }
                             )
@@ -340,7 +365,7 @@ fun DiscoveryScreenContent(
                             LaunchedEffect(listCards.size) { onLoadMore() }
                             Box(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
                                 TextButton(onClick = onLoadMore) {
-                                    Text("Load more workspaces", style = MaterialTheme.typography.labelLarge)
+                                    Text(stringResource(R.string.load_more_workspaces), style = MaterialTheme.typography.labelLarge)
                                 }
                             }
                         }
@@ -354,6 +379,7 @@ fun DiscoveryScreenContent(
     }
 
     if (showFilterSheet) {
+        com.example.ui.components.TrackScreen("explore_filters")
         DiscoveryFilterSheet(
             filterState = filterState,
             resultCount = spaces.size,
@@ -382,9 +408,9 @@ private fun SearchingMoreRow() {
         verticalAlignment = Alignment.CenterVertically
     ) {
         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(Spacing.sm))
         Text(
-            "Searching more listings…",
+            stringResource(R.string.searching_more_listings),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -392,18 +418,19 @@ private fun SearchingMoreRow() {
 }
 
 private fun formulaLabel(formula: PricingFormulaFilter): String =
-    formula.strategy?.displayName ?: "Per attendee"
+    formula.strategy?.displayName ?: uiText(R.string.per_attendee)
 
 /** The price unit a formula's range slider is in: per person for per-attendee rooms. */
 private fun formulaUnitLabel(formula: PricingFormulaFilter): String =
-    formula.strategy?.let { SpaceCalculationUtils.strategyUnitLabel(it) } ?: "/person"
+    formula.strategy?.let { SpaceCalculationUtils.strategyUnitLabel(it) } ?: SpaceCalculationUtils.PER_PERSON_UNIT
 
 /**
- * Explore's own header (specialists have no app bar): map/list toggle top-left, the brand
- * top-centre and notifications top-right ([onAlertsClick]; Pro Hosts, who keep the app bar,
- * pass null), then search under the toggle and filters under the bell. On the map the row is
- * transparent and each control floats on its own surface; on the list it has the list's
- * background and sits above it in the layout. [belowControls] is the map's "Search this area".
+ * Explore's own header (specialists have no app bar), one row: search top-left, the Map | List toggle
+ * top-centre with the brand logo wrapped in the same pill ([showBrand]; Pro Hosts and Admins keep the app
+ * bar's brand, so they get the toggle alone) and filters top-right. There is no notification bell here:
+ * notifications live in the app bar of the other tabs. On the map the row is transparent and each control
+ * floats on its own surface; on the list it has the list's background and sits above it in the layout.
+ * [belowControls] is the map's "Search this area".
  */
 @Composable
 private fun ExploreOverlayHeader(
@@ -415,9 +442,9 @@ private fun ExploreOverlayHeader(
     onToggleMapView: () -> Unit,
     onSearchQueryChange: (String) -> Unit,
     onOpenFilters: () -> Unit,
-    unreadAlertCount: Int,
-    onAlertsClick: (() -> Unit)?,
+    showBrand: Boolean,
     modifier: Modifier = Modifier,
+    onOpenMenu: (() -> Unit)? = null,
     focusSearchOnOpen: Boolean = false,
     onSearchFocusConsumed: () -> Unit = {},
     belowControls: @Composable () -> Unit = {}
@@ -427,59 +454,58 @@ private fun ExploreOverlayHeader(
             .fillMaxWidth()
             .then(if (isMapView) Modifier else Modifier.proHostScreenBackground())
             .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        // Row 1: search · logo · notifications
+        // One row: search · logo + Map|List · filters
         Box(modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp)) {
+            Row(
+                modifier = Modifier.align(Alignment.CenterStart),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+            if (onOpenMenu != null) {
+                ExploreControlSurface(floating = isMapView, shape = CircleShape) {
+                    IconButton(onClick = onOpenMenu, modifier = Modifier.size(44.dp)) {
+                        Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.open_menu), tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                }
+            }
             BadgedControl(
-                badge = if (searchQuery.isNotEmpty()) "" else null,
-                modifier = Modifier.align(Alignment.CenterStart)
+                badge = if (searchQuery.isNotEmpty()) "" else null
             ) {
                 ExploreControlSurface(floating = isMapView, shape = CircleShape) {
                     IconButton(onClick = { onSearchExpandedChange(!searchExpanded) }, modifier = Modifier.size(44.dp)) {
                         Icon(
                             if (searchExpanded) Icons.Default.Close else Icons.Default.Search,
                             contentDescription = when {
-                                searchExpanded -> "Close search"
-                                searchQuery.isNotEmpty() -> "Search workspaces: $searchQuery"
-                                else -> "Search workspaces"
+                                searchExpanded -> uiText(R.string.close_search)
+                                searchQuery.isNotEmpty() -> uiText(R.string.search_workspaces_x, searchQuery)
+                                else -> uiText(R.string.search_workspaces)
                             },
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
             }
-            if (onAlertsClick != null) {
-                ExploreControlSurface(floating = isMapView, modifier = Modifier.align(Alignment.Center)) {
-                    Row(
-                        modifier = Modifier.padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        ProHostBrandLogo(size = 24.dp)
-                        Text(
-                            "ProHost",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onSurface
+            }
+            MapListToggle(
+                isMapView = isMapView,
+                floating = isMapView,
+                onToggle = onToggleMapView,
+                showBrand = showBrand,
+                modifier = Modifier.align(Alignment.Center)
+            )
+            BadgedControl(
+                badge = activeFilterCount.takeIf { it > 0 }?.toString(),
+                modifier = Modifier.align(Alignment.CenterEnd)
+            ) {
+                ExploreControlSurface(floating = isMapView, shape = CircleShape) {
+                    IconButton(onClick = onOpenFilters, modifier = Modifier.size(44.dp)) {
+                        Icon(
+                            Icons.Default.Tune,
+                            contentDescription = if (activeFilterCount > 0) stringResource(R.string.filters_x_active, activeFilterCount) else stringResource(R.string.filters),
+                            tint = if (activeFilterCount > 0) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
                         )
-                    }
-                }
-                BadgedControl(
-                    badge = unreadAlertCount.takeIf { it > 0 }?.let { if (it > 99) "99+" else "$it" },
-                    modifier = Modifier.align(Alignment.CenterEnd)
-                ) {
-                    ExploreControlSurface(floating = isMapView, shape = CircleShape) {
-                        IconButton(
-                            onClick = onAlertsClick,
-                            modifier = Modifier.size(44.dp).testTag("top_bar_notifications_button")
-                        ) {
-                            Icon(
-                                if (unreadAlertCount > 0) Icons.Default.NotificationsActive else Icons.Default.Notifications,
-                                contentDescription = if (unreadAlertCount > 0) "Notifications, $unreadAlertCount unread" else "Notifications",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
                     }
                 }
             }
@@ -500,30 +526,6 @@ private fun ExploreOverlayHeader(
             )
         }
 
-        // Row 2: Map | List · filters
-        Box(modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp)) {
-            MapListToggle(
-                isMapView = isMapView,
-                floating = isMapView,
-                onToggle = onToggleMapView,
-                modifier = Modifier.align(Alignment.CenterStart)
-            )
-            BadgedControl(
-                badge = activeFilterCount.takeIf { it > 0 }?.let { if (it > 99) "99+" else "$it" },
-                modifier = Modifier.align(Alignment.CenterEnd)
-            ) {
-                ExploreControlSurface(floating = isMapView, shape = CircleShape) {
-                    IconButton(onClick = onOpenFilters, modifier = Modifier.size(44.dp)) {
-                        Icon(
-                            Icons.Default.Tune,
-                            contentDescription = if (activeFilterCount > 0) "Filters, $activeFilterCount active" else "Filters",
-                            tint = if (activeFilterCount > 0) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-            }
-        }
-
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { belowControls() }
     }
 }
@@ -537,12 +539,9 @@ private fun BadgedControl(badge: String?, modifier: Modifier = Modifier, content
     Box(modifier = modifier) {
         content()
         if (badge != null) {
-            Badge(
-                containerColor = MaterialTheme.colorScheme.error,
-                modifier = Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-2).dp)
-            ) {
-                if (badge.isNotEmpty()) Text(badge, maxLines = 1, softWrap = false)
-            }
+            val badgeModifier = Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-2).dp)
+            val count = badge.toIntOrNull()
+            if (count != null) ProHostCountBadge(count, badgeModifier) else ProHostDotBadge(badgeModifier)
         }
     }
 }
@@ -552,30 +551,39 @@ private fun BadgedControl(badge: String?, modifier: Modifier = Modifier, content
 private fun ExploreControlSurface(
     floating: Boolean,
     modifier: Modifier = Modifier,
-    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(22.dp),
+    shape: androidx.compose.ui.graphics.Shape = Radius.Md,
     content: @Composable () -> Unit
 ) {
     Surface(
         shape = shape,
         color = if (floating) MaterialTheme.colorScheme.surface.copy(alpha = 0.94f) else MaterialTheme.colorScheme.surface,
-        shadowElevation = if (floating) 6.dp else 1.dp,
+        shadowElevation = if (floating) Elevation.level3 else Elevation.level1,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
         modifier = modifier,
         content = content
     )
 }
 
-/** Segmented Map | List switch; the active half is filled with the brand colour. */
+/** Segmented Map | List switch (active half filled with the brand colour), optionally led by the brand logo. */
 @Composable
 private fun MapListToggle(
     isMapView: Boolean,
     floating: Boolean,
     onToggle: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showBrand: Boolean = false
 ) {
     ExploreControlSurface(floating = floating, shape = CircleShape, modifier = modifier) {
-        Row(modifier = Modifier.padding(4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            listOf(true to "Map", false to "List").forEach { (isMapOption, label) ->
+        Row(
+            modifier = Modifier.padding(start = if (showBrand) 8.dp else 4.dp, top = 4.dp, end = 4.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+        ) {
+            if (showBrand) {
+                ProHostBrandLogo(size = 26.dp)
+                Spacer(Modifier.width(Spacing.xs))
+            }
+            listOf(true to uiText(R.string.map), false to uiText(R.string.list)).forEach { (isMapOption, label) ->
                 val selected = isMapOption == isMapView
                 val container by androidx.compose.animation.animateColorAsState(
                     if (selected) MaterialTheme.colorScheme.primary else Color.Transparent, label = "mapListToggle"
@@ -588,12 +596,12 @@ private fun MapListToggle(
                         .heightIn(min = 36.dp)
                         .padding(horizontal = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                 ) {
                     // Icon only; the label stays for TalkBack.
                     Icon(
                         if (isMapOption) Icons.Default.Map else Icons.AutoMirrored.Filled.FormatListBulleted,
-                        contentDescription = "$label view",
+                        contentDescription = stringResource(R.string.x_view, label),
                         tint = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
@@ -633,7 +641,7 @@ private fun ExploreSearchField(
             onFocusConsumed()
         }
     }
-    ExploreControlSurface(floating = floating, shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
+    ExploreControlSurface(floating = floating, shape = Radius.Md, modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp)) {
             Icon(
                 Icons.Default.Search,
@@ -644,8 +652,8 @@ private fun ExploreSearchField(
             Box(modifier = Modifier.weight(1f).padding(start = 8.dp, top = 10.dp, bottom = 10.dp)) {
                 if (draft.isEmpty()) {
                     Text(
-                        "Name, area, specialty, room type…",
-                        style = MaterialTheme.typography.bodySmall,
+                        stringResource(R.string.name_area_specialty_room_type),
+                        style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -656,22 +664,22 @@ private fun ExploreSearchField(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = { submit() }),
-                    textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                     cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary)
                 )
             }
             IconButton(onClick = onClose, modifier = Modifier.size(40.dp)) {
-                Icon(Icons.Default.Close, contentDescription = "Clear and close search", modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.clear_and_close_search), modifier = Modifier.size(18.dp))
             }
             FilledIconButton(
                 onClick = { submit() },
-                modifier = Modifier.padding(end = 4.dp).size(36.dp),
+                modifier = Modifier.padding(end = 4.dp).size(40.dp),
                 colors = IconButtonDefaults.filledIconButtonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 )
             ) {
-                Icon(Icons.Default.Check, contentDescription = "Search", modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Check, contentDescription = stringResource(R.string.search), modifier = Modifier.size(18.dp))
             }
         }
     }
@@ -703,7 +711,7 @@ private fun DiscoveryFilterSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 10.dp),
+                .padding(horizontal = Spacing.lg, vertical = Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             Row(
@@ -711,14 +719,14 @@ private fun DiscoveryFilterSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Filter Workspaces", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.filter_workspaces), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 TextButton(onClick = onResetFilters, contentPadding = PaddingValues(horizontal = 8.dp)) {
-                    Text("Reset", style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(R.string.reset), style = MaterialTheme.typography.labelMedium)
                 }
             }
 
             MultiSelectDropdownField(
-                label = "Space type",
+                label = stringResource(R.string.space_type),
                 options = categoryOptions.map { it.id },
                 selected = filterState.selectedCategoryIds,
                 optionLabel = { id -> categoryOptions.firstOrNull { it.id == id }?.name ?: id },
@@ -727,10 +735,10 @@ private fun DiscoveryFilterSheet(
             )
 
             MultiSelectDropdownField(
-                label = "Division type",
+                label = stringResource(R.string.division_type),
                 options = divisionTypeOptions,
                 selected = filterState.selectedDivisionTypes,
-                optionLabel = { it.displayName },
+                optionLabel = { localizedLabel(it.displayName) },
                 onSelectionChange = onSelectDivisionTypes,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -738,7 +746,7 @@ private fun DiscoveryFilterSheet(
             // Always offered: it used to hide unless listings spanned 2+ countries, which
             // (with legacy listings' blank country) meant it never appeared.
             MultiSelectDropdownField(
-                label = "Country",
+                label = stringResource(R.string.country),
                 options = (availableCountries + filterState.selectedCountries).distinct().sorted(),
                 selected = filterState.selectedCountries,
                 optionLabel = { it },
@@ -747,7 +755,7 @@ private fun DiscoveryFilterSheet(
             )
 
             MultiSelectDropdownField(
-                label = "Pricing formula",
+                label = stringResource(R.string.pricing_formula),
                 options = PricingFormulaFilter.entries.toList(),
                 selected = filterState.selectedStrategies,
                 optionLabel = { "${formulaLabel(it)} (${formulaUnitLabel(it).removePrefix("/")})" },
@@ -763,12 +771,12 @@ private fun DiscoveryFilterSheet(
                 val current = (filterState.priceRange ?: priceBounds).let { range ->
                     range.start.coerceIn(priceBounds)..range.endInclusive.coerceIn(priceBounds)
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Price range", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.price_range), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                         Text(
                             "$${current.start.toInt()} – $${current.endInclusive.toInt()}$unit",
                             style = MaterialTheme.typography.labelLarge,
@@ -785,30 +793,31 @@ private fun DiscoveryFilterSheet(
                 }
             } else if (filterState.selectedStrategies.size > 1) {
                 Text(
-                    "Choose a single pricing formula to filter by price.",
+                    stringResource(R.string.choose_a_single_pricing_formula_to_filter),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 FilterChip(
                     selected = filterState.onlyVerified,
                     onClick = { onToggleVerifiedOnly(!filterState.onlyVerified) },
                     leadingIcon = if (filterState.onlyVerified) {
                         { Icon(Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(16.dp)) }
                     } else null,
-                    label = { Text("Verified only", style = MaterialTheme.typography.labelSmall) }
+                    label = { Text(stringResource(R.string.verified_only), style = MaterialTheme.typography.labelSmall) }
                 )
             }
 
             Button(
+                colors = proPrimaryButtonColors(),
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium,
                 contentPadding = PaddingValues(vertical = 10.dp)
             ) {
-                Text("Show $resultCount Result${if (resultCount == 1) "" else "s"}")
+                Text(pluralStringResource(R.plurals.show_results, resultCount, resultCount))
             }
 
             Spacer(modifier = Modifier.navigationBarsPadding().height(12.dp))
@@ -824,27 +833,32 @@ fun SubdivisionDiscoveryCard(
     onClick: () -> Unit,
     onQuickWhatsApp: () -> Unit,
     onToggleSave: (() -> Unit)? = null
+,
+    // Opens the listing with its availability sheet up; without it the button just opens the listing.
+    onAvailability: (() -> Unit)? = null
 ) {
     // This card is one division, so it shows that division's own price and photo.
     val lowestPrice = com.example.ui.util.SpaceCalculationUtils.findLowestPriceForSubdivision(subdivision)
     WorkspaceCard(
         info = WorkspaceCardInfo(
             title = "${subdivision.name} · ${space.title}",
-            listingType = subdivision.type.displayName,
-            location = "${space.district}, ${space.governorate.displayName}",
+            listingType = localizedLabel(subdivision.type.displayName),
+            location = space.locationLine(),
             rateUsd = lowestPrice.amount,
             rateUnit = lowestPrice.unitLabel,
             imageUrl = subdivision.imageUrls.firstOrNull() ?: space.imageUrls.firstOrNull(),
-            operatingHours = "${space.schedule.openingHour} - ${space.schedule.closingHour}",
-            totalDaysOpen = "${space.schedule.operatingDays.size} days/wk",
-            formulaTypes = listOf(subdivision.pricing.strategyType.displayName),
+            operatingHours = "\u2066${space.schedule.openingHour} - ${space.schedule.closingHour}\u2069",
+            totalDaysOpen = uiPlural(R.plurals.days_per_week, space.schedule.operatingDays.size, space.schedule.operatingDays.size),
+            formulaTypes = listOf(localizedLabel(subdivision.pricing.strategyType.displayName)),
             isVerified = space.isVerified
         ),
         isSaved = isSaved,
         onToggleSave = onToggleSave,
         onClick = onClick,
-        onDetailsClick = onClick,
-        onWhatsAppClick = onQuickWhatsApp
+        onDetailsClick = onAvailability ?: onClick,
+        onWhatsAppClick = onQuickWhatsApp,
+        detailsLabel = if (onAvailability != null) uiText(R.string.availability) else uiText(R.string.check_space),
+        detailsIcon = if (onAvailability != null) Icons.Default.EventAvailable else Icons.Default.Visibility
     )
 }
 
@@ -855,11 +869,14 @@ fun SpaceListingCard(
     onQuickWhatsApp: () -> Unit,
     isSaved: Boolean = false,
     onToggleSave: (() -> Unit)? = null
+,
+    // Opens the listing with its availability sheet up; without it the button just opens the listing.
+    onAvailability: (() -> Unit)? = null
 ) {
     val formulaTypes = mutableSetOf<String>()
-    formulaTypes.add(space.pricing.strategyType.displayName)
+    formulaTypes.add(localizedLabel(space.pricing.strategyType.displayName))
     space.subdivisions.forEach { sub ->
-        formulaTypes.add(sub.pricing.strategyType.displayName)
+        formulaTypes.add(localizedLabel(sub.pricing.strategyType.displayName))
     }
 
     val lowestPrice = com.example.ui.util.SpaceCalculationUtils.findLowestConfiguredPrice(space)
@@ -867,20 +884,22 @@ fun SpaceListingCard(
     WorkspaceCard(
         info = WorkspaceCardInfo(
             title = space.title,
-            listingType = space.spaceType.displayName,
-            location = "${space.district}, ${space.governorate.displayName}",
+            listingType = localizedLabel(space.spaceType.displayName),
+            location = space.locationLine(),
             rateUsd = lowestPrice.amount,
             rateUnit = lowestPrice.unitLabel,
             imageUrl = space.imageUrls.firstOrNull(),
-            operatingHours = "${space.schedule.openingHour} - ${space.schedule.closingHour}",
-            totalDaysOpen = "${space.schedule.operatingDays.size} days/wk",
+            operatingHours = "\u2066${space.schedule.openingHour} - ${space.schedule.closingHour}\u2069",
+            totalDaysOpen = uiPlural(R.plurals.days_per_week, space.schedule.operatingDays.size, space.schedule.operatingDays.size),
             formulaTypes = formulaTypes.toList(),
             isVerified = space.isVerified
         ),
         isSaved = isSaved,
         onToggleSave = onToggleSave,
         onClick = onClick,
-        onDetailsClick = onClick,
-        onWhatsAppClick = onQuickWhatsApp
+        onDetailsClick = onAvailability ?: onClick,
+        onWhatsAppClick = onQuickWhatsApp,
+        detailsLabel = if (onAvailability != null) uiText(R.string.availability) else uiText(R.string.check_space),
+        detailsIcon = if (onAvailability != null) Icons.Default.EventAvailable else Icons.Default.Visibility
     )
 }

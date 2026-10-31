@@ -35,7 +35,11 @@ object AnalyticsConsent {
         AnalyticsTracker.applyConsent(_state.value == ConsentState.GRANTED, reset = false)
     }
 
-    fun grant(context: Context) = set(context, ConsentState.GRANTED)
+    fun grant(context: Context) {
+        set(context, ConsentState.GRANTED)
+        // First event after opting in (denials are never sent: nothing is collected then).
+        AnalyticsTracker.analyticsConsent(granted = true)
+    }
 
     fun deny(context: Context) = set(context, ConsentState.DENIED)
 

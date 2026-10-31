@@ -4,8 +4,8 @@ ProHost has **no mail server of its own** (the Hostinger SMTP mailbox was retire
 
 | Email | Sent by |
 |---|---|
-| Magic sign-in link, password/verify/change-email templates | **Firebase Authentication's built-in mailer** (`sendSignInLinkToEmail` from the app; Auth › Templates). Sender domain `pro-host.tech` once its DNS is verified, otherwise Firebase's default `noreply@prohost-f766f.firebaseapp.com`. |
-| 6-digit sign-in code, branded sign-in link fallback, email verification, booking accepted/rejected/cancelled, subscription activated/renewed/expiring | Cloud Functions write `mail/{id}` (`functions/src/lib/email.ts` `sendEmail`) → the **Trigger Email extension** (`firebase/firestore-send-email`) delivers it. Delivery outcome is written back on the doc (`delivery.state`, `delivery.error`). |
+| Password reset fallback (only when the `sendPasswordResetLink` callable is unreachable) | **Firebase Authentication's built-in mailer** (the app's `sendPasswordResetEmail`; Auth › Templates). Sender domain `pro-host.tech` once its DNS is verified, otherwise Firebase's default `noreply@prohost-f766f.firebaseapp.com`. |
+| Password reset ("Forgot password", `auth/passwordReset.ts`), "set your password" invites for former email-code users (Maintenance `passwordinvites`), email verification, legacy 6-digit code (1.0.43 apps until `authconfig retire`), booking accepted/rejected/cancelled, subscription activated/renewed/expiring | Cloud Functions write `mail/{id}` (`functions/src/lib/email.ts` `sendEmail`) → the **Trigger Email extension** (`firebase/firestore-send-email`) delivers it. Delivery outcome is written back on the doc (`delivery.state`, `delivery.error`). |
 
 `mail` is server-only (firestore.rules deny). Never log full addresses — use `maskEmail()`.
 
@@ -39,3 +39,22 @@ domain not verified yet).
 
 ### 5. Clean-up
 Secret Manager: delete `HOSTINGER_SMTP_API_KEY` (and the dead `WHISH_SECRET_KEY`).
+
+## Office leads (pro-host.tech/list-your-office, Instagram story, DM agent)
+
+The form calls `websiteOfficeLead` (`functions/src/website/officeLeads.ts`); the Instagram DM agent's intake saves the same
+kind of lead after consent. Both are recorded once by `onOfficeLeadSaved` (`website/officeLeadSync.ts`). Each lead arrives at admin@pro-host.tech with
+subject `[ProHost Office lead] Name · Profession · City`, reply-to the lead, a "Message on WhatsApp" button and headers
+`X-ProHost-Form: office-lead`, `X-ProHost-Tags: insta-leads-story, prospect, office-owner, <profession>`. It is saved in
+`mailing_list` (source `insta_story` or `instagram_dm`, never subscribed) and `mailing_messages`, and as a row in the IG Automations sheet's
+Leads tab. Filter by the tag in /admin (Tag dropdown; the Excel export has an "Insta story leads" sheet). The same alert
+also goes to WhatsApp once /admin › WhatsApp alerts is set up (WhatsApp Business Cloud API, approved template with one
+`{{1}}`; `lib/whatsappAlerts.ts`).
+
+## Partner enquiries (pro-host.tech/partner)
+
+The form on `/partner` calls `websiteContact` with `topic: "partner"`. Each enquiry:
+- arrives at admin@pro-host.tech with subject `[ProHost Partner] Name (Company)`, reply-to the visitor, headers `X-ProHost-Form: partner`, `X-ProHost-Tags: partner, strategic-sponsor, usd-24000`, `Importance: high`;
+- is saved in `mailing_list` (sources `partner`, `tags` array, never auto-subscribed to the newsletter) and `mailing_messages` (`source`, `tags`).
+
+Gmail filter for admin@: Has the words `subject:"[ProHost Partner]"` → Apply label `ProHost/Partner`, star, never send to spam.

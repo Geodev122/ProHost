@@ -1,5 +1,8 @@
 package com.example.ui.viewmodel
 
+import com.example.ui.util.uiText
+import com.example.R
+import com.example.ui.util.UiMessages
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -78,7 +81,7 @@ class BillingController(
                     throw e
                 } catch (e: Exception) {
                     android.util.Log.e("ProHostVM", "Product details collection failed", e)
-                    _billingError.value = "Couldn't load Google Play plans. Please close and reopen Subscriptions."
+                    _billingError.value = uiText(R.string.couldn_t_load_google_play_plans_please_clo)
                 }
             }
             // Every billing outcome (no offer, launch failure, cancel, success) reaches
@@ -136,7 +139,7 @@ class BillingController(
                             Result.failure(e)
                         }
                         result.onSuccess {
-                            onPlanActivated("Your Pro Host plan is active.")
+                            onPlanActivated(uiText(R.string.your_pro_host_plan_is_active))
                         }.onFailure { e ->
                             dismissBillingActivationPending()
                             // The server parks a paid purchase it couldn't confirm and retries it;
@@ -150,8 +153,8 @@ class BillingController(
                             }
                             if (event.fromCheckout) {
                                 _billingError.value = e.toUserMessage(
-                                    "Your payment went through, but we couldn't activate your plan yet. " +
-                                        "Reopen Subscriptions in a moment, or tap Restore Purchases."
+                                    uiText(R.string.your_payment_went_through_but_we_couldn_t) +
+                                        uiText(R.string.reopen_subscriptions_in_a_moment_or_tap_re)
                                 )
                             }
                         }
@@ -227,7 +230,7 @@ class BillingController(
         } catch (e: Exception) {
             android.util.Log.w("BillingController", "Role refresh after activation failed; will catch up on the next sync", e)
         }
-        if (currentUser.value?.canHost(com.example.data.auth.PhoneLink.isLinked()) == false) {
+        if (currentUser.value?.canHost() == false) {
             _kycPromptAfterActivation.value = true
         }
     }
@@ -240,10 +243,11 @@ class BillingController(
      */
     fun launchGooglePaySubscription(
         activity: android.app.Activity,
-        basePlanId: String
+        basePlanId: String,
+        offerChoice: com.example.data.billing.OfferChoice = com.example.data.billing.OfferChoice.Preferred
     ) {
         val uid = currentUser.value?.id ?: run {
-            _billingError.value = "Your session expired — please sign in again to subscribe."
+            _billingError.value = uiText(R.string.your_session_expired_please_sign_in_again)
             return
         }
         clearBillingMessages()
@@ -281,8 +285,8 @@ class BillingController(
             // isn't the one that subscribed, or Play hasn't returned purchases yet.
             if (switching && oldPurchaseToken == null) {
                 scope.launch { runCatching { manager.fetchActivePurchases() } }
-                _billingError.value = "To switch plans, open the Play Store with the Google account that subscribed " +
-                    "(or use Manage subscription). We couldn't find your current subscription on this device."
+                _billingError.value = uiText(R.string.to_switch_plans_open_the_play_store_with_t) +
+                    uiText(R.string.or_use_manage_subscription_we_couldn_t_fin)
                 return
             }
 
@@ -301,21 +305,23 @@ class BillingController(
             }
             manager.launchSubscriptionPurchase(
                 activity, product, userId = uid, basePlanId = basePlanId,
-                oldPurchaseToken = oldPurchaseToken, replacementMode = replacementMode
+                oldPurchaseToken = oldPurchaseToken, replacementMode = replacementMode,
+                // A plan switch shows regular prices, so it is charged the plain base plan.
+                offerChoice = if (oldPurchaseToken != null) com.example.data.billing.OfferChoice.BasePlanOnly else offerChoice
             )
         } else {
             // Store the intent and retry automatically once products load from Play
             _pendingRetryBasePlanId = basePlanId
             _pendingRetryActivity = java.lang.ref.WeakReference(activity)
             _pendingRetryAtMillis = System.currentTimeMillis()
-            Toast.makeText(activity, "Connecting to Google Play Store…", Toast.LENGTH_SHORT).show()
+            UiMessages.show(activity, activity.getString(R.string.connecting_to_google_play_store))
             // Merges into productDetailsList, whose collector above retries this launch.
             manager?.queryProductDetailsForId(productId) { found ->
                 if (found == null) {
                     _pendingRetryBasePlanId = null
                     _pendingRetryActivity = null
                     // Billing callbacks may arrive off the main thread: use state, not a Toast.
-                    _billingError.value = "ProHost Premium isn't available in Google Play right now. Please try again later."
+                    _billingError.value = uiText(R.string.prohost_premium_isn_t_available_in_google)
                 }
             }
         }
@@ -354,7 +360,7 @@ class BillingController(
         try {
             activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)))
         } catch (e: android.content.ActivityNotFoundException) {
-            Toast.makeText(activity, "No app available to open this link.", Toast.LENGTH_SHORT).show()
+            UiMessages.show(activity, activity.getString(R.string.no_app_available_to_open_this_link))
         }
     }
 
@@ -371,7 +377,7 @@ class BillingController(
             manager.queryActivePurchases()
             if (userInitiated) {
                 com.example.analytics.AnalyticsTracker.premiumRestoreResult("already_active")
-                _billingSuccess.value = "Your plan is already active on this account."
+                _billingSuccess.value = uiText(R.string.your_plan_is_already_active_on_this_accoun)
             }
             return
         }
@@ -385,7 +391,7 @@ class BillingController(
                 // A fresh query result, not the next StateFlow emission: an unchanged
                 // purchase list never re-emits, which left Restore waiting forever.
                 val purchases = manager.fetchActivePurchases() ?: run {
-                    if (userInitiated) _billingError.value = "Couldn't reach Google Play. Please try again."
+                    if (userInitiated) _billingError.value = uiText(R.string.couldn_t_reach_google_play_please_try_agai)
                     return@runCatching
                 }
                 val uid = currentUser.value?.id
@@ -398,7 +404,7 @@ class BillingController(
                 if (activePurchase == null || productId == null) {
                     if (userInitiated) {
                         com.example.analytics.AnalyticsTracker.premiumRestoreResult("none_found")
-                        _billingError.value = "No active Google Play subscription was found for this Google account."
+                        _billingError.value = uiText(R.string.no_active_google_play_subscription_was_fou)
                     }
                     return@runCatching
                 }
@@ -412,22 +418,22 @@ class BillingController(
                 if (!processedPurchaseTokens.add(activePurchase.purchaseToken) && !userInitiated && !forceServerSync) return@runCatching
                 repository.verifyAndRestorePlayPurchase(activePurchase.purchaseToken, productId)
                     .onSuccess {
-                        com.example.analytics.AnalyticsTracker.premiumRestoreResult("restored")
-                        onPlanActivated("Purchase restored — your Pro Host plan is active.")
+                        com.example.analytics.AnalyticsTracker.premiumRestoreResult("restored", if (userInitiated) "user" else "auto")
+                        onPlanActivated(uiText(R.string.purchase_restored_your_pro_host_plan_is_ac))
                     }
                     .onFailure {
                         processedPurchaseTokens.remove(activePurchase.purchaseToken)
                         awaitingServerActivation = true
                         android.util.Log.w("ProHostViewModel", "verifyAndRestorePurchase failed: ${it.message}")
-                        com.example.analytics.AnalyticsTracker.premiumRestoreResult("failed")
+                        com.example.analytics.AnalyticsTracker.premiumRestoreResult("failed", if (userInitiated) "user" else "auto")
                         // The silent on-open check stays quiet; the Restore button reports why.
                         if (userInitiated) {
-                            _billingError.value = it.toUserMessage("Couldn't restore your purchase. Please try again.")
+                            _billingError.value = it.toUserMessage(uiText(R.string.couldn_t_restore_your_purchase_please_try))
                         }
                     }
             }.onFailure { e ->
                 android.util.Log.e("ProHostViewModel", "restorePlayPurchases error: ${e.message}")
-                if (userInitiated) _billingError.value = "Couldn't check Google Play for purchases. Please try again."
+                if (userInitiated) _billingError.value = uiText(R.string.couldn_t_check_google_play_for_purchases_p)
             }
         }
     }
@@ -441,6 +447,19 @@ class BillingController(
     fun retryBillingQuery(context: android.content.Context) {
         val manager = playBillingManager ?: run { initPlayBilling(context); playBillingManager } ?: return
         manager.querySubscriptionProducts()
+    }
+
+    /**
+     * "Use promo code": opens Google Play's checkout on the Play-configured promo offer (PlayPromo) — Play shows
+     * its benefit (e.g. the free month) and the regular price after it — and copies the code for reference.
+     */
+    fun launchPromoCheckout(activity: android.app.Activity, promo: com.example.data.billing.PlayPromo.PromoOffer) {
+        runCatching {
+            val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("ProHost promo code", promo.code))
+        }
+        com.example.analytics.AnalyticsTracker.premiumPromoCheckout(promo.code)
+        launchGooglePaySubscription(activity, promo.basePlanId, com.example.data.billing.OfferChoice.Specific(promo.offerId))
     }
 
 
@@ -474,7 +493,7 @@ class BillingController(
                         (_billingActivationPending.value || awaitingServerActivation)
                     ) {
                         // The grant arrived by RTDN or the server retry job.
-                        onPlanActivated("Your Pro Host plan is active.")
+                        onPlanActivated(uiText(R.string.your_pro_host_plan_is_active))
                     }
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {

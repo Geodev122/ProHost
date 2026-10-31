@@ -68,8 +68,8 @@ object LegalContent {
             LegalSection(
                 "2. Data We Collect",
                 listOf(
-                    "Account & identity data: full name, email address, phone number (verified by SMS one-time code through Firebase Phone " +
-                    "Authentication), country/governorate/city, and the professional specialty you declare.",
+                    "Account & identity data: full name, email address, WhatsApp phone number (which you enter yourself; it is not verified by " +
+                    "SMS), country/governorate/city, and the professional specialty you declare.",
                     "Verification documents: registration itself never requires an ID document, and a Specialist is never asked for one. If you " +
                     "upgrade to Pro Host, you first upload a government-issued ID document as part of identity verification (KYC) — a ProHost " +
                     "Administrator reviews and approves or rejects it before your Pro Host subscription purchase is allowed to proceed. " +
@@ -107,7 +107,7 @@ object LegalContent {
             LegalSection(
                 "3. Why We Process Your Data (Legal Basis and Purpose)",
                 listOf(
-                    "To create and secure your account, verify your phone number, and authenticate you on each sign-in.",
+                    "To create and secure your account and authenticate you on each sign-in (email link, email code or Google).",
                     "To operate the core marketplace function: displaying Listings, matching Specialists with Pro Hosts, and processing booking " +
                     "requests through to acceptance or decline.",
                     "To enable direct contact between a Specialist and a Pro Host (the WhatsApp hand-off), which you initiate voluntarily on each occasion.",
@@ -174,7 +174,7 @@ object LegalContent {
             LegalSection(
                 "7. Data Security",
                 listOf(
-                    "Access to your account requires phone-number verification via a one-time SMS code. Administrator access to the platform's " +
+                    "Access to your account requires signing in with your email (a one-time link or code) or Google. Administrator access to the platform's " +
                     "governance tools is itself role-gated by server-verified credentials, not a client-side toggle.",
                     "Sensitive fields — your account role, verification status, suspension status, and payment/entitlement records — can only " +
                     "ever be written by our server-side Cloud Functions, never directly by any app (including a modified or reverse-engineered " +
@@ -254,8 +254,8 @@ object LegalContent {
                 "2. Eligibility and Account Registration",
                 listOf(
                     "You must be at least 18 years old and legally capable of entering into a binding contract under Lebanese law to register. " +
-                    "You must provide accurate registration information and a real, working phone number, which you verify by SMS one-time code " +
-                    "— this is currently the only sign-in method the Platform offers.",
+                    "You must provide accurate registration information and a real, working WhatsApp number; you sign in " +
+                    "with your email (a one-time link or code) or your Google account.",
                     "Every new account is registered with the standard \"Specialist\" role — someone seeking to book a workspace. A Specialist " +
                     "never needs to submit a government-issued ID document and is not subject to identity verification (KYC) of any kind.",
                     "The \"Pro Host\" role — someone offering a workspace for rent and paying to list it — is granted automatically and " +

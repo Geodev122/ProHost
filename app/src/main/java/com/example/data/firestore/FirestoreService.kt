@@ -598,6 +598,27 @@ class FirestoreService(
     }
 
     /**
+     * Adds or removes one saved listing with arrayUnion / arrayRemove, so a heart tap never rewrites the whole list from a
+     * possibly stale copy (two devices, a quick double tap). The server's favoritesSync counts the difference.
+     */
+    suspend fun setSavedSpace(uid: String, spaceId: String, saved: Boolean): Boolean {
+        return try {
+            val db = firestore ?: return localOnly
+            db.collection(FirestoreSchema.Collections.USER_PROFILES)
+                .document(uid)
+                .update(
+                    "savedSpaceIds", if (saved) FieldValue.arrayUnion(spaceId) else FieldValue.arrayRemove(spaceId),
+                    "updatedAt", System.currentTimeMillis()
+                )
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating saved listings: ${e.message}", e)
+            false
+        }
+    }
+
+    /**
      * Persists this device's current FCM registration token onto the signed-in user's
      * own profile doc — the only way a server-side Cloud Function can ever reach this
      * device with a real push (see functions/src/notifications/ ts files). A merge write, so

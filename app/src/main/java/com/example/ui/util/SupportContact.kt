@@ -1,9 +1,9 @@
 package com.example.ui.util
 
+import com.example.R
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.widget.Toast
 import com.example.data.model.AppUser
 import com.example.data.model.publicCode
 
@@ -26,6 +26,6 @@ fun launchSupportEmail(context: Context, user: AppUser?, roleName: String) {
     try {
         context.startActivity(intent)
     } catch (e: android.content.ActivityNotFoundException) {
-        Toast.makeText(context, "No email app found — you can also reach us at $SUPPORT_EMAIL", Toast.LENGTH_LONG).show()
+        UiMessages.show(context, uiText(R.string.no_email_app_reach_us_x, SUPPORT_EMAIL), long = true)
     }
 }

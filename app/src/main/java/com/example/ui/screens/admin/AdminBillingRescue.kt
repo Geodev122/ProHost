@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.theme.Spacing
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,6 +29,7 @@ import com.example.data.auth.PendingPayment
 import com.example.data.model.publicCode
 import com.example.ui.components.CustomButton
 import com.example.ui.components.CustomButtonVariant
+import com.example.ui.components.ProEmptyState
 import com.example.ui.components.ProHostAlertBanner
 import com.example.ui.components.ProHostAlertSeverity
 import com.example.ui.components.ProHostDialog
@@ -49,7 +52,7 @@ private fun stamp(millis: Long?): String =
 @Composable
 internal fun AdminBillingRescueCard(uiState: AdminUiState, adminViewModel: AdminViewModel) {
     ProSurfaceCard {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             ProSectionHeader(
                 title = "Billing health",
                 subtitle = "Google Play verification and purchases needing attention",
@@ -126,7 +129,7 @@ internal fun AdminBillingRescueCard(uiState: AdminUiState, adminViewModel: Admin
                     )
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 TextButton(onClick = { adminViewModel.refreshBilling() }, enabled = !uiState.isCheckingBilling) {
                     Text(if (uiState.isCheckingBilling) "Checking…" else "Check again")
                 }
@@ -146,14 +149,18 @@ internal fun AdminPendingPaymentsCard(
     title: String = "Payments needing attention"
 ) {
     ProSurfaceCard {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             ProSectionHeader(
                 title = "$title (${payments.size})",
                 subtitle = "Paid in Google Play but not active yet",
                 icon = Icons.Default.Payments
             )
             if (payments.isEmpty()) {
-                Text("Nothing waiting.", style = MaterialTheme.typography.bodySmall)
+                ProEmptyState(
+                    title = "Nothing waiting",
+                    description = "Paid purchases that still need activation show up here.",
+                    icon = Icons.Default.Payments
+                )
             }
             payments.forEach { p -> PendingPaymentRow(p, uiState.activatingPaymentId == p.id, adminViewModel) }
         }
@@ -162,7 +169,7 @@ internal fun AdminPendingPaymentsCard(
 
 @Composable
 private fun PendingPaymentRow(payment: PendingPayment, busy: Boolean, adminViewModel: AdminViewModel) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(
             "${payment.userName}${payment.userCode.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""} — ${payment.productId}",
             style = MaterialTheme.typography.titleSmall,
@@ -179,7 +186,7 @@ private fun PendingPaymentRow(payment: PendingPayment, busy: Boolean, adminViewM
         if (payment.lastError.isNotBlank()) {
             Text(payment.lastError.take(200), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             if (payment.kind == "pending" && !payment.needsAdmin) {
                 CustomButton(
                     text = if (busy) "Working…" else "Retry now",
@@ -234,7 +241,7 @@ internal fun AdminBillingDialogs(uiState: AdminUiState, adminViewModel: AdminVie
         onDismissRequest = { adminViewModel.cancelAssignPayment() },
         title = { Text("Activate for which account?") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text("Search by name, email, U- code or UID.", style = MaterialTheme.typography.bodySmall)
                 OutlinedTextField(
                     value = query,

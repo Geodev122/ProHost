@@ -1,5 +1,9 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Spacing
+
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -38,30 +43,33 @@ fun CountryPickerDialog(
     onDismiss: () -> Unit
 ) {
     var query by remember { mutableStateOf("") }
-    val filtered = remember(query) {
+    val locale = LocalConfiguration.current.locales[0]
+    val filtered = remember(query, locale) {
         if (query.isBlank()) {
             COUNTRIES
         } else {
             COUNTRIES.filter {
-                it.name.contains(query, ignoreCase = true) || it.dialCode.contains(query)
+                it.name.contains(query, ignoreCase = true) || it.displayName(locale).contains(query, ignoreCase = true) ||
+                    it.dialCode.contains(query)
             }
         }
     }
     ProHostDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Choose your country") },
+        title = { Text(stringResource(R.string.choose_your_country)) },
         text = {
             Column {
-                OutlinedTextField(
+                InputField(
                     value = query,
                     onValueChange = { query = it },
-                    placeholder = { Text("Search country or code") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    label = "",
+                    placeholder = stringResource(R.string.search_country_or_code),
+                    leadingIcon = Icons.Default.Search,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Spacing.sm))
                 LazyColumn(modifier = Modifier.heightIn(max = 360.dp)) {
                     items(filtered) { country ->
                         Row(
@@ -72,9 +80,9 @@ fun CountryPickerDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(country.flagEmoji, style = MaterialTheme.typography.bodyLarge)
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Spacer(modifier = Modifier.width(Spacing.md))
                             Text(
-                                country.name,
+                                country.displayName(locale),
                                 modifier = Modifier.weight(1f),
                                 fontWeight = if (country == selected) FontWeight.Bold else FontWeight.Normal
                             )
@@ -85,7 +93,7 @@ fun CountryPickerDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) }
         }
     )
 }
@@ -105,10 +113,14 @@ fun PhoneNumberField(
     number: String,
     onNumberChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    label: String = "Phone Number",
+    label: String = stringResource(R.string.phone_number_label),
     placeholder: String = "3 123 456"
 ) {
     var showPicker by remember { mutableStateOf(false) }
+    // Phone numbers read left to right in every language: in Arabic the digit groups were reversed ("456 123 3").
+    androidx.compose.runtime.CompositionLocalProvider(
+        androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr
+    ) {
     InputField(
         value = number,
         onValueChange = onNumberChange,
@@ -118,13 +130,14 @@ fun PhoneNumberField(
         leadingIcon = androidx.compose.material.icons.Icons.Default.Phone,
         trailingIcon = {
             TextButton(onClick = { showPicker = true }) {
-                Text("Change", style = MaterialTheme.typography.labelSmall)
+                Text(stringResource(R.string.change), style = MaterialTheme.typography.labelSmall)
             }
         },
         modifier = modifier,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
         singleLine = true
     )
+    }
     if (showPicker) {
         CountryPickerDialog(
             selected = country,
@@ -148,14 +161,14 @@ fun CountryDropdownField(
     selectedCountry: Country,
     onCountrySelected: (Country) -> Unit,
     modifier: Modifier = Modifier,
-    label: String = "Country"
+    label: String = stringResource(R.string.country)
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val locale = LocalConfiguration.current.locales[0]
     Box(modifier = modifier) {
         OutlinedCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = true },
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.medium
         ) {
             Row(
@@ -163,12 +176,12 @@ fun CountryDropdownField(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Icon(Icons.Default.Public, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                     Column {
                         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
-                            text = "${selectedCountry.flagEmoji} ${selectedCountry.name}",
+                            text = "${selectedCountry.flagEmoji} ${selectedCountry.displayName(locale)}",
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -184,7 +197,7 @@ fun CountryDropdownField(
         ) {
             COUNTRIES.forEach { country ->
                 DropdownMenuItem(
-                    text = { Text("${country.flagEmoji} ${country.name}") },
+                    text = { Text("${country.flagEmoji} ${country.displayName(locale)}") },
                     onClick = {
                         onCountrySelected(country)
                         expanded = false
@@ -194,3 +207,11 @@ fun CountryDropdownField(
         }
     }
 }
+
+/**
+ * The country's name in the app language (Arabic users read "لبنان"); English keeps the list's own names. Display only:
+ * the profile and listings store [Country.name].
+ */
+fun Country.displayName(locale: java.util.Locale): String =
+    if (locale.language == "en") name
+    else java.util.Locale("", isoCode).getDisplayCountry(locale).ifBlank { name }

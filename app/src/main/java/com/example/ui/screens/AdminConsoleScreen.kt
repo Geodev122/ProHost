@@ -1,12 +1,13 @@
 package com.example.ui.screens
 
+import com.example.ui.theme.Elevation
+import com.example.ui.util.UiMessages
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -59,6 +60,11 @@ fun AdminConsoleScreen(
 ) {
     val context = LocalContext.current
     val uiState by adminViewModel.uiState.collectAsState()
+    // Each inner tab is its own GA4 screen (admin_packages, admin_users, …), including the first one.
+    val adminAnalyticsConsent by com.example.analytics.AnalyticsConsent.state.collectAsState()
+    LaunchedEffect(uiState.selectedTab, adminAnalyticsConsent) {
+        com.example.analytics.AnalyticsTracker.screen(com.example.analytics.ScreenNames.adminTab(uiState.selectedTab), "AdminConsole")
+    }
     val currentUser by viewModel.currentUser.collectAsState()
     val isOffline by viewModel.isOfflineMode.collectAsState()
     val syncStatusMessage by viewModel.syncStatusMessage.collectAsState()
@@ -69,19 +75,19 @@ fun AdminConsoleScreen(
         adminViewModel.events.collectLatest { event ->
             when (event) {
                 is AdminUiEvent.ShowToast -> {
-                    Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                    UiMessages.show(context, event.message)
                 }
                 is AdminUiEvent.PricingUpdated -> {
-                    Toast.makeText(context, "Subscription fee updated to $${event.newFee} USD", Toast.LENGTH_SHORT).show()
+                    UiMessages.show(context, "Subscription fee updated to $${event.newFee} USD")
                 }
                 is AdminUiEvent.DataExportReady -> {
-                    Toast.makeText(context, "${event.title} ready for download", Toast.LENGTH_SHORT).show()
+                    UiMessages.show(context, "${event.title} ready for download")
                 }
                 is AdminUiEvent.OpenUrl -> {
                     try {
                         context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(event.url)))
                     } catch (e: Exception) {
-                        Toast.makeText(context, "No app can open this document.", Toast.LENGTH_SHORT).show()
+                        UiMessages.show(context, "No app can open this document.")
                     }
                 }
             }
@@ -96,7 +102,7 @@ fun AdminConsoleScreen(
         // Admin Header Banner
         Surface(
             color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 2.dp,
+            tonalElevation = Elevation.level2,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
@@ -149,7 +155,7 @@ fun AdminConsoleScreen(
                     // Status Badges Group
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
                         Surface(
                             color = if (isOffline) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f) else FreshGreen.copy(alpha = 0.12f),
@@ -158,7 +164,7 @@ fun AdminConsoleScreen(
                             Row(
                                 modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                             ) {
                                 Box(
                                     modifier = Modifier
@@ -180,7 +186,7 @@ fun AdminConsoleScreen(
 
                 // Cloud sync status — only shown on admin side; non-admin users never see this
                 if (isOffline) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(Spacing.sm))
                     Surface(
                         color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f),
                         shape = MaterialTheme.shapes.medium,
@@ -189,7 +195,7 @@ fun AdminConsoleScreen(
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             Icon(Icons.Default.CloudOff, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
                             Text(
@@ -202,7 +208,7 @@ fun AdminConsoleScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(Spacing.lg))
 
                 ScrollableTabRow(
                     selectedTabIndex = uiState.selectedTab,
@@ -218,24 +224,12 @@ fun AdminConsoleScreen(
                     Tab(
                         selected = uiState.selectedTab == 1,
                         onClick = { adminViewModel.setSelectedTab(1) },
-                        text = {
-                            Text(
-                                "Users" + (uiState.counts?.let { " (${it.totalUsers})" } ?: ""),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                        text = { AdminTabLabel("Users", uiState.counts?.let { it.totalUsers }) }
                     )
                     Tab(
                         selected = uiState.selectedTab == 2,
                         onClick = { adminViewModel.setSelectedTab(2) },
-                        text = {
-                            Text(
-                                "Listings & Bookings" + (uiState.counts?.let { " (${it.totalListings})" } ?: ""),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                        text = { AdminTabLabel("Listings & Bookings", uiState.counts?.let { it.totalListings }) }
                     )
                     Tab(
                         selected = uiState.selectedTab == 3,
@@ -455,7 +449,7 @@ internal fun AdminMetricTile(label: String, value: String, modifier: Modifier = 
     ProSurfaceCard(modifier = modifier) {
         Column(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
             Text(
                 text = value,
@@ -468,6 +462,24 @@ internal fun AdminMetricTile(label: String, value: String, modifier: Modifier = 
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+/** An admin tab title with its total as a small badge (not "(123)" in the text). */
+@Composable
+private fun AdminTabLabel(label: String, count: Int?) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+        if (count != null) {
+            Surface(shape = com.example.ui.theme.Radius.Full, color = MaterialTheme.colorScheme.secondaryContainer) {
+                Text(
+                    count.toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
+                )
+            }
         }
     }
 }

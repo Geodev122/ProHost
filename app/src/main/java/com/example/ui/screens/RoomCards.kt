@@ -1,5 +1,10 @@
 package com.example.ui.screens
 
+import com.example.ui.util.localizedLabel
+import com.example.ui.util.uiText
+import com.example.R
+import androidx.compose.ui.res.stringResource
+import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -104,46 +109,26 @@ internal fun SubdivisionRentalCard(
                         }
                         if (imageUrls.size > 1) {
                             if (pagerState.currentPage > 0) {
-                                IconButton(
+                                PhotoCarouselArrow(
+                                    forward = false,
                                     onClick = { cardScope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
-                                    modifier = Modifier
-                                        .align(Alignment.CenterStart)
-                                        .padding(start = 2.dp)
-                                        .size(28.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.Black.copy(alpha = 0.35f))
-                                ) {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.ArrowBackIos,
-                                        contentDescription = "Previous photo",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                }
+                                    visualSize = 28.dp,
+                                    modifier = Modifier.align(Alignment.CenterStart)
+                                )
                             }
                             if (pagerState.currentPage < imageUrls.size - 1) {
-                                IconButton(
+                                PhotoCarouselArrow(
+                                    forward = true,
                                     onClick = { cardScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
-                                    modifier = Modifier
-                                        .align(Alignment.CenterEnd)
-                                        .padding(end = 2.dp)
-                                        .size(28.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.Black.copy(alpha = 0.35f))
-                                ) {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.ArrowForwardIos,
-                                        contentDescription = "Next photo",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                }
+                                    visualSize = 28.dp,
+                                    modifier = Modifier.align(Alignment.CenterEnd)
+                                )
                             }
                             Row(
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)
                                     .padding(bottom = 6.dp),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                             ) {
                                 repeat(imageUrls.size) { index ->
                                     Box(
@@ -175,12 +160,12 @@ internal fun SubdivisionRentalCard(
 
                 Column(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     // Name + type badge
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
                         Text(
                             name,
@@ -205,7 +190,7 @@ internal fun SubdivisionRentalCard(
 
                     // Pricing
                     Text(
-                        priceSummary + if (isPerAttendee) " / person" else "",
+                        priceSummary + if (isPerAttendee) uiText(R.string.person_2) else "",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.secondary
@@ -214,7 +199,7 @@ internal fun SubdivisionRentalCard(
                     // Capacity / custom-hours / per-attendee badges — surfaced here so
                     // a user isn't left to discover them only after opening the sheet.
                     if (capacity != null || hasCustomHours || isPerAttendee) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             if (capacity != null) {
                                 Surface(
                                     color = MaterialTheme.colorScheme.tertiaryContainer,
@@ -225,8 +210,8 @@ internal fun SubdivisionRentalCard(
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
                                         Icon(Icons.Default.Groups, contentDescription = null, modifier = Modifier.size(12.dp))
-                                        Spacer(modifier = Modifier.width(2.dp))
-                                        Text("Up to $capacity", style = MaterialTheme.typography.labelSmall)
+                                        Spacer(modifier = Modifier.width(Spacing.xs))
+                                        Text(stringResource(R.string.up_to_x, capacity), style = MaterialTheme.typography.labelSmall)
                                     }
                                 }
                             }
@@ -236,7 +221,7 @@ internal fun SubdivisionRentalCard(
                                     shape = MaterialTheme.shapes.extraSmall
                                 ) {
                                     Text(
-                                        "Custom hours",
+                                        stringResource(R.string.custom_hours_2),
                                         style = MaterialTheme.typography.labelSmall,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
@@ -247,7 +232,7 @@ internal fun SubdivisionRentalCard(
 
                     // Amenities chips (first 3 + overflow)
                     if (amenities.isNotEmpty()) {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             val visible = amenities.take(3)
                             val overflow = amenities.size - visible.size
                             items(visible) { a ->
@@ -261,7 +246,7 @@ internal fun SubdivisionRentalCard(
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                        maxLines = 1
+                                        maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                     )
                                 }
                             }
@@ -272,7 +257,7 @@ internal fun SubdivisionRentalCard(
                                         shape = MaterialTheme.shapes.extraSmall
                                     ) {
                                         Text(
-                                            "+$overflow more",
+                                            stringResource(R.string.x_more, overflow),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -285,7 +270,7 @@ internal fun SubdivisionRentalCard(
 
                     // Hashtag chips (first 2 + overflow)
                     if (hashtags.isNotEmpty()) {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             val visible = hashtags.take(2)
                             val overflow = hashtags.size - visible.size
                             items(visible) { tag ->
@@ -308,7 +293,7 @@ internal fun SubdivisionRentalCard(
                                         shape = MaterialTheme.shapes.extraSmall
                                     ) {
                                         Text(
-                                            "[$overflow more]",
+                                            stringResource(R.string.x_more_2, overflow),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.proColors.onInfoContainer,
                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -327,12 +312,12 @@ internal fun SubdivisionRentalCard(
                             onClick = onCheckAvailability,
                             modifier = Modifier.fillMaxWidth(),
                             shape = MaterialTheme.shapes.small,
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            colors = proPrimaryButtonColors(),
                             contentPadding = PaddingValues(vertical = 8.dp)
                         ) {
                             Icon(Icons.Default.EventAvailable, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Check Availability", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                            Text(stringResource(R.string.check_availability), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -349,11 +334,11 @@ internal fun SubdivisionRentalCard(
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
                         Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
                         Text(
-                            "Currently Occupied",
+                            stringResource(R.string.currently_occupied),
                             color = Color.White,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold
@@ -382,12 +367,14 @@ internal fun RoomFolderTabs(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         verticalAlignment = Alignment.Bottom
     ) {
         rooms.forEach { room ->
             val selected = room.id == selectedId
+            // Selectable surface: TalkBack announces the active room tab as "selected".
             Surface(
+                selected = selected,
                 onClick = { onSelect(room) },
                 shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
                 color = if (selected) folderColor() else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
@@ -413,7 +400,7 @@ internal fun RoomFolderTabs(
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                         Text(
-                            room.type.displayName,
+                            localizedLabel(room.type.displayName),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -465,8 +452,8 @@ internal fun DetailsBookingBar(
     Surface(
         color = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-        shadowElevation = 12.dp,
-        tonalElevation = 2.dp,
+        shadowElevation = Elevation.level3,
+        tonalElevation = Elevation.level2,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -505,7 +492,7 @@ internal fun DetailsBookingBar(
                         Row(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             Icon(
                                 Icons.Default.MeetingRoom,
@@ -514,7 +501,7 @@ internal fun DetailsBookingBar(
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
-                                roomName ?: "Whole space",
+                                roomName ?: uiText(R.string.whole_space_2),
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -524,9 +511,9 @@ internal fun DetailsBookingBar(
                         }
                     }
                     val (dot, label) = when {
-                        !hasSchedule -> MaterialTheme.colorScheme.outline to "No schedule yet"
+                        !hasSchedule -> MaterialTheme.colorScheme.outline to uiText(R.string.no_schedule_yet)
                         openSlotCount > 0 -> pro.success to "$openSlotCount slot${if (openSlotCount == 1) "" else "s"} open"
-                        else -> MaterialTheme.colorScheme.error to "Fully booked"
+                        else -> MaterialTheme.colorScheme.error to uiText(R.string.fully_booked_2)
                     }
                     Row(
                         modifier = Modifier.weight(1f),
@@ -538,12 +525,12 @@ internal fun DetailsBookingBar(
                             label,
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
+                            maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                         if (hasSchedule) {
                             Icon(
                                 Icons.Default.KeyboardArrowUp,
-                                contentDescription = "Open availability",
+                                contentDescription = stringResource(R.string.open_availability),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -567,7 +554,7 @@ internal fun DetailsBookingBar(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            " USD$priceUnit",
+                            stringResource(R.string.usdx, priceUnit),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 3.dp)
@@ -584,7 +571,7 @@ internal fun DetailsBookingBar(
                 if (isPreview) {
                     Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer) {
                         Text(
-                            "Preview mode",
+                            stringResource(R.string.preview_mode),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -594,14 +581,15 @@ internal fun DetailsBookingBar(
                 } else {
                     if (showAvailability && hasSchedule) {
                         Button(
+                            colors = proPrimaryButtonColors(),
                             onClick = onOpenAvailability,
                             shape = MaterialTheme.shapes.medium,
                             contentPadding = PaddingValues(horizontal = 16.dp),
                             modifier = Modifier.heightIn(min = 48.dp)
                         ) {
                             Icon(Icons.Default.EventAvailable, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Availability", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                            Text(stringResource(R.string.availability), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

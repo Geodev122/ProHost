@@ -42,6 +42,7 @@ export { onWorkspaceListingPublishValidation } from "./listings/publishValidatio
 export { onWorkspaceListingDeletedCleanup } from "./listings/listingDeleteCleanup";
 export { listingShareLanding } from "./listings/shareLanding";
 export { siteSitemap } from "./website/sitemap";
+export { onMaintenanceRequest } from "./admin/maintenanceRequests";
 export { changeSlotPrice } from "./listings/changeSlotPrice";
 export { legalDocumentPage } from "./legal/legalDocumentPage";
 export { onBookingAcceptConflictGuard } from "./bookings/bookingConflictGuard";
@@ -52,7 +53,17 @@ export { expirePackages } from "./packages/expirePackages";
 
 export { verifyEmailLink } from "./auth/emailVerification";
 export { sendEmailOtp, verifyEmailOtp, clickEmailOtpLink } from "./auth/emailOtp";
+export { sendPasswordResetLink, passwordSetupLink } from "./auth/passwordReset";
 export { websiteContact, websiteSubscribe, mailingUnsubscribe } from "./website/websiteForms";
+export { websiteOfficeLead } from "./website/officeLeads";
+export { onOfficeLeadSaved } from "./website/officeLeadSync";
+export { igWebhook } from "./instagram/webhook";
+export { waWebhook } from "./instagram/whatsappWebhook";
+export { igSheetSync } from "./instagram/sheetsBridge";
+export { igFollowUps } from "./instagram/aiSweeper";
+export { igCommentPoll } from "./instagram/commentPoller";
+export { igDmPoll } from "./instagram/dmPoller";
+export { igTokenRefresh } from "./instagram/tokenRefresh";
 export {
   mailingAdminLogin,
   mailingAdminData,
@@ -61,6 +72,7 @@ export {
   mailingAdminSend,
   mailingAdminCampaign,
   mailingAdminRetry,
+  mailingAdminWhatsApp,
 } from "./website/mailingAdmin";
 export { sendSignInEmailLink, sendVerificationEmailLink } from "./auth/emailLinkAuth";
 export { playBillingRtdn } from "./billing/playBillingRtdn";

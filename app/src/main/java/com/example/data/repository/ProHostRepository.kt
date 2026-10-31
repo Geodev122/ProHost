@@ -1169,7 +1169,7 @@ class ProHostRepository(
         profilePictureUrl: String? = null
     ): Boolean = profilesRepo.updateCurrentUserProfile(name = name, specialty = specialty, phone = phone, country = country, governorate = governorate, city = city, profilePictureUrl = profilePictureUrl)
 
-    suspend fun updatePhoneAfterKycLink(e164Phone: String): Boolean = profilesRepo.updatePhoneAfterKycLink(e164Phone = e164Phone)
+    suspend fun saveWhatsAppNumber(e164Phone: String): Boolean = profilesRepo.saveWhatsAppNumber(e164Phone = e164Phone)
 
     suspend fun toggleSavedSpace(spaceId: String): Boolean = profilesRepo.toggleSavedSpace(spaceId = spaceId)
 

@@ -1,11 +1,12 @@
 import * as logger from "firebase-functions/logger";
 import { HttpsError } from "firebase-functions/v2/https";
-import { adminApp } from "./admin";
+import { google } from "googleapis";
+import "./admin";
 
 // Matches app/build.gradle.kts's applicationId.
 const PACKAGE_NAME = "app.geonajjar.prohost";
 
-interface DecodedIntegrityToken {
+export interface DecodedIntegrityToken {
   tokenPayloadExternal?: {
     requestDetails?: { requestPackageName?: string; nonce?: string; timestampMillis?: string };
     appIntegrity?: {
@@ -22,40 +23,55 @@ interface DecodedIntegrityToken {
   };
 }
 
-async function decodeIntegrityToken(
-  token: string,
-  uid: string
-): Promise<DecodedIntegrityToken | null> {
+export type IntegrityDecoder = (token: string, uid: string) => Promise<DecodedIntegrityToken | null>;
+
+const PLAY_INTEGRITY_SCOPE = "https://www.googleapis.com/auth/playintegrity";
+let cachedAuth: InstanceType<typeof google.auth.GoogleAuth> | null = null;
+
+/**
+ * Access token for the Play Integrity API. It must carry the playintegrity scope: the bare
+ * firebase-admin credential token used before (cloud-platform only) got 403 on every decode,
+ * so integrity was never actually evaluated. Same pattern as billing/billingHelpers.ts.
+ */
+async function integrityAccessToken(): Promise<string | null> {
+  cachedAuth = cachedAuth ?? new google.auth.GoogleAuth({ scopes: [PLAY_INTEGRITY_SCOPE] });
+  const token = await cachedAuth.getAccessToken();
+  return token ?? null;
+}
+
+/** Outcome of one decode call, also used by the Maintenance `integrity` probe. */
+export interface DecodeAttempt {
+  ok: boolean;
+  status: number;
+  body: string;
+  decoded?: DecodedIntegrityToken;
+}
+
+export async function callDecodeIntegrityToken(token: string): Promise<DecodeAttempt> {
+  const accessToken = await integrityAccessToken();
+  if (!accessToken) return { ok: false, status: 0, body: "no access token" };
+  const response = await fetch(
+    `https://playintegrity.googleapis.com/v1/${PACKAGE_NAME}:decodeIntegrityToken`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ integrity_token: token }),
+    }
+  );
+  const text = await response.text();
+  if (!response.ok) return { ok: false, status: response.status, body: text.replace(/\s+/g, " ").slice(0, 400) };
+  return { ok: true, status: response.status, body: "", decoded: JSON.parse(text) as DecodedIntegrityToken };
+}
+
+const decodeIntegrityToken: IntegrityDecoder = async (token, uid) => {
   try {
-    const credential = adminApp.options.credential;
-    const accessToken = await credential?.getAccessToken();
-    if (!accessToken) {
-      logger.warn("play_integrity_check_skipped", { uid, reason: "no_access_token" });
+    const attempt = await callDecodeIntegrityToken(token);
+    if (!attempt.ok) {
+      // The body says why (API not enabled, Cloud project not linked in Play Console, bad token).
+      logger.warn("play_integrity_decode_failed", { uid, status: attempt.status, body: attempt.body });
       return null;
     }
-
-    const response = await fetch(
-      `https://playintegrity.googleapis.com/v1/${PACKAGE_NAME}:decodeIntegrityToken`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken.access_token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ integrity_token: token }),
-      }
-    );
-
-    if (!response.ok) {
-      logger.warn("play_integrity_decode_failed", {
-        uid,
-        status: response.status,
-        statusText: response.statusText,
-      });
-      return null;
-    }
-
-    return (await response.json()) as DecodedIntegrityToken;
+    return attempt.decoded ?? null;
   } catch (e) {
     logger.warn("play_integrity_check_error", {
       uid,
@@ -63,7 +79,7 @@ async function decodeIntegrityToken(
     });
     return null;
   }
-}
+};
 
 const MAX_TOKEN_AGE_MS = 10 * 60 * 1000;
 
@@ -107,8 +123,12 @@ function assertRequestBinding(
  *
  * Throws HttpsError("failed-precondition") when an enforced verdict fails.
  */
-export async function enforcePlayIntegrity(token: string, uid: string): Promise<void> {
-  const decoded = await decodeIntegrityToken(token, uid);
+export async function enforcePlayIntegrity(
+  token: string,
+  uid: string,
+  decode: IntegrityDecoder = decodeIntegrityToken
+): Promise<void> {
+  const decoded = await decode(token, uid);
   if (!decoded) return; // decode failure is non-blocking
 
   const payload = decoded.tokenPayloadExternal;
@@ -197,5 +217,6 @@ export async function enforcePlayIntegrity(token: string, uid: string): Promise<
       note: "app access risk is OFF in Play Console",
     });
   }
-}
 
+  logger.info("play_integrity_ok", { uid, appVerdict, licensingVerdict, deviceVerdicts });
+}

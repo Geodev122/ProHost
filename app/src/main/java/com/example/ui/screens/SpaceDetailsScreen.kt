@@ -1,5 +1,12 @@
 package com.example.ui.screens
 
+import androidx.compose.ui.res.pluralStringResource
+import com.example.ui.util.locationLine
+import com.example.ui.util.localizedLabel
+import com.example.ui.util.uiText
+import com.example.R
+import androidx.compose.ui.res.stringResource
+import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -92,7 +99,7 @@ fun SpaceDetailsScreen(
     // host's own visits don't inflate their own stats.
     LaunchedEffect(liveSpace.id) {
         if (currentUser?.id != liveSpace.ownerId) {
-            viewModel.registerSpaceView(liveSpace.id)
+            viewModel.registerSpaceView(liveSpace, intendedSubdivisionId)
         }
     }
 
@@ -125,7 +132,7 @@ fun SpaceDetailsScreen(
             val shareUrl = ShareLinks.forListing(liveSpace.id)
             val shareText = buildString {
                 append("🏢 ${liveSpace.title}")
-                append("\n📍 ${liveSpace.district}, ${liveSpace.governorate.displayName}")
+                append("\n📍 ${liveSpace.locationLine()}")
                 if (liveSpace.description.isNotBlank()) {
                     append("\n${liveSpace.description}")
                 }
@@ -199,11 +206,15 @@ fun SpaceDetailsScreenContent(
     var showRequirements by remember { mutableStateOf(false) }
     // The request just sent: drives the "Request sent" sheet (View request / WhatsApp host).
     var sentRequest by remember { mutableStateOf<RentalBookingRequest?>(null) }
+    var selectedSubdivisionId by remember { mutableStateOf<String?>(null) }
     fun requestWithRequirements() {
         val user = currentUser ?: return
-        if (user.canTransact(com.example.data.auth.PhoneLink.isLinked())) showSendConfirm = true else showRequirements = true
+        // Booking funnel: Request tapped (begin_checkout), then either the confirm step or the requirements gate.
+        val sub = liveSpace.subdivisions.find { it.id == selectedSubdivisionId }
+        com.example.analytics.AnalyticsTracker.beginBookingCheckout(liveSpace, sub)
+        com.example.analytics.AnalyticsTracker.bookingSlotSelect(sub?.pricing?.strategyType?.name ?: liveSpace.pricing.strategyType.name, selectedSlots.size)
+        if (user.canTransact()) showSendConfirm = true else showRequirements = true
     }
-    var selectedSubdivisionId by remember { mutableStateOf<String?>(null) }
     val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
 
     // Real, live pricing config (SpaceCalculationUtils.buildAllSlotsForSpace) — the
@@ -261,6 +272,11 @@ fun SpaceDetailsScreenContent(
             selectRoom(sub, if (openAvailability && isSpecialistViewer) "full" else "peek")
             kotlinx.coroutines.delay(150)
             roomsRequester.bringIntoView()
+        } else if (openAvailability && isSpecialistViewer) {
+            // Explore's "Availability" without a room (whole-space listing, or a listing card rather than a room card):
+            // the sheet opens straight away too, on the first room when there are rooms.
+            val first = liveSpace.subdivisions.firstOrNull()
+            if (first != null) selectRoom(first, "full") else availabilityPanelState = "full"
         }
     }
     // A space with rooms always has one active, so the sheet is never a mixed view of
@@ -298,13 +314,13 @@ fun SpaceDetailsScreenContent(
                     hasSchedule = availableSlots.any { stripSub == null || it.sourceFormulaId == stripSub.id },
                     openSlotCount = openSlotCount,
                     priceUsd = stripPerPerson ?: selectedFormula?.rateUsd ?: fallbackPrice,
-                    pricePrefix = if (stripAttendeeSub != null) "from " else "",
+                    pricePrefix = if (stripAttendeeSub != null) stringResource(R.string.price_from_prefix) else "",
                     priceUnit = if (stripAttendeeSub != null) {
                         SpaceCalculationUtils.PER_PERSON_UNIT
                     } else {
                         selectedFormula?.let { SpaceCalculationUtils.rateUnitLabel(it.type) } ?: fallbackUnit
                     },
-                    formulaName = selectedFormula?.type?.displayName ?: "Full Month",
+                    formulaName = selectedFormula?.type?.displayName?.let { localizedLabel(it) } ?: uiText(R.string.full_month_2),
                     isPreview = currentUserRole == UserRole.PRO_HOST || currentUserRole == UserRole.ADMIN,
                     onOpenAvailability = { availabilityPanelState = "full" }
                 )
@@ -352,47 +368,27 @@ fun SpaceDetailsScreenContent(
                     )
                     if (liveSpace.imageUrls.size > 1) {
                         if (pagerState.currentPage > 0) {
-                            IconButton(
+                            PhotoCarouselArrow(
+                                forward = false,
                                 onClick = { heroScope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
-                                modifier = Modifier
-                                    .align(Alignment.CenterStart)
-                                    .padding(start = 4.dp)
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Black.copy(alpha = 0.35f))
-                            ) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ArrowBackIos,
-                                    contentDescription = "Previous photo",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
+                                visualSize = 36.dp,
+                                modifier = Modifier.align(Alignment.CenterStart)
+                            )
                         }
                         if (pagerState.currentPage < liveSpace.imageUrls.size - 1) {
-                            IconButton(
+                            PhotoCarouselArrow(
+                                forward = true,
                                 onClick = { heroScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
-                                modifier = Modifier
-                                    .align(Alignment.CenterEnd)
-                                    .padding(end = 4.dp)
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Black.copy(alpha = 0.35f))
-                            ) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ArrowForwardIos,
-                                    contentDescription = "Next photo",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
+                                visualSize = 36.dp,
+                                modifier = Modifier.align(Alignment.CenterEnd)
+                            )
                         }
                         // Photo dots sit at the bottom (clear of the back / save / share row).
                         if (liveSpace.imageUrls.size > 1) Row(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
                                 .padding(bottom = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                         ) {
                             repeat(liveSpace.imageUrls.size) { index ->
                                 Box(
@@ -433,7 +429,7 @@ fun SpaceDetailsScreenContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     HeroGlassButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.size(22.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), modifier = Modifier.size(22.dp))
                     }
                     Spacer(modifier = Modifier.weight(1f))
                     Box {
@@ -442,14 +438,14 @@ fun SpaceDetailsScreenContent(
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
                             contentColor = MaterialTheme.colorScheme.onSurface,
-                            shadowElevation = 4.dp,
+                            shadowElevation = Elevation.level2,
                             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 IconButton(onClick = onToggleSave, modifier = Modifier.size(42.dp)) {
                                     Icon(
                                         if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                        contentDescription = if (isSaved) "Remove from Saved" else "Save",
+                                        contentDescription = if (isSaved) stringResource(R.string.remove_from_saved) else stringResource(R.string.save),
                                         tint = if (isSaved) Color(0xFFE5484D) else MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.size(21.dp)
                                     )
@@ -461,7 +457,7 @@ fun SpaceDetailsScreenContent(
                                         .background(MaterialTheme.colorScheme.outlineVariant)
                                 )
                                 IconButton(onClick = { showShareMenu = true }, modifier = Modifier.size(42.dp)) {
-                                    Icon(Icons.Outlined.Share, contentDescription = "Share", modifier = Modifier.size(20.dp))
+                                    Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.share), modifier = Modifier.size(20.dp))
                                 }
                             }
                         }
@@ -470,12 +466,12 @@ fun SpaceDetailsScreenContent(
                             onDismissRequest = { showShareMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Share Listing") },
+                                text = { Text(stringResource(R.string.share_listing)) },
                                 onClick = { showShareMenu = false; onShareClick() },
                                 leadingIcon = { Icon(Icons.Default.Share, null) }
                             )
                             DropdownMenuItem(
-                                text = { Text("Copy Link") },
+                                text = { Text(stringResource(R.string.copy_link)) },
                                 onClick = { showShareMenu = false; onCopyLinkClick() },
                                 leadingIcon = { Icon(Icons.Default.ContentCopy, null) }
                             )
@@ -487,25 +483,29 @@ fun SpaceDetailsScreenContent(
                         .align(Alignment.BottomStart)
                         .padding(14.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        // The category chip gives way (ellipsis) so the Verified badge always fits, even at large font sizes.
                         Surface(
                             color = Color(0x33FFFFFF),
-                            shape = MaterialTheme.shapes.small
+                            shape = MaterialTheme.shapes.small,
+                            modifier = Modifier.weight(1f, fill = false)
                         ) {
                             Text(
-                                text = "${liveSpace.spaceCategoryName ?: liveSpace.spaceType.displayName} • " +
-                                    "${if (liveSpace.isShared) "Shared Co-Working Space" else "Private Studio / Office"}",
+                                text = "${liveSpace.spaceCategoryName ?: localizedLabel(liveSpace.spaceType.displayName)} • " +
+                                    (if (liveSpace.isShared) stringResource(R.string.shared_co_working_space) else stringResource(R.string.private_studio_office)),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                 modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                             )
                         }
                         if (liveSpace.isVerified) {
-                            ProStatusBadge(type = ProBadgeType.VERIFIED_MEMBER, customText = "Verified")
+                            ProStatusBadge(type = ProBadgeType.VERIFIED_MEMBER, customText = uiText(R.string.verified))
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(Spacing.sm))
                     Text(
                         text = liveSpace.title,
                         style = MaterialTheme.typography.headlineSmall,
@@ -522,9 +522,17 @@ fun SpaceDetailsScreenContent(
                             tint = Color(0xCCFFFFFF),
                             modifier = Modifier.size(14.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
                         Text(
-                            text = "${liveSpace.district}, ${liveSpace.governorate.displayName} • ${liveSpace.floorInfo}",
+                            // Area, city (the governorate only for legacy listings without one), floor and, for an
+                            // undivided place, how many people it fits.
+                            text = listOfNotNull(
+                                // Area (when it isn't the city itself), then the listing's own "City, Country".
+                                listOf(liveSpace.district.trim().takeIf { it != liveSpace.city.trim() }.orEmpty(), liveSpace.locationLine())
+                                    .filter { it.isNotBlank() }.joinToString(", ").takeIf { it.isNotBlank() },
+                                liveSpace.floorInfo.takeIf { it.isNotBlank() },
+                                liveSpace.capacity?.takeIf { liveSpace.subdivisions.isEmpty() }?.let { stringResource(R.string.up_to_x, it) }
+                            ).joinToString(" • "),
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xCCFFFFFF),
                             maxLines = 1,
@@ -542,8 +550,8 @@ fun SpaceDetailsScreenContent(
             // they go looking for it again.
             if (liveSpace.isOwnerPackageLapsed) {
                 ProHostAlertBanner(
-                    message = "This host is on verification process — their listing is temporarily hidden from new searches, but your existing " +
-                        "access here is unaffected.",
+                    message = stringResource(R.string.this_host_is_on_verification_process_their) +
+                        stringResource(R.string.access_here_is_unaffected),
                     severity = ProHostAlertSeverity.INFO,
                     modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)
                 )
@@ -563,27 +571,28 @@ fun SpaceDetailsScreenContent(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Your In-App Rental Request ${req.publicCode}",
+                                    text = stringResource(R.string.your_in_app_rental_request_x, req.publicCode),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "Formula: ${req.formula.scheduleDescription} • Start: ${req.startDate} (${req.durationMonths} mo)",
+                                    text = stringResource(R.string.formula_x_start_x_x_mo, req.formula.scheduleDescription, req.startDate, req.durationMonths),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 if (req.status == BookingRequestStatus.PENDING) {
                                     Text(
-                                        text = "Awaiting owner acceptance. Space hours remain open to public until confirmed.",
+                                        text = stringResource(R.string.awaiting_owner_acceptance_space_hours_rema),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.proColors.warning,
                                         fontWeight = FontWeight.SemiBold
                                     )
                                 } else if (req.status == BookingRequestStatus.ACCEPTED) {
                                     Text(
-                                        text = "Confirmed! Space hours (${req.formula.daysOfWeek.joinToString()}" +
-                                            " ${req.formula.startHour}-${req.formula.endHour}) are locked" +
-                                            ".",
+                                        text = stringResource(
+                                            R.string.confirmed_space_hours_locked_x_x_x,
+                                            req.formula.daysOfWeek.joinToString { localizedLabel(it) }, req.formula.startHour, req.formula.endHour
+                                        ),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.proColors.info,
                                         fontWeight = FontWeight.Bold
@@ -593,9 +602,9 @@ fun SpaceDetailsScreenContent(
 
                             when (req.status) {
                                 BookingRequestStatus.ACCEPTED -> ProStatusBadge(ProBadgeType.ACCEPTED_LOCKED)
-                                BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = "Pending")
-                                BookingRequestStatus.REJECTED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = "Declined")
-                                BookingRequestStatus.CANCELLED -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = "Cancelled")
+                                BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = uiText(R.string.pending))
+                                BookingRequestStatus.REJECTED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = uiText(R.string.declined))
+                                BookingRequestStatus.CANCELLED -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = uiText(R.string.cancelled))
                             }
                         }
                     }
@@ -604,15 +613,15 @@ fun SpaceDetailsScreenContent(
                 // Host card: who runs this space, and a WhatsApp button for general questions
                 // (the number itself is never printed; the button opens a ready-made inquiry).
                 ProSurfaceCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             ProMemberAvatar(
-                                name = liveSpace.ownerName.ifBlank { "Space host" },
-                                specialty = if (liveSpace.isVerified) "Verified space host" else "Space host",
+                                name = liveSpace.ownerName.ifBlank { uiText(R.string.space_host) },
+                                specialty = if (liveSpace.isVerified) uiText(R.string.verified_space_host) else uiText(R.string.space_host),
                                 isVerified = liveSpace.isVerified,
                                 imageUrl = liveSpace.ownerProfilePictureUrl,
                                 size = 44.dp,
@@ -632,8 +641,8 @@ fun SpaceDetailsScreenContent(
                                 )
                             ) {
                                 Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Ask the host on WhatsApp", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.width(Spacing.sm))
+                                Text(stringResource(R.string.ask_the_host_on_whatsapp), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -643,9 +652,9 @@ fun SpaceDetailsScreenContent(
                 // rendered anywhere on this screen.
                 if (liveSpace.description.isNotBlank()) {
                     ProSurfaceCard {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             ProSectionHeader(
-                                title = "Description",
+                                title = stringResource(R.string.description),
                                 icon = Icons.Default.Description
                             )
                             Text(
@@ -667,13 +676,13 @@ fun SpaceDetailsScreenContent(
                 // "Whole Space" card when no subdivisions are set up). Tapping an
                 // available card pre-selects that subdivision and opens the availability sheet.
                 ProSurfaceCard(modifier = Modifier.bringIntoViewRequester(roomsRequester)) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                         ProSectionHeader(
-                            title = "Rental Options",
+                            title = stringResource(R.string.rental_options),
                             subtitle = if (liveSpace.subdivisions.isNotEmpty())
-                                "${liveSpace.subdivisions.size} space${if (liveSpace.subdivisions.size == 1) "" else "s"} — pick a tab to see that space and its availability"
+                                pluralStringResource(R.plurals.spaces_pick_tab, liveSpace.subdivisions.size, liveSpace.subdivisions.size)
                             else
-                                "Tap the card to check live availability",
+                                stringResource(R.string.tap_the_card_to_check_live_availability),
                             icon = Icons.Default.Tune
                         )
 
@@ -686,15 +695,15 @@ fun SpaceDetailsScreenContent(
                                 val st = strategyPreviewGroups.firstOrNull()?.first
                                 when (st) {
                                     RentalStrategyType.MONTHLY -> "$${liveSpace.pricing.monthly?.rateUsd?.toInt() ?: liveSpace.baseMonthlyRateUsd.toInt()}${SpaceCalculationUtils.strategyUnitLabel(RentalStrategyType.MONTHLY)}"
-                                    RentalStrategyType.HOURLY -> "from $${liveSpace.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0}/hr"
+                                    RentalStrategyType.HOURLY -> uiText(R.string.from_x_hr, liveSpace.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0)
                                     RentalStrategyType.SHIFT_BASED -> {
                                         val minPrice = liveSpace.pricing.shiftBased?.shifts
                                             ?.filter { !it.isUnavailable }?.minOfOrNull { it.price }?.toInt() ?: 0
-                                        "from $$minPrice/shift"
+                                        uiText(R.string.from_x_shift, minPrice)
                                     }
                                     RentalStrategyType.DAY_BASED -> {
                                         val minPrice = liveSpace.pricing.dayBased?.distribution?.values?.minOfOrNull { it.price }?.toInt() ?: 0
-                                        "from $$minPrice/day"
+                                        uiText(R.string.from_x_day, minPrice)
                                     }
                                     null -> SpaceCalculationUtils.lowestPriceSummary(liveSpace).let { (p, u) -> "$${p.toInt()}$u" }
                                 }
@@ -702,7 +711,7 @@ fun SpaceDetailsScreenContent(
                             SubdivisionRentalCard(
                                 info = SubdivisionRentalCardInfo(
                                     name = liveSpace.title,
-                                    typeBadge = "Whole Space",
+                                    typeBadge = uiText(R.string.whole_space),
                                     imageUrls = liveSpace.imageUrls,
                                     amenities = liveSpace.essentialFacilities,
                                     hashtags = emptyList(),
@@ -734,29 +743,29 @@ fun SpaceDetailsScreenContent(
                                     com.example.ui.util.AttendeePricing.lowestPricePerPerson(sub, architectureSchema.attendeePackages)
                                 } else null
                                 val priceSummary = if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) {
-                                    "from $${perAttendeeFrom?.toInt() ?: 0}/person"
+                                    uiText(R.string.from_x_person, perAttendeeFrom?.toInt() ?: 0)
                                 } else when (sub.pricing.strategyType) {
                                     RentalStrategyType.MONTHLY -> "$${sub.pricing.monthly?.rateUsd?.toInt() ?: 0}${SpaceCalculationUtils.strategyUnitLabel(RentalStrategyType.MONTHLY)}"
-                                    RentalStrategyType.HOURLY -> "from $${sub.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0}/hr"
+                                    RentalStrategyType.HOURLY -> uiText(R.string.from_x_hr, sub.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0)
                                     RentalStrategyType.SHIFT_BASED -> {
                                         val minPrice = sub.pricing.shiftBased?.shifts?.filter { !it.isUnavailable }?.minOfOrNull { it.price }?.toInt() ?: 0
-                                        "from $$minPrice/shift"
+                                        uiText(R.string.from_x_shift, minPrice)
                                     }
                                     RentalStrategyType.DAY_BASED -> {
                                         val minPrice = sub.pricing.dayBased?.distribution?.values?.minOfOrNull { it.price }?.toInt() ?: 0
-                                        "from $$minPrice/day"
+                                        uiText(R.string.from_x_day, minPrice)
                                     }
                                 }
                                 SubdivisionRentalCard(
                                     info = SubdivisionRentalCardInfo(
                                         name = sub.name,
-                                        typeBadge = sub.type.displayName,
+                                        typeBadge = localizedLabel(sub.type.displayName),
                                         imageUrls = sub.imageUrls,
                                         amenities = sub.amenities,
                                         hashtags = sub.hashtags,
                                         priceSummary = if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) {
-                                            "Per attendee · ${sub.pricing.strategyType.displayName} slots · $priceSummary"
-                                        } else "${sub.pricing.strategyType.displayName} · $priceSummary",
+                                            uiText(R.string.per_attendee_x_slots_x, localizedLabel(sub.pricing.strategyType.displayName), priceSummary)
+                                        } else "${localizedLabel(sub.pricing.strategyType.displayName)} · $priceSummary",
                                         isOccupied = isOccupied,
                                         capacity = sub.capacity,
                                         hasCustomHours = sub.scheduleOverride != null,
@@ -772,14 +781,14 @@ fun SpaceDetailsScreenContent(
 
                 // Facilities & Utilities
                 ProSurfaceCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         ProSectionHeader(
-                            title = "Facilities & Utilities",
-                            subtitle = "${liveSpace.essentialFacilities.size} amenities included",
+                            title = stringResource(R.string.facilities_utilities),
+                            subtitle = stringResource(R.string.x_amenities_included, liveSpace.essentialFacilities.size),
                             icon = Icons.Default.Business
                         )
 
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             liveSpace.essentialFacilities.forEach { facility ->
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -810,22 +819,22 @@ fun SpaceDetailsScreenContent(
                 }
                 if (liveSpace.complementarySpecialties.isNotEmpty() || residentSpecialties.isNotEmpty()) {
                     ProSurfaceCard {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             ProSectionHeader(
-                                title = "Co-Working Synergy",
+                                title = stringResource(R.string.co_working_synergy),
                                 subtitle = "${residentSpecialties.size} peer${if (residentSpecialties.size == 1) "" else "s"} on premises",
                                 icon = Icons.Default.Groups
                             )
 
                             if (residentSpecialties.isNotEmpty()) {
                                 Text(
-                                    text = "Residents:",
+                                    text = stringResource(R.string.residents),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 LazyRow(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                                     modifier = Modifier.padding(top = 4.dp)
                                 ) {
                                     items(residentSpecialties) { spec ->
@@ -846,13 +855,13 @@ fun SpaceDetailsScreenContent(
                             }
 
                             Text(
-                                text = "Target Complementary Disciplines:",
+                                text = stringResource(R.string.target_complementary_disciplines),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                                 modifier = Modifier.padding(top = 4.dp)
                             ) {
                                 items(liveSpace.complementarySpecialties) { spec ->
@@ -890,7 +899,7 @@ fun SpaceDetailsScreenContent(
     ) {
         val user = currentUser
         if (user == null) return
-        if (!user.canTransact(com.example.data.auth.PhoneLink.isLinked())) {
+        if (!user.canTransact()) {
             showRequirements = true
             return
         }
@@ -903,7 +912,7 @@ fun SpaceDetailsScreenContent(
         val strategyType = primarySlot.strategyType ?: return
         val targetSub = liveSpace.subdivisions.find { it.id == primarySlot.sourceFormulaId }
         if (com.example.ui.util.AttendeePricing.isPerAttendee(targetSub) && attendeeQuote == null) {
-            coroutineScope.launch { snackbarHostState.showSnackbar("Choose a valid number of attendees first.") }
+            coroutineScope.launch { snackbarHostState.showSnackbar(uiText(R.string.choose_a_valid_number_of_attendees_first)) }
             return
         }
         isSendingSlotRequest = true
@@ -924,7 +933,7 @@ fun SpaceDetailsScreenContent(
             val shiftLabel = if (strategyType == RentalStrategyType.SHIFT_BASED) primarySlot.groupLabel.substringAfter("• ") else ""
             val slotSummary = allSlots.joinToString("; ") { it.label }
             val notes = buildString {
-                append("Requested via live slot selection")
+                append(uiText(R.string.requested_via_live_slot_selection))
                 if (allSlots.size > 1) append(" — $slotSummary")
                 if (isAttendeeMode) {
                     append(" | ${com.example.ui.util.AttendeePricing.describe(attendeeQuote!!)}")
@@ -965,7 +974,7 @@ fun SpaceDetailsScreenContent(
                 com.example.analytics.AnalyticsTracker.bookingRequestFailed(com.example.analytics.AnalyticsTracker.errorCode(e))
                 snackbarHostState.showSnackbar(
                     e.message?.takeIf { (e is IllegalStateException || e is IllegalArgumentException) && it.isNotBlank() }
-                        ?: "Couldn't send your request — check your connection and try again."
+                        ?: uiText(R.string.couldn_t_send_your_request_check_your_conn)
                 )
                 return@launch
             }
@@ -987,8 +996,8 @@ fun SpaceDetailsScreenContent(
                 availabilityPanelState = "hidden"
                 sentRequest = request
             } else {
-                com.example.analytics.AnalyticsTracker.bookingRequestFailed("offline")
-                snackbarHostState.showSnackbar("Couldn't send your request — check your connection and try again.")
+                com.example.analytics.AnalyticsTracker.bookingRequestFailed("not_synced")
+                snackbarHostState.showSnackbar(uiText(R.string.couldn_t_send_your_request_check_your_conn))
             }
         }
     }
@@ -1022,42 +1031,27 @@ fun SpaceDetailsScreenContent(
     // "Request sent": the two next steps a specialist takes — see it in My Rentals, or
     // message the host right away (same WhatsApp text as the My Rentals card).
     sentRequest?.let { request ->
-        ProHostBottomSheet(onDismissRequest = { sentRequest = null }) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = Spacing.lg)
-                    .padding(bottom = Spacing.xl),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md)
-            ) {
-                ProSectionHeader(
-                    title = "Request sent",
-                    subtitle = "The host has been notified. You'll get a push when they answer.",
-                    icon = Icons.Default.CheckCircle
-                )
-                ProPrimaryButton(
-                    text = "View request",
-                    onClick = {
-                        sentRequest = null
-                        onViewRequest(request.id)
-                    },
-                    icon = Icons.AutoMirrored.Filled.ListAlt,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                if (liveSpace.ownerPhone.isNotBlank()) {
-                    ProOutlinedButton(
-                        text = "Message host on WhatsApp",
-                        onClick = {
-                            sentRequest = null
-                            viewModel.launchWhatsAppInquiry(context, liveSpace, request.formula, request)
-                        },
-                        icon = Icons.AutoMirrored.Filled.Chat,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
+        com.example.ui.components.TrackScreen("request_sent")
+        // A confirming tick under the finger when the request lands (API 30+ has a dedicated CONFIRM pattern).
+        val confirmView = androidx.compose.ui.platform.LocalView.current
+        LaunchedEffect(request.id) {
+            confirmView.performHapticFeedback(
+                if (android.os.Build.VERSION.SDK_INT >= 30) android.view.HapticFeedbackConstants.CONFIRM
+                else android.view.HapticFeedbackConstants.CONTEXT_CLICK
+            )
         }
+        RequestSentSheet(
+            hasWhatsApp = liveSpace.ownerPhone.isNotBlank(),
+            onDismiss = { sentRequest = null },
+            onViewRequest = {
+                sentRequest = null
+                onViewRequest(request.id)
+            },
+            onWhatsApp = {
+                sentRequest = null
+                viewModel.launchWhatsAppInquiry(context, liveSpace, request.formula, request)
+            }
+        )
     }
 
     // Email Inquiry Dialog
@@ -1077,6 +1071,42 @@ fun SpaceDetailsScreenContent(
 
 }
 
+/** "Request sent": the two next steps — see it in My Rentals, or message the host on WhatsApp. */
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+internal fun RequestSentSheet(hasWhatsApp: Boolean, onDismiss: () -> Unit, onViewRequest: () -> Unit, onWhatsApp: () -> Unit) {
+    ProHostBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = Spacing.lg)
+                .padding(bottom = Spacing.xl),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        ) {
+            ProSectionHeader(
+                title = stringResource(R.string.request_sent),
+                subtitle = stringResource(R.string.the_host_has_been_notified_you_ll_get_a_pu),
+                icon = Icons.Default.CheckCircle
+            )
+            ProPrimaryButton(
+                text = stringResource(R.string.view_request),
+                onClick = onViewRequest,
+                icon = Icons.AutoMirrored.Filled.ListAlt,
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (hasWhatsApp) {
+                ProOutlinedButton(
+                    text = stringResource(R.string.message_host_on_whatsapp),
+                    onClick = onWhatsApp,
+                    icon = Icons.AutoMirrored.Filled.Chat,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
+}
+
 /** A frosted white circular button over the hero photo (readable on any image). */
 @Composable
 private fun HeroGlassButton(onClick: () -> Unit, content: @Composable () -> Unit) {
@@ -1085,7 +1115,7 @@ private fun HeroGlassButton(onClick: () -> Unit, content: @Composable () -> Unit
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
         contentColor = MaterialTheme.colorScheme.onSurface,
-        shadowElevation = 4.dp,
+        shadowElevation = Elevation.level2,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
         modifier = Modifier.size(42.dp)
     ) {

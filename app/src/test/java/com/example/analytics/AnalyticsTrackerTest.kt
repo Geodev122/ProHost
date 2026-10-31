@@ -46,9 +46,9 @@ class AnalyticsTrackerTest {
     @Test
     fun `events flow once consent is granted`() {
         AnalyticsTracker.applyConsent(granted = true, reset = false)
-        AnalyticsTracker.login("email_link")
+        AnalyticsTracker.login("password")
         assertEquals(Event.LOGIN, sink.events.single().first)
-        assertEquals("email_link", sink.events.single().second[Param.METHOD])
+        assertEquals("password", sink.events.single().second[Param.METHOD])
     }
 
     @Test
@@ -120,5 +120,36 @@ class AnalyticsTrackerTest {
         val now = 100L * 86_400_000L
         assertEquals("<7d", AnalyticsTracker.bucketAge(now - 86_400_000L, now))
         assertEquals("90d+", AnalyticsTracker.bucketAge(0L, now))
+    }
+
+    @Test
+    fun `price ranges and dates survive the phone filter, real numbers don't`() {
+        val out = AnalyticsTracker.sanitize(mapOf(
+            "filter_value" to "100-2000",
+            "date" to "2026-10-20",
+            "note" to "+961 70 123 456",
+            "short" to "1000-5000"
+        ))
+        assertEquals("100-2000", out["filter_value"])
+        assertEquals("2026-10-20", out["date"])
+        assertEquals("1000-5000", out["short"])
+        assertFalse(out.containsKey("note"))
+    }
+
+    @Test
+    fun `a closed sheet re-reports the screen underneath`() {
+        AnalyticsTracker.applyConsent(granted = true, reset = true)
+        sink.events.clear()
+        AnalyticsTracker.screen("space_details")
+        AnalyticsTracker.pushScreen("availability")
+        AnalyticsTracker.screen("space_details") // base re-set while the sheet is open: not logged
+        AnalyticsTracker.popScreen("availability")
+        val names = sink.events.filter { it.first == Event.SCREEN_VIEW }.map { it.second[Param.SCREEN_NAME] }
+        assertEquals(listOf("space_details", "availability", "space_details"), names)
+    }
+
+    @Test
+    fun `app error areas are stable keys`() {
+        assertEquals("couldnt_change_the_price_please", AnalyticsTracker.areaKey("Couldn't change the price — please try again."))
     }
 }

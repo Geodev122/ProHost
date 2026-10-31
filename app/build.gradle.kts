@@ -25,8 +25,8 @@ android {
     applicationId = "app.geonajjar.prohost"
     minSdk = 24
     targetSdk = 37
-    versionCode = 39
-    versionName = "1.0.39"
+    versionCode = 46
+    versionName = "1.0.46"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     
@@ -232,7 +232,12 @@ dependencies {
 }
 
 // A unit test that blocks (e.g. awaiting a real network call) fails fast instead of
-// hanging the CI job until GitHub's 6-hour limit.
+// hanging the CI job until GitHub's 6-hour limit. Recording the design screenshots (every screen,
+// sheet and dialog in five variants) legitimately takes longer.
+val recordingScreenshots = gradle.startParameter.taskNames.any { it.contains("recordRoborazzi") }
+val designOnly = providers.gradleProperty("designOnly").orElse("")
 tasks.withType<Test>().configureEach {
-  timeout.set(Duration.ofMinutes(15))
+  timeout.set(Duration.ofMinutes(if (recordingScreenshots) 60 else 15))
+  // DesignScreenshotTest: -PdesignOnly=screen1,screen2 renders only those.
+  systemProperty("design.only", designOnly.get())
 }

@@ -260,16 +260,8 @@ internal class ProfilesRepository(private val repo: ProHostRepository) {
         }
     }
 
-    /**
-     * Persists the phone number to Firestore right after a successful KYC phone
-     * link (FirebaseAuthService.linkPhoneCredentialToCurrentUser only links the
-     * credential at the Firebase Auth level — it never touches Firestore). Without
-     * this write, a Google/email user who completes phone KYC keeps a blank
-     * user_profiles.phone forever, which both re-triggers the "needs KYC" gate
-     * (ProHostNavGraph) and re-sends them to the registration form on their next
-     * sign-in (AuthViewModel.finishVerification's stranded-account check).
-     */
-    suspend fun updatePhoneAfterKycLink(e164Phone: String): Boolean {
+    /** Saves the person's WhatsApp number (E.164) — the profile's phone step (AppUser.hasWhatsAppNumber). */
+    suspend fun saveWhatsAppNumber(e164Phone: String): Boolean {
         return with(repo) {
             val current = _currentUser.value ?: return false
             val success = firestoreService.updateUserProfileFields(
@@ -319,10 +311,7 @@ internal class ProfilesRepository(private val repo: ProHostRepository) {
             _currentUser.value = updated
             _users.value = _users.value.map { if (it.id == updated.id) updated else it }
 
-            val success = firestoreService.updateUserProfileFields(
-                current.id,
-                mapOf("savedSpaceIds" to updatedIds)
-            )
+            val success = firestoreService.setSavedSpace(current.id, spaceId, saved = spaceId in updatedIds)
             // Revert only if nothing has changed currentUser since this call made
             // its own optimistic write — comparing against [updated] (not
             // overwriting with [current] unconditionally) so a rapid second toggle

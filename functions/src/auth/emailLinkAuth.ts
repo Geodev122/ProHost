@@ -7,7 +7,10 @@ import { maskEmail, sendEmail } from "../lib/email";
 import { signInLinkTemplate, emailVerificationTemplate, UserContext } from "../lib/emailTemplates";
 import { takeEmailSendSlot, isPlausibleEmail } from "../lib/emailRateLimit";
 import "../lib/admin";
+import { emailVerificationLink } from "../lib/authLinks";
+import { assertLegacyEmailSignIn } from "../lib/authConfig";
 
+// Legacy magic link (1.0.43 and older): retired by app_config/auth.legacyEmailSignIn = false.
 const CONTINUE_URL = "https://prohost-f766f.web.app/emaillink";
 const MAX_VERIFICATION_RESENDS_PER_DAY = 3;
 
@@ -29,6 +32,7 @@ export const sendSignInEmailLink = onCall(
     if (!isPlausibleEmail(email)) {
       throw new HttpsError("invalid-argument", "A valid email address is required.");
     }
+    await assertLegacyEmailSignIn();
     await takeEmailSendSlot("signin_link", email);
 
     let link: string;
@@ -105,9 +109,7 @@ export const sendVerificationEmailLink = onCall(
 
     let link: string;
     try {
-      link = await getAuth().generateEmailVerificationLink(fbUser.email, {
-        url: CONTINUE_URL,
-      });
+      link = await emailVerificationLink(fbUser.email);
     } catch (e) {
       logger.error("generate_verification_link_failed", { uid, error: String(e) });
       throw new HttpsError("internal", "Failed to generate verification link. Please try again.");

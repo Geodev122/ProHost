@@ -1,5 +1,10 @@
 package com.example.ui.components
 
+import com.example.ui.theme.Spacing
+
+import androidx.compose.ui.res.stringResource
+import com.example.ui.theme.Radius
+import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -38,10 +43,10 @@ fun GoogleSignInButton(
         modifier = modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = 48.dp),
-        shape = RoundedCornerShape(4.dp),
+        shape = Radius.Xs,
         color = bgColor,
         border = BorderStroke(1.dp, borderColor),
-        tonalElevation = 0.dp
+        tonalElevation = Elevation.level0
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -54,9 +59,9 @@ fun GoogleSignInButton(
                 modifier = Modifier.size(20.dp),
                 tint = Color.Unspecified
             )
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(Spacing.md))
             Text(
-                text = "Continue with Google",
+                text = stringResource(R.string.continue_with_google),
                 color = textColor,
                 fontWeight = FontWeight.Medium,
                 fontSize = 14.sp

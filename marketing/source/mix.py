@@ -17,7 +17,8 @@ import numpy as np
 
 HERE = pathlib.Path(__file__).parent
 ROOT = HERE.parent
-SR, LENGTH = 48000, 16.0
+SR = 48000
+LENGTH = float(__import__("os").environ.get("LENGTH", 16.0))
 _env = __import__("os").environ
 VIDEOS = pathlib.Path(_env.get("VIDEOS", HERE / "out"))  # silent renders from render.py
 VOICE = _env.get("VOICE")                                # e.g. "voice_en" or "voice" (Lebanese Arabic)
@@ -167,5 +168,6 @@ def score(post):
     print(f"{post}: music offset {d:.2f}s, beat match {s:.2f}{', voice ' + VOICE if VOICE else ''} → {out}")
 
 
-for p in sys.argv[1:] or [f.stem for f in sorted((ROOT / "audio" / "music").glob("*.wav"))]:
-    score(p)
+if __name__ == "__main__":  # reel_v3_compose.py imports load/sfx/best_offset
+    for p in sys.argv[1:] or [f.stem for f in sorted((ROOT / "audio" / "music").glob("*.wav"))]:
+        score(p)

@@ -178,15 +178,26 @@ class PlayBillingManager(
         userId: String,
         basePlanId: String,
         oldPurchaseToken: String? = null,
-        replacementMode: Int = BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_FULL_PRICE
+        replacementMode: Int = BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_FULL_PRICE,
+        offerChoice: OfferChoice = OfferChoice.Preferred
     ): Boolean {
         val plan = PlayCatalog.planInterval(basePlanId) ?: basePlanId
-        // The offer for the chosen base plan (monthly or yearly), never just the first one.
-        val offerToken = PlayOfferText.preferredOffer(productDetails, basePlanId)?.offerToken
-            ?: run {
-                emitMessage("This plan has no active offer in Google Play yet. Please try again later.")
-                return false
-            }
+        // Only offers Play returned for this account, for the chosen base plan (monthly or yearly):
+        // the plan cards' preferred offer, the plain base plan (plan switches show regular prices, so
+        // they are charged regular prices), or one specific offer (the Play-configured promo).
+        val planOffers = productDetails.subscriptionOfferDetails.orEmpty().filter { it.basePlanId == basePlanId }
+        val chosen = when (offerChoice) {
+            OfferChoice.Preferred -> PlayOfferText.preferredOffer(productDetails, basePlanId)
+            OfferChoice.BasePlanOnly -> planOffers.firstOrNull { it.offerId == null }
+            is OfferChoice.Specific -> planOffers.firstOrNull { it.offerId == offerChoice.offerId }
+        }
+        val offerToken = chosen?.offerToken ?: run {
+            emitMessage(
+                if (offerChoice is OfferChoice.Specific) "This promo isn't available for your Google Play account any more."
+                else "This plan has no active offer in Google Play yet. Please try again later."
+            )
+            return false
+        }
 
         // Very old Play Store versions can't sell subscriptions (or replace one on upgrade).
         val feature = if (oldPurchaseToken.isNullOrBlank()) BillingClient.FeatureType.SUBSCRIPTIONS
@@ -464,4 +475,14 @@ class PlayBillingManager(
             billingClient.endConnection()
         }
     }
+}
+
+/** Which of the offers Play returned a checkout uses (all of them come from Play; none is invented). */
+sealed interface OfferChoice {
+    /** The plan cards' offer: free trial, else deepest discount, else base plan (PlayOfferText.preferredOffer). */
+    data object Preferred : OfferChoice
+    /** The plain base plan: plan switches, which show and charge regular prices. */
+    data object BasePlanOnly : OfferChoice
+    /** One offer by id: the Play-configured promo (PlayPromo). */
+    data class Specific(val offerId: String) : OfferChoice
 }

@@ -138,6 +138,95 @@ means verification is failing.
      (`play_purchase_links` admin override).
 3. The user's profile in Admin › Users shows the same rows under "Payments not active yet".
 
+## 2b. Offers (discounts, trials) — why a Play Console change may not show in the app
+
+The Premium screen shows whatever offer Google Play returns **for the signed-in Google account**, through the
+Billing SDK, re-queried on every visit. The plan cards show the price paid now, the regular price struck through,
+the % off, how long it lasts and what it renews at; "How your offer works" shows the date the regular price starts.
+
+If an offer you created or edited doesn't appear:
+
+| Cause | How to tell | Fix |
+|---|---|---|
+| Offer not **Active** (draft / inactive) | `playcatalog` → `OFFER … INACTIVE/DRAFT` | Activate it in Play Console › Subscriptions › ProHost Premium › base plan › Offers |
+| Eligibility **"New customer acquisition"** — the test Google account already had this subscription (or any, depending on the rule) | `playcatalog` → `new customers: never had …` | Test with a Google account that never subscribed, or set eligibility to *Developer determined* |
+| Offer not available in **Lebanon** (or the tester's Play country) | `playcatalog` → `LB OFF` | Add the country under the offer's *Countries / regions* |
+| Edited a **base-plan price** (not an offer) | `BASE … LB=` shows the new price | Price changes apply to new purchases after Play propagates them; existing subscribers follow Play's price-change flow |
+| Play Store cache | Catalog is right but the phone still shows the old price | Wait up to a few hours, or clear the Play Store app's cache, then reopen Premium |
+| Member switching plans | Offers are never shown when switching | Expected: offers are for new subscriptions |
+
+**Live check:** GitHub › Actions › Maintenance › task `playcatalog` prints every base plan (LB/US prices,
+availability) and every offer (state, eligibility, tags, phases with LB/US pricing), every recorded Play
+subscription as Play sees it now (offer used, bought in the app vs Play Store, promo-code type) and the
+promo-code claim plumbing. It reads Play with the functions' own service account (via `onMaintenanceRequest`),
+so it works even though the CI account isn't invited in Play Console. Admin › Packages › Billing health shows the
+same offers per base plan.
+
+## 2c. Launch offers and the PROHOST2026 promo, configured only in Play Console
+
+**Live catalog (2026-10-18) and what the website, email templates and videos promise** (`functions/src/billing/offerClaims.ts`):
+monthly base plan `pro-monthly1` has offer `free-4-months` (first **4 months free**, new customers); yearly `pro-yearly` has
+`launch-50-first-year` (**50 % off the first year**). The old `pro-monthly` plan and its "50 % off the first month" offer are inactive.
+Change an offer in Play, then `offerClaims.ts`, then the pages: `playcatalog` (`playOfferLint`) warns when Play stops matching the
+claims and `offerClaims.test.ts` fails CI when a page, the admin email template, the marketing README or the voiceover
+scripts state them differently or still state a retired claim.
+
+The promo card is a **Play subscription offer with tags**: no Firestore document, no server counter, no Maintenance task.
+Google Play decides who sees it (eligibility, regions, active/inactive) and what it costs; the app only reads the offer.
+
+1. **Play Console › Monetize with Play › Products › Subscriptions › ProHost Premium (`package_pro_mrr`) › base plan
+   `pro-monthly1` › Add offer.** Offer ID **`prohost2026`** (recreate it there; offers do not carry over from the retired plan).
+2. Eligibility: **New customer acquisition** (never had this subscription). Regions: all, including Lebanon.
+3. Phase: a free trial of your choice (the card reads the length from Play). Activate the offer.
+4. **Offer tags** (lowercase, ≤ 20 characters each) — these drive the app's card (`PlayPromo`):
+
+   | Tag | Effect |
+   | --- | --- |
+   | `promo` | marks the promo card's offer; it is never used by the plan cards or the normal checkout |
+   | `code-prohost2026` | the code shown on the card (displayed `PROHOST2026`) |
+   | `ends-20261231` | countdown to the end of that day (Beirut); the card hides after it |
+   | `early-launch` | title "Early launch promo" (otherwise "Limited-time promo") |
+
+5. In the app: *Redeem code* shows a red dot while the offer is live; it opens a sheet with the countdown card and the
+   one-time-code field. *Use promo code* opens Google Play's checkout **on the `prohost2026` offer** (Play shows the free
+   month and the date the regular price starts). Members and admin-granted accounts see it disabled.
+6. **Cap / stop:** Play can't cap an offer at 100 people. Watch Play Console's subscription stats (or
+   `playcatalog` › `playSubscriptionsLive`, which lists the offer per subscription) and **deactivate the offer** when
+   enough people joined — the card disappears for everyone on their next Premium visit.
+7. Optional: a Play **custom promo code** `PROHOST2026` (Monetize › Promotions, min. 2,000) lets people outside the app
+   redeem it in Play's checkout (payment method ▾ › Redeem). The in-app card doesn't need it.
+8. Check with Maintenance task `playcatalog`: step `playOfferLint` warns about a promo offer without `code-`/`ends-`, an
+   ended promo still active, more than one promo, a phase ≥ 90 % off or free > 4 months, a base plan without an LB price,
+   two ACTIVE base plans with the same period, and the website's claims (4 months free monthly, 50 % off year one) not matching Play.
+
+### Runbook: a promo or launch offer won't resume / doesn't show (Oct 2026)
+- **"An unexpected error has occurred. Please try again. (5A39FA1E)" when resuming PROHOST2026 in Play Console.**
+  The offer was created on `pro-monthly`, which is INACTIVE. Play can't activate an offer on an inactive base plan.
+- **`free-4-months` hidden from anyone who ever subscribed.** Its eligibility was "never had any subscription in this app".
+- **Fix:** Actions › Maintenance › `playofferfix`.
+  1. Run it with an empty code first (dry run) and read the planned steps.
+  2. Run it again with code `apply`. It copies the promo (phases, tags, regions, eligibility) onto the live monthly plan
+     and activates it. It turns a claimed monthly phase set to ≥ 90% off (e.g. 99%, which charges cents) into a free
+     phase, sets claimed offers to "never had this subscription", then re-runs `playcatalog`.
+  3. Writes use Play's latest regions version (`2022/02`; the API rejects others). Old offers still list regions Play
+     has stopped billing (ET, MN in Oct 2026), and Play refuses any write containing them, so the task drops those
+     regions and reports which.
+  4. If it reports HTTP 403, the functions service account can't edit subscriptions; do the printed Play Console steps instead.
+- **Promo-code campaigns** (Monetize › Promo codes) point at a specific offer: recreate the campaign on the new offer.
+
+### Strict Play configuration — where every billing decision comes from
+
+| Decision | Source | Notes |
+| --- | --- | --- |
+| Product, base plans, prices, currency, periods | Play Billing SDK (`ProductDetails`) | re-queried on every Premium visit |
+| Offers, discounts, trials, "Save x %" | Play offers (`PlayOfferText`) | Play returns only offers the account is eligible for |
+| Promo card (code, benefit, countdown, on/off) | Play offer tagged `promo` (`PlayPromo`) | §2c |
+| Which offer a checkout uses | `OfferChoice`: plan cards `Preferred` (non-promo), switches `BasePlanOnly`, promo `Specific` | a missing offer aborts with a message, never falls back |
+| Purchase state, renewals, expiry, refunds | Play Developer API (`subscriptionsv2`) + RTDN | server `syncSubscription` only |
+| Entitlement | server mirror of Play status; admin Force Upgrade (`admin_forced`) | admin grants never sell or price anything |
+| Monthly vs yearly | Play's recurring period (P1M/P1Y) | known ids only as a fallback for stored ids |
+| Local only | labels, rounding of "≈ x / month", Play replacement modes for switches | |
+
 ## 3. Promo-code campaign (50 early-subscriber codes)
 
 ### How a redemption flows

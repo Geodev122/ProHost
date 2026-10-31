@@ -68,9 +68,9 @@ object PriceChange {
     /** The space's divisions: one per room, or the whole space when it has none. */
     fun divisionsOf(space: SpaceListing): List<Division> =
         if (space.subdivisions.isEmpty()) {
-            listOf(Division(space.id, "Whole space", space.pricing.strategyType.displayName, null))
+            listOf(Division(space.id, localizedLabel("Whole space"), localizedLabel(space.pricing.strategyType.displayName), null))
         } else {
-            space.subdivisions.map { Division(it.id, it.name, it.type.displayName, it) }
+            space.subdivisions.map { Division(it.id, it.name, localizedLabel(it.type.displayName), it) }
         }
 
     /** Every priced slot of a division (per-attendee rooms: their per-person packages). */
@@ -95,7 +95,7 @@ object PriceChange {
                 .mapNotNull { (key, price) ->
                     val day = key.substringBefore("|")
                     val hour = key.substringAfter("|").toIntOrNull() ?: return@mapNotNull null
-                    Triple(day, hour, PriceSlot(SlotRef(scopeId, SlotKind.HOURLY, key), DAY_NAMES[day] ?: day, "${pad(hour)}–${pad(hour + 1)}", price, unit))
+                    Triple(day, hour, PriceSlot(SlotRef(scopeId, SlotKind.HOURLY, key), localizedLabel(DAY_NAMES[day] ?: day), timeRange(pad(hour), pad(hour + 1), "–"), price, unit))
                 }
                 .sortedWith(compareBy<Triple<String, Int, PriceSlot>>({ dayRank(it.first) }, { it.second }))
                 .map { it.third }
@@ -105,7 +105,7 @@ object PriceChange {
                     val days = DAY_ORDER.filter { d -> cfg.distribution[d]?.contains(s.name.name) == true }
                     PriceSlot(
                         SlotRef(scopeId, SlotKind.SHIFT, s.name.name), "Shifts",
-                        "${shiftLabel(s.name.name)} (${pad(s.startHour)}–${pad(s.endHour)}) · ${days.joinToString(", ")}",
+                        "${localizedLabel(shiftLabel(s.name.name))} (${timeRange(pad(s.startHour), pad(s.endHour), "–")}) · ${days.joinToString(", ") { localizedLabel(it) }}",
                         s.price, unit
                     )
                 }
@@ -114,7 +114,7 @@ object PriceChange {
                 .filter { it.value.price > 0 }
                 .toList()
                 .sortedBy { dayRank(it.first) }
-                .map { (day, p) -> PriceSlot(SlotRef(scopeId, SlotKind.DAY, day), "Days", DAY_NAMES[day] ?: day, p.price, unit) }
+                .map { (day, p) -> PriceSlot(SlotRef(scopeId, SlotKind.DAY, day), "Days", localizedLabel(DAY_NAMES[day] ?: day), p.price, unit) }
         }
     }
 

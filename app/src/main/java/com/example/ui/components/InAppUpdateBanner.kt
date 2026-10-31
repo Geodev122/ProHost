@@ -1,5 +1,9 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiText
+import com.example.R
+import androidx.compose.ui.res.stringResource
+import com.example.ui.theme.Elevation
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -44,7 +48,7 @@ fun InAppUpdateBanner(
                 containerColor = bannerColor,
                 contentColor = onBanner
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = Elevation.level3),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
@@ -53,12 +57,12 @@ fun InAppUpdateBanner(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                 ) {
                     Box(
                         modifier = Modifier
@@ -77,16 +81,16 @@ fun InAppUpdateBanner(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (updateState == UpdateState.DOWNLOADED) "ProHost Update Ready" else "Downloading ProHost Update...",
+                            text = if (updateState == UpdateState.DOWNLOADED) stringResource(R.string.prohost_update_ready) else stringResource(R.string.downloading_prohost_update),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = onBanner
                         )
                         Text(
                             text = if (updateState == UpdateState.DOWNLOADED) {
-                                "Restart the app to apply the latest features and security patches."
+                                uiText(R.string.restart_the_app_to_apply_the_latest_featur)
                             } else {
-                                "Download in progress: ${(downloadProgress * 100).toInt()}%"
+                                uiText(R.string.download_in_progress_x, (downloadProgress * 100).toInt())
                             },
                             style = MaterialTheme.typography.labelMedium,
                             color = onBanner.copy(alpha = 0.85f)
@@ -104,7 +108,7 @@ fun InAppUpdateBanner(
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
-                                text = "Restart",
+                                text = stringResource(R.string.restart),
                                 fontWeight = FontWeight.ExtraBold,
                                 style = MaterialTheme.typography.labelMedium
                             )

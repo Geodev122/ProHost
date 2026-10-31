@@ -328,7 +328,7 @@ data class RentalPricingConfig(
          *  Called both from fromFirestoreMap (a document with no "pricing" key at
          *  all) and eagerly from every write path that still constructs a
          *  RentalFormula/SubdivisionStrategy directly (CreateListingDialog,
-         *  SubdivisionEditorSection), so "pricing" is always correct the moment
+         *  SubdivisionForm), so "pricing" is always correct the moment
          *  it's first written, not only on a later read of a genuinely old
          *  pre-existing document. */
         fun fromLegacyFormula(formula: RentalFormula?): RentalPricingConfig {
@@ -884,7 +884,11 @@ data class SpaceListing(
     // to governorate/coordinates for those.
     val country: String = "",
     val city: String = "",
+    /** English copy of [city] (the address fields are filled in the app's language), so search and filters match. */
+    val cityEn: String = "",
     val floorInfo: String,
+    /** How many people an undivided listing fits (its one division's "fits up to"); divisions carry their own. */
+    val capacity: Int? = null,
     val lat: Double,
     val lng: Double,
     val isShared: Boolean,
@@ -984,6 +988,9 @@ data class SpaceListing(
     // Surfaced on OwnerAnalyticsScreen as the concrete "listing performance" signal
     // behind a specialist pressing/unpressing the heart icon.
     val favoriteCount: Int = 0,
+    // Saves per month ("yyyymm" -> count, last 13 months), server-only like favoriteCount
+    // (favoritesSync.ts; absent from toFirestoreMap). Owner Analytics' "+N this month".
+    val favoritesByMonth: Map<String, Int> = emptyMap(),
     val isDemo: Boolean = false,
     // Server-assigned public code ("L-XXXXXX"); read-only on the client, never written back.
     val displayCode: String = ""
@@ -1001,7 +1008,9 @@ data class SpaceListing(
             "streetAddress" to streetAddress,
             "country" to country,
             "city" to city,
+            "cityEn" to cityEn,
             "floorInfo" to floorInfo,
+            "capacity" to capacity,
             "lat" to lat,
             "lng" to lng,
             "isShared" to isShared,
@@ -1202,6 +1211,8 @@ data class SpaceListing(
                 streetAddress = data["streetAddress"] as? String ?: "Beirut Central District",
                 country = data["country"] as? String ?: "",
                 city = data["city"] as? String ?: "",
+                cityEn = data["cityEn"] as? String ?: "",
+                capacity = (data["capacity"] as? Number)?.toInt()?.takeIf { it > 0 },
                 floorInfo = data["floorInfo"] as? String ?: "Floor 1",
                 lat = (data["lat"] as? Number)?.toDouble() ?: 33.8938,
                 lng = (data["lng"] as? Number)?.toDouble() ?: 35.5018,
@@ -1248,6 +1259,9 @@ data class SpaceListing(
                 subdivisions = subsList,
                 createdAtMillis = (data["createdAtMillis"] as? Number)?.toLong(),
                 favoriteCount = (data["favoriteCount"] as? Number)?.toInt() ?: 0,
+                favoritesByMonth = (data["favoritesByMonth"] as? Map<*, *>).orEmpty()
+                    .mapNotNull { (k, v) -> (k as? String)?.let { key -> (v as? Number)?.let { key to it.toInt() } } }
+                    .toMap(),
                 isDemo = data["isDemo"] as? Boolean ?: (docId.startsWith("demo-") || docId.startsWith("DEMO-"))
             )
         }
@@ -1407,23 +1421,21 @@ data class AppUser(
     val displayCode: String = ""
 ) {
     /**
-     * Phone verified through KYC: the number is on the profile AND linked to the Firebase
-     * Auth account ([phoneLinkedInAuth], see data/auth/PhoneLink). isVerified can't be used —
-     * it is also true for email-verified accounts — and a typed profile phone isn't proof.
+     * A WhatsApp number saved on the profile in international format. There is no SMS code:
+     * Firebase phone verification never delivered reliably, so the number is self-declared
+     * (hosts and guests reach each other on WhatsApp through it).
      */
-    fun hasVerifiedPhone(phoneLinkedInAuth: Boolean): Boolean = phoneLinkedInAuth && phone.isNotBlank()
+    fun hasWhatsAppNumber(): Boolean = isPlausibleE164(phone)
 
     /**
      * The one rule for sending a booking request: a profile photo (hosts verify who's coming)
-     * and a verified phone. Checked in place at Request time (RequirementsSheet), never as a
+     * and a WhatsApp number. Checked in place at Request time (RequirementsSheet), never as a
      * navigation gate.
      */
-    fun canTransact(phoneLinkedInAuth: Boolean): Boolean =
-        hasVerifiedPhone(phoneLinkedInAuth) && !profilePictureUrl.isNullOrBlank()
+    fun canTransact(): Boolean = hasWhatsAppNumber() && !profilePictureUrl.isNullOrBlank()
 
     /** Hosting (Premium checkout, Pro Host profile): [canTransact] plus country and city. */
-    fun canHost(phoneLinkedInAuth: Boolean): Boolean =
-        canTransact(phoneLinkedInAuth) && country.isNotBlank() && city.isNotBlank()
+    fun canHost(): Boolean = canTransact() && country.isNotBlank() && city.isNotBlank()
     // Full map — only for admin/server-side contexts (e.g. bootstrapping a new profile
     // from an admin console write). NEVER use for client-initiated profile updates;
     // firestore.rules blocks writes to protected fields (role, isVerified, ownerPackageId,

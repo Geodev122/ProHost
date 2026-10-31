@@ -19,6 +19,7 @@ import { MAIL_COLLECTION } from "../lib/email";
 import { takeEmailSendSlot } from "../lib/emailRateLimit";
 import { LIST, MESSAGES, clip, clipText, iso } from "./addressBook";
 import { ADMIN_EMAIL, NOREPLY_FROM, SITE, Campaign, campaignEmail, listUnsubscribeHeaders, safeUrl } from "./mailTemplates";
+import { WA_DOC, parseWhatsAppConfig, sendAdminWhatsApp, whatsAppMissing } from "../lib/whatsappAlerts";
 
 const SESSIONS = "mailing_admin_sessions";
 const CAMPAIGNS = "mail_campaigns";
@@ -81,12 +82,12 @@ export const mailingAdminData = onCall({ cors: true, memory: "512MiB" }, async (
         id: d.id, createdAt: iso(x.createdAt), updatedAt: iso(x.updatedAt), name: x.name ?? "", email: x.email ?? "",
         phone: x.phone ?? "", organization: x.organization ?? "", role: x.role ?? "", lastMessage: x.lastMessage ?? "",
         lastMessageAt: iso(x.lastMessageAt), messagesCount: x.messagesCount ?? 0, subscribed: x.subscribed === true,
-        subscribedAt: iso(x.subscribedAt), unsubscribedAt: iso(x.unsubscribedAt), sources: x.sources ?? [],
+        subscribedAt: iso(x.subscribedAt), unsubscribedAt: iso(x.unsubscribedAt), sources: x.sources ?? [], tags: x.tags ?? [],
       };
     }),
     messages: msgs.docs.map((d) => {
       const x = d.data();
-      return { createdAt: iso(x.createdAt), name: x.name, email: x.email, phone: x.phone, organization: x.organization, role: x.role, message: x.message };
+      return { createdAt: iso(x.createdAt), name: x.name, email: x.email, phone: x.phone, organization: x.organization, role: x.role, message: x.message, tags: x.tags ?? [] };
     }),
     campaigns: camps.docs.map((d) => ({ id: d.id, subject: d.get("subject"), total: d.get("total"), createdAt: iso(d.get("createdAt")), test: d.get("test") === true })),
   };
@@ -195,4 +196,38 @@ export const mailingAdminRetry = onCall({ cors: true }, async (request) => {
   }
   await batch.commit();
   return { retried: docs.length };
+});
+
+/**
+ * mailingAdminWhatsApp({ token, action: "get" | "set" | "test", config? }) — the "WhatsApp alerts" panel of /admin.
+ * set: { enabled, phoneNumberId, adminNumber, templateName, templateLang, accessToken? } (a blank token keeps the stored
+ * one); the token is write-only: get returns only its last 4 characters. test sends one alert through
+ * lib/whatsappAlerts.ts. Stored in the server-only doc app_config/whatsapp.
+ */
+export const mailingAdminWhatsApp = onCall({ cors: true }, async (request) => {
+  await requireSession(request.data?.token);
+  const ref = db().collection("app_config").doc(WA_DOC);
+  const action = String(request.data?.action ?? "get");
+  if (action === "set") {
+    const c = (request.data?.config ?? {}) as Record<string, unknown>;
+    const token = clip(c.accessToken, 600);
+    await ref.set({
+      enabled: c.enabled === true, phoneNumberId: clip(c.phoneNumberId, 40).replace(/\D/g, ""),
+      adminNumber: clip(c.adminNumber, 30).replace(/\D/g, ""), templateName: clip(c.templateName, 120).replace(/[^a-z0-9_]/g, ""),
+      templateLang: clip(c.templateLang, 10) || "en", updatedAt: FieldValue.serverTimestamp(),
+      ...(token ? { accessToken: token } : {}),
+    }, { merge: true });
+    logger.info("whatsapp_alerts_saved", { enabled: c.enabled === true, tokenChanged: !!token });
+  }
+  if (action === "test") {
+    const result = await sendAdminWhatsApp("ProHost test alert: WhatsApp alerts are working. New office leads will arrive here.");
+    return { result };
+  }
+  const d = (await ref.get()).data() ?? {};
+  const cfg = parseWhatsAppConfig(d);
+  return {
+    enabled: cfg.enabled, phoneNumberId: cfg.phoneNumberId, adminNumber: cfg.adminNumber, templateName: cfg.templateName,
+    templateLang: cfg.templateLang, tokenSet: !!cfg.accessToken, tokenHint: cfg.accessToken ? "••••" + cfg.accessToken.slice(-4) : "",
+    missing: whatsAppMissing(cfg), lastResult: typeof d.lastResult === "string" ? d.lastResult : "",
+  };
 });

@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -69,14 +68,14 @@ internal fun AdminUsersDirectoryTab(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
         // Real totals (adminCounts): the console never loads the user collection.
         item {
             val counts = uiState.counts
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 AdminMetricTile("Total Users", counts?.totalUsers?.toString() ?: "…", modifier = Modifier.weight(1f))
                 AdminMetricTile("Pro Hosts", counts?.proHosts?.toString() ?: "…", modifier = Modifier.weight(1f))
@@ -87,7 +86,7 @@ internal fun AdminUsersDirectoryTab(
 
         item {
             ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -133,7 +132,7 @@ internal fun AdminUsersDirectoryTab(
                     )
 
                     // Role chips narrow the results.
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         item {
                             FilterChip(
                                 selected = uiState.selectedUserRoleFilter == null,
@@ -177,7 +176,7 @@ internal fun AdminUsersDirectoryTab(
         // List of filtered users
         items(uiState.filteredUsers, key = { it.id }) { user ->
             ProSurfaceCard {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -194,7 +193,7 @@ internal fun AdminUsersDirectoryTab(
                                 size = 44.dp,
                                 imageUrl = user.profilePictureUrl
                             )
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Spacer(modifier = Modifier.width(Spacing.md))
                             Column {
                                 Text(
                                     text = user.fullName,
@@ -209,7 +208,7 @@ internal fun AdminUsersDirectoryTab(
                             }
                         }
 
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             if (user.isSuspended) {
                                 Surface(color = StatusErrorContainer, shape = MaterialTheme.shapes.small) {
                                     Text(
@@ -292,7 +291,7 @@ internal fun AdminUsersDirectoryTab(
                     // Action Buttons Row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         CustomButton(
@@ -318,7 +317,7 @@ internal fun AdminUsersDirectoryTab(
                         if (user.role != UserRole.ADMIN) {
                             IconButton(
                                 onClick = { adminViewModel.openGrantAdminDialog(user) },
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
                                     Icons.Default.AdminPanelSettings,
@@ -336,7 +335,7 @@ internal fun AdminUsersDirectoryTab(
                         if (user.role != UserRole.ADMIN) {
                             IconButton(
                                 onClick = { adminViewModel.openSuspendUserDialog(user) },
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
                                     if (user.isSuspended) Icons.Default.LockOpen else Icons.Default.Block,
@@ -353,7 +352,7 @@ internal fun AdminUsersDirectoryTab(
                         if (user.role == UserRole.PRO_HOST) {
                             IconButton(
                                 onClick = { adminViewModel.openRevokeProHostDialog(user) },
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
                                     Icons.Default.RemoveModerator,
@@ -368,7 +367,7 @@ internal fun AdminUsersDirectoryTab(
                         if (user.role != UserRole.ADMIN) {
                             IconButton(
                                 onClick = { adminViewModel.openDeleteUserDialog(user) },
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(Icons.Default.DeleteOutline, contentDescription = "Delete", tint = StatusError, modifier = Modifier.size(18.dp))
                             }
@@ -399,8 +398,8 @@ internal fun AdminEditUserDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surface,
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.9f)
@@ -411,7 +410,7 @@ internal fun AdminEditUserDialog(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -450,7 +449,7 @@ internal fun AdminEditUserDialog(
                     shape = MaterialTheme.shapes.small,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                         Text(
                             "Role: ${user.role.name.replace("_", " ")}  •  ${if (user.isVerified) "Phone Verified" else "Phone Unverified"}",
                             style = MaterialTheme.typography.labelSmall,
@@ -468,7 +467,7 @@ internal fun AdminEditUserDialog(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     CustomButton(
                         text = "Cancel",

@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.R
+import com.example.ui.util.uiText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.runtime.Composable
@@ -19,7 +21,7 @@ fun OfflineStatusBanner(
 ) {
     ProHostStatusStrip(
         visible = isOffline,
-        message = syncStatusMessage ?: "You're offline — showing cached data",
+        message = syncStatusMessage ?: uiText(R.string.you_re_offline_showing_cached_data),
         severity = ProHostAlertSeverity.ERROR,
         icon = Icons.Default.CloudOff,
         modifier = modifier

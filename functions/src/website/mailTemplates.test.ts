@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { campaignEmail, contactNotificationEmail, formatBody, listUnsubscribeHeaders, safeUrl } from "./mailTemplates";
+import { PARTNER_SUBJECT_TAG, PARTNER_TAGS, campaignEmail, contactNotificationEmail, partnerNotificationEmail, formatBody, listUnsubscribeHeaders, safeUrl } from "./mailTemplates";
 
 test("formatBody escapes HTML and formats paragraphs, bullets, bold and links", () => {
   const html = formatBody("Hello <script>x</script>\n\n- one\n- **two**\n\nSee https://pro-host.tech/get?a=1&b=2.");
@@ -40,4 +40,14 @@ test("contact notification escapes visitor input", () => {
   const m = contactNotificationEmail({ name: "<b>Eve</b>", email: "e@x.com", message: "<img src=x onerror=1>", subscribed: true });
   assert.ok(!m.html.includes("<img src=x"));
   assert.ok(m.html.includes("&lt;b&gt;Eve&lt;/b&gt;"));
+});
+
+test("partner enquiry is tagged in the subject, headers and body, and escapes visitor text", () => {
+  const m = partnerNotificationEmail({ name: "Eve <b>", email: "e@x.com", organization: "Acme & Co", message: "<img src=x onerror=1>", subscribed: false, markets: "UAE, KSA", timeline: "This quarter" });
+  assert.ok(m.subject.startsWith(`${PARTNER_SUBJECT_TAG} Eve`));
+  assert.equal(m.headers["X-ProHost-Form"], "partner");
+  assert.equal(m.headers["X-ProHost-Tags"], PARTNER_TAGS.join(", "));
+  assert.ok(m.html.includes("PARTNER ENQUIRY") && m.html.includes("UAE, KSA"));
+  assert.ok(!m.html.includes("<img src=x") && !m.html.includes("<b>"));
+  assert.ok(m.text.includes("Tags: partner, strategic-sponsor, usd-24000"));
 });

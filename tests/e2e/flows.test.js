@@ -3,6 +3,7 @@
 // writes the app makes. Rules are covered separately (tests/rules); here writes go through the
 // Admin SDK and we check what the server does next: codes, pushes, occupancy, the conflict
 // guard, edits, Change price, per-attendee re-pricing, withdrawals and cancellations.
+// Sign-up, sign-in, password reset and the migration invite are in auth.test.js.
 //
 //   cd tests/e2e && npm test
 import { test, before } from "node:test";

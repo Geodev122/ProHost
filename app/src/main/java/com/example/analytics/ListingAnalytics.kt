@@ -6,6 +6,9 @@ import com.example.data.model.publicCode
 import com.example.ui.util.AttendeePricing
 import com.example.ui.util.SpaceCalculationUtils
 
+/** The public listing code used as GA4 item_id (never the document id). */
+fun listingItemId(space: SpaceListing): String = space.publicCode
+
 /** GA4 `items[]` entry for a listing, or one of its rooms when [subdivision] is given. */
 internal fun SpaceListing.toAnalyticsItem(subdivision: Subdivision? = null, index: Int? = null): Map<String, Any> {
     val cfg = subdivision?.pricing ?: pricing

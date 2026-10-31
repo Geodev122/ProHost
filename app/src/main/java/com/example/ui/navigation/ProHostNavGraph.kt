@@ -1,10 +1,17 @@
 package com.example.ui.navigation
 
+import com.example.ui.theme.Spacing
+
+import com.example.ui.util.uiText
+import com.example.R
+import androidx.compose.ui.res.stringResource
+import com.example.ui.util.UiMessages
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Celebration
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
@@ -12,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import com.example.ui.theme.proHostScreenBackground
 import androidx.compose.ui.platform.testTag
@@ -22,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.BookingRequestStatus
+import com.example.data.model.ListingStatus
 import com.example.data.model.SpaceListing
 import com.example.data.model.UserRole
 import com.example.ui.components.*
@@ -53,7 +62,8 @@ private val SPECIALIST_BOTTOM_TABS = listOf(
  */
 private val PRO_HOST_BOTTOM_TABS = listOf(
     AppNavTab.ManageListings,
-    AppNavTab.OwnerRentingProgress,
+    // Explore sits second for hosts (they browse to price their own spaces); Renting Progress moved to the drawer.
+    AppNavTab.SearchMap,
     AppNavTab.ProfessionalRentals,
     AppNavTab.ProfessionalProfile
 )
@@ -67,6 +77,7 @@ private val PRO_HOST_BOTTOM_TABS = listOf(
  * Admin's listing/booking capability is unconditional, never a purchased package.
  */
 private val PRO_HOST_FULLSCREEN_TABS = listOf(
+    AppNavTab.OwnerRentingProgress,
     AppNavTab.OwnerRentalRequests,
     AppNavTab.Stats,
     AppNavTab.OwnerSubscriptions
@@ -119,11 +130,8 @@ fun ProHostAppRoot(
     deepLinkTab: String? = null,
     deepLinkBookingId: String? = null,
     deepLinkSpaceId: String? = null,
+    deepLinkRoomId: String? = null,
     emailVerifiedDeepLink: Boolean = false,
-    emailSignInLink: String? = null,
-    onEmailSignInLinkConsumed: () -> Unit = {},
-    emailOtpToken: String? = null,
-    onEmailOtpTokenConsumed: () -> Unit = {},
     inAppUpdateManager: InAppUpdateManager? = null,
     viewModel: ProHostViewModel = viewModel()
 ) {
@@ -138,6 +146,8 @@ fun ProHostAppRoot(
         ownerIncomingRequestsForBadge.count { it.status == BookingRequestStatus.PENDING }
     }
     var detailedSpace by remember { mutableStateOf<SpaceListing?>(null) }
+    // Where the open listing was opened from (GA4 listing_source / select_item list name).
+    var detailedSpaceSource by remember { mutableStateOf("explore") }
     // Paired with detailedSpace: set when the user tapped a specific division/
     // subdivision card (Explore list or map) so SpaceDetailsScreen can pre-select
     // that division and open its availability sheet immediately, instead of
@@ -145,6 +155,13 @@ fun ProHostAppRoot(
     var detailedSpaceSubdivisionId by remember { mutableStateOf<String?>(null) }
     // A room card tapped on Explore opens that room's availability sheet straight away.
     var detailedSpaceOpenAvailability by remember { mutableStateOf(false) }
+    fun openSpaceFrom(source: String, space: SpaceListing) {
+        detailedSpaceSource = source
+        detailedSpaceOpenAvailability = false
+        detailedSpace = space
+        // Explore logs its own select_item (with the room and position); other lists log here.
+        com.example.analytics.AnalyticsTracker.selectItem(source, space, null, null)
+    }
     // My Rentals scrolls to this booking (after "View request", or a booking push).
     var rentalsHighlightBookingId by remember { mutableStateOf<String?>(null) }
     var managingSpace by remember { mutableStateOf<SpaceListing?>(null) }
@@ -161,7 +178,7 @@ fun ProHostAppRoot(
     var showKycGate by remember { mutableStateOf(false) }
     var kycReturnTab by remember { mutableStateOf<String?>(null) }
 
-    /** Pro Host workspaces that require a verified phone. My Rentals never does — viewing your
+    /** Pro Host workspaces that require a WhatsApp number. My Rentals never does — viewing your
      *  own bookings needs no verification; sending one is checked in place (canTransact). */
     val kycRequiredTabIds: Set<String> = setOf(
         AppNavTab.ManageListings.id,
@@ -200,7 +217,7 @@ fun ProHostAppRoot(
     // destination id gets shown, used by the drawer, FCM alert taps, deep
     // links, and initial role-based routing alike.
     //
-    // KYC gate: if the user has no verified phone and the target tab requires one,
+    // KYC gate: if the user has no WhatsApp number and the target tab requires one,
     // show the KYC screen instead and remember where to route after completion.
     fun navigateTo(targetTabId: String) {
         // Never route to a destination the current role can't use (e.g. a stale
@@ -209,7 +226,7 @@ fun ProHostAppRoot(
         if (role != null && targetTabId !in allowedTabIdsForRole(role)) return
         val needsKyc = targetTabId in kycRequiredTabIds &&
             currentUser?.role != UserRole.ADMIN &&
-            currentUser?.hasVerifiedPhone(com.example.data.auth.PhoneLink.isLinked()) != true
+            currentUser?.hasWhatsAppNumber() != true
         if (needsKyc) {
             kycReturnTab = targetTabId
             showKycGate = true
@@ -266,92 +283,45 @@ fun ProHostAppRoot(
     LaunchedEffect(emailVerifiedDeepLink, currentUser?.id) {
         if (emailVerifiedDeepLink && !emailVerifiedConsumed.value && currentUser != null) {
             emailVerifiedConsumed.value = true
-            android.widget.Toast.makeText(
-                appContext,
-                "Email verified! Your account is now Level 2.",
-                android.widget.Toast.LENGTH_LONG
-            ).show()
+            UiMessages.show(appContext,
+                appContext.getString(R.string.email_verified_your_account_is_now_level_2),
+                long = true)
         }
     }
 
-    // Firebase Auth email sign-in link deep link: arrives from MainActivity when the
-    // user taps a sign-in link email on the same device. Completes the sign-in by
-    // retrieving the pending email from SharedPreferences and calling signInWithEmailLink.
-    val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
-    val authViewModelForEmailLink: com.example.ui.viewmodel.AuthViewModel = viewModel()
-    // Every tapped link is handled (a returning user signs in again after signing out in the
-    // same app session). The ViewModel ignores a repeat of the link it is already handling.
-    val onLinkVerified: (Boolean) -> Unit = { needsRegistration -> if (needsRegistration) activeTabId = "auth" }
-    LaunchedEffect(emailSignInLink) {
-        val link = emailSignInLink ?: return@LaunchedEffect
-        if (activity != null) authViewModelForEmailLink.onEmailLinkArrived(activity, link, onLinkVerified)
-        onEmailSignInLinkConsumed()
-    }
-    // A link opened without a saved address (other device, cleared app data): ask for it.
-    val linkAwaitingEmail by authViewModelForEmailLink.linkAwaitingEmail.collectAsState()
-    if (linkAwaitingEmail != null && activity != null) {
-        var confirmEmail by remember { mutableStateOf("") }
-        com.example.ui.components.ProHostDialog(
-            onDismissRequest = { authViewModelForEmailLink.dismissLinkAwaitingEmail() },
-            title = { androidx.compose.material3.Text("Finish signing in") },
-            text = {
-                androidx.compose.foundation.layout.Column {
-                    androidx.compose.material3.Text(
-                        "Enter the email address the sign-in link was sent to.",
-                        style = androidx.compose.material3.MaterialTheme.typography.bodySmall
-                    )
-                    androidx.compose.material3.OutlinedTextField(
-                        value = confirmEmail,
-                        onValueChange = { confirmEmail = it.trim() },
-                        label = { androidx.compose.material3.Text("Email") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-                    )
-                }
-            },
-            confirmButton = {
-                androidx.compose.material3.TextButton(
-                    enabled = android.util.Patterns.EMAIL_ADDRESS.matcher(confirmEmail).matches(),
-                    onClick = { authViewModelForEmailLink.completeLinkWithEmail(activity, confirmEmail, onLinkVerified) }
-                ) { androidx.compose.material3.Text("Sign in") }
-            },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { authViewModelForEmailLink.dismissLinkAwaitingEmail() }) {
-                    androidx.compose.material3.Text("Cancel")
-                }
-            }
-        )
-    }
-
-    // One-click email OTP magic link: prohost://emailotp/verified?token=<customToken>
-    // Sent by clickEmailOtpLink CF; signs in using the custom token exactly as if
-    // the user had entered the OTP code manually in the OTP entry screen.
-    LaunchedEffect(emailOtpToken) {
-        val token = emailOtpToken ?: return@LaunchedEffect
-        if (activity != null) authViewModelForEmailLink.signInWithOtpToken(activity, token, onLinkVerified)
-        onEmailOtpTokenConsumed()
-    }
-
-    // Opens the listing detail modal for a tapped share link
-    // (pro-host.tech/listing/{spaceId} — see MainActivity's
-    // handleIncomingIntent and functions/src/listings/shareLanding.ts). Only
-    // reachable once the user is signed in (the app gates everything behind
-    // login) and the live spaces list has loaded — re-runs whenever either
-    // changes, so a link tapped from a cold start (spaces not loaded yet) or
-    // before sign-in still resolves the moment both are ready, without
-    // needing a one-shot Firestore fetch just for this case.
+    // Opens the listing detail page for a tapped listing link (pro-host.tech/listing/{spaceId}?room=… — share links and
+    // the Instagram agent's buttons; see MainActivity and functions/src/listings/shareLanding.ts). Everything is behind
+    // sign-in, so it waits for a user and re-runs after login or registration. A listing outside the loaded Explore page
+    // is fetched on its own; one that is gone or unpublished says so and shows Explore.
     var consumedDeepLinkSpaceId by remember { mutableStateOf<String?>(null) }
+    var fetchingDeepLinkSpaceId by remember { mutableStateOf<String?>(null) }
+    fun openDeepLinked(space: SpaceListing) {
+        consumedDeepLinkSpaceId = space.id
+        detailedSpaceSource = "deep_link"
+        detailedSpaceOpenAvailability = false
+        detailedSpaceSubdivisionId = deepLinkRoomId?.takeIf { room -> space.subdivisions.any { it.id == room } }
+        detailedSpace = space
+        navigateTo("search_map")
+    }
     LaunchedEffect(deepLinkSpaceId, deepLinkSpaces, currentUser?.id) {
-        if (deepLinkSpaceId.isNullOrBlank() || currentUser == null) return@LaunchedEffect
-        if (consumedDeepLinkSpaceId == deepLinkSpaceId) return@LaunchedEffect
+        val id = deepLinkSpaceId
+        if (id.isNullOrBlank() || currentUser == null) return@LaunchedEffect
+        if (consumedDeepLinkSpaceId == id) return@LaunchedEffect
         // Don't re-open a listing the user already dismissed — an auth state change
         // (e.g. token refresh) re-fires this effect; guard prevents a back-navigation
         // loop where the detail screen re-appears after the user pressed back.
         if (detailedSpace != null) return@LaunchedEffect
-        val match = deepLinkSpaces.find { it.id == deepLinkSpaceId }
-        if (match != null) {
-            consumedDeepLinkSpaceId = deepLinkSpaceId
-            detailedSpace = match
+        deepLinkSpaces.find { it.id == id }?.let { openDeepLinked(it); return@LaunchedEffect }
+        if (fetchingDeepLinkSpaceId == id) return@LaunchedEffect
+        fetchingDeepLinkSpaceId = id
+        val fetched = viewModel.repository.fetchListing(id)
+        val viewable = fetched != null && (fetched.ownerId == currentUser?.id ||
+            (fetched.status == ListingStatus.ACTIVE && !fetched.isOwnerSuspended && !fetched.isOwnerPackageLapsed))
+        if (fetched != null && viewable) {
+            openDeepLinked(fetched)
+        } else {
+            consumedDeepLinkSpaceId = id
+            UiMessages.show(appContext, uiText(R.string.listing_link_unavailable))
             navigateTo("search_map")
         }
     }
@@ -410,7 +380,7 @@ fun ProHostAppRoot(
                     Row(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
                         Text(
                             sessionRestoreError!!,
@@ -467,7 +437,6 @@ fun ProHostAppRoot(
         // content scrolls down and comes back on scroll up (see bottomNavScrollConnection).
         var navExpandedOffMap by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(true) }
         val onExploreMap = isMapViewActive && activeTabId == AppNavTab.SearchMap.id
-        val shellUnreadAlerts = viewModel.fcmAlerts.collectAsState().value.count { !it.isRead }
 
         ModalNavigationDrawer(
             drawerState = drawerState,
@@ -537,11 +506,12 @@ fun ProHostAppRoot(
                 modifier = Modifier.fillMaxSize().proHostScreenBackground(),
                 containerColor = Color.Transparent,
                 topBar = {
-                    if (detailedSpace == null) {
+                    // Listing details and Manage listing draw their own top bar: never two.
+                    if (detailedSpace == null && managingSpace == null) {
                         if (safeFullScreenDrawerTab != null) {
                             val title = (PRO_HOST_FULLSCREEN_TABS + ADMIN_FULLSCREEN_TABS + SHARED_FULLSCREEN_TABS)
                                 .firstOrNull { it.id == safeFullScreenDrawerTab }?.title
-                                ?: "Pro Host"
+                                ?: uiText(R.string.pro_host_2)
                             ProHostFullScreenTopAppBar(
                                 title = title,
                                 // Specialists have no drawer: back to the screen they came from.
@@ -555,21 +525,9 @@ fun ProHostAppRoot(
                                 },
                                 isBackNavigation = isSpecialistShell
                             )
-                        } else if (isSpecialistShell && activeTabId == AppNavTab.SearchMap.id) {
-                            // Explore draws its own floating header (logo, map/list, search,
-                            // notifications) — no app bar above it.
                         } else if (activeTabId == AppNavTab.SearchMap.id) {
-                            // Explore tab — keep title for context but suppress brand/logo
-                            val alertsList = viewModel.fcmAlerts.collectAsState().value
-                            val unreadCount = alertsList.count { !it.isRead }
-                            ProHostTopAppBar(
-                                currentRole = currentRole,
-                                unreadAlertCount = unreadCount,
-                                onMenuClick = { scope.launch { drawerState.open() } },
-                                onAlertsClick = { activeDrawerTabDialog = "fcm_alerts" },
-                                pageTitle = "Explore",
-                                showBrand = true
-                            )
+                            // Explore draws its own floating header (logo, map/list, search, filters; ☰ for
+                            // roles with a drawer) — no app bar above it, for every role.
                         } else {
                             val alertsList = viewModel.fcmAlerts.collectAsState().value
                             val unreadCount = alertsList.count { !it.isRead }
@@ -683,7 +641,25 @@ fun ProHostAppRoot(
                             syncStatusMessage = syncStatusMessage
                         )
 
-                        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                        // Page change: a short fade + rise of the new page (snaps when the system has animations off).
+                        // Animates one composition only — the old page is never kept alive alongside (the map is heavy).
+                        val pageKey = listOf(detailedSpace?.id, managingSpace?.id, safeFullScreenDrawerTab, activeTabId)
+                        val pageEnter = remember { androidx.compose.animation.core.Animatable(1f) }
+                        val reduceMotion = rememberReducedMotion()
+                        LaunchedEffect(pageKey) {
+                            if (reduceMotion) { pageEnter.snapTo(1f); return@LaunchedEffect }
+                            pageEnter.snapTo(0f)
+                            pageEnter.animateTo(1f, androidx.compose.animation.core.tween(220, easing = androidx.compose.animation.core.LinearOutSlowInEasing))
+                        }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .graphicsLayer {
+                                    alpha = 0.4f + 0.6f * pageEnter.value
+                                    translationY = (1f - pageEnter.value) * 12.dp.toPx()
+                                }
+                        ) {
                             if (managingSpace != null) {
                                 ManageListingScreen(
                                     space = managingSpace!!,
@@ -708,11 +684,15 @@ fun ProHostAppRoot(
                                 when (safeFullScreenDrawerTab) {
                                     AppNavTab.MyFavorites.id -> MyFavoritesScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpaceOpenAvailability = false; detailedSpace = it },
+                                        onSelectSpace = { scope.launch { drawerState.close() }; openSpaceFrom("saved", it) },
                                         onNavigateToExplore = { navigateTo(AppNavTab.SearchMap.id) }
                                     )
                                     AppNavTab.OwnerRentalRequests.id -> OwnerRentalRequestsScreen(
                                         viewModel = viewModel
+                                    )
+                                    AppNavTab.OwnerRentingProgress.id -> OwnerRentingProgressScreen(
+                                        viewModel = viewModel,
+                                        onOpenRequests = { navigateTo(AppNavTab.OwnerRentalRequests.id) }
                                     )
                                     AppNavTab.Stats.id -> if (currentUser?.role == UserRole.ADMIN) {
                                         AdminAnalyticsScreen()
@@ -755,21 +735,26 @@ fun ProHostAppRoot(
                                         viewModel = viewModel,
                                         onSelectSpace = { space, subdivisionId ->
                                             scope.launch { drawerState.close() }
+                                            detailedSpaceSource = "explore"
                                             detailedSpace = space
                                             detailedSpaceSubdivisionId = subdivisionId
                                             detailedSpaceOpenAvailability = false // a room tap lands on its card; the sheet opens only from Availability
                                         },
                                         discoveryViewModel = discoveryViewModel,
-                                        // Specialists have no app bar on Explore: its floating
-                                        // header carries the logo and notifications.
-                                        unreadAlertCount = shellUnreadAlerts,
-                                        onAlertsClick = if (isSpecialistShell) {
-                                            { activeDrawerTabDialog = "fcm_alerts" }
-                                        } else null
+                                        // No app bar on Explore: its floating header carries the logo beside
+                                        // the Map | List toggle, and ☰ for roles with a drawer.
+                                        showBrand = true,
+                                        onOpenMenu = if (isSpecialistShell) null else ({ scope.launch { drawerState.open() }; Unit }),
+                                        onOpenAvailability = { space, subdivisionId ->
+                                            detailedSpaceSource = "explore"
+                                            detailedSpace = space
+                                            detailedSpaceSubdivisionId = subdivisionId
+                                            detailedSpaceOpenAvailability = true
+                                        }
                                     )
                                     AppNavTab.ManageListings.id -> OwnerHubScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpaceOpenAvailability = false; detailedSpace = it },
+                                        onSelectSpace = { scope.launch { drawerState.close() }; openSpaceFrom("owner_hub", it) },
                                         onManageSpace = { managingSpace = it },
                                         onOpenSubscriptions = { navigateTo(AppNavTab.OwnerSubscriptions.id) }
                                     )
@@ -779,7 +764,7 @@ fun ProHostAppRoot(
                                     )
                                     AppNavTab.MyFavorites.id -> MyFavoritesScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { detailedSpaceOpenAvailability = false; detailedSpace = it },
+                                        onSelectSpace = { openSpaceFrom("saved", it) },
                                         onNavigateToExplore = { navigateTo(AppNavTab.SearchMap.id) }
                                     )
                                     AppNavTab.ProfessionalRentals.id -> MyBookingsScreen(
@@ -787,7 +772,7 @@ fun ProHostAppRoot(
                                         highlightBookingId = rentalsHighlightBookingId,
                                         onHighlightShown = { rentalsHighlightBookingId = null },
                                         onNavigateToDiscovery = { activeTabId = AppNavTab.SearchMap.id },
-                                        onSelectSpace = { scope.launch { drawerState.close() }; detailedSpaceOpenAvailability = false; detailedSpace = it }
+                                        onSelectSpace = { scope.launch { drawerState.close() }; openSpaceFrom("rentals", it) }
                                     )
                                     AppNavTab.ProfessionalProfile.id -> SpecialistProfileScreen(
                                         viewModel = viewModel,
@@ -803,17 +788,22 @@ fun ProHostAppRoot(
                                         viewModel = viewModel,
                                         onSelectSpace = { space, subdivisionId ->
                                             scope.launch { drawerState.close() }
+                                            detailedSpaceSource = "explore"
                                             detailedSpace = space
                                             detailedSpaceSubdivisionId = subdivisionId
                                             detailedSpaceOpenAvailability = false // a room tap lands on its card; the sheet opens only from Availability
                                         },
                                         discoveryViewModel = discoveryViewModel,
-                                        // Specialists have no app bar on Explore: its floating
-                                        // header carries the logo and notifications.
-                                        unreadAlertCount = shellUnreadAlerts,
-                                        onAlertsClick = if (isSpecialistShell) {
-                                            { activeDrawerTabDialog = "fcm_alerts" }
-                                        } else null
+                                        // No app bar on Explore: its floating header carries the logo beside
+                                        // the Map | List toggle, and ☰ for roles with a drawer.
+                                        showBrand = true,
+                                        onOpenMenu = if (isSpecialistShell) null else ({ scope.launch { drawerState.open() }; Unit }),
+                                        onOpenAvailability = { space, subdivisionId ->
+                                            detailedSpaceSource = "explore"
+                                            detailedSpace = space
+                                            detailedSpaceSubdivisionId = subdivisionId
+                                            detailedSpaceOpenAvailability = true
+                                        }
                                     )
                                 }
                                 }
@@ -840,12 +830,16 @@ fun ProHostAppRoot(
                             modifier = Modifier.align(Alignment.BottomCenter)
                         )
                     }
+                    // App-wide feedback (UiMessages) above the floating nav.
+                    ProHostSnackbarHost(
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = bottomNavInset)
+                    )
                 }
             }
         }
 
-        // KYC gate overlay: full-screen phone-verification step shown when a user
-        // without a verified phone tries to access booking/listing features.
+        // KYC gate overlay: full-screen WhatsApp-number step shown when a user
+        // without one tries to access booking/listing features.
         // BackHandler here must fire BEFORE the outer NavGraph handler so pressing
         // back dismisses the KYC overlay rather than clearing detailedSpace.
         BackHandler(enabled = showKycGate) {
@@ -853,7 +847,10 @@ fun ProHostAppRoot(
             kycReturnTab = null
         }
         if (showKycGate) {
+            LaunchedEffect(Unit) { com.example.analytics.AnalyticsTracker.kycStart("workspace_gate") }
             KycScreen(
+                currentPhone = currentUser?.phone.orEmpty(),
+                onSave = { viewModel.saveWhatsAppNumber(it, source = "workspace_gate") },
                 onKycComplete = {
                     showKycGate = false
                     val returnTo = kycReturnTab
@@ -886,19 +883,20 @@ fun ProHostAppRoot(
         )
 
         if (showProHostWelcome) {
+            com.example.ui.components.TrackScreen("pro_host_welcome", "Dialog")
             ProHostDialog(
                 onDismissRequest = { showProHostWelcome = false },
                 icon = { Icon(Icons.Default.Celebration, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                title = { Text("You're Now a Pro Host!") },
+                title = { Text(stringResource(R.string.you_re_now_a_pro_host)) },
                 text = {
                     Text(
-                        "Your package is active. Publish a workspace listing, respond to booking " +
-                            "requests, and track your rentals — all from the Pro Host tools in the drawer."
+                        stringResource(R.string.your_package_is_active_publish_a_workspace) +
+                            stringResource(R.string.requests_and_track_your_rentals_all_from_t)
                     )
                 },
                 confirmButton = {
-                    Button(onClick = { showProHostWelcome = false }) {
-                        Text("Let's Go")
+                    Button(onClick = { showProHostWelcome = false }, colors = proPrimaryButtonColors()) {
+                        Text(stringResource(R.string.let_s_go))
                     }
                 }
             )
@@ -920,6 +918,7 @@ fun ProHostAppRoot(
     androidx.compose.runtime.DisposableEffect(lifecycleOwner, autoLinkUser?.id, hasPlaySubscription) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME && autoLinkUser != null) {
+                viewModel.refreshEmailVerification(appContext)
                 viewModel.billing.refreshPlayPurchases(appContext)
                 if (hasPlaySubscription && rootActivity != null) viewModel.billing.showBillingInAppMessages(rootActivity)
             }
@@ -930,20 +929,38 @@ fun ProHostAppRoot(
 
     // ---- Analytics: one screen_view hook for the whole hand-rolled navigation ----
     val analyticsConsent by com.example.analytics.AnalyticsConsent.state.collectAsState()
+    // Readable names from ScreenNames, resolved from the same role-checked ids the shell renders.
+    // Login steps, sheets and dialogs report themselves (TrackScreen); "auth" is only the gap before them.
+    val analyticsRole = currentUser?.role
+    // Same activity-scoped instance the shell uses below.
+    val analyticsExploreMap by viewModel<DiscoveryViewModel>().isMapViewActive.collectAsState()
+    val analyticsTab = fullScreenDrawerTab?.takeIf { analyticsRole != null && it in allowedTabIdsForRole(analyticsRole) }
+        ?: activeTabId.takeIf { analyticsRole != null && it in allowedTabIdsForRole(analyticsRole) }
     val analyticsScreen = when {
-        showSplash -> "splash"
+        showSplash -> com.example.analytics.ScreenNames.SPLASH
         currentUser == null -> "auth"
-        currentUser?.isSuspended == true -> "suspended"
-        showKycGate -> "kyc"
-        managingSpace != null -> "manage_listing"
-        detailedSpace != null -> "space_details"
-        else -> fullScreenDrawerTab ?: activeTabId
+        currentUser?.isSuspended == true -> com.example.analytics.ScreenNames.SUSPENDED
+        showKycGate -> com.example.analytics.ScreenNames.WHATSAPP_GATE
+        managingSpace != null -> com.example.analytics.ScreenNames.MANAGE_LISTING
+        detailedSpace != null -> com.example.analytics.ScreenNames.SPACE_DETAILS
+        else -> com.example.analytics.ScreenNames.forTab(analyticsTab, analyticsRole, analyticsExploreMap)
     }
-    LaunchedEffect(analyticsScreen, analyticsConsent) {
-        com.example.analytics.AnalyticsTracker.screen(analyticsScreen)
+    val analyticsListingId = (detailedSpace ?: managingSpace)?.let { com.example.analytics.listingItemId(it) }
+    LaunchedEffect(analyticsScreen, analyticsListingId, analyticsConsent) {
+        com.example.analytics.AnalyticsTracker.screen(
+            analyticsScreen,
+            params = when {
+                detailedSpace != null -> mapOf(
+                    com.example.analytics.Param.ITEM_ID to analyticsListingId,
+                    com.example.analytics.Param.LISTING_SOURCE to detailedSpaceSource
+                )
+                managingSpace != null -> mapOf(com.example.analytics.Param.ITEM_ID to analyticsListingId)
+                else -> emptyMap()
+            }
+        )
     }
-    LaunchedEffect(activeDrawerTabDialog, analyticsConsent) {
-        activeDrawerTabDialog?.let { com.example.analytics.AnalyticsTracker.screen("dialog_$it", "Dialog") }
+    activeDrawerTabDialog?.let { id ->
+        com.example.ui.components.TrackScreen(com.example.analytics.ScreenNames.forDrawerDialog(id), "Dialog")
     }
     LaunchedEffect(currentUser, analyticsConsent) {
         com.example.analytics.AnalyticsTracker.setUser(currentUser)
@@ -981,22 +998,22 @@ private fun SuspendedAccountScreen(onSignOut: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(20.dp))
             Text(
-                text = "Account Suspended",
+                text = stringResource(R.string.account_suspended),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(Spacing.sm))
             Text(
-                text = "Your account has been suspended by ProHost. You can't book, publish, " +
-                    "or manage listings while suspended. Contact support if you believe this is a mistake.",
+                text = stringResource(R.string.your_account_has_been_suspended_by_prohost) +
+                    stringResource(R.string.or_manage_listings_while_suspended_contact),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(28.dp))
-            Button(onClick = onSignOut) {
-                Text("Sign Out")
+            Button(colors = proPrimaryButtonColors(), onClick = onSignOut) {
+                Text(stringResource(R.string.sign_out))
             }
         }
     }

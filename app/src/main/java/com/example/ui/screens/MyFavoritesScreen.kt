@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import com.example.ui.components.ShimmerLoadingList
 import com.example.data.model.SpaceListing
 import com.example.ui.components.ProEmptyState
+import com.example.ui.components.ProHostAlertBanner
+import com.example.ui.components.ProHostAlertSeverity
 import com.example.ui.theme.Spacing
 import com.example.ui.viewmodel.ProHostViewModel
 
@@ -67,47 +71,23 @@ fun MyFavoritesScreen(
         // Nested inside the app-shell Scaffold's already-inset content area — its
         // default contentWindowInsets would otherwise re-apply the status-bar-height
         // top inset a second time, producing extra blank space above this TopAppBar.
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = {
-            TopAppBar(
-                title = {
-                    if (savedSpaces.isNotEmpty()) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shape = androidx.compose.foundation.shape.CircleShape
-                        ) {
-                            Text(
-                                text = "${savedSpaces.size} Saved",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs)
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-            )
-        }
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { innerPadding ->
-        if (isLoading) {
+        // Loading fades into the content instead of popping.
+        androidx.compose.animation.Crossfade(targetState = isLoading, label = "savedLoading") { loadingNow ->
+        if (loadingNow) {
             ShimmerLoadingList(modifier = Modifier.padding(innerPadding), itemHeight = 200.dp)
         } else if (errorMessage != null) {
-            Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
-                Text(
-                    text = errorMessage ?: "",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(Spacing.lg)
-                )
+            Box(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(Spacing.lg)) {
+                ProHostAlertBanner(message = errorMessage ?: "", severity = ProHostAlertSeverity.ERROR)
             }
         } else if (savedSpaces.isEmpty() && unavailableIds.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
                 ProEmptyState(
-                    title = "No Favorites Yet",
-                    description = "Tap the heart icon on any workspace to save it here for quick access later.",
+                    title = stringResource(R.string.nothing_saved_yet),
+                    description = stringResource(R.string.tap_the_heart_on_any_space_to_keep_it_here),
                     icon = Icons.Filled.FavoriteBorder,
-                    actionButtonText = "Explore Workspaces",
+                    actionButtonText = stringResource(R.string.explore_spaces),
                     onActionClick = onNavigateToExplore
                 )
             }
@@ -120,7 +100,7 @@ fun MyFavoritesScreen(
                 verticalArrangement = Arrangement.spacedBy(Spacing.lg)
             ) {
                 groupedSavedSpaces.forEach { (category, spacesInCategory) ->
-                    item(key = "header_$category") {
+                    item(key = "header_$category", contentType = "header") {
                         Text(
                             text = "$category (${spacesInCategory.size})",
                             style = MaterialTheme.typography.titleLarge,
@@ -129,31 +109,38 @@ fun MyFavoritesScreen(
                         )
                     }
                     items(spacesInCategory, key = { it.id }) { space ->
+                        // Inserted/removed rows slide and fade instead of jumping.
+                        Box(Modifier.animateItem()) {
                         SpaceListingCard(
                             space = space,
                             onClick = { onSelectSpace(space) },
                             onQuickWhatsApp = { viewModel.launchWhatsAppInquiry(context, space, null) },
                             isSaved = true,
-                            onToggleSave = { viewModel.toggleSavedSpace(space.id) }
+                            onToggleSave = { viewModel.toggleSavedSpace(space.id, context) }
                         )
                     }
+}
                 }
                 if (unavailableIds.isNotEmpty()) {
                     item(key = "header_unavailable") {
                         Text(
-                            text = "No Longer Available (${unavailableIds.size})",
+                            text = stringResource(R.string.no_longer_available_x, unavailableIds.size),
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = if (groupedSavedSpaces.isEmpty()) 0.dp else Spacing.sm)
                         )
                     }
                     items(unavailableIds.toList(), key = { it }) { spaceId ->
+                        // Inserted/removed rows slide and fade instead of jumping.
+                        Box(Modifier.animateItem()) {
                         UnavailableFavoriteCard(
-                            onRemove = { viewModel.toggleSavedSpace(spaceId) }
+                            onRemove = { viewModel.toggleSavedSpace(spaceId, context) }
                         )
                     }
+}
                 }
             }
+        }
         }
     }
 }
@@ -175,19 +162,19 @@ private fun UnavailableFavoriteCard(onRemove: () -> Unit) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "No longer available",
+                    text = stringResource(R.string.no_longer_available),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "This saved listing was paused, unpublished, or removed by its host.",
+                    text = stringResource(R.string.this_saved_listing_was_paused_unpublished),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             TextButton(shape = MaterialTheme.shapes.medium, onClick = onRemove) {
-                Text("Remove", color = MaterialTheme.colorScheme.error, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                Text(stringResource(R.string.remove), color = MaterialTheme.colorScheme.error, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
             }
         }
     }

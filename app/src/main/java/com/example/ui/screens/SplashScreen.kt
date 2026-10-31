@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -23,7 +25,8 @@ import kotlinx.coroutines.delay
  * splash.png artwork appears, so the two together read as one continuous launch image
  * instead of two different-looking screens. No separate "second screen" with its own
  * icon/wordmark/loading text exists anymore — this single screen carries the loading state
- * for however long onSplashCompleted takes to fire.
+ * for however long onSplashCompleted takes to fire. Dark mode uses drawable-night (all densities) splash.png on the matching
+ * values-night splash_background.
  */
 @Composable
 fun SplashScreen(
@@ -51,7 +54,7 @@ fun SplashScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
             painter = painterResource(id = com.example.R.drawable.splash),
-            contentDescription = "ProHost",
+            contentDescription = stringResource(R.string.prohost),
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
