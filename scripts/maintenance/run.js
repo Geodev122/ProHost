@@ -1334,7 +1334,7 @@ async function hostingcheck(arg) {
     const rel = live.release || {};
     notice(`live release: ${rel.version ? rel.version.name.split("/").pop() : "none"} ${rel.releaseTime || ""} ${(rel.version && rel.version.status) || ""} files=${(rel.version && rel.version.fileCount) || "?"}`);
   } catch (e) { notice(`live channel: ${e.message}`); }
-  try { const st = await api("GET", `sites/${site}`); notice(`site: ${JSON.stringify(st).slice(0, 300)}`); } catch (e) { notice(`site: ${e.message}`); }
+  try { const st = await api("GET", `projects/prohost-f766f/sites/${site}`); notice(`site: ${JSON.stringify(st).slice(0, 300)}`); } catch (e) { notice(`site: ${e.message}`); }
   try {
     const rels = (await api("GET", `sites/${site}/releases?pageSize=4`)).releases || [];
     notice(`releases: ${rels.map((r) => `${(r.version && r.version.name || "").split("/").pop()}@${r.releaseTime} ${r.type} ${(r.version && r.version.status) || ""} files=${(r.version && r.version.fileCount) || "?"}`).join(" | ")}`);
@@ -1349,7 +1349,7 @@ async function hostingcheck(arg) {
   try { const ch = (await api("GET", `sites/${site}/channels`)).channels || []; notice(`channels: ${ch.map((c) => `${c.name.split("/").pop()}:${c.url}`).join(" | ")}`); } catch (e) { notice(`channels: ${e.message}`); }
   let domains = [];
   try {
-    domains = ((await api("GET", `sites/${site}/customDomains`)).customDomains || []);
+    domains = ((await api("GET", `projects/prohost-f766f/sites/${site}/customDomains`)).customDomains || []);
     for (const d of domains) {
       const need = (((d.requiredDnsUpdates || {}).desired || [])).map((x) => `${x.domainName}: ${(x.records || []).map((r) => `${r.type} ${r.rdata}${r.requiredAction ? ` [${r.requiredAction}]` : ""}`).join(", ")}`).join(" ; ");
       notice(`customDomain ${d.name.split("/").pop()}: host=${d.hostState} ownership=${d.ownershipState} cert=${d.certState}${(d.issues || []).length ? ` issues=${JSON.stringify(d.issues).slice(0, 200)}` : ""}${need ? ` DNS needs: ${need}` : ""}`);
@@ -1373,7 +1373,7 @@ async function hostingcheck(arg) {
   if ((arg || "").trim() === "connect") {
     for (const host of ["pro-host.tech", "www.pro-host.tech"]) {
       if (domains.some((d) => d.name.endsWith("/" + host))) { notice(`connect ${host}: already on the site`); continue; }
-      try { await api("POST", `sites/${site}/customDomains?customDomainId=${host}`, host.startsWith("www.") ? { redirectTarget: "pro-host.tech" } : {}); notice(`connect ${host}: requested; re-run hostingcheck to read the DNS records`); }
+      try { await api("POST", `projects/prohost-f766f/sites/${site}/customDomains?customDomainId=${host}`, host.startsWith("www.") ? { redirectTarget: "pro-host.tech" } : {}); notice(`connect ${host}: requested; re-run hostingcheck to read the DNS records`); }
       catch (e) { notice(`connect ${host}: ${e.message}`); }
     }
   }
