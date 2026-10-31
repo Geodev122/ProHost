@@ -170,7 +170,7 @@ export function composeKnowledge(rows: string[][]): { text: string; applied: num
 
 export function aiConfigFor(config: IgConfig): AiConfig {
   const ai = config.ai;
-  return { provider: ai.provider, model: ai.model, region: ai.region, apiKey: ai.provider === "gemini" ? config.geminiKey : ai.provider === "anthropic" ? config.anthropicKey : "" };
+  return { provider: ai.provider, model: ai.model, region: ai.region, workspaceId: ai.workspaceId, apiKey: ai.provider === "gemini" ? config.geminiKey : ai.provider === "anthropic" ? config.anthropicKey : "" };
 }
 
 /** Gathers the sources and asks the brand's AI for a draft. Returns the draft and what happened to each source. */

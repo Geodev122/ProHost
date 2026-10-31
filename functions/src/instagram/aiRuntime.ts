@@ -108,7 +108,7 @@ export async function aiDecide(config: IgConfig, event: IgEvent, now: number, f?
   const dayRef = brandCol(bid, "stats").doc("ai_" + dayKey(now));
   if ((Number((await dayRef.get()).data()?.calls) || 0) >= ai.dailyCap) return ignored(`AI agent: daily cap of ${ai.dailyCap} replies reached`);
 
-  const cfg: AiConfig = { provider: ai.provider, model: ai.model, region: ai.region, apiKey };
+  const cfg: AiConfig = { provider: ai.provider, model: ai.model, region: ai.region, apiKey, workspaceId: ai.workspaceId };
   const prior = priorState(thread, now);
   const lang0 = detectLang(event.text, String(thread.lang ?? "en"));
   const lastAt = Number(thread.lastUserAt ?? thread.at ?? 0) || (turns.length ? Number(turns[turns.length - 1].at ?? 0) : 0);
@@ -268,7 +268,7 @@ export async function commentDecide(config: IgConfig, event: IgEvent, now: numbe
   if (times.length >= ai.perPersonPerHour) return ignored(`AI agent: limit of ${ai.perPersonPerHour} replies per person per hour reached`);
   const dayRef = brandCol(bid, "stats").doc("ai_" + dayKey(now));
   if ((Number((await dayRef.get()).data()?.calls) || 0) >= ai.dailyCap) return ignored(`AI agent: daily cap of ${ai.dailyCap} replies reached`);
-  const cfg: AiConfig = { provider: ai.provider, model: ai.model, region: ai.region, apiKey };
+  const cfg: AiConfig = { provider: ai.provider, model: ai.model, region: ai.region, apiKey, workspaceId: ai.workspaceId };
   const integ = config.brand.integrations;
   const rows = integ.listings ? await catalog(now) : null;
   const extra = `LANGUAGE OF THEIR COMMENT: ${lang === "ar" ? "Arabic, reply in Arabic" : lang === "fr" ? "French, reply in French" : lang === "es" ? "Spanish, reply in Spanish" : "English, reply in English"}.\n${commentModeContext(event.text)}\n${integ.offers ? offersContext(await liveOffersText(now).catch(() => "")) : ""}\n${rows ? catalogOverview(rows) : ""}\nDo not set searchReady in comment mode: ask what they need instead, the search happens in the DM chat.`;

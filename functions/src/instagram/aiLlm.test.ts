@@ -44,3 +44,16 @@ test("gemini falls back to the stable lite alias when the first model is overloa
   const denied = (async () => ({ ok: false, status: 400, json: async () => ({ error: { message: "API key not valid" } }) }) as Response) as unknown as typeof fetch;
   await assert.rejects(() => complete({ provider: "gemini", model: "gemini-new", region: "", apiKey: "bad" }, "s", "", [{ role: "user", content: "x" }], 50, denied), (e: { status: number }) => e.status === 400);
 });
+
+test("the Anthropic API call carries the workspace id header only when one is set", async () => {
+  const seen: Array<Record<string, string>> = [];
+  const f = (async (_u: string, init: RequestInit) => {
+    seen.push(init.headers as Record<string, string>);
+    return { ok: true, status: 200, json: async () => ({ content: [{ type: "text", text: "{}" }], usage: { input_tokens: 1, output_tokens: 1 }, model: "m" }) };
+  }) as unknown as typeof fetch;
+  const base = { provider: "anthropic" as const, model: "claude-x", region: "", apiKey: "k" };
+  await complete(base, "sys", "", [{ role: "user", content: "hi" }], 10, f);
+  await complete({ ...base, workspaceId: "wrkspc_01ABCDEFGHIJKL" }, "sys", "", [{ role: "user", content: "hi" }], 10, f);
+  assert.equal(seen[0]["anthropic-workspace-id"], undefined);
+  assert.equal(seen[1]["anthropic-workspace-id"], "wrkspc_01ABCDEFGHIJKL");
+});

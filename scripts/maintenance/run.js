@@ -1347,7 +1347,8 @@ async function aitest(arg, db) {
   const { formatOffers, offersContext } = require(`${LIB}/instagram/aiOffers`);
   const { isExitIntent, isNo, findEmail } = require(`${LIB}/instagram/aiFlow`);
   const model = (arg || "").trim() || "gemini-3.1-flash-lite";
-  const cfg = { provider: claude ? "anthropic" : "gemini", model, region: "", apiKey: key };
+  const stored = ((await db.collection("app_config").doc("instagram").get()).data() || {}).ai || {};
+  const cfg = { provider: claude ? "anthropic" : "gemini", model, region: "", apiKey: key, workspaceId: claude ? (process.env.ANTHROPIC_WORKSPACE_ID || stored.workspaceId || "") : "" };
   const knowledge = buildKnowledge([]);
   let offers = "";
   try { offers = formatOffers((await serverTask(db, "playCatalog")).basePlans); } catch (e) { notice(`offers unavailable: ${String(e.message).slice(0, 120)}`); }

@@ -11,6 +11,8 @@ export interface AiConfig {
   /** Vertex region ("global", "us-east5", "europe-west1", ...). */
   region: string;
   apiKey?: string;
+  /** Anthropic API only: workspace id (wrkspc_…), sent as anthropic-workspace-id when the key is not tied to one workspace. Not a secret. */
+  workspaceId?: string;
 }
 export interface LlmResult { text: string; inputTokens: number; outputTokens: number; cacheReadTokens: number; model: string }
 
@@ -93,7 +95,7 @@ export async function complete(cfg: AiConfig, system: string, knowledge: string,
   const url = cfg.provider === "vertex" ? vertexUrl(cfg.model, cfg.region) : "https://api.anthropic.com/v1/messages";
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (cfg.provider === "vertex") headers.Authorization = `Bearer ${await vertexToken()}`;
-  else { headers["x-api-key"] = cfg.apiKey ?? ""; headers["anthropic-version"] = "2023-06-01"; }
+  else { headers["x-api-key"] = cfg.apiKey ?? ""; headers["anthropic-version"] = "2023-06-01"; if (cfg.workspaceId) headers["anthropic-workspace-id"] = cfg.workspaceId; }
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
   try {

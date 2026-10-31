@@ -101,7 +101,7 @@ document.addEventListener('click', async ev => {
   if (act === 'mode') { if (b.dataset.m === 'live') { S.confirmLive = true; return render(); } S.confirmLive = false; return done(await guard(() => setStatus({ mode: 'dry-run' }), 'Dry-run: nothing will be sent')); }
   if (act === 'cancellive') { S.confirmLive = false; return render(); }
   if (act === 'golive') { S.confirmLive = false; return done(await guard(() => setStatus({ mode: 'live' }), 'LIVE. Replies are really sent from now on')); }
-  if (act === 'aisave') { return done(await guard(() => setStatus({ ai_provider: g('ai_provider'), ai_model: g('ai_model'), ai_region: g('ai_region'), ai_daily_cap: g('ai_cap'), ai_per_person_per_hour: g('ai_pp') }), 'AI settings saved')); }
+  if (act === 'aisave') { return done(await guard(() => setStatus({ ai_provider: g('ai_provider'), ai_model: g('ai_model'), ai_region: g('ai_region'), ai_daily_cap: g('ai_cap'), ai_per_person_per_hour: g('ai_pp'), ai_workspace_id: g('ai_ws') }), 'AI settings saved')); }
   if (act === 'savesettings') {
     const vars = {}; (($('k_vars') || {}).value || '').split('\n').forEach(line => { const m = /^\s*([a-z_]+)\s*=\s*(.+)$/.exec(line); if (m) vars[m[1]] = m[2].trim(); });
     const old = Object.keys(S.B.status).filter(k => k.startsWith('var_') && !vars[k.slice(4)]); const obj = { hourly_cap: g('k_cap'), handoff_hours: g('k_hh'), active_from: g('k_af'), active_to: g('k_at'), utc_offset_minutes: g('k_tz'), opt_out_words: g('k_oo'), opt_out_reply: g('k_oor'), handoff_words: g('k_hw'), handoff_reply: g('k_hr') };
