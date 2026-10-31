@@ -240,11 +240,11 @@ export async function runAgent(cfg: AiConfig, knowledge: string, turns: Turn[], 
   const fallback = brand.id === PROHOST_PROFILE.id ? FALLBACK_REPLY : fallbackReply(brand);
   const msgs = buildMessages(turns, userText, now);
   const ctx = contextBlock(state, extra, lastContactMs);
-  let res = await complete(cfg, system, `KNOWLEDGE\n${knowledge}`, msgs, 900, f, 20000, ctx);
+  let res = await complete(cfg, system, `KNOWLEDGE\n${knowledge}`, msgs, 1600, f, 28000, ctx);
   let out = parseAgentJson(res.text, allowed);
   if (!out) {
     // one retry before falling back (truncated or non-JSON answers are usually one-off)
-    res = await complete(cfg, system, `KNOWLEDGE\n${knowledge}`, msgs, 900, f, 20000, ctx + "\nReturn ONLY the JSON object, complete and valid.");
+    res = await complete(cfg, system, `KNOWLEDGE\n${knowledge}`, msgs, 1600, f, 28000, ctx + "\nReturn ONLY the JSON object, complete and valid.");
     out = parseAgentJson(res.text, allowed) ?? salvage(res.text);
   }
   // A broken answer never pauses the person for a human (that silenced whole conversations): a polite reply, flagged to learn.
