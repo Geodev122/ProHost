@@ -1368,6 +1368,15 @@ async function hostingcheck(arg) {
     const tx = await dns.resolveTxt(host).catch(() => []);
     notice(`dns ${host}: A=${Array.isArray(a) ? a.join(",") : a} CNAME=${cn.join(",") || "-"} TXT=${tx.map((t) => t.join("")).filter((t) => /firebase|hosting|google/i.test(t)).join(" | ") || "-"}`);
   }
+  const rel = /^release:([0-9a-f]{8,20})$/.exec((arg || "").trim());
+  if (rel) {
+    // Puts an earlier version back on the live channel (a rollback; the next normal deploy replaces it again).
+    try {
+      const out = await api("POST", `projects/prohost-f766f/sites/${site}/channels/live/releases?versionName=${encodeURIComponent(`projects/-/sites/${site}/versions/${rel[1]}`)}`, { message: "rollback test from hostingcheck" });
+      notice(`released ${rel[1]} on live: ${(out.name || "").split("/").pop()} ${out.releaseTime || ""}`);
+      await new Promise((r) => setTimeout(r, 25000));
+    } catch (e) { notice(`release ${rel[1]}: ${e.message}`); }
+  }
   for (const url of ["https://prohost-f766f.web.app/", "https://prohost-f766f.web.app/index.html", "https://prohost-f766f.web.app/__/firebase/init.json", "https://prohost-f766f.firebaseapp.com/", "https://pro-host.tech/", "https://www.pro-host.tech/"]) {
     try {
       const r = await fetch(url, { redirect: "manual" });
