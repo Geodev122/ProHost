@@ -638,6 +638,7 @@ plan + recurring price + date;
   (`ListingLocationMapPicker.kt`, `LebanonMapCanvas.kt`) must use the Android 17 location button on
   API 37+ (mandatory 27 Jan 2027). `ACCESS_FINE_LOCATION` is kept for the listing-pin picker and needs
   the Play Console fine-location declaration; country detection (`PhoneCountryDetector`) stays coarse-only.
+- Photos: no `READ_MEDIA_IMAGES`/`READ_EXTERNAL_STORAGE` (removed) — all image input goes through system pickers/`TakePicture`; re-adding needs a Play Console photo declaration.
 - Not applicable today (don't add without a Console declaration): local network, contacts, AppFunctions,
   MANAGE_EXTERNAL_STORAGE, accessibility service, SMS/call log.
 - Console to-dos: fine-location declaration, Data safety update, trader status (Nov 2026), Japan
