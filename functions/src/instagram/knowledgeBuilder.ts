@@ -170,7 +170,7 @@ export function composeKnowledge(rows: string[][]): { text: string; applied: num
 
 export function aiConfigFor(config: IgConfig): AiConfig {
   const ai = config.ai;
-  return { provider: ai.provider, model: ai.model, region: ai.region, workspaceId: ai.workspaceId, apiKey: ai.provider === "anthropic" ? config.anthropicKey : "" };
+  return { provider: ai.provider, model: ai.model, workspaceId: ai.workspaceId, apiKey: ai.provider === "anthropic" ? config.anthropicKey : "" };
 }
 
 /** Gathers the sources and asks the brand's AI for a draft. Returns the draft and what happened to each source. */
@@ -178,7 +178,7 @@ export async function buildKnowledgeDraft(config: IgConfig, sources: SourceRow[]
   const gathered = await gather(sources, deps);
   if (!gathered.some((g) => g.text)) return { sections: [], gathered, error: "none of the sources could be read" };
   const cfg = aiConfigFor(config);
-  if (cfg.provider !== "vertex" && !cfg.apiKey) return { sections: [], gathered, error: `no ${cfg.provider} key: paste it in the Secrets tab` };
+  if (!cfg.apiKey) return { sections: [], gathered, error: `no ${cfg.provider} key: paste it in the Secrets tab` };
   const { system, user } = draftPrompt(config.brand, gathered);
   try {
     const res = await deps.complete(cfg, system, "", [{ role: "user", content: user }], 4000, deps.fetch, 120_000);

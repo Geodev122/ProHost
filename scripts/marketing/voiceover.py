@@ -199,7 +199,6 @@ def iam_report():
 def main():
     ensure_api()
     iam_report()
-    ensure_api("aiplatform.googleapis.com", required=False)  # Gemini-TTS (style prompts) runs on Vertex AI
     TMP.mkdir(parents=True, exist_ok=True)
     LINES.mkdir(parents=True, exist_ok=True)
     report = []

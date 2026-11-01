@@ -49,7 +49,7 @@
 //   node scripts/maintenance/run.js igpublish [ID]  publishes ONE item of marketing/social/captions.json (post11 | post12 | post13 | story | story_office | story_office_ar) to the Instagram
 //                                                    account (image post or Story) from https://pro-host.tech/social/<file>; without ID it only prints the plan
 //                                                    (dry run). Never publishes the same item twice (ig_stats/published); needs instagram_business_content_publish.
-//   node scripts/maintenance/run.js aiprobe         which Claude model/region the project can call on Vertex AI (functions service account)
+//   node scripts/maintenance/run.js apis [apply]     Google APIs the project no longer uses (aiplatform, cloudaicompanion, visionai): dry run shows state + who depends on them; code "apply" disables them
 //   node scripts/maintenance/run.js aitest [MODEL]  runs the DM agent prompt on sample questions through Claude (nothing is sent anywhere)
 //   node scripts/maintenance/run.js prodcheck        production readiness (read-only apart from one RTDN self-test
 //                                                    message): deployed functions + indexes, public pages, Play catalog
@@ -1304,14 +1304,6 @@ async function playofferfix(db, arg) {
   if (apply) await playcatalog(db);
 }
 
-async function aiquota(db, arg) {
-  const res = await serverTask(db, "aiQuota", arg === "request" || arg === "status" ? arg : null);
-  if (res.lines) { res.lines.forEach((l) => notice(`QUOTA STATUS ${l}`)); return; }
-  if (res.results) { res.results.forEach((r) => notice(`QUOTA REQUEST ${r}`)); return; }
-  notice(`Cloud Quotas: ${res.note}; ${res.rows.length} global Haiku 4.5 row(s)`);
-  res.rows.forEach((r) => notice(`QUOTA ${r.quotaId} | ${JSON.stringify(r.dimensions)} | value=${r.value} ${r.unit} | raw=${r.raw}`));
-}
-
 // Why does pro-host.tech not show the site? Reads Firebase Hosting through its API (sites, live release, custom domains and the DNS
 // records each one still needs), resolves the domain's DNS and fetches both the default address and the custom domain.
 // Code "connect" also tries to add pro-host.tech and www.pro-host.tech to the site (then re-run to read the DNS records to set).
@@ -1592,11 +1584,30 @@ async function igpublish(db, id) {
   }
 }
 
-async function aiprobe(db) {
-  const rows = await serverTask(db, "aiProbe");
-  rows.forEach((r) => notice(`${r.ok ? "✓" : "✗"} ${r.model} @ ${r.region}: ${r.detail}`));
-  const ok = rows.filter((r) => r.ok);
-  notice(ok.length ? `Vertex Claude works: first usable = ${ok[0].model} @ ${ok[0].region}` : "No Claude model answered on Vertex yet: enable Vertex AI API + Claude Haiku in Model Garden and grant the functions service account 'Vertex AI User' (see the errors above)");
+const UNUSED_APIS = ["aiplatform.googleapis.com", "cloudaicompanion.googleapis.com", "visionai.googleapis.com"];
+// Disables the Google APIs the project no longer uses (the DM agent runs on the Anthropic API). Dry run reads state; "apply" disables each
+// (Service Usage refuses when another enabled API depends on it, and the failure is printed, nothing is forced).
+async function apis(arg) {
+  const { google } = require(path.join(__dirname, "../../functions/node_modules/googleapis"));
+  const auth = new google.auth.GoogleAuth({ scopes: ["https://www.googleapis.com/auth/cloud-platform"] });
+  const P = "prohost-f766f";
+  const call = async (method, url, body) => {
+    const token = await auth.getAccessToken();
+    const r = await fetch(url, { method, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(`HTTP ${r.status} ${String((j.error && j.error.message) || "").slice(0, 240)}`);
+    return j;
+  };
+  const apply = (arg || "").trim() === "apply";
+  const enabled = ((await call("GET", `https://serviceusage.googleapis.com/v1/projects/${P}/services?filter=state:ENABLED&pageSize=200`)).services || []).map((x) => x.config.name);
+  for (const api of UNUSED_APIS) {
+    if (!enabled.includes(api)) { notice(`${api}: already disabled`); continue; }
+    if (!apply) { notice(`${api}: ENABLED (code: apply to disable)`); continue; }
+    try {
+      const op = await call("POST", `https://serviceusage.googleapis.com/v1/projects/${P}/services/${api}:disable`, { disableDependentServices: false, checkIfServiceHasUsage: "SKIP" });
+      notice(`${api}: disable requested${op.done ? " (done)" : ""}`);
+    } catch (e) { notice(`${api}: NOT disabled: ${e.message}`); }
+  }
 }
 
 async function playcatalog(db) {
@@ -1775,9 +1786,8 @@ async function smsauth(db, arg) {
   else if (task === "igtest") await igtest(db);
   else if (task === "igmedia") await igmedia(db);
   else if (task === "igpublish") await igpublish(db, (arg || "").trim());
-  else if (task === "aiprobe") await aiprobe(db);
   else if (task === "aitest") await aitest(arg, db);
-  else if (task === "aiquota") await aiquota(db, arg);
+  else if (task === "apis") await apis(arg);
   else if (task === "playcatalog") await playcatalog(db);
   else if (task === "smsauth") await smsauth(db, arg);
   else if (task === "playofferfix") await playofferfix(db, arg);

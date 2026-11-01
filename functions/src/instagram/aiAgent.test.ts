@@ -43,7 +43,7 @@ test("owner answers are appended to the knowledge", () => {
 
 test("runAgent returns the model output, retries once on broken output, salvages prose, else hands off safely", async () => {
   const seq = (texts: string[]) => { const calls: number[] = []; const f = (async () => { calls.push(1); const text = texts[Math.min(calls.length - 1, texts.length - 1)]; return { ok: true, status: 200, json: async () => ({ content: [{ type: "text", text }], usage: { input_tokens: 5, output_tokens: 5 } }) } as Response; }) as unknown as typeof fetch; return { f, calls }; };
-  const cfg = { provider: "anthropic" as const, model: "m", region: "", apiKey: "k" };
+  const cfg = { provider: "anthropic" as const, model: "m", apiKey: "k" };
   const good = seq(['{"reply":"حمّل التطبيق من هنا","lang":"ar","buttons":["download"],"handoff":false,"confidence":0.9,"learn":false}']);
   const g = await runAgent(cfg, "KB", [], "كيف أنزل التطبيق؟", good.f);
   assert.equal(g.out.lang, "ar"); assert.equal(g.out.buttons[0], "download"); assert.equal(good.calls.length, 1);

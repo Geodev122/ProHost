@@ -47,16 +47,15 @@ export interface IgConfig {
   adminEmail: string;
   /** Google Sheet "ProHost IG Automations" shared with the functions service account. */
   sheetId: string;
-  /** Only for provider "anthropic" (Vertex needs no key: the functions' service account is used). */
+  /** Anthropic API key (server-only). */
   anthropicKey: string;
   ai: AiSettings;
 }
 
 export interface AiSettings {
   enabled: boolean;
-  provider: "vertex" | "anthropic";
+  provider: "anthropic";
   model: string;
-  region: string;
   /** Anthropic workspace id for keys that are not scoped to one workspace (not a secret; Status ai_workspace_id). */
   workspaceId: string;
   dailyCap: number;
@@ -66,7 +65,7 @@ export interface AiSettings {
   /** Positive comments also get ONE opening DM. */
   commentDm: boolean;
 }
-export const DEFAULT_AI: AiSettings = { enabled: false, provider: "anthropic", model: "claude-haiku-5-5", region: "global", workspaceId: "", dailyCap: 300, perPersonPerHour: 12, comments: true, commentDm: true };
+export const DEFAULT_AI: AiSettings = { enabled: false, provider: "anthropic", model: "claude-haiku-5-5", workspaceId: "", dailyCap: 300, perPersonPerHour: 12, comments: true, commentDm: true };
 
 const TTL_MS = 60 * 1000;
 /** ProHost's engine defaults (its links, its wording); every other brand starts with no links and its own name in the hand-over line. */

@@ -96,7 +96,7 @@ export async function aiDecide(config: IgConfig, event: IgEvent, now: number, f?
   const ai = config.ai;
   if (!ai.enabled) return null;
   const apiKey = ai.provider === "anthropic" ? config.anthropicKey : "";
-  if (ai.provider !== "vertex" && !apiKey) return ignored(`AI agent: no ${ai.provider} key configured (run igsetup with the GitHub secret)`);
+  if (!apiKey) return ignored(`AI agent: no ${ai.provider} key configured (run igsetup with the GitHub secret)`);
   const bid = config.brandId;
   const threadRef = brandCol(bid, "threads").doc(event.senderId);
   let thread: Record<string, unknown> = (await threadRef.get()).data() ?? {};
@@ -108,7 +108,7 @@ export async function aiDecide(config: IgConfig, event: IgEvent, now: number, f?
   const dayRef = brandCol(bid, "stats").doc("ai_" + dayKey(now));
   if ((Number((await dayRef.get()).data()?.calls) || 0) >= ai.dailyCap) return ignored(`AI agent: daily cap of ${ai.dailyCap} replies reached`);
 
-  const cfg: AiConfig = { provider: ai.provider, model: ai.model, region: ai.region, apiKey, workspaceId: ai.workspaceId };
+  const cfg: AiConfig = { provider: ai.provider, model: ai.model, apiKey, workspaceId: ai.workspaceId };
   const prior = priorState(thread, now);
   const lang0 = detectLang(event.text, String(thread.lang ?? "en"));
   const lastAt = Number(thread.lastUserAt ?? thread.at ?? 0) || (turns.length ? Number(turns[turns.length - 1].at ?? 0) : 0);
@@ -263,12 +263,12 @@ export async function commentDecide(config: IgConfig, event: IgEvent, now: numbe
 
   // question: the answer goes to DMs as the one private reply Instagram allows per comment
   const apiKey = ai.provider === "anthropic" ? config.anthropicKey : "";
-  if (ai.provider !== "vertex" && !apiKey) return ignored(`AI agent: no ${ai.provider} key configured`);
+  if (!apiKey) return ignored(`AI agent: no ${ai.provider} key configured`);
   const times = (Array.isArray(thread.aiTimes) ? (thread.aiTimes as number[]) : []).filter((t) => now - t < HOUR);
   if (times.length >= ai.perPersonPerHour) return ignored(`AI agent: limit of ${ai.perPersonPerHour} replies per person per hour reached`);
   const dayRef = brandCol(bid, "stats").doc("ai_" + dayKey(now));
   if ((Number((await dayRef.get()).data()?.calls) || 0) >= ai.dailyCap) return ignored(`AI agent: daily cap of ${ai.dailyCap} replies reached`);
-  const cfg: AiConfig = { provider: ai.provider, model: ai.model, region: ai.region, apiKey, workspaceId: ai.workspaceId };
+  const cfg: AiConfig = { provider: ai.provider, model: ai.model, apiKey, workspaceId: ai.workspaceId };
   const integ = config.brand.integrations;
   const rows = integ.listings ? await catalog(now) : null;
   const extra = `LANGUAGE OF THEIR COMMENT: ${lang === "ar" ? "Arabic, reply in Arabic" : lang === "fr" ? "French, reply in French" : lang === "es" ? "Spanish, reply in Spanish" : "English, reply in English"}.\n${commentModeContext(event.text)}\n${integ.offers ? offersContext(await liveOffersText(now).catch(() => "")) : ""}\n${rows ? catalogOverview(rows) : ""}\nDo not set searchReady in comment mode: ask what they need instead, the search happens in the DM chat.`;
