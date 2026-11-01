@@ -42,3 +42,15 @@ Re-take the snapshot after any IAM change.
 - Firebase console › Project settings › Users and permissions; App Distribution testers.
 - IAM Deny policies, Recommendations history, Organization policies (key creation), org/folder IAM.
 - GitHub secrets: `FIREBASE_SERVICE_ACCOUNT`, `PLAY_APP_SIGNING_SHA1/256`, `ANTHROPIC_API_KEY`, `IG_*`, `APP_CHECK_DEBUG_TOKEN`.
+
+## Live read of 1 Nov 2026 (Maintenance `iamaudit`, read-only, run as the CI service account)
+- 27 principals, 60 bindings. Google-provided agents aside, the people/accounts that matter: owner `geo.elnajjar@gmail.com` (Owner), `firebase-adminsdk-fbsvc`
+  (CI; confirmed able to read the project IAM policy; holds `aiplatform.user`, `serviceUsageAdmin`, `secretmanager.admin`, `datastore.owner`, token creator),
+  default compute, App Engine default and Cloud Services accounts (all **Editor**, which includes `aiplatform.*` and therefore Vertex / Gemini calls), `prohost-map` (Maps only),
+  `ext-firestore-send-email` (Datastore User). `meta-ads-play` has no project role.
+- Enabled AI-related APIs: `aiplatform.googleapis.com` (Vertex / Agent Platform), `cloudaicompanion.googleapis.com` (Gemini for Google Cloud), `visionai.googleapis.com`,
+  `texttospeech.googleapis.com`. `generativelanguage.googleapis.com` (Gemini API) is **not** enabled in this project.
+- The API-key list is not readable by the CI account (`apikeys.keys.list` denied): check Console › APIs & Services › Credentials for unrestricted keys.
+- Changes proposed for the Generative-AI access-control concern (none applied yet): remove `aiplatform.user` from `firebase-adminsdk` and grant it only to a dedicated
+  media account when a TTS / music / image run is needed; replace Editor on the compute and App Engine accounts with narrow roles (test in steps: the functions run as the compute account);
+  disable `cloudaicompanion` and `visionai`; delete the unused service-account keys; keep `aiplatform.googleapis.com` enabled only while Lyria / Imagen / TTS runs are needed.
