@@ -638,11 +638,22 @@ plan + recurring price + date;
   (`ListingLocationMapPicker.kt`, `LebanonMapCanvas.kt`) must use the Android 17 location button on
   API 37+ (mandatory 27 Jan 2027). `ACCESS_FINE_LOCATION` is kept for the listing-pin picker and needs
   the Play Console fine-location declaration; country detection (`PhoneCountryDetector`) stays coarse-only.
+- Photos: no `READ_MEDIA_IMAGES`/`READ_EXTERNAL_STORAGE` (removed) — all image input goes through system pickers/`TakePicture`; re-adding needs a Play Console photo declaration.
 - Not applicable today (don't add without a Console declaration): local network, contacts, AppFunctions,
   MANAGE_EXTERNAL_STORAGE, accessibility service, SMS/call log.
 - Console to-dos: fine-location declaration, Data safety update, trader status (Nov 2026), Japan
   authorisation only if selling in Japan. Any future eligibility-based subscription discount (e.g. student)
   must disclose criteria, verification and post-eligibility price in-app.
+
+## Google Cloud access
+
+- Project `prohost-f766f`. **At the start of every session, read the IAM inventory**: Google Drive file "ProHost GCP IAM inventory (prohost-f766f).md"
+  (id `1m6322QYW8-_ChqmRnSKux4GsVRIX1t3n`, owner geo.elnajjar@gmail.com; read it with the Google Drive `read_file_content` tool when the connector is
+  available) or, offline, `docs/GCP_IAM.md` in the repo. It lists the service accounts, roles, key IDs, risks and where else to look. Keep both copies
+  in sync after any IAM change. Never write key material into the repo, Drive, logs or chat.
+- Sessions have no gcloud login by default (and the cloud sandbox blocks pro-host.tech until the environment allows it). Live checks go through the
+  Maintenance workflow, or through a read-only account whose JSON key is the environment secret `GOOGLE_APPLICATION_CREDENTIALS_JSON`
+  (a dedicated `claude-readonly` account, never the CI/admin-sdk key). The CI account is `FIREBASE_SERVICE_ACCOUNT` (GitHub secret).
 
 ## Signing material
 
