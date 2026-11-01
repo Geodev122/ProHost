@@ -1394,6 +1394,49 @@ async function hostingcheck(arg) {
   }
 }
 
+// Read-only review of who and what can use Google's generative AI in prohost-f766f: project IAM bindings (roles/aiplatform.*, owner/editor,
+// service accounts), user-managed service-account keys, API keys and their restrictions, and which AI APIs are enabled.
+async function iamaudit() {
+  const { google } = require(path.join(__dirname, "../../functions/node_modules/googleapis"));
+  const auth = new google.auth.GoogleAuth({ scopes: ["https://www.googleapis.com/auth/cloud-platform"] });
+  const call = async (method, url, body) => {
+    const token = await auth.getAccessToken();
+    const r = await fetch(url, { method, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(`HTTP ${r.status} ${String((j.error && j.error.message) || "").slice(0, 160)}`);
+    return j;
+  };
+  const P = "prohost-f766f";
+  const tryit = async (label, fn) => { try { await fn(); } catch (e) { notice(`${label}: ${e.message}`); } };
+  await tryit("iam policy", async () => {
+    const pol = await call("POST", `https://cloudresourcemanager.googleapis.com/v1/projects/${P}:getIamPolicy`, {});
+    const byMember = {};
+    for (const b of pol.bindings || []) for (const m of b.members || []) (byMember[m] = byMember[m] || []).push(b.role.replace("roles/", "") + (b.condition ? "*" : ""));
+    const members = Object.keys(byMember).sort();
+    notice(`iam: ${members.length} principals, ${(pol.bindings || []).length} bindings`);
+    for (let i = 0; i < members.length; i += 6) notice(`iam: ${members.slice(i, i + 6).map((m) => `${m.replace(/@prohost-f766f.iam.gserviceaccount.com/, "@PROJECT-SA")} = ${byMember[m].join("+")}`).join(" | ")}`);
+    const ai = members.filter((m) => byMember[m].some((r) => /^aiplatform\.|^ml\.|^generative|^geminicloudassist|^serviceusage\.|^owner$|^editor$/.test(r)));
+    notice(`iam: can use or administer AI / broad roles -> ${ai.map((m) => `${m.replace(/@prohost-f766f.iam.gserviceaccount.com/, "@PROJECT-SA")}[${byMember[m].filter((r) => /^aiplatform\.|^ml\.|^generative|^geminicloudassist|^serviceusage\.|^owner$|^editor$/.test(r)).join("+")}]`).join(" | ") || "none"}`);
+  });
+  await tryit("service accounts", async () => {
+    const sas = (await call("GET", `https://iam.googleapis.com/v1/projects/${P}/serviceAccounts?pageSize=100`)).accounts || [];
+    notice(`service accounts: ${sas.map((a) => `${a.email.split("@")[0]}${a.disabled ? "(disabled)" : ""}`).join(", ")}`);
+    for (const a of sas) {
+      const keys = (await call("GET", `https://iam.googleapis.com/v1/projects/${P}/serviceAccounts/${a.email}/keys?keyTypes=USER_MANAGED`).catch(() => ({}))).keys || [];
+      if (keys.length) notice(`sa keys: ${a.email.split("@")[0]} has ${keys.length} user-managed key(s), created ${keys.map((k) => String(k.validAfterTime).slice(0, 10)).join(", ")}`);
+    }
+  });
+  await tryit("api keys", async () => {
+    const keys = (await call("GET", `https://apikeys.googleapis.com/v2/projects/${P}/locations/global/keys`)).keys || [];
+    notice(`api keys: ${keys.length ? keys.map((k) => `${k.displayName || k.uid} restrictions=${k.restrictions ? JSON.stringify({ api: (k.restrictions.apiTargets || []).map((t) => t.service), android: !!k.restrictions.androidKeyRestrictions, ios: !!k.restrictions.iosKeyRestrictions, browser: !!k.restrictions.browserKeyRestrictions, server: !!k.restrictions.serverKeyRestrictions }) : "NONE"}`).join(" | ") : "none"}`);
+  });
+  await tryit("enabled apis", async () => {
+    const svcs = (await call("GET", `https://serviceusage.googleapis.com/v1/projects/${P}/services?filter=state:ENABLED&pageSize=200`)).services || [];
+    const names = svcs.map((x) => x.config.name);
+    notice(`AI apis enabled: ${names.filter((n) => /aiplatform|generativelanguage|ml\.googleapis|texttospeech|speech|vision|translate|discoveryengine|dialogflow|notebooks|modelarmor|geminicloudassist|cloudaicompanion|firebaseml/.test(n)).join(", ") || "none"}`);
+  });
+}
+
 // Runs the real DM-agent prompt + website knowledge through Claude (Anthropic API) on sample questions (no Instagram, nothing is sent).
 async function aitest(arg, db) {
   const key = process.env.ANTHROPIC_API_KEY || "";
@@ -1717,6 +1760,7 @@ async function smsauth(db, arg) {
   else if (task === "clearstalesecrets") await clearstalesecrets();
   else if (task === "prodcheck") await prodcheck(db, auth);
   else if (task === "hostingcheck") await hostingcheck(arg);
+  else if (task === "iamaudit") await iamaudit();
   else if (task === "authorphans") await authorphans(db, auth);
   else if (task === "authuser") await authuser(db, auth, arg);
   else if (task === "logerrors") await logerrors(arg);

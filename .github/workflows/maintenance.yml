@@ -10,7 +10,7 @@ on:
         required: true
         default: audit
         type: choice
-        options: [audit, prodcheck, hostingcheck, playcatalog, playofferfix, smsauth, authorphans, authuser, logerrors, authconfig, passwordinvites, integrity, mailingcode, mailingsmoke, officeleadsmoke, igsetup, igsmoke, igmedia, igpublish, igtest, aiprobe, aitest, aiquota, j8, retiregrowth, occupancy, favrecount, emailauth, enableemaillink, mailtest, clearstalesecrets]
+        options: [audit, prodcheck, hostingcheck, iamaudit, playcatalog, playofferfix, smsauth, authorphans, authuser, logerrors, authconfig, passwordinvites, integrity, mailingcode, mailingsmoke, officeleadsmoke, igsetup, igsmoke, igmedia, igpublish, igtest, aiprobe, aitest, aiquota, j8, retiregrowth, occupancy, favrecount, emailauth, enableemaillink, mailtest, clearstalesecrets]
       code:
         description: "mailingcode / mailingsmoke: the pro-host.tech/admin code (digits); playofferfix: apply (else dry run); smsauth: allow:SY (or empty to only read); authuser: the Auth uid; logerrors: hours (default 48); authconfig: apply|retire; passwordinvites: send|resend; integrity: enable; other tasks ignore it"
         required: false
