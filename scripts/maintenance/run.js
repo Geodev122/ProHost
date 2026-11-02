@@ -3,6 +3,7 @@
 // Functions code (functions/lib) so every step is the same logic as the admin buttons.
 //
 //   node scripts/maintenance/run.js audit            read-only integrity + billing health report
+//   node scripts/maintenance/run.js activityaudit [days]  read-only: Admin Activity log by method/principal (IAM, keys, APIs, VMs flagged), Cloud Run warnings, VMs
 //   node scripts/maintenance/run.js j8               production data hygiene (backup → cleanup)
 //   node scripts/maintenance/run.js retiregrowth     retired plans (growth/enterprise): holders → permanent grant, rows closed
 //   node scripts/maintenance/run.js occupancy        rebuild booking_occupancy from ACCEPTED bookings
@@ -1429,6 +1430,54 @@ async function iamaudit() {
   });
 }
 
+// Read-only activity review for a Trust & Safety appeal: who changed what in the last 7 days (Admin Activity audit log,
+// grouped by method and principal, flagging IAM / key / service-account / API-enable / instance changes), Cloud Run
+// warnings and errors per service, and any Compute Engine VM. Counts and names only, no payloads.
+async function activityaudit(arg) {
+  const project = process.env.GCLOUD_PROJECT;
+  const days = Math.max(1, Math.min(30, parseInt((arg || "").trim(), 10) || 7));
+  const since = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
+  const list = async (filter, pageSize = 1000) => {
+    const res = await googleApi("https://logging.googleapis.com/v2/entries:list", {
+      method: "POST", body: JSON.stringify({ resourceNames: [`projects/${project}`], filter, orderBy: "timestamp desc", pageSize }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${String((await res.text().catch(() => "")).slice(0, 140))}`);
+    return (await res.json()).entries || [];
+  };
+  const tryit = async (label, fn) => { try { await fn(); } catch (e) { notice(`${label}: ${e.message}`); } };
+  await tryit("admin activity", async () => {
+    const entries = await list(`logName="projects/${project}/logs/cloudaudit.googleapis.com%2Factivity" AND timestamp>="${since}"`);
+    const by = {}, who = {};
+    for (const e of entries) {
+      const pl = e.protoPayload || {};
+      const who1 = ((pl.authenticationInfo || {}).principalEmail || "?").replace("@prohost-f766f.iam.gserviceaccount.com", "@PROJECT-SA");
+      const m = `${String(pl.serviceName || "").split(".")[0]}.${String(pl.methodName || "").split(".").pop()}`;
+      by[m] = (by[m] || 0) + 1;
+      (who[who1] = who[who1] || new Set()).add(m);
+    }
+    notice(`admin activity ${days}d: ${entries.length} entries${entries.length >= 1000 ? " (first 1000)" : ""}; by principal: ${Object.entries(who).map(([k, v]) => `${k}=${[...v].length} methods`).join(", ") || "none"}`);
+    const risky = Object.entries(by).filter(([m]) => /SetIamPolicy|CreateServiceAccount|DeleteServiceAccount|DisableServiceAccount|CreateServiceAccountKey|DeleteServiceAccountKey|EnableService|DisableService|CreateKey|insert|instances|CreateSecret|AddSecretVersion|CreateInstance|CreateExtension|UpdateBillingInfo/i.test(m));
+    notice(`admin activity ${days}d, sensitive methods: ${risky.map(([m, n]) => `${m}×${n}`).join(", ") || "none"}`);
+    notice(`admin activity ${days}d, all methods: ${Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 25).map(([m, n]) => `${m}×${n}`).join(", ") || "none"}`);
+    for (const k of Object.keys(who)) notice(`admin activity principal ${k}: ${[...who[k]].slice(0, 14).join(", ")}`);
+  });
+  await tryit("cloud run", async () => {
+    const entries = await list(`resource.type="cloud_run_revision" AND severity>=WARNING AND timestamp>="${since}"`);
+    const bySvc = {};
+    for (const e of entries) {
+      const svc = ((e.resource || {}).labels || {}).service_name || "?";
+      const msg = String((e.jsonPayload || {}).message || (e.jsonPayload || {}).error || e.textPayload || "").replace(/\s+/g, " ").slice(0, 110);
+      (bySvc[svc] = bySvc[svc] || {})[msg] = ((bySvc[svc] || {})[msg] || 0) + 1;
+    }
+    notice(`cloud run warnings/errors ${days}d: ${entries.length} entries (${Object.keys(bySvc).length} services)`);
+    for (const [svc, msgs] of Object.entries(bySvc).slice(0, 4)) notice(`cloud run ${svc}: ${Object.entries(msgs).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([m, n]) => `${n}× ${m}`).join(" | ")}`);
+  });
+  await tryit("compute", async () => {
+    const r = await googleApi(`https://compute.googleapis.com/compute/v1/projects/${project}/aggregated/instances`);
+    notice(`compute vms: ${r.ok ? ((Object.values((await r.json()).items || {}).flatMap((z) => z.instances || [])).length) : `HTTP ${r.status} (API off or not readable)`}`);
+  });
+}
+
 // Runs the real DM-agent prompt + website knowledge through Claude (Anthropic API) on sample questions (no Instagram, nothing is sent).
 async function aitest(arg, db) {
   const key = process.env.ANTHROPIC_API_KEY || "";
@@ -1772,6 +1821,7 @@ async function smsauth(db, arg) {
   else if (task === "prodcheck") await prodcheck(db, auth);
   else if (task === "hostingcheck") await hostingcheck(arg);
   else if (task === "iamaudit") await iamaudit();
+  else if (task === "activityaudit") await activityaudit(arg);
   else if (task === "authorphans") await authorphans(db, auth);
   else if (task === "authuser") await authuser(db, auth, arg);
   else if (task === "logerrors") await logerrors(arg);
