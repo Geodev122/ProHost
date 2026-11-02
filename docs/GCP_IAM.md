@@ -54,3 +54,12 @@ Re-take the snapshot after any IAM change.
 - Changes proposed for the Generative-AI access-control concern (none applied yet): remove `aiplatform.user` from `firebase-adminsdk` and grant it only to a dedicated
   media account when a TTS / music / image run is needed; replace Editor on the compute and App Engine accounts with narrow roles (test in steps: the functions run as the compute account);
   disable `cloudaicompanion` and `visionai`; delete the unused service-account keys; keep `aiplatform.googleapis.com` enabled only while Lyria / Imagen / TTS runs are needed.
+
+## Activity review of 2 Nov 2026 (Maintenance `activityaudit`, read-only, last 30 days)
+- 128 Admin Activity entries after dropping routine deploy traffic. Principals seen: the owner, `firebase-adminsdk-fbsvc` (CI), `prohost-f766f@appspot` (App Engine default SA), Google service agents.
+- **Needs an answer from the owner:** on 2 Nov 05:21 UTC the App Engine default service account (Editor, user-managed key from 5 Oct) enabled `aiplatform.googleapis.com`
+  twice, from a Windows browser user-agent and an IP that is not the owner's 10:19 session; CI had disabled that API on 1 Nov 08:17 (`apis apply`). A service account acting with a
+  browser user-agent means its key (or a token minted from it) is in use outside CI. Treat the key as exposed: delete key `e5b6952d…` and re-disable the API.
+- Vertex `CreateCustomJob` by `firebase-adminsdk` in October = the GPU lip-sync attempts from the reel workflows (quota-denied); no other AI jobs in the log.
+- Cloud Run warnings (30 days, 16 services, 288 entries) are `app_check_unverified` (App Check deliberately unenforced) and 2 `igTokenRefresh` failures; no abuse pattern.
+- Compute Engine: not readable by the CI account (API off or no permission); there should be no VMs.
