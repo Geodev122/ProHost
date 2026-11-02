@@ -63,3 +63,9 @@ Re-take the snapshot after any IAM change.
 - Vertex `CreateCustomJob` by `firebase-adminsdk` in October = the GPU lip-sync attempts from the reel workflows (quota-denied); no other AI jobs in the log.
 - Cloud Run warnings (30 days, 16 services, 288 entries) are `app_check_unverified` (App Check deliberately unenforced) and 2 `igTokenRefresh` failures; no abuse pattern.
 - Compute Engine: not readable by the CI account (API off or no permission); there should be no VMs.
+
+## 2 Nov 2026 follow-up
+- `aiplatform.googleapis.com` was re-enabled on 2 Nov (05:21 by the App Engine default service account from a browser user-agent; owner session at 10:19 enabled more services) and re-disabled by Maintenance `apis apply` the same day.
+- `cloudaicompanion.googleapis.com` stays enabled because `geminicloudassist.googleapis.com` (Gemini Cloud Assist) depends on it: disable `geminicloudassist` first, then re-run `apis apply`.
+- CI can't list service-account keys (`keysecurity` is read-only and showed none): key review and disabling (App Engine account key `e5b6952d…`, the unused `firebase-adminsdk` key) is done in the console.
+- Play Data safety deletion URL while Hosting is down: `https://europe-west1-prohost-f766f.cloudfunctions.net/legalDocumentPage/delete-account` (served by the function, verified 200).
