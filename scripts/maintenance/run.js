@@ -1370,7 +1370,7 @@ async function hostingcheck(arg) {
       await new Promise((r) => setTimeout(r, 25000));
     } catch (e) { notice(`release ${rel[1]}: ${e.message}`); }
   }
-  for (const url of ["https://prohost-f766f.web.app/", "https://prohost-f766f.web.app/index.html", "https://prohost-f766f.web.app/__/firebase/init.json", "https://prohost-f766f.firebaseapp.com/", "https://pro-host.tech/", "https://www.pro-host.tech/"]) {
+  for (const url of ["https://prohost-f766f.web.app/", "https://prohost-f766f.web.app/index.html", "https://prohost-f766f.web.app/__/firebase/init.json", "https://prohost-f766f.firebaseapp.com/", "https://pro-host.tech/", "https://www.pro-host.tech/", "https://europe-west1-prohost-f766f.cloudfunctions.net/legalDocumentPage/delete-account", "https://europe-west1-prohost-f766f.cloudfunctions.net/legalDocumentPage/privacy", "https://europe-west1-prohost-f766f.cloudfunctions.net/legalDocumentPage/terms"]) {
     try {
       const r = await fetch(url, { redirect: "manual" });
       const body = (await r.text()).replace(/\s+/g, " ");

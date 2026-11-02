@@ -1,0 +1,33 @@
+// Self-contained copy of public/delete-account.html's content, served by legalDocumentPage at /delete-account so Google Play's
+// account-deletion URL works even when Firebase Hosting does not serve pro-host.tech (Hosting returned "Site Not Found" in Nov 2026).
+// deleteAccountPage.test.ts fails when this and the HTML drift apart: edit public/delete-account.html, then copy its <div class="wrap"> content here.
+export const DELETE_ACCOUNT_BODY: string = "    <div class=\"doc-head\">\n      <h1>Delete Your Account</h1>\n      <p class=\"meta\">App: ProHost on Google Play (app.geonajjar.prohost) · Last updated: 5 October 2026</p>\n    </div>\n\n    <p>You can delete your ProHost account and the personal data associated with it at any time, either directly in the app or by requesting deletion here if you no longer have access to it. This is the same right described as \"Erasure\" (GDPR Article 17) for users in the EU/UK/EEA and as the \"Right to Delete\" (CCPA/CPRA and similar U.S. state laws) for California and other U.S. state residents — see our <a href=\"/privacy\">Privacy Policy</a> for the full list of privacy rights available to you.</p>\n\n    <div class=\"callout warn\">\n      <p><strong>Have a ProHost Premium subscription?</strong> Deleting your account does not cancel it. Subscriptions are billed by Google Play, so cancel first in Google Play › Payments &amp; subscriptions › Subscriptions › ProHost (or <a href=\"https://play.google.com/store/account/subscriptions?sku=package_pro_mrr&amp;package=app.geonajjar.prohost\">open it directly</a>), otherwise Google keeps renewing it.</p>\n    </div>\n\n    <h2>1. Delete in the app (immediate)</h2>\n    <ol>\n      <li>Open the ProHost app and sign in.</li>\n      <li>Go to <strong>Profile</strong>.</li>\n      <li>Scroll to the bottom and tap <strong>Delete Account</strong>.</li>\n      <li>Confirm the deletion when prompted.</li>\n    </ol>\n    <p>This is processed immediately and permanently.</p>\n\n    <h2>2. Request deletion without app access</h2>\n    <p>If you can't sign in to the app anymore, email us at <a href=\"mailto:admin@pro-host.tech\">admin@pro-host.tech</a> from the address on file, or include the phone number your account is registered under, and ask us to delete your account. We process these requests within 30 days (or sooner where required by applicable law). We may ask you to verify your identity before completing the request, to prevent someone else from deleting your account.</p>\n    <p>You may also designate an authorised agent to submit a deletion request on your behalf where your local law (for example, the CCPA/CPRA) permits this; we may still require you to directly confirm your identity and the agent's authority.</p>\n\n    <h2>3. What gets deleted</h2>\n    <p>Deleting your account permanently removes:</p>\n    <ul>\n      <li>Your profile (name, email, phone, specialty, city, profile picture).</li>\n      <li>Your uploaded government ID document (if you completed Pro Host identity verification) and, for Pro Hosts, ownership/verification documents.</li>\n      <li>Every workspace listing you own, including its photos.</li>\n      <li>Your Firebase Authentication account itself — you won't be able to sign back in.</li>\n    </ul>\n\n    <div class=\"callout\">\n      <p><strong>What we keep:</strong> booking records that involve another user (a specialist's booking against your listing, or a listing you booked as a specialist) are kept as that other party's transaction history, the same way a receipt isn't erased from the other side of a transaction. These records are not linked back to a deleted account's personal profile. We may also retain limited data where required to comply with a legal, tax, accounting, or fraud-prevention obligation, for no longer than necessary for that purpose — see Section 6 of the <a href=\"/privacy\">Privacy Policy</a>. Google Play keeps its own record of any subscription purchase under Google's privacy policy.</p>\n    </div>\n\n    <h2>4. If you are not satisfied</h2>\n    <p>If you believe we have not properly handled your deletion request, you may contact us again at the address below, or, if you are located in the EU/UK/EEA, lodge a complaint with your local data protection supervisory authority; if you are a California or other U.S. state resident, you may have a right to appeal a denied request as described in our <a href=\"/privacy\">Privacy Policy</a>.</p>\n\n    <div class=\"contact-box\">\n      <h3>Contact us</h3>\n      <p>ProHost Data Privacy &amp; Support</p>\n      <p>Email: <a href=\"mailto:admin@pro-host.tech\">admin@pro-host.tech</a></p>\n      <p style=\"margin-bottom:0\">Website: <a href=\"https://pro-host.tech\">pro-host.tech</a></p>\n    </div>\n  ";
+
+export function renderDeleteAccountPage(): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delete Your Account — ProHost</title>
+<meta name="description" content="How to delete your ProHost account and personal data, in the app or by request, and what we delete and keep.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://pro-host.tech/delete-account">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #F8F9FA; color: #283544; font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 24px 20px 48px; }
+  h1 { font-size: 1.8rem; margin: 0 0 4px; } h2 { font-size: 1.25rem; margin: 28px 0 8px; } h3 { margin: 0 0 8px; }
+  .meta { color: #64748B; font-size: .9rem; margin: 0 0 16px; } a { color: #2B5A8C; }
+  .callout { background: #EEF4FA; border-left: 4px solid #2B5A8C; padding: 4px 16px; margin: 16px 0; border-radius: 6px; }
+  .callout.warn { background: #FFF4E5; border-color: #F25F4C; }
+  .contact-box { background: #fff; border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px 20px; margin-top: 24px; }
+  footer { text-align: center; color: #64748B; font-size: .85rem; padding: 0 20px 32px; }
+</style>
+</head>
+<body>
+<div class="wrap">${DELETE_ACCOUNT_BODY}</div>
+<footer><p>© 2026 ProHost. All rights reserved. · <a href="privacy">Privacy Policy</a> · <a href="terms">Terms of Service</a></p></footer>
+</body>
+</html>`;
+}

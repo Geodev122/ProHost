@@ -1,6 +1,7 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
 import "../lib/admin";
+import { renderDeleteAccountPage } from "./deleteAccountPage";
 
 const CANONICAL_HOST = "https://pro-host.tech";
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=app.geonajjar.prohost";
@@ -92,6 +93,13 @@ function renderPlaceholder(title: string, url: string): string {
  * up quickly without hitting Storage on every single request.
  */
 export const legalDocumentPage = onRequest(async (req, res) => {
+  // Google Play's account-deletion URL: static, no Firestore, so it works even when Hosting does not serve the domain
+  // (also reachable as <function URL>/delete-account).
+  if (req.path === "/delete-account" || req.path === "/delete-account/") {
+    res.set("Cache-Control", "public, max-age=300");
+    res.status(200).send(renderDeleteAccountPage());
+    return;
+  }
   const docId = ROUTE_TO_DOC_ID[req.path];
   const title = ROUTE_TO_TITLE[req.path] ?? "Legal Document";
   const url = `${CANONICAL_HOST}${req.path}`;
