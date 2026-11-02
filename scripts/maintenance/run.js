@@ -1430,6 +1430,48 @@ async function iamaudit() {
   });
 }
 
+// Service-account key hygiene (read-only unless code = apply). Lists every user-managed key with Google's "last authentication" date
+// (Policy Intelligence), so unused keys are obvious. apply DISABLES (reversible, never deletes) the keys of the App Engine default
+// service account: the repo and CI don't use it, it holds Editor, and a key of it was seen acting from outside CI (see docs/GCP_IAM.md).
+async function keysecurity(arg) {
+  const { google } = require(path.join(__dirname, "../../functions/node_modules/googleapis"));
+  const auth = new google.auth.GoogleAuth({ scopes: ["https://www.googleapis.com/auth/cloud-platform"] });
+  const P = "prohost-f766f";
+  const apply = (arg || "").trim() === "apply";
+  const call = async (method, url, body) => {
+    const token = await auth.getAccessToken();
+    const r = await fetch(url, { method, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(`HTTP ${r.status} ${String((j.error && j.error.message) || "").slice(0, 160)}`);
+    return j;
+  };
+  const used = {};
+  try {
+    let page = "";
+    do {
+      const j = await call("GET", `https://policyanalyzer.googleapis.com/v1/projects/${P}/locations/global/activityTypes/serviceAccountKeyLastAuthentication/activities?pageSize=100${page}`);
+      for (const a of j.activities || []) {
+        const keyId = String((a.fullResourceName || "").split("/keys/")[1] || "");
+        used[keyId] = String((((a.activity || {}).lastAuthenticatedTime) || "")).slice(0, 10) || "?";
+      }
+      page = j.nextPageToken ? `&pageToken=${encodeURIComponent(j.nextPageToken)}` : "";
+    } while (page);
+  } catch (e) { notice(`last-used data: ${e.message}`); }
+  const sas = (await call("GET", `https://iam.googleapis.com/v1/projects/${P}/serviceAccounts?pageSize=100`)).accounts || [];
+  for (const a of sas) {
+    const keys = (await call("GET", `https://iam.googleapis.com/v1/projects/${P}/serviceAccounts/${a.email}/keys?keyTypes=USER_MANAGED`).catch(() => ({}))).keys || [];
+    for (const k of keys) {
+      const id = k.name.split("/keys/")[1];
+      notice(`key ${a.email.split("@")[0]} ${id.slice(0, 8)}… created ${String(k.validAfterTime).slice(0, 10)} lastUsed=${used[id] || "no record"} disabled=${!!k.disabled}`);
+      if (a.email === `${P}@appspot.gserviceaccount.com` && !k.disabled) {
+        if (!apply) { notice(`  ${id.slice(0, 8)}…: would be DISABLED by apply`); continue; }
+        try { await call("POST", `https://iam.googleapis.com/v1/${k.name}:disable`, {}); notice(`  ${id.slice(0, 8)}…: disabled (re-enable in IAM › Service accounts › Keys if something breaks)`); }
+        catch (e) { notice(`  ${id.slice(0, 8)}…: NOT disabled: ${e.message}`); }
+      }
+    }
+  }
+}
+
 // Read-only activity review for a Trust & Safety appeal: who changed what in the last 7 days (Admin Activity audit log,
 // grouped by method and principal, flagging IAM / key / service-account / API-enable / instance changes), Cloud Run
 // warnings and errors per service, and any Compute Engine VM. Counts and names only, no payloads.
@@ -1826,6 +1868,7 @@ async function smsauth(db, arg) {
   else if (task === "hostingcheck") await hostingcheck(arg);
   else if (task === "iamaudit") await iamaudit();
   else if (task === "activityaudit") await activityaudit(arg);
+  else if (task === "keysecurity") await keysecurity(arg);
   else if (task === "authorphans") await authorphans(db, auth);
   else if (task === "authuser") await authuser(db, auth, arg);
   else if (task === "logerrors") await logerrors(arg);
