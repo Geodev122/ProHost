@@ -1446,7 +1446,12 @@ async function activityaudit(arg) {
   };
   const tryit = async (label, fn) => { try { await fn(); } catch (e) { notice(`${label}: ${e.message}`); } };
   await tryit("admin activity", async () => {
-    const entries = await list(`logName="projects/${project}/logs/cloudaudit.googleapis.com%2Factivity" AND timestamp>="${since}"`);
+    // Routine deploy traffic (CI deploys, Cloud Build, the functions robot) is left out so the 1000-entry page reaches back further.
+    const entries = await list(`logName="projects/${project}/logs/cloudaudit.googleapis.com%2Factivity" AND timestamp>="${since}" AND NOT protoPayload.methodName=~"actAs|UpdateFunction|ReplaceInternalService|CreateBuild|GenerateUploadUrl|GetOperation|UpdateJob|UpdateRelease"`);
+    for (const e of entries.filter((x) => /SetIamPolicy|EnableService|DisableService|ServiceAccount|CreateKey|DeleteKey|instances|CreateSecret|UpdateBillingInfo/i.test((x.protoPayload || {}).methodName || "")).slice(0, 8)) {
+      const pl = e.protoPayload || {};
+      notice(`sensitive: ${String(e.timestamp).slice(0, 19)}Z ${String((pl.authenticationInfo || {}).principalEmail || "?").replace("@prohost-f766f.iam.gserviceaccount.com", "@PROJECT-SA")} ${String(pl.methodName || "").split(".").pop()} ${String(pl.resourceName || "").split("/").slice(-2).join("/")} ip=${(pl.requestMetadata || {}).callerIp || "?"} agent=${String((pl.requestMetadata || {}).callerSuppliedUserAgent || "").slice(0, 40)}`);
+    }
     const by = {}, who = {};
     for (const e of entries) {
       const pl = e.protoPayload || {};
@@ -1458,8 +1463,7 @@ async function activityaudit(arg) {
     notice(`admin activity ${days}d: ${entries.length} entries${entries.length >= 1000 ? " (first 1000)" : ""}; by principal: ${Object.entries(who).map(([k, v]) => `${k}=${[...v].length} methods`).join(", ") || "none"}`);
     const risky = Object.entries(by).filter(([m]) => /SetIamPolicy|CreateServiceAccount|DeleteServiceAccount|DisableServiceAccount|CreateServiceAccountKey|DeleteServiceAccountKey|EnableService|DisableService|CreateKey|insert|instances|CreateSecret|AddSecretVersion|CreateInstance|CreateExtension|UpdateBillingInfo/i.test(m));
     notice(`admin activity ${days}d, sensitive methods: ${risky.map(([m, n]) => `${m}×${n}`).join(", ") || "none"}`);
-    notice(`admin activity ${days}d, all methods: ${Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 25).map(([m, n]) => `${m}×${n}`).join(", ") || "none"}`);
-    for (const k of Object.keys(who)) notice(`admin activity principal ${k}: ${[...who[k]].slice(0, 14).join(", ")}`);
+    notice(`admin activity principals: ${Object.keys(who).map((k) => `${k}[${[...who[k]].slice(0, 6).join(",")}]`).join(" ; ")}`.slice(0, 900));
   });
   await tryit("cloud run", async () => {
     const entries = await list(`resource.type="cloud_run_revision" AND severity>=WARNING AND timestamp>="${since}"`);
