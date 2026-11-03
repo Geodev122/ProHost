@@ -1,27 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-   Governs Android 12+ cloud backup and device-to-device transfer
-   (android:allowBackup="true" in AndroidManifest.xml keeps both enabled).
-
-   This app is a marketplace where a signed-in device's local cache is not
-   just the user's own data — Firestore's offline persistence layer mirrors
-   listings, booking requests, and profile fields belonging to OTHER users
-   (names, phone numbers, ID-verification status) into a local SQLite
-   database purely as a performance cache, since the server is always the
-   real source of truth and a fresh install re-syncs everything the moment
-   the user signs back in. There is no product reason to carry that cache
-   into a cloud backup or a new device, and every reason not to. The
-   `database` domain covers every SQLite file under the app's private
-   databases/ directory, which is exactly where Firestore's persistence
-   cache lives, whatever its exact internal filename in the currently
-   pinned SDK version (this app defines no Room database of its own to
-   worry about excluding separately).
+   Android 12+ cloud backup and device-to-device transfer. Excludes everything (see backup_rules.xml for why): the Firestore
+   offline cache mirrors other users' data, and the Firebase Auth session / FCM token must never leave the device.
+   android:allowBackup is false in AndroidManifest.xml as well; BackupRulesTest keeps both honest.
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <include domain="database" path="."/>
+        <exclude domain="database" path="."/>
+        <exclude domain="sharedpref" path="."/>
+        <exclude domain="file" path="."/>
+        <exclude domain="external" path="."/>
     </cloud-backup>
     <device-transfer>
-        <include domain="database" path="."/>
+        <exclude domain="database" path="."/>
+        <exclude domain="sharedpref" path="."/>
+        <exclude domain="file" path="."/>
+        <exclude domain="external" path="."/>
     </device-transfer>
 </data-extraction-rules>

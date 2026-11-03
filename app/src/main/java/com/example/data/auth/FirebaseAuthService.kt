@@ -115,5 +115,6 @@ class FirebaseAuthService(private val context: Context) : AuthGateway {
         } catch (e: Exception) {
             Log.w(tag, "Error during signOut: ${e.message}")
         }
+        GoogleCredentialState.clearInBackground(context)
     }
 }

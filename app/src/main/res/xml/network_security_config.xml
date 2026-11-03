@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- HTTPS only, system certificate authorities only (no user-added CAs): OAuth tokens and Firebase traffic can't be read through
+     a user-installed proxy certificate. Debug builds keep the same rules (testers use the same endpoints). -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -146,6 +146,8 @@ fun LoginAuthScreen(
         coroutineScope.launch {
             val cm = credentialManager ?: return@launch
             val webClientId = context.getString(R.string.default_web_client_id)
+            // One nonce per attempt, in every request below; the ID token must carry it back (see GoogleNonce).
+            val nonce = com.example.data.auth.GoogleNonce.newNonce()
 
             fun handleCredentialResult(result: androidx.credentials.GetCredentialResponse) {
                 val credential = result.credential
@@ -153,6 +155,13 @@ fun LoginAuthScreen(
                     credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
                 ) {
                     val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                    if (!com.example.data.auth.GoogleNonce.idTokenMatchesNonce(googleIdTokenCredential.idToken, nonce)) {
+                        com.example.analytics.AnalyticsTracker.authError("google", "nonce_mismatch")
+                        UiMessages.show(context,
+                            context.getString(R.string.google_sign_in_isn_t_available_right_now_p),
+                            long = true)
+                        return
+                    }
                     val googleName = googleIdTokenCredential.displayName
                         ?: "${googleIdTokenCredential.givenName.orEmpty()} ${googleIdTokenCredential.familyName.orEmpty()}".trim()
                     val googlePictureUri = googleIdTokenCredential.profilePictureUri
@@ -172,6 +181,7 @@ fun LoginAuthScreen(
                 val oneTapOption = GetGoogleIdOption.Builder()
                     .setFilterByAuthorizedAccounts(false)
                     .setServerClientId(webClientId)
+                    .setNonce(nonce)
                     .build()
                 val result = cm.getCredential(
                     context,
@@ -186,7 +196,7 @@ fun LoginAuthScreen(
                 // was suppressed). Fall back to the standard Sign In With Google sheet,
                 // which works whenever Google Play Services is present.
                 try {
-                    val signInOption = GetSignInWithGoogleOption.Builder(webClientId).build()
+                    val signInOption = GetSignInWithGoogleOption.Builder(webClientId).setNonce(nonce).build()
                     val result = cm.getCredential(
                         context,
                         GetCredentialRequest.Builder().addCredentialOption(signInOption).build()
@@ -300,12 +310,14 @@ fun LoginAuthScreen(
         if (isPreview || savedCredentialOffered || step != AuthStep.PROVIDERS || creating) return@LaunchedEffect
         savedCredentialOffered = true
         val cm = credentialManager ?: return@LaunchedEffect
+        val returningNonce = com.example.data.auth.GoogleNonce.newNonce()
         val request = GetCredentialRequest.Builder()
             .addCredentialOption(androidx.credentials.GetPasswordOption())
             .addCredentialOption(
                 GetGoogleIdOption.Builder()
                     .setFilterByAuthorizedAccounts(true)
                     .setServerClientId(context.getString(R.string.default_web_client_id))
+                    .setNonce(returningNonce)
                     .build()
             )
             .build()
@@ -325,6 +337,10 @@ fun LoginAuthScreen(
             }
             is CustomCredential -> if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
                 val google = GoogleIdTokenCredential.createFrom(credential.data)
+                if (!com.example.data.auth.GoogleNonce.idTokenMatchesNonce(google.idToken, returningNonce)) {
+                    com.example.analytics.AnalyticsTracker.authError("google", "nonce_mismatch")
+                    return@LaunchedEffect
+                }
                 authViewModel.startGoogleSignIn(google.idToken) { needsRegistration ->
                     if (needsRegistration) {
                         prefillGoogleName = google.displayName.orEmpty()

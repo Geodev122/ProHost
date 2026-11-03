@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-   Full-backup-content rules for devices below Android 12 (ignored on 12+,
-   which uses data_extraction_rules.xml instead — kept in sync with it here
-   for the same reason: see that file's comment). Excludes every SQLite
-   database under this app's private databases/ directory, which is where
-   Firestore's offline persistence cache lives — a local mirror of other
-   users' data (names, phone numbers, verification status) that exists
-   purely as a performance cache and has no business leaving the device via
-   backup or restore.
+   Full-backup-content rules for devices below Android 12 (ignored on 12+, which uses
+   data_extraction_rules.xml — kept identical). Nothing of this app is backed up or transferred: the databases hold
+   Firestore's offline cache (a local mirror of OTHER users' names, phones and verification status), shared preferences
+   hold the Firebase Auth session and the FCM token, files hold downloaded documents. A fresh install re-syncs from the
+   server when the person signs in again. (An earlier version used <include domain="database">, which does the opposite:
+   with any <include> present ONLY that is backed up, so the cache was the one thing that left the device.)
+   android:allowBackup is also false in AndroidManifest.xml; BackupRulesTest keeps both honest.
 -->
 <full-backup-content>
-    <include domain="database" path="."/>
+    <exclude domain="database" path="."/>
+    <exclude domain="sharedpref" path="."/>
+    <exclude domain="file" path="."/>
+    <exclude domain="external" path="."/>
 </full-backup-content>

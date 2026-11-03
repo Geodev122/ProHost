@@ -542,6 +542,7 @@ class ProHostViewModel(
                 android.util.Log.w("ProHostViewModel", "logout error: ${e.message}")
             }
             com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+            com.example.data.auth.GoogleCredentialState.clearInBackground()
         }
     }
 
@@ -558,6 +559,7 @@ class ProHostViewModel(
         if (result.isSuccess) {
             com.example.analytics.AnalyticsTracker.accountDeleted()
             com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+            com.example.data.auth.GoogleCredentialState.clearInBackground()
             // The profile doc (and its fcmToken field) is already gone server-side —
             // skip the token-clear write here, since it would otherwise just
             // resurrect a stub user_profiles/{uid} doc post-deletion.
