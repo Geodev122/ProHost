@@ -1,0 +1,14 @@
+<en-US>
+What's new in ProHost 1.0.47
+• Safer sign-in with Google: each sign-in is now checked so it can't be replayed
+• Signing out now also forgets the Google account on the device
+• Your account data is no longer included in phone backups
+• Stronger protection for the app's network connections
+</en-US>
+<ar>
+الجديد في ProHost 1.0.47
+• تسجيل دخول أكثر أماناً عبر Google: يُتحقَّق من كل عملية دخول لمنع إعادة استخدامها
+• تسجيل الخروج ينسى الآن حساب Google على الجهاز أيضاً
+• لم تعد بيانات حسابك تُضمَّن في النسخ الاحتياطية للهاتف
+• حماية أقوى لاتصالات التطبيق بالشبكة
+</ar>

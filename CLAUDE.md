@@ -136,6 +136,10 @@ plan + recurring price + date;
 - Email verification never blocks (email is not a requirement): `assignInitialRole` mails the verification link to
   password accounts; the app re-checks on resume (`ProHostViewModel.refreshEmailVerification`) and Profile shows
   "Verify your email · Resend" (`needsEmailVerification`).
+- Google sign-in hardening (1.0.47): every Credential Manager request carries a per-attempt nonce (`GoogleNonce`, 3 call sites in `LoginAuthScreen`)
+  and the ID token's `nonce` claim is checked locally before Firebase sees it; sign-out also calls `GoogleCredentialState.clearInBackground()`.
+  Backups are off (`allowBackup=false`, every domain excluded in both XML files; with any `<include>` only that is backed up, which once leaked the
+  Firestore cache) and `network_security_config.xml` allows system CAs only; `BackupRulesTest` guards both. Never add an `<include>` back.
 - Session lock (biometric/PIN) was removed on purpose; `MainActivity` is a `ComponentActivity`.
   Screenshots/screen recording are allowed on purpose (owner, Oct 2026): never re-add `FLAG_SECURE`.
 - People see server-assigned display codes, never Firebase UIDs/doc ids: `U-`/`L-`/`D-`/`B-` +

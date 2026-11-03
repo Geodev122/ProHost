@@ -25,8 +25,8 @@ android {
     applicationId = "app.geonajjar.prohost"
     minSdk = 24
     targetSdk = 37
-    versionCode = 46
-    versionName = "1.0.46"
+    versionCode = 47
+    versionName = "1.0.47"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     
