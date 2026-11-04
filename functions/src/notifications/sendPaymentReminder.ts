@@ -3,6 +3,7 @@ import { onCall } from "../lib/callable";
 import { getFirestore } from "firebase-admin/firestore";
 import { sendPushToUser } from "../lib/push";
 import "../lib/admin";
+import { runAs } from "../lib/runtimeIdentity";
 
 interface SendPaymentReminderData {
   bookingId?: string;
@@ -15,7 +16,7 @@ interface SendPaymentReminderData {
  * reaching the specialist. Only the booking's own host (or an Admin) can
  * trigger this, and only for a booking that's actually ACCEPTED.
  */
-export const sendPaymentReminder = onCall<SendPaymentReminderData>(async (request) => {
+export const sendPaymentReminder = onCall<SendPaymentReminderData>(runAs("billing"), async (request) => {
   const auth = request.auth;
   if (!auth) {
     throw new HttpsError("unauthenticated", "Sign in required.");

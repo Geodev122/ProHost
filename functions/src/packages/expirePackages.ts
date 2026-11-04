@@ -15,6 +15,7 @@ import { PlayRecheck, expiryDecision } from "./expiryLogic";
 import { notifyAdminsOfSubscriptionChange } from "../billing/adminBillingAlerts";
 import "../lib/admin";
 import { sendGa4Event } from "../lib/ga4";
+import { runAs } from "../lib/runtimeIdentity";
 
 /**
  * Real, enforced package expiry. ownerPackageExpiryMillis was previously
@@ -36,7 +37,7 @@ import { sendGa4Event } from "../lib/ga4";
  * hasActivePackage() also checks the live expiry timestamp itself, so a package
  * that's lapsed but not yet swept by this function already blocks publishing.
  */
-export const expirePackages = onSchedule({ schedule: "0 * * * *", timeoutSeconds: 540 }, async () => {
+export const expirePackages = onSchedule({ ...runAs("billing"), schedule: "0 * * * *", timeoutSeconds: 540 }, async () => {
   const db = getFirestore();
   const now = Date.now();
 

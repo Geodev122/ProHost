@@ -14,6 +14,7 @@ import { resolvePurchaseUid } from "./purchaseLinks";
 import { classifyPlayError, PlaySubscription } from "./playSubscription";
 import { parkPendingActivation, resolvePendingActivation } from "./activatePurchase";
 import "../lib/admin";
+import { runAs } from "../lib/runtimeIdentity";
 
 // Google Play subscription notification types (DeveloperNotification spec)
 const SUBSCRIPTION_RECOVERED = 1;     // payment recovered after a hold
@@ -43,7 +44,7 @@ const SUBSCRIPTION_PENDING_PURCHASE_CANCELED = 20; // pending payment never comp
 export const playBillingRtdn = onMessagePublished(
   // retry: a throw makes Pub/Sub redeliver (with backoff). Only Play API failures that can
   // clear throw; a malformed or unknown-token message returns so it never loops.
-  { topic: "play-billing-rtdn", retry: true },
+  { ...runAs("billing"), topic: "play-billing-rtdn", retry: true },
   async (event) => {
     // 1. Decode the DeveloperNotification envelope
     let notification: Record<string, unknown>;

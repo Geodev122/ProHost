@@ -9,6 +9,7 @@ import { PlayApiError, classifyPlayError } from "./playSubscription";
 import { SUBSCRIPTIONS, syncSubscription } from "./subscriptionService";
 import { ADMIN_FORCED_PLAN_ID, LEGACY_UNLIMITED_GRANT_PLAN_ID, LIFETIME_EXPIRY_MILLIS, isSupportedProduct } from "./playCatalog";
 import "../lib/admin";
+import { runAs } from "../lib/runtimeIdentity";
 
 const OPEN_STATUSES = ["ACTIVE", "GRACE_PERIOD", "ON_HOLD", "PAUSED", "CANCELED", "PENDING"];
 
@@ -130,12 +131,12 @@ export async function runBillingSyncOnce(): Promise<BillingSyncReport> {
   return report;
 }
 
-export const billingSyncJob = onSchedule({ schedule: "every 24 hours", timeoutSeconds: 540 }, async () => {
+export const billingSyncJob = onSchedule({ ...runAs("billing"), schedule: "every 24 hours", timeoutSeconds: 540 }, async () => {
   await runBillingSyncOnce();
 });
 
 /** Admin: run the sync (and migration) now, e.g. right after a deploy. */
-export const runBillingSync = onCall({ timeoutSeconds: 540 }, async (request) => {
+export const runBillingSync = onCall({ ...runAs("billing"), timeoutSeconds: 540 }, async (request) => {
   if (request.auth?.token.role !== "ADMIN") {
     throw new HttpsError("permission-denied", "Only an Admin can run the billing sync.");
   }

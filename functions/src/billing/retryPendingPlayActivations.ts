@@ -7,6 +7,7 @@ import "../lib/admin";
 import { PENDING_COLLECTION, activatePlayPurchase } from "./activatePurchase";
 import { notifyAdminsOfSubscriptionChange } from "./adminBillingAlerts";
 import { logPurchaseOnce } from "./subscriptionService";
+import { runAs } from "../lib/runtimeIdentity";
 
 const ALERT_AFTER_MS = 6 * 60 * 60 * 1000;
 // Play refunds unacknowledged purchases after 3 days; past 4 nothing is left to save.
@@ -18,7 +19,7 @@ const GIVE_UP_AFTER_MS = 4 * 24 * 60 * 60 * 1000;
  * 15 minutes, so a paid subscription activates and is acknowledged before Play's
  * 3-day auto-refund even if the buyer never reopens the app.
  */
-export const retryPendingPlayActivations = onSchedule({ schedule: "*/15 * * * *" }, async () => {
+export const retryPendingPlayActivations = onSchedule({ ...runAs("billing"), schedule: "*/15 * * * *" }, async () => {
   const db = getFirestore();
   const now = Date.now();
   // Rows waiting for an admin can't be retried; close the ones Play has refunded by now
