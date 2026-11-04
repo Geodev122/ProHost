@@ -14,6 +14,7 @@ import { onCall } from "../lib/callable";
 import { DISPLAY_CODES_COLLECTION } from "../lib/displayCode";
 import { classifyAdminQuery, normalizeSearchName } from "./adminQuery";
 import "../lib/admin";
+import { runAs } from "../lib/runtimeIdentity";
 
 /**
  * Admin Console data, server-side and on demand: the console never loads whole collections.
@@ -367,12 +368,12 @@ async function syncSearchName(ref: DocumentReference, data: Data | undefined, so
   }
 }
 
-export const onUserProfileWrittenSearchName = onDocumentWritten(`${USERS}/{uid}`, async (event) => {
+export const onUserProfileWrittenSearchName = onDocumentWritten({ document: `${USERS}/{uid}`, ...runAs("triggers") }, async (event) => {
   const after = event.data?.after;
   if (after?.exists) await syncSearchName(after.ref, after.data(), "fullName");
 });
 
-export const onListingWrittenSearchName = onDocumentWritten(`${LISTINGS}/{spaceId}`, async (event) => {
+export const onListingWrittenSearchName = onDocumentWritten({ document: `${LISTINGS}/{spaceId}`, ...runAs("triggers") }, async (event) => {
   const after = event.data?.after;
   if (after?.exists && after.data()?.ownerId) await syncSearchName(after.ref, after.data(), "title");
 });

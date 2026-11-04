@@ -3,6 +3,7 @@ import { logger } from "firebase-functions/v2";
 import { getFirestore } from "firebase-admin/firestore";
 import { NOTIFICATIONS } from "../lib/push";
 import "../lib/admin";
+import { runAs } from "../lib/runtimeIdentity";
 
 /**
  * Hourly: removes in-app notifications older than 48 h (their expireAt passed) from every
@@ -10,7 +11,7 @@ import "../lib/admin";
  * never shows longer than 48 h even between runs. Needs the collection-group index on
  * notifications.expireAt (firestore.indexes.json fieldOverrides).
  */
-export const pruneExpiredNotifications = onSchedule({ schedule: "15 * * * *", timeoutSeconds: 300 }, async () => {
+export const pruneExpiredNotifications = onSchedule({ ...runAs("triggers"), schedule: "15 * * * *", timeoutSeconds: 300 }, async () => {
   const db = getFirestore();
   const now = Date.now();
   let deleted = 0;

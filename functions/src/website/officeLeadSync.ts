@@ -12,6 +12,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { isPlausibleEmail } from "../lib/emailRateLimit";
 import { normalizeWhatsApp, profession } from "../lib/officeLeadFields";
 import { OfficeLead, recordOfficeLead } from "./officeLeads";
+import { runAs } from "../lib/runtimeIdentity";
 
 const str = (v: unknown, n: number) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, n) : "");
 
@@ -36,7 +37,7 @@ export function leadFromDoc(d: Record<string, unknown>): OfficeLead {
   };
 }
 
-export const onOfficeLeadSaved = onDocumentWritten("ig_leads/{id}", async (event) => {
+export const onOfficeLeadSaved = onDocumentWritten({ document: "ig_leads/{id}", ...runAs("triggers") }, async (event) => {
   const after = event.data?.after?.data();
   if (!needsRecording(after)) return;
   const ref = event.data!.after.ref;

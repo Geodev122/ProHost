@@ -1,6 +1,7 @@
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { getFirestore } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
+import { runAs } from "../lib/runtimeIdentity";
 
 /**
  * Denormalizes AppUser.savedSpaceIds (the heart on Explore, the listing page and Saved) into per-listing counters on
@@ -72,7 +73,7 @@ export function recountFavorites(savedBy: string[], ownerId: unknown): number {
 }
 
 export const onUserFavoritesChanged = onDocumentUpdated(
-  { document: "user_profiles/{uid}", retry: true },
+  { ...runAs("triggers"), document: "user_profiles/{uid}", retry: true },
   async (event) => {
     const before = event.data?.before.data();
     const after = event.data?.after.data();
