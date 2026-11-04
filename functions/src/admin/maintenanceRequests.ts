@@ -23,6 +23,7 @@ import { playOfferFix } from "../billing/playOfferFix";
 import { PACKAGE_NAME, getPlayPublisher } from "../billing/billingHelpers";
 import { classifyPlayError } from "../billing/playSubscription";
 import { callDecodeIntegrityToken } from "../lib/playIntegrity";
+import { runAs } from "../lib/runtimeIdentity";
 
 async function playSubscriptions(): Promise<unknown> {
   const db = getFirestore();
@@ -67,7 +68,7 @@ async function playSubscriptions(): Promise<unknown> {
 }
 
 export const onMaintenanceRequest = onDocumentCreated(
-  { document: "maintenance_requests/{id}", timeoutSeconds: 300, memory: "512MiB" },
+  { ...runAs("billing"), document: "maintenance_requests/{id}", timeoutSeconds: 300, memory: "512MiB" },
   async (event) => {
     const ref = event.data?.ref;
     const task = event.data?.get("task");
