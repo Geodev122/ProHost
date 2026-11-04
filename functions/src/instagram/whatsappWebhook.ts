@@ -1,5 +1,6 @@
 import * as logger from "firebase-functions/logger";
 import { onRequest } from "firebase-functions/v2/https";
+import { runAs } from "../lib/runtimeIdentity";
 import "../lib/admin";
 import { loadAllConfigs } from "./config";
 import { brandForVerifyToken, routeEntries } from "./routing";
@@ -7,7 +8,7 @@ import { entryPhoneNumberId, parseWhatsAppEntry } from "./whatsapp";
 import { handleEvent } from "./webhook";
 
 /** pro-host.tech/wa-webhook (hosting rewrite). GET = Meta's handshake, POST = WhatsApp Business events for every brand. */
-export const waWebhook = onRequest({ cors: false, memory: "256MiB", timeoutSeconds: 60 }, async (req, res) => {
+export const waWebhook = onRequest({ ...runAs("public"), cors: false, memory: "256MiB", timeoutSeconds: 60 }, async (req, res) => {
   const configs = await loadAllConfigs();
   if (req.method === "GET") {
     const token = String(req.query["hub.verify_token"] ?? "");
