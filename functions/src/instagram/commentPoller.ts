@@ -6,6 +6,7 @@ import { brandCol } from "./store";
 import { listComments, listRecentMedia } from "./graph";
 import { freshComments, toEvent } from "./commentFeed";
 import { handleEvent } from "./webhook";
+import { runAs } from "../lib/runtimeIdentity";
 
 /**
  * Fetches new comments straight from Instagram and runs them through the same pipeline as webhook comments
@@ -36,7 +37,7 @@ export async function pollComments(config: IgConfig, now: number, deps = { listR
   return processed;
 }
 
-export const igCommentPoll = onSchedule({ schedule: "every 1 minutes", timeoutSeconds: 120, memory: "256MiB" }, async () => {
+export const igCommentPoll = onSchedule({ ...runAs("ig"), schedule: "every 1 minutes", timeoutSeconds: 120, memory: "256MiB" }, async () => {
   for (const config of await loadAllConfigs()) {
     if (!config.accessToken || !config.igUserId) continue;
     try {

@@ -15,12 +15,13 @@ import { parseWebhook } from "./parse";
 import { brandForVerifyToken, routeEntries } from "./routing";
 import { verifySignature } from "./signature";
 import { ContactState, Decision, IgEvent, Rule } from "./types";
+import { runAs } from "../lib/runtimeIdentity";
 
 const HOUR = 3_600_000;
 const BREAKER_ERRORS = 5;
 
 /** pro-host.tech/ig-webhook (hosting rewrite). GET = Meta's handshake, POST = events. */
-export const igWebhook = onRequest({ cors: false, memory: "256MiB", timeoutSeconds: 60 }, async (req, res) => {
+export const igWebhook = onRequest({ ...runAs("ig"), cors: false, memory: "256MiB", timeoutSeconds: 60 }, async (req, res) => {
   const configs = await loadAllConfigs();
   if (req.method === "GET") {
     // Meta's handshake carries no account id: the verify token tells which brand is being connected.

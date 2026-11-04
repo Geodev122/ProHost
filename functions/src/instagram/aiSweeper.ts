@@ -8,6 +8,7 @@ import { brandCol } from "./store";
 import { senderFor } from "./sender";
 import { Channel, Step } from "./types";
 import { liveOffersText } from "./aiOffers";
+import { runAs } from "../lib/runtimeIdentity";
 
 /**
  * Silence handling for the DM agent: when the person went quiet after a question, send ONE nudge 3 h later about what they were
@@ -47,7 +48,7 @@ export async function runFollowUps(config: IgConfig, now: number, send?: (creds:
   return done;
 }
 
-export const igFollowUps = onSchedule({ schedule: "every 1 minutes", timeoutSeconds: 60, memory: "256MiB" }, async () => {
+export const igFollowUps = onSchedule({ ...runAs("ig"), schedule: "every 1 minutes", timeoutSeconds: 60, memory: "256MiB" }, async () => {
   for (const config of await loadAllConfigs()) {
     if (!config.ai.enabled) continue;
     try {

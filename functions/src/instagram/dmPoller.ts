@@ -8,6 +8,7 @@ import { IgConversation, IgMessage, listConversations, listMessages } from "./gr
 import { ACTIVE_MS } from "./aiMemory";
 import { handleEvent } from "./webhook";
 import { IgEvent } from "./types";
+import { runAs } from "../lib/runtimeIdentity";
 
 /**
  * The DM poller. An unpublished Meta app gets webhooks only for people with a role on the app, so a commenter's reply to
@@ -99,7 +100,7 @@ export async function pollDms(config: IgConfig, now: number, deps: DmPollDeps = 
   return processed;
 }
 
-export const igDmPoll = onSchedule({ schedule: "every 1 minutes", timeoutSeconds: 120, memory: "256MiB" }, async () => {
+export const igDmPoll = onSchedule({ ...runAs("ig"), schedule: "every 1 minutes", timeoutSeconds: 120, memory: "256MiB" }, async () => {
   for (const config of await loadAllConfigs()) {
     if (!config.accessToken || !config.igUserId) continue;
     try {

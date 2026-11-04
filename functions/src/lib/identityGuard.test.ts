@@ -32,7 +32,7 @@ const PLAY_REACHING = [
   "waWebhook"
 ];
 // 4 Nov 2026: run-billing and run-ig were invited in Play Console (all permissions). A function moves only after the
-// maintenance tasks `playcatalog` and `integrity` pass under that account (canary: onMaintenanceRequest).
+// maintenance tasks `playcatalog` and `integrity` pass under that account (canary: onMaintenanceRequest; Play access proven for run-billing and run-ig on 4 Nov).
 const PLAY_INVITED_GROUPS: string[] = ["billing", "ig"];
 
 process.env.GCLOUD_PROJECT = process.env.GCLOUD_PROJECT || "prohost-f766f";

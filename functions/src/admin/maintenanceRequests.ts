@@ -68,7 +68,7 @@ async function playSubscriptions(): Promise<unknown> {
 }
 
 export const onMaintenanceRequest = onDocumentCreated(
-  { ...runAs("ig"), document: "maintenance_requests/{id}", timeoutSeconds: 300, memory: "512MiB" },
+  { ...runAs("billing"), document: "maintenance_requests/{id}", timeoutSeconds: 300, memory: "512MiB" },
   async (event) => {
     const ref = event.data?.ref;
     const task = event.data?.get("task");
