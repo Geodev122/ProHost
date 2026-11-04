@@ -20,6 +20,7 @@ import { takeEmailSendSlot } from "../lib/emailRateLimit";
 import { LIST, MESSAGES, clip, clipText, iso } from "./addressBook";
 import { ADMIN_EMAIL, NOREPLY_FROM, SITE, Campaign, campaignEmail, listUnsubscribeHeaders, safeUrl } from "./mailTemplates";
 import { WA_DOC, parseWhatsAppConfig, sendAdminWhatsApp, whatsAppMissing } from "../lib/whatsappAlerts";
+import { runAs } from "../lib/runtimeIdentity";
 
 const SESSIONS = "mailing_admin_sessions";
 const CAMPAIGNS = "mail_campaigns";
@@ -42,7 +43,7 @@ async function requireSession(token: unknown): Promise<void> {
 }
 
 /** mailingAdminLogin({ code }) → { token, expiresAt } */
-export const mailingAdminLogin = onCall({ cors: true }, async (request) => {
+export const mailingAdminLogin = onCall({ ...runAs("auth"), cors: true }, async (request) => {
   const code = String(request.data?.code ?? "");
   const ip = String(request.rawRequest?.headers?.["x-forwarded-for"] ?? request.rawRequest?.ip ?? "?").split(",")[0].trim();
   await takeEmailSendSlot("mailing_admin_ip", ip, 8, 15 * 60 * 1000);
@@ -68,7 +69,7 @@ export const mailingAdminLogin = onCall({ cors: true }, async (request) => {
 });
 
 /** mailingAdminData({ token }) → address book, contact messages and recent campaigns. */
-export const mailingAdminData = onCall({ cors: true, memory: "512MiB" }, async (request) => {
+export const mailingAdminData = onCall({ ...runAs("auth"), cors: true, memory: "512MiB" }, async (request) => {
   await requireSession(request.data?.token);
   const [list, msgs, camps] = await Promise.all([
     db().collection(LIST).orderBy("updatedAt", "desc").limit(20000).get(),
@@ -94,7 +95,7 @@ export const mailingAdminData = onCall({ cors: true, memory: "512MiB" }, async (
 });
 
 /** mailingAdminSetSubscribed({ token, id, subscribed }) — manual opt-out / re-opt-in from the console. */
-export const mailingAdminSetSubscribed = onCall({ cors: true }, async (request) => {
+export const mailingAdminSetSubscribed = onCall({ ...runAs("auth"), cors: true }, async (request) => {
   await requireSession(request.data?.token);
   const id = String(request.data?.id ?? "");
   if (!/^[a-f0-9]{32}$/.test(id)) throw new HttpsError("invalid-argument", "Unknown contact.");
@@ -118,7 +119,7 @@ function readCampaign(d: Record<string, unknown>): Campaign {
 }
 
 /** mailingAdminPreview({ token, campaign }) → { html } rendered exactly as recipients get it. */
-export const mailingAdminPreview = onCall({ cors: true }, async (request) => {
+export const mailingAdminPreview = onCall({ ...runAs("auth"), cors: true }, async (request) => {
   await requireSession(request.data?.token);
   const c = readCampaign(request.data?.campaign ?? {});
   return { html: campaignEmail(c, { name: "Rana Haddad" }, `${SITE}/unsubscribe?t=preview`).html };
@@ -128,7 +129,7 @@ export const mailingAdminPreview = onCall({ cors: true }, async (request) => {
  * mailingAdminSend({ token, campaign, testOnly }) → { campaignId, total }.
  * testOnly sends one copy to admin@pro-host.tech. Otherwise one email per subscribed address.
  */
-export const mailingAdminSend = onCall({ cors: true, timeoutSeconds: 540, memory: "512MiB" }, async (request) => {
+export const mailingAdminSend = onCall({ ...runAs("auth"), cors: true, timeoutSeconds: 540, memory: "512MiB" }, async (request) => {
   await requireSession(request.data?.token);
   const c = readCampaign(request.data?.campaign ?? {});
   const testOnly = request.data?.testOnly === true;
@@ -166,7 +167,7 @@ export const mailingAdminSend = onCall({ cors: true, timeoutSeconds: 540, memory
 });
 
 /** mailingAdminCampaign({ token, campaignId }) → delivery counts and the failed addresses. */
-export const mailingAdminCampaign = onCall({ cors: true, memory: "512MiB" }, async (request) => {
+export const mailingAdminCampaign = onCall({ ...runAs("auth"), cors: true, memory: "512MiB" }, async (request) => {
   await requireSession(request.data?.token);
   const id = String(request.data?.campaignId ?? "");
   if (!/^[A-Za-z0-9]{10,40}$/.test(id)) throw new HttpsError("invalid-argument", "Unknown campaign.");
@@ -182,7 +183,7 @@ export const mailingAdminCampaign = onCall({ cors: true, memory: "512MiB" }, asy
 });
 
 /** mailingAdminRetry({ token, campaignId }) — hands failed deliveries back to the extension. */
-export const mailingAdminRetry = onCall({ cors: true }, async (request) => {
+export const mailingAdminRetry = onCall({ ...runAs("auth"), cors: true }, async (request) => {
   await requireSession(request.data?.token);
   const id = String(request.data?.campaignId ?? "");
   const docs = (await db().collection(MAIL_COLLECTION).where("campaignId", "==", id).where("delivery.state", "==", "ERROR").get()).docs;
@@ -204,7 +205,7 @@ export const mailingAdminRetry = onCall({ cors: true }, async (request) => {
  * one); the token is write-only: get returns only its last 4 characters. test sends one alert through
  * lib/whatsappAlerts.ts. Stored in the server-only doc app_config/whatsapp.
  */
-export const mailingAdminWhatsApp = onCall({ cors: true }, async (request) => {
+export const mailingAdminWhatsApp = onCall({ ...runAs("auth"), cors: true }, async (request) => {
   await requireSession(request.data?.token);
   const ref = db().collection("app_config").doc(WA_DOC);
   const action = String(request.data?.action ?? "get");

@@ -27,6 +27,7 @@ import { sendStep } from "../instagram/graph";
 import { clip, upsertContact } from "./addressBook";
 import { ADMIN_EMAIL } from "./mailTemplates";
 import { leadTags, normalizeWhatsApp, profession } from "../lib/officeLeadFields";
+import { runAs } from "../lib/runtimeIdentity";
 export { OFFICE_LEAD_TAGS, PROFESSIONS, leadTags, normalizeWhatsApp, profession } from "../lib/officeLeadFields";
 
 export const OFFICE_LEAD_SOURCE = "insta_story";
@@ -142,7 +143,7 @@ export async function recordOfficeLead(lead: OfficeLead, now: number): Promise<R
  * utm_campaign, website }) — `website` is the honeypot. It only validates and queues the lead (`ig_leads`, kind
  * office_owner); officeLeadSync.ts records it in the contact book and alerts, exactly like a DM-agent lead.
  */
-export const websiteOfficeLead = onCall({ cors: true }, async (request) => {
+export const websiteOfficeLead = onCall({ ...runAs("auth"), cors: true }, async (request) => {
   const d = (request.data ?? {}) as Record<string, unknown>;
   if (clip(d.website, 100)) return { ok: true }; // honeypot
   const lead = parseOfficeLead(d);

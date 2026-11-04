@@ -7,6 +7,7 @@ import * as logger from "firebase-functions/logger";
 import { sendEmail } from "../lib/email";
 import { emailVerificationTemplate, esc, UserContext } from "../lib/emailTemplates";
 import "../lib/admin";
+import { runAs } from "../lib/runtimeIdentity";
 
 /**
  * HMAC-SHA256 signed JWT for email verification links.
@@ -100,7 +101,7 @@ const errorPage = (message: string) => `<!DOCTYPE html>
 </html>`;
 
 export const verifyEmailLink = onRequest(
-  { secrets: [emailVerificationSecret] },
+  { ...runAs("auth"), secrets: [emailVerificationSecret] },
   async (req, res) => {
     const token = req.query.token as string | undefined;
     if (!token) {
