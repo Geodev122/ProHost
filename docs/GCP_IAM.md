@@ -20,6 +20,18 @@ Done by Claude with a temporary admin account (`claude-remediation`, to be delet
   function options; `setGlobalOptions` is in `functions/src/index.ts`). Editing a service with `gcloud run services update` FAILS: Firebase's Artifact Registry policy
   `firebase-functions-cleanup` deletes function images older than 1 day (two canary attempts on `sitesitemap`/`legaldocumentpage` failed safely and left a not-ready
   latest revision until their next deploy). Do the switch group by group via CI, public/trigger groups first, then watch Cloud Run 5xx and PERMISSION_DENIED logs.
+- **Per-service identity rules found by the 4 Nov code audit (read before moving any function):**
+  1. **Google Play access is tied to the runtime service account.** Subscription checks, the live-offers lookup of the DM agent and the Play Integrity decode at sign-in use
+     the function's own credentials (ADC), and only the default compute account is invited in Play Console › Users and permissions. A function that reaches Play must stay on the default
+     account until its group account is invited there with the same permissions and Maintenance `playcatalog` / `integrityprobe` pass under it. 19 functions reach Play (list and guard:
+     `functions/src/lib/identityGuard.test.ts`, which fails the build if one gets a group account before `PLAY_INVITED_GROUPS` says it may): billing 12 incl. `verifyAndRestorePurchase`, `playBillingRtdn`,
+     `expirePackages`; `assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`; `igWebhook`, `igDmPoll`, `igCommentPoll`, `igFollowUps`, `waWebhook`; `onMaintenanceRequest`.
+  2. `igSheetSync` writes the control-room Google Sheet/Drive as its runtime account: share the sheet with `run-ig@…` (Editor) before moving it.
+  3. In firebase-functions v2 the `serviceAccount` option is also the identity Eventarc and Cloud Scheduler use to call the function, so each group account has run.invoker + eventarc.eventReceiver.
+  4. CI can attach the new accounts: the deploy account has project-level serviceAccountUser/tokenCreator and an explicit serviceAccountUser binding on every `run-*` account; the Pub/Sub and Eventarc
+     service agents hold tokenCreator/serviceAgent. Deny policies could not be read (permission).
+  5. Group account extras added after the audit: `run-auth` + FCM (office leads push), `run-billing` + Pub/Sub publisher (billing self-test).
+  Status: batch 1 = `legalDocumentPage`, `listingShareLanding`, `siteSitemap` → `run-public`; batch 2 = 18 Firestore/schedule triggers → `run-triggers`. Remaining: auth, ig (non-Play), then the Play-reaching set last.
 - **Firestore (default, europe-west1)**: point-in-time recovery ON, delete protection ON, daily backup (7 d) and weekly Sunday backup (8 w) schedules.
 - **Firebase Storage bucket `prohost-f766f.firebasestorage.app` (US-EAST1)**: public access prevention enforced, versioning on, soft delete 7 d. It holds `id_documents/`.
 - **Monitoring**: email channel "ProHost owner email" (owner) and log alerts: SA-key-created, Project-IAM-changed, VertexAI-or-Gemini-use, Compute-resource-created,

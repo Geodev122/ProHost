@@ -1,6 +1,7 @@
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { getFirestore } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
+import { runAs } from "../lib/runtimeIdentity";
 
 /**
  * booking_occupancy/{bookingId}: the public, person-free projection of every ACCEPTED booking —
@@ -31,7 +32,7 @@ export function occupancyFields(d: FirebaseFirestore.DocumentData): Record<strin
   };
 }
 
-export const onBookingOccupancySync = onDocumentWritten("booking_requests/{bookingId}", async (event) => {
+export const onBookingOccupancySync = onDocumentWritten({ document: "booking_requests/{bookingId}", ...runAs("triggers") }, async (event) => {
   const after = event.data?.after?.data();
   const ref = getFirestore().collection(OCCUPANCY_COLLECTION).doc(event.params.bookingId);
   if (after && after.status === "ACCEPTED" && typeof after.spaceId === "string") {

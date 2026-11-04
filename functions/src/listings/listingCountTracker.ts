@@ -1,5 +1,6 @@
 import { onDocumentCreated, onDocumentDeleted, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { runAs } from "../lib/runtimeIdentity";
 
 /**
  * Maintains `user_profiles/{ownerId}.activeListingCount` — a denormalized
@@ -25,7 +26,7 @@ function isActiveStatus(status: unknown): boolean {
 }
 
 export const onWorkspaceListingCreated = onDocumentCreated(
-  "workspace_listings/{spaceId}",
+  { document: "workspace_listings/{spaceId}", ...runAs("triggers") },
   async (event) => {
     const listing = event.data?.data();
     const ownerId = listing?.ownerId;
@@ -42,7 +43,7 @@ export const onWorkspaceListingCreated = onDocumentCreated(
 );
 
 export const onWorkspaceListingDeleted = onDocumentDeleted(
-  "workspace_listings/{spaceId}",
+  { document: "workspace_listings/{spaceId}", ...runAs("triggers") },
   async (event) => {
     const listing = event.data?.data();
     const ownerId = listing?.ownerId;
@@ -77,7 +78,7 @@ export const onWorkspaceListingDeleted = onDocumentDeleted(
  * event there is no "before" document, so this trigger simply doesn't fire.
  */
 export const onWorkspaceListingStatusChanged = onDocumentUpdated(
-  "workspace_listings/{spaceId}",
+  { document: "workspace_listings/{spaceId}", ...runAs("triggers") },
   async (event) => {
     const before = event.data?.before?.data();
     const after = event.data?.after?.data();

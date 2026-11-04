@@ -5,6 +5,7 @@ import { getFirestore, DocumentReference } from "firebase-admin/firestore";
 import { onCall } from "../lib/callable";
 import { isCodeOwnedBy, mintDisplayCode, DisplayCodeKind } from "../lib/displayCode";
 import "../lib/admin";
+import { runAs } from "../lib/runtimeIdentity";
 
 type Data = Record<string, unknown>;
 
@@ -62,19 +63,19 @@ async function ensureListingCodes(ref: DocumentReference, data: Data): Promise<b
   });
 }
 
-export const onUserProfileCreatedAssignCode = onDocumentCreated("user_profiles/{uid}", async (event) => {
+export const onUserProfileCreatedAssignCode = onDocumentCreated({ document: "user_profiles/{uid}", ...runAs("triggers") }, async (event) => {
   const snap = event.data;
   if (!snap) return;
   await ensureDocCode(snap.ref, snap.data(), "U");
 });
 
-export const onBookingCreatedAssignCode = onDocumentCreated("booking_requests/{bookingId}", async (event) => {
+export const onBookingCreatedAssignCode = onDocumentCreated({ document: "booking_requests/{bookingId}", ...runAs("triggers") }, async (event) => {
   const snap = event.data;
   if (!snap) return;
   await ensureDocCode(snap.ref, snap.data(), "B");
 });
 
-export const onListingWrittenAssignCodes = onDocumentWritten("workspace_listings/{spaceId}", async (event) => {
+export const onListingWrittenAssignCodes = onDocumentWritten({ document: "workspace_listings/{spaceId}", ...runAs("triggers") }, async (event) => {
   const after = event.data?.after;
   if (!after?.exists) return;
   await ensureListingCodes(after.ref, after.data() ?? {});

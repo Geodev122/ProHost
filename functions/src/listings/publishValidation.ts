@@ -2,6 +2,7 @@ import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { recordAuditLog } from "../lib/auditLog";
 import { isPerAttendee, tiersFor, AttendeeTierDoc } from "../lib/attendeePricing";
 import { pricingFromLegacyFormula } from "./legacyPricing";
+import { runAs } from "../lib/runtimeIdentity";
 
 /** Minimal shape of the parts of a workspace_listings document this validates —
  * mirrors SpaceListing.toFirestoreMap()'s key names (DataModels.kt), not the
@@ -178,7 +179,7 @@ export function validateListingForPublish(listing: WorkspaceListingDoc): string[
  * made.
  */
 export const onWorkspaceListingPublishValidation = onDocumentWritten(
-  "workspace_listings/{spaceId}",
+  { document: "workspace_listings/{spaceId}", ...runAs("triggers") },
   async (event) => {
     const after = event.data?.after;
     if (!after?.exists) return;

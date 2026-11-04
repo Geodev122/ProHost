@@ -19,6 +19,7 @@ import {
 } from "../lib/attendeePricing";
 import "../lib/admin";
 import { sendGa4Event } from "../lib/ga4";
+import { runAs } from "../lib/runtimeIdentity";
 
 /**
  * Server check for per-attendee bookings (the client computes the total, so it must
@@ -58,7 +59,7 @@ async function attendeeBookingProblem(booking: FirebaseFirestore.DocumentData): 
  * Firestore listener. This is the server side that was missing.
  */
 export const onBookingRequestCreated = onDocumentCreated(
-  { document: "booking_requests/{bookingId}" },
+  { ...runAs("triggers"), document: "booking_requests/{bookingId}" },
   async (event) => {
     const booking = event.data?.data();
     if (!booking) return;
@@ -137,7 +138,7 @@ export const onBookingRequestCreated = onDocumentCreated(
  * accept/reject in real time too, not just whenever they next open the app.
  */
 export const onBookingRequestStatusChanged = onDocumentUpdated(
-  { document: "booking_requests/{bookingId}" },
+  { ...runAs("triggers"), document: "booking_requests/{bookingId}" },
   async (event) => {
     const before = event.data?.before?.data();
     const after = event.data?.after?.data();
@@ -296,7 +297,7 @@ export const onBookingRequestStatusChanged = onDocumentUpdated(
  * - Specialist marks paid → notifies the host (owner_progress tab).
  */
 export const onBookingPaymentAcknowledged = onDocumentUpdated(
-  "booking_requests/{bookingId}",
+  { document: "booking_requests/{bookingId}", ...runAs("triggers") },
   async (event) => {
     const before = event.data?.before?.data();
     const after = event.data?.after?.data();

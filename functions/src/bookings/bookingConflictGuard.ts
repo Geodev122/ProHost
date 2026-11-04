@@ -3,6 +3,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { recordAuditLog } from "../lib/auditLog";
 import { sendPushToUser } from "../lib/push";
 import { hasEnded, termsOverlap, todayIso } from "./bookingTerms";
+import { runAs } from "../lib/runtimeIdentity";
 
 /**
  * Mirrors SpaceCalculationUtils.hoursOverlap/bookingScope/bookingDays/
@@ -116,7 +117,7 @@ export function findConflict(
  * fails that same guard on the write it just made.
  */
 export const onBookingAcceptConflictGuard = onDocumentWritten(
-  "booking_requests/{bookingId}",
+  { document: "booking_requests/{bookingId}", ...runAs("triggers") },
   async (event) => {
     const after = event.data?.after;
     if (!after?.exists) return;

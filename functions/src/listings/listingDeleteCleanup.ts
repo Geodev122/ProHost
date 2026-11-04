@@ -3,6 +3,7 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { recordAuditLog } from "../lib/auditLog";
 import { sendPushToUser } from "../lib/push";
+import { runAs } from "../lib/runtimeIdentity";
 
 /**
  * Deleting a listing (ProHostRepository.deleteSpaceListing) only ever removed
@@ -22,7 +23,7 @@ import { sendPushToUser } from "../lib/push";
  * favoritesSync.ts and bookingConflictGuard.ts.
  */
 export const onWorkspaceListingDeletedCleanup = onDocumentDeleted(
-  "workspace_listings/{spaceId}",
+  { document: "workspace_listings/{spaceId}", ...runAs("triggers") },
   async (event) => {
     const spaceId = event.params.spaceId;
     const listing = event.data?.data();
