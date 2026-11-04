@@ -5,9 +5,10 @@ import { loadAllConfigs } from "./config";
 import { brandForVerifyToken, routeEntries } from "./routing";
 import { entryPhoneNumberId, parseWhatsAppEntry } from "./whatsapp";
 import { handleEvent } from "./webhook";
+import { runAs } from "../lib/runtimeIdentity";
 
 /** pro-host.tech/wa-webhook (hosting rewrite). GET = Meta's handshake, POST = WhatsApp Business events for every brand. */
-export const waWebhook = onRequest({ cors: false, memory: "256MiB", timeoutSeconds: 60 }, async (req, res) => {
+export const waWebhook = onRequest({ ...runAs("ig"), cors: false, memory: "256MiB", timeoutSeconds: 60 }, async (req, res) => {
   const configs = await loadAllConfigs();
   if (req.method === "GET") {
     const token = String(req.query["hub.verify_token"] ?? "");
