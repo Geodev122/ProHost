@@ -1,4 +1,5 @@
 import { onRequest } from "firebase-functions/v2/https";
+import { runAs } from "../lib/runtimeIdentity";
 import { getFirestore } from "firebase-admin/firestore";
 import "../lib/admin";
 import { renderDeleteAccountPage } from "./deleteAccountPage";
@@ -92,7 +93,7 @@ function renderPlaceholder(title: string, url: string): string {
  * in-app copy. A short cache window (5 min) means a fresh admin upload shows
  * up quickly without hitting Storage on every single request.
  */
-export const legalDocumentPage = onRequest(async (req, res) => {
+export const legalDocumentPage = onRequest(runAs("public"), async (req, res) => {
   // Google Play's account-deletion URL: static, no Firestore, so it works even when Hosting does not serve the domain
   // (also reachable as <function URL>/delete-account).
   if (req.path === "/delete-account" || req.path === "/delete-account/") {

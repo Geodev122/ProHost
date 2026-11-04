@@ -5,11 +5,12 @@
  */
 import * as logger from "firebase-functions/logger";
 import { onRequest } from "firebase-functions/v2/https";
+import { runAs } from "../lib/runtimeIdentity";
 import { getFirestore } from "firebase-admin/firestore";
 import "../lib/admin";
 import { buildSitemap, isPublicListing } from "./sitemapXml";
 
-export const siteSitemap = onRequest({ memory: "256MiB", timeoutSeconds: 60 }, async (_req, res) => {
+export const siteSitemap = onRequest({ ...runAs("public"), memory: "256MiB", timeoutSeconds: 60 }, async (_req, res) => {
   let listings: Array<{ id: string; updatedAt?: unknown }> = [];
   try {
     const snap = await getFirestore().collection("workspace_listings").where("status", "==", "ACTIVE")

@@ -1,4 +1,5 @@
 import { onRequest } from "firebase-functions/v2/https";
+import { runAs } from "../lib/runtimeIdentity";
 import { getFirestore } from "firebase-admin/firestore";
 import "../lib/admin";
 import { isPublicListing } from "../website/sitemapXml";
@@ -158,7 +159,7 @@ function renderPage(opts: {
  * see, and its own "Open in ProHost App" button reuses the identical URL,
  * which the OS *will* intercept on a second tap once the app is installed.
  */
-export const listingShareLanding = onRequest(async (req, res) => {
+export const listingShareLanding = onRequest(runAs("public"), async (req, res) => {
   const match = req.path.match(/\/listing\/([^/]+)/);
   const spaceId = match?.[1];
   const url = spaceId ? `${CANONICAL_HOST}/listing/${spaceId}` : CANONICAL_HOST;
