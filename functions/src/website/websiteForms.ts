@@ -11,6 +11,7 @@ import { isPlausibleEmail, takeEmailSendSlot } from "../lib/emailRateLimit";
 import { esc } from "../lib/emailTemplates";
 import { ROLES, clip, clipText, unsubscribeByToken, upsertContact } from "./addressBook";
 import { ADMIN_EMAIL, PARTNER_TAGS, contactNotificationEmail, partnerNotificationEmail } from "./mailTemplates";
+import { runAs } from "../lib/runtimeIdentity";
 
 function clientIp(raw: { ip?: string; headers?: Record<string, unknown> } | undefined): string {
   const fwd = String(raw?.headers?.["x-forwarded-for"] ?? "").split(",")[0].trim();
@@ -26,7 +27,7 @@ function role(v: unknown): string {
  * websiteContact({ name, email, phone, organization, role, message, subscribe, website, topic, markets, timeline })
  * topic "partner" (the /partner page) tags the request: subject "[ProHost Partner] …", X-ProHost-* headers, address-book tags.
  */
-export const websiteContact = onCall({ cors: true }, async (request) => {
+export const websiteContact = onCall({ ...runAs("auth"), cors: true }, async (request) => {
   const d = request.data ?? {};
   if (clip(d.website, 100)) return { ok: true }; // honeypot: bots fill every field
   const email = clip(d.email, 254).toLowerCase();
@@ -58,7 +59,7 @@ export const websiteContact = onCall({ cors: true }, async (request) => {
 });
 
 /** websiteSubscribe({ email, name, role, organization, website }) */
-export const websiteSubscribe = onCall({ cors: true }, async (request) => {
+export const websiteSubscribe = onCall({ ...runAs("auth"), cors: true }, async (request) => {
   const d = request.data ?? {};
   if (clip(d.website, 100)) return { ok: true };
   const email = clip(d.email, 254).toLowerCase();
@@ -83,7 +84,7 @@ const page = (title: string, body: string) => `<!DOCTYPE html><html lang="en"><h
  * pro-host.tech/unsubscribe?t=TOKEN (hosting rewrite). GET shows a confirm button (mail scanners open every
  * link, so GET never changes anything); POST unsubscribes, including RFC 8058 one-click POSTs from Gmail/Yahoo.
  */
-export const mailingUnsubscribe = onRequest({ cors: false }, async (req, res) => {
+export const mailingUnsubscribe = onRequest({ ...runAs("auth"), cors: false }, async (req, res) => {
   const token = String((req.query.t as string | undefined) ?? (req.body?.t as string | undefined) ?? "");
   res.set("Cache-Control", "no-store");
   if (req.method === "POST") {

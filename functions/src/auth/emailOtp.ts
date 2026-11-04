@@ -7,6 +7,7 @@ import { maskEmail, sendEmail } from "../lib/email";
 import { esc, otpSignInTemplate } from "../lib/emailTemplates";
 import { takeEmailSendSlot, isPlausibleEmail } from "../lib/emailRateLimit";
 import { assertLegacyEmailSignIn, legacyEmailSignInEnabled, LEGACY_EMAIL_RETIRED_MESSAGE } from "../lib/authConfig";
+import { runAs } from "../lib/runtimeIdentity";
 
 const db = admin.firestore();
 
@@ -34,7 +35,7 @@ function safeEqualHex(a: string, b: string): boolean {
  * 5 wrong guesses, so one address can't be brute-forced or inbox-flooded.
  */
 export const sendEmailOtp = onCall(
-  {},
+  { ...runAs("auth") },
   async (request) => {
     const email = (request.data?.email as string | undefined)?.toLowerCase().trim();
     if (!isPlausibleEmail(email)) {
@@ -76,7 +77,7 @@ export const sendEmailOtp = onCall(
  * Callable: verifyEmailOtp({ email, code })
  * Validates the OTP and returns a Firebase custom token.
  */
-export const verifyEmailOtp = onCall(async (request) => {
+export const verifyEmailOtp = onCall(runAs("auth"), async (request) => {
   const email = (request.data?.email as string | undefined)?.toLowerCase().trim();
   const code = (request.data?.code as string | undefined)?.trim();
   if (!email || !code) {
@@ -93,7 +94,7 @@ export const verifyEmailOtp = onCall(async (request) => {
  * One-click sign-in from email — validates OTP then redirects to the app deep link.
  */
 export const clickEmailOtpLink = onRequest(
-  {},
+  { ...runAs("auth") },
   async (req, res) => {
     const source = req.method === "POST" ? (req.body ?? {}) : req.query;
     const email = (source.email as string | undefined)?.toLowerCase().trim();

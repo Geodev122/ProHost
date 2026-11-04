@@ -17,6 +17,7 @@ import { esc, passwordResetTemplate, passwordSetupInviteTemplate } from "../lib/
 import { isPlausibleEmail, takeEmailSendSlot } from "../lib/emailRateLimit";
 import { passwordResetLink } from "../lib/authLinks";
 import "../lib/admin";
+import { runAs } from "../lib/runtimeIdentity";
 
 export const INVITES = "auth_password_invites";
 export const INVITE_TTL_MS = 30 * 24 * 3600 * 1000;
@@ -27,7 +28,7 @@ const TEST_ROBOT_DOMAIN = /cloudtestlabaccounts\.com$/i;
  * Always answers { ok: true } for a plausible address, whether or not an account exists, so the
  * endpoint can't be used to find out who has an account (email enumeration protection).
  */
-export const sendPasswordResetLink = onCall({}, async (request) => {
+export const sendPasswordResetLink = onCall({ ...runAs("auth") }, async (request) => {
   const email = (request.data?.email as string | undefined)?.toLowerCase().trim();
   if (!isPlausibleEmail(email)) {
     throw new HttpsError("invalid-argument", "A valid email address is required.");
@@ -145,7 +146,7 @@ export async function sendPasswordSetupInvite(
  * POST checks the invite and redirects to a fresh Firebase reset link (those only last an hour,
  * the invite lasts 30 days).
  */
-export const passwordSetupLink = onRequest({}, async (req, res) => {
+export const passwordSetupLink = onRequest({ ...runAs("auth") }, async (req, res) => {
   const source = req.method === "POST" ? (req.body ?? {}) : req.query;
   const uid = String(source.u ?? "").trim();
   const token = String(source.t ?? "").trim();

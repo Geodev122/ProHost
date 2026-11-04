@@ -9,6 +9,7 @@ import { takeEmailSendSlot, isPlausibleEmail } from "../lib/emailRateLimit";
 import "../lib/admin";
 import { emailVerificationLink } from "../lib/authLinks";
 import { assertLegacyEmailSignIn } from "../lib/authConfig";
+import { runAs } from "../lib/runtimeIdentity";
 
 // Legacy magic link (1.0.43 and older): retired by app_config/auth.legacyEmailSignIn = false.
 const CONTINUE_URL = "https://prohost-f766f.web.app/emaillink";
@@ -26,7 +27,7 @@ const MAX_VERIFICATION_RESENDS_PER_DAY = 3;
  * after tapping the link and handling the deep link intent.
  */
 export const sendSignInEmailLink = onCall(
-  {},
+  { ...runAs("auth") },
   async (request) => {
     const email = (request.data?.email as string | undefined)?.toLowerCase().trim();
     if (!isPlausibleEmail(email)) {
@@ -76,7 +77,7 @@ export const sendSignInEmailLink = onCall(
  * currentUser.reload() + isEmailVerified to confirm.
  */
 export const sendVerificationEmailLink = onCall(
-  {},
+  { ...runAs("auth") },
   async (request) => {
     if (!request.auth?.uid) {
       throw new HttpsError("unauthenticated", "You must be signed in.");
