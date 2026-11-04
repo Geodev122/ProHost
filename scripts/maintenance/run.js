@@ -1327,7 +1327,6 @@ async function hostingcheck(arg) {
     const rel = live.release || {};
     notice(`live release: ${rel.version ? rel.version.name.split("/").pop() : "none"} ${rel.releaseTime || ""} ${(rel.version && rel.version.status) || ""} files=${(rel.version && rel.version.fileCount) || "?"}`);
   } catch (e) { notice(`live channel: ${e.message}`); }
-  try { const st = await api("GET", `projects/prohost-f766f/sites/${site}`); notice(`site: ${JSON.stringify(st).slice(0, 300)}`); } catch (e) { notice(`site: ${e.message}`); }
   try {
     const all = (await api("GET", `sites/${site}/releases?pageSize=25`)).releases || [];
     const relLines = [];
@@ -1339,11 +1338,9 @@ async function hostingcheck(arg) {
     // GitHub keeps only 10 notices per step: one summary line, so the domain and URL results below are not cut off.
     notice(`release history (${relLines.length}): ${relLines.slice(0, 3).map((l) => l.replace(/ wa=\w+ headers=\d+ redirects=\d+/, "")).join(" || ")}`);
     const rels = all.slice(0, 4);
-    notice(`releases: ${rels.map((r) => `${(r.version && r.version.name || "").split("/").pop()}@${r.releaseTime} ${r.type} ${(r.version && r.version.status) || ""} files=${(r.version && r.version.fileCount) || "?"}`).join(" | ")}`);
     const vname = rels[0] && rels[0].version && rels[0].version.name;
     if (vname) {
       const v = await api("GET", vname);
-      notice(`version config: public=${JSON.stringify((v.config || {}).redirects ? "has redirects" : "no redirects")} rewrites=${((v.config || {}).rewrites || []).length} cleanUrls=${(v.config || {}).cleanUrls}`);
       const fl = await api("GET", `${vname}/files?pageSize=40&status=ACTIVE`).catch((e) => ({ files: [], err: e.message }));
       notice(`version files: ${(fl.files || []).slice(0, 12).map((f) => f.path).join(" ")} ${fl.err || ""}`);
     }
@@ -1373,14 +1370,17 @@ async function hostingcheck(arg) {
       await new Promise((r) => setTimeout(r, 25000));
     } catch (e) { notice(`release ${rel[1]}: ${e.message}`); }
   }
+  const probes = [];
   for (const url of ["https://prohost-f766f.web.app/", "https://prohost-f766f.web.app/index.html", "https://prohost-f766f.web.app/__/firebase/init.json", "https://prohost-f766f.firebaseapp.com/", "https://pro-host.tech/", "https://www.pro-host.tech/", "https://europe-west1-prohost-f766f.cloudfunctions.net/legalDocumentPage/delete-account", "https://europe-west1-prohost-f766f.cloudfunctions.net/legalDocumentPage/privacy", "https://europe-west1-prohost-f766f.cloudfunctions.net/legalDocumentPage/terms"]) {
     try {
       const r = await fetch(url, { redirect: "manual" });
       const body = (await r.text()).replace(/\s+/g, " ");
       const title = (/<title>([^<]*)/i.exec(body) || [])[1] || "";
-      notice(`GET ${url} -> ${r.status} ${r.headers.get("location") || ""} title="${title.slice(0, 70)}" ${r.status >= 400 ? body.slice(0, 120) : ""}`);
-    } catch (e) { notice(`GET ${url} -> ERR ${String(e.message).slice(0, 100)}`); }
+      probes.push(`GET ${url.replace("https://", "")} -> ${r.status} ${r.headers.get("location") || ""} title="${title.slice(0, 50)}" ${r.status >= 400 ? body.slice(0, 80) : ""}`);
+    } catch (e) { probes.push(`GET ${url} -> ERR ${String(e.message).slice(0, 100)}`); }
   }
+  // one notice per group: GitHub keeps only 10 notices per step
+  for (let i = 0; i < probes.length; i += 4) notice(probes.slice(i, i + 4).join(" || "));
   if ((arg || "").trim() === "connect") {
     for (const host of ["pro-host.tech", "www.pro-host.tech"]) {
       if (domains.some((d) => d.name.endsWith("/" + host))) { notice(`connect ${host}: already on the site`); continue; }
