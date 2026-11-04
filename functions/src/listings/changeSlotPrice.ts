@@ -11,6 +11,7 @@ import {
   bookingUses, priceOf, reprice, round2, withSlotPrice, withTierPrice,
 } from "../bookings/priceChange";
 import "../lib/admin";
+import { runAs } from "../lib/runtimeIdentity";
 
 /**
  * Pro Host "Change price": sets one slot's price (or one per-attendee tier's price) on a listing
@@ -76,7 +77,7 @@ export function slotLabel(ref: SlotRef, tiers: TierDoc[] | undefined): string {
   return "Slot";
 }
 
-export const changeSlotPrice = onCall<ChangeSlotPriceData>(async (request) => {
+export const changeSlotPrice = onCall<ChangeSlotPriceData>(runAs("billing"), async (request) => {
   const auth = request.auth;
   if (!auth) throw new HttpsError("unauthenticated", "Sign in required.");
   const { spaceId, ref: rawRef, newPrice, decisions } = request.data ?? {};

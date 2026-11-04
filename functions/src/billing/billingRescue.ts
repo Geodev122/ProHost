@@ -13,6 +13,7 @@ import { healthFromProbe, hoursUntilRefund, rescueHint } from "./billingRescueLo
 import "../lib/admin";
 import { isSupportedProduct, planInterval } from "./playCatalog";
 import { readPlayCatalog } from "./playCatalogLive";
+import { runAs } from "../lib/runtimeIdentity";
 
 /**
  * Admin › Packages: billing health check and "Payments needing attention".
@@ -39,7 +40,7 @@ async function describeUser(uid: string | undefined): Promise<{ uid: string | nu
   };
 }
 
-export const billingHealthCheck = onCall(async (request) => {
+export const billingHealthCheck = onCall(runAs("billing"), async (request) => {
   requireAdmin(request);
   let serviceAccount: string | null = null;
   try {
@@ -103,7 +104,7 @@ export const billingHealthCheck = onCall(async (request) => {
   };
 });
 
-export const adminBillingPending = onCall(async (request) => {
+export const adminBillingPending = onCall(runAs("billing"), async (request) => {
   requireAdmin(request);
   const db = getFirestore();
   const now = Date.now();
@@ -170,7 +171,7 @@ export const adminActivatePurchase = onCall<{
   id?: string;
   targetUid?: string;
   confirmReassign?: boolean;
-}>(async (request) => {
+}>(runAs("billing"), async (request) => {
   const adminUid = requireAdmin(request);
   const { kind, id } = request.data ?? {};
   if ((kind !== "pending" && kind !== "unlinked") || !id) {
@@ -259,7 +260,7 @@ export const adminActivatePurchase = onCall<{
  * app_config/billing_health.lastSelfTestAt, proving topic → function independently of
  * Play Console (which still has to publish to the same topic — lastRtdnAt).
  */
-export const billingRtdnSelfTest = onCall(async (request) => {
+export const billingRtdnSelfTest = onCall(runAs("billing"), async (request) => {
   requireAdmin(request);
   const projectId = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || "prohost-f766f";
   const auth = new google.auth.GoogleAuth({ scopes: ["https://www.googleapis.com/auth/pubsub"] });

@@ -3,6 +3,7 @@ import { onCall } from "../lib/callable";
 import { getFirestore } from "firebase-admin/firestore";
 import { recordAuditLog } from "../lib/auditLog";
 import "../lib/admin";
+import { runAs } from "../lib/runtimeIdentity";
 
 interface UpdatePricingData {
   governanceTag?: string;
@@ -14,7 +15,7 @@ interface UpdatePricingData {
  * billing authority (billing/playCatalog.ts). Firestore rules deny every client write
  * to system_metadata, so this keeps a guaranteed audit trail.
  */
-export const updatePricing = onCall<UpdatePricingData>(async (request) => {
+export const updatePricing = onCall<UpdatePricingData>(runAs("billing"), async (request) => {
   const auth = request.auth;
   if (!auth) {
     throw new HttpsError("unauthenticated", "Sign in required.");

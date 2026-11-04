@@ -4,6 +4,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { recordAuditLog } from "../lib/auditLog";
 import { sendPushToUser, sendPushToAdmins } from "../lib/push";
 import "../lib/admin";
+import { runAs } from "../lib/runtimeIdentity";
 
 interface SetListingVerificationData {
   spaceId?: string;
@@ -76,7 +77,7 @@ interface SetListingSubscriptionActiveData {
  * field via the Admin SDK; this is the manual override path, not a second
  * source of truth for real payments.
  */
-export const setListingSubscriptionActive = onCall<SetListingSubscriptionActiveData>(async (request) => {
+export const setListingSubscriptionActive = onCall<SetListingSubscriptionActiveData>(runAs("billing"), async (request) => {
   const auth = request.auth;
   if (!auth) {
     throw new HttpsError("unauthenticated", "Sign in required.");

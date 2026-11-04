@@ -7,6 +7,7 @@ import { sendGa4Event } from "../lib/ga4";
 import { activatePlayPurchase, parkPendingActivation, resolvePendingActivation } from "./activatePurchase";
 import { logPurchaseOnce } from "./subscriptionService";
 import { planInterval } from "./playCatalog";
+import { runAs } from "../lib/runtimeIdentity";
 
 /** Shown whenever a paid purchase could not be confirmed yet: it is parked and retried. */
 const PAYMENT_SAFE_MESSAGE =
@@ -30,7 +31,7 @@ export const verifyAndRestorePurchase = onCall<{
   basePlanId?: string;
   /** True for the purchase the app's checkout just returned (vs. restore / app resume). */
   fromCheckout?: boolean;
-}>(async (request) => {
+}>(runAs("billing"), async (request) => {
   const uid = request.auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Sign in required.");
 

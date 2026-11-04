@@ -662,6 +662,8 @@ plan + recurring price + date;
   prevention and owner-email log alerts are on. Open: the `prohost-f766f@appspot` key `e5b6952d…` (suspicious use; recommended to disable), `firebase-adminsdk` key rotation,
   App Check enforcement, Maps key restrictions (measure usage first), secret rotation. Remove the temporary `claude-remediation` account and its env secret when finished.
   When you change IAM, update `docs/GCP_IAM.md` in the same session. The repo copy is authoritative: the Drive inventory (4 Nov) is stale and the Drive connector cannot overwrite file contents.
+- **Owner to-do list: `docs/OWNER_TODO.md`.** Read it at the start of every session and end every status report with the open items (plus any new ones) until the owner
+  marks them done or decides otherwise; keep it updated. The owner asked for this explicitly (4 Nov 2026).
 - Sessions have no gcloud login by default (and the cloud sandbox blocks pro-host.tech until the environment allows it). Live checks go through the
   Maintenance workflow, or through a read-only account whose JSON key is the environment secret `GOOGLE_APPLICATION_CREDENTIALS_JSON`
   (a dedicated `claude-readonly` account, never the CI/admin-sdk key). The CI account is `FIREBASE_SERVICE_ACCOUNT` (GitHub secret).
