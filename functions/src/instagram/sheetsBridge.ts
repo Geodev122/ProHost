@@ -14,6 +14,7 @@ import { syncRegistry } from "./registrySync";
 import { range, readTab, ensureTabs, q } from "./sheetTabs";
 import { brandCol, brandConfigRef, brandKnowledgeRef, brandRef, LEGACY_BRAND } from "./store";
 import { daysLeft } from "./tokenRefresh";
+import { runAs } from "../lib/runtimeIdentity";
 
 /**
  * The artifact can't call Cloud Functions, so it edits a Google Sheet ("ProHost IG Automations") through the
@@ -293,7 +294,7 @@ async function trimLog(sheets: sheets_v4.Sheets, sheetId: string, title: string)
   await sheets.spreadsheets.batchUpdate({ spreadsheetId: sheetId, requestBody: { requests: [{ deleteDimension: { range: { sheetId: log.sheetId, dimension: "ROWS", startIndex: 1, endIndex: rows - LOG_KEEP } } }] } });
 }
 
-export const igSheetSync = onSchedule({ schedule: "every 1 minutes", timeoutSeconds: 300, memory: "512MiB" }, async () => {
+export const igSheetSync = onSchedule({ ...runAs("ig"), schedule: "every 1 minutes", timeoutSeconds: 300, memory: "512MiB" }, async () => {
   const stats = brandCol(LEGACY_BRAND, "stats").doc("sync");
   try {
     const out = await runSheetSync();

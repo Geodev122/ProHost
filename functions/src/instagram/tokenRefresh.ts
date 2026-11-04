@@ -6,12 +6,13 @@ import { clearConfigCache, loadAllConfigs } from "./config";
 import { brandRef, brandSecretsRef, isLegacyBrand } from "./store";
 import { refreshToken } from "./graph";
 import { alertAdmin } from "./notify";
+import { runAs } from "../lib/runtimeIdentity";
 
 const DAY = 86_400_000;
 export const daysLeft = (expiresAt: number, now = Date.now()): number => Math.max(0, Math.floor((expiresAt - now) / DAY));
 
 /** Weekly: long-lived Instagram tokens live 60 days and may be refreshed once they are a day old. */
-export const igTokenRefresh = onSchedule({ schedule: "0 6 * * 1", timeoutSeconds: 120 }, async () => {
+export const igTokenRefresh = onSchedule({ ...runAs("ig"), schedule: "0 6 * * 1", timeoutSeconds: 120 }, async () => {
   for (const config of await loadAllConfigs(true)) {
     if (!config.accessToken) continue;
     try {
