@@ -31,7 +31,9 @@ const PLAY_REACHING = [
   "verifyAndRestorePurchase",
   "waWebhook"
 ];
-const PLAY_INVITED_GROUPS: string[] = [];
+// 4 Nov 2026: run-billing and run-ig were invited in Play Console (all permissions). A function moves only after the
+// maintenance tasks `playcatalog` and `integrity` pass under that account (canary: onMaintenanceRequest).
+const PLAY_INVITED_GROUPS: string[] = ["billing", "ig"];
 
 process.env.GCLOUD_PROJECT = process.env.GCLOUD_PROJECT || "prohost-f766f";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
