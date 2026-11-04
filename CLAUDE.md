@@ -654,6 +654,14 @@ plan + recurring price + date;
   (id `1m6322QYW8-_ChqmRnSKux4GsVRIX1t3n`, owner geo.elnajjar@gmail.com; read it with the Google Drive `read_file_content` tool when the connector is
   available) or, offline, `docs/GCP_IAM.md` in the repo. It lists the service accounts, roles, key IDs, risks and where else to look. Keep both copies
   in sync after any IAM change. Never write key material into the repo, Drive, logs or chat.
+- **State since 4 Nov 2026 (details: `docs/GCP_IAM.md` "CURRENT STATE", `docs/GCP_AUDIT_2026-11-04.md`, scripts in `scripts/gcp-remediation/`)**: the default compute
+  service account (runs the functions) NO LONGER has Editor — it has a short list of narrow roles. A new function feature that needs another Google API/role will fail with
+  PERMISSION_DENIED until that role is added deliberately (never re-grant Editor; `99-rollback-editor.sh` is only an emergency undo). Six group service accounts
+  `run-admin|auth|billing|ig|public|triggers` are ready but unused: apply them by setting `serviceAccount` in the function options and deploying through CI (not by editing
+  Cloud Run: Firebase deletes function images after 1 day). Vertex/Gemini is not used and the `aiplatform` API stays disabled. Firestore PITR/backups, bucket public-access
+  prevention and owner-email log alerts are on. Open: the `prohost-f766f@appspot` key `e5b6952d…` (suspicious use; recommended to disable), `firebase-adminsdk` key rotation,
+  App Check enforcement, Maps key restrictions (measure usage first), secret rotation. Remove the temporary `claude-remediation` account and its env secret when finished.
+  When you change IAM, update `docs/GCP_IAM.md` in the same session. The repo copy is authoritative: the Drive inventory (4 Nov) is stale and the Drive connector cannot overwrite file contents.
 - Sessions have no gcloud login by default (and the cloud sandbox blocks pro-host.tech until the environment allows it). Live checks go through the
   Maintenance workflow, or through a read-only account whose JSON key is the environment secret `GOOGLE_APPLICATION_CREDENTIALS_JSON`
   (a dedicated `claude-readonly` account, never the CI/admin-sdk key). The CI account is `FIREBASE_SERVICE_ACCOUNT` (GitHub secret).

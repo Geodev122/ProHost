@@ -4,7 +4,39 @@ Snapshot of 2026-11-01, copied from the Cloud Console (IAM and Service Accounts 
 key IDs are public identifiers; never write key material, tokens or passwords here, in code, in logs or in chat.
 Re-take the snapshot after any IAM change.
 
-## Project IAM (Include Google-provided role grants was off)
+## CURRENT STATE after the 4 Nov 2026 hardening (read this first; it supersedes older lines below)
+
+Done by Claude with a temporary admin account (`claude-remediation`, to be deleted); scripts in `scripts/gcp-remediation/` (each stage supports
+`DRY_RUN=1`; rollback backup of IAM/Run/keys/secrets was taken before changes and is NOT committed). Full before/after: `docs/GCP_AUDIT_2026-11-04.md`.
+
+- **Default compute SA (`646730915838-compute@…`, runs 86/87 services) no longer has Editor** (removed 4 Nov 15:18 UTC, health window clean). It now holds only:
+  datastore.user, firebaseauth.admin, firebasecloudmessaging.admin, pubsub.publisher, storage.objectUser, logging.logWriter, eventarc.eventReceiver, run.invoker,
+  artifactregistry.writer (+ repoAdmin on repo `gcf-artifacts`), cloudquotas.admin, secretmanager.secretAccessor, serviceusage.serviceUsageConsumer, monitoring.metricWriter,
+  cloudtrace.agent, serviceAccountTokenCreator on itself (signed URLs), plus pre-existing extensions viewer / Subscribe-with-Google / recommender viewer.
+  Chosen from IAM Recommender usage (23 permissions exercised in 46 days). **`aiplatform.user` was removed too** (Vertex not needed). If something
+  starts failing with PERMISSION_DENIED, check this list first; instant rollback = `scripts/gcp-remediation/99-rollback-editor.sh`.
+- **Six group runtime service accounts exist, unused yet**: `run-admin`, `run-auth`, `run-billing`, `run-ig`, `run-public`, `run-triggers` (@prohost-f766f.iam.gserviceaccount.com), each with
+  narrow roles and token-creator on itself; grouping in `scripts/gcp-remediation/services.map`. **They are applied only by a source deploy** (set `serviceAccount` in the
+  function options; `setGlobalOptions` is in `functions/src/index.ts`). Editing a service with `gcloud run services update` FAILS: Firebase's Artifact Registry policy
+  `firebase-functions-cleanup` deletes function images older than 1 day (two canary attempts on `sitesitemap`/`legaldocumentpage` failed safely and left a not-ready
+  latest revision until their next deploy). Do the switch group by group via CI, public/trigger groups first, then watch Cloud Run 5xx and PERMISSION_DENIED logs.
+- **Firestore (default, europe-west1)**: point-in-time recovery ON, delete protection ON, daily backup (7 d) and weekly Sunday backup (8 w) schedules.
+- **Firebase Storage bucket `prohost-f766f.firebasestorage.app` (US-EAST1)**: public access prevention enforced, versioning on, soft delete 7 d. It holds `id_documents/`.
+- **Monitoring**: email channel "ProHost owner email" (owner) and log alerts: SA-key-created, Project-IAM-changed, VertexAI-or-Gemini-use, Compute-resource-created,
+  ApiKey-created-or-changed. Data Access audit logs on for iam, secretmanager, cloudresourcemanager, aiplatform. `_Default` log retention 90 d.
+  No uptime checks yet. `gcloud alpha` can't be installed here (proxy blocks dl.google.com): use the Monitoring REST API.
+- **Vertex**: owner confirmed the 25 Oct GPU `CreateCustomJob`s (marketing-gpu lip-sync) were theirs; they moved to another provider and Vertex is not needed. `aiplatform` stays disabled.
+- **Not changed / open**: `prohost-f766f@appspot` Editor + key `e5b6952d…` (used from `23.95.170.108` python-requests and `185.121.179.67` Windows browser, 29 Oct to 2 Nov;
+  it also changed Auth config and App Check debug tokens) — owner could not confirm it is theirs, **recommended: disable the key**; both `firebase-adminsdk-fbsvc` keys and its ~30 roles;
+  public (`allUsers`) invoker on callables (needed by onCall; auth is in code); App Check unenforced; Maps keys untouched (owner unsure which APIs are used — measure usage first);
+  secret rotation (BOOTSTRAP_SECRET, EMAIL_VERIFICATION_SECRET, SMTP password); unused-API cleanup left off on purpose (owner enabled the 16 Cloud Hub APIs to use them); single owner.
+- **Temporary access to remove when done**: service account `claude-remediation@prohost-f766f` (and the environment secret `GOOGLE_REMEDIATION_CREDENTIALS_JSON`);
+  read-only audit key `60ca2966…` of `claude-readonly` (delete after final verification, with the owner's OK).
+- Sandbox notes: `CLOUDSDK_AUTH_ACCESS_TOKEN` in the environment overrides activated service accounts: run `env -u CLOUDSDK_AUTH_ACCESS_TOKEN gcloud …` (never touch the proxy/TLS
+  variables). `*.run.app` is blocked by the proxy (403), so endpoints can't be smoke-tested from the sandbox. The remediation SA can't list Eventarc triggers or Scheduler jobs and
+  has no `iam.roles.create` (use predefined roles).
+
+## Project IAM (Include Google-provided role grants was off) — snapshot of 1 Nov, partly superseded above
 
 | Principal | Purpose | Roles |
 |---|---|---|
