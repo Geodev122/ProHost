@@ -662,6 +662,8 @@ plan + recurring price + date;
   prevention and owner-email log alerts are on. Open: the `prohost-f766f@appspot` key `e5b6952d…` (suspicious use; recommended to disable), `firebase-adminsdk` key rotation,
   App Check enforcement, Maps key restrictions (measure usage first), secret rotation. Remove the temporary `claude-remediation` account and its env secret when finished.
   When you change IAM, update `docs/GCP_IAM.md` in the same session. The repo copy is authoritative: the Drive inventory (4 Nov) is stale and the Drive connector cannot overwrite file contents.
+- **Operations history: `docs/OPS_LOG.md`** (everything done 3 to 5 Nov 2026, in and outside the repo; append to it whenever you change GCP, Drive, Play or GitHub settings).
+- **iOS:** no iOS code exists yet; the plan, owner steps and Apple review rules are in `docs/IOS_PLAN.md`. Read it before any iOS work and update it as decisions are made.
 - **Owner to-do list: `docs/OWNER_TODO.md`.** Read it at the start of every session and end every status report with the open items (plus any new ones) until the owner
   marks them done or decides otherwise; keep it updated. The owner asked for this explicitly (4 Nov 2026).
 - Sessions have no gcloud login by default (and the cloud sandbox blocks pro-host.tech until the environment allows it). Live checks go through the
