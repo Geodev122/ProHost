@@ -48,6 +48,9 @@ Done by Claude with a temporary admin account (`claude-remediation`, to be delet
   variables). `*.run.app` is blocked by the proxy (403), so endpoints can't be smoke-tested from the sandbox. The remediation SA can't list Eventarc triggers or Scheduler jobs and
   has no `iam.roles.create` (use predefined roles).
 
+- **Update 5 Nov 2026:** Google confirmed an active policy restriction on the project (quota increases refused; Hosting serving off: "Site Not Found" even on prohost-f766f.web.app). Owner decisions: keep the appspot key, leave the firebase-adminsdk keys, keep the meta-ads-play key.
+  Claude enabled `billingbudgets.googleapis.com` (budget still to be created by the owner or with a billing role). Second-owner invitation for psy.geo.elnajjar@gmail.com must be sent from the console. Full history: `docs/OPS_LOG.md`.
+
 ## Project IAM (Include Google-provided role grants was off) — snapshot of 1 Nov, partly superseded above
 
 | Principal | Purpose | Roles |
