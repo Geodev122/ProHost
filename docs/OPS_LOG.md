@@ -34,5 +34,9 @@ Never put secrets here. Current state lives in `docs/GCP_IAM.md` ("CURRENT STATE
 - Status check: project lifecycle ACTIVE; policy restriction still active (quota request refused again; pro-host.tech and prohost-f766f.web.app still "Site Not Found"). Only email from Google is the 31 Oct "Appeal Received" (ticket 35DQMHFCOIBXT6BBR6KMUFHCXI); no decision yet. The Console warning ribbon is gone, which does NOT mean resolved.
 - Added docs/LOG_QUERIES.md (tested Logs Explorer queries).
 
+- 6 Nov (later): scheduled task "ProHost restriction watch (every 3h)" (trigger trig_01NNwUWdmzuvdVmubU1stB3T, bound to the working session) checks Gmail, the quota probe, the Hosting probes and the project state, notifies the owner on any change and runs the after-lift runbook (quota requests, prodcheck, Play/WhatsApp/Universal Links follow-ups), then disables itself.
+- 6 Nov: Hosting "refresh" attempts did nothing: a fresh release on the live channel (switched to the identical previous version f988949e...) still answers "Site Not Found" on prohost-f766f.web.app. Re-releasing the already-live version is refused by Hosting. Conclusion stays: serving is off at the policy-restriction level.
+- 6 Nov: quota facts (Cloud Quotas API): Cloud Functions V2 write requests 60/min/region (deploys of many functions queue for 10+ min), Cloud Run writes 60/min/region, Cloud Run InstancesPerProject 100 (87 services x maxInstances 10 can exceed it under load). All are increase-eligible but requests are refused while the restriction is active.
+
 ## Not done yet
 Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, other admin callables); Maps key restrictions; secret rotation; budget alert; uptime checks; App Check enforcement; final cleanup of temporary access (see OWNER_TODO).
