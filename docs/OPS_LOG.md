@@ -30,5 +30,9 @@ Never put secrets here. Current state lives in `docs/GCP_IAM.md` ("CURRENT STATE
 - Owner decisions: keep the appspot key `e5b6952d...` enabled, leave the firebase-adminsdk keys, keep the meta-ads-play key. Owner removed the duplicate SPF record and confirmed admin@pro-host.tech receives mail.
 - Current identities: 64 services on group accounts (auth 20, triggers 18, billing 15 incl. maintenance runner, ig 7, public 3), 23 admin-type functions still on the default account.
 
+## 6 Nov
+- Status check: project lifecycle ACTIVE; policy restriction still active (quota request refused again; pro-host.tech and prohost-f766f.web.app still "Site Not Found"). Only email from Google is the 31 Oct "Appeal Received" (ticket 35DQMHFCOIBXT6BBR6KMUFHCXI); no decision yet. The Console warning ribbon is gone, which does NOT mean resolved.
+- Added docs/LOG_QUERIES.md (tested Logs Explorer queries).
+
 ## Not done yet
 Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, other admin callables); Maps key restrictions; secret rotation; budget alert; uptime checks; App Check enforcement; final cleanup of temporary access (see OWNER_TODO).
