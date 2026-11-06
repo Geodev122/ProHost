@@ -437,7 +437,7 @@ plan + recurring price + date;
   (AI disclosure etc.) is code, not brand data: brands add persona and playbooks only. After changing the console, rebuild and republish the artifact.
 - No AI-presenter video: the Veo / Gemini-image avatar reel pipeline was removed (Oct 2026, Google Cloud Generative AI
   policy warning on prohost-f766f). Never bring back synthetic people, first-person testimonials by an AI character,
-  or prompts that make generated media pass as real. Vertex AI is off (the DM agent runs on the Anthropic API; `aiplatform`, `cloudaicompanion`, `visionai` disabled via Maintenance `apis`). Never reintroduce a Vertex or Gemini text provider; the remaining Google use (Cloud Text-to-Speech) is listed in `docs/GEMINI_USE.md`; keep that file current.
+  or prompts that make generated media pass as real. Vertex AI is off (the DM agent runs on the Anthropic API; `aiplatform`, `cloudaicompanion`, `visionai` disabled via Maintenance `apis`). Never reintroduce a Vertex or Gemini text provider (CI test `functions/src/lib/noGenerativeAi.test.ts` fails if any workflow, script or function names Vertex/Gemini/Imagen/Lyria/Veo; the Lyria/Imagen workflows were deleted 6 Nov); the remaining Google use (Cloud Text-to-Speech) is listed in `docs/GEMINI_USE.md`; keep that file current.
 - Payment reminders go to the user's own calendar via `PaymentCalendar` (insert intent, monthly
   RRULE) — no calendar permission, no Google Calendar API.
 

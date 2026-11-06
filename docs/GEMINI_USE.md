@@ -16,3 +16,7 @@ Rules: the assistant always says it is an AI and never claims to be human; no fa
 History: until 31 Oct 2026 the live support assistant ran on Gemini (Status `ai_provider = gemini`). It now runs on Claude through Anthropic's API (key in the `ANTHROPIC_API_KEY` repo secret, workspace id in Status `ai_workspace_id`). The Gemini provider code remains as an unused option. Text generation no longer touches Google Cloud.
 
 Vertex AI (1 Nov 2026): the Vertex code path (Claude on Vertex, quota helpers, `aiprobe`/`aiquota` tasks) is removed and `aiplatform.googleapis.com`, `cloudaicompanion.googleapis.com` and `visionai.googleapis.com` are disabled with Maintenance `apis apply`. Music (Lyria) and empty-room photos (Imagen) therefore no longer run; re-enabling Vertex is needed to use `marketing-music.yml` / `marketing-backgrounds.yml` again.
+
+6 Nov 2026: the Lyria background-music and Imagen empty-room workflows (`marketing-music.yml`, `marketing-backgrounds.yml`) and their scripts were deleted, and `voiceover.py` no longer
+calls Vertex AI. The only remaining Google generative-adjacent service is Cloud Text-to-Speech (Chirp 3 HD) for manual narration. CI enforces this: `functions/src/lib/noGenerativeAi.test.ts`.
+

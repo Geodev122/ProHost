@@ -38,5 +38,7 @@ Never put secrets here. Current state lives in `docs/GCP_IAM.md` ("CURRENT STATE
 - 6 Nov: Hosting "refresh" attempts did nothing: a fresh release on the live channel (switched to the identical previous version f988949e...) still answers "Site Not Found" on prohost-f766f.web.app. Re-releasing the already-live version is refused by Hosting. Conclusion stays: serving is off at the policy-restriction level.
 - 6 Nov: quota facts (Cloud Quotas API): Cloud Functions V2 write requests 60/min/region (deploys of many functions queue for 10+ min), Cloud Run writes 60/min/region, Cloud Run InstancesPerProject 100 (87 services x maxInstances 10 can exceed it under load). All are increase-eligible but requests are refused while the restriction is active.
 
+- 6 Nov: repo audit of the 29 Oct policy notice (details: docs/GCP_AUDIT_2026-11-04.md addendum). Deleted `marketing-music.yml`, `marketing-backgrounds.yml` and their scripts (Vertex Lyria / Imagen, run with the firebase-adminsdk identity); `voiceover.py` is Cloud TTS (Chirp 3 HD) only; added CI guard `functions/src/lib/noGenerativeAi.test.ts`. No live GCP access was available, so Actions run history and API metrics are still to be checked by the owner.
+
 ## Not done yet
 Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, other admin callables); Maps key restrictions; secret rotation; budget alert; uptime checks; App Check enforcement; final cleanup of temporary access (see OWNER_TODO).

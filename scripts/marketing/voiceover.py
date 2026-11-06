@@ -8,7 +8,7 @@ For every post in voiceover.json it synthesizes each line with that post's voice
   marketing/audio/voiceovers-arabic/lines/<post>_NN.wav each line on its own (to re-time by hand)
   marketing/audio/voiceovers-arabic/report.json        engine, voice, durations and tempo per line
 
-Engine: Gemini-TTS (style prompt with Lebanese dialect + acting direction); falls back to Chirp 3 HD (ar-XA).
+Engine: Cloud Text-to-Speech Chirp 3 HD (ar-XA); the Gemini text-to-speech and Vertex AI paths are retired (Oct 2026).
 """
 import base64, json, pathlib, subprocess, sys, time, wave
 
@@ -64,43 +64,16 @@ DEAD_MODELS = set()
 
 
 def tts_models():
-    """Newest Gemini TTS models first, discovered from Vertex AI's model catalogue; known ones as fallback."""
-    if TTS_MODELS:
-        return TTS_MODELS
-    found = []
-    try:
-        url = "https://us-central1-aiplatform.googleapis.com/v1beta1/publishers/google/models"
-        token = None
-        for _ in range(20):
-            r = session.get(url, params={"pageSize": 200, **({"pageToken": token} if token else {})},
-                            headers={"x-goog-user-project": project}, timeout=60)
-            if not r.ok:
-                print(f"::notice::model catalogue {r.status_code}")
-                break
-            js = r.json()
-            found += [m["name"].rsplit("/", 1)[-1] for m in js.get("publisherModels", [])]
-            token = js.get("nextPageToken")
-            if not token:
-                break
-    except Exception as e:  # catalogue is best-effort
-        print(f"::notice::model catalogue error {e}")
-    import re
-    tts = [m for m in found if "tts" in m and m.startswith("gemini")]
-    ver = lambda m: tuple(int(x) for x in re.findall(r"\d+", m.split("-tts")[0])[:2] or [0])
-    tts.sort(key=lambda m: (ver(m), "pro" in m, "preview" not in m), reverse=True)
-    for m in tts + ["gemini-2.5-pro-tts", "gemini-2.5-flash-tts"]:
-        if m not in TTS_MODELS:
-            TTS_MODELS.append(m)
-    print(f"::notice::Gemini TTS models (newest first): {', '.join(TTS_MODELS)}")
-    return TTS_MODELS
+    """Gemini/Vertex TTS is retired (Google Generative AI policy case, Oct 2026): only Cloud Text-to-Speech Chirp 3 HD is used."""
+    return []
 
 
 def synth(p, line):
-    """Returns (pcm bytes, engine). Tries the newest Gemini-TTS model, then older ones, then Chirp 3 HD."""
+    """Returns (pcm bytes, engine) from Chirp 3 HD."""
     prompt = f"{CFG['dialect']} Character: {p['persona']} Delivery: {line['style']}"
     attempts = []
     for model in [m for m in tts_models() if m not in DEAD_MODELS]:
-        for lang in (CFG.get("language", "ar-EG"),):  # Gemini-TTS has no ar-LB; the prompt asks for Lebanese
+        for lang in (CFG.get("language", "ar-EG"),):  # no ar-LB voice exists; ar-EG is used
             attempts.append((f"{model}/{lang}", {
                 "input": {"text": line["text"], "prompt": prompt},
                 "voice": {"languageCode": lang, "name": p["voice"], "modelName": model}}))
@@ -109,33 +82,12 @@ def synth(p, line):
         "input": {"text": line["text"]},
         "voice": {"languageCode": chirp, "name": f"{chirp}-Chirp3-HD-{p['voice']}"}}))
     errors = []
-    # Gemini TTS models the Text-to-Speech API doesn't serve yet: call Vertex generateContent with an audio response.
-    for model in [m for m in tts_models() if m not in DEAD_MODELS]:
-        engine = f"vertex:{model}"
-        if engine in DEAD_MODELS:
-            continue
-        body = {"contents": [{"role": "user", "parts": [{"text": f"{prompt}\n\n{CFG.get('say', 'Say exactly this, in Lebanese Arabic:')} {line['text']}"}]}],
-                "generationConfig": {"responseModalities": ["AUDIO"],
-                                     "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": p["voice"]}}}}}
-        for retry in range(3):
-            code, js = post(f"https://aiplatform.googleapis.com/v1/projects/{project}/locations/global/publishers/google/models/{model}:generateContent", body)
-            if code in (429, 500, 503):
-                time.sleep(5 * (retry + 1))
-                continue
-            break
-        if code == 200:
-            for part in js.get("candidates", [{}])[0].get("content", {}).get("parts", []):
-                if "inlineData" in part:
-                    return base64.b64decode(part["inlineData"]["data"]), engine
-        DEAD_MODELS.add(engine)
-        print(f"::notice::{engine} skipped: {code} {json.dumps(js)[:300]}")
-        break  # only the newest model gets the Vertex path
     for engine, body in attempts:
         body["audioConfig"] = {"audioEncoding": "LINEAR16", "sampleRateHertz": RATE}
         if engine.startswith("chirp"):
             if errors and not WARNED:
                 WARNED.append(1)
-                print("::warning::Gemini-TTS unavailable, using Chirp 3 HD | " + " | ".join(errors)[:900])
+                print("::warning::Chirp 3 HD attempt failed | " + " | ".join(errors)[:900])
             body["audioConfig"]["speakingRate"] = p.get("rate", 1.1)
         for retry in range(3):
             code, js = post("https://texttospeech.googleapis.com/v1/text:synthesize", body)
@@ -167,7 +119,7 @@ def ff(*args):
 
 
 def as_wav(audio):
-    """Chirp returns a WAV file; Gemini-TTS may return bare 16-bit PCM. Always hand ffmpeg a WAV."""
+    """Chirp returns a WAV file; some engines return bare 16-bit PCM. Always hand ffmpeg a WAV."""
     if audio[:4] == b"RIFF":
         return audio
     import io
@@ -181,19 +133,14 @@ def as_wav(audio):
 
 
 def iam_report():
-    """Prints which project roles this service account holds and whether it may call Gemini-TTS."""
+    """Prints which project roles this service account holds (no generative-AI permission probing)."""
     email = getattr(creds, "service_account_email", "?")
     code, js = post(f"https://cloudresourcemanager.googleapis.com/v1/projects/{project}:getIamPolicy", {})
     if code == 200:
         mine = sorted(b["role"] for b in js.get("bindings", []) if f"serviceAccount:{email}" in b.get("members", []))
-        holders = sorted({m for b in js.get("bindings", []) if b["role"] == "roles/aiplatform.user" for m in b.get("members", [])})
         print(f"::notice::IAM {email}: {', '.join(mine)}")
-        print(f"::notice::roles/aiplatform.user holders: {', '.join(holders) or 'none'}")
     else:
         print(f"::notice::getIamPolicy {code}")
-    code, js = post(f"https://cloudresourcemanager.googleapis.com/v1/projects/{project}:testIamPermissions",
-                    {"permissions": ["aiplatform.endpoints.predict"]})
-    print(f"::notice::aiplatform.endpoints.predict allowed: {bool(js.get('permissions'))} ({code})")
 
 
 def main():

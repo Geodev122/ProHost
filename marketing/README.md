@@ -216,8 +216,8 @@ Quiet until 6 PM? Your free hours can pay. 🧘 Instructors book them every week
 ## Regenerating
 - **Voiceovers:** edit `scripts/marketing/voiceover_en.json` (English) or `voiceover.json` (Arabic), then run Actions ›
   "Marketing voiceovers (manual)" with the matching config. Output: `audio/voiceovers-*`.
-- **Music:** `scripts/marketing/music.json` → Actions › "Marketing music (manual)" → `audio/music/`.
-- **Backgrounds:** `scripts/marketing/backgrounds.json` → Actions › "Marketing backgrounds (manual)" → `backgrounds/`.
+- **Music:** retired (the Vertex Lyria workflow was deleted 6 Nov 2026; existing tracks in `audio/music/` stay). Use licensed or self-made music.
+- **Backgrounds:** retired (the Vertex Imagen workflow was deleted 6 Nov 2026; existing images in `backgrounds/` stay). Use real photos.
 - **Videos:** see `source/README.md` (render → mix → export).
 
 
