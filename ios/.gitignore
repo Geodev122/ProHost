@@ -3,3 +3,4 @@ ProHost/Info.plist
 build/
 DerivedData/
 *.xcresult
+ProHost/ProHost.entitlements

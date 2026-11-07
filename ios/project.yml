@@ -44,6 +44,11 @@ targets:
         product: FirebaseStorage
       - package: Firebase
         product: FirebaseAppCheck
+    entitlements:
+      path: ProHost/ProHost.entitlements
+      properties:
+        com.apple.developer.applesignin: [Default]
+        aps-environment: production
     info:
       path: ProHost/Info.plist
       properties:

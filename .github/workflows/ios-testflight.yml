@@ -118,6 +118,27 @@ jobs:
             MARKETING_VERSION="${MARKETING_VERSION_IN:-1.0.0}" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
 
+      - name: Export a local IPA and print its entitlements
+        working-directory: ios
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath build/ProHost.xcarchive \
+            -exportOptionsPlist ExportOptionsInspect.plist \
+            -exportPath build/export-inspect \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          rm -rf build/ipa && mkdir -p build/ipa && unzip -q build/export-inspect/ProHost.ipa -d build/ipa
+          echo "--- signed entitlements"
+          codesign -d --entitlements :- build/ipa/Payload/ProHost.app 2>&1 | head -40
+          echo "--- profile entitlements"
+          security cms -D -i build/ipa/Payload/ProHost.app/embedded.mobileprovision > build/profile.plist
+          /usr/libexec/PlistBuddy -c "Print :Entitlements" build/profile.plist | head -30
+          echo "--- profile name and type"
+          /usr/libexec/PlistBuddy -c "Print :Name" build/profile.plist
+          /usr/libexec/PlistBuddy -c "Print :ProvisionsAllDevices" build/profile.plist || true
+
       - name: Export and upload to App Store Connect
         working-directory: ios
         run: |
