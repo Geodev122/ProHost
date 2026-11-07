@@ -67,3 +67,7 @@ Last updated: 7 Nov 2026
 ### iOS progress (7 Nov 2026)
 - Done: Team ID received (`884APQLMP4`), account active, 2FA on, legal name confirmed.
 - Next: register the Bundle ID `app.geonajjar.prohost` (Identifiers), then App Store Connect > New App (Name ProHost, SKU `prohost-ios`, English (U.K.), Full Access); request API access and create the App Store Connect API key; decide how to test without an iPhone (borrow one, or a paid cloud device service).
+
+### iOS M0 (7 Nov 2026)
+42. Add GitHub secrets (repo > Settings > Secrets and variables > Actions): `ASC_KEY_ID` = HF7C34HW38, `ASC_ISSUER_ID` = 1d848c92-ff55-45cd-9071-e70a7837ee5d, `APPLE_TEAM_ID` = 884APQLMP4, and `ASC_KEY_P8` = the full text of the .p8 (open it in Notepad, copy everything from `-----BEGIN PRIVATE KEY-----` to `-----END PRIVATE KEY-----`, paste as the secret value). Never paste the key in chat. Then run Actions > "iOS TestFlight" > Run workflow.
+43. Borrow an iPhone for TestFlight tests (needed from M2/M3): install TestFlight, sign in with the tester Apple ID (psy.geo.elnajjar@gmail.com) and I add it as an App Store Connect user.

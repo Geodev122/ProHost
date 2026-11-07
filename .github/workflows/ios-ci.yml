@@ -1,0 +1,56 @@
+name: iOS CI
+
+# Builds the SwiftUI app and runs unit tests on a simulator. No Apple secrets needed (no signing).
+on:
+  push:
+    paths: ["ios/**", "scripts/ios/**", ".github/workflows/ios-ci.yml"]
+  pull_request:
+    paths: ["ios/**", "scripts/ios/**", ".github/workflows/ios-ci.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: ios-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode
+        run: |
+          latest=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          echo "Using $latest"
+          sudo xcode-select -s "$latest/Contents/Developer"
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Build and test (simulator, unsigned)
+        working-directory: ios
+        run: |
+          SIM=$(../scripts/ios/pick_simulator.sh)
+          echo "Simulator: $SIM"
+          xcodebuild test \
+            -project ProHost.xcodeproj -scheme ProHost \
+            -destination "id=$SIM" \
+            -resultBundlePath build/test.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-test-results
+          path: ios/build/test.xcresult
+          retention-days: 7
