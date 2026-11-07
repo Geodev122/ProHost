@@ -1305,6 +1305,22 @@ async function playofferfix(db, arg) {
   if (apply) await playcatalog(db);
 }
 
+// Read-only: who owns an IP address (reverse DNS + public RDAP + ipinfo). code = the IPv4 address. Used to investigate suspicious service-account activity.
+async function ipwhois(arg) {
+  const ip = String(arg || "").trim();
+  if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) { notice("ipwhois: code must be an IPv4 address"); return; }
+  const dns = require("dns").promises;
+  const rev = await dns.reverse(ip).catch((e) => [`(none: ${e.code})`]);
+  notice(`ipwhois ${ip}: reverse DNS = ${rev.join(", ")}`);
+  const get = async (url) => { try { const r = await fetch(url, { headers: { Accept: "application/json" } }); return { status: r.status, body: await r.json().catch(() => ({})) }; } catch (e) { return { status: 0, body: { error: String(e.message).slice(0, 80) } }; } };
+  const a = await get(`https://rdap.arin.net/registry/ip/${ip}`);
+  const ents = (a.body.entities || []).map((e) => { const v = (e.vcardArray && e.vcardArray[1]) || []; const f = v.find((x) => x[0] === "fn"); return `${e.handle}${f ? " (" + f[3] + ")" : ""} [${(e.roles || []).join("/")}]`; }).slice(0, 4);
+  notice(`ipwhois ${ip}: RDAP status=${a.status} range=${a.body.startAddress || "?"}-${a.body.endAddress || "?"} name=${a.body.name || "?"} type=${a.body.type || "?"} country=${a.body.country || "?"} parent=${a.body.parentHandle || "-"} entities=${ents.join("; ") || "-"}`);
+  const i = await get(`https://ipinfo.io/${ip}/json`);
+  const b = i.body || {};
+  notice(`ipwhois ${ip}: ipinfo status=${i.status} org=${b.org || "?"} city=${b.city || "?"} region=${b.region || "?"} country=${b.country || "?"} hostname=${b.hostname || "-"} anycast=${b.anycast || "-"} ${b.error ? "error=" + JSON.stringify(b.error).slice(0, 80) : ""}`);
+}
+
 // Why does pro-host.tech not show the site? Reads Firebase Hosting through its API (sites, live release, custom domains and the DNS
 // records each one still needs), resolves the domain's DNS and fetches both the default address and the custom domain.
 // Code "connect" also tries to add pro-host.tech and www.pro-host.tech to the site (then re-run to read the DNS records to set).
@@ -1869,6 +1885,7 @@ async function smsauth(db, arg) {
   else if (task === "clearstalesecrets") await clearstalesecrets();
   else if (task === "prodcheck") await prodcheck(db, auth);
   else if (task === "hostingcheck") await hostingcheck(arg);
+  else if (task === "ipwhois") await ipwhois(arg);
   else if (task === "iamaudit") await iamaudit();
   else if (task === "activityaudit") await activityaudit(arg);
   else if (task === "keysecurity") await keysecurity(arg);
