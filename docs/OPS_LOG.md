@@ -76,4 +76,4 @@ Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, ot
 
 ## 7 Nov 2026 - iOS: first TestFlight attempt
 - Owner attached the ASC `.p8` in chat (key id HF7C34HW38): treat as exposed, rotate after the first successful upload (new key straight into GitHub secrets). Sandbox proxy blocks api.appstoreconnect.apple.com (403), so Apple state is checked from the macOS runner only.
-- ios-testflight.yml gained a tag trigger `ios-beta-*` (workflow_dispatch needs the file on main); tag `ios-beta-1` pushed to run it from the branch.
+- ios-testflight.yml gained a branch trigger `ios-beta/**` (workflow_dispatch needs the file on main; the git proxy refuses tag pushes); branch `ios-beta/1` pushed to run it.

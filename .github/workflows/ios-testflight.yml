@@ -3,7 +3,7 @@ name: iOS TestFlight
 # Manual: archive the app, sign it automatically with the App Store Connect API key and upload it to TestFlight.
 # Secrets (GitHub > Settings > Secrets and variables > Actions): ASC_KEY_ID, ASC_ISSUER_ID, APPLE_TEAM_ID and the key
 # itself as ASC_KEY_P8 (raw multi-line PEM) or ASC_KEY_P8_B64 (base64). Values are never printed.
-# Runs from the Actions tab (needs this file on main) or by pushing a tag `ios-beta-*` from any branch (no merge needed).
+# Runs from the Actions tab (needs this file on main) or by pushing a branch named `ios-beta/<n>` (no merge needed).
 on:
   workflow_dispatch:
     inputs:
@@ -11,7 +11,7 @@ on:
         description: "Version shown to users (CFBundleShortVersionString)"
         default: "1.0.0"
   push:
-    tags: ["ios-beta-*"]
+    branches: ["ios-beta/**"]
 
 concurrency: ios-testflight
 
