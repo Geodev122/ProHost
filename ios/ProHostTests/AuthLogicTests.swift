@@ -110,3 +110,26 @@ final class AppUserTests: XCTestCase {
         XCTAssertTrue(AppUser(id: "u", email: "a@b.c", fullName: "Rana", role: .proHost, phone: "").isProfileComplete)
     }
 }
+
+final class FirebaseCodeMappingTests: XCTestCase {
+    func testNumericFirebaseCodesMapLikeAndroid() {
+        let d = "FIRAuthErrorDomain"
+        XCTAssertEqual(AuthError.from(domain: d, code: 17009, message: ""), .invalidCredentials)  // wrong password
+        XCTAssertEqual(AuthError.from(domain: d, code: 17011, message: ""), .invalidCredentials)  // no such user: same text
+        XCTAssertEqual(AuthError.from(domain: d, code: 17004, message: ""), .invalidCredentials)
+        XCTAssertEqual(AuthError.from(domain: d, code: 17007, message: ""), .emailInUse)
+        XCTAssertEqual(AuthError.from(domain: d, code: 17026, message: ""), .weakPassword)
+        XCTAssertEqual(AuthError.from(domain: d, code: 17008, message: ""), .invalidEmail)
+        XCTAssertEqual(AuthError.from(domain: d, code: 17010, message: ""), .tooManyRequests)
+        XCTAssertEqual(AuthError.from(domain: d, code: 17005, message: ""), .userDisabled)
+        XCTAssertEqual(AuthError.from(domain: d, code: 17020, message: ""), .network)
+        XCTAssertEqual(AuthError.from(domain: d, code: 17006, message: ""), .unavailable)
+    }
+
+    func testOtherDomainsAndUnknownCodes() {
+        XCTAssertEqual(AuthError.from(domain: NSURLErrorDomain, code: -1009, message: ""), .network)
+        XCTAssertEqual(AuthError.from(domain: "SomethingElse", code: 17009, message: ""), .unknown)
+        XCTAssertEqual(AuthError.from(domain: "FIRAuthErrorDomain", code: 99999, message: ""), .unknown)
+        XCTAssertEqual(AuthError.from(domain: "FIRAuthErrorDomain", code: 99999, message: "PASSWORD_DOES_NOT_MEET_REQUIREMENTS: x"), .weakPassword)
+    }
+}

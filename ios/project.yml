@@ -14,6 +14,10 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
     CODE_SIGN_STYLE: Automatic
     ENABLE_USER_SCRIPT_SANDBOXING: YES
+packages:
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    from: "12.0.0"
 targets:
   ProHost:
     type: application
@@ -27,6 +31,21 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         TARGETED_DEVICE_FAMILY: "1"
         SUPPORTS_MACCATALYST: NO
+    dependencies:
+      - package: Firebase
+        product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseFirestore
+      - package: Firebase
+        product: FirebaseFunctions
+      - package: Firebase
+        product: FirebaseMessaging
+      - package: Firebase
+        product: FirebaseStorage
+      - package: Firebase
+        product: FirebaseAppCheck
+      - package: Firebase
+        product: FirebaseAnalyticsWithoutAdIdSupport
     info:
       path: ProHost/Info.plist
       properties:
@@ -37,6 +56,8 @@ targets:
         UIAppFonts: [manrope_semibold.ttf, manrope_bold.ttf, manrope_extrabold.ttf]
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         ITSAppUsesNonExemptEncryption: false
+        FIREBASE_ANALYTICS_COLLECTION_ENABLED: false
+        FIREBASE_AUTOMATIC_SCREEN_REPORTING_ENABLED: false
         CFBundleURLTypes:
           - CFBundleURLName: app.geonajjar.prohost
             CFBundleURLSchemes: [prohost]
