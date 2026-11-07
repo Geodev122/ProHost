@@ -57,9 +57,35 @@ jobs:
       - name: Write API key to a temp file
         run: |
           KEY="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
-          if [ -n "$ASC_KEY_P8" ]; then printf '%s\n' "$ASC_KEY_P8" > "$KEY"; else printf '%s' "$ASC_KEY_P8_B64" | base64 --decode > "$KEY"; fi
-          chmod 600 "$KEY"
-          grep -q "BEGIN PRIVATE KEY" "$KEY" || { echo "::error::ASC key is not a PEM .p8 (no BEGIN PRIVATE KEY line)"; rm -f "$KEY"; exit 1; }
+          RAW="${ASC_KEY_P8:-$ASC_KEY_P8_B64}" KEY="$KEY" python3 - <<'PY'
+          import base64, os, re, subprocess, sys, textwrap
+          raw = os.environ["RAW"].strip().replace("\\n", "\n").replace("\r", "")
+          shape = f"length={len(raw)} lines={raw.count(chr(10)) + 1} has_begin={'BEGIN' in raw}"
+          def pem(body):
+              return "-----BEGIN PRIVATE KEY-----\n" + "\n".join(textwrap.wrap(body, 64)) + "\n-----END PRIVATE KEY-----\n"
+          cands = []
+          if "BEGIN" in raw:
+              cands.append(raw + "\n")
+          else:
+              body = re.sub(r"\s+", "", raw)
+              cands.append(pem(body))  # body only (base64 DER)
+              try:  # base64 of a whole PEM file
+                  dec = base64.b64decode(body, validate=False).decode("utf-8", "ignore")
+                  if "BEGIN" in dec:
+                      cands.insert(0, dec.strip() + "\n")
+              except Exception:
+                  pass
+          path = os.environ["KEY"]
+          for c in cands:
+              open(path, "w").write(c)
+              os.chmod(path, 0o600)
+              if subprocess.run(["openssl", "pkey", "-in", path, "-noout"], capture_output=True).returncode == 0:
+                  print("ASC key parsed OK (" + shape + ")")
+                  sys.exit(0)
+          os.remove(path)
+          print("::error::ASC_KEY_P8 is not a usable .p8 key (" + shape + "). Paste the whole file text, BEGIN and END lines included.")
+          sys.exit(1)
+          PY
           echo "ASC_KEY_PATH=$KEY" >> "$GITHUB_ENV"
 
       - name: Generate project
