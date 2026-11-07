@@ -235,7 +235,7 @@ with Apple key (uploaded by you). I never see the values; I only reference the s
 3. I update `docs/IOS_PLAN.md`, `docs/OWNER_TODO.md` and `docs/OPS_LOG.md`, commit on a branch, no deploy of functions
    until you approve (functions deploy goes through CI on merge to `main`).
 
-> Note 7 Nov 2026: the SPM product `FirebaseAnalyticsWithoutAdIdSupport` does not exist in firebase-ios-sdk 12.x; analytics is deferred to M6 (opt-in, no IDFA): pick the right product then (check the package manifest from a macOS runner step).
+> Note 7 Nov 2026: in firebase-ios-sdk 12.x the SPM product `FirebaseAnalytics` is the one without IDFA support (IDFA is the separate `FirebaseAnalyticsIdentitySupport`, not linked); collection stays off until the consent dialog (Info.plist `FIREBASE_ANALYTICS_COLLECTION_ENABLED=false`).
 
 ## State snapshot 7 Nov 2026 (19:00 UTC, from `ios-inspect.yml`, read-only)
 - App Store Connect app id `6831983164` (ProHost, SKU prohost-ios). Bundle ID resource `88L988UK3A` (UNIVERSAL) with capabilities APPLE_ID_AUTH, APP_ATTEST, IN_APP_PURCHASE, PUSH_NOTIFICATIONS. **Missing: ASSOCIATED_DOMAINS** (needed for Universal Links; enable with the Admin key when the AASA file is ready).
