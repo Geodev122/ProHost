@@ -3,7 +3,7 @@ import Foundation
 /// What went wrong with a sign-in, in terms the screen can explain. Mirrors `data/auth/AuthErrors.kt`.
 /// Firebase's own messages are English developer text and never reach people; enumeration protection stays on
 /// (wrong email and wrong password read the same).
-enum AuthError: CaseIterable, Equatable {
+enum AuthError: Error, CaseIterable, Equatable {
     case invalidCredentials, emailInUse, weakPassword, invalidEmail, tooManyRequests
     case userDisabled, network, unavailable, unknown
 
