@@ -104,7 +104,7 @@ jobs:
         working-directory: ios
         run: xcodegen generate
 
-      - name: Archive (unsigned: development signing would need a registered device)
+      - name: Archive unsigned (development signing would need a registered device)
         working-directory: ios
         env:
           MARKETING_VERSION_IN: ${{ github.event.inputs.marketing_version }}
