@@ -34,8 +34,26 @@ final class DesignTokensTests: XCTestCase {
     }
 
     func testManropeIsBundledAndRegistered() {
-        for name in ["Manrope-SemiBold", "Manrope-Bold", "Manrope-ExtraBold"] {
+        for name in ["Manrope-SemiBold", "Manrope-Bold", "Manrope-ExtraBold", "Roboto-Regular", "Roboto-Medium", "Roboto-Bold"] {
             XCTAssertNotNil(UIFont(name: name, size: 16), "\(name) is not registered (UIAppFonts)")
         }
+    }
+
+    func testEveryTextStyleResolvesToARegisteredFont() {
+        for style in PHType.all {
+            XCTAssertNotNil(UIFont(name: style.fontName, size: style.size), "\(style.fontName) for size \(style.size)")
+            XCTAssertGreaterThanOrEqual(style.lineHeight, style.size)
+        }
+    }
+
+    func testEveryMaterialIconIsInTheAssetCatalog() {
+        XCTAssertFalse(PHIcon.allCases.isEmpty)
+        for icon in PHIcon.allCases {
+            XCTAssertNotNil(UIImage(named: icon.rawValue), "\(icon.rawValue) is missing from Assets.xcassets/Icons")
+        }
+    }
+
+    func testAutoMirroredIconsAreMarked() {
+        XCTAssertTrue(PHIcon.allCases.contains { $0.autoMirrored })
     }
 }

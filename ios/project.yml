@@ -64,7 +64,7 @@ targets:
         CFBundleDevelopmentRegion: en
         CFBundleLocalizations: [en, ar]
         UILaunchScreen: {}
-        UIAppFonts: [manrope_semibold.ttf, manrope_bold.ttf, manrope_extrabold.ttf]
+        UIAppFonts: [manrope_semibold.ttf, manrope_bold.ttf, manrope_extrabold.ttf, roboto_regular.ttf, roboto_medium.ttf, roboto_bold.ttf]
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         ITSAppUsesNonExemptEncryption: false
         FIREBASE_ANALYTICS_COLLECTION_ENABLED: false
