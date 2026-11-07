@@ -68,7 +68,11 @@ jobs:
               cands.append(raw + "\n")
           else:
               body = re.sub(r"\s+", "", raw)
-              cands.append(pem(body))  # body only (base64 DER)
+              clean = re.sub(r"[^A-Za-z0-9+/=]", "", body)
+              odd = sorted({repr(ch) for ch in body if not re.match(r"[A-Za-z0-9+/=]", ch)})
+              shape += f" body_len={len(body)} clean_len={len(clean)} non_base64={odd} starts_MIGT={clean[:4] == 'MIGT'} ends_eq={clean.endswith('=')}"
+              for v in (clean, clean[1:], clean[:-1], clean.rstrip("=")):
+                  cands.append(pem(v))  # body only (base64 DER), plus variants
               try:  # base64 of a whole PEM file
                   dec = base64.b64decode(body, validate=False).decode("utf-8", "ignore")
                   if "BEGIN" in dec:
