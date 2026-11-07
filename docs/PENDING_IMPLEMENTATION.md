@@ -1,5 +1,7 @@
 # Pending implementation package (prepared 7 Nov 2026, waiting for the owner's trigger word)
 
+> STATUS 7 Nov 2026: A1, A2, B, D executed; C drafts written (not sent). A3 still pending.
+
 Nothing below has been executed. Trigger word: **GO IMPLEMENT** (everything marked "on trigger"), or name a package (A, B, C, D).
 Every step is reversible unless stated. Evidence: docs/INCIDENT_2026-11-appspot-key.md.
 

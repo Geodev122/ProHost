@@ -37,3 +37,15 @@ Last updated: 7 Nov 2026
 - 4 Nov: invited run-billing and run-ig in Play Console; shared the "ProHost IG Automations" Sheet with run-ig.
 - 4 Nov 20:37Z: billing self-test pressed (lastSelfTestAt recorded): purchase notifications reach the function under run-billing.
 - 5 Nov: duplicate SPF record removed; admin@pro-host.tech confirmed receiving mail; meta-ads-play key recognised (kept).
+
+### Update 7 Nov 2026
+- Item 27 (appspot key): DONE, key disabled. Watch alerts 7 days, then approve deletion. If any tool breaks, re-enable with `keys enable`.
+- NEW 28: review drafts in `docs/drafts/` and decide whether to send abuse reports / appeal addendum (nothing sent).
+- NEW 29: unsuspend/delete exploreprohost99 only if you recognise it (Auth console).
+- Later: A3 audit `onAuthUserDeleted` then narrow appspot SA Editor; admin batch needs your "go admin".
+
+### Google identity / legitimacy checklist (7 Nov 2026, owner steps, console only)
+30. Google Auth Platform (console.cloud.google.com/auth/branding, project prohost-f766f): app name ProHost, logo, support email, authorized domain `pro-host.tech`, homepage `https://pro-host.tech`, privacy `/privacy`, terms `/terms`; then "Verify branding". Needs the domain verified in Search Console by the owner account.
+31. Cloud Console > IAM > Essential Contacts: add geo.elnajjar@gmail.com (Legal, Security, Technical) and the second owner. (The API is disabled for the CI account, so I could not read it.)
+32. Business details: Billing/Support profile with the real business name, address and website matching the Play developer account.
+33. AI disclosure: attach `docs/GEMINI_USE.md` facts to the appeal if you decide to send the addendum (`docs/drafts/`). AI in use: Claude (Anthropic API) for our own Instagram/WhatsApp assistant (says it is AI, opt-out, kill switch); Cloud Text-to-Speech for our own narration. No Google generative text, image, video or music.

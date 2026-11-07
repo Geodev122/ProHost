@@ -45,3 +45,19 @@ Never put secrets here. Current state lives in `docs/GCP_IAM.md` ("CURRENT STATE
 
 ## Not done yet
 Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, other admin callables); Maps key restrictions; secret rotation; budget alert; uptime checks; App Check enforcement; final cleanup of temporary access (see OWNER_TODO).
+
+## 7 Nov 2026 - GO IMPLEMENT (package A, B, D; C drafts only)
+- A1 appspot key e5b6952d disabled (undo: `gcloud iam service-accounts keys enable`; delete after 7 quiet days).
+- A2 `aiplatform.googleapis.com` disabled (no dependents blocked).
+- B Auth user kuBhi1EQ... (exploreprohost99@gmail.com): disabled, sessions revoked (validSince), claim `suspended:true`, profile `isSuspended/flaggedSpam/flaggedReason`, audit_log entry. Data kept. IP block impossible (no sign-up IP recorded).
+- D alert policies `AI-API-enabled-attempt`, `Disabled-appspot-key-used` (email channel).
+- C drafts in `docs/drafts/` - NOT sent. Appeal NOT submitted (owner instruction).
+
+## 7 Nov 2026 - avatar/persona audit
+- Deployed site (`public/`): no avatar or synthetic-person media (homepage/story videos are UI-only, frames checked).
+- Removed repo leftovers: `marketing/source/persona.js` (cartoon avatar template), `marketing/audio/voice1/*.wav` (synthetic voice lines); renamed cover `11-office-sourcing-presenter.png` to `11-office-sourcing.png` (plain text card).
+- Not checkable from the repo: earlier Instagram posts; owner to confirm in the app.
+
+## 7 Nov 2026 - AI policy audit
+- AI in use: Claude (Anthropic API) for the Instagram/WhatsApp assistant; Cloud Text-to-Speech for our own narration. No Google generative text/image/video/music.
+- Deleted dead Vertex workflows/scripts (Lyria music, Imagen backgrounds); corrected `docs/GEMINI_USE.md`, `docs/INSTAGRAM.md`.

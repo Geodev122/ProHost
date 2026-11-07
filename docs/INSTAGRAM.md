@@ -51,7 +51,7 @@ email, a DM to @geo_elnajjat (Meta's 24 h window only) and WhatsApp once set up 
 * Name/email are saved to `ig_leads` (sheet tab `Leads`, admin email) ONLY after the person said yes to a consent question asked in an earlier turn
   (`advance()` in aiAgent.ts, unit-tested). A "no" is final. Threads (`ig_threads`) keep the person's whole history (see "Memory" below).
 * Settings (sheet Status): `ai_enabled`, `ai_provider`, `ai_model`, `ai_daily_cap`, `ai_per_person_per_hour`. Unanswered questions go to the sheet `Learn` tab; answers written in `Knowledge` override the built-in facts.
-* Maintenance: `geminiprobe`, `aitest` (scripted conversations, nothing sent), `aiprobe`/`aiquota` (Vertex).
+* Maintenance: `geminiprobe`, `aitest` (scripted conversations, nothing sent), (the Vertex tasks `aiprobe`/`aiquota` were removed).
 
 
 ## Conversation flow
