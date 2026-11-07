@@ -49,3 +49,31 @@ Last updated: 7 Nov 2026
 31. Cloud Console > IAM > Essential Contacts: add geo.elnajjar@gmail.com (Legal, Security, Technical) and the second owner. (The API is disabled for the CI account, so I could not read it.)
 32. Business details: Billing/Support profile with the real business name, address and website matching the Play developer account.
 33. AI disclosure: attach `docs/GEMINI_USE.md` facts to the appeal if you decide to send the addendum (`docs/drafts/`). AI in use: Claude (Anthropic API) for our own Instagram/WhatsApp assistant (says it is AI, opt-out, kill switch); Cloud Text-to-Speech for our own narration. No Google generative text, image, video or music.
+
+### Auth Platform branding (7 Nov 2026)
+34. OAuth warning "not configured to use secure OAuth flows": Google Auth Platform > Clients. Each Android client: "Enable custom URI scheme" OFF. Web client: remove any `http://` / `localhost` origins or redirects (keep the two `/__/auth/handler` https entries). Do not delete any client (7 SHA-1 entries are in use). Tell me which client the warning's "Learn more" names.
+35. Branding URLs stay `https://pro-host.tech`, `/privacy`, `/terms` (authorised domains: pro-host.tech, prohost-f766f.web.app, prohost-f766f.firebaseapp.com). Function URLs (`cloudfunctions.net/legalDocumentPage/...`) work for Play and iOS but cannot be used for OAuth branding (Google-owned domain). Press "Verify branding" only when `pro-host.tech/privacy` returns 200. Verify `pro-host.tech` as a Domain property in Search Console (DNS TXT).
+
+### Branding verification fix (7 Nov 2026)
+36. Serve pro-host.tech from Cloudflare Pages (steps: Cloudflare Pages > Connect to Git > repo Geodev122/ProHost, branch main, no build, output dir `public`; add custom domain pro-host.tech). DNS is at Hostinger: add the site to Cloudflare, check MX/SPF/DKIM/google-site-verification are imported, then change nameservers at Hostinger to Cloudflare's two. Verify admin@pro-host.tech mail still arrives.
+37. Then Auth Platform > Branding: privacy `https://pro-host.tech/privacy` (not the cloudfunctions.net URL), Save, Verify branding. Add the Search Console Domain property.
+
+### iOS (7 Nov 2026) - supersedes items 21-25; full plan and how/where for each step in `docs/IOS_PLAN.md` section A
+38. Send now: Team ID, confirm bundle ID `app.geonajjar.prohost`, iPhone model + iOS version + tester Apple ID, enrollment status (Individual, 2FA on).
+39. Create the App Store Connect API key (Users and Access > Integrations, role App Manager) and add GitHub secrets `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8_B64`, `APPLE_TEAM_ID` (never paste the .p8 in chat).
+40. Create the App Store Connect app record (name ProHost, SKU `prohost-ios`, English (U.K.), Business); I give exact values.
+41. Later (needed by M1-M5): App ID capabilities, APNs + Sign in with Apple + In-App Purchase keys, Firebase iOS app + Apple sign-in + APNs upload + App Attest, Paid Apps Agreement + bank/tax + EU trader status + Small Business Program, subscription group and products, decisions 12(a)-(c), review demo accounts.
+
+### iOS progress (7 Nov 2026)
+- Done: Team ID received (`884APQLMP4`), account active, 2FA on, legal name confirmed.
+- Next: register the Bundle ID `app.geonajjar.prohost` (Identifiers), then App Store Connect > New App (Name ProHost, SKU `prohost-ios`, English (U.K.), Full Access); request API access and create the App Store Connect API key; decide how to test without an iPhone (borrow one, or a paid cloud device service).
+
+### iOS M0 (7 Nov 2026)
+42. Add GitHub secrets (repo > Settings > Secrets and variables > Actions): `ASC_KEY_ID` = HF7C34HW38, `ASC_ISSUER_ID` = 1d848c92-ff55-45cd-9071-e70a7837ee5d, `APPLE_TEAM_ID` = 884APQLMP4, and `ASC_KEY_P8` = the full text of the .p8 (open it in Notepad, copy everything from `-----BEGIN PRIVATE KEY-----` to `-----END PRIVATE KEY-----`, paste as the secret value). Never paste the key in chat. Then run Actions > "iOS TestFlight" > Run workflow.
+43. Borrow an iPhone for TestFlight tests (needed from M2/M3): install TestFlight, sign in with the tester Apple ID (psy.geo.elnajjar@gmail.com) and I add it as an App Store Connect user.
+
+### iOS status 7 Nov 2026 (evening) - replaces the key steps of item 42
+- Run `iOS TestFlight` (branch `ios-beta/1`) failed only at "Check secrets": ASC_KEY_ID, ASC_ISSUER_ID, APPLE_TEAM_ID, ASC_KEY_P8 are not in GitHub yet. This session cannot set them (the sandbox proxy blocks the Actions secrets API).
+- The `.p8` (key HF7C34HW38) was attached in chat, so it is exposed: in App Store Connect > Users and Access > Integrations > App Store Connect API, **revoke HF7C34HW38 and create a new key (App Manager)**, then put the NEW Key ID, Issuer ID, Team ID and the new key's text into the four GitHub secrets yourself. Never attach or paste a .p8 again.
+- Then re-run: push any commit to a branch named `ios-beta/<n>` (tell me) or, once merged to main, Actions > iOS TestFlight > Run workflow.
+- Upload `GoogleService-Info.plist` (Firebase iOS app is registered; the plist is not secret) as a chat attachment.

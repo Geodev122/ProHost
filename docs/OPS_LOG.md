@@ -61,3 +61,19 @@ Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, ot
 ## 7 Nov 2026 - AI policy audit
 - AI in use: Claude (Anthropic API) for the Instagram/WhatsApp assistant; Cloud Text-to-Speech for our own narration. No Google generative text/image/video/music.
 - Deleted dead Vertex workflows/scripts (Lyria music, Imagen backgrounds); corrected `docs/GEMINI_USE.md`, `docs/INSTAGRAM.md`.
+
+## 7 Nov 2026 - Auth Platform branding review
+- Screenshot values match the repo (home, /privacy, /terms, 3 authorised domains). Interim working legal URLs are the `legalDocumentPage` function URLs (Play/iOS only). OAuth warning is client-settings only (no code change). Items 34, 35 in OWNER_TODO.
+
+## 7 Nov 2026 - branding verification fix prepared
+- Google's six branding findings all trace to pro-host.tech not being served + privacy URL on cloudfunctions.net. Added `public/_redirects`, `public/_headers` and a DEPLOYMENT.md note for a Cloudflare Pages fallback. Owner steps 36, 37.
+
+## 7 Nov 2026 - iOS plan approved
+- Approved plan saved as `docs/IOS_PLAN.md` (milestones M0-M8, owner checklist, secrets locations). No iOS code or backend change yet.
+
+## 7 Nov 2026 - iOS M0 skeleton
+- Added `ios/` (XcodeGen spec, splash app, unit test, icon), `ios-ci.yml` and `ios-testflight.yml`. Nothing deployed; no Android/functions/site change.
+
+## 7 Nov 2026 - iOS: first TestFlight attempt
+- Owner attached the ASC `.p8` in chat (key id HF7C34HW38): treat as exposed, rotate after the first successful upload (new key straight into GitHub secrets). Sandbox proxy blocks api.appstoreconnect.apple.com (403), so Apple state is checked from the macOS runner only.
+- ios-testflight.yml gained a branch trigger `ios-beta/**` (workflow_dispatch needs the file on main; the git proxy refuses tag pushes); branch `ios-beta/1` pushed to run it.

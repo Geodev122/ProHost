@@ -1,0 +1,5 @@
+ProHost/Info.plist
+*.xcodeproj/
+build/
+DerivedData/
+*.xcresult
