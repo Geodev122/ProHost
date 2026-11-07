@@ -3,9 +3,9 @@ name: iOS CI
 # Builds the SwiftUI app and runs unit tests on a simulator. No Apple secrets needed (no signing).
 on:
   push:
-    paths: ["ios/**", "scripts/ios/**", ".github/workflows/ios-ci.yml"]
+    paths: ["ios/**", "scripts/ios/**", "app/src/main/res/values*/**", ".github/workflows/ios-ci.yml"]
   pull_request:
-    paths: ["ios/**", "scripts/ios/**", ".github/workflows/ios-ci.yml"]
+    paths: ["ios/**", "scripts/ios/**", "app/src/main/res/values*/**", ".github/workflows/ios-ci.yml"]
   workflow_dispatch:
 
 concurrency:
@@ -21,6 +21,14 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
+
+      - name: String catalog is current and in parity (Android strings -> iOS)
+        run: |
+          python3 scripts/ios/test_strings.py
+          python3 scripts/ios/strings_convert.py --out "$RUNNER_TEMP/Localizable.xcstrings"
+          diff -q "$RUNNER_TEMP/Localizable.xcstrings" ios/ProHost/Resources/Localizable.xcstrings \
+            || { echo "::error::Localizable.xcstrings is stale: run python3 scripts/ios/strings_convert.py and commit"; exit 1; }
+          python3 scripts/ios/check_strings_parity.py
 
       - name: Select newest Xcode
         run: |

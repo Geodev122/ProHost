@@ -34,6 +34,7 @@ targets:
         CFBundleDevelopmentRegion: en
         CFBundleLocalizations: [en, ar]
         UILaunchScreen: {}
+        UIAppFonts: [manrope_semibold.ttf, manrope_bold.ttf, manrope_extrabold.ttf]
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         ITSAppUsesNonExemptEncryption: false
         CFBundleURLTypes:
