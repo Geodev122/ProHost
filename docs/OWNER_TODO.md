@@ -71,3 +71,9 @@ Last updated: 7 Nov 2026
 ### iOS M0 (7 Nov 2026)
 42. Add GitHub secrets (repo > Settings > Secrets and variables > Actions): `ASC_KEY_ID` = HF7C34HW38, `ASC_ISSUER_ID` = 1d848c92-ff55-45cd-9071-e70a7837ee5d, `APPLE_TEAM_ID` = 884APQLMP4, and `ASC_KEY_P8` = the full text of the .p8 (open it in Notepad, copy everything from `-----BEGIN PRIVATE KEY-----` to `-----END PRIVATE KEY-----`, paste as the secret value). Never paste the key in chat. Then run Actions > "iOS TestFlight" > Run workflow.
 43. Borrow an iPhone for TestFlight tests (needed from M2/M3): install TestFlight, sign in with the tester Apple ID (psy.geo.elnajjar@gmail.com) and I add it as an App Store Connect user.
+
+### iOS status 7 Nov 2026 (evening) - replaces the key steps of item 42
+- Run `iOS TestFlight` (branch `ios-beta/1`) failed only at "Check secrets": ASC_KEY_ID, ASC_ISSUER_ID, APPLE_TEAM_ID, ASC_KEY_P8 are not in GitHub yet. This session cannot set them (the sandbox proxy blocks the Actions secrets API).
+- The `.p8` (key HF7C34HW38) was attached in chat, so it is exposed: in App Store Connect > Users and Access > Integrations > App Store Connect API, **revoke HF7C34HW38 and create a new key (App Manager)**, then put the NEW Key ID, Issuer ID, Team ID and the new key's text into the four GitHub secrets yourself. Never attach or paste a .p8 again.
+- Then re-run: push any commit to a branch named `ios-beta/<n>` (tell me) or, once merged to main, Actions > iOS TestFlight > Run workflow.
+- Upload `GoogleService-Info.plist` (Firebase iOS app is registered; the plist is not secret) as a chat attachment.
