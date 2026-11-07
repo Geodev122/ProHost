@@ -131,7 +131,10 @@ jobs:
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"
           rm -rf build/ipa && mkdir -p build/ipa && unzip -q build/export-inspect/ProHost.ipa -d build/ipa
           echo "--- signed entitlements"
-          codesign -d --entitlements :- build/ipa/Payload/ProHost.app 2>&1 | head -40
+          codesign -d --entitlements - --xml build/ipa/Payload/ProHost.app 2>/dev/null | plutil -p - | head -30
+          echo "--- build number in the IPA"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" build/ipa/Payload/ProHost.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" build/ipa/Payload/ProHost.app/Info.plist
           echo "--- profile entitlements"
           security cms -D -i build/ipa/Payload/ProHost.app/embedded.mobileprovision > build/profile.plist
           /usr/libexec/PlistBuddy -c "Print :Entitlements" build/profile.plist | head -30

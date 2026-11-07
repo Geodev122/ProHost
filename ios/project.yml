@@ -53,6 +53,8 @@ targets:
       path: ProHost/Info.plist
       properties:
         CFBundleDisplayName: ProHost
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleDevelopmentRegion: en
         CFBundleLocalizations: [en, ar]
         UILaunchScreen: {}
