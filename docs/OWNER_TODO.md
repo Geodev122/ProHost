@@ -63,3 +63,7 @@ Last updated: 7 Nov 2026
 39. Create the App Store Connect API key (Users and Access > Integrations, role App Manager) and add GitHub secrets `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8_B64`, `APPLE_TEAM_ID` (never paste the .p8 in chat).
 40. Create the App Store Connect app record (name ProHost, SKU `prohost-ios`, English (U.K.), Business); I give exact values.
 41. Later (needed by M1-M5): App ID capabilities, APNs + Sign in with Apple + In-App Purchase keys, Firebase iOS app + Apple sign-in + APNs upload + App Attest, Paid Apps Agreement + bank/tax + EU trader status + Small Business Program, subscription group and products, decisions 12(a)-(c), review demo accounts.
+
+### iOS progress (7 Nov 2026)
+- Done: Team ID received (`884APQLMP4`), account active, 2FA on, legal name confirmed.
+- Next: register the Bundle ID `app.geonajjar.prohost` (Identifiers), then App Store Connect > New App (Name ProHost, SKU `prohost-ios`, English (U.K.), Full Access); request API access and create the App Store Connect API key; decide how to test without an iPhone (borrow one, or a paid cloud device service).

@@ -1,7 +1,7 @@
 # iOS plan for ProHost (approved 7 Nov 2026; supersedes the 5 Nov outline)
 
 **Status:** no iOS code yet. Decisions: native SwiftUI, no Mac (GitHub macOS runners + TestFlight on the owner's iPhone),
-Individual Apple Developer account, v1 = full parity (Admin console stays Android/web). Execution is on hold until the
+Individual Apple Developer account, v1 = full parity (Admin console stays Android/web). Known (non-secret): Apple Team ID `884APQLMP4`, seller = Georges El Najjar (Individual, 2FA on), Apple ID for the account psy.go.elnajjar@gmail.com (owner to confirm spelling), **no iPhone and no Mac available** (see section A item 3 / risk on device testing). Execution is on hold until the
 owner sends section A items 1-5 and 10. Backend/web work that does not need Apple keys can start earlier.
 Update this file as milestones finish. Never put `.p8` keys, passwords or tokens in the repo, Drive or chat.
 
