@@ -67,3 +67,6 @@ Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, ot
 
 ## 7 Nov 2026 - branding verification fix prepared
 - Google's six branding findings all trace to pro-host.tech not being served + privacy URL on cloudfunctions.net. Added `public/_redirects`, `public/_headers` and a DEPLOYMENT.md note for a Cloudflare Pages fallback. Owner steps 36, 37.
+
+## 7 Nov 2026 - iOS plan approved
+- Approved plan saved as `docs/IOS_PLAN.md` (milestones M0-M8, owner checklist, secrets locations). No iOS code or backend change yet.

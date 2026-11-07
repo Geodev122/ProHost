@@ -57,3 +57,9 @@ Last updated: 7 Nov 2026
 ### Branding verification fix (7 Nov 2026)
 36. Serve pro-host.tech from Cloudflare Pages (steps: Cloudflare Pages > Connect to Git > repo Geodev122/ProHost, branch main, no build, output dir `public`; add custom domain pro-host.tech). DNS is at Hostinger: add the site to Cloudflare, check MX/SPF/DKIM/google-site-verification are imported, then change nameservers at Hostinger to Cloudflare's two. Verify admin@pro-host.tech mail still arrives.
 37. Then Auth Platform > Branding: privacy `https://pro-host.tech/privacy` (not the cloudfunctions.net URL), Save, Verify branding. Add the Search Console Domain property.
+
+### iOS (7 Nov 2026) - supersedes items 21-25; full plan and how/where for each step in `docs/IOS_PLAN.md` section A
+38. Send now: Team ID, confirm bundle ID `app.geonajjar.prohost`, iPhone model + iOS version + tester Apple ID, enrollment status (Individual, 2FA on).
+39. Create the App Store Connect API key (Users and Access > Integrations, role App Manager) and add GitHub secrets `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8_B64`, `APPLE_TEAM_ID` (never paste the .p8 in chat).
+40. Create the App Store Connect app record (name ProHost, SKU `prohost-ios`, English (U.K.), Business); I give exact values.
+41. Later (needed by M1-M5): App ID capabilities, APNs + Sign in with Apple + In-App Purchase keys, Firebase iOS app + Apple sign-in + APNs upload + App Attest, Paid Apps Agreement + bank/tax + EU trader status + Small Business Program, subscription group and products, decisions 12(a)-(c), review demo accounts.
