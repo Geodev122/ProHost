@@ -4,7 +4,7 @@
 (newest additions included) until the owner marks them done or decides otherwise. Add new items the moment they arise.
 Update the status column and date when something changes. Never put secrets here.
 
-Last updated: 6 Nov 2026
+Last updated: 7 Nov 2026
 
 | # | Open item | Why it matters | How to do it |
 |---|---|---|---|
@@ -31,6 +31,7 @@ Last updated: 6 Nov 2026
 | 24 | **iOS: Firebase iOS app** | Links the app to your backend | Firebase console > add iOS app (bundle ID) > download GoogleService-Info.plist; Authentication > enable Apple; Cloud Messaging > upload APNs key; App Check > App Attest. Note: Firebase changes may be blocked while the policy restriction (item 1) is active. |
 | 25 | **iOS: App Store Connect app record, subscriptions and store assets** | Required before TestFlight/review | New app; subscription group ProHost Premium (Monthly 8.99, Yearly 79.99 with the Play intro offers); screenshots (6.9-inch iPhone); privacy/support URLs; App Privacy answers; demo account for App Review. |
 | 26 | Optional: **check the billing account type and support plan** | Quotas do not depend on a plan, but a free-trial billing account has lower limits, and only paid Support plans give technical cases (a plan does not override the Trust & Safety review) | Console > Billing > Overview: if a banner says Free trial, press Activate/Upgrade. Console > Support > Compare plans (prices on cloud.google.com/support). |
+| 27 | **SECURITY, needs a decision: the appspot key `e5b6952d...` is being used by someone** | On 6 Nov 13:07 to 13:12 UTC it was used from IP 198.23.132.121 (python-urllib / httpx) to **re-enable Vertex AI** (`aiplatform`), call Gemini `GenerateContent` (refused, status 7), list service accounts and request access tokens. The key was last used on 2 Nov before that (185.121.179.67). Vertex is enabled again right now (aiplatform, cloudaicompanion, geminicloudassist, firebasevertexai). This is the same kind of activity Google is reviewing, so it can keep the restriction in place or make it permanent. Owner's 5 Nov decision was to keep the key; this is new evidence. | Recommended: Console > IAM & Admin > Service accounts > prohost-f766f@appspot... > Keys > e5b6952d... > Disable (reversible), and re-disable the AI APIs (Maintenance `apis apply` or tell Claude). Reply "disable key" and Claude does both; also consider removing the Editor role from that account afterwards. |
 
 ## Done
 - 4 Nov: invited run-billing and run-ig in Play Console; shared the "ProHost IG Automations" Sheet with run-ig.

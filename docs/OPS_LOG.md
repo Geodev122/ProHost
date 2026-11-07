@@ -38,5 +38,8 @@ Never put secrets here. Current state lives in `docs/GCP_IAM.md` ("CURRENT STATE
 - 6 Nov: Hosting "refresh" attempts did nothing: a fresh release on the live channel (switched to the identical previous version f988949e...) still answers "Site Not Found" on prohost-f766f.web.app. Re-releasing the already-live version is refused by Hosting. Conclusion stays: serving is off at the policy-restriction level.
 - 6 Nov: quota facts (Cloud Quotas API): Cloud Functions V2 write requests 60/min/region (deploys of many functions queue for 10+ min), Cloud Run writes 60/min/region, Cloud Run InstancesPerProject 100 (87 services x maxInstances 10 can exceed it under load). All are increase-eligible but requests are refused while the restriction is active.
 
+## 6 to 7 Nov (watch findings)
+- 6 Nov 13:07 to 13:12 UTC: the appspot service account key `e5b6952d...` was used from 198.23.132.121 to enable `aiplatform` (EnableService), call Vertex `GenerateContent` (denied), list service accounts and request access tokens. Our `VertexAI-or-Gemini-use` alert emailed the owner at 13:10. Vertex/AI APIs are enabled again as a result. Owner notified by push on 7 Nov 03:57; awaiting decision (OWNER_TODO #27). Restriction still active at 06:56 (quota refused, Hosting "Site Not Found", no Google decision email).
+
 ## Not done yet
 Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, other admin callables); Maps key restrictions; secret rotation; budget alert; uptime checks; App Check enforcement; final cleanup of temporary access (see OWNER_TODO).
