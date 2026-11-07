@@ -41,5 +41,7 @@ Never put secrets here. Current state lives in `docs/GCP_IAM.md` ("CURRENT STATE
 ## 6 to 7 Nov (watch findings)
 - 6 Nov 13:07 to 13:12 UTC: the appspot service account key `e5b6952d...` was used from 198.23.132.121 to enable `aiplatform` (EnableService), call Vertex `GenerateContent` (denied), list service accounts and request access tokens. Our `VertexAI-or-Gemini-use` alert emailed the owner at 13:10. Vertex/AI APIs are enabled again as a result. Owner notified by push on 7 Nov 03:57; awaiting decision (OWNER_TODO #27). Restriction still active at 06:56 (quota refused, Hosting "Site Not Found", no Google decision email).
 
+- 7 Nov: investigation of 198.23.132.121 (and the two earlier addresses) completed; added Maintenance task `ipwhois` (read-only owner lookup). Findings and recommendations: docs/INCIDENT_2026-11-appspot-key.md.
+
 ## Not done yet
 Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, other admin callables); Maps key restrictions; secret rotation; budget alert; uptime checks; App Check enforcement; final cleanup of temporary access (see OWNER_TODO).
