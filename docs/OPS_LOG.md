@@ -73,3 +73,7 @@ Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, ot
 
 ## 7 Nov 2026 - iOS M0 skeleton
 - Added `ios/` (XcodeGen spec, splash app, unit test, icon), `ios-ci.yml` and `ios-testflight.yml`. Nothing deployed; no Android/functions/site change.
+
+## 7 Nov 2026 - iOS: first TestFlight attempt
+- Owner attached the ASC `.p8` in chat (key id HF7C34HW38): treat as exposed, rotate after the first successful upload (new key straight into GitHub secrets). Sandbox proxy blocks api.appstoreconnect.apple.com (403), so Apple state is checked from the macOS runner only.
+- ios-testflight.yml gained a tag trigger `ios-beta-*` (workflow_dispatch needs the file on main); tag `ios-beta-1` pushed to run it from the branch.
