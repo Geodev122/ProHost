@@ -49,3 +49,7 @@ Last updated: 7 Nov 2026
 31. Cloud Console > IAM > Essential Contacts: add geo.elnajjar@gmail.com (Legal, Security, Technical) and the second owner. (The API is disabled for the CI account, so I could not read it.)
 32. Business details: Billing/Support profile with the real business name, address and website matching the Play developer account.
 33. AI disclosure: attach `docs/GEMINI_USE.md` facts to the appeal if you decide to send the addendum (`docs/drafts/`). AI in use: Claude (Anthropic API) for our own Instagram/WhatsApp assistant (says it is AI, opt-out, kill switch); Cloud Text-to-Speech for our own narration. No Google generative text, image, video or music.
+
+### Auth Platform branding (7 Nov 2026)
+34. OAuth warning "not configured to use secure OAuth flows": Google Auth Platform > Clients. Each Android client: "Enable custom URI scheme" OFF. Web client: remove any `http://` / `localhost` origins or redirects (keep the two `/__/auth/handler` https entries). Do not delete any client (7 SHA-1 entries are in use). Tell me which client the warning's "Learn more" names.
+35. Branding URLs stay `https://pro-host.tech`, `/privacy`, `/terms` (authorised domains: pro-host.tech, prohost-f766f.web.app, prohost-f766f.firebaseapp.com). Function URLs (`cloudfunctions.net/legalDocumentPage/...`) work for Play and iOS but cannot be used for OAuth branding (Google-owned domain). Press "Verify branding" only when `pro-host.tech/privacy` returns 200. Verify `pro-host.tech` as a Domain property in Search Console (DNS TXT).
