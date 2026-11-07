@@ -86,3 +86,8 @@ Data layer in parallel: models, FirestoreService, repositories, shared util port
 6. M1 backend (Apple purchases, notifications, push, report/block, AASA) in parallel; Android gets the additive report/block UI.
 7. Store listing assets and App Review package (M7).
 
+
+## Progress log
+- **8 Nov 2026, S1 foundations done (CI green, 33 unit tests):** Material icon pipeline (178 icons generated from the Kotlin sources, `build_icons.py --check` in CI), Arabic label map generated from `LocalizedLabels.kt` (`build_labels.py --check`), Roboto + Manrope with Android's size/line-height/tracking, color roles incl. status/inverse, components ported from `CommonComponents.kt`/`ProHostBrandComponents.kt` with the real radii (cards 20 pt, buttons/fields 12 pt, badges 8 pt, dialogs 20 pt, permission dialog 28 pt, sheets 28 pt): ProCard, StatusBadge, ProSectionHeader, ProMetricTile, avatars, empty state, CustomButton variants, Material outlined InputField with floating label, ProHostAlertBanner, badges, top bars, PhotoCarouselArrow, shimmer, dialogs, bottom sheet, ChoiceCard/Grid, SelectField, floating bottom-nav pill, Material snackbar, brand images. SDKs linked: Firebase (Auth, Firestore, Functions, Messaging, Storage, AppCheck, Crashlytics, Analytics without IDFA), Google Maps SDK for iOS (needs the owner's key).
+- Android gaps noticed while porting (not changed): bottom-nav labels are English literals in Arabic too; `ProHostBottomSheet` scrim is controllable on Android but not on iOS (system dimming).
+- Next: S2 shell/router/session restore, S3 sign-in and registration screens, S4 data layer, S5 screenshot harness.
