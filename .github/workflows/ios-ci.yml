@@ -30,6 +30,7 @@ jobs:
             || { echo "::error::Localizable.xcstrings is stale: run python3 scripts/ios/strings_convert.py and commit"; exit 1; }
           python3 scripts/ios/check_strings_parity.py
           python3 scripts/ios/build_icons.py --check
+          python3 scripts/ios/build_labels.py --check
 
       - name: Select newest Xcode
         run: |

@@ -82,4 +82,25 @@ final class DesignTokensTests: XCTestCase {
             XCTAssertNotEqual(L(key), key, "\(key) missing from Localizable.xcstrings")
         }
     }
+
+    func testNavTabsMirrorAndroid() {
+        XCTAssertEqual(AppNavTab.searchMap.id, "search_map")
+        XCTAssertEqual(AppNavTab.manageListings.shortLabel, "Listings")
+        XCTAssertEqual(AppNavTab.ownerRentalRequests.shortLabel, "Requests")
+        XCTAssertEqual(AppNavTab.professionalRentals.shortLabel, "My Rentals")
+        XCTAssertEqual(BottomNav.collapsedInset, 44)
+    }
+
+    func testArabicLabelsAreGeneratedFromAndroid() {
+        XCTAssertEqual(LocalizedLabels.arabic["Beirut"], "بيروت")
+        XCTAssertEqual(LocalizedLabels.arabic["/mo"], "/شهر")
+        XCTAssertGreaterThan(LocalizedLabels.arabic.count, 80)
+        XCTAssertEqual(localizedLabel("Unknown label"), "Unknown label")
+    }
+
+    func testSnackbarOverlayTextKeysExist() {
+        for key in ["dismiss", "show_navigation", "hide_navigation", "notifications", "back"] {
+            XCTAssertNotEqual(L(key), key, key)
+        }
+    }
 }

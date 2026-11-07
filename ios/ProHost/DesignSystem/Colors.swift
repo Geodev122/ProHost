@@ -62,6 +62,11 @@ enum PH {
     static let errorContainer = Color(light: 0xFDE8E8, dark: 0x8C1D18)
     static let onErrorContainer = Color(light: 0x781212, dark: 0xFFDAD6)
 
+    // Inverse roles (snackbars)
+    static let inverseSurface = Color(light: 0x1E2638, dark: 0xFFFFFF)
+    static let inverseOnSurface = Color(light: 0xF0F4FC, dark: 0x1B242F)
+    static let inversePrimary = Color(light: 0x93B8E0, dark: 0x2B5A8C)
+
     // Semantic status colors (`ProHostColors.kt`)
     static let success = Color(light: 0x2E7D4F, dark: 0x7DD9A0)
     static let onSuccess = Color(light: 0xFFFFFF, dark: 0x0B2A17)
