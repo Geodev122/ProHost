@@ -80,12 +80,20 @@ jobs:
               except Exception:
                   pass
           path = os.environ["KEY"]
-          for c in cands:
+          def ok(c):
               open(path, "w").write(c)
               os.chmod(path, 0o600)
-              if subprocess.run(["openssl", "pkey", "-in", path, "-noout"], capture_output=True).returncode == 0:
+              return subprocess.run(["openssl", "pkey", "-check", "-in", path, "-noout"], capture_output=True).returncode == 0
+          for c in cands:
+              if ok(c):
                   print("ASC key parsed OK (" + shape + ")")
                   sys.exit(0)
+          if "BEGIN" not in raw and len(clean) == 201:
+              # One stray character (typical copy/paste slip): drop each position in turn; -check proves the key is consistent.
+              for i in range(len(clean)):
+                  if ok(pem(clean[:i] + clean[i + 1:])):
+                      print(f"ASC key repaired: removed one stray character at position {i} (fix the secret later). " + shape)
+                      sys.exit(0)
           os.remove(path)
           print("::error::ASC_KEY_P8 is not a usable .p8 key (" + shape + "). Paste the whole file text, BEGIN and END lines included.")
           sys.exit(1)
