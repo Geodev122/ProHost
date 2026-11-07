@@ -56,4 +56,30 @@ final class DesignTokensTests: XCTestCase {
     func testAutoMirroredIconsAreMarked() {
         XCTAssertTrue(PHIcon.allCases.contains { $0.autoMirrored })
     }
+
+    func testAvatarInitialsFollowAndroid() {
+        XCTAssertEqual(ProAvatar.initials(from: "Jane Doe"), "JD")
+        XCTAssertEqual(ProAvatar.initials(from: "  rana   haddad  khoury "), "RH")
+        XCTAssertEqual(ProAvatar.initials(from: "Layla"), "L")
+        XCTAssertEqual(ProAvatar.initials(from: ""), "PS")
+    }
+
+    func testBadgeTypesMapToTheSameStatusesAsAndroid() {
+        XCTAssertEqual(ProBadgeType.verifiedMember.status, .verified)
+        XCTAssertEqual(ProBadgeType.acceptedLocked.status, .occupied)
+        XCTAssertEqual(ProBadgeType.tierA.status, .gold)
+        XCTAssertEqual(ProBadgeType.customWarning.status, .pending)
+    }
+
+    func testBrandImagesAndLocalizedKeysResolve() {
+        for name in ["ic_prohost_logo_brand", "prohost_checkmark_logo", "prohost_brand_name", "prohost_login_lockup",
+                     "img_discovery_hero", "img_login_banner", "img_owner_hero", "auth_background"] {
+            XCTAssertNotNil(UIImage(named: name), name)
+        }
+        for key in ["available", "occupied_booked", "license_id_verified", "pending_approval", "maintenance_slot",
+                    "cancelled_unavailable", "super_admin", "premium_tier", "information", "prohost", "member", "host", "admin",
+                    "open_menu", "back", "next_photo", "previous_photo", "verified"] {
+            XCTAssertNotEqual(L(key), key, "\(key) missing from Localizable.xcstrings")
+        }
+    }
 }

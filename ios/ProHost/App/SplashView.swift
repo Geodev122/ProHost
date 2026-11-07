@@ -6,7 +6,7 @@ struct SplashView: View {
         ZStack {
             Color("AccentColor").ignoresSafeArea()
             VStack(spacing: 16) {
-                Image("Logo")
+                Image("prohost_checkmark_logo")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 160)

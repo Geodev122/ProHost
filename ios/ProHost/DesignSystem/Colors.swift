@@ -41,11 +41,6 @@ enum PH {
     static let tertiaryContainer = Color(light: 0xEAF7EE, dark: 0x1A3824)
     static let onTertiaryContainer = Color(light: 0x1B5E20, dark: 0xA3E8B8)
 
-    // Warning (pending)
-    static let warning = Color(light: 0xB35F00, dark: 0xFFB866)
-    static let warningContainer = Color(light: 0xFEF3E7, dark: 0x3A2A12)
-    static let onWarningContainer = Color(light: 0x8A4805, dark: 0xFFB866)
-
     // Surfaces
     static let background = Color(light: 0xFBFCFE, dark: 0x121824)
     static let onBackground = Color(light: 0x1B242F, dark: 0xF0F4FC)
@@ -67,6 +62,28 @@ enum PH {
     static let errorContainer = Color(light: 0xFDE8E8, dark: 0x8C1D18)
     static let onErrorContainer = Color(light: 0x781212, dark: 0xFFDAD6)
 
+    // Semantic status colors (`ProHostColors.kt`)
+    static let success = Color(light: 0x2E7D4F, dark: 0x7DD9A0)
+    static let onSuccess = Color(light: 0xFFFFFF, dark: 0x0B2A17)
+    static let successContainer = Color(light: 0xEAF7EE, dark: 0x1A3824)
+    static let onSuccessContainer = Color(light: 0x1B5E20, dark: 0xA3E8B8)
+    static let warning = Color(light: 0xB35F00, dark: 0xFFB866)
+    static let onWarning = Color(light: 0xFFFFFF, dark: 0x3A2000)
+    static let warningContainer = Color(light: 0xFEF3E7, dark: 0x3F2A0E)
+    static let onWarningContainer = Color(light: 0x8A4805, dark: 0xFFDDB3)
+    static let info = Color(light: 0x2B5A8C, dark: 0x93B8E0)
+    static let onInfo = Color(light: 0xFFFFFF, dark: 0x0E2236)
+    static let infoContainer = Color(light: 0xE5EDF6, dark: 0x1B3047)
+    static let onInfoContainer = Color(light: 0x173452, dark: 0xD3E3F5)
+    static let locked = Color(light: 0x384152, dark: 0x3B485E)
+    static let onLocked = Color(light: 0xFFFFFF, dark: 0xF0F4FC)
+    static let shimmerBase = Color(light: 0xE2E4E8, dark: 0x28344A)
+    static let shimmerHighlight = Color(light: 0xFFFFFF, dark: 0x3B485E)
+    static let brandHeaderStart = Color(light: 0x384152, dark: 0x1B3047)
+    static let brandHeaderEnd = Color(light: 0x2B5A8C, dark: 0x28344A)
+    static let onBrandHeader = Color(light: 0xFFFFFF, dark: 0xF0F4FC)
+
     // Third-party brand colors used on specific buttons only
     static let whatsAppGreen = Color(hex: 0x25D366)
+    static let whatsAppDarkGreen = Color(hex: 0x1E7E34)
 }

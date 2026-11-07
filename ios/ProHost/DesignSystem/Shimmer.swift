@@ -1,55 +1,35 @@
 import SwiftUI
 
-/// Loading placeholder shimmer. Static when Reduce Motion is on.
-struct Shimmer: ViewModifier {
+/// Loading card (`ShimmerLoadingCard`): 20 pt radius, gradient sweeping every 1.2 s; static with Reduce Motion.
+struct ShimmerLoadingCard: View {
+    var height: CGFloat = 80
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var phase: CGFloat = -1
 
-    func body(content: Content) -> some View {
-        content
-            .redacted(reason: .placeholder)
-            .overlay {
-                if !reduceMotion {
-                    GeometryReader { proxy in
-                        LinearGradient(
-                            colors: [.clear, PH.surface.opacity(0.55), .clear],
-                            startPoint: .leading, endPoint: .trailing
-                        )
-                        .frame(width: proxy.size.width * 0.6)
-                        .offset(x: proxy.size.width * phase)
-                    }
-                    .allowsHitTesting(false)
-                    .clipped()
-                }
-            }
-            .onAppear {
-                guard !reduceMotion else { return }
-                withAnimation(.linear(duration: 1.3).repeatForever(autoreverses: false)) { phase = 1.4 }
-            }
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: reduceMotion)) { context in
+            let t = context.date.timeIntervalSinceReferenceDate
+            let p = reduceMotion ? 0.5 : CGFloat((t.truncatingRemainder(dividingBy: 1.2)) / 1.2) * 2.0 - 0.5
+            RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
+                .fill(LinearGradient(
+                    colors: [PH.shimmerBase, PH.shimmerHighlight, PH.shimmerBase],
+                    startPoint: UnitPoint(x: p - 0.5, y: 0.5), endPoint: UnitPoint(x: p + 0.5, y: 0.5)
+                ))
+        }
+        .frame(height: height)
+        .frame(maxWidth: .infinity)
+        .accessibilityHidden(true)
     }
 }
 
-extension View {
-    func shimmering() -> some View { modifier(Shimmer()) }
-}
-
-/// First-load list placeholder (`ShimmerLoadingList` on Android): never a bare spinner.
+/// First-load list placeholder (`ShimmerLoadingList`): never a bare spinner.
 struct ShimmerLoadingList: View {
-    var rows = 4
+    var count = 4
+    var itemHeight: CGFloat = 120
 
     var body: some View {
-        VStack(spacing: Spacing.lg) {
-            ForEach(0..<rows, id: \.self) { _ in
-                ProCard(variant: .outlined) {
-                    RoundedRectangle(cornerRadius: Radius.sm, style: .continuous)
-                        .fill(PH.surfaceContainerHigh)
-                        .aspectRatio(16.0 / 9.0, contentMode: .fit)
-                    Text("Loading title placeholder").phText(PHType.titleMedium)
-                    Text("Loading details placeholder text").phText(PHType.bodyMedium, color: PH.onSurfaceVariant)
-                }
-                .shimmering()
-            }
+        VStack(spacing: Spacing.md) {
+            ForEach(0..<count, id: \.self) { _ in ShimmerLoadingCard(height: itemHeight) }
         }
-        .accessibilityHidden(true)
+        .padding(16)
     }
 }

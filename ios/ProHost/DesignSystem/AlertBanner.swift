@@ -1,60 +1,52 @@
 import SwiftUI
 
-enum AlertKind {
+enum ProHostAlertSeverity {
     case info, success, warning, error
+}
 
-    var icon: String {
-        switch self {
-        case .info: return "info.circle.fill"
-        case .success: return "checkmark.circle.fill"
-        case .warning: return "exclamationmark.triangle.fill"
-        case .error: return "xmark.octagon.fill"
+/// Inline notice (`ProHostAlertBanner` on Android): 12 pt radius, 1 pt border at 25% accent, accent icon, optional title and action.
+struct ProHostAlertBanner<Action: View>: View {
+    let message: String
+    var severity: ProHostAlertSeverity = .info
+    var title: String?
+    var icon: PHIcon?
+    var fullBleed = false
+    @ViewBuilder var action: () -> Action
+
+    private var tone: (container: Color, content: Color, accent: Color, icon: PHIcon) {
+        switch severity {
+        case .info: return (PH.infoContainer, PH.onInfoContainer, PH.info, .filledInfo)
+        case .success: return (PH.successContainer, PH.onSuccessContainer, PH.success, .filledCheckCircle)
+        case .warning: return (PH.warningContainer, PH.onWarningContainer, PH.warning, .filledWarningAmber)
+        case .error: return (PH.errorContainer, PH.onErrorContainer, PH.error, .filledErrorOutline)
         }
     }
 
-    var container: Color {
-        switch self {
-        case .info: return PH.primaryContainer
-        case .success: return PH.tertiaryContainer
-        case .warning: return PH.warningContainer
-        case .error: return PH.errorContainer
+    var body: some View {
+        let t = tone
+        let shape = RoundedRectangle(cornerRadius: fullBleed ? 0 : Radius.sm, style: .continuous)
+        HStack(spacing: Spacing.md) {
+            PHIconView(icon: icon ?? t.icon, size: 20, tint: t.accent)
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                if let title, !title.isEmpty {
+                    Text(title).phText(PHType.titleSmall, color: t.content)
+                }
+                Text(message).phText(PHType.bodySmall, color: t.content)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            action()
         }
-    }
-
-    var content: Color {
-        switch self {
-        case .info: return PH.onPrimaryContainer
-        case .success: return PH.onTertiaryContainer
-        case .warning: return PH.onWarningContainer
-        case .error: return PH.onErrorContainer
-        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.md)
+        .frame(maxWidth: .infinity)
+        .background(t.container, in: shape)
+        .overlay { if !fullBleed { shape.stroke(t.accent.opacity(0.25), lineWidth: 1) } }
+        .accessibilityElement(children: .combine)
     }
 }
 
-/// Inline notice (`ProHostAlertBanner` on Android).
-struct AlertBanner: View {
-    var kind: AlertKind = .info
-    let message: String
-    var actionTitle: String?
-    var action: (() -> Void)?
-
-    var body: some View {
-        HStack(alignment: .top, spacing: Spacing.md) {
-            Image(systemName: kind.icon)
-                .foregroundStyle(kind.content)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text(message).phText(PHType.bodyMedium, color: kind.content)
-                if let actionTitle, let action {
-                    Button(action: action) {
-                        Text(actionTitle).phText(PHType.labelLarge, color: kind.content).underline()
-                    }
-                }
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(Spacing.lg)
-        .background(kind.container, in: RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
-        .accessibilityElement(children: .combine)
+extension ProHostAlertBanner where Action == EmptyView {
+    init(message: String, severity: ProHostAlertSeverity = .info, title: String? = nil, icon: PHIcon? = nil, fullBleed: Bool = false) {
+        self.init(message: message, severity: severity, title: title, icon: icon, fullBleed: fullBleed) { EmptyView() }
     }
 }

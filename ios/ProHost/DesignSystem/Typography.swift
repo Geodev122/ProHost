@@ -31,6 +31,11 @@ struct PHTextStyle {
         Font.custom(fontName, size: size, relativeTo: relativeTo)
     }
 
+    /// Same style at another weight (Android's `fontWeight =` override on a typography style).
+    func weighted(_ w: Font.Weight) -> PHTextStyle {
+        PHTextStyle(size: size, lineHeight: lineHeight, weight: w, manrope: manrope, tracking: tracking, relativeTo: relativeTo)
+    }
+
     /// Extra space between lines so the line box equals Android's `lineHeight`.
     var lineSpacing: CGFloat {
         let natural = UIFont(name: fontName, size: size)?.lineHeight ?? size * 1.2
