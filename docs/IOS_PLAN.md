@@ -236,3 +236,9 @@ with Apple key (uploaded by you). I never see the values; I only reference the s
    until you approve (functions deploy goes through CI on merge to `main`).
 
 > Note 7 Nov 2026: the SPM product `FirebaseAnalyticsWithoutAdIdSupport` does not exist in firebase-ios-sdk 12.x; analytics is deferred to M6 (opt-in, no IDFA): pick the right product then (check the package manifest from a macOS runner step).
+
+## State snapshot 7 Nov 2026 (19:00 UTC, from `ios-inspect.yml`, read-only)
+- App Store Connect app id `6831983164` (ProHost, SKU prohost-ios). Bundle ID resource `88L988UK3A` (UNIVERSAL) with capabilities APPLE_ID_AUTH, APP_ATTEST, IN_APP_PURCHASE, PUSH_NOTIFICATIONS. **Missing: ASSOCIATED_DOMAINS** (needed for Universal Links; enable with the Admin key when the AASA file is ready).
+- TestFlight build 1.0.0 (build 9) uploaded and `processing=VALID`. No devices, no profiles; one DEVELOPMENT certificate created by Xcode cloud signing.
+- Built so far (CI green, 24 unit tests): `ios/` skeleton, string catalog from Android (1,235 keys, en+ar, parity checked in CI), design tokens and base components (Manrope registered), Firebase SPM (Auth, Firestore, Functions, Messaging, Storage, AppCheck), `ProHostAppDelegate` (App Check: debug provider in debug, App Attest in release), `FunctionsClient`, `AuthService` (email + Apple), ports of PasswordRules, AuthError, AuthNonce, profile completeness.
+- Next: staged sign-in UI, Google sign-in (needs GoogleSignIn-iOS nonce API check), entitlements spike (does unsigned-archive + cloud-signed export keep Sign in with Apple / Push entitlements? print `codesign -d --entitlements` from the exported IPA), role-tab shell.

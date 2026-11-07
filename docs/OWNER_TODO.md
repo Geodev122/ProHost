@@ -85,3 +85,8 @@ Last updated: 7 Nov 2026
 ### iOS TestFlight status (7 Nov 2026, 18:12 UTC)
 - Secrets now found (Actions secrets); key parses; unsigned archive SUCCEEDS on the runner. Export/upload fails with "Cloud signing permission error": the App Manager API key cannot create the cloud-managed distribution certificate/profile.
 - Owner step 44: create a NEW App Store Connect API key with role **Admin** (Users and Access > Integrations > App Store Connect API > "+"), then update GitHub Actions secrets `ASC_KEY_ID` (new Key ID) and `ASC_KEY_P8` (new key text, pasted in GitHub only). Issuer ID and Team ID stay the same. Tell me, I rerun (`ios-beta/<n>` branch push). The old key may stay or be revoked: owner's choice.
+
+### iOS status 7 Nov 2026 (19:00 UTC) - items 42-44 are DONE (secrets, Admin key, first upload)
+- TestFlight build 1.0.0 (9) is VALID in App Store Connect (visible under TestFlight once you have a device to install on).
+- Still needed from you for sign-in: Firebase console > Authentication > Sign-in method > enable **Apple**; upload the **APNs key** (Cloud Messaging) and register **App Attest** (App Check). The Sign in with Apple key (.p8) and APNs key (.p8) come from developer.apple.com > Keys; paste them only into the Firebase console, never in chat.
+- Borrowed iPhone (item 43) still needed from the first interactive build.
