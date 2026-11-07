@@ -18,6 +18,9 @@ packages:
   Firebase:
     url: https://github.com/firebase/firebase-ios-sdk
     from: "12.0.0"
+  GoogleMaps:
+    url: https://github.com/googlemaps/ios-maps-sdk
+    from: "9.0.0"
 targets:
   ProHost:
     type: application
@@ -49,6 +52,19 @@ targets:
         product: FirebaseStorage
       - package: Firebase
         product: FirebaseAppCheck
+      - package: Firebase
+        product: FirebaseCrashlytics
+      - package: GoogleMaps
+        product: GoogleMaps
+    postBuildScripts:
+      - name: Upload dSYMs to Crashlytics
+        basedOnDependencyAnalysis: false
+        script: |
+          RUN="${BUILD_DIR%Build/*}SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run"
+          if [ -x "$RUN" ]; then "$RUN"; else echo "Crashlytics run script not found at $RUN"; fi
+        inputFiles:
+          - ${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${TARGET_NAME}
+          - $(SRCROOT)/$(BUILT_PRODUCTS_DIR)/$(INFOPLIST_PATH)
     entitlements:
       path: ProHost/ProHost.entitlements
       properties:

@@ -46,6 +46,14 @@ jobs:
         working-directory: ios
         run: xcodegen generate
 
+      - name: List analytics products of the resolved Firebase package (diagnostic)
+        working-directory: ios
+        run: |
+          xcodebuild -resolvePackageDependencies -project ProHost.xcodeproj >/dev/null 2>&1 || true
+          PKG=$(find ~/Library/Developer/Xcode/DerivedData -path '*SourcePackages/checkouts/firebase-ios-sdk/Package.swift' 2>/dev/null | head -1)
+          echo "package: $PKG"
+          grep -nE '\.library\(name: "(FirebaseAnalytics|FirebaseCrashlytics)[A-Za-z]*"|name: "FirebaseAnalytics[A-Za-z]*"' "$PKG" | head -12 || true
+
       - name: Build and test (simulator, unsigned)
         working-directory: ios
         run: |
