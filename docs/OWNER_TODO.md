@@ -90,3 +90,7 @@ Last updated: 7 Nov 2026
 - TestFlight build 1.0.0 (9) is VALID in App Store Connect (visible under TestFlight once you have a device to install on).
 - Still needed from you for sign-in: Firebase console > Authentication > Sign-in method > enable **Apple**; upload the **APNs key** (Cloud Messaging) and register **App Attest** (App Check). The Sign in with Apple key (.p8) and APNs key (.p8) come from developer.apple.com > Keys; paste them only into the Firebase console, never in chat.
 - Borrowed iPhone (item 43) still needed from the first interactive build.
+
+### Consolidated guide (7 Nov 2026, night)
+- Everything open is now explained step by step in `docs/OWNER_GUIDE.md` (A iOS, B Google/site, C housekeeping). Blockers first: A1 (Firebase Apple provider, APNs key, App Attest), A2 (Google Maps iOS key), A3 (borrowed iPhone + TestFlight group).
+- Decisions 7 Nov: Google Maps SDK for iOS; no Admin Console on iOS. Old item 3 (appspot key) is superseded: the key was disabled on 7 Nov by "GO IMPLEMENT".

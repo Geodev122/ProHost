@@ -80,3 +80,6 @@ Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, ot
 
 ## 7 Nov 2026 - iOS TestFlight pipeline
 - Workflow hardened: key text accepted as PEM/body/base64 and validated (`openssl pkey -check`); archive is unsigned (no registered device needed), export signs for distribution via the API key. Result: archive OK, export blocked by "Cloud signing permission error" (needs an Admin-role key). Runs ios-beta/1..8.
+
+## 7 Nov 2026 (night) - iOS readiness audit and owner guide
+- Added `docs/IOS_READINESS.md` (audit: iOS is ~3% of the work by size; backend/App Review gaps; exact-parity strategy and screen port order) and `docs/OWNER_GUIDE.md` (click-by-click owner steps). Decisions: Google Maps iOS SDK, no Admin on iOS.

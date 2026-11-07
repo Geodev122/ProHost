@@ -242,3 +242,8 @@ with Apple key (uploaded by you). I never see the values; I only reference the s
 - TestFlight build 1.0.0 (build 9) uploaded and `processing=VALID`. No devices, no profiles; one DEVELOPMENT certificate created by Xcode cloud signing.
 - Built so far (CI green, 24 unit tests): `ios/` skeleton, string catalog from Android (1,235 keys, en+ar, parity checked in CI), design tokens and base components (Manrope registered), Firebase SPM (Auth, Firestore, Functions, Messaging, Storage, AppCheck), `ProHostAppDelegate` (App Check: debug provider in debug, App Attest in release), `FunctionsClient`, `AuthService` (email + Apple), ports of PasswordRules, AuthError, AuthNonce, profile completeness.
 - Next: staged sign-in UI, Google sign-in (needs GoogleSignIn-iOS nonce API check), entitlements spike (does unsigned-archive + cloud-signed export keep Sign in with Apple / Push entitlements? print `codesign -d --entitlements` from the exported IPA), role-tab shell.
+
+## Decisions 7 Nov 2026 (night) - override earlier notes
+- Maps: **Google Maps SDK for iOS** (not MapKit) so the map, markers and clusters match Android; needs an iOS-restricted key (owner guide A2).
+- Admin Console is **not** built on iOS (Android/web only).
+- "Exactly the same front end": Material Icons + Roboto bundled, M3 components rebuilt in SwiftUI, screens ported from the Compose source with the same names and string keys, parity proven with side-by-side Android | iOS screenshot sheets. Audit and port order: `docs/IOS_READINESS.md`.
