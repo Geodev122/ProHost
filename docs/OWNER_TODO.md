@@ -81,3 +81,7 @@ Last updated: 7 Nov 2026
 ### iOS (7 Nov 2026, later)
 - `GoogleService-Info.plist` received and committed at `ios/ProHost/GoogleService-Info.plist` (config file, same status as `google-services.json`; Firebase iOS app id 1:646730915838:ios:b816bc76af193424c8eaaf, analytics off until consent).
 - Owner decision: keep ASC key HF7C34HW38 (not revoked) even though its .p8 was attached in chat. Risk accepted by the owner; revisit at the first key rotation. Still never attach or paste key files again.
+
+### iOS TestFlight status (7 Nov 2026, 18:12 UTC)
+- Secrets now found (Actions secrets); key parses; unsigned archive SUCCEEDS on the runner. Export/upload fails with "Cloud signing permission error": the App Manager API key cannot create the cloud-managed distribution certificate/profile.
+- Owner step 44: create a NEW App Store Connect API key with role **Admin** (Users and Access > Integrations > App Store Connect API > "+"), then update GitHub Actions secrets `ASC_KEY_ID` (new Key ID) and `ASC_KEY_P8` (new key text, pasted in GitHub only). Issuer ID and Team ID stay the same. Tell me, I rerun (`ios-beta/<n>` branch push). The old key may stay or be revoked: owner's choice.

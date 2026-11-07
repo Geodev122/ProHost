@@ -77,3 +77,6 @@ Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, ot
 ## 7 Nov 2026 - iOS: first TestFlight attempt
 - Owner attached the ASC `.p8` in chat (key id HF7C34HW38): treat as exposed, rotate after the first successful upload (new key straight into GitHub secrets). Sandbox proxy blocks api.appstoreconnect.apple.com (403), so Apple state is checked from the macOS runner only.
 - ios-testflight.yml gained a branch trigger `ios-beta/**` (workflow_dispatch needs the file on main; the git proxy refuses tag pushes); branch `ios-beta/1` pushed to run it.
+
+## 7 Nov 2026 - iOS TestFlight pipeline
+- Workflow hardened: key text accepted as PEM/body/base64 and validated (`openssl pkey -check`); archive is unsigned (no registered device needed), export signs for distribution via the API key. Result: archive OK, export blocked by "Cloud signing permission error" (needs an Admin-role key). Runs ios-beta/1..8.
