@@ -64,3 +64,6 @@ Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, ot
 
 ## 7 Nov 2026 - Auth Platform branding review
 - Screenshot values match the repo (home, /privacy, /terms, 3 authorised domains). Interim working legal URLs are the `legalDocumentPage` function URLs (Play/iOS only). OAuth warning is client-settings only (no code change). Items 34, 35 in OWNER_TODO.
+
+## 7 Nov 2026 - branding verification fix prepared
+- Google's six branding findings all trace to pro-host.tech not being served + privacy URL on cloudfunctions.net. Added `public/_redirects`, `public/_headers` and a DEPLOYMENT.md note for a Cloudflare Pages fallback. Owner steps 36, 37.

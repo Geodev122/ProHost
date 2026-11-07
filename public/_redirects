@@ -1,0 +1,15 @@
+# Cloudflare Pages copy of the firebase.json redirects (Pages serves /privacy -> privacy.html etc. by itself).
+# Pages cannot proxy to Cloud Functions: /sitemap.xml, /listing/**, /unsubscribe and the webhooks only work on Firebase Hosting.
+/app /get 302
+/download /get 302
+/ig /get?utm_source=instagram&utm_medium=social&utm_campaign=launch 302
+/fb /get?utm_source=facebook&utm_medium=social&utm_campaign=launch 302
+/wa /get?utm_source=whatsapp&utm_medium=social&utm_campaign=launch 302
+/li /get?utm_source=linkedin&utm_medium=social&utm_campaign=launch 302
+/qr /get?utm_source=qr&utm_medium=print&utm_campaign=launch 302
+/clinic-room-rental-lebanon /clinic-room-rental 301
+/therapy-room-rental-beirut /therapy-room-rental 301
+/meeting-room-rental-beirut /meeting-room-rental 301
+/training-room-rental-lebanon /training-room-rental 301
+/studio-rental-beirut /studio-rental 301
+/office-space-by-the-hour-lebanon /office-space-by-the-hour 301

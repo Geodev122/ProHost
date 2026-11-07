@@ -1,0 +1,16 @@
+/.well-known/assetlinks.json
+  Content-Type: application/json
+/img/*
+  Cache-Control: public, max-age=604800
+/media/*
+  Cache-Control: public, max-age=604800
+/*.css
+  Cache-Control: public, max-age=86400
+/get
+  X-Robots-Tag: noindex
+/admin
+  X-Robots-Tag: noindex
+/emaillink
+  X-Robots-Tag: noindex
+/redeem
+  X-Robots-Tag: noindex

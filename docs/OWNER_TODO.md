@@ -53,3 +53,7 @@ Last updated: 7 Nov 2026
 ### Auth Platform branding (7 Nov 2026)
 34. OAuth warning "not configured to use secure OAuth flows": Google Auth Platform > Clients. Each Android client: "Enable custom URI scheme" OFF. Web client: remove any `http://` / `localhost` origins or redirects (keep the two `/__/auth/handler` https entries). Do not delete any client (7 SHA-1 entries are in use). Tell me which client the warning's "Learn more" names.
 35. Branding URLs stay `https://pro-host.tech`, `/privacy`, `/terms` (authorised domains: pro-host.tech, prohost-f766f.web.app, prohost-f766f.firebaseapp.com). Function URLs (`cloudfunctions.net/legalDocumentPage/...`) work for Play and iOS but cannot be used for OAuth branding (Google-owned domain). Press "Verify branding" only when `pro-host.tech/privacy` returns 200. Verify `pro-host.tech` as a Domain property in Search Console (DNS TXT).
+
+### Branding verification fix (7 Nov 2026)
+36. Serve pro-host.tech from Cloudflare Pages (steps: Cloudflare Pages > Connect to Git > repo Geodev122/ProHost, branch main, no build, output dir `public`; add custom domain pro-host.tech). DNS is at Hostinger: add the site to Cloudflare, check MX/SPF/DKIM/google-site-verification are imported, then change nameservers at Hostinger to Cloudflare's two. Verify admin@pro-host.tech mail still arrives.
+37. Then Auth Platform > Branding: privacy `https://pro-host.tech/privacy` (not the cloudfunctions.net URL), Save, Verify branding. Add the Search Console Domain property.

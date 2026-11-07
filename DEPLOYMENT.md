@@ -114,3 +114,10 @@ gcloud projects add-iam-policy-binding prohost-f766f \
   --member="serviceAccount:<client_email>" \
   --role="roles/firebaseextensions.viewer"
 ```
+
+## Cloudflare Pages fallback (Nov 2026)
+While Firebase Hosting is blocked by Google's policy restriction, `pro-host.tech` can be served from Cloudflare Pages
+(Git-connected to this repo, build command empty, output directory `public`). `public/_redirects` and `public/_headers`
+copy the static parts of `firebase.json`. Not available there (Pages cannot proxy to functions): `/sitemap.xml`,
+`/listing/**`, `/unsubscribe`, `/ig-webhook`, `/wa-webhook`. Functions keep running at their cloudfunctions.net URLs;
+the site's forms already call those directly.
