@@ -37,3 +37,9 @@ Last updated: 7 Nov 2026
 - 4 Nov: invited run-billing and run-ig in Play Console; shared the "ProHost IG Automations" Sheet with run-ig.
 - 4 Nov 20:37Z: billing self-test pressed (lastSelfTestAt recorded): purchase notifications reach the function under run-billing.
 - 5 Nov: duplicate SPF record removed; admin@pro-host.tech confirmed receiving mail; meta-ads-play key recognised (kept).
+
+### Update 7 Nov 2026
+- Item 27 (appspot key): DONE, key disabled. Watch alerts 7 days, then approve deletion. If any tool breaks, re-enable with `keys enable`.
+- NEW 28: review drafts in `docs/drafts/` and decide whether to send abuse reports / appeal addendum (nothing sent).
+- NEW 29: unsuspend/delete exploreprohost99 only if you recognise it (Auth console).
+- Later: A3 audit `onAuthUserDeleted` then narrow appspot SA Editor; admin batch needs your "go admin".

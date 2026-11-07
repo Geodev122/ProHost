@@ -45,3 +45,10 @@ Never put secrets here. Current state lives in `docs/GCP_IAM.md` ("CURRENT STATE
 
 ## Not done yet
 Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, other admin callables); Maps key restrictions; secret rotation; budget alert; uptime checks; App Check enforcement; final cleanup of temporary access (see OWNER_TODO).
+
+## 7 Nov 2026 - GO IMPLEMENT (package A, B, D; C drafts only)
+- A1 appspot key e5b6952d disabled (undo: `gcloud iam service-accounts keys enable`; delete after 7 quiet days).
+- A2 `aiplatform.googleapis.com` disabled (no dependents blocked).
+- B Auth user kuBhi1EQ... (exploreprohost99@gmail.com): disabled, sessions revoked (validSince), claim `suspended:true`, profile `isSuspended/flaggedSpam/flaggedReason`, audit_log entry. Data kept. IP block impossible (no sign-up IP recorded).
+- D alert policies `AI-API-enabled-attempt`, `Disabled-appspot-key-used` (email channel).
+- C drafts in `docs/drafts/` - NOT sent. Appeal NOT submitted (owner instruction).
