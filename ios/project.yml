@@ -44,8 +44,6 @@ targets:
         product: FirebaseStorage
       - package: Firebase
         product: FirebaseAppCheck
-      - package: Firebase
-        product: FirebaseAnalyticsWithoutAdIdSupport
     info:
       path: ProHost/Info.plist
       properties:

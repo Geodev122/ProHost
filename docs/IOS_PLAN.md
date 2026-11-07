@@ -234,3 +234,5 @@ with Apple key (uploaded by you). I never see the values; I only reference the s
 1. You answer section A items 1-5 and 10. 2. I create the `ios/` skeleton + CI (M0) and the M1 backend branch.
 3. I update `docs/IOS_PLAN.md`, `docs/OWNER_TODO.md` and `docs/OPS_LOG.md`, commit on a branch, no deploy of functions
    until you approve (functions deploy goes through CI on merge to `main`).
+
+> Note 7 Nov 2026: the SPM product `FirebaseAnalyticsWithoutAdIdSupport` does not exist in firebase-ios-sdk 12.x; analytics is deferred to M6 (opt-in, no IDFA): pick the right product then (check the package manifest from a macOS runner step).
