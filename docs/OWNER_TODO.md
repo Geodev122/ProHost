@@ -77,3 +77,7 @@ Last updated: 7 Nov 2026
 - The `.p8` (key HF7C34HW38) was attached in chat, so it is exposed: in App Store Connect > Users and Access > Integrations > App Store Connect API, **revoke HF7C34HW38 and create a new key (App Manager)**, then put the NEW Key ID, Issuer ID, Team ID and the new key's text into the four GitHub secrets yourself. Never attach or paste a .p8 again.
 - Then re-run: push any commit to a branch named `ios-beta/<n>` (tell me) or, once merged to main, Actions > iOS TestFlight > Run workflow.
 - Upload `GoogleService-Info.plist` (Firebase iOS app is registered; the plist is not secret) as a chat attachment.
+
+### iOS (7 Nov 2026, later)
+- `GoogleService-Info.plist` received and committed at `ios/ProHost/GoogleService-Info.plist` (config file, same status as `google-services.json`; Firebase iOS app id 1:646730915838:ios:b816bc76af193424c8eaaf, analytics off until consent).
+- Owner decision: keep ASC key HF7C34HW38 (not revoked) even though its .p8 was attached in chat. Risk accepted by the owner; revisit at the first key rotation. Still never attach or paste key files again.
