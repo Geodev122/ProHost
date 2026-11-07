@@ -83,3 +83,6 @@ Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, ot
 
 ## 7 Nov 2026 (night) - iOS readiness audit and owner guide
 - Added `docs/IOS_READINESS.md` (audit: iOS is ~3% of the work by size; backend/App Review gaps; exact-parity strategy and screen port order) and `docs/OWNER_GUIDE.md` (click-by-click owner steps). Decisions: Google Maps iOS SDK, no Admin on iOS.
+
+## 7 Nov 2026 (late) - iOS signing fixed, build 13 uploaded
+- Unsigned-archive flow dropped: entitlements were missing and embedded frameworks failed validation. New flow: temporary distribution certificate + App Store profile via the ASC Admin API key, manual signing for Release of the app target, upload, cleanup (deleted profile and certificate, HTTP 204). Fixed the build number (Info.plist now follows CURRENT_PROJECT_VERSION). Signed entitlements verified: Sign in with Apple, push, App Attest. Runs ios-beta/10-12.

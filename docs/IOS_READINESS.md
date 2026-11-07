@@ -35,9 +35,11 @@ iOS today: **1,066 Swift lines, roughly 3% of the work by size**. It is a verifi
   Apple sign-in token revocation on delete (client + Firebase Apple provider key), apple-app-site-association file, `/get` iOS redirect.
 - Apple account (read from the API on 7 Nov): app record 6831983164; bundle ID has Sign in with Apple, Push, App Attest, In-App
   Purchase; **Associated Domains missing**; no devices or profiles; TestFlight build valid.
-- Open technical risk: the pipeline archives unsigned and signs at export. Capabilities (Sign in with Apple, Push) need entitlements in
-  the signature; verify by printing `codesign -d --entitlements` from the exported IPA; fall back to creating a distribution
-  certificate and App Store profile through the Admin API key and archiving with manual signing.
+- **Signing risk RESOLVED (7 Nov, run ios-beta/12):** an unsigned archive loses the entitlements and Firebase's embedded frameworks fail Apple's
+  signature check. The pipeline now creates a temporary Apple Distribution certificate and App Store profile through the Admin API key
+  (`scripts/ios/asc_signing.py setup`), archives with manual signing (Release config of the app target), exports, uploads, and always deletes
+  the certificate and profile again (`cleanup`). The signed app carries `com.apple.developer.applesignin`, `aps-environment=production` and
+  `com.apple.developer.devicecheck.appattest-environment=production` (printed from the exported IPA). Build 1.0.0 (13) uploaded.
 
 ### App Store submission readiness (Apple rules)
 | Rule | Need | State |
