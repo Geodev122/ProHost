@@ -52,3 +52,8 @@ Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, ot
 - B Auth user kuBhi1EQ... (exploreprohost99@gmail.com): disabled, sessions revoked (validSince), claim `suspended:true`, profile `isSuspended/flaggedSpam/flaggedReason`, audit_log entry. Data kept. IP block impossible (no sign-up IP recorded).
 - D alert policies `AI-API-enabled-attempt`, `Disabled-appspot-key-used` (email channel).
 - C drafts in `docs/drafts/` - NOT sent. Appeal NOT submitted (owner instruction).
+
+## 7 Nov 2026 - avatar/persona audit
+- Deployed site (`public/`): no avatar or synthetic-person media (homepage/story videos are UI-only, frames checked).
+- Removed repo leftovers: `marketing/source/persona.js` (cartoon avatar template), `marketing/audio/voice1/*.wav` (synthetic voice lines); renamed cover `11-office-sourcing-presenter.png` to `11-office-sourcing.png` (plain text card).
+- Not checkable from the repo: earlier Instagram posts; owner to confirm in the app.
