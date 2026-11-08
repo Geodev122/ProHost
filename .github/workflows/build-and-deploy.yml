@@ -79,6 +79,10 @@ jobs:
           npm run build
           npm test
 
+      # Kotlin and TypeScript share test vectors (tests/vectors): fail if the committed files no longer match the server code.
+      - name: Shared test vectors are in sync
+        run: node scripts/migration/export_vectors.js --check
+
   rules-tests:
     name: Security Rules Tests (emulator)
     runs-on: ubuntu-latest

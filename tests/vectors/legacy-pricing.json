@@ -1,0 +1,273 @@
+{
+  "description": "Mirrors RentalPricingConfig.fromLegacyFormula (Kotlin) and functions/src/listings/legacyPricing.ts. `expected` is a normalised digest of the structured pricing both sides must produce. formula=null is the 'missing formula' case (default MONTHLY, rate 0).",
+  "cases": [
+    {
+      "name": "SHIFT: only MORNING offered on its days",
+      "formula": {
+        "type": "SHIFT",
+        "rateUsd": 350,
+        "daysOfWeek": [
+          "Mon",
+          "Wed"
+        ],
+        "startHour": "08:00",
+        "endHour": "14:00"
+      },
+      "expected": {
+        "strategyType": "SHIFT_BASED",
+        "shifts": [
+          [
+            "MORNING",
+            false,
+            350,
+            8,
+            14
+          ],
+          [
+            "MID",
+            true,
+            350,
+            8,
+            14
+          ],
+          [
+            "EVENING",
+            true,
+            350,
+            8,
+            14
+          ],
+          [
+            "NIGHT",
+            true,
+            350,
+            8,
+            14
+          ]
+        ],
+        "distribution": {
+          "Mon": [
+            "MORNING"
+          ],
+          "Wed": [
+            "MORNING"
+          ]
+        }
+      }
+    },
+    {
+      "name": "HOURLY: one cell per day and hour in [start, end)",
+      "formula": {
+        "type": "HOURLY",
+        "rateUsd": 40,
+        "daysOfWeek": [
+          "Tue"
+        ],
+        "startHour": "09:00",
+        "endHour": "12:00"
+      },
+      "expected": {
+        "strategyType": "HOURLY",
+        "cellPrices": {
+          "Tue|10": 40,
+          "Tue|11": 40,
+          "Tue|9": 40
+        }
+      }
+    },
+    {
+      "name": "HOURLY: two days",
+      "formula": {
+        "type": "HOURLY",
+        "rateUsd": 25.5,
+        "daysOfWeek": [
+          "Mon",
+          "Fri"
+        ],
+        "startHour": "10:00",
+        "endHour": "12:00"
+      },
+      "expected": {
+        "strategyType": "HOURLY",
+        "cellPrices": {
+          "Fri|10": 25.5,
+          "Fri|11": 25.5,
+          "Mon|10": 25.5,
+          "Mon|11": 25.5
+        }
+      }
+    },
+    {
+      "name": "HOURLY: start >= end gives no cells",
+      "formula": {
+        "type": "HOURLY",
+        "rateUsd": 40,
+        "daysOfWeek": [
+          "Tue"
+        ],
+        "startHour": "12:00",
+        "endHour": "09:00"
+      },
+      "expected": {
+        "strategyType": "HOURLY",
+        "cellPrices": {}
+      }
+    },
+    {
+      "name": "DAY_PER_WEEK: custom hours",
+      "formula": {
+        "type": "DAY_PER_WEEK",
+        "rateUsd": 600,
+        "daysOfWeek": [
+          "Tue",
+          "Thu"
+        ],
+        "startHour": "08:00",
+        "endHour": "18:00"
+      },
+      "expected": {
+        "strategyType": "DAY_BASED",
+        "useFacilityHours": false,
+        "customStartHour": 8,
+        "customEndHour": 18,
+        "distribution": {
+          "Thu": 600,
+          "Tue": 600
+        }
+      }
+    },
+    {
+      "name": "FULL_MONTH: monthly rate",
+      "formula": {
+        "type": "FULL_MONTH",
+        "rateUsd": 450,
+        "daysOfWeek": [
+          "Mon"
+        ],
+        "startHour": "08:00",
+        "endHour": "18:00"
+      },
+      "expected": {
+        "strategyType": "MONTHLY",
+        "rateUsd": 450
+      }
+    },
+    {
+      "name": "hour without minutes",
+      "formula": {
+        "type": "HOURLY",
+        "rateUsd": 10,
+        "daysOfWeek": [
+          "Mon"
+        ],
+        "startHour": "9",
+        "endHour": "11"
+      },
+      "expected": {
+        "strategyType": "HOURLY",
+        "cellPrices": {
+          "Mon|10": 10,
+          "Mon|9": 10
+        }
+      }
+    },
+    {
+      "name": "hour with minutes is truncated",
+      "formula": {
+        "type": "HOURLY",
+        "rateUsd": 10,
+        "daysOfWeek": [
+          "Mon"
+        ],
+        "startHour": "9:30",
+        "endHour": "11:45"
+      },
+      "expected": {
+        "strategyType": "HOURLY",
+        "cellPrices": {
+          "Mon|10": 10,
+          "Mon|9": 10
+        }
+      }
+    },
+    {
+      "name": "unparseable hours fall back to 8 and 18",
+      "formula": {
+        "type": "HOURLY",
+        "rateUsd": 10,
+        "daysOfWeek": [
+          "Mon"
+        ],
+        "startHour": "abc",
+        "endHour": ""
+      },
+      "expected": {
+        "strategyType": "HOURLY",
+        "cellPrices": {
+          "Mon|10": 10,
+          "Mon|11": 10,
+          "Mon|12": 10,
+          "Mon|13": 10,
+          "Mon|14": 10,
+          "Mon|15": 10,
+          "Mon|16": 10,
+          "Mon|17": 10,
+          "Mon|8": 10,
+          "Mon|9": 10
+        }
+      }
+    },
+    {
+      "name": "no days offered",
+      "formula": {
+        "type": "SHIFT",
+        "rateUsd": 100,
+        "daysOfWeek": [],
+        "startHour": "08:00",
+        "endHour": "12:00"
+      },
+      "expected": {
+        "strategyType": "SHIFT_BASED",
+        "shifts": [
+          [
+            "MORNING",
+            false,
+            100,
+            8,
+            12
+          ],
+          [
+            "MID",
+            true,
+            100,
+            8,
+            12
+          ],
+          [
+            "EVENING",
+            true,
+            100,
+            8,
+            12
+          ],
+          [
+            "NIGHT",
+            true,
+            100,
+            8,
+            12
+          ]
+        ],
+        "distribution": {}
+      }
+    },
+    {
+      "name": "missing formula is the default monthly config",
+      "formula": null,
+      "expected": {
+        "strategyType": "MONTHLY",
+        "rateUsd": 0
+      }
+    }
+  ]
+}

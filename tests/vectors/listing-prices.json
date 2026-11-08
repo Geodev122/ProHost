@@ -1,0 +1,309 @@
+{
+  "description": "Mirrors SpaceCalculationUtils.lowestPriceFor / findLowestPriceForSubdivision (Kotlin) and functions/src/listings/listingPrices.ts. unit: hour|shift|day|month|person ↔ /hr|/shift|/day|/mo|/person. Unpriced rooms are not vectored: TS returns null, Kotlin returns 0.0 (known representation difference).",
+  "lowestPriceFor": [
+    {
+      "name": "hourly: lowest positive cell",
+      "pricing": {
+        "strategyType": "HOURLY",
+        "hourly": {
+          "cellPrices": {
+            "Mon|9": 25,
+            "Mon|10": 0,
+            "Tue|9": 20
+          }
+        }
+      },
+      "expected": {
+        "unit": "hour",
+        "amount": 20
+      }
+    },
+    {
+      "name": "hourly: no cells is unpriced",
+      "pricing": {
+        "strategyType": "HOURLY",
+        "hourly": {
+          "cellPrices": {}
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "hourly: all zero is unpriced",
+      "pricing": {
+        "strategyType": "HOURLY",
+        "hourly": {
+          "cellPrices": {
+            "Mon|9": 0
+          }
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "shift: lowest positive shift",
+      "pricing": {
+        "strategyType": "SHIFT_BASED",
+        "shiftBased": {
+          "shifts": [
+            {
+              "name": "MORNING",
+              "price": 60
+            },
+            {
+              "name": "EVENING",
+              "price": 45
+            },
+            {
+              "name": "NIGHT",
+              "price": 0
+            }
+          ],
+          "distribution": {}
+        }
+      },
+      "expected": {
+        "unit": "shift",
+        "amount": 45
+      }
+    },
+    {
+      "name": "shift: none priced",
+      "pricing": {
+        "strategyType": "SHIFT_BASED",
+        "shiftBased": {
+          "shifts": [
+            {
+              "name": "MORNING",
+              "price": 0
+            }
+          ],
+          "distribution": {}
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "day: lowest positive day",
+      "pricing": {
+        "strategyType": "DAY_BASED",
+        "dayBased": {
+          "useFacilityHours": true,
+          "distribution": {
+            "Mon": {
+              "price": 90
+            },
+            "Tue": {
+              "price": 80
+            }
+          }
+        }
+      },
+      "expected": {
+        "unit": "day",
+        "amount": 80
+      }
+    },
+    {
+      "name": "day: one zero day ignored",
+      "pricing": {
+        "strategyType": "DAY_BASED",
+        "dayBased": {
+          "useFacilityHours": true,
+          "distribution": {
+            "Mon": {
+              "price": 0
+            },
+            "Tue": {
+              "price": 75.5
+            }
+          }
+        }
+      },
+      "expected": {
+        "unit": "day",
+        "amount": 75.5
+      }
+    },
+    {
+      "name": "monthly: rate",
+      "pricing": {
+        "strategyType": "MONTHLY",
+        "monthly": {
+          "rateUsd": 400
+        }
+      },
+      "expected": {
+        "unit": "month",
+        "amount": 400
+      }
+    },
+    {
+      "name": "monthly: zero rate is unpriced",
+      "pricing": {
+        "strategyType": "MONTHLY",
+        "monthly": {
+          "rateUsd": 0
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "strategy type missing is monthly",
+      "pricing": {
+        "monthly": {
+          "rateUsd": 300
+        }
+      },
+      "expected": {
+        "unit": "month",
+        "amount": 300
+      }
+    },
+    {
+      "name": "fractional prices",
+      "pricing": {
+        "strategyType": "HOURLY",
+        "hourly": {
+          "cellPrices": {
+            "Mon|9": 12.25,
+            "Mon|10": 12.5
+          }
+        }
+      },
+      "expected": {
+        "unit": "hour",
+        "amount": 12.25
+      }
+    }
+  ],
+  "roomPrice": [
+    {
+      "name": "per-attendee room prices per person from its cheapest enabled tier",
+      "sub": {
+        "pricingMode": "PER_ATTENDEE",
+        "pricing": {
+          "strategyType": "HOURLY",
+          "hourly": {
+            "cellPrices": {
+              "Mon|9": 1
+            }
+          }
+        },
+        "attendeeTiers": [
+          {
+            "id": "T12",
+            "name": "Tier 12",
+            "pricePerAttendeeUsd": 12,
+            "minAttendees": 1
+          },
+          {
+            "id": "T9",
+            "name": "Tier 9",
+            "pricePerAttendeeUsd": 9,
+            "minAttendees": 10
+          },
+          {
+            "id": "T5",
+            "name": "Tier 5",
+            "pricePerAttendeeUsd": 5,
+            "minAttendees": 1,
+            "isEnabled": false
+          }
+        ]
+      },
+      "expected": {
+        "unit": "person",
+        "amount": 9
+      }
+    },
+    {
+      "name": "per-attendee tiers with a zero price are ignored",
+      "sub": {
+        "pricingMode": "PER_ATTENDEE",
+        "pricing": {
+          "strategyType": "HOURLY",
+          "hourly": {
+            "cellPrices": {
+              "Mon|9": 1
+            }
+          }
+        },
+        "attendeeTiers": [
+          {
+            "id": "T0",
+            "name": "Tier 0",
+            "pricePerAttendeeUsd": 0,
+            "minAttendees": 1
+          },
+          {
+            "id": "T7",
+            "name": "Tier 7",
+            "pricePerAttendeeUsd": 7,
+            "minAttendees": 1
+          }
+        ]
+      },
+      "expected": {
+        "unit": "person",
+        "amount": 7
+      }
+    },
+    {
+      "name": "strategy room uses its own config (day)",
+      "sub": {
+        "pricingMode": "STRATEGY_BASED",
+        "pricing": {
+          "strategyType": "DAY_BASED",
+          "dayBased": {
+            "useFacilityHours": true,
+            "distribution": {
+              "Mon": {
+                "price": 70
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "unit": "day",
+        "amount": 70
+      }
+    },
+    {
+      "name": "strategy room uses its own config (hour)",
+      "sub": {
+        "pricingMode": "STRATEGY_BASED",
+        "pricing": {
+          "strategyType": "HOURLY",
+          "hourly": {
+            "cellPrices": {
+              "Mon|9": 8,
+              "Mon|10": 9
+            }
+          }
+        }
+      },
+      "expected": {
+        "unit": "hour",
+        "amount": 8
+      }
+    },
+    {
+      "name": "a monthly room cannot be per attendee",
+      "sub": {
+        "pricingMode": "PER_ATTENDEE",
+        "pricing": {
+          "strategyType": "MONTHLY",
+          "monthly": {
+            "rateUsd": 300
+          }
+        }
+      },
+      "expected": {
+        "unit": "month",
+        "amount": 300
+      }
+    }
+  ]
+}

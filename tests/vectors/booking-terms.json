@@ -1,0 +1,415 @@
+{
+  "description": "Mirrors SpaceCalculationUtils.bookingTerm/hasEnded/termsOverlap (Kotlin) and functions/src/bookings/bookingTerms.ts. End dates are exclusive.",
+  "term": [
+    {
+      "name": "calendar dates, unsorted",
+      "input": {
+        "selectedCalendarDates": [
+          "2026-10-09",
+          "2026-10-02"
+        ]
+      },
+      "expected": {
+        "start": "2026-10-02",
+        "end": "2026-10-10"
+      }
+    },
+    {
+      "name": "single calendar date",
+      "input": {
+        "selectedCalendarDates": [
+          "2026-10-31"
+        ]
+      },
+      "expected": {
+        "start": "2026-10-31",
+        "end": "2026-11-01"
+      }
+    },
+    {
+      "name": "invalid calendar dates are ignored",
+      "input": {
+        "selectedCalendarDates": [
+          "bad",
+          "2026-10-05",
+          "2026-1-5"
+        ]
+      },
+      "expected": {
+        "start": "2026-10-05",
+        "end": "2026-10-06"
+      }
+    },
+    {
+      "name": "only invalid calendar dates fall back to startDate",
+      "input": {
+        "selectedCalendarDates": [
+          "bad"
+        ],
+        "startDate": "2026-10-01",
+        "durationMonths": 2
+      },
+      "expected": {
+        "start": "2026-10-01",
+        "end": "2026-12-01"
+      }
+    },
+    {
+      "name": "calendar dates win over startDate",
+      "input": {
+        "selectedCalendarDates": [
+          "2026-10-09"
+        ],
+        "startDate": "2026-01-01",
+        "durationMonths": 6
+      },
+      "expected": {
+        "start": "2026-10-09",
+        "end": "2026-10-10"
+      }
+    },
+    {
+      "name": "startDate + 3 months",
+      "input": {
+        "startDate": "2026-10-01",
+        "durationMonths": 3
+      },
+      "expected": {
+        "start": "2026-10-01",
+        "end": "2027-01-01"
+      }
+    },
+    {
+      "name": "month-only startDate",
+      "input": {
+        "startDate": "2026-11",
+        "durationMonths": 1
+      },
+      "expected": {
+        "start": "2026-11-01",
+        "end": "2026-12-01"
+      }
+    },
+    {
+      "name": "startDate with a time suffix",
+      "input": {
+        "startDate": "2026-10-01T10:00:00Z",
+        "durationMonths": 1
+      },
+      "expected": {
+        "start": "2026-10-01",
+        "end": "2026-11-01"
+      }
+    },
+    {
+      "name": "startDate with spaces",
+      "input": {
+        "startDate": "  2026-10-01  ",
+        "durationMonths": 1
+      },
+      "expected": {
+        "start": "2026-10-01",
+        "end": "2026-11-01"
+      }
+    },
+    {
+      "name": "durationMonths defaults to 1",
+      "input": {
+        "startDate": "2026-10-01"
+      },
+      "expected": {
+        "start": "2026-10-01",
+        "end": "2026-11-01"
+      }
+    },
+    {
+      "name": "durationMonths 0 counts as 1",
+      "input": {
+        "startDate": "2026-10-01",
+        "durationMonths": 0
+      },
+      "expected": {
+        "start": "2026-10-01",
+        "end": "2026-11-01"
+      }
+    },
+    {
+      "name": "negative durationMonths counts as 1",
+      "input": {
+        "startDate": "2026-10-01",
+        "durationMonths": -4
+      },
+      "expected": {
+        "start": "2026-10-01",
+        "end": "2026-11-01"
+      }
+    },
+    {
+      "name": "year rollover",
+      "input": {
+        "startDate": "2026-12-15",
+        "durationMonths": 2
+      },
+      "expected": {
+        "start": "2026-12-15",
+        "end": "2027-02-15"
+      }
+    },
+    {
+      "name": "leap day is kept",
+      "input": {
+        "startDate": "2028-01-29",
+        "durationMonths": 1
+      },
+      "expected": {
+        "start": "2028-01-29",
+        "end": "2028-02-29"
+      }
+    },
+    {
+      "name": "12 months",
+      "input": {
+        "startDate": "2026-03-01",
+        "durationMonths": 12
+      },
+      "expected": {
+        "start": "2026-03-01",
+        "end": "2027-03-01"
+      }
+    },
+    {
+      "name": "label start date has no term",
+      "input": {
+        "startDate": "Next Monday",
+        "durationMonths": 1
+      },
+      "expected": null
+    },
+    {
+      "name": "empty start date has no term",
+      "input": {
+        "startDate": "",
+        "durationMonths": 1
+      },
+      "expected": null
+    },
+    {
+      "name": "no fields has no term",
+      "input": {},
+      "expected": null
+    },
+    {
+      "name": "month-end start overflows (Jan 31 + 1 month)",
+      "input": {
+        "startDate": "2026-01-31",
+        "durationMonths": 1
+      },
+      "expected": {
+        "start": "2026-01-31",
+        "end": "2026-03-03"
+      },
+      "kotlinExpected": {
+        "start": "2026-01-31",
+        "end": "2026-02-28"
+      }
+    },
+    {
+      "name": "month-end start overflows (Mar 31 + 1 month)",
+      "input": {
+        "startDate": "2026-03-31",
+        "durationMonths": 1
+      },
+      "expected": {
+        "start": "2026-03-31",
+        "end": "2026-05-01"
+      },
+      "kotlinExpected": {
+        "start": "2026-03-31",
+        "end": "2026-04-30"
+      }
+    }
+  ],
+  "hasEnded": [
+    {
+      "name": "old booking has ended",
+      "input": {
+        "startDate": "2026-01-01",
+        "durationMonths": 1
+      },
+      "today": "2026-10-07",
+      "expected": true
+    },
+    {
+      "name": "running booking has not ended",
+      "input": {
+        "startDate": "2026-10-01",
+        "durationMonths": 1
+      },
+      "today": "2026-10-07",
+      "expected": false
+    },
+    {
+      "name": "end date is exclusive: ended on the end day",
+      "input": {
+        "startDate": "2026-10-01",
+        "durationMonths": 1
+      },
+      "today": "2026-11-01",
+      "expected": true
+    },
+    {
+      "name": "day before the end: not ended",
+      "input": {
+        "startDate": "2026-10-01",
+        "durationMonths": 1
+      },
+      "today": "2026-10-31",
+      "expected": false
+    },
+    {
+      "name": "unknown term never ends",
+      "input": {
+        "startDate": "Immediate (Tomorrow)"
+      },
+      "today": "2030-01-01",
+      "expected": false
+    },
+    {
+      "name": "calendar dates in the past",
+      "input": {
+        "selectedCalendarDates": [
+          "2026-10-02",
+          "2026-10-09"
+        ]
+      },
+      "today": "2026-10-10",
+      "expected": true
+    },
+    {
+      "name": "calendar dates, last date still today",
+      "input": {
+        "selectedCalendarDates": [
+          "2026-10-02",
+          "2026-10-09"
+        ]
+      },
+      "today": "2026-10-09",
+      "expected": false
+    }
+  ],
+  "termsOverlap": [
+    {
+      "name": "back to back months do not overlap",
+      "a": {
+        "startDate": "2026-10-01",
+        "durationMonths": 1
+      },
+      "b": {
+        "startDate": "2026-11-01",
+        "durationMonths": 1
+      },
+      "expected": false
+    },
+    {
+      "name": "share the last day",
+      "a": {
+        "startDate": "2026-10-01",
+        "durationMonths": 1
+      },
+      "b": {
+        "startDate": "2026-10-31",
+        "durationMonths": 1
+      },
+      "expected": true
+    },
+    {
+      "name": "unknown term overlaps everything",
+      "a": {
+        "startDate": "2026-10-01",
+        "durationMonths": 1
+      },
+      "b": {
+        "startDate": "label"
+      },
+      "expected": true
+    },
+    {
+      "name": "both unknown",
+      "a": {
+        "startDate": "a"
+      },
+      "b": {
+        "startDate": "b"
+      },
+      "expected": true
+    },
+    {
+      "name": "calendar date inside a month",
+      "a": {
+        "selectedCalendarDates": [
+          "2026-10-05"
+        ]
+      },
+      "b": {
+        "startDate": "2026-10-01",
+        "durationMonths": 1
+      },
+      "expected": true
+    },
+    {
+      "name": "calendar date outside",
+      "a": {
+        "selectedCalendarDates": [
+          "2026-12-05"
+        ]
+      },
+      "b": {
+        "startDate": "2026-10-01",
+        "durationMonths": 1
+      },
+      "expected": false
+    },
+    {
+      "name": "two calendar sets, disjoint",
+      "a": {
+        "selectedCalendarDates": [
+          "2026-10-01",
+          "2026-10-02"
+        ]
+      },
+      "b": {
+        "selectedCalendarDates": [
+          "2026-10-03"
+        ]
+      },
+      "expected": false
+    },
+    {
+      "name": "two calendar sets, touching end",
+      "a": {
+        "selectedCalendarDates": [
+          "2026-10-01",
+          "2026-10-02"
+        ]
+      },
+      "b": {
+        "selectedCalendarDates": [
+          "2026-10-02"
+        ]
+      },
+      "expected": true
+    },
+    {
+      "name": "month-only dates",
+      "a": {
+        "startDate": "2026-10",
+        "durationMonths": 2
+      },
+      "b": {
+        "startDate": "2026-11-15",
+        "durationMonths": 1
+      },
+      "expected": true
+    }
+  ]
+}
