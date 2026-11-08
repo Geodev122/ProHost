@@ -1,9 +1,13 @@
+@file:OptIn(InternalResourceApi::class)
+
 package spike
 
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.compose.resources.DensityQualifier
+import org.jetbrains.compose.resources.InternalResourceApi
 import org.jetbrains.compose.resources.LanguageQualifier
 import org.jetbrains.compose.resources.RegionQualifier
+import org.jetbrains.compose.resources.ScriptQualifier
 import org.jetbrains.compose.resources.ResourceEnvironment
 import org.jetbrains.compose.resources.ThemeQualifier
 import org.jetbrains.compose.resources.getPluralString
@@ -18,7 +22,7 @@ import kotlin.test.assertTrue
 
 /** Spike item 4: Arabic plural categories, positional format arguments and   survive composeResources. */
 class ResourcesTest {
-    private fun env(lang: String) = ResourceEnvironment(LanguageQualifier(lang), RegionQualifier(""), ThemeQualifier.LIGHT, DensityQualifier.MDPI)
+    private fun env(lang: String) = ResourceEnvironment(LanguageQualifier(lang), ScriptQualifier(""), RegionQualifier(""), ThemeQualifier.LIGHT, DensityQualifier.MDPI)
 
     @Test
     fun arabicPluralCategories() = runTest {
