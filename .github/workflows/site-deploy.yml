@@ -124,4 +124,14 @@ jobs:
           check /robots.txt 200
           check /sitemap.xml 200 "<urlset"
           check /ig-webhook 403
+          if [ -n "$PROBE_HOST" ]; then
+            # Real domain only: the www alias and the plain-http address must end on https with a 200.
+            for u in "https://www.$PROBE_HOST/" "http://$PROBE_HOST/privacy"; do
+              out=$(curl -sSL -o /dev/null -w '%{http_code} %{url_effective}' --max-time 30 "$u" || echo "000 -")
+              case "$out" in
+                "200 https://"*) echo "ok   $u -> $out" ;;
+                *) echo "::error::$u ended on: $out (wanted 200 on https)"; fail=1 ;;
+              esac
+            done
+          fi
           exit $fail

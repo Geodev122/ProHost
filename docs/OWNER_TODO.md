@@ -106,7 +106,7 @@ Last updated: 8 Nov 2026
 | **Firebase "iOS key (auto created by Firebase)" restriction** | **Not applied (verified)**: the API still shows no application restriction. Open the key > Application restrictions > iOS apps > add `app.geonajjar.prohost` > Save, then check the key list |
 | Instagram AI-presenter check | Done (owner) |
 | Suspicious user disabled | Done (verified) |
-| **Second owner** | **Pending acceptance (verified)** |
+| **Second owner** | **Done (verified 8 Nov: both accounts hold roles/owner)** |
 | Billing budget | Done (owner; I cannot see billing) |
 | **BOOTSTRAP_SECRET** | Safe to disable then delete (verified) |
 | Sheet access | Done (verified) |
