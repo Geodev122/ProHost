@@ -12,7 +12,8 @@ Gate tooling in place (8 Nov 2026): `Parity Gate` workflow (build + unit tests +
 | **Fix requested by the owner:** server booking end dates now clamp to the last day of the month like the app | done; 12 month-end cases pass on both sides; app code unchanged; goes live when merged to `main` | commit `e9aff19`, `DECISIONS.md` |
 | Skills, subagents, scripts, parity tables (147 files, 70 admin items) | done | `.claude/skills/*`, `.claude/agents/*`, `PARITY.md`, `ADMIN_PARITY.md` |
 | Toolchain spike (rounds 1-4) | Kotlin 2.3.20 + CMP 1.12.2 + AGP 9.4.1 + Gradle 9.7.1 builds Android, iOS (+ simulator tests), wasmJs, JVM host; Arabic resources pass | run 42478543724, `SPIKE_REPORT.md` |
-| Spike rounds 5-6 (Splash parity, font cap, web + Firebase JS) | running | `spike-kmp.yml` run 7 |
+| Spike rounds 5-6 (Splash parity, font cap, web + Firebase JS) | done: web + Firebase JS PASS; Splash identical except the spinner's animation phase; Compose-level font cap does not reach dialogs/sheets (Android unaffected, shared code needs per-window cap) | `SPIKE_REPORT.md` (final), runs 42496806490 / 42499263477 / 42500151896 |
+| **P0 closed**: spike code (`spike/`, `spike-kmp.yml`) deleted, report final, GO | done | this commit |
 
 ## P2 (de-Android the Android app in place, no visible change)
 ### P2.1 Remove dependencies nothing uses — executed locally, awaiting Parity Gate
@@ -25,8 +26,8 @@ Gate tooling in place (8 Nov 2026): `Parity Gate` workflow (build + unit tests +
 - **Compare, run 3 (42499034990, head 34db15a = P2.1 + mask fix + reproduce step + P2.2a): GREEN.** Compile, unit tests, R8, first pass 279/280 identical (all five `request_detail_*` clock renders now identical); the one difference, `explore_list_light`, did not reproduce on a re-render (photo race) ⇒ final **280/280 identical**.
 - **Confirm: P2.1 ✔ (8 Nov 2026).**
 
-### P2.2b Migrate the 85 `UiMessages.show(context, …)` call sites — executed locally, awaiting Parity Gate
-- **Learn:** first arguments were `context` 48, `appContext` 31, `activity` 2, `it` 1 (inside `context?.let`, kept), three multi-line calls; no test touches the Toast. **Execute:** one scripted rewrite of all 85 (20 files) to `UiMessages.show(text, …)` and the old `show(context, …)` overload **deleted**, so the compiler proves no call site was missed (a `Context` is not a `CharSequence`). The message text expressions are unchanged (`context.getString(…)` stays until P2.2c). **Compare:** Parity Gate (compile, tests, R8, 280 renders). **Confirm:** tick after the gate.
+### P2.2b Migrate the 85 `UiMessages.show(context, …)` call sites — ✔ 8 Nov 2026 (Parity Gate run 42500218936: compiled, 280/280 identical on the first pass)
+- **Learn:** first arguments were `context` 48, `appContext` 31, `activity` 2, `it` 1 (inside `context?.let`, kept), three multi-line calls; no test touches the Toast. **Execute:** one scripted rewrite of all 85 (20 files) to `UiMessages.show(text, …)` and the old `show(context, …)` overload **deleted**, so the compiler proves no call site was missed (a `Context` is not a `CharSequence`). The message text expressions are unchanged (`context.getString(…)` stays until P2.2c). **Compare:** Parity Gate (compile, tests, R8, 280 renders). **Confirm:** ✔ gate green, nothing visible changed.
 
 ### P2.2a `UiMessages` without Context — ✔ 8 Nov 2026
 - **Learn/Plan:** unit card `units/P2.2-context-free.md`. **Execute:** `show(text, long, actionLabel, onAction)` + `init(applicationContext)` (Toast fallback registered in `ProHostApplication.onCreate`); the old `show(context, …)` overload stays and toasts on that context's application context exactly as before. **Compare:** new `UiMessagesTest` (blank ignored, Toast fallback + long flag, Snackbar path with Undo and no Toast, no-fallback drops safely) + the same gate run as above (280/280). **Confirm:** ✔ no visible change (no render differs).

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Browser smoke test for a built Compose-for-Web app (spike now, adminWeb later).
+ * Browser smoke test for a built Compose-for-Web app (used by the P0 spike, now the gate for adminWeb).
  *
  *   node scripts/migration/web_smoke.js <dist-dir> [--expect-title "firebase:ok"] [--shot out.png] [--timeout 60000]
  *

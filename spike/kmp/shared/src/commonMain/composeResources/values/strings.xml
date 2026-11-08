@@ -1,9 +1,0 @@
-<resources>
-    <string name="app_name">ProHost</string>
-    <string name="trailing_space">Allow </string>
-    <string name="of_format">%1$s of %2$s</string>
-    <plurals name="listings">
-        <item quantity="one">%1$d listing</item>
-        <item quantity="other">%1$d listings</item>
-    </plurals>
-</resources>
