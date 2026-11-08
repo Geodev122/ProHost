@@ -33,7 +33,6 @@ import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.viewmodel.ProHostViewModel
-import java.util.Calendar
 
 @Composable
 fun OwnerAnalyticsScreen(
@@ -64,26 +63,10 @@ fun OwnerAnalyticsScreen(
 
     // Date boundaries computed once at composable scope so every section shares them
     val now = remember { System.currentTimeMillis() }
-    val currentMonthStart = remember(now) {
-        Calendar.getInstance().apply {
-            timeInMillis = now
-            set(Calendar.DAY_OF_MONTH, 1)
-            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
-    }
-    val prevMonthSameDay = remember(now) {
-        Calendar.getInstance().apply {
-            timeInMillis = now
-            add(Calendar.MONTH, -1)
-            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
-    }
-    val prevMonthStart = remember(prevMonthSameDay) {
-        Calendar.getInstance().apply {
-            timeInMillis = prevMonthSameDay
-            set(Calendar.DAY_OF_MONTH, 1)
-        }.timeInMillis
-    }
+    val monthBoundaries = remember(now) { com.example.ui.util.MonthBoundaries.analytics(now) }
+    val currentMonthStart = monthBoundaries.currentMonthStart
+    val prevMonthSameDay = monthBoundaries.prevMonthSameDay
+    val prevMonthStart = monthBoundaries.prevMonthStart
 
     val acceptedBookings = remember(bookingRequests) {
         bookingRequests.filter { it.status == BookingRequestStatus.ACCEPTED }

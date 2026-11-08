@@ -39,7 +39,6 @@ import com.example.ui.util.IsoDate
 import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.viewmodel.ProHostViewModel
 import kotlinx.coroutines.launch
-import java.util.Calendar
 
 private data class DivisionInfo(
     val id: String,
@@ -245,15 +244,10 @@ private fun DivisionPerformanceCard(
         acceptedBookings.filter { if (isWholeSpace) it.subdivisionId == null else it.subdivisionId == division.id }
     }
     val (thisMonthYield, lastMonthYield) = remember(divisionBookings) {
-        val now = Calendar.getInstance()
-        val startOfThisMonth = (now.clone() as Calendar).apply {
-            set(Calendar.DAY_OF_MONTH, 1); set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-        }
-        val startOfLastMonth = (startOfThisMonth.clone() as Calendar).apply { add(Calendar.MONTH, -1) }
-        val thisMonth = divisionBookings.filter { it.createdAt >= startOfThisMonth.timeInMillis }.sumOf { it.totalAmountUsd }
+        val (startOfThisMonth, startOfLastMonth) = com.example.ui.util.MonthBoundaries.manage(System.currentTimeMillis())
+        val thisMonth = divisionBookings.filter { it.createdAt >= startOfThisMonth }.sumOf { it.totalAmountUsd }
         val lastMonth = divisionBookings.filter {
-            it.createdAt >= startOfLastMonth.timeInMillis && it.createdAt < startOfThisMonth.timeInMillis
+            it.createdAt >= startOfLastMonth && it.createdAt < startOfThisMonth
         }.sumOf { it.totalAmountUsd }
         thisMonth to lastMonth
     }

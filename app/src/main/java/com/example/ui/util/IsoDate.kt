@@ -4,11 +4,15 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.plus
 import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.atTime
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Duration.Companion.hours
 import kotlinx.datetime.todayIn
 
 /**
@@ -86,4 +90,28 @@ object IsoDate {
     } catch (e: IllegalArgumentException) {
         null
     }
+
+    // --- local wall-clock time -> instant, resolved exactly like java.util.Calendar did (see MonthBoundariesEquivalenceTest) ---
+
+    /**
+     * Epoch millis of [dateTime] in [zone]. A wall-clock time inside a clock-change GAP moves forward by the gap, and a REPEATED time (clocks going
+     * back) takes the LATER occurrence: both exactly what `java.util.Calendar` has always done, whereas plain java.time / kotlinx-datetime take the
+     * EARLIER occurrence (the billing dates were not ported for that reason; here the rule is reproduced explicitly and proven in every JDK zone).
+     */
+    fun localMillis(dateTime: LocalDateTime, zone: TimeZone = TimeZone.currentSystemDefault()): Long {
+        val first = dateTime.toInstant(zone)
+        val laterOffset = zone.offsetAt(first + 2.hours)
+        val later = dateTime.toInstant(laterOffset)
+        val repeated = later > first && later.toLocalDateTime(zone) == dateTime
+        return (if (repeated) later else first).toEpochMilliseconds()
+    }
+
+    /** Epoch millis of local midnight at the start of [date] in [zone] (Calendar rules, see [localMillis]). */
+    fun startOfLocalDayMillis(date: LocalDate, zone: TimeZone = TimeZone.currentSystemDefault()): Long = localMillis(date.atTime(0, 0), zone)
+
+    /** The local date of [epochMillis] in [zone]. */
+    fun localDateOf(epochMillis: Long, zone: TimeZone = TimeZone.currentSystemDefault()): LocalDate =
+        Instant.fromEpochMilliseconds(epochMillis).toLocalDateTime(zone).date
+
+    fun firstOfMonth(date: LocalDate): LocalDate = LocalDate(date.year, date.monthNumber, 1)
 }
