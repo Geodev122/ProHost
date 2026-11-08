@@ -32,7 +32,8 @@ const server = http.createServer((req, res) => {
 (async () => {
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const url = `http://127.0.0.1:${server.address().port}/`;
-  const browser = await chromium.launch({ args: ["--no-sandbox"] });
+  // Software GL so Skia/WebGL has a context on a GPU-less CI runner.
+  const browser = await chromium.launch({ args: ["--no-sandbox", "--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   const problems = [];
   page.on("pageerror", (e) => problems.push(`pageerror: ${e.message}`));
@@ -44,8 +45,24 @@ const server = http.createServer((req, res) => {
     title = await page.title();
   } catch (e) { title = await page.title(); problems.push(`title never matched "${expectTitle}", was "${title}"`); }
   await page.waitForTimeout(2000); // let the first frames draw
-  const drawn = await page.evaluate(() => { const c = document.querySelector("canvas"); return !!c && c.width > 0 && c.height > 0; });
-  if (!drawn) problems.push("no canvas was drawn");
+  // Compose for Web may host its canvas inside a shadow root, which document.querySelector cannot see: walk every shadow root.
+  const info = await page.evaluate(() => {
+    const canvases = [];
+    const seen = [];
+    const walk = (root) => {
+      for (const el of root.querySelectorAll("*")) {
+        if (el.tagName === "CANVAS") canvases.push({ w: el.width, h: el.height });
+        if (el.shadowRoot) { seen.push(el.tagName); walk(el.shadowRoot); }
+      }
+    };
+    walk(document);
+    return { canvases, shadowHosts: seen, body: document.body ? document.body.innerHTML.slice(0, 400) : "" };
+  });
+  const drawn = info.canvases.some((c) => c.w > 0 && c.h > 0);
+  if (!drawn) {
+    problems.push("no canvas was drawn");
+    console.log(`DOM: canvases=${JSON.stringify(info.canvases)} shadowHosts=${JSON.stringify(info.shadowHosts)} body=${info.body}`);
+  }
   if (shot) await page.screenshot({ path: shot });
   await browser.close();
   server.close();

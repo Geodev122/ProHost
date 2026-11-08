@@ -61,6 +61,20 @@ class DiffShotsTest(unittest.TestCase):
         self.assertEqual(0, self.run_diff("--only", "light/Explore"))
         self.assertEqual(1, self.run_diff("--only", "nothing/"))
 
+    def test_changed_files_report_the_bounding_box_of_the_difference(self):
+        png(self.g / "a.png")
+        img = Image.new("RGBA", (40, 30), (10, 20, 30, 255))
+        for xy in ((5, 7), (9, 12)):
+            img.putpixel(xy, (255, 255, 255, 255))
+        self.c.mkdir(parents=True, exist_ok=True)
+        img.save(self.c / "a.png")
+        r =diff_shots.run(self.g, self.c, [], 0, 0.0)["results"][0]
+        self.assertEqual([5, 7, 5, 6], r["bbox"])
+        png(self.c / "b.png")
+        png(self.g / "b.png")
+        same = [x for x in diff_shots.run(self.g, self.c, [], 0, 0.0)["results"] if x["name"] == "b.png"][0]
+        self.assertIsNone(same["bbox"])
+
     def test_report_and_json_are_written(self):
         png(self.g / "a.png")
         png(self.c / "a.png", dot=(1, 1))

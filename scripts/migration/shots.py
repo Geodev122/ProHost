@@ -47,9 +47,14 @@ def compare(golden: Path, candidate: Path, channel_tol: int = 0, rects: list[lis
                 "diff_pixels": None, "diff_ratio": 1.0, "max_channel_diff": None}
     delta = _delta(a, b, rects or [])
     changed = delta > channel_tol
-    return {"same_size": True, "golden_size": a.shape[1::-1], "candidate_size": b.shape[1::-1],
-            "diff_pixels": int(changed.sum()), "diff_ratio": float(changed.mean()),
-            "max_channel_diff": int(delta.max())}
+    out = {"same_size": True, "golden_size": a.shape[1::-1], "candidate_size": b.shape[1::-1],
+           "diff_pixels": int(changed.sum()), "diff_ratio": float(changed.mean()),
+           "max_channel_diff": int(delta.max()), "bbox": None}
+    if out["diff_pixels"]:
+        ys, xs = np.nonzero(changed)
+        # [x, y, w, h] of all changed pixels: tells a log reader WHERE the difference is (e.g. inside/next to a mask).
+        out["bbox"] = [int(xs.min()), int(ys.min()), int(xs.max() - xs.min() + 1), int(ys.max() - ys.min() + 1)]
+    return out
 
 
 def diff_image(golden: Path, candidate: Path, channel_tol: int = 0, rects: list[list[int]] | None = None) -> Image.Image:

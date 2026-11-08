@@ -29,9 +29,10 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.material3)
+            // api: the shared UI exposes these types, and androidApp's tests use them (round 5 compile failure).
+            api(compose.runtime)
+            api(compose.foundation)
+            api(compose.material3)
             implementation(compose.components.resources)
         }
         commonTest.dependencies {

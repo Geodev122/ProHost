@@ -85,7 +85,10 @@ def main(argv: list[str] | None = None) -> int:
         a.json.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     for r in summary["results"]:
         if r["status"] != "same":
-            print(f"{r['status'].upper():8} {r['name']}" + (f"  {r['diff_ratio']:.4%}" if r.get("diff_pixels") is not None else ""))
+            print(f"{r['status'].upper():8} {r['name']}"
+                  + (f"  {r['diff_ratio']:.4%}  {r['diff_pixels']} px" if r.get("diff_pixels") is not None else "")
+                  + (f"  bbox[x,y,w,h]={r['bbox']}" if r.get("bbox") else "")
+                  + (f"  masks={shots.masks_for(r['name'], masks)}" if masks and shots.masks_for(r["name"], masks) else ""))
     print(f"{summary['compared']} compared, {summary['failed']} not identical, {len(summary['extra_in_candidate'])} extra")
     if not summary["results"]:
         print("nothing compared: check --golden / --only", file=sys.stderr)
