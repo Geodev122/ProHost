@@ -7,10 +7,6 @@ import com.example.data.model.RentalPricingConfig
 import com.example.data.model.RentalStrategyType
 import com.example.data.model.SpaceListing
 import com.example.data.model.Subdivision
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
-import java.util.TimeZone
 import kotlin.math.roundToLong
 
 /**
@@ -50,20 +46,14 @@ object PriceChange {
 
     fun round2(v: Double): Double = (v * 100).roundToLong() / 100.0
 
-    private fun isoFormat() = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }
-
-    private fun utcCalendar(iso: String): Calendar? = runCatching {
-        Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { time = isoFormat().parse(iso.take(10))!! }
-    }.getOrNull()
-
-    fun todayIso(): String = isoFormat().format(java.util.Date())
+    fun todayIso(): String = IsoDate.todayUtcIso()
 
     fun weekdayOf(iso: String): String =
-        utcCalendar(iso)?.let { WEEKDAYS[it.get(Calendar.DAY_OF_WEEK) - 1] } ?: ""
+        IsoDate.parse(iso.take(10))?.let { WEEKDAYS[IsoDate.weekdaySunday0(it)] } ?: ""
 
     private fun parseHour(value: String): Int? = value.substringBefore(":").trim().toIntOrNull()
 
-    private fun pad(h: Int) = "%02d:00".format(Locale.US, h)
+    private fun pad(h: Int) = h.toString().padStart(2, '0') + ":00"
 
     /** The space's divisions: one per room, or the whole space when it has none. */
     fun divisionsOf(space: SpaceListing): List<Division> =
@@ -187,16 +177,14 @@ object PriceChange {
 
     /** First day of the next billing period: the 1st of next month (monthly) or next Monday. */
     fun nextTermStart(ref: SlotRef, todayIso: String): String {
-        val cal = utcCalendar(todayIso) ?: return todayIso
-        if (ref.kind == SlotKind.MONTHLY) {
-            cal.set(Calendar.DAY_OF_MONTH, 1)
-            cal.add(Calendar.MONTH, 1)
+        val date = IsoDate.parse(todayIso.take(10)) ?: return todayIso
+        return if (ref.kind == SlotKind.MONTHLY) {
+            IsoDate.firstOfNextMonth(date).toString()
         } else {
-            val dow = cal.get(Calendar.DAY_OF_WEEK) - 1 // 0 = Sun
+            val dow = IsoDate.weekdaySunday0(date) // 0 = Sun
             val untilMonday = ((8 - dow) % 7).let { if (it == 0) 7 else it }
-            cal.add(Calendar.DAY_OF_MONTH, untilMonday)
+            IsoDate.plusDays(date, untilMonday).toString()
         }
-        return isoFormat().format(cal.time)
     }
 
     /** The new total for [b] when [ref] goes from [oldPrice] to [newPrice] under [mode]. */
