@@ -49,9 +49,19 @@ const TERM_CASES = [
   ["label start date has no term", { startDate: "Next Monday", durationMonths: 1 }],
   ["empty start date has no term", { startDate: "", durationMonths: 1 }],
   ["no fields has no term", {}],
-  // KNOWN DIVERGENCES (JS Date overflows into the next month; java.util.Calendar clamps to the last day).
-  ["month-end start overflows (Jan 31 + 1 month)", { startDate: "2026-01-31", durationMonths: 1 }, { start: "2026-01-31", end: "2026-02-28" }],
-  ["month-end start overflows (Mar 31 + 1 month)", { startDate: "2026-03-31", durationMonths: 1 }, { start: "2026-03-31", end: "2026-04-30" }],
+  // Month-end starts: the end date is clamped to the last day of the target month on BOTH sides (server fixed 8 Nov 2026;
+  // it used to overflow: 2026-01-31 + 1 month = 2026-03-03 on the server vs 2026-02-28 in the app).
+  ["month-end start clamps (Jan 31 + 1 month)", { startDate: "2026-01-31", durationMonths: 1 }],
+  ["month-end start clamps (Mar 31 + 1 month)", { startDate: "2026-03-31", durationMonths: 1 }],
+  ["Jan 30 + 1 month clamps to Feb 28", { startDate: "2026-01-30", durationMonths: 1 }],
+  ["Jan 29 + 1 month clamps to Feb 28 (non-leap)", { startDate: "2026-01-29", durationMonths: 1 }],
+  ["leap year: Jan 31 + 1 month is Feb 29", { startDate: "2028-01-31", durationMonths: 1 }],
+  ["Aug 31 + 1 month clamps to Sep 30", { startDate: "2026-08-31", durationMonths: 1 }],
+  ["Dec 31 + 2 months crosses the year, clamps to Feb 28", { startDate: "2026-12-31", durationMonths: 2 }],
+  ["Jan 31 + 12 months keeps the 31st", { startDate: "2026-01-31", durationMonths: 12 }],
+  ["Mar 31 + 11 months clamps to Feb 28", { startDate: "2026-03-31", durationMonths: 11 }],
+  ["Mar 31 + 13 months clamps to Apr 30", { startDate: "2026-03-31", durationMonths: 13 }],
+  ["Oct 31 + 4 months clamps to Feb 28", { startDate: "2026-10-31", durationMonths: 4 }],
 ];
 
 const ENDED_CASES = [
@@ -59,6 +69,8 @@ const ENDED_CASES = [
   ["running booking has not ended", { startDate: "2026-10-01", durationMonths: 1 }, "2026-10-07"],
   ["end date is exclusive: ended on the end day", { startDate: "2026-10-01", durationMonths: 1 }, "2026-11-01"],
   ["day before the end: not ended", { startDate: "2026-10-01", durationMonths: 1 }, "2026-10-31"],
+  ["month-end start: ended on the clamped end day", { startDate: "2026-01-31", durationMonths: 1 }, "2026-02-28"],
+  ["month-end start: not ended the day before", { startDate: "2026-01-31", durationMonths: 1 }, "2026-02-27"],
   ["unknown term never ends", { startDate: "Immediate (Tomorrow)" }, "2030-01-01"],
   ["calendar dates in the past", { selectedCalendarDates: ["2026-10-02", "2026-10-09"] }, "2026-10-10"],
   ["calendar dates, last date still today", { selectedCalendarDates: ["2026-10-02", "2026-10-09"] }, "2026-10-09"],
@@ -74,6 +86,8 @@ const OVERLAP_CASES = [
   ["two calendar sets, disjoint", { selectedCalendarDates: ["2026-10-01", "2026-10-02"] }, { selectedCalendarDates: ["2026-10-03"] }],
   ["two calendar sets, touching end", { selectedCalendarDates: ["2026-10-01", "2026-10-02"] }, { selectedCalendarDates: ["2026-10-02"] }],
   ["month-only dates", { startDate: "2026-10", durationMonths: 2 }, { startDate: "2026-11-15", durationMonths: 1 }],
+  ["month-end term still covers the day before its clamped end", { startDate: "2026-01-31", durationMonths: 1 }, { startDate: "2026-02-27", durationMonths: 1 }],
+  ["month-end term and a booking starting on its end day do not overlap", { startDate: "2026-01-31", durationMonths: 1 }, { startDate: "2026-02-28", durationMonths: 1 }],
 ];
 
 function bookingTermsFile() {
@@ -81,7 +95,7 @@ function bookingTermsFile() {
     description: "Mirrors SpaceCalculationUtils.bookingTerm/hasEnded/termsOverlap (Kotlin) and functions/src/bookings/bookingTerms.ts. End dates are exclusive.",
     term: TERM_CASES.map(([name, input, kotlinExpected]) => {
       const expected = terms.bookingTerm(input);
-      return kotlinExpected ? { name, input, expected, kotlinExpected } : { name, input, expected };
+      return kotlinExpected ? { name, input, expected, kotlinExpected } : { name, input, expected }; // kotlinExpected: a known divergence (none today)
     }),
     hasEnded: ENDED_CASES.map(([name, input, today]) => ({ name, input, today, expected: terms.hasEnded(input, today) })),
     termsOverlap: OVERLAP_CASES.map(([name, a, b]) => ({ name, a, b, expected: terms.termsOverlap(a, b) })),

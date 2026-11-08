@@ -28,9 +28,11 @@ Moving Pro Host drawer items into tabs, removing Explore's menu button, iOS-styl
   The baseline is the Design Screenshots run 42474484795 on commit `7ed5728686cd7e7c9abe16c655493f296953e443` (app code identical to `d30c331`), stored as git commit
   `d841cccf2e7e1acbd8acf32a2226ba221444d3ad` under `refs/design-shots/golden-v1047`: **280 PNGs, 0 render errors**, flat names `<screen>_<variant>.png` (variants light, dark, small, rtl, ar).
 - **Known Kotlin/TypeScript divergences** (pinned by `kotlinExpected` in `tests/vectors/booking-terms.json`; behaviour NOT changed):
-  1. `bookingTerm` month arithmetic: TypeScript (`Date.setUTCMonth`) overflows into the next month (2026-01-31 + 1 month = 2026-03-03; 2026-03-31 + 1 = 2026-05-01), the app (`java.util.Calendar`) clamps to
-     the last day (2026-02-28; 2026-04-30). Effect: for a booking starting on the 29th-31st the server can believe the term ends later than the app does (conflict checks, `hasEnded`). Owner decision needed:
-     align the server to the app (clamp) or the app to the server. Neither is changed by the migration; the shared date library must reproduce the app's current result until decided.
+  1. ~~`bookingTerm` month arithmetic~~ **FIXED 8 Nov 2026 (owner request):** the server (`functions/src/bookings/bookingTerms.ts` `addMonths`) overflowed into the next month
+     (2026-01-31 + 1 month = 2026-03-03); it now clamps to the last day of the target month like the app's `Calendar.add(MONTH)` (2026-02-28). Effect on production once deployed (merge to `main`):
+     for bookings that start on the 29th-31st the server's end date moves 1-3 days earlier, so conflict checks (`bookingConflictGuard`), `hasEnded` and the price-change term logic now agree with what
+     the app shows; no stored data changes (terms are computed on read). The Android code was already correct and is untouched. 12 month-end cases (leap year, year rollover, 12/13-month terms) are in
+     `tests/vectors/booking-terms.json` and run on both sides; `kotlinExpected` entries are now empty. Still different and NOT changed: `hasEnded`'s "today" is the device date in the app and UTC on the server.
   2. `findLowestPriceForSubdivision` returns `0.0` for an unpriced room where TypeScript `roomPrice` returns `null` (representation only; not vectored).
   3. TypeScript `pricingFromLegacyFormula` defaults a missing `rateUsd` to 300 and missing days to Mon-Fri; the Kotlin `RentalFormula` always has both (no practical difference for stored documents).
 - **Version facts** (JetBrains pages read 8 Nov 2026; to be confirmed by the spike): latest stable Compose Multiplatform **1.12.2** (15 Oct 2026, Jetpack Compose 1.12.1), 1.13.0-beta02 pre-release (4 Nov); latest stable Kotlin

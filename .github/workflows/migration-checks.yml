@@ -38,12 +38,11 @@ jobs:
           cache: npm
           cache-dependency-path: functions/package-lock.json
 
-      - name: Build functions and run the TypeScript vectors test
+      - name: Build functions and run all TypeScript unit tests (includes the shared vectors)
         working-directory: functions
         run: |
           npm ci
-          npm run build
-          node --test lib/lib/vectors.test.js
+          npm test
 
       - name: Vectors are in sync with the server code
         run: node scripts/migration/export_vectors.js --check

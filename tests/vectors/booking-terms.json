@@ -199,33 +199,124 @@
       "expected": null
     },
     {
-      "name": "month-end start overflows (Jan 31 + 1 month)",
+      "name": "month-end start clamps (Jan 31 + 1 month)",
       "input": {
         "startDate": "2026-01-31",
         "durationMonths": 1
       },
       "expected": {
         "start": "2026-01-31",
-        "end": "2026-03-03"
-      },
-      "kotlinExpected": {
-        "start": "2026-01-31",
         "end": "2026-02-28"
       }
     },
     {
-      "name": "month-end start overflows (Mar 31 + 1 month)",
+      "name": "month-end start clamps (Mar 31 + 1 month)",
       "input": {
         "startDate": "2026-03-31",
         "durationMonths": 1
       },
       "expected": {
         "start": "2026-03-31",
-        "end": "2026-05-01"
-      },
-      "kotlinExpected": {
-        "start": "2026-03-31",
         "end": "2026-04-30"
+      }
+    },
+    {
+      "name": "Jan 30 + 1 month clamps to Feb 28",
+      "input": {
+        "startDate": "2026-01-30",
+        "durationMonths": 1
+      },
+      "expected": {
+        "start": "2026-01-30",
+        "end": "2026-02-28"
+      }
+    },
+    {
+      "name": "Jan 29 + 1 month clamps to Feb 28 (non-leap)",
+      "input": {
+        "startDate": "2026-01-29",
+        "durationMonths": 1
+      },
+      "expected": {
+        "start": "2026-01-29",
+        "end": "2026-02-28"
+      }
+    },
+    {
+      "name": "leap year: Jan 31 + 1 month is Feb 29",
+      "input": {
+        "startDate": "2028-01-31",
+        "durationMonths": 1
+      },
+      "expected": {
+        "start": "2028-01-31",
+        "end": "2028-02-29"
+      }
+    },
+    {
+      "name": "Aug 31 + 1 month clamps to Sep 30",
+      "input": {
+        "startDate": "2026-08-31",
+        "durationMonths": 1
+      },
+      "expected": {
+        "start": "2026-08-31",
+        "end": "2026-09-30"
+      }
+    },
+    {
+      "name": "Dec 31 + 2 months crosses the year, clamps to Feb 28",
+      "input": {
+        "startDate": "2026-12-31",
+        "durationMonths": 2
+      },
+      "expected": {
+        "start": "2026-12-31",
+        "end": "2027-02-28"
+      }
+    },
+    {
+      "name": "Jan 31 + 12 months keeps the 31st",
+      "input": {
+        "startDate": "2026-01-31",
+        "durationMonths": 12
+      },
+      "expected": {
+        "start": "2026-01-31",
+        "end": "2027-01-31"
+      }
+    },
+    {
+      "name": "Mar 31 + 11 months clamps to Feb 28",
+      "input": {
+        "startDate": "2026-03-31",
+        "durationMonths": 11
+      },
+      "expected": {
+        "start": "2026-03-31",
+        "end": "2027-02-28"
+      }
+    },
+    {
+      "name": "Mar 31 + 13 months clamps to Apr 30",
+      "input": {
+        "startDate": "2026-03-31",
+        "durationMonths": 13
+      },
+      "expected": {
+        "start": "2026-03-31",
+        "end": "2027-04-30"
+      }
+    },
+    {
+      "name": "Oct 31 + 4 months clamps to Feb 28",
+      "input": {
+        "startDate": "2026-10-31",
+        "durationMonths": 4
+      },
+      "expected": {
+        "start": "2026-10-31",
+        "end": "2027-02-28"
       }
     }
   ],
@@ -264,6 +355,24 @@
         "durationMonths": 1
       },
       "today": "2026-10-31",
+      "expected": false
+    },
+    {
+      "name": "month-end start: ended on the clamped end day",
+      "input": {
+        "startDate": "2026-01-31",
+        "durationMonths": 1
+      },
+      "today": "2026-02-28",
+      "expected": true
+    },
+    {
+      "name": "month-end start: not ended the day before",
+      "input": {
+        "startDate": "2026-01-31",
+        "durationMonths": 1
+      },
+      "today": "2026-02-27",
       "expected": false
     },
     {
@@ -410,6 +519,30 @@
         "durationMonths": 1
       },
       "expected": true
+    },
+    {
+      "name": "month-end term still covers the day before its clamped end",
+      "a": {
+        "startDate": "2026-01-31",
+        "durationMonths": 1
+      },
+      "b": {
+        "startDate": "2026-02-27",
+        "durationMonths": 1
+      },
+      "expected": true
+    },
+    {
+      "name": "month-end term and a booking starting on its end day do not overlap",
+      "a": {
+        "startDate": "2026-01-31",
+        "durationMonths": 1
+      },
+      "b": {
+        "startDate": "2026-02-28",
+        "durationMonths": 1
+      },
+      "expected": false
     }
   ]
 }

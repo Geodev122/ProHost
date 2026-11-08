@@ -22,3 +22,15 @@ test("terms overlap only when they share a day", () => {
   assert.equal(termsOverlap(oct, { startDate: "label" }), true);
   assert.equal(termsOverlap({ selectedCalendarDates: ["2026-10-05"] }, oct), true);
 });
+
+test("month arithmetic clamps to the last day of the target month, like the app (Calendar.add(MONTH))", () => {
+  assert.deepEqual(bookingTerm({ startDate: "2026-01-31", durationMonths: 1 }), { start: "2026-01-31", end: "2026-02-28" });
+  assert.deepEqual(bookingTerm({ startDate: "2026-03-31", durationMonths: 1 }), { start: "2026-03-31", end: "2026-04-30" });
+  assert.deepEqual(bookingTerm({ startDate: "2028-01-31", durationMonths: 1 }), { start: "2028-01-31", end: "2028-02-29" });
+  assert.deepEqual(bookingTerm({ startDate: "2026-12-31", durationMonths: 2 }), { start: "2026-12-31", end: "2027-02-28" });
+  assert.deepEqual(bookingTerm({ startDate: "2026-01-31", durationMonths: 12 }), { start: "2026-01-31", end: "2027-01-31" });
+  // a month-end booking ends on its clamped end day, so a booking that starts that day does not overlap it
+  assert.equal(hasEnded({ startDate: "2026-01-31", durationMonths: 1 }, "2026-02-28"), true);
+  assert.equal(hasEnded({ startDate: "2026-01-31", durationMonths: 1 }, "2026-02-27"), false);
+  assert.equal(termsOverlap({ startDate: "2026-01-31", durationMonths: 1 }, { startDate: "2026-02-28", durationMonths: 1 }), false);
+});

@@ -25,10 +25,18 @@ function addDays(iso: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * [iso] + [months], clamped to the last day of the target month (2026-01-31 + 1 month = 2026-02-28), exactly like
+ * the app's java.util.Calendar.add(MONTH). Date.setUTCMonth would overflow into the following month instead
+ * (→ 2026-03-03) and make the server believe a term ends days after the app shows it; tests/vectors pins both sides.
+ */
 function addMonths(iso: string, months: number): string {
   const d = new Date(`${iso}T00:00:00Z`);
-  d.setUTCMonth(d.getUTCMonth() + months);
-  return d.toISOString().slice(0, 10);
+  const total = d.getUTCFullYear() * 12 + d.getUTCMonth() + months;
+  const year = Math.floor(total / 12);
+  const month = total - year * 12;
+  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(year, month, Math.min(d.getUTCDate(), lastDay))).toISOString().slice(0, 10);
 }
 
 export function bookingTerm(b: TermFields): Term | null {
