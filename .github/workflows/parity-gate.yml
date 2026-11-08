@@ -1,0 +1,99 @@
+name: Parity Gate
+
+# Owner rule for the KMP + Compose Multiplatform migration (docs/migration/MASTER_PLAN.md): NO visible change. On every push that touches
+# app code or build files this job (1) compiles the app and runs its unit tests, (2) renders the 280 design screenshots exactly like the
+# Design Screenshots workflow and (3) diffs them pixel by pixel against the golden baseline refs/design-shots/golden-v1047
+# (known dynamic regions masked by docs/migration/golden-masks.json). Any difference fails the job and the HTML report shows where.
+# Read-only: never deploys, never writes refs (the renders are uploaded as an artifact).
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: ["claude/**"]
+    paths:
+      - "app/**"
+      - "shared/**"
+      - "androidApp/**"
+      - "gradle/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      - "docs/migration/golden-masks.json"
+      - "scripts/migration/diff_shots.py"
+      - "scripts/migration/shots.py"
+      - ".github/workflows/parity-gate.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: parity-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Build, unit tests, golden diff
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.7.1"
+
+      - name: Generate Debug Keystore
+        run: |
+          keytool -genkey -v -keystore debug.keystore -storepass android \
+            -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 \
+            -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+
+      - name: Compile (debug + release) and run the unit tests
+        run: |
+          set -o pipefail
+          gradle :app:testDebugUnitTest :app:assembleDebug :app:compileReleaseKotlin --no-daemon --stacktrace 2>&1 | tee gradle-unit.log
+
+      - name: Render the 280 design screenshots
+        run: |
+          set -o pipefail
+          gradle :app:recordRoborazziDebug --tests "com.example.design.*" -PdesignOnly="" --no-daemon --stacktrace 2>&1 | tee gradle-shots.log
+
+      - name: Surface build errors
+        if: failure()
+        run: |
+          for f in gradle-unit.log gradle-shots.log; do
+            [ -f $f ] || continue
+            grep -iE "^e: |FAILED|error:" $f | head -30 | while IFS= read -r line; do echo "::error title=$f::${line}"; done
+          done
+
+      - name: Diff against the golden baseline
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pip install --quiet pillow numpy
+          python3 scripts/migration/fetch_ref.py golden-v1047 golden
+          mkdir -p parity
+          set +e
+          python3 scripts/migration/diff_shots.py --golden golden --candidate app/build/design-shots \
+            --masks docs/migration/golden-masks.json --report parity/diff.html --json parity/diff.json | tee parity/summary.txt
+          status=${PIPESTATUS[0]}
+          set -e
+          tail -1 parity/summary.txt | while IFS= read -r line; do echo "::notice title=parity::${line}"; done
+          grep -E "^(CHANGED|RESIZED|MISSING)" parity/summary.txt | head -30 | while IFS= read -r line; do echo "::error title=parity-diff::${line}"; done || true
+          exit $status
+
+      - name: Upload report and renders
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: parity-gate
+          path: |
+            parity
+            app/build/design-shots
+          retention-days: 14
+          if-no-files-found: ignore
