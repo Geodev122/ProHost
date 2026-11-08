@@ -34,3 +34,6 @@ Gate tooling in place (8 Nov 2026): `Parity Gate` workflow (build + unit tests +
 
 ## Open owner items created by this work
 See `docs/OWNER_TODO.md` items 50-53 and `DECISIONS.md` "Open owner decisions".
+
+### P2.2c Strings in view models: `context.getString` → `uiText` — executed locally, awaiting Parity Gate
+- **Learn:** 40 `getString` calls in `ui/viewmodel` (29 `appContext` — the Application's own `Resources`, the very object `UiText` holds, so provably identical; 8 `context`, 1 `it`, 2 `activity` — one-line messages shown through `UiMessages`; `MainActivity` is a plain `ComponentActivity`, so Activity and Application resources follow the same app language). **Execute:** scripted rewrite to `uiText(...)` (imports already present). **Compare:** new `UiTextParityTest` (Robolectric: `uiText` == `context.getString` in English and Arabic for plain, one-argument and two-argument keys; the two languages really differ) + Parity Gate. **Confirm:** tick after the gate.
