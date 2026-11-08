@@ -73,7 +73,11 @@ jobs:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ steps.site.outputs.id }}
         run: |
-          npx --yes netlify-cli@17.38.1 deploy --prod --dir=public --message "${GITHUB_REF_NAME} ${GITHUB_SHA::7}" --json > "$RUNNER_TEMP/deploy.json"
+          if ! npx --yes netlify-cli@17.38.1 deploy --prod --dir=public --message "${GITHUB_REF_NAME} ${GITHUB_SHA::7}" --json > "$RUNNER_TEMP/deploy.json" 2> "$RUNNER_TEMP/deploy.err"; then
+            echo "::error::netlify deploy failed"
+            head -c 1500 "$RUNNER_TEMP/deploy.err"; echo; head -c 1500 "$RUNNER_TEMP/deploy.json"; echo
+            exit 1
+          fi
           python3 - <<'PY'
           import json, os
           d = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "deploy.json")))
