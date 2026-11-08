@@ -4,7 +4,7 @@
 (newest additions included) until the owner marks them done or decides otherwise. Add new items the moment they arise.
 Update the status column and date when something changes. Never put secrets here.
 
-Last updated: 7 Nov 2026
+Last updated: 8 Nov 2026
 
 | # | Open item | Why it matters | How to do it |
 |---|---|---|---|
@@ -15,15 +15,15 @@ Last updated: 7 Nov 2026
 | 5 | **Trim Play Console permissions** of run-billing and run-ig after everything is moved | They were invited with all permissions | Play Console > Users and permissions: keep View app information, View financial data, Manage orders and subscriptions; remove the rest. |
 | 6 | **Maps API keys**: send Claude the Android package name, SHA-1 and the web domains | Keys are unrestricted; Claude will measure usage first, then restrict | Package is app.geonajjar.prohost; get the SHA-1 from Play Console > App signing. |
 | 7 | **Rotate secrets** (EMAIL_VERIFICATION_SECRET, SMTP password, BOOTSTRAP_SECRET if used) | No rotation yet | Add a new secret version in Console > Secret Manager (never in chat); tell Claude, which redeploys. Rotating EMAIL_VERIFICATION_SECRET invalidates already-sent verification links. |
-| 8 | **Accept the second-owner invitation: psy.geo.elnajjar@gmail.com** | Google refuses adding a Gmail account as Owner through the API (SOLO_MUST_INVITE_OWNERS); it must be an emailed invitation from the console | Console > IAM & Admin > IAM > Grant access > New principal psy.geo.elnajjar@gmail.com > role Owner > Save. The invite arrives by email; that person must open it and Accept. |
+| 8 | **Accept the second-owner invitation: psy.geo.elnajjar@gmail.com** (**8 Nov: invitation sent, NOT accepted yet**: IAM shows `projectOwnerInvitee`) | Google refuses adding a Gmail account as Owner through the API (SOLO_MUST_INVITE_OWNERS); it must be an emailed invitation from the console | Console > IAM & Admin > IAM > Grant access > New principal psy.geo.elnajjar@gmail.com > role Owner > Save. The invite arrives by email; that person must open it and Accept. |
 | 9 | **Uptime check URLs** (after item 1) | No uptime monitoring yet | Send 2 to 4 public URLs (site, sign-in page, a callable health URL). |
 | 10 | **Quota increases** (Functions writes 60/min, Cloud Run writes 60/min, Cloud Run instances 100 per project; the 3-hourly watch re-requests 240/240/300 as soon as the restriction lifts) | Claude requested it on 5 Nov; Google blocked it because of the policy restriction (item 1) | Retried automatically by asking Claude after item 1; or Console > IAM & Admin > Quotas. |
 | 11 | **App Check enforcement** decision | Unenforced on every service | Needs 99% verified traffic first (docs/APP_CHECK.md). Claude checks the numbers when asked. |
 | 12 | **At the very end: remove temporary access** | Least privilege | Delete service account claude-remediation@prohost-f766f; remove env secret GOOGLE_REMEDIATION_CREDENTIALS_JSON; then tell Claude to delete the read-only audit key 60ca2966... |
-| 16 | **Sheet access cleanup** ("ProHost IG Automations") | run-ig now has Editor (done). The default compute account no longer needs it. | Open the Sheet > Share > remove `646730915838-compute@developer.gserviceaccount.com`. Only if you re-run the Maintenance task `igsetup`, also share with firebase-adminsdk-fbsvc@prohost-f766f.iam.gserviceaccount.com as Editor. |
+| 16 | ~~Sheet access cleanup~~ **Done and verified 8 Nov** (only you and run-ig have access) - **Sheet access cleanup** ("ProHost IG Automations") | run-ig now has Editor (done). The default compute account no longer needs it. | Open the Sheet > Share > remove `646730915838-compute@developer.gserviceaccount.com`. Only if you re-run the Maintenance task `igsetup`, also share with firebase-adminsdk-fbsvc@prohost-f766f.iam.gserviceaccount.com as Editor. |
 | 17 | **Play Console declarations** (from the Play policy notes) | Required by the 29 Oct policy update | Fine-location declaration; Data safety update (no camera/photo-library permissions); trader status (due Nov 2026); Android 17 location button before 27 Jan 2027 (dev task). |
 | 18 | **Create the billing budget with email alerts** | Claude enabled the Budget API but has no permission on billing account 0180BD-0CF1C4-55BA21 | Either: Console > Billing > Budgets & alerts > Create budget > scope project ProHost, amount per month (suggest 50 USD), alerts 50/90/100% + forecast, add email geo.elnajjar@gmail.com. Or: Billing > Account management > Add principal claude-remediation@prohost-f766f.iam.gserviceaccount.com with role Billing Account Costs Manager, tell Claude, and remove it afterwards. |
-| 19 | **Delete the unused secret BOOTSTRAP_SECRET** | Nothing in the code or any service uses it | Console > Secret Manager > BOOTSTRAP_SECRET > Delete (or tell Claude to). |
+| 19 | **BOOTSTRAP_SECRET: disable, then delete** (verified 8 Nov: unused by code and services; the intruder's only reads on 5 Nov were refused) | Nothing uses it; disabling is reversible | Console > Secret Manager > BOOTSTRAP_SECRET > Versions > Disable; delete after a quiet week (docs/OWNER_GUIDE.md C6). |
 | 20 | Optional: **WhatsApp alerts** (blocked while Hosting is down: the setup page is /admin) and a **refreshed Drive inventory doc** | Health row shows WhatsApp alerts OFF; the Drive "IAM inventory" copy is stale | /admin > WhatsApp alerts for the first; for the second paste docs/GCP_IAM.md into the Drive doc (the connector cannot overwrite content). |
 | 21 | **iOS: decide the approach and send Claude the basics** | Nothing can start without it. Plan: docs/IOS_PLAN.md (recommended: native SwiftUI on the existing backend) | Reply with: approach, Individual or Organization, Team ID (developer.apple.com > Membership details), bundle ID (suggest app.geonajjar.prohost), whether you have a Mac. |
 | 22 | **iOS: App Store Connect business setup** | Subscriptions cannot be sold without it | App Store Connect > Business: accept Paid Apps Agreement; banking and tax forms; declare trader status (EU). |
@@ -55,7 +55,7 @@ Last updated: 7 Nov 2026
 35. Branding URLs stay `https://pro-host.tech`, `/privacy`, `/terms` (authorised domains: pro-host.tech, prohost-f766f.web.app, prohost-f766f.firebaseapp.com). Function URLs (`cloudfunctions.net/legalDocumentPage/...`) work for Play and iOS but cannot be used for OAuth branding (Google-owned domain). Press "Verify branding" only when `pro-host.tech/privacy` returns 200. Verify `pro-host.tech` as a Domain property in Search Console (DNS TXT).
 
 ### Branding verification fix (7 Nov 2026)
-36. Serve pro-host.tech from Cloudflare Pages (steps: Cloudflare Pages > Connect to Git > repo Geodev122/ProHost, branch main, no build, output dir `public`; add custom domain pro-host.tech). DNS is at Hostinger: add the site to Cloudflare, check MX/SPF/DKIM/google-site-verification are imported, then change nameservers at Hostinger to Cloudflare's two. Verify admin@pro-host.tech mail still arrives.
+36. Serve pro-host.tech from Netlify (free), deployed automatically from this repo (replaces the Cloudflare/drag-and-drop ideas). Steps in `docs/OWNER_GUIDE.md` B2: Netlify account (not via GitHub) > personal access token > GitHub Actions secret `NETLIFY_AUTH_TOKEN` > Hostinger `A @ 75.2.60.5` and `CNAME www prohost-tech-site.netlify.app` (keep MX/SPF/DKIM). I run the workflow and probe.
 37. Then Auth Platform > Branding: privacy `https://pro-host.tech/privacy` (not the cloudfunctions.net URL), Save, Verify branding. Add the Search Console Domain property.
 
 ### iOS (7 Nov 2026) - supersedes items 21-25; full plan and how/where for each step in `docs/IOS_PLAN.md` section A
@@ -77,3 +77,40 @@ Last updated: 7 Nov 2026
 - The `.p8` (key HF7C34HW38) was attached in chat, so it is exposed: in App Store Connect > Users and Access > Integrations > App Store Connect API, **revoke HF7C34HW38 and create a new key (App Manager)**, then put the NEW Key ID, Issuer ID, Team ID and the new key's text into the four GitHub secrets yourself. Never attach or paste a .p8 again.
 - Then re-run: push any commit to a branch named `ios-beta/<n>` (tell me) or, once merged to main, Actions > iOS TestFlight > Run workflow.
 - Upload `GoogleService-Info.plist` (Firebase iOS app is registered; the plist is not secret) as a chat attachment.
+
+### iOS (7 Nov 2026, later)
+- `GoogleService-Info.plist` received and committed at `ios/ProHost/GoogleService-Info.plist` (config file, same status as `google-services.json`; Firebase iOS app id 1:646730915838:ios:b816bc76af193424c8eaaf, analytics off until consent).
+- Owner decision: keep ASC key HF7C34HW38 (not revoked) even though its .p8 was attached in chat. Risk accepted by the owner; revisit at the first key rotation. Still never attach or paste key files again.
+
+### iOS TestFlight status (7 Nov 2026, 18:12 UTC)
+- Secrets now found (Actions secrets); key parses; unsigned archive SUCCEEDS on the runner. Export/upload fails with "Cloud signing permission error": the App Manager API key cannot create the cloud-managed distribution certificate/profile.
+- Owner step 44: create a NEW App Store Connect API key with role **Admin** (Users and Access > Integrations > App Store Connect API > "+"), then update GitHub Actions secrets `ASC_KEY_ID` (new Key ID) and `ASC_KEY_P8` (new key text, pasted in GitHub only). Issuer ID and Team ID stay the same. Tell me, I rerun (`ios-beta/<n>` branch push). The old key may stay or be revoked: owner's choice.
+
+### iOS status 7 Nov 2026 (19:00 UTC) - items 42-44 are DONE (secrets, Admin key, first upload)
+- TestFlight build 1.0.0 (9) is VALID in App Store Connect (visible under TestFlight once you have a device to install on).
+- Still needed from you for sign-in: Firebase console > Authentication > Sign-in method > enable **Apple**; upload the **APNs key** (Cloud Messaging) and register **App Attest** (App Check). The Sign in with Apple key (.p8) and APNs key (.p8) come from developer.apple.com > Keys; paste them only into the Firebase console, never in chat.
+- Borrowed iPhone (item 43) still needed from the first interactive build.
+
+### Consolidated guide (7 Nov 2026, night)
+- Everything open is now explained step by step in `docs/OWNER_GUIDE.md` (A iOS, B Google/site, C housekeeping). Blockers first: A1 (Firebase Apple provider, APNs key, App Attest), A2 (Google Maps iOS key), A3 (borrowed iPhone + TestFlight group).
+- Decisions 7 Nov: Google Maps SDK for iOS; no Admin Console on iOS. Old item 3 (appspot key) is superseded: the key was disabled on 7 Nov by "GO IMPLEMENT".
+
+### Audit of 8 Nov 2026 (read from the live systems; owner statements marked "owner")
+| Item | Status |
+|---|---|
+| Essential Contacts "API disabled" | Explained: the API is switched off in the project (not your account); the console enables it when you add a contact |
+| Apple sign-in provider in Firebase | Done (verified) |
+| Apple keys (SIWA, APNs), App Attest in App Check, tester team | Done (owner) |
+| **APNs key uploaded to Firebase Cloud Messaging** | **Please confirm** (Project settings > Cloud Messaging > Apple app configuration) |
+| Maps iOS key restricted | Done (verified) |
+| **Firebase "iOS key (auto created by Firebase)" restriction** | **Not applied (verified)**: the API still shows no application restriction. Open the key > Application restrictions > iOS apps > add `app.geonajjar.prohost` > Save, then check the key list |
+| Instagram AI-presenter check | Done (owner) |
+| Suspicious user disabled | Done (verified) |
+| **Second owner** | **Pending acceptance (verified)** |
+| Billing budget | Done (owner; I cannot see billing) |
+| **BOOTSTRAP_SECRET** | Safe to disable then delete (verified) |
+| Sheet access | Done (verified) |
+| **Pull request for the 25 commits not on main** | I open it; you press Merge (item C1) |
+| Apple "certificate revoked" email | Expected: each TestFlight build creates a temporary Apple Distribution certificate and deletes it at the end; Apple mails the account holder on revocation. If the email names a different certificate than "ProHost CI", forward it to me |
+| Hosting | Netlify automation prepared (item 36); needs `NETLIFY_AUTH_TOKEN` and the Hostinger DNS change |
+| Google restriction (items 1, 2, 10) | Unchanged: quota requests refused, Hosting "Site Not Found" |

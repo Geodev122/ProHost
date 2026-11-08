@@ -77,3 +77,17 @@ Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, ot
 ## 7 Nov 2026 - iOS: first TestFlight attempt
 - Owner attached the ASC `.p8` in chat (key id HF7C34HW38): treat as exposed, rotate after the first successful upload (new key straight into GitHub secrets). Sandbox proxy blocks api.appstoreconnect.apple.com (403), so Apple state is checked from the macOS runner only.
 - ios-testflight.yml gained a branch trigger `ios-beta/**` (workflow_dispatch needs the file on main; the git proxy refuses tag pushes); branch `ios-beta/1` pushed to run it.
+
+## 7 Nov 2026 - iOS TestFlight pipeline
+- Workflow hardened: key text accepted as PEM/body/base64 and validated (`openssl pkey -check`); archive is unsigned (no registered device needed), export signs for distribution via the API key. Result: archive OK, export blocked by "Cloud signing permission error" (needs an Admin-role key). Runs ios-beta/1..8.
+
+## 7 Nov 2026 (night) - iOS readiness audit and owner guide
+- Added `docs/IOS_READINESS.md` (audit: iOS is ~3% of the work by size; backend/App Review gaps; exact-parity strategy and screen port order) and `docs/OWNER_GUIDE.md` (click-by-click owner steps). Decisions: Google Maps iOS SDK, no Admin on iOS.
+
+## 7 Nov 2026 (late) - iOS signing fixed, build 13 uploaded
+- Unsigned-archive flow dropped: entitlements were missing and embedded frameworks failed validation. New flow: temporary distribution certificate + App Store profile via the ASC Admin API key, manual signing for Release of the app target, upload, cleanup (deleted profile and certificate, HTTP 204). Fixed the build number (Info.plist now follows CURRENT_PROJECT_VERSION). Signed entitlements verified: Sign in with Apple, push, App Attest. Runs ios-beta/10-12.
+
+## 8 Nov 2026 - audit of owner statuses and automated temporary hosting
+- Read-only audit (IAM, API keys, Secret Manager data-access logs, Sheet permissions): second owner still `projectOwnerInvitee`; Firebase iOS/Android/Browser keys have no application restriction (Maps iOS key is restricted); BOOTSTRAP_SECRET unused, only probed (refused) by the intruder IP on 5 Nov. No change made to GCP.
+- Hosting: replaced the Cloudflare idea with Netlify free, deployed from `.github/workflows/site-deploy.yml` (CLI upload of `public/`, creates/finds the site, attaches pro-host.tech, probes 10 URLs). `public/_redirects` and `_headers` rewritten for Netlify (clean URLs, proxies to the five public Cloud Run services of the functions, URLs from `gcloud run services list`; all have `allUsers` invoker and ingress `all`). The sandbox proxy blocks `*.cloudfunctions.net` and `*.a.run.app`, so the proxies are first exercised by the workflow probes. `DEPLOYMENT.md` and `OWNER_GUIDE.md` B2 updated. Needs the owner's `NETLIFY_AUTH_TOKEN` secret and the Hostinger DNS change.
+

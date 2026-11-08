@@ -57,29 +57,102 @@ jobs:
       - name: Write API key to a temp file
         run: |
           KEY="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
-          if [ -n "$ASC_KEY_P8" ]; then printf '%s\n' "$ASC_KEY_P8" > "$KEY"; else printf '%s' "$ASC_KEY_P8_B64" | base64 --decode > "$KEY"; fi
-          chmod 600 "$KEY"
-          grep -q "BEGIN PRIVATE KEY" "$KEY" || { echo "::error::ASC key is not a PEM .p8 (no BEGIN PRIVATE KEY line)"; rm -f "$KEY"; exit 1; }
+          RAW="${ASC_KEY_P8:-$ASC_KEY_P8_B64}" KEY="$KEY" python3 - <<'PY'
+          import base64, os, re, subprocess, sys, textwrap
+          raw = os.environ["RAW"].strip().replace("\\n", "\n").replace("\r", "")
+          shape = f"length={len(raw)} lines={raw.count(chr(10)) + 1} has_begin={'BEGIN' in raw}"
+          def pem(body):
+              return "-----BEGIN PRIVATE KEY-----\n" + "\n".join(textwrap.wrap(body, 64)) + "\n-----END PRIVATE KEY-----\n"
+          cands = []
+          if "BEGIN" in raw:
+              cands.append(raw + "\n")
+          else:
+              body = re.sub(r"\s+", "", raw)
+              clean = re.sub(r"[^A-Za-z0-9+/=]", "", body)
+              odd = sorted({repr(ch) for ch in body if not re.match(r"[A-Za-z0-9+/=]", ch)})
+              shape += f" body_len={len(body)} clean_len={len(clean)} non_base64={odd} starts_MIGT={clean[:4] == 'MIGT'} ends_eq={clean.endswith('=')}"
+              for v in (clean, clean[1:], clean[:-1], clean.rstrip("=")):
+                  cands.append(pem(v))  # body only (base64 DER), plus variants
+              try:  # base64 of a whole PEM file
+                  dec = base64.b64decode(body, validate=False).decode("utf-8", "ignore")
+                  if "BEGIN" in dec:
+                      cands.insert(0, dec.strip() + "\n")
+              except Exception:
+                  pass
+          path = os.environ["KEY"]
+          def ok(c):
+              open(path, "w").write(c)
+              os.chmod(path, 0o600)
+              return subprocess.run(["openssl", "pkey", "-check", "-in", path, "-noout"], capture_output=True).returncode == 0
+          for c in cands:
+              if ok(c):
+                  print("ASC key parsed OK (" + shape + ")")
+                  sys.exit(0)
+          if "BEGIN" not in raw and len(clean) == 201:
+              # One stray character (typical copy/paste slip): drop each position in turn; -check proves the key is consistent.
+              for i in range(len(clean)):
+                  if ok(pem(clean[:i] + clean[i + 1:])):
+                      print(f"ASC key repaired: removed one stray character at position {i} (fix the secret later). " + shape)
+                      sys.exit(0)
+          os.remove(path)
+          print("::error::ASC_KEY_P8 is not a usable .p8 key (" + shape + "). Paste the whole file text, BEGIN and END lines included.")
+          sys.exit(1)
+          PY
           echo "ASC_KEY_PATH=$KEY" >> "$GITHUB_ENV"
+
+      - name: Create temporary distribution certificate and App Store profile (API key)
+        run: |
+          pip3 install --quiet --break-system-packages pyjwt cryptography 2>/dev/null || pip3 install --quiet pyjwt cryptography
+          export ASC_KEY_P8="$(cat "$ASC_KEY_PATH")"
+          python3 scripts/ios/asc_signing.py setup
+          KC="$RUNNER_TEMP/build.keychain-db"; KCPASS="$(uuidgen)"
+          echo "KC=$KC" >> "$GITHUB_ENV"
+          security create-keychain -p "$KCPASS" "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p "$KCPASS" "$KC"
+          for u in G3 G6; do curl -fsSL "https://www.apple.com/certificateauthority/AppleWWDRCA$u.cer" -o "$RUNNER_TEMP/wwdr$u.cer" && security import "$RUNNER_TEMP/wwdr$u.cer" -k "$KC" -T /usr/bin/codesign || true; done
+          security import "$RUNNER_TEMP/signing/key.pem" -k "$KC" -T /usr/bin/codesign -T /usr/bin/security
+          security import "$RUNNER_TEMP/signing/cert.cer" -k "$KC" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KCPASS" "$KC" >/dev/null
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          security find-identity -v -p codesigning "$KC"
 
       - name: Generate project
         working-directory: ios
         run: xcodegen generate
 
-      - name: Archive (automatic signing via API key)
+      - name: Archive (Apple Distribution signing with the temporary certificate)
         working-directory: ios
+        env:
+          MARKETING_VERSION_IN: ${{ github.event.inputs.marketing_version }}
         run: |
           xcodebuild archive \
             -project ProHost.xcodeproj -scheme ProHost -configuration Release \
             -destination "generic/platform=iOS" \
             -archivePath build/ProHost.xcarchive \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_KEY_PATH" \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             MARKETING_VERSION="${MARKETING_VERSION_IN:-1.0.0}" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
+
+      - name: Export a local IPA and print its entitlements
+        working-directory: ios
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath build/ProHost.xcarchive \
+            -exportOptionsPlist ExportOptionsInspect.plist \
+            -exportPath build/export-inspect
+          rm -rf build/ipa && mkdir -p build/ipa && unzip -q build/export-inspect/ProHost.ipa -d build/ipa
+          echo "--- signed entitlements"
+          codesign -d --entitlements - --xml build/ipa/Payload/ProHost.app 2>/dev/null | plutil -p - | head -30
+          echo "--- build number in the IPA"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" build/ipa/Payload/ProHost.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" build/ipa/Payload/ProHost.app/Info.plist
+          echo "--- profile entitlements"
+          security cms -D -i build/ipa/Payload/ProHost.app/embedded.mobileprovision > build/profile.plist
+          /usr/libexec/PlistBuddy -c "Print :Entitlements" build/profile.plist | head -30
+          echo "--- profile name and type"
+          /usr/libexec/PlistBuddy -c "Print :Name" build/profile.plist
+          /usr/libexec/PlistBuddy -c "Print :ProvisionsAllDevices" build/profile.plist || true
 
       - name: Export and upload to App Store Connect
         working-directory: ios
@@ -93,6 +166,12 @@ jobs:
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"
 
-      - name: Remove API key
+      - name: Delete the temporary certificate and profile, remove the API key
         if: always()
-        run: rm -f "$ASC_KEY_PATH"
+        run: |
+          if [ -n "$ASC_KEY_PATH" ] && [ -f "$ASC_KEY_PATH" ]; then
+            export ASC_KEY_P8="$(cat "$ASC_KEY_PATH")"
+            python3 scripts/ios/asc_signing.py cleanup || true
+            security delete-keychain "$KC" 2>/dev/null || true
+          fi
+          rm -f "$ASC_KEY_PATH"; rm -rf "$RUNNER_TEMP/signing"

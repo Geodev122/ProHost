@@ -3,9 +3,9 @@ name: iOS CI
 # Builds the SwiftUI app and runs unit tests on a simulator. No Apple secrets needed (no signing).
 on:
   push:
-    paths: ["ios/**", "scripts/ios/**", ".github/workflows/ios-ci.yml"]
+    paths: ["ios/**", "scripts/ios/**", "app/src/main/res/values*/**", "app/src/main/java/**", ".github/workflows/ios-ci.yml"]
   pull_request:
-    paths: ["ios/**", "scripts/ios/**", ".github/workflows/ios-ci.yml"]
+    paths: ["ios/**", "scripts/ios/**", "app/src/main/res/values*/**", "app/src/main/java/**", ".github/workflows/ios-ci.yml"]
   workflow_dispatch:
 
 concurrency:
@@ -22,6 +22,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: String catalog is current and in parity (Android strings -> iOS)
+        run: |
+          python3 scripts/ios/test_strings.py
+          python3 scripts/ios/strings_convert.py --out "$RUNNER_TEMP/Localizable.xcstrings"
+          diff -q "$RUNNER_TEMP/Localizable.xcstrings" ios/ProHost/Resources/Localizable.xcstrings \
+            || { echo "::error::Localizable.xcstrings is stale: run python3 scripts/ios/strings_convert.py and commit"; exit 1; }
+          python3 scripts/ios/check_strings_parity.py
+          python3 scripts/ios/build_icons.py --check
+          python3 scripts/ios/build_labels.py --check
+
       - name: Select newest Xcode
         run: |
           latest=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
@@ -35,6 +45,14 @@ jobs:
       - name: Generate project
         working-directory: ios
         run: xcodegen generate
+
+      - name: List analytics products of the resolved Firebase package (diagnostic)
+        working-directory: ios
+        run: |
+          xcodebuild -resolvePackageDependencies -project ProHost.xcodeproj >/dev/null 2>&1 || true
+          PKG=$(find ~/Library/Developer/Xcode/DerivedData -path '*SourcePackages/checkouts/firebase-ios-sdk/Package.swift' 2>/dev/null | head -1)
+          echo "package: $PKG"
+          grep -nE '\.library\(name: "(FirebaseAnalytics|FirebaseCrashlytics)[A-Za-z]*"|name: "FirebaseAnalytics[A-Za-z]*"' "$PKG" | head -12 || true
 
       - name: Build and test (simulator, unsigned)
         working-directory: ios

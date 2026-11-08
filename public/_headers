@@ -1,3 +1,4 @@
+# Netlify headers for the temporary host (same rules as firebase.json "headers").
 /.well-known/assetlinks.json
   Content-Type: application/json
 /img/*
@@ -8,9 +9,19 @@
   Cache-Control: public, max-age=86400
 /get
   X-Robots-Tag: noindex
+/get.html
+  X-Robots-Tag: noindex
 /admin
+  X-Robots-Tag: noindex
+/admin.html
   X-Robots-Tag: noindex
 /emaillink
   X-Robots-Tag: noindex
+/emaillink.html
+  X-Robots-Tag: noindex
 /redeem
+  X-Robots-Tag: noindex
+/redeem.html
+  X-Robots-Tag: noindex
+/404.html
   X-Robots-Tag: noindex

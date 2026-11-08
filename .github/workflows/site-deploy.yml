@@ -1,0 +1,127 @@
+name: Site deploy (temporary host)
+
+# Publishes public/ to Netlify while Firebase Hosting is restricted by Google (DEPLOYMENT.md "Temporary host").
+# Netlify never reads this repository: this job uploads the folder with the CLI, so the private repo stays private.
+# One secret is needed: NETLIFY_AUTH_TOKEN. NETLIFY_SITE_ID is optional (without it the job finds or creates the site
+# "prohost-tech-site" and prints its id). The job also attaches pro-host.tech to the site; DNS stays with the owner.
+on:
+  push:
+    branches: [main, "site-deploy/**"]
+    paths: ["public/**", "netlify.toml", ".github/workflows/site-deploy.yml"]
+  workflow_dispatch:
+    inputs:
+      probe_host:
+        description: "Host the probes call (empty = the unique deploy address; use pro-host.tech once DNS points to Netlify)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-deploy
+  cancel-in-progress: false
+
+env:
+  NETLIFY_API: https://api.netlify.com/api/v1
+  SITE_NAME: prohost-tech-site
+  SITE_DOMAIN: pro-host.tech
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Find or create the Netlify site
+        id: site
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          SECRET_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          if [ -z "$NETLIFY_AUTH_TOKEN" ]; then
+            echo "::error::Add the GitHub Actions secret NETLIFY_AUTH_TOKEN (Settings > Secrets and variables > Actions; steps in docs/OWNER_GUIDE.md B2)."
+            exit 1
+          fi
+          auth="Authorization: Bearer $NETLIFY_AUTH_TOKEN"
+          if [ -n "$SECRET_SITE_ID" ]; then
+            id="$SECRET_SITE_ID"
+          else
+            id=$(curl -sS -H "$auth" "$NETLIFY_API/sites?name=$SITE_NAME&filter=all" |
+              python3 -c 'import json,sys,os; d=json.load(sys.stdin); n=os.environ["SITE_NAME"]; print(next((s["id"] for s in d if isinstance(d,list) and s.get("name")==n),""))' || true)
+            if [ -z "$id" ]; then
+              echo "creating site $SITE_NAME"
+              id=$(curl -sS -X POST -H "$auth" -H 'Content-Type: application/json' -d "{\"name\":\"$SITE_NAME\"}" "$NETLIFY_API/sites" |
+                python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("id",""))' || true)
+            fi
+          fi
+          if [ -z "$id" ]; then
+            echo "::error::Could not find or create the Netlify site. Check that NETLIFY_AUTH_TOKEN is a valid personal access token."
+            exit 1
+          fi
+          echo "Netlify site id: $id"
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy public/ (production)
+        id: deploy
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ steps.site.outputs.id }}
+        run: |
+          npx --yes netlify-cli@17.38.1 deploy --prod --dir=public --message "${GITHUB_REF_NAME} ${GITHUB_SHA::7}" --json > "$RUNNER_TEMP/deploy.json"
+          python3 - <<'PY'
+          import json, os
+          d = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "deploy.json")))
+          deploy_url = d.get("deploy_url") or d.get("url") or ""
+          print("deployed:", deploy_url, "| site:", d.get("site_name"))
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"deploy_url={deploy_url}\n")
+          PY
+
+      - name: Attach the domain (does not touch DNS)
+        continue-on-error: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          SITE_ID: ${{ steps.site.outputs.id }}
+        run: |
+          auth="Authorization: Bearer $NETLIFY_AUTH_TOKEN"
+          curl -sS -X PATCH -H "$auth" -H 'Content-Type: application/json' \
+            -d "{\"custom_domain\":\"$SITE_DOMAIN\",\"domain_aliases\":[\"www.$SITE_DOMAIN\"]}" \
+            "$NETLIFY_API/sites/$SITE_ID" | python3 -c 'import json,sys; d=json.load(sys.stdin); print("custom_domain:", d.get("custom_domain"), "aliases:", d.get("domain_aliases"))'
+          # The certificate can only be issued once DNS points to Netlify; until then this reports an error and is retried by the next run.
+          code=$(curl -sS -o "$RUNNER_TEMP/ssl.json" -w '%{http_code}' -X POST -H "$auth" "$NETLIFY_API/sites/$SITE_ID/ssl" || echo 000)
+          echo "certificate request: HTTP $code"
+          if [ "$code" != 200 ] && [ "$code" != 201 ]; then echo "::notice::HTTPS certificate not issued yet (normal until the Hostinger DNS records point to Netlify): $(head -c 300 "$RUNNER_TEMP/ssl.json")"; fi
+
+      - name: Probe the live site
+        env:
+          DEPLOY_URL: ${{ steps.deploy.outputs.deploy_url }}
+          PROBE_HOST: ${{ inputs.probe_host }}
+        run: |
+          base="$DEPLOY_URL"
+          [ -n "$PROBE_HOST" ] && base="https://$PROBE_HOST"
+          echo "probing $base"
+          fail=0
+          check() { # path, expected status, optional body substring
+            code=$(curl -sS -o "$RUNNER_TEMP/body" -w '%{http_code}' --max-time 30 "$base$1" || echo 000)
+            ok=1
+            [ "$code" = "$2" ] || ok=0
+            if [ "$ok" = 1 ] && [ -n "$3" ] && ! grep -qi -- "$3" "$RUNNER_TEMP/body"; then ok=0; fi
+            if [ "$ok" = 1 ]; then echo "ok   $1 -> $code"; else echo "::error::$1 returned $code (wanted $2 $3)"; fail=1; fi
+          }
+          check / 200 "ProHost"
+          check /privacy 200 "privacy"
+          check /terms 200 "terms"
+          check /delete-account 200
+          check /get 200
+          check /clinic-room-rental 200
+          check /.well-known/assetlinks.json 200 "android_app"
+          check /robots.txt 200
+          check /sitemap.xml 200 "<urlset"
+          check /ig-webhook 403
+          exit $fail
