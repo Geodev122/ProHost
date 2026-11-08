@@ -23,5 +23,17 @@ Moving Pro Host drawer items into tabs, removing Explore's menu button, iOS-styl
 8. Agent: new Google project/billing account; Meta webhook cutover window.
 9. Housekeeping: untrack `hs_err_pid32984.log` (1.9 MB); keystore stays by owner choice.
 
-## Versions (fill in at the P0 spike)
-Kotlin ___ / CMP ___ / AGP ___ / Gradle 9.7.1 / Coil 3 ___ / Firebase BoM ___ / Xcode ___
+## Baseline and findings (P0, 8 Nov 2026)
+- **Golden baseline:** the git proxy refuses tag pushes, so there is no `kmp-golden-v1047` tag on GitHub (a local tag at `d30c331` was not pushed; creating the tag in the GitHub UI is optional).
+  The baseline is the Design Screenshots run 42474484795 on commit `7ed5728686cd7e7c9abe16c655493f296953e443` (app code identical to `d30c331`), stored as git commit
+  `d841cccf2e7e1acbd8acf32a2226ba221444d3ad` under `refs/design-shots/golden-v1047`: **280 PNGs, 0 render errors**, flat names `<screen>_<variant>.png` (variants light, dark, small, rtl, ar).
+- **Known Kotlin/TypeScript divergences** (pinned by `kotlinExpected` in `tests/vectors/booking-terms.json`; behaviour NOT changed):
+  1. `bookingTerm` month arithmetic: TypeScript (`Date.setUTCMonth`) overflows into the next month (2026-01-31 + 1 month = 2026-03-03; 2026-03-31 + 1 = 2026-05-01), the app (`java.util.Calendar`) clamps to
+     the last day (2026-02-28; 2026-04-30). Effect: for a booking starting on the 29th-31st the server can believe the term ends later than the app does (conflict checks, `hasEnded`). Owner decision needed:
+     align the server to the app (clamp) or the app to the server. Neither is changed by the migration; the shared date library must reproduce the app's current result until decided.
+  2. `findLowestPriceForSubdivision` returns `0.0` for an unpriced room where TypeScript `roomPrice` returns `null` (representation only; not vectored).
+  3. TypeScript `pricingFromLegacyFormula` defaults a missing `rateUsd` to 300 and missing days to Mon-Fri; the Kotlin `RentalFormula` always has both (no practical difference for stored documents).
+- **Version facts** (JetBrains pages read 8 Nov 2026; to be confirmed by the spike): latest stable Compose Multiplatform **1.12.2** (15 Oct 2026, Jetpack Compose 1.12.1), 1.13.0-beta02 pre-release (4 Nov); latest stable Kotlin
+  **2.4.21** (8 Oct 2026); CMP docs say "at least Kotlin 2.1.0" and recommend Kotlin 2.2.20 for iOS and web. AGP 9 KMP plugin id `com.android.kotlin.multiplatform.library`, Gradle >= 9.1.0, remove `org.jetbrains.kotlin.android`,
+  enable resources with `androidResources { enable = true }`. This repo: Kotlin 2.2.10, AGP 9.4.1, Gradle 9.7.1, Compose BOM 2025.02.00 (Jetpack Compose 1.7.x).
+- **Spike result:** see `docs/migration/SPIKE_REPORT.md`.
