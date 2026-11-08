@@ -7,9 +7,6 @@ import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
 import com.example.ui.util.UiMessages
-import android.content.Context
-import android.location.Address
-import android.location.Geocoder
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -26,70 +23,18 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.util.Geocoding
 import com.example.util.LocateResult
 import com.example.util.LocationProvider
+import com.example.util.ResolvedAddress
 import com.example.util.locate
+import com.example.util.resolvePin
 import com.google.maps.android.compose.*
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.CameraUpdateFactory
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.Locale
-
-/**
- * What a pin resolved to. Street, area and city are in the app's language (an Arabic app fills Arabic); the country is its
- * standard English name (filters and search compare English names) and [cityEn] keeps an English copy of the city.
- */
-data class ResolvedAddress(
-    val lat: Double,
-    val lng: Double,
-    val street: String = "",
-    val area: String = "",
-    val city: String = "",
-    val country: String = "",
-    val countryCode: String = "",
-    val cityEn: String = ""
-)
-
-/** English country name for an ISO code ("LB" → "Lebanon"), else [fallback]. */
-fun englishCountryName(countryCode: String, fallback: String?): String =
-    countryCode.takeIf { it.isNotBlank() }?.let { Locale("", it).getDisplayCountry(Locale.ENGLISH) }?.takeIf { it.isNotBlank() }
-        ?: fallback.orEmpty()
-
-/** Reverse-geocodes a pin twice when needed: once in the app's language for display, once in English for the copies. */
-@Suppress("DEPRECATION")
-suspend fun reverseGeocode(context: Context, lat: Double, lng: Double): ResolvedAddress = withContext(Dispatchers.IO) {
-    val appLocale = context.resources.configuration.locales[0] ?: Locale.getDefault()
-    fun lookup(locale: Locale): Address? =
-        runCatching { Geocoder(context, locale).getFromLocation(lat, lng, 1)?.firstOrNull() }.getOrNull()
-    val local = lookup(appLocale)
-    val english = if (appLocale.language == Locale.ENGLISH.language) local else lookup(Locale.ENGLISH) ?: local
-    toResolvedAddress(lat, lng, local, english)
-}
-
-/** Forward-geocodes a typed address (no pin dropped) the same way; null when nothing matches. */
-@Suppress("DEPRECATION")
-suspend fun forwardGeocode(context: Context, query: String): ResolvedAddress? = withContext(Dispatchers.IO) {
-    val hit = runCatching { Geocoder(context, Locale.ENGLISH).getFromLocationName(query, 1)?.firstOrNull() }.getOrNull()
-        ?: return@withContext null
-    reverseGeocode(context, hit.latitude, hit.longitude)
-}
-
-private fun toResolvedAddress(lat: Double, lng: Double, local: Address?, english: Address?): ResolvedAddress {
-    val code = (english ?: local)?.countryCode.orEmpty()
-    return ResolvedAddress(
-        lat = lat,
-        lng = lng,
-        street = listOfNotNull(local?.thoroughfare, local?.subThoroughfare).filter { it.isNotBlank() }.joinToString(" "),
-        area = (local?.subLocality ?: local?.subAdminArea).orEmpty(),
-        city = (local?.locality ?: local?.subAdminArea).orEmpty(),
-        country = englishCountryName(code, english?.countryName ?: local?.countryName),
-        countryCode = code,
-        cityEn = (english?.locality ?: english?.subAdminArea).orEmpty()
-    )
-}
 
 @Composable
 fun ListingLocationMapPicker(
@@ -132,7 +77,8 @@ fun ListingLocationMapPicker(
     val requestLocation = rememberLocationAccess { requestHighAccuracyLocation() }
 
     suspend fun resolveLocationAndConfirm(latLng: LatLng) {
-        val resolved = reverseGeocode(context, latLng.latitude, latLng.longitude)
+        val appLocale = context.resources.configuration.locales[0] ?: Locale.getDefault()
+        val resolved = Geocoding.require().resolvePin(appLocale.toLanguageTag(), latLng.latitude, latLng.longitude)
         onLocationConfirmed(resolved)
     }
 

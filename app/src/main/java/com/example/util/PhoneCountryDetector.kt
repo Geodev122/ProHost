@@ -44,21 +44,12 @@ object PhoneCountryDetector {
         } catch (e: Exception) {
             null
         } ?: return null
-        // The legacy Geocoder.getFromLocation overload is a real synchronous/blocking
-        // call (can take seconds on a slow network) — this whole function is called
-        // from LoginAuthScreen's LaunchedEffect(Unit), i.e. on Dispatchers.Main, so
-        // without this the login screen's very first frame could ANR. Same fix
-        // already applied to ListingLocationMapPicker's own Geocoder call.
-        return try {
-            withContext(Dispatchers.IO) {
-                @Suppress("DEPRECATION")
-                val addresses = Geocoder(context, Locale.getDefault())
-                    .getFromLocation(location.latitude, location.longitude, 1)
-                addresses?.firstOrNull()?.countryCode?.takeIf { it.length == 2 }
-            }
-        } catch (e: Exception) {
-            null
-        }
+        // The geocoder call blocks (it can take seconds on a slow network): the Geocoding implementation runs it on the IO dispatcher, because
+        // this function is called from LoginAuthScreen's LaunchedEffect(Unit), i.e. on the main thread, and the login screen's very first frame
+        // must not ANR.
+        return (Geocoding.current ?: AndroidGeocoding(context))
+            .reverse(location.latitude, location.longitude, Locale.getDefault().toLanguageTag())
+            ?.countryCode?.takeIf { it.length == 2 }
     }
 
     /** Detects the caller's current country. Never throws — always resolves to a real [Country]. */
@@ -79,17 +70,12 @@ object PhoneCountryDetector {
      * Reverses lat/lng map center coordinates into a human-readable country name.
      * Uses Geocoder first, then falls back to MENA geographical bounding box rules.
      */
-    suspend fun detectCountryAtCoordinates(context: Context, lat: Double, lng: Double): String? = withContext(Dispatchers.IO) {
-        try {
-            @Suppress("DEPRECATION")
-            val addresses = Geocoder(context, Locale.getDefault()).getFromLocation(lat, lng, 1)
-            val name = addresses?.firstOrNull()?.countryName
-            if (!name.isNullOrBlank()) return@withContext name
-        } catch (e: Exception) {
-            // Geocoder offline or network error — fall through to bounding box
-        }
+    suspend fun detectCountryAtCoordinates(context: Context, lat: Double, lng: Double): String? {
+        // Geocoder offline or network error reads as no match: fall through to the bounding box.
+        val name = (Geocoding.current ?: AndroidGeocoding(context)).reverse(lat, lng, Locale.getDefault().toLanguageTag())?.countryName
+        if (!name.isNullOrBlank()) return name
 
-        when {
+        return when {
             lat in 33.0..34.7 && lng in 35.0..36.6 -> "Lebanon"
             lat in 32.3..37.3 && lng in 35.6..42.4 -> "Syria"
             lat in 29.2..33.4 && lng in 34.9..39.3 -> "Jordan"

@@ -1020,20 +1020,11 @@ fun CreateListingDialog(
                   // null (falling back to buildListing()'s own jittered-governorate-center
                   // default) whenever a pin already exists or there's nothing to geocode —
                   // matches ListingLocationMapPicker.resolveAndEmit()'s exact pattern.
-                  @Suppress("DEPRECATION")
                   suspend fun resolveFallbackGeocode(): GeoPoint? {
                       if (pickedLatLng != null) return null
                       if (streetAddress.isBlank()) return null
-                      return withContext(Dispatchers.IO) {
-                          try {
-                              val fullAddress = listOf(streetAddress, city, country).filter { it.isNotBlank() }.joinToString(", ")
-                              val geocoder = android.location.Geocoder(context, java.util.Locale.ENGLISH)
-                              val addresses = geocoder.getFromLocationName(fullAddress, 1)
-                              addresses?.firstOrNull()?.let { GeoPoint(it.latitude, it.longitude) }
-                          } catch (e: Exception) {
-                              null
-                          }
-                      }
+                      val fullAddress = listOf(streetAddress, city, country).filter { it.isNotBlank() }.joinToString(", ")
+                      return com.example.util.Geocoding.require().forward(fullAddress, "en")?.let { GeoPoint(it.latitude, it.longitude) }
                   }
 
                   // Silent draft auto-save — debounced 3s after the last field change, and
