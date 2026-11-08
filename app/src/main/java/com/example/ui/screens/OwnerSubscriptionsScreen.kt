@@ -600,8 +600,7 @@ fun OwnerSubscriptionsScreen(
                         nowMillis = promoNow,
                         enabled = canUsePromo,
                         onCopy = {
-                            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("ProHost promo code", livePromo.code))
+                            com.example.ui.util.PlatformActions.require().copyText("ProHost promo code", livePromo.code)
                             UiMessages.show(uiText(R.string.code_x_copied, livePromo.code))
                         },
                         onUse = { showRedeemDialog = false; redeemCodeInput = ""; showPromoHowTo = true }

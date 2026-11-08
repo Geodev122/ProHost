@@ -972,19 +972,13 @@ fun SpecialistProfileScreen(
                                 label = stringResource(R.string.app_language),
                                 supporting = stringResource(R.string.app_language_options),
                                 onClick = {
-                                    val intent = if (android.os.Build.VERSION.SDK_INT >= 33) {
-                                        android.content.Intent(android.provider.Settings.ACTION_APP_LOCALE_SETTINGS)
-                                            .setData(android.net.Uri.fromParts("package", context.packageName, null))
-                                    } else {
-                                        android.content.Intent(android.provider.Settings.ACTION_LOCALE_SETTINGS)
-                                    }
-                                    runCatching { context.startActivity(intent) }
+                                    runCatching { com.example.ui.util.PlatformActions.require().openAppLanguageSettings() }
                                 }
                             )
                             ProfileMoreRow(
                                 icon = Icons.AutoMirrored.Filled.Help,
                                 label = stringResource(R.string.contact_support),
-                                onClick = { com.example.ui.util.launchSupportEmail(context, user, user.role.name) }
+                                onClick = { com.example.ui.util.launchSupportEmail(user, user.role.name) }
                             )
                             if (onSignOut != null) {
                                 ProfileMoreRow(

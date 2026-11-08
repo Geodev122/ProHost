@@ -6,6 +6,8 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import java.lang.ref.WeakReference
 
 /**
@@ -15,8 +17,17 @@ import java.lang.ref.WeakReference
  * try/catch fallbacks.
  */
 interface PlatformActions {
-    /** Opens [url] in whatever app handles it (ACTION_VIEW), e.g. a wa.me WhatsApp link. */
-    fun openUrl(url: String)
+    /** Opens [url] in whatever app handles it (ACTION_VIEW), e.g. a wa.me WhatsApp link. [newTask] starts it in its own task (the consent dialog's privacy link). */
+    fun openUrl(url: String, newTask: Boolean = false)
+
+    /** Opens the email app on a `mailto:` URI (ACTION_SENDTO, so only email apps answer). */
+    fun sendMail(mailtoUri: String)
+
+    /** Opens this app's page in the system settings (permissions), in its own task. */
+    fun openAppSettings()
+
+    /** Opens the system's per-app language settings (API 33+) or the device language settings. */
+    fun openAppLanguageSettings()
 
     /** Shows the system share sheet titled [chooserTitle] for plain [text] with an optional [subject]. */
     fun shareText(chooserTitle: String, subject: String, text: String)
@@ -68,7 +79,24 @@ object AndroidPlatformActions : PlatformActions {
         }
     }
 
-    override fun openUrl(url: String) = start(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    override fun openUrl(url: String, newTask: Boolean) =
+        start(Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply { if (newTask) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) })
+
+    override fun sendMail(mailtoUri: String) = start(Intent(Intent.ACTION_SENDTO).apply { data = Uri.parse(mailtoUri) })
+
+    override fun openAppSettings() = start(
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context().packageName, null))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    )
+
+    override fun openAppLanguageSettings() {
+        val intent = if (Build.VERSION.SDK_INT >= 33) {
+            Intent(Settings.ACTION_APP_LOCALE_SETTINGS).setData(Uri.fromParts("package", context().packageName, null))
+        } else {
+            Intent(Settings.ACTION_LOCALE_SETTINGS)
+        }
+        start(intent)
+    }
 
     override fun shareText(chooserTitle: String, subject: String, text: String) {
         val intent = Intent(Intent.ACTION_SEND).apply {

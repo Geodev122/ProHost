@@ -39,10 +39,7 @@ fun AnalyticsConsentDialog() {
             TextButton(
                 onClick = {
                     runCatching {
-                        context.startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse("https://pro-host.tech/privacy"))
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        )
+                        com.example.ui.util.PlatformActions.require().openUrl("https://pro-host.tech/privacy", newTask = true)
                     }
                 }
             ) { Text(stringResource(R.string.read_the_privacy_policy)) }

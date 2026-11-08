@@ -222,7 +222,7 @@ fun SpecialistDrawerContent(
             label = stringResource(R.string.contact_support),
             icon = Icons.AutoMirrored.Filled.Help,
             selected = false,
-            onClick = { com.example.ui.util.launchSupportEmail(context, currentUser, currentRole.name) }
+            onClick = { com.example.ui.util.launchSupportEmail(currentUser, currentRole.name) }
         )
 
         ProHostDrawerFooter()

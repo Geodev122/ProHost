@@ -560,11 +560,7 @@ internal fun AvailabilitySheet(
                                 try {
                                     val whatsappUrl = "https://wa.me/${viewModel.formatWhatsAppNumber(liveSpace.ownerPhone)}" +
                                         "?text=${java.net.URLEncoder.encode(message, "UTF-8")}"
-                                    val intent = android.content.Intent(
-                                        android.content.Intent.ACTION_VIEW,
-                                        android.net.Uri.parse(whatsappUrl)
-                                    )
-                                    context.startActivity(intent)
+                                    com.example.ui.util.PlatformActions.require().openUrl(whatsappUrl)
                                 } catch (e: Exception) {
                                     UiMessages.show(uiText(R.string.whatsapp_not_installed))
                                 }

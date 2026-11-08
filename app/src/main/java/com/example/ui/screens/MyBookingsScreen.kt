@@ -318,7 +318,7 @@ fun MyBookingsScreen(
                         onViewAgreement = {
                             booking.agreementUrl?.let { url ->
                                 try {
-                                    context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)))
+                                    com.example.ui.util.PlatformActions.require().openUrl(url)
                                 } catch (e: Exception) {
                                     UiMessages.show(uiText(R.string.could_not_open_the_agreement))
                                 }

@@ -110,9 +110,7 @@ fun LegalDocumentDialog(
                                             // already uses for a Storage-hosted PDF, instead
                                             // of generating one from the hardcoded content.
                                             runCatching {
-                                                context.startActivity(
-                                                    android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(adminPdfUrl))
-                                                )
+                                                com.example.ui.util.PlatformActions.require().openUrl(adminPdfUrl)
                                             }
                                         } else {
                                             isGeneratingPdf = true

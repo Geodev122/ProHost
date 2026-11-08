@@ -207,10 +207,7 @@ fun rememberLocationAccess(onReady: () -> Unit): () -> Unit {
             onAllow = {
                 showSettings = false
                 runCatching {
-                    context.startActivity(
-                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null))
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    )
+                    com.example.ui.util.PlatformActions.require().openAppSettings()
                 }
             },
             onDeny = { showSettings = false }

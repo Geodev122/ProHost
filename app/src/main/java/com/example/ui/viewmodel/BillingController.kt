@@ -455,8 +455,7 @@ class BillingController(
      */
     fun launchPromoCheckout(activity: android.app.Activity, promo: com.example.data.billing.PlayPromo.PromoOffer) {
         runCatching {
-            val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("ProHost promo code", promo.code))
+            com.example.ui.util.PlatformActions.require().copyText("ProHost promo code", promo.code)
         }
         com.example.analytics.AnalyticsTracker.premiumPromoCheckout(promo.code)
         launchGooglePaySubscription(activity, promo.basePlanId, com.example.data.billing.OfferChoice.Specific(promo.offerId))
