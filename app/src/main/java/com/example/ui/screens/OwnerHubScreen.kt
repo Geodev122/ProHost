@@ -11,8 +11,8 @@ import androidx.compose.ui.res.stringResource
 import com.example.ui.util.UiMessages
 import android.content.Context
 import android.content.ContextWrapper
-import android.media.AudioAttributes
-import android.media.MediaPlayer
+import com.example.util.AppSound
+import com.example.util.SoundPlayer
 import com.example.ui.util.findActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
@@ -94,29 +94,13 @@ fun OwnerHubScreen(
     val coroutineScope = rememberCoroutineScope()
 
 
-    fun playSound(resId: Int) {
-        try {
-            val mp = MediaPlayer.create(context, resId)
-            mp?.setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-            )
-            mp?.setOnCompletionListener { it.release() }
-            mp?.start()
-        } catch (e: Exception) {
-            android.util.Log.e("SoundPlayback", "Failed to play sound", e)
-        }
-    }
-
     // SO1: Branded chime when any owned listing transitions to ACTIVE (published).
     val prevSpaceStatuses = remember { mutableStateMapOf<String, ListingStatus>() }
     LaunchedEffect(ownerSpaces) {
         ownerSpaces.forEach { space ->
             val prev = prevSpaceStatuses[space.id]
             if (prev != null && prev != space.status && space.status == ListingStatus.ACTIVE) {
-                playSound(com.example.R.raw.listing_published)
+                SoundPlayer.require().play(AppSound.LISTING_PUBLISHED)
             }
             prevSpaceStatuses[space.id] = space.status
         }
@@ -131,7 +115,7 @@ fun OwnerHubScreen(
             .filter { it.status == BookingRequestStatus.PENDING && ownedIds.contains(it.spaceId) }
             .map { it.id }.toSet()
         if (pendingInitialized.value && (currentPending - prevPendingIds).isNotEmpty()) {
-            playSound(com.example.R.raw.booking_request_in)
+            SoundPlayer.require().play(AppSound.BOOKING_REQUEST_IN)
         }
         prevPendingIds.clear()
         prevPendingIds.addAll(currentPending)

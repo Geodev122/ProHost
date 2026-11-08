@@ -12,8 +12,8 @@ import com.example.ui.theme.Elevation
 import com.example.ui.util.UiMessages
 import kotlinx.coroutines.flow.first
 import android.content.ContextWrapper
-import android.media.AudioAttributes
-import android.media.MediaPlayer
+import com.example.util.AppSound
+import com.example.util.SoundPlayer
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -150,17 +150,7 @@ fun OwnerSubscriptionsScreen(
     LaunchedEffect(billingSuccess) {
         if (billingSuccess != null) {
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            try {
-                val mp = MediaPlayer.create(context, com.example.R.raw.purchase_success)
-                mp?.setAudioAttributes(AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build())
-                mp?.setOnCompletionListener { it.release() }
-                mp?.start()
-            } catch (e: Exception) {
-                android.util.Log.e("SoundPlayback", "Failed to play sound", e)
-            }
+            SoundPlayer.require().play(AppSound.PURCHASE_SUCCESS)
         }
     }
 

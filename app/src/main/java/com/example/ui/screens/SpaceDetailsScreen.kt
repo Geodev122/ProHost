@@ -1033,13 +1033,8 @@ fun SpaceDetailsScreenContent(
     sentRequest?.let { request ->
         com.example.ui.components.TrackScreen("request_sent")
         // A confirming tick under the finger when the request lands (API 30+ has a dedicated CONFIRM pattern).
-        val confirmView = androidx.compose.ui.platform.LocalView.current
-        LaunchedEffect(request.id) {
-            confirmView.performHapticFeedback(
-                if (android.os.Build.VERSION.SDK_INT >= 30) android.view.HapticFeedbackConstants.CONFIRM
-                else android.view.HapticFeedbackConstants.CONTEXT_CLICK
-            )
-        }
+        val confirmHaptic = com.example.ui.util.rememberConfirmHaptic()
+        LaunchedEffect(request.id) { confirmHaptic() }
         RequestSentSheet(
             hasWhatsApp = liveSpace.ownerPhone.isNotBlank(),
             onDismiss = { sentRequest = null },

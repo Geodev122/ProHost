@@ -19,6 +19,7 @@ class ProHostApplication : Application() {
         com.example.util.FileAccess.current = com.example.util.AndroidFileAccess(this)
         com.example.util.LocationProvider.current = com.example.util.AndroidLocationProvider(this)
         com.example.util.Geocoding.current = com.example.util.AndroidGeocoding(this)
+        com.example.util.SoundPlayer.current = com.example.util.AndroidSoundPlayer(this)
         com.example.legal.LegalPdfs.current = com.example.legal.AndroidLegalPdfs(this)
         com.example.data.auth.GoogleCredentialState.init(this)
         try {

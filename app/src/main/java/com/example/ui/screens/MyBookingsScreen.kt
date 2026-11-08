@@ -32,8 +32,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
-import android.media.AudioAttributes
-import android.media.MediaPlayer
+import com.example.util.AppSound
+import com.example.util.SoundPlayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -102,17 +102,7 @@ fun MyBookingsScreen(
             val prev = prevBookingStatuses[booking.id]
             if (prev != null && prev != booking.status &&
                 (booking.status == BookingRequestStatus.ACCEPTED || booking.status == BookingRequestStatus.REJECTED)) {
-                try {
-                    val mp = MediaPlayer.create(context, com.example.R.raw.booking_update)
-                    mp?.setAudioAttributes(AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build())
-                    mp?.setOnCompletionListener { it.release() }
-                    mp?.start()
-                } catch (e: Exception) {
-                    android.util.Log.e("SoundPlayback", "Failed to play sound", e)
-                }
+                SoundPlayer.require().play(AppSound.BOOKING_UPDATE)
             }
             prevBookingStatuses[booking.id] = booking.status
         }
