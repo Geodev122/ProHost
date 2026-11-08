@@ -19,6 +19,8 @@ kotlin {
             implementation(compose.foundation)
             implementation(compose.material3)
             implementation(compose.components.resources)
+            // Round 6: the Firebase JS SDK, the same one a web admin console would use for Auth, callables and Firestore.
+            implementation(npm("firebase", "12.0.0"))
         }
     }
 }

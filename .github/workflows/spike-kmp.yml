@@ -95,6 +95,16 @@ jobs:
           set -o pipefail
           gradle $GRADLE_ARGS :webApp:wasmJsBrowserDistribution 2>&1 | tee gradle-web.log
 
+      - name: Browser smoke test of the built web app (Chromium via Playwright)
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir -p /tmp/pw && cd /tmp/pw && npm init -y >/dev/null && npm i --silent playwright && npx playwright install --with-deps chromium >/dev/null 2>&1
+          cd "$GITHUB_WORKSPACE"
+          NODE_PATH=/tmp/pw/node_modules node scripts/migration/web_smoke.js spike/kmp/webApp/build/dist/wasmJs/productionExecutable \
+            --expect-title "firebase:ok" --shot web-smoke.png 2>&1 | tee web-smoke.log
+          while IFS= read -r line; do echo "::notice title=web-smoke::${line}"; done < web-smoke.log
+
       - name: Surface errors as annotations
         if: always()
         run: |
@@ -111,6 +121,7 @@ jobs:
           name: spike-parity
           path: |
             parity
+            web-smoke.png
             spike/kmp/androidApp/build/spike-shots
           if-no-files-found: ignore
 
