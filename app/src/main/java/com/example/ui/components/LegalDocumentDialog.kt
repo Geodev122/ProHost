@@ -22,7 +22,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.LegalDocumentVersion
 import com.example.legal.LegalDocument
-import com.example.legal.LegalPdfGenerator
 import com.example.legal.toHtml
 import com.example.ui.theme.Spacing
 import kotlinx.coroutines.Dispatchers
@@ -116,12 +115,12 @@ fun LegalDocumentDialog(
                                             isGeneratingPdf = true
                                             coroutineScope.launch {
                                                 val file = withContext(Dispatchers.IO) {
-                                                    LegalPdfGenerator.generate(context, document)
+                                                    com.example.legal.LegalPdfs.require().generate(document)
                                                 }
                                                 isGeneratingPdf = false
                                                 if (file != null) {
                                                     runCatching {
-                                                        context.startActivity(LegalPdfGenerator.buildOpenIntent(context, file))
+                                                        com.example.ui.util.PlatformActions.require().openFile(file, "application/pdf")
                                                     }
                                                 }
                                             }

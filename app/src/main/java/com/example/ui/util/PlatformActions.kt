@@ -9,6 +9,8 @@ import android.net.Uri
 import android.os.Build
 import android.provider.CalendarContract
 import android.provider.Settings
+import androidx.core.content.FileProvider
+import java.io.File
 import java.lang.ref.WeakReference
 
 /**
@@ -23,6 +25,9 @@ interface PlatformActions {
 
     /** Opens the email app on a `mailto:` URI (ACTION_SENDTO, so only email apps answer). */
     fun sendMail(mailtoUri: String)
+
+    /** Opens a file this app wrote (e.g. a generated PDF) in the viewer for [mimeType], granting it read access (Android: FileProvider URI, own task). */
+    fun openFile(file: com.example.util.PickedFile, mimeType: String)
 
     /** Opens this app's page in the system settings (permissions), in its own task. */
     fun openAppSettings()
@@ -92,6 +97,15 @@ object AndroidPlatformActions : PlatformActions {
 
     override fun openUrl(url: String, newTask: Boolean) =
         start(Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply { if (newTask) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) })
+
+    override fun openFile(file: com.example.util.PickedFile, mimeType: String) {
+        val ctx = context()
+        val uri: Uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", File(file.handle))
+        start(Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, mimeType)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        })
+    }
 
     override fun sendMail(mailtoUri: String) = start(Intent(Intent.ACTION_SENDTO).apply { data = Uri.parse(mailtoUri) })
 

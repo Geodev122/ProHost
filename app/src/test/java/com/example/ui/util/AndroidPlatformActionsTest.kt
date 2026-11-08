@@ -139,4 +139,21 @@ class AndroidPlatformActionsTest {
         val inner = started().getParcelableExtra<Intent>(Intent.EXTRA_INTENT)!!
         assertFalse(inner.hasExtra(CalendarContract.Events.RRULE))
     }
+
+    @Test
+    fun openFileIsAViewIntentOnTheFileProviderUriWithReadGrantInItsOwnTask() {
+        val dir = java.io.File(activity.getExternalFilesDir("documents"), "").apply { mkdirs() }
+        val pdf = java.io.File(dir, "ProHost-terms.pdf").apply { writeText("%PDF-test") }
+        AndroidPlatformActions.openFile(com.example.util.PickedFile(pdf.absolutePath), "application/pdf")
+        val got = started()
+        // the old LegalPdfGenerator.buildOpenIntent, verbatim
+        val oldUri = androidx.core.content.FileProvider.getUriForFile(activity, "${activity.packageName}.fileprovider", pdf)
+        val old = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(oldUri, "application/pdf")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        assertTrue(old.filterEquals(got))
+        assertEquals(old.flags, got.flags)
+        assertEquals("${activity.packageName}.fileprovider", got.data?.authority)
+    }
 }
