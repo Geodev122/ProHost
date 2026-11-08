@@ -12,6 +12,12 @@ interface FileAccess {
     /** Best-effort file extension without the dot (`pdf`, `jpeg`, ...): the content type first, then the name, then [fallback]. */
     fun extension(file: PickedFile, fallback: String): String
 
+    /** The file's bytes, or null when it cannot be read (as the inline `runCatching { openInputStream(...).readBytes() }` it replaces). */
+    suspend fun readBytes(file: PickedFile): ByteArray?
+
+    /** The file's size in bytes when the provider reports one, else null (as the inline `OpenableColumns.SIZE` query it replaces). */
+    suspend fun sizeBytes(file: PickedFile): Long?
+
     companion object {
         /** Registered once by `ProHostApplication`; tests set their own. */
         @Volatile

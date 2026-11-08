@@ -160,13 +160,13 @@ fun ListingVerificationDialog(
                                 state = docState,
                                 onStateChanged = { newState ->
                                     docState = newState
-                                    val uri = newState.uri
-                                    if (uri != null) {
+                                    val file = newState.file
+                                    if (file != null) {
                                         coroutineScope.launch {
                                             isUploading = true
                                             uploadError = null
                                             val ext = newState.fileName?.substringAfterLast('.', "pdf") ?: "pdf"
-                                            uploadedUrl = storageService.uploadListingVerificationDocument(space.id, uri, ext)
+                                            uploadedUrl = storageService.uploadListingVerificationDocument(space.id, file, ext)
                                             if (uploadedUrl == null) {
                                                 uploadError = uiText(R.string.couldn_t_upload_that_document_check_your_c)
                                             }
@@ -193,13 +193,13 @@ fun ListingVerificationDialog(
                                 state = docState,
                                 onStateChanged = { newState ->
                                     docState = newState
-                                    val uri = newState.uri
-                                    if (uri != null) {
+                                    val file = newState.file
+                                    if (file != null) {
                                         coroutineScope.launch {
                                             isUploading = true
                                             uploadError = null
                                             val ext = newState.fileName?.substringAfterLast('.', "pdf") ?: "pdf"
-                                            uploadedUrl = storageService.uploadListingVerificationDocument(space.id, uri, ext)
+                                            uploadedUrl = storageService.uploadListingVerificationDocument(space.id, file, ext)
                                             if (uploadedUrl == null) {
                                                 uploadError = uiText(R.string.couldn_t_upload_that_document_check_your_c)
                                             }

@@ -102,6 +102,14 @@ class FirebaseStorageService(
                 contentType = documentContentType(fileExtension)) != null) ref?.toString() else null
     }
 
+    /** Same as above for a [com.example.util.PickedFile]. */
+    suspend fun uploadListingVerificationDocument(
+        spaceId: String,
+        file: com.example.util.PickedFile,
+        fileExtension: String,
+        onProgress: (Float) -> Unit = {}
+    ): String? = uploadListingVerificationDocument(spaceId, file.toUri(), fileExtension, onProgress)
+
     /**
      * Uploads the signed leasing agreement attached to a booking request.
      */

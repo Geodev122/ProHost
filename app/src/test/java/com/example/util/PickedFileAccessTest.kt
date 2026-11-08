@@ -76,4 +76,18 @@ class PickedFileAccessTest {
             assertEquals(handle, uri.toString(), uri.toPickedFile().handle)
         }
     }
+
+    @Test
+    fun readBytesReturnsTheRegisteredContentAndNullWhenItCannotBeRead() = kotlinx.coroutines.runBlocking {
+        val uri = Uri.parse("content://files.test/readable")
+        org.robolectric.Shadows.shadowOf(context.contentResolver).registerInputStream(uri, java.io.ByteArrayInputStream(byteArrayOf(1, 2, 3, 4)))
+        assertEquals(listOf<Byte>(1, 2, 3, 4), access.readBytes(uri.toPickedFile())?.toList())
+        // nothing readable behind a malformed handle: null, never an exception (the old inline runCatching)
+        assertEquals(null, access.readBytes(PickedFile("not a uri at all ::::")))
+    }
+
+    @Test
+    fun sizeIsNullWhenTheProviderReportsNoSize() = kotlinx.coroutines.runBlocking {
+        assertEquals(null, access.sizeBytes(PickedFile("content://nobody.home/missing")))
+    }
 }

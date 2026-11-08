@@ -1,5 +1,8 @@
 package com.example.ui.components
 
+import com.example.util.toPickedFile
+import com.example.util.PickedFile
+import com.example.util.FileAccess
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
@@ -87,8 +90,8 @@ private val PhoneCountrySaver = Saver<Country, String>(
 )
 
 private val DocumentPickerStateSaver = Saver<DocumentPickerState, List<String?>>(
-    save = { listOf(it.uri?.toString(), it.fileName) },
-    restore = { DocumentPickerState(it.getOrNull(0)?.let(Uri::parse), it.getOrNull(1)) }
+    save = { listOf(it.file?.handle, it.fileName) },
+    restore = { DocumentPickerState(it.getOrNull(0)?.let(::PickedFile), it.getOrNull(1)) }
 )
 
 private val StringSetSaver = listSaver<Set<String>, String>(
@@ -240,21 +243,14 @@ fun CreateListingDialog(
         coroutineScope.launch {
             isUploadingPhoto = true
             photoUploadError = null
-            val fileSizeBytes = withContext(Dispatchers.IO) {
-                runCatching {
-                    context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
-                        if (cursor.moveToFirst()) cursor.getLong(0) else null
-                    }
-                }.getOrNull()
-            }
+            val picked = uri.toPickedFile()
+            val fileSizeBytes = FileAccess.require().sizeBytes(picked)
             if (fileSizeBytes != null && fileSizeBytes > 15 * 1024 * 1024) {
                 photoUploadError = uiText(R.string.one_or_more_images_exceed_the_15_mb_limit)
                 isUploadingPhoto = false
                 return@launch
             }
-            val bytes = withContext(Dispatchers.IO) {
-                runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
-            }
+            val bytes = FileAccess.require().readBytes(picked)
             val url = if (bytes != null) {
                 storageService.uploadListingImageBytes(
                     spaceId = listingId,

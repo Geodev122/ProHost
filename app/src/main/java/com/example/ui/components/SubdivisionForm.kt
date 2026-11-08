@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.util.toPickedFile
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
@@ -145,9 +146,7 @@ fun SubdivisionForm(
             var failureCount = 0
             uris.forEach { uri ->
                 val imageId = com.example.util.Ids.uuid().take(8)
-                val bytes = withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
-                }
+                val bytes = com.example.util.FileAccess.require().readBytes(uri.toPickedFile())
                 val url = if (bytes != null) {
                     storageService.uploadSubdivisionImageBytes(
                         spaceId = spaceId,

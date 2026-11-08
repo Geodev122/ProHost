@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.util.toPickedFile
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.util.UiMessages
@@ -40,17 +41,17 @@ import java.io.File
 /**
  * A required-document picker: tap to pick a file (PDF or image) from the device, shows
  * the picked file's name once selected with a Remove action. Does NOT upload anything
- * itself — the caller uploads [DocumentPickerState.uri] wherever/whenever it has the
+ * itself — the caller uploads [DocumentPickerState.file] wherever/whenever it has the
  * id (uid or spaceId) that upload needs to be keyed on, then discards this state. This
  * intentionally has no document-type dropdown, license-number field, or expiry date —
  * unlike the old CredentialUploadDialog it replaces, nothing here is reviewed by anyone,
  * so there's nothing to classify beyond "this is the document for this required slot."
  */
 data class DocumentPickerState(
-    val uri: Uri? = null,
+    val file: com.example.util.PickedFile? = null,
     val fileName: String? = null
 ) {
-    val isSelected: Boolean get() = uri != null
+    val isSelected: Boolean get() = file != null
 }
 
 private fun createCameraCaptureUri(context: Context): Uri {
@@ -80,7 +81,7 @@ fun DocumentPickerField(
                 val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                 if (cursor.moveToFirst() && nameIndex >= 0) resolvedName = cursor.getString(nameIndex)
             }
-            onStateChanged(DocumentPickerState(uri, resolvedName ?: (uri.lastPathSegment ?: "document")))
+            onStateChanged(DocumentPickerState(uri.toPickedFile(), resolvedName ?: (uri.lastPathSegment ?: "document")))
         }
     }
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -88,7 +89,7 @@ fun DocumentPickerField(
     ) { success: Boolean ->
         val uri = pendingCameraUri
         if (success && uri != null) {
-            onStateChanged(DocumentPickerState(uri, "document_photo.jpg"))
+            onStateChanged(DocumentPickerState(uri.toPickedFile(), "document_photo.jpg"))
         }
         pendingCameraUri = null
     }
