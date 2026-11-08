@@ -82,11 +82,14 @@ class UtcDatesEquivalenceTest {
             ms += 17 * day + 3_600_000L
         }
         // month boundaries to the millisecond
-        for (edge in listOf(1_798_761_599_999L, 1_798_761_600_000L, 1_804_377_599_999L, 1_804_377_600_000L)) {
+        for (edge in listOf(1_798_761_599_999L, 1_798_761_600_000L, 1_803_859_199_999L, 1_803_859_200_000L)) {
             assertEquals(oldMonthKey(edge, 0), SaveStats.monthKey(edge, 0))
             assertEquals(oldMonthKey(edge, 1), SaveStats.monthKey(edge, 1))
         }
-        assertEquals("202610", SaveStats.monthKey(1_790_000_000_000L))
+        assertEquals("202609", SaveStats.monthKey(1_790_000_000_000L)) // 2026-09-21 UTC
+        assertEquals("202612", SaveStats.monthKey(1_798_761_599_999L)) // 2026-12-31 23:59:59.999 UTC
+        assertEquals("202701", SaveStats.monthKey(1_798_761_600_000L)) // 2027-01-01 00:00 UTC
+        assertEquals("202612", SaveStats.monthKey(1_798_761_600_000L, 1))
     }
 
     @Test
