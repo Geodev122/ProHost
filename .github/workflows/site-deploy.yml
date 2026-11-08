@@ -73,7 +73,14 @@ jobs:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ steps.site.outputs.id }}
         run: |
-          npm install --global --silent netlify-cli@17.38.1 || npm install --global netlify-cli@17.38.1
+          # The CLI's optional image dependency (sharp) downloads a library from GitHub and fails now and then with
+          # "504 Gateway Time-out"; retry the install, then fall back to skipping install scripts (not needed for deploys).
+          installed=0
+          for n in 1 2 3; do
+            if npm install --global --silent netlify-cli@17.38.1; then installed=1; break; fi
+            echo "::warning::netlify-cli install attempt $n failed"; sleep 15
+          done
+          if [ "$installed" != 1 ]; then npm install --global --silent --ignore-scripts netlify-cli@17.38.1; fi
           netlify --version
           ok=0
           for attempt in 1 2 3; do
