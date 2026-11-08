@@ -138,10 +138,10 @@ fun SpaceDetailsScreen(
                 }
                 append("\n\n$shareUrl")
             }
-            viewModel.shareListing(context, liveSpace.title, shareText, liveSpace)
+            viewModel.shareListing(liveSpace.title, shareText, liveSpace)
         },
         onCopyLinkClick = {
-            viewModel.copyListingLink(context, ShareLinks.forListing(liveSpace.id), liveSpace)
+            viewModel.copyListingLink(ShareLinks.forListing(liveSpace.id), liveSpace)
         },
         isSaved = currentUser?.savedSpaceIds?.contains(liveSpace.id) == true,
         onToggleSave = { viewModel.toggleSavedSpace(liveSpace.id) },

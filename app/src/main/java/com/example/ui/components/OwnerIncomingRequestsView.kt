@@ -182,7 +182,7 @@ fun OwnerIncomingRequestsView(
                             rejectionReasonInput = ""
                         },
                         onWhatsApp = {
-                            viewModel.launchWhatsAppToPractitioner(context, req)
+                            viewModel.launchWhatsAppToPractitioner(req)
                         },
                         onChangePrice = {
                             detailRequest = null

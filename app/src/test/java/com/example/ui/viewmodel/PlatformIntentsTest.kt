@@ -8,11 +8,13 @@ import androidx.activity.ComponentActivity
 import com.example.R
 import com.example.hermeticRepository
 import com.example.ui.preview.mockBooking1
+import com.example.ui.util.AndroidPlatformActions
 import com.example.ui.util.UiText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -25,7 +27,7 @@ import org.robolectric.annotation.Config
  * P2.2e safety net, written BEFORE the change against the current code and kept with identical assertions afterwards:
  * the four platform actions of ProHostViewModel (share export, share listing, copy link, WhatsApp to a specialist)
  * must start the same Intents (action, type, extras, chooser title, URL) from the Activity, and copy the same clip.
- * Only the two `act*` arrangement helpers below change when the actions move behind the PlatformActions seam.
+ * Only the arrangement (setUp registers the Activity with the PlatformActions seam) and the `act*` helpers changed when the actions moved behind it; every assertion is the same as before.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -37,14 +39,19 @@ class PlatformIntentsTest {
     fun setUp() {
         activity = Robolectric.buildActivity(ComponentActivity::class.java).setup().get()
         UiText.init(activity.resources, activity.resources)
+        AndroidPlatformActions.init(activity.applicationContext)
+        AndroidPlatformActions.attach(activity)
         vm = ProHostViewModel(hermeticRepository())
     }
 
+    @After
+    fun tearDown() = AndroidPlatformActions.detach(activity)
+
     // --- arrangement helpers (the only lines that change with the seam) ---
-    private fun actShareExport(format: String, content: String) = vm.shareExportData(activity, format, content)
-    private fun actShareListing(title: String, content: String) = vm.shareListing(activity, title, content)
-    private fun actCopyLink(url: String) = vm.copyListingLink(activity, url)
-    private fun actWhatsApp(request: com.example.data.model.BookingRequest) = vm.launchWhatsAppToPractitioner(activity, request)
+    private fun actShareExport(format: String, content: String) = vm.shareExportData(format, content)
+    private fun actShareListing(title: String, content: String) = vm.shareListing(title, content)
+    private fun actCopyLink(url: String) = vm.copyListingLink(url)
+    private fun actWhatsApp(request: com.example.data.model.BookingRequest) = vm.launchWhatsAppToPractitioner(request)
 
     private fun nextIntent(): Intent = shadowOf(activity).nextStartedActivity ?: error("no activity was started")
 

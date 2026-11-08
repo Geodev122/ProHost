@@ -40,6 +40,7 @@ class MainActivity : ComponentActivity() {
         // Theme.MyApplication.Starting doc comment for the full root cause).
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        com.example.ui.util.AndroidPlatformActions.attach(this) // intents start from this Activity (see PlatformActions)
         // Screenshots and screen recording are allowed on purpose (owner's choice): no FLAG_SECURE.
         enableEdgeToEdge()
         handleIncomingIntent(intent)
@@ -93,6 +94,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        com.example.ui.util.AndroidPlatformActions.detach(this)
         try {
             inAppUpdateManager?.onDestroy()
         } catch (e: Exception) {

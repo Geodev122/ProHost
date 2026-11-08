@@ -89,7 +89,7 @@ fun OwnerRentingProgressScreen(
         hasLoadedBookingsOnce = hasLoadedBookingsOnce,
         isOffline = isOffline,
         onWhatsAppPractitioner = { booking ->
-            viewModel.launchWhatsAppToPractitioner(context, booking)
+            viewModel.launchWhatsAppToPractitioner(booking)
         },
         onSendPaymentReminder = { booking ->
             // Real cross-device FCM push (sendPaymentReminder Cloud Function) — the same

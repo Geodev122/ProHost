@@ -726,7 +726,7 @@ class ProHostViewModel(
         }
     }
 
-    fun launchWhatsAppToPractitioner(context: Context, request: RentalBookingRequest) {
+    fun launchWhatsAppToPractitioner(request: RentalBookingRequest) {
         val user = currentUser.value
         val ownerName = user?.fullName ?: uiText(R.string.workspace_host)
         val daysStr = if (request.selectedDays.isNotEmpty()) request.selectedDays.joinToString() else request.formula.daysOfWeek.joinToString()
@@ -750,8 +750,7 @@ class ProHostViewModel(
         try {
             val encoded = URLEncoder.encode(rawMessage, "UTF-8")
             val url = "https://wa.me/$cleanPhone?text=$encoded"
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-            context.startActivity(intent)
+            com.example.ui.util.PlatformActions.require().openUrl(url)
             com.example.analytics.AnalyticsTracker.contactSpecialist()
             repository.addAuditLog(
                 actionType = "WHATSAPP_INQUIRY_HOST_TO_SPECIALIST",
@@ -1264,13 +1263,8 @@ class ProHostViewModel(
         }
     }
 
-    fun shareExportData(context: Context, format: String, content: String) {
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_SUBJECT, "ProHost - $format Export")
-            putExtra(Intent.EXTRA_TEXT, content)
-        }
-        context.startActivity(Intent.createChooser(intent, uiText(R.string.export_prohost_data)))
+    fun shareExportData(format: String, content: String) {
+        com.example.ui.util.PlatformActions.require().shareText(uiText(R.string.export_prohost_data), "ProHost - $format Export", content)
     }
 
     /**
@@ -1283,21 +1277,15 @@ class ProHostViewModel(
      * uses an export-specific subject/chooser title that would read oddly
      * here.
      */
-    fun shareListing(context: Context, title: String, content: String, space: SpaceListing? = null) {
+    fun shareListing(title: String, content: String, space: SpaceListing? = null) {
         space?.let { com.example.analytics.AnalyticsTracker.share(it, "share_sheet") }
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_SUBJECT, title)
-            putExtra(Intent.EXTRA_TEXT, content)
-        }
-        context.startActivity(Intent.createChooser(intent, uiText(R.string.share_listing)))
+        com.example.ui.util.PlatformActions.require().shareText(uiText(R.string.share_listing), title, content)
     }
 
     /** Copies a listing's public share link (com.example.util.ShareLinks) to the clipboard. */
-    fun copyListingLink(context: Context, url: String, space: SpaceListing? = null) {
+    fun copyListingLink(url: String, space: SpaceListing? = null) {
         space?.let { com.example.analytics.AnalyticsTracker.share(it, "copy_link") }
-        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(ClipData.newPlainText("ProHost Listing Link", url))
+        com.example.ui.util.PlatformActions.require().copyText("ProHost Listing Link", url)
         UiMessages.show(uiText(R.string.link_copied_to_clipboard))
     }
 

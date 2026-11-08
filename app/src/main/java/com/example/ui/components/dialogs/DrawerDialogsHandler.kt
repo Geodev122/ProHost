@@ -193,7 +193,7 @@ fun DrawerDialogsHandler(
                                         text = stringResource(R.string.export_csv),
                                         onClick = {
                                             val csv = viewModel.repository.exportAuditLogsToCsv(auditFromMillis, auditToMillis)
-                                            viewModel.shareExportData(context, uiText(R.string.audit_logs), csv)
+                                            viewModel.shareExportData(uiText(R.string.audit_logs), csv)
                                         },
                                         variant = CustomButtonVariant.PRIMARY,
                                         icon = Icons.Default.Download,
