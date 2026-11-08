@@ -192,6 +192,7 @@ dependencies {
   debugImplementation(libs.firebase.appcheck.debug)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
+  implementation(libs.kotlinx.datetime)
   implementation(libs.kotlinx.serialization.json)
   implementation(libs.play.app.update)
   implementation(libs.play.app.update.ktx)
