@@ -37,73 +37,27 @@ import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.data.model.*
 import com.example.ui.theme.*
+import com.example.ui.util.BookingDates
 import com.example.ui.util.BookingRecurrence
+import com.example.ui.util.IsoDate
 import com.example.ui.util.RentableSlot
 import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.viewmodel.ProHostViewModel
 import java.text.NumberFormat
 import java.util.*
 
-private val calendarDayAbbreviations = mapOf(
-    Calendar.SUNDAY to "Sun", Calendar.MONDAY to "Mon", Calendar.TUESDAY to "Tue",
-    Calendar.WEDNESDAY to "Wed", Calendar.THURSDAY to "Thu", Calendar.FRIDAY to "Fri",
-    Calendar.SATURDAY to "Sat"
-)
+/** UTC-based, matching the date picker's own UTC millis — see [rememberDatePickerState]. (Date helpers: ui/util/BookingDates.kt.) */
+private fun weekdayAbbreviation(utcTimeMillis: Long): String = BookingDates.weekdayAbbreviation(utcTimeMillis)
 
-/** UTC-based, matching the date picker's own UTC millis — see [rememberDatePickerState]. */
-private fun weekdayAbbreviation(utcTimeMillis: Long): String {
-    val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-    cal.timeInMillis = utcTimeMillis
-    return calendarDayAbbreviations[cal.get(Calendar.DAY_OF_WEEK)] ?: "Mon"
-}
+private fun isoDateString(utcTimeMillis: Long): String = BookingDates.isoDateString(utcTimeMillis)
 
-private fun isoDateString(utcTimeMillis: Long): String {
-    val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-    cal.timeInMillis = utcTimeMillis
-    return "%04d-%02d-%02d".format(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH))
-}
+private fun weekdayAbbreviationFromIso(iso: String): String = BookingDates.weekdayAbbreviationFromIso(iso)
 
-private fun weekdayAbbreviationFromIso(iso: String): String {
-    val parts = iso.split("-").mapNotNull { it.toIntOrNull() }
-    if (parts.size != 3) return "Mon"
-    val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-    cal.set(parts[0], parts[1] - 1, parts[2], 0, 0, 0)
-    cal.set(Calendar.MILLISECOND, 0)
-    return calendarDayAbbreviations[cal.get(Calendar.DAY_OF_WEEK)] ?: "Mon"
-}
+/** Midnight UTC tomorrow — the earliest selectable date across every real calendar-date picker in this dialog. */
+private fun tomorrowUtcMillis(): Long = BookingDates.tomorrowUtcMillis()
 
-/** Midnight UTC tomorrow — the earliest selectable date across every real
- * calendar-date picker in this dialog. */
-private fun tomorrowUtcMillis(): Long {
-    val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-    cal.add(Calendar.DAY_OF_MONTH, 1)
-    cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0)
-    cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
-    return cal.timeInMillis
-}
-
-/** Every real calendar date matching [weekdayAbbrev], from tomorrow through
- * [untilIso] inclusive — Day-Based's "recurring weekly until a date" commitment
- * (the same request applied to Shift-Based's item 7b real-date approach). */
-private fun weeklyOccurrencesUntil(weekdayAbbrev: String, untilIso: String): List<String> {
-    val targetDow = calendarDayAbbreviations.entries.firstOrNull { it.value == weekdayAbbrev }?.key ?: return emptyList()
-    val cursor = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { timeInMillis = tomorrowUtcMillis() }
-    while (cursor.get(Calendar.DAY_OF_WEEK) != targetDow) {
-        cursor.add(Calendar.DAY_OF_MONTH, 1)
-    }
-    val untilParts = untilIso.split("-").mapNotNull { it.toIntOrNull() }
-    if (untilParts.size != 3) return emptyList()
-    val until = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
-        set(untilParts[0], untilParts[1] - 1, untilParts[2], 0, 0, 0)
-        set(Calendar.MILLISECOND, 0)
-    }
-    val dates = mutableListOf<String>()
-    while (!cursor.after(until)) {
-        dates.add(isoDateString(cursor.timeInMillis))
-        cursor.add(Calendar.DAY_OF_MONTH, 7)
-    }
-    return dates
-}
+/** Every real calendar date matching [weekdayAbbrev], from tomorrow through [untilIso] inclusive — Day-Based's "recurring weekly until a date". */
+private fun weeklyOccurrencesUntil(weekdayAbbrev: String, untilIso: String): List<String> = BookingDates.weeklyOccurrencesUntil(weekdayAbbrev, untilIso)
 
 /**
  * Re-book/Extend entry point (My Rentals) — configures and submits a brand-new,
@@ -357,11 +311,7 @@ private fun BookingSlotSelectorDialog(
     var selectedDateOption by remember { mutableStateOf(dateOptions[0]) }
     // Default custom date: one week ahead (never a date in the past).
     var customStartDate by remember {
-        mutableStateOf(
-            java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(
-                java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_MONTH, 7) }.time
-            )
-        )
+        mutableStateOf(IsoDate.addDays(IsoDate.todayIso(), 7) ?: "")
     }
     val startDate = remember(selectedDateOption, customStartDate) {
         SpaceCalculationUtils.resolveStartDate(selectedDateOption, customStartDate)
@@ -1319,13 +1269,7 @@ private fun BookingSlotSelectorDialog(
     // boundary bugs. One date at a time, added to the running list above; the
     // specialist repeats "Add a date" for a multi-date commitment.
     if (showDatePicker && selectedShiftSlot != null) {
-        val tomorrowUtcMillis = remember {
-            val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-            cal.add(Calendar.DAY_OF_MONTH, 1)
-            cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0)
-            cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
-            cal.timeInMillis
-        }
+        val tomorrowUtcMillis = remember { tomorrowUtcMillis() }
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = tomorrowUtcMillis,
             selectableDates = object : SelectableDates {

@@ -7,6 +7,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.plus
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
 
@@ -64,5 +65,21 @@ object IsoDate {
         val d = Instant.fromEpochMilliseconds(ms).toLocalDateTime(TimeZone.UTC).date
         val index = d.year * 12 + (d.monthNumber - 1) - monthsBack
         return index.floorDiv(12).toString().padStart(4, '0') + (index.mod(12) + 1).toString().padStart(2, '0')
+    }
+
+    /** The UTC date of [utcMillis] (what the Material date picker's UTC-midnight millis stand for). */
+    fun dateFromUtcMillis(utcMillis: Long): LocalDate = Instant.fromEpochMilliseconds(utcMillis).toLocalDateTime(TimeZone.UTC).date
+
+    /** Today's date in UTC. */
+    fun todayUtcDate(): LocalDate = kotlinx.datetime.Clock.System.now().toLocalDateTime(TimeZone.UTC).date
+
+    /** Midnight UTC at the start of [date], in epoch millis (the date picker's value for that day). */
+    fun startOfDayUtcMillis(date: LocalDate): Long = date.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
+
+    /** The date for year/month/day, or null when it does not exist (month 13, Feb 30 ...). */
+    fun dateOrNull(year: Int, month: Int, day: Int): LocalDate? = try {
+        LocalDate(year, month, day)
+    } catch (e: IllegalArgumentException) {
+        null
     }
 }
