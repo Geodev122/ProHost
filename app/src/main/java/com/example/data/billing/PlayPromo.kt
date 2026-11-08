@@ -1,6 +1,7 @@
 package com.example.data.billing
 
 import com.android.billingclient.api.ProductDetails
+import kotlinx.datetime.toInstant
 
 /**
  * The promo card is configured only in Google Play: a subscription offer carrying these offer tags
@@ -17,7 +18,7 @@ object PlayPromo {
     private const val CODE_PREFIX = "code-"
     private const val ENDS_PREFIX = "ends-"
     private const val EARLY_LAUNCH = "early-launch"
-    private val BEIRUT: java.util.TimeZone = java.util.TimeZone.getTimeZone("Asia/Beirut")
+    private val BEIRUT: kotlinx.datetime.TimeZone = kotlinx.datetime.TimeZone.of("Asia/Beirut")
 
     data class PromoOffer(
         val offerId: String,
@@ -68,11 +69,12 @@ object PlayPromo {
         val (y, mo, d) = m.destructured
         val month = mo.toInt().takeIf { it in 1..12 } ?: return null
         val day = d.toInt().takeIf { it in 1..31 } ?: return null
-        return java.util.Calendar.getInstance(BEIRUT).apply {
-            isLenient = false
-            clear()
-            set(y.toInt(), month - 1, day, 23, 59, 59)
-        }.let { runCatching { it.timeInMillis }.getOrNull() }
+        val year = y.toInt().takeIf { it >= 1 } ?: return null // the old non-lenient Calendar rejected year 0
+        return try {
+            kotlinx.datetime.LocalDateTime(year, month, day, 23, 59, 59).toInstant(BEIRUT).toEpochMilliseconds()
+        } catch (e: IllegalArgumentException) {
+            null // a day that does not exist in that month (Feb 30, Apr 31 ...)
+        }
     }
 
     /** Pure: the headline for an offer's phases. */
