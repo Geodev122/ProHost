@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">ProHost</string>
+    <string name="trailing_space">السماح </string>
+    <string name="of_format">%2$s من %1$s</string>
+    <plurals name="listings">
+        <item quantity="zero">لا مساحات</item>
+        <item quantity="one">مساحة واحدة</item>
+        <item quantity="two">مساحتان</item>
+        <item quantity="few">%1$d مساحات</item>
+        <item quantity="many">%1$d مساحة</item>
+        <item quantity="other">%1$d مساحة</item>
+    </plurals>
+</resources>
