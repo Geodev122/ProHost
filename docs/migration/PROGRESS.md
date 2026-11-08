@@ -176,3 +176,10 @@ Nothing in logic or state refers to Google Maps types any more (camera, pin, bou
 
 ### P2 phase end
 **P2.1–P2.5 complete (8 Nov 2026).** Integration audit: `docs/migration/audits/P2.md` (no drift; one pre-existing gap F1 carried to P1.4; the month-end clamp on the server waits for merge to `main`). Next: P3 (Gradle module split on Kotlin 2.3.20 / CMP 1.12.2 / AGP 9.4.1).
+
+## P3 Gradle and toolchain — in sub-steps
+- **P3.1 Kotlin 2.2.10 → 2.3.20 in place — ✔ 8 Nov 2026** (shared gate with P3.2: Parity Gate run 42533531524, 280/280 identical first pass).
+- **P3.2a App on AGP's built-in Kotlin and the new DSL — ✔ 8 Nov 2026** (same run): removed `org.jetbrains.kotlin.android`, `android.builtInKotlin=false`, `android.newDsl=false`. First attempt (run 42533303203) failed because the **Roborazzi Gradle plugin 1.40.0 needs the old DSL** (`TestedExtension`).
+- **P3.2b Roborazzi plugin dropped — ✔ 8 Nov 2026:** the library stays; record mode is `-Proborazzi.test.record=true` on `:app:testDebugUnitTest` (output unchanged: `build/design-shots`); workflows `parity-gate.yml` and `design-screenshots.yml` updated. Owner queue D10.
+- **P3.3 `:shared` Kotlin Multiplatform module — ✔ 8 Nov 2026** (Parity Gate run 42534700749, 280/280 identical first pass): android library (`com.android.kotlin.multiplatform.library`) + iOS targets (compiled on macOS runners only); first four pure files moved with their packages unchanged (`AnalyticsEvents`, `PendingPromoCode`, `ListingDeepLink`, `PasswordRules`). The application module stays `:app` (owner queue D11).
+- **P3.4a Compose Multiplatform 1.12.2 for the app — executed, awaiting Parity Gate (run 42535773933):** the app's own `androidx.compose.*` dependencies and the BOM (2025.02) are replaced by `:shared`'s `api(compose.runtime/foundation/material3/ui)` + `material-icons-extended 1.7.3`; Android Compose test/tooling artifacts pinned to 1.12.1. No source change, so the 280-render diff measures the Material 3 / Compose drift (1.7 → 1.12) on its own. Anything that differs is fixed in tokens/components, never accepted silently.
