@@ -111,6 +111,7 @@ Last updated: 8 Nov 2026
 | **BOOTSTRAP_SECRET** | Safe to disable then delete (verified) |
 | Sheet access | Done (verified) |
 | **Pull request for the 25 commits not on main** | I open it; you press Merge (item C1) |
-| Apple "certificate revoked" email | Expected: each TestFlight build creates a temporary Apple Distribution certificate and deletes it at the end; Apple mails the account holder on revocation. If the email names a different certificate than "ProHost CI", forward it to me |
+| TestFlight (verified 8 Nov via `ios-inspect/2`) | App ProHost exists; builds v1 and v13 VALID; bundle ID has Sign in with Apple, Push, App Attest, In-App Purchase; internal group "Team" has 1 tester, state **INVITED** (the tester has not accepted the TestFlight invitation yet; fine while the iPhone test is postponed) |
+| Apple "certificate revoked" email | Expected: each TestFlight build creates a temporary Apple Distribution certificate and deletes it at the end; Apple mails the account holder on revocation. Apple now lists one leftover DEVELOPMENT certificate "Created via API" (valid to Nov 2027, from the cloud-signing step) and no distribution certificate, so nothing needs action; if the email names a different certificate, forward it to me |
 | Hosting | Netlify automation prepared (item 36); needs `NETLIFY_AUTH_TOKEN` and the Hostinger DNS change |
 | Google restriction (items 1, 2, 10) | Unchanged: quota requests refused, Hosting "Site Not Found" |
