@@ -1,5 +1,7 @@
-# Cloudflare Pages copy of the firebase.json redirects (Pages serves /privacy -> privacy.html etc. by itself).
-# Pages cannot proxy to Cloud Functions: /sitemap.xml, /listing/**, /unsubscribe and the webhooks only work on Firebase Hosting.
+# Netlify redirects/rewrites for the temporary host of pro-host.tech (docs/DEPLOYMENT.md "Temporary host").
+# Same behaviour as the firebase.json redirects/rewrites; Firebase Hosting stays the long-term host.
+# First match wins: tagged links and legacy slugs, then clean URLs, then proxies to the public Cloud Run services
+# of the functions (status 200 = server-side proxy, the address bar keeps pro-host.tech).
 /app /get 302
 /download /get 302
 /ig /get?utm_source=instagram&utm_medium=social&utm_campaign=launch 302
@@ -13,3 +15,29 @@
 /training-room-rental-lebanon /training-room-rental 301
 /studio-rental-beirut /studio-rental 301
 /office-space-by-the-hour-lebanon /office-space-by-the-hour 301
+
+# Clean URLs (cleanUrls in firebase.json)
+/admin /admin.html 200
+/ar /ar.html 200
+/clinic-room-rental /clinic-room-rental.html 200
+/delete-account /delete-account.html 200
+/emaillink /emaillink.html 200
+/get /get.html 200
+/list-your-office /list-your-office.html 200
+/list-your-space /list-your-space.html 200
+/meeting-room-rental /meeting-room-rental.html 200
+/office-space-by-the-hour /office-space-by-the-hour.html 200
+/partner /partner.html 200
+/privacy /privacy.html 200
+/redeem /redeem.html 200
+/studio-rental /studio-rental.html 200
+/terms /terms.html 200
+/therapy-room-rental /therapy-room-rental.html 200
+/training-room-rental /training-room-rental.html 200
+
+# Cloud Functions (Cloud Run services, public invoker, europe-west1)
+/sitemap.xml https://sitesitemap-t4c7d7bhka-ew.a.run.app/sitemap.xml 200
+/listing/* https://listingsharelanding-t4c7d7bhka-ew.a.run.app/listing/:splat 200
+/unsubscribe https://mailingunsubscribe-t4c7d7bhka-ew.a.run.app/unsubscribe 200
+/ig-webhook https://igwebhook-t4c7d7bhka-ew.a.run.app/ig-webhook 200
+/wa-webhook https://wawebhook-t4c7d7bhka-ew.a.run.app/wa-webhook 200

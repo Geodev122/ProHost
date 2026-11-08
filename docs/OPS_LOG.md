@@ -86,3 +86,8 @@ Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, ot
 
 ## 7 Nov 2026 (late) - iOS signing fixed, build 13 uploaded
 - Unsigned-archive flow dropped: entitlements were missing and embedded frameworks failed validation. New flow: temporary distribution certificate + App Store profile via the ASC Admin API key, manual signing for Release of the app target, upload, cleanup (deleted profile and certificate, HTTP 204). Fixed the build number (Info.plist now follows CURRENT_PROJECT_VERSION). Signed entitlements verified: Sign in with Apple, push, App Attest. Runs ios-beta/10-12.
+
+## 8 Nov 2026 - audit of owner statuses and automated temporary hosting
+- Read-only audit (IAM, API keys, Secret Manager data-access logs, Sheet permissions): second owner still `projectOwnerInvitee`; Firebase iOS/Android/Browser keys have no application restriction (Maps iOS key is restricted); BOOTSTRAP_SECRET unused, only probed (refused) by the intruder IP on 5 Nov. No change made to GCP.
+- Hosting: replaced the Cloudflare idea with Netlify free, deployed from `.github/workflows/site-deploy.yml` (CLI upload of `public/`, creates/finds the site, attaches pro-host.tech, probes 10 URLs). `public/_redirects` and `_headers` rewritten for Netlify (clean URLs, proxies to the five public Cloud Run services of the functions, URLs from `gcloud run services list`; all have `allUsers` invoker and ingress `all`). The sandbox proxy blocks `*.cloudfunctions.net` and `*.a.run.app`, so the proxies are first exercised by the workflow probes. `DEPLOYMENT.md` and `OWNER_GUIDE.md` B2 updated. Needs the owner's `NETLIFY_AUTH_TOKEN` secret and the Hostinger DNS change.
+

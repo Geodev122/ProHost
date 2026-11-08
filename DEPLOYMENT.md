@@ -115,9 +115,19 @@ gcloud projects add-iam-policy-binding prohost-f766f \
   --role="roles/firebaseextensions.viewer"
 ```
 
-## Cloudflare Pages fallback (Nov 2026)
-While Firebase Hosting is blocked by Google's policy restriction, `pro-host.tech` can be served from Cloudflare Pages
-(Git-connected to this repo, build command empty, output directory `public`). `public/_redirects` and `public/_headers`
-copy the static parts of `firebase.json`. Not available there (Pages cannot proxy to functions): `/sitemap.xml`,
-`/listing/**`, `/unsubscribe`, `/ig-webhook`, `/wa-webhook`. Functions keep running at their cloudfunctions.net URLs;
-the site's forms already call those directly.
+## Temporary host: Netlify, deployed from this repo (Nov 2026)
+While Firebase Hosting is blocked by Google's policy restriction, `pro-host.tech` is served from Netlify (free plan).
+`.github/workflows/site-deploy.yml` uploads `public/` with the Netlify CLI on every push to `main` that touches
+`public/**` (and from branches `site-deploy/**` for tests, or by hand), then probes home, `/privacy`, `/terms`,
+`/delete-account`, `/get`, a landing page, `assetlinks.json`, `/robots.txt`, `/sitemap.xml` and `/ig-webhook` and fails
+if any answers wrongly. Netlify never reads the (private) repository; the secrets are `NETLIFY_AUTH_TOKEN` and
+`NETLIFY_SITE_ID` (GitHub Actions secrets, never in code).
+- `public/_redirects` carries the redirects of `firebase.json`, the clean URLs, and server-side proxies (status 200) to
+  the public Cloud Run services of `siteSitemap`, `listingShareLanding`, `mailingUnsubscribe`, `igWebhook` and
+  `waWebhook` (`https://<function>-t4c7d7bhka-ew.a.run.app`, from `gcloud run services list`). If a function is
+  redeployed under another name, re-read the URL there. `public/_headers` copies the header rules.
+- DNS (Hostinger): `A @ 75.2.60.5` and `CNAME www <site>.netlify.app`; MX/SPF/DKIM/TXT records stay untouched.
+- Going back: when Google lifts the restriction, point `A @` at Firebase Hosting again and disable or delete the
+  workflow; `firebase.json` is unchanged and the normal deploy (`build-and-deploy.yml`) keeps publishing there.
+- Cloudflare Pages (Git-connected) was rejected: it would read the private repo (the upload keystore is committed) and
+  needs a nameserver move for the apex domain.

@@ -1,0 +1,4 @@
+# Temporary host for pro-host.tech while Firebase Hosting is restricted (docs/DEPLOYMENT.md "Temporary host").
+# Deployed only by .github/workflows/site-deploy.yml (CLI upload); Netlify never reads this repository.
+[build]
+  publish = "public"

@@ -36,7 +36,7 @@ Do these in this order; I start M0/M1 as soon as items 1-4 are answered, the res
 | 10 | **App record** in App Store Connect (name "ProHost" if free, SKU `prohost-ios`, primary language English (U.K.), category Business) | App Store Connect > Apps > "+" > New App. I give you the exact field values at M0 | M0 |
 | 11 | **Subscription group "ProHost Premium"** with 2 products (ids I will give: `prohost.premium.monthly`, `prohost.premium.yearly`), same prices as Play ($8.99 / $79.99), intro offers (monthly: 1 month free; yearly: 50% off the first year, pay-up-front), localizations EN + AR, review screenshot. Plus an **offer code** campaign for the PROHOST2026 equivalent | App Store Connect > your app > Monetization > Subscriptions. I give a click-by-click sheet in M5 | M5 |
 | 12 | **Decisions** (answer in chat): (a) a user who already has Premium through Google Play opens the iOS app: show "Active via Google Play, manage there" (recommended) or allow a second purchase; (b) report/block moderation: you or an admin answers reports within 24 h (Apple 1.2); (c) iOS prices equal to Play (recommended) | Chat | M5 / M6 |
-| 13 | **Support and policy URLs**: support email, privacy `https://pro-host.tech/privacy`, terms, marketing URL (need the site served again: after the Google lift or Cloudflare). Interim: the `legalDocumentPage` function URLs work for App Store Connect (Apple does not verify domains) | Already in the repo | M7 |
+| 13 | **Support and policy URLs**: support email, privacy `https://pro-host.tech/privacy`, terms, marketing URL (need the site served again: after the Google lift or on the Netlify temporary host). Interim: the `legalDocumentPage` function URLs work for App Store Connect (Apple does not verify domains) | Already in the repo | M7 |
 | 14 | **Review demo accounts**: one specialist and one Pro Host account (email + password) with a sample listing, written into the App Review notes only (never in the repo) | Create in the production app yourself; or tell me and I prepare a clearly labelled test listing through the admin tools | M7 |
 | 15 | **App Store text/legal**: EN + AR description, subtitle (30 chars), keywords (100 chars), promo text. I draft all of it; you approve | Chat | M7 |
 
@@ -131,7 +131,7 @@ Files (functions/src):
 - **Report/block (Apple 1.2)**: the quick scan found no report or block feature in the app, rules or functions. Add (on
   both platforms) `reportContent` callable + `content_reports` collection (server-only, rules + rules test), "Report
   listing" and "Block user" actions, admin queue; this is an additive Android change shipped in the next Android release.
-- Website (served again after the lift / on Cloudflare): `public/.well-known/apple-app-site-association` (paths
+- Website (served again after the lift / on the Netlify temporary host): `public/.well-known/apple-app-site-association` (paths
   `/listing/*`, `/redeem`, `/get`) with `Content-Type: application/json` in `firebase.json` and `public/_headers`;
   `/get` smart link sends iOS to the App Store. Until then deep links use `prohost://` (already used by emails/pushes).
 - Tests: Jest unit tests for Apple status mapping and the callable (fixtures of signed test transactions from Apple's
