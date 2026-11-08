@@ -326,7 +326,7 @@ fun MyBookingsScreen(
                         },
                         onContactWhatsApp = {
                             if (space != null) {
-                                viewModel.launchWhatsAppInquiry(context, space, booking.formula, booking)
+                                viewModel.launchWhatsAppInquiry(space, booking.formula, booking)
                             }
                         },
                         onCancelRequest = {

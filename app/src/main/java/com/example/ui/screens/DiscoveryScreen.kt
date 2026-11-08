@@ -116,7 +116,7 @@ fun DiscoveryScreen(
             onSelectSpace(space, subId)
         },
         onQuickWhatsApp = { space, subdivision ->
-            viewModel.launchWhatsAppInquiry(context, space, subdivision = subdivision)
+            viewModel.launchWhatsAppInquiry(space, subdivision = subdivision)
         },
         onMapCenterCountryDetected = { country ->
             discoveryViewModel.setMapCenterCountry(country)

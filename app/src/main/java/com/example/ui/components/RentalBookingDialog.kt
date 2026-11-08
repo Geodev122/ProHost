@@ -1177,7 +1177,6 @@ private fun BookingSlotSelectorDialog(
                             }
                             viewModel.submitBookingRequest(
                                 space = space,
-                                context = context,
                                 submission = ProHostViewModel.BookingSubmissionRequest(
                                     formula = formula,
                                     startDate = computedDate,
@@ -1222,7 +1221,6 @@ private fun BookingSlotSelectorDialog(
                             }
                             viewModel.submitBookingRequest(
                                 space = space,
-                                context = context,
                                 submission = ProHostViewModel.BookingSubmissionRequest(
                                     formula = formula,
                                     startDate = computedDate,

@@ -126,7 +126,7 @@ fun SpaceDetailsScreen(
         onSelectFormula = { selectedFormula = it },
         onWhatsAppClick = {
             // General inquiry about the listing (not tied to one room or price).
-            viewModel.launchWhatsAppInquiry(context, liveSpace)
+            viewModel.launchWhatsAppInquiry(liveSpace)
         },
         onShareClick = {
             val shareUrl = ShareLinks.forListing(liveSpace.id)
@@ -1049,7 +1049,7 @@ fun SpaceDetailsScreenContent(
             },
             onWhatsApp = {
                 sentRequest = null
-                viewModel.launchWhatsAppInquiry(context, liveSpace, request.formula, request)
+                viewModel.launchWhatsAppInquiry(liveSpace, request.formula, request)
             }
         )
     }

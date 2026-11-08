@@ -649,7 +649,7 @@ fun SpecialistProfileScreen(
                                                     if (targetSpace != null) {
                                                         Button(
                                                             onClick = {
-                                                                viewModel.launchWhatsAppInquiry(context, targetSpace, req.formula, req)
+                                                                viewModel.launchWhatsAppInquiry(targetSpace, req.formula, req)
                                                             },
                                                             modifier = Modifier.weight(1f),
                                                             shape = MaterialTheme.shapes.small,

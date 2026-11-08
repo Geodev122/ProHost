@@ -54,7 +54,7 @@ class PlatformIntentsTest {
     private fun actShareListing(title: String, content: String) = vm.shareListing(title, content)
     private fun actCopyLink(url: String) = vm.copyListingLink(url)
     private fun actWhatsApp(request: com.example.data.model.BookingRequest) = vm.launchWhatsAppToPractitioner(request)
-    private fun actWhatsAppInquiry(space: com.example.data.model.SpaceListing) = vm.launchWhatsAppInquiry(activity, space)
+    private fun actWhatsAppInquiry(space: com.example.data.model.SpaceListing) = vm.launchWhatsAppInquiry(space)
 
     private fun nextIntent(): Intent = shadowOf(activity).nextStartedActivity ?: error("no activity was started")
 

@@ -8,8 +8,6 @@ import com.example.ui.util.UiMessages
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.auth.toUserMessage
@@ -638,7 +636,6 @@ class ProHostViewModel(
 
     // --- WhatsApp Direct Connection ---
     fun launchWhatsAppInquiry(
-        context: Context,
         space: SpaceListing,
         selectedFormula: RentalFormula? = null,
         request: RentalBookingRequest? = null,
@@ -710,8 +707,7 @@ class ProHostViewModel(
         try {
             val encoded = URLEncoder.encode(rawMessage, "UTF-8")
             val url = "https://wa.me/$cleanPhone?text=$encoded"
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-            context.startActivity(intent)
+            com.example.ui.util.PlatformActions.require().openUrl(url)
             com.example.analytics.AnalyticsTracker.generateLead(space, subdivision)
             repository.incrementSpaceInquiryCount(space.id)
             repository.addAuditLog(
@@ -819,7 +815,6 @@ class ProHostViewModel(
 
     fun submitBookingRequest(
         space: SpaceListing,
-        context: Context,
         submission: BookingSubmissionRequest
     ) {
         val formula = submission.formula
@@ -905,7 +900,7 @@ class ProHostViewModel(
                     long = true)
 
                 if (alsoOpenWhatsApp) {
-                    launchWhatsAppInquiry(context, space, formula, request)
+                    launchWhatsAppInquiry(space, formula, request)
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e

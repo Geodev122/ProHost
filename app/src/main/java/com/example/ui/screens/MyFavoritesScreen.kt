@@ -114,7 +114,7 @@ fun MyFavoritesScreen(
                         SpaceListingCard(
                             space = space,
                             onClick = { onSelectSpace(space) },
-                            onQuickWhatsApp = { viewModel.launchWhatsAppInquiry(context, space, null) },
+                            onQuickWhatsApp = { viewModel.launchWhatsAppInquiry(space, null) },
                             isSaved = true,
                             onToggleSave = { viewModel.toggleSavedSpace(space.id, announce = true) }
                         )
