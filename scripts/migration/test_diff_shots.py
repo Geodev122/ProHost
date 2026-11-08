@@ -115,6 +115,24 @@ class MaskTest(unittest.TestCase):
         self.assertEqual(0, self.run_diff(self.masks({"*.png": [[8, 8, 6, 6]]})))
 
 
+class BeforeAfterTest(unittest.TestCase):
+    def test_sheets_for_changed_and_requested_files_only(self):
+        import before_after
+        tmp = Path(tempfile.mkdtemp())
+        g, c, out = tmp / "g", tmp / "c", tmp / "o"
+        for n in ("changed.png", "same.png", "other.png"):
+            png(g / n)
+        png(c / "changed.png", dot=(2, 2))
+        png(c / "same.png")
+        png(c / "other.png")
+        diff_shots.main(["--golden", str(g), "--candidate", str(c), "--json", str(tmp / "d.json")])
+        self.assertEqual(0, before_after.main(["--golden", str(g), "--candidate", str(c), "--out", str(out),
+                                               "--from-json", str(tmp / "d.json"), "--show", "same"]))
+        self.assertEqual({"changed.png", "same.png"}, {p.name for p in out.glob("*.png")})
+        sheet = Image.open(out / "changed.png")
+        self.assertGreater(sheet.width, 3 * 40)  # three panels side by side
+
+
 class CompareAndroidIosTest(unittest.TestCase):
     def test_sheets_and_missing_lists(self):
         tmp = Path(tempfile.mkdtemp())

@@ -4,10 +4,16 @@ name: Parity Gate
 # app code or build files this job (1) compiles the app and runs its unit tests, (2) renders the 280 design screenshots exactly like the
 # Design Screenshots workflow and (3) diffs them pixel by pixel against the golden baseline refs/design-shots/golden-v1047
 # (known dynamic regions masked by docs/migration/golden-masks.json). Any difference fails the job and the HTML report shows where.
-# Read-only: never deploys, never writes refs (the renders are uploaded as an artifact).
+# Never deploys. The only write is the Before/After sheets, pushed as a commit under refs/design-shots/parity-<branch> (not a branch),
+# like the Design Screenshots workflow; the full renders are uploaded as an artifact.
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      show:
+        description: "Comma-separated render-name prefixes to include in the Before/After sheets even when identical (e.g. splash_,explore_)"
+        required: false
+        default: ""
   push:
     branches: ["claude/**"]
     paths:
@@ -21,10 +27,11 @@ on:
       - "docs/migration/golden-masks.json"
       - "scripts/migration/diff_shots.py"
       - "scripts/migration/shots.py"
+      - "scripts/migration/before_after.py"
       - ".github/workflows/parity-gate.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: parity-gate-${{ github.ref }}
@@ -92,6 +99,26 @@ jobs:
           tail -1 parity/summary.txt | while IFS= read -r line; do echo "::notice title=parity::${line}"; done
           grep -E "^(CHANGED|RESIZED|MISSING)" parity/summary.txt | head -30 | while IFS= read -r line; do echo "::error title=parity-diff::${line}"; done || true
           exit $status
+
+      # Before | After | Difference sheets for every changed render (+ any prefixes asked for with the `show` input, identical or not),
+      # stored under refs/design-shots/parity-<branch> so they can be opened through the GitHub API and shown to the owner.
+      - name: Before/After sheets
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          SHOW: ${{ inputs.show }}
+        run: |
+          [ -d golden ] && [ -d app/build/design-shots ] || exit 0
+          pip install --quiet pillow numpy
+          python3 scripts/migration/before_after.py --golden golden --candidate app/build/design-shots --out parity/before_after \
+            --from-json parity/diff.json --show "${SHOW}" --masks docs/migration/golden-masks.json
+          cd parity/before_after
+          git init -q
+          git add -A
+          git -c user.name="parity-gate" -c user.email="parity-gate@users.noreply.github.com" commit -q -m "Before/after for ${GITHUB_SHA}"
+          ref="refs/design-shots/parity-${GITHUB_REF_NAME//\//-}"
+          git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${ref}"
+          echo "::notice title=before-after::$(git rev-parse HEAD) ${ref}"
 
       - name: Upload report and renders
         if: always()
