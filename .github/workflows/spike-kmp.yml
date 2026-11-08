@@ -81,7 +81,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           pip install --quiet pillow numpy
-          python3 scripts/migration/fetch_ref.py golden-v1047 golden
+          python3 scripts/migration/fetch_ref.py golden-v1047 golden --only splash_
           ls spike/kmp/androidApp/build/spike-shots 2>/dev/null || echo "::error title=parity::no splash renders were written"
           mkdir -p parity
           python3 scripts/migration/diff_shots.py --golden golden --candidate spike/kmp/androidApp/build/spike-shots \
