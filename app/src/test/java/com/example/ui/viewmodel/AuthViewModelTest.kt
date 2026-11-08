@@ -71,7 +71,7 @@ class AuthViewModelTest {
         var discarded = false
         override suspend fun completeLogin(): AppUser { loginError?.let { throw it }; return user }
         override suspend fun completeRegistration(details: RegistrationDetails): AppUser { registered = details; return user.copy(fullName = details.fullName) }
-        override suspend fun uploadProfilePicture(uri: Uri): String? = null
+        override suspend fun uploadProfilePicture(file: com.example.util.PickedFile): String? = null
         override suspend fun existingProfileComplete() = profileComplete
         override suspend fun discardIncompleteSession() { discarded = true }
         override suspend fun syncEmailVerified() {}
@@ -241,7 +241,7 @@ class AuthViewModelTest {
             AuthViewModel.PendingRegistration(
                 fullName = "Rana Haddad", email = "rana@example.com", phoneE164 = "+96170123456",
                 specialty = "Physiotherapy", country = "Lebanon", governorate = "", city = "Beirut",
-                profilePictureUri = null, tosAccepted = true
+                profilePicture = null, tosAccepted = true
             )
         ) { done = true }
         assertTrue(done)

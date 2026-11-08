@@ -1,7 +1,6 @@
 package com.example.data.auth
 
 import android.content.Context
-import android.net.Uri
 import com.example.data.model.AppUser
 import com.example.data.repository.ProHostRepository
 import com.example.data.storage.FirebaseStorageService
@@ -18,7 +17,7 @@ interface SessionFinisher {
     suspend fun completeLogin(): AppUser
     /** New user: writes the registration through assignInitialRole and opens the session. */
     suspend fun completeRegistration(details: RegistrationDetails): AppUser
-    suspend fun uploadProfilePicture(uri: Uri): String?
+    suspend fun uploadProfilePicture(file: com.example.util.PickedFile): String?
     suspend fun existingProfileComplete(): Boolean
     suspend fun discardIncompleteSession()
     /** Mirrors a newly verified email onto the profile (assignInitialRole reads email_verified). */
@@ -46,8 +45,8 @@ class FirebaseSessionFinisher(
         return completeVerifiedRegistration(repository, functionsClient, u, details, integrityToken(u.uid))
     }
 
-    override suspend fun uploadProfilePicture(uri: Uri): String? =
-        FirebaseStorageService.getInstance().uploadProfilePicture(user().uid, uri)
+    override suspend fun uploadProfilePicture(file: com.example.util.PickedFile): String? =
+        FirebaseStorageService.getInstance().uploadProfilePicture(user().uid, file)
 
     override suspend fun existingProfileComplete(): Boolean =
         repository.getUserProfile(user().uid)?.fullName?.isNotBlank() == true

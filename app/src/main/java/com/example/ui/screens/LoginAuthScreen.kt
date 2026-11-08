@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.util.toPickedFile
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import androidx.compose.ui.res.stringResource
@@ -426,7 +427,7 @@ fun LoginAuthScreen(
                 country = regCountry.name,
                 governorate = regGovernorateArea.trim(),
                 city = regCity.trim(),
-                profilePictureUri = regProfilePicUri,
+                profilePicture = regProfilePicUri?.toPickedFile(),
                 tosAccepted = tosAccepted
             ),
             onSuccess = onLoginSuccess

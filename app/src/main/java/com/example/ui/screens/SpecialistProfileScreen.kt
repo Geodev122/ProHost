@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import com.example.util.toPickedFile
 import com.example.ui.util.timeRange
 import com.example.ui.util.uiPlural
 import com.example.ui.util.localizedLabel
@@ -808,7 +809,7 @@ fun SpecialistProfileScreen(
                                         var pictureUploadFailed = false
                                         if (localPicUri != null) {
                                             val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
-                                            profilePictureUrl = storageService.uploadProfilePicture(user.id, localPicUri)
+                                            profilePictureUrl = storageService.uploadProfilePicture(user.id, localPicUri.toPickedFile())
                                             pictureUploadFailed = profilePictureUrl == null
                                         }
                                         val success = viewModel.updateProfile(

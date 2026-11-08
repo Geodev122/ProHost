@@ -2,7 +2,6 @@ package com.example.ui.viewmodel
 
 import com.example.R
 import com.example.ui.util.uiText
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.analytics.AnalyticsTracker
@@ -85,7 +84,7 @@ class AuthViewModel(
         val country: String,
         val governorate: String,
         val city: String,
-        val profilePictureUri: Uri?,
+        val profilePicture: com.example.util.PickedFile?,
         // Enforced client-side by the form's submit gate and again server-side by
         // assignInitialRole.ts, which rejects registration unless this is literally true.
         val tosAccepted: Boolean
@@ -271,7 +270,7 @@ class AuthViewModel(
                     onSuccess()
                     return@launch
                 }
-                val profilePictureUrl = registration.profilePictureUri?.let { session.uploadProfilePicture(it) }
+                val profilePictureUrl = registration.profilePicture?.let { session.uploadProfilePicture(it) }
                 val user = session.completeRegistration(
                     RegistrationDetails(
                         fullName = registration.fullName,
@@ -288,7 +287,7 @@ class AuthViewModel(
                 _isAuthenticating.value = false
                 registerFcmTokenForCurrentUser(user.id)
                 AnalyticsTracker.signUp(authMethod, user.role)
-                val photoMissing = registration.profilePictureUri != null && profilePictureUrl == null
+                val photoMissing = registration.profilePicture != null && profilePictureUrl == null
                 _authSuccessMessage.value = if (!photoMissing) {
                     uiText(R.string.account_created_successfully_for_x, user.fullName)
                 } else {
