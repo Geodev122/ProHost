@@ -16,6 +16,7 @@ class ProHostApplication : Application() {
         com.example.ui.util.UiText.init(resources, english)
         com.example.ui.util.UiMessages.init(this)
         com.example.ui.util.AndroidPlatformActions.init(this)
+        com.example.util.FileAccess.current = com.example.util.AndroidFileAccess(this)
         com.example.data.auth.GoogleCredentialState.init(this)
         try {
             if (FirebaseApp.getApps(this).isEmpty()) {

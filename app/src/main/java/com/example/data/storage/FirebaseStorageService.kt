@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import com.example.util.toUri
 import android.util.Log
 import com.google.firebase.FirebaseApp
 import com.google.firebase.storage.FirebaseStorage
@@ -73,6 +74,10 @@ class FirebaseStorageService(
         )
     }
 
+    /** Same as above for a [com.example.util.PickedFile] (the view models' type); the app context is the default one. */
+    suspend fun uploadProfilePicture(uid: String, file: com.example.util.PickedFile, onProgress: (Float) -> Unit = {}): String? =
+        uploadProfilePicture(uid, file.toUri(), onProgress = onProgress)
+
     private suspend fun readImageBytes(context: Context, uri: Uri): ByteArray? = withContext(Dispatchers.IO) {
         when (uri.scheme?.lowercase()) {
             "http", "https" -> java.net.URL(uri.toString()).openStream().use { it.readBytes() }
@@ -113,6 +118,14 @@ class FirebaseStorageService(
         onProgress = onProgress,
         contentType = documentContentType(fileExtension)
     )
+
+    /** Same as above for a [com.example.util.PickedFile]. */
+    suspend fun uploadBookingAgreement(
+        bookingId: String,
+        file: com.example.util.PickedFile,
+        fileExtension: String,
+        onProgress: (Float) -> Unit = {}
+    ): String? = uploadBookingAgreement(bookingId, file.toUri(), fileExtension, onProgress)
 
     /** Explicit type so the Storage rules' document check never depends on inference. */
     private fun documentContentType(fileExtension: String): String? = when (fileExtension.lowercase()) {

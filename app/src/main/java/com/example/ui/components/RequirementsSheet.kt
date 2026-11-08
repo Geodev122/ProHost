@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.util.toPickedFile
 import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -94,7 +95,7 @@ fun RequirementsSheet(
         uploading = true
         photoError = null
         scope.launch {
-            photoError = viewModel.updateProfilePhoto(context, uri)
+            photoError = viewModel.updateProfilePhoto(uri.toPickedFile())
             uploading = false
         }
     }

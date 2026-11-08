@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.util.toPickedFile
 import com.example.ui.util.uiPlural
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
@@ -272,7 +273,7 @@ fun OwnerIncomingRequestsView(
                 Button(
                     colors = proPrimaryButtonColors(),
                     onClick = {
-                        viewModel.acceptBookingRequest(context, reqId, agreementDocState.uri)
+                        viewModel.acceptBookingRequest(reqId, agreementDocState.uri?.toPickedFile())
                         acceptingRequestId = null
                     }
                 ) {

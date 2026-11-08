@@ -15,7 +15,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.auth.toUserMessage
 import com.example.data.model.*
 import com.example.data.repository.ProHostRepository
-import com.example.util.guessFileExtension
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -583,11 +582,11 @@ class ProHostViewModel(
         e.toUserMessage(uiText(R.string.the_number_couldn_t_be_saved_please_try_ag))
     }
 
-    suspend fun updateProfilePhoto(context: Context, uri: android.net.Uri): String? {
+    suspend fun updateProfilePhoto(file: com.example.util.PickedFile): String? {
         val uid = currentUser.value?.id ?: return uiText(R.string.your_session_expired_please_sign_in_again_2)
         return try {
             val url = com.example.data.storage.FirebaseStorageService.getInstance()
-                .uploadProfilePicture(uid, uri, context.applicationContext)
+                .uploadProfilePicture(uid, file)
                 ?: return uiText(R.string.the_photo_couldn_t_be_uploaded_check_your)
             val saved = repository.updateProfilePicture(url)
             com.example.analytics.AnalyticsTracker.profilePhotoUpload(saved, "requirements")
@@ -924,14 +923,14 @@ class ProHostViewModel(
 
     /**
      * Finalizes host acceptance: uploads the signed agreement the host just picked
-     * ([agreementUri]) to Storage, then accepts the request with that URL attached
+     * ([agreement]) to Storage, then accepts the request with that URL attached
      * (see ProHostRepository.acceptBookingRequest — this is also what releases a
      * previously accepted booking this request replaces, if any). The practitioner
      * hears about it via a real server-sent push (see
      * functions/src/notifications/bookingNotifications.ts), not a local alert on
      * this device, so nothing needs to be posted here.
      */
-    fun acceptBookingRequest(context: Context, requestId: String, agreementUri: Uri? = null) {
+    fun acceptBookingRequest(requestId: String, agreement: com.example.util.PickedFile? = null) {
         viewModelScope.launch {
             try {
                 // Refuse before the upload: accepting this would double-book a slot an
@@ -944,10 +943,10 @@ class ProHostViewModel(
                         long = true)
                     return@launch
                 }
-                val agreementUrl = if (agreementUri != null) {
+                val agreementUrl = if (agreement != null) {
                     val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
-                    val ext = guessFileExtension(context, agreementUri, "pdf")
-                    storageService.uploadBookingAgreement(requestId, agreementUri, ext).also {
+                    val ext = com.example.util.FileAccess.require().extension(agreement, "pdf")
+                    storageService.uploadBookingAgreement(requestId, agreement, ext).also {
                         if (it == null) {
                             UiMessages.show(uiText(R.string.could_not_upload_space_rules_please_try_ag), long = true)
                             return@launch
