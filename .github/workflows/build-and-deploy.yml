@@ -16,6 +16,9 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: In-app legal text matches the website pages
+        run: python3 scripts/legal/sync_legal_content.py --check
+
       - name: Set up JDK 21 (Temurin)
         uses: actions/setup-java@v4
         with:

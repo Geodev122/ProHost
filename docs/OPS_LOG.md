@@ -100,3 +100,9 @@ Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, ot
 - Verified: second owner holds roles/owner; Firebase iOS key restricted to the bundle ID; the Android Firebase key is still without application restriction (optional; it also lists 25 API targets).
 - Observed: the merge of PR #52 triggered the normal Firebase deploy and a hosting release (03942acc, 64 files) was FINALIZED at 08:07 UTC; whether prohost-f766f.web.app serves it is checked by the 3-hourly watch.
 
+## 8 Nov 2026 (afternoon) - legal texts rewritten for Android + iOS
+- Rewrote `public/privacy.html`, `public/terms.html` (Section 17 byte-identical, numbering kept; new 1.1/1.2, 7.1 per store, 9.2-9.4, 15.2-15.3, cancel paragraph in 6) and `public/delete-account.html`; removed stale SMS-OTP, ID-document KYC, email-code sign-in, and "no passwords" claims; added Apple/iOS, Google Maps, AI assistant, Netlify, backups, DSA.
+- In-app Privacy/Terms in `LegalContent.kt` are now generated from the website pages by `scripts/legal/sync_legal_content.py` (CI step `--check` in build-and-deploy.yml); revocation policy stale lines fixed. `EFFECTIVE_DATE` and `CURRENT_CONSENT_VERSION` = "November 8, 2026". The in-app Terms now carry the website's Section 17 (arbitration in Beirut) instead of the old "exclusive courts of Beirut" sentence.
+- `functions/src/legal/deleteAccountPage.ts` regenerated from the HTML (test keeps them equal). New `docs/APPLE_DECLARATIONS.md`. site-deploy probes now require "Sign in with Apple" on /privacy and "Apple App Store" on /terms.
+- Search Console: the failed sitemap row belongs to the `prohost-f766f.web.app` property; submit `sitemap.xml` under the `pro-host.tech` property instead.
+

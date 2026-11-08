@@ -68,7 +68,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // mirroring UserRole. Bump this alongside EFFECTIVE_DATE on any material legal
 // document change so newly recorded acceptances reflect the version actually
 // shown.
-const CURRENT_CONSENT_VERSION = "September 6, 2026";
+const CURRENT_CONSENT_VERSION = "November 8, 2026";
 
 async function validateRegistrationDraft(draft: RegistrationDraft, callerUid: string): Promise<void> {
   const fullName = typeof draft.fullName === "string" ? draft.fullName.trim() : "";

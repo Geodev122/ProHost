@@ -247,3 +247,5 @@ with Apple key (uploaded by you). I never see the values; I only reference the s
 - Maps: **Google Maps SDK for iOS** (not MapKit) so the map, markers and clusters match Android; needs an iOS-restricted key (owner guide A2).
 - Admin Console is **not** built on iOS (Android/web only).
 - "Exactly the same front end": Material Icons + Roboto bundled, M3 components rebuilt in SwiftUI, screens ported from the Compose source with the same names and string keys, parity proven with side-by-side Android | iOS screenshot sheets. Audit and port order: `docs/IOS_READINESS.md`.
+
+See `docs/APPLE_DECLARATIONS.md` (8 Nov 2026) for the App Store Connect answers (trader status, App Privacy, EULA, review notes) and the pre-submission engineering gaps (Report/Block, Sign in with Apple revoke, privacy manifest).

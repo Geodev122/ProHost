@@ -115,8 +115,8 @@ jobs:
             if [ "$ok" = 1 ]; then echo "ok   $1 -> $code"; else echo "::error::$1 returned $code (wanted $2 $3)"; fail=1; fi
           }
           check / 200 "ProHost"
-          check /privacy 200 "privacy"
-          check /terms 200 "terms"
+          check /privacy 200 "Sign in with Apple"
+          check /terms 200 "Apple App Store"
           check /delete-account 200
           check /get 200
           check /clinic-room-rental 200

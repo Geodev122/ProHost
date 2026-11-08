@@ -117,3 +117,12 @@ Last updated: 8 Nov 2026
 | APNs "certificates" in Firebase | Skip: the uploaded authentication key covers development and production |
 | Essential Contacts | Recommended: steps in docs/OWNER_GUIDE.md B1 |
 | Google restriction (items 1, 2, 10) | Unchanged: quota requests refused, Hosting "Site Not Found" |
+
+### Legal texts and Apple (8 Nov 2026)
+44. **Send me the operator's legal name and postal address** (the same text you declared as trader to Google). I insert it into the Privacy Policy (section 1), Terms (1.1 and the Apple developer-contact line in 15.3) and the in-app copy. Until then those lines are absent.
+45. **Apple trader status** (Account Holder, App Store Connect > Business > Compliance > Digital Services Act > Trader status; same answers as Google). Steps in `docs/APPLE_DECLARATIONS.md` section 1.
+46. **Read the rewritten Privacy Policy, Terms and Delete-account pages** on pro-host.tech (live after the deploy) and tell me anything that is not true for your business. Facts I could not verify and assumed: retention of assistant chats/leads (until you ask to delete), reports (as long as needed), 8-week backup roll-off (from the Firestore backup schedule), the six-month appeal window, the 24 h report acknowledgement (a promise you must be able to keep), Netlify and Anthropic as processors. A lawyer should review the texts (EU representative under GDPR Art. 27, DSA, Lebanese law).
+47. **Existing users:** the changes apply to them from 22 Nov 2026 (14 days' notice promised in both documents). Send the notice before then: a short email from the /admin mailing console to subscribers and an in-app announcement if you want one. I can draft the wording.
+48. **Android release** with the new in-app legal text and consent version "November 8, 2026" (code is on `main`; ships with the next Android build). Until you ship it, the app still shows the old in-app text.
+49. **Before the iOS release (engineering, mine):** in-app Report/Block on Android and iOS (App Review 1.2), Sign in with Apple token revocation on account deletion, privacy manifest and permission strings (`docs/APPLE_DECLARATIONS.md` sections 6, 7, 9, 10).
+
