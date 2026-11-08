@@ -196,7 +196,7 @@ fun OwnerHubScreen(
         onContinueDraft = { space -> viewModel.refreshTopHashtags(); draftToEdit = space },
         onToggleListingStatus = { space ->
             val next = if (space.status == ListingStatus.PAUSED) ListingStatus.ACTIVE else ListingStatus.PAUSED
-            viewModel.setListingStatus(space.id, next, context)
+            viewModel.setListingStatus(space.id, next)
         }
     )
 

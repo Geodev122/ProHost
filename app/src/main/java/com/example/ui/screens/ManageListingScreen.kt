@@ -118,7 +118,7 @@ fun ManageListingScreen(
                     if (liveSpace.status != ListingStatus.DRAFT) {
                         val paused = liveSpace.status == ListingStatus.PAUSED
                         IconButton(onClick = {
-                            viewModel.setListingStatus(liveSpace.id, if (paused) ListingStatus.ACTIVE else ListingStatus.PAUSED, context)
+                            viewModel.setListingStatus(liveSpace.id, if (paused) ListingStatus.ACTIVE else ListingStatus.PAUSED)
                         }) {
                             Icon(
                                 if (paused) Icons.Default.PlayCircle else Icons.Default.PauseCircle,

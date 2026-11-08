@@ -111,7 +111,7 @@ fun ChangePriceSheet(
         val sl = slot ?: return
         val p = newPrice ?: return
         saving = true
-        viewModel.changeSlotPrice(context, s, sl, p, affected.associate { it.id to (decisions[it.id] ?: PriceChangeMode.KEEP) }) { ok ->
+        viewModel.changeSlotPrice(s, sl, p, affected.associate { it.id to (decisions[it.id] ?: PriceChangeMode.KEEP) }) { ok ->
             saving = false
             if (ok) onDismiss()
         }

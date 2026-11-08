@@ -176,7 +176,7 @@ fun SpecialistProfileScreen(
                         icon = Icons.Default.MarkEmailUnread,
                         modifier = Modifier.testTag("verify_email_banner"),
                         action = {
-                            TextButton(onClick = { viewModel.resendEmailVerification(context) }) {
+                            TextButton(onClick = { viewModel.resendEmailVerification() }) {
                                 Text(stringResource(R.string.resend_verification), fontWeight = FontWeight.SemiBold)
                             }
                         }
@@ -1089,7 +1089,7 @@ fun SpecialistProfileScreen(
                 text = { Text(stringResource(R.string.your_rental_request_for_x_will_be_withdraw, target.spaceTitle)) },
                 confirmButton = {
                     TextButton(onClick = {
-                        viewModel.cancelBookingRequest(target.id, context)
+                        viewModel.cancelBookingRequest(target.id)
                         pendingCancelRequest = null
                     }) {
                         Text(stringResource(R.string.cancel_request), color = MaterialTheme.colorScheme.error)

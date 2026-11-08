@@ -336,7 +336,7 @@ fun MyBookingsScreen(
                             cancelTargetBooking = booking
                         },
                         onMarkPaid = {
-                            viewModel.acknowledgePayment(booking.id, asHost = false, context)
+                            viewModel.acknowledgePayment(booking.id, asHost = false)
                         }
                     )
                 }
@@ -433,7 +433,7 @@ fun MyBookingsScreen(
             confirmButton = {
                 TextButton(onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    viewModel.cancelBookingRequest(target.id, context)
+                    viewModel.cancelBookingRequest(target.id)
                     pendingCancelTarget = null
                 }) {
                     Text(stringResource(R.string.cancel_request), color = MaterialTheme.colorScheme.error)
@@ -455,7 +455,7 @@ fun MyBookingsScreen(
             partyLabel = bkg.ownerName,
             onDismiss = { cancelTargetBooking = null },
             onConfirm = { reasonCode, note ->
-                viewModel.cancelAcceptedBooking(bkg.id, reasonCode, note, context)
+                viewModel.cancelAcceptedBooking(bkg.id, reasonCode, note)
                 cancelTargetBooking = null
             }
         )

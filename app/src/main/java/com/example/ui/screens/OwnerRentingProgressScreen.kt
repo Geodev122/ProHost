@@ -75,7 +75,7 @@ fun OwnerRentingProgressScreen(
             partyLabel = bkg.practitionerName,
             onDismiss = { cancelTargetBooking = null },
             onConfirm = { reasonCode, note ->
-                viewModel.cancelAcceptedBooking(bkg.id, reasonCode, note, context)
+                viewModel.cancelAcceptedBooking(bkg.id, reasonCode, note)
                 cancelTargetBooking = null
             }
         )
@@ -95,13 +95,13 @@ fun OwnerRentingProgressScreen(
             // Real cross-device FCM push (sendPaymentReminder Cloud Function) — the same
             // path Renting Requests' "Send Payment Reminder" already uses, consolidating
             // what used to be a second, same-device-only local alert here.
-            viewModel.sendPaymentReminder(booking.id, booking.practitionerName, context)
+            viewModel.sendPaymentReminder(booking.id, booking.practitionerName)
         },
         onCancelAcceptedBooking = { booking ->
             cancelTargetBooking = booking
         },
         onMarkPaid = { booking ->
-            viewModel.acknowledgePayment(booking.id, asHost = true, context)
+            viewModel.acknowledgePayment(booking.id, asHost = true)
         },
         onOpenRequests = onOpenRequests,
         onChangePrice = { booking -> changePriceFor = booking }

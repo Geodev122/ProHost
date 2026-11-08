@@ -227,7 +227,7 @@ fun OwnerIncomingRequestsView(
                     onClick = {
                         val reqId = rejectingRequestId
                         if (reqId != null) {
-                            viewModel.rejectBookingRequest(reqId, rejectionReasonInput.ifBlank { uiText(R.string.declined_by_space_owner) }, context)
+                            viewModel.rejectBookingRequest(reqId, rejectionReasonInput.ifBlank { uiText(R.string.declined_by_space_owner) })
                         }
                         rejectingRequestId = null
                     },

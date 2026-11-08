@@ -298,8 +298,7 @@ class ProHostViewModel(
         }
     }
 
-    fun resendEmailVerification(context: android.content.Context) {
-        val appContext = context.applicationContext
+    fun resendEmailVerification() {
         viewModelScope.launch {
             try {
                 val result = functionsClient.resendEmailVerification()
@@ -313,7 +312,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, R.string.couldn_t_send_the_verification_email_pleas)
+                reportFailure(e, R.string.couldn_t_send_the_verification_email_pleas)
             }
         }
     }
@@ -444,14 +443,12 @@ class ProHostViewModel(
      * whether it keeps its price, updates now or from the next term. [onDone] gets true on success.
      */
     fun changeSlotPrice(
-        context: Context,
         space: SpaceListing,
         slot: com.example.ui.util.PriceChange.PriceSlot,
         newPrice: Double,
         decisions: Map<String, PriceChangeMode>,
         onDone: (Boolean) -> Unit
     ) {
-        val appContext = context.applicationContext
         viewModelScope.launch {
             try {
                 val result = repository.changeSlotPrice(space.id, slot.ref, newPrice, decisions).getOrThrow()
@@ -469,7 +466,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, R.string.couldn_t_change_the_price_please_try_again)
+                reportFailure(e, R.string.couldn_t_change_the_price_please_try_again)
                 onDone(false)
             }
         }
@@ -599,13 +596,13 @@ class ProHostViewModel(
             throw e
         } catch (e: Exception) {
             com.example.analytics.AnalyticsTracker.profilePhotoUpload(false, "requirements")
-            reportFailure(context.applicationContext, e, R.string.the_photo_couldn_t_be_uploaded_please_try)
+            reportFailure(e, R.string.the_photo_couldn_t_be_uploaded_please_try)
             uiText(R.string.the_photo_couldn_t_be_uploaded_please_try)
         }
     }
 
     /** Saves country + city (RequirementsSheet hosting step); returns an error message or null. */
-    suspend fun updateAddress(context: Context, country: String, city: String): String? = try {
+    suspend fun updateAddress(country: String, city: String): String? = try {
         if (repository.updateAddress(country, city)) {
             com.example.analytics.AnalyticsTracker.profileUpdate("address")
             null
@@ -613,7 +610,7 @@ class ProHostViewModel(
     } catch (e: kotlinx.coroutines.CancellationException) {
         throw e
     } catch (e: Exception) {
-        reportFailure(context.applicationContext, e, R.string.your_address_couldn_t_be_saved_please_try)
+        reportFailure(e, R.string.your_address_couldn_t_be_saved_please_try)
         uiText(R.string.your_address_couldn_t_be_saved_please_try)
     }
 
@@ -857,7 +854,6 @@ class ProHostViewModel(
             return
         }
 
-        val appContext = context.applicationContext
         viewModelScope.launch {
             try {
                 val (request, synced) = repository.createBookingRequest(
@@ -921,7 +917,7 @@ class ProHostViewModel(
                 if ((e is IllegalStateException || e is IllegalArgumentException) && !e.message.isNullOrBlank()) {
                     UiMessages.show(e.message, long = true)
                 } else {
-                    reportFailure(appContext, e, R.string.failed_to_send_request_please_check_your_c)
+                    reportFailure(e, R.string.failed_to_send_request_please_check_your_c)
                 }
             }
         }
@@ -937,7 +933,6 @@ class ProHostViewModel(
      * this device, so nothing needs to be posted here.
      */
     fun acceptBookingRequest(context: Context, requestId: String, agreementUri: Uri? = null) {
-        val appContext = context.applicationContext
         viewModelScope.launch {
             try {
                 // Refuse before the upload: accepting this would double-book a slot an
@@ -986,8 +981,7 @@ class ProHostViewModel(
      * — this used to just call [postNotificationAlert], which only ever updated the
      * host's own device's alert tray and never reached the specialist at all.
      */
-    fun sendPaymentReminder(bookingId: String, practitionerName: String, context: Context) {
-        val appContext = context.applicationContext
+    fun sendPaymentReminder(bookingId: String, practitionerName: String) {
         viewModelScope.launch {
             try {
                 val result = functionsClient.sendPaymentReminder(bookingId)
@@ -1006,8 +1000,7 @@ class ProHostViewModel(
         }
     }
 
-    fun rejectBookingRequest(requestId: String, note: String? = null, context: Context) {
-        val appContext = context.applicationContext
+    fun rejectBookingRequest(requestId: String, note: String? = null) {
         viewModelScope.launch {
             try {
                 val success = repository.rejectBookingRequest(requestId, note)
@@ -1026,8 +1019,7 @@ class ProHostViewModel(
         }
     }
 
-    fun cancelBookingRequest(requestId: String, context: Context) {
-        val appContext = context.applicationContext
+    fun cancelBookingRequest(requestId: String) {
         viewModelScope.launch {
             try {
                 val success = repository.cancelBookingRequest(requestId)
@@ -1055,11 +1047,9 @@ class ProHostViewModel(
     fun cancelAcceptedBooking(
         requestId: String,
         reasonCode: CancellationReasonCode,
-        note: String?,
-        context: Context
+        note: String?
     ) {
         val user = currentUser.value ?: return
-        val appContext = context.applicationContext
         viewModelScope.launch {
             try {
                 val success = repository.cancelAcceptedBooking(
@@ -1091,8 +1081,7 @@ class ProHostViewModel(
     }
 
     /** uiText(R.string.mark_as_paid) — record-keeping only; asHost decides which side's own flag gets set. */
-    fun acknowledgePayment(requestId: String, asHost: Boolean, context: Context) {
-        val appContext = context.applicationContext
+    fun acknowledgePayment(requestId: String, asHost: Boolean) {
         viewModelScope.launch {
             try {
                 val success = repository.acknowledgePayment(requestId, asHost)
@@ -1106,7 +1095,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, R.string.couldn_t_save_that_please_try_again)
+                reportFailure(e, R.string.couldn_t_save_that_please_try_again)
             }
         }
     }
@@ -1125,17 +1114,18 @@ class ProHostViewModel(
     }
 
     /** Toggles [spaceId] in the current user's personal saved/favorites list. With [context], a removal offers Undo. */
-    fun toggleSavedSpace(spaceId: String, context: Context? = null) {
+    /** [announce]: show the failure / "Removed from saved" + Undo messages (the Favorites list does; the heart elsewhere stays silent). */
+    fun toggleSavedSpace(spaceId: String, announce: Boolean = false) {
         val wasSaved = currentUser.value?.savedSpaceIds?.contains(spaceId) == true
         viewModelScope.launch {
             try {
                 // Analytics and Undo only for a write that landed (the repository reverts the heart otherwise).
                 if (!repository.toggleSavedSpace(spaceId)) {
-                    context?.let { UiMessages.show(uiText(R.string.saved_update_failed)) }
+                    if (announce) UiMessages.show(uiText(R.string.saved_update_failed))
                     return@launch
                 }
                 spaces.value.firstOrNull { it.id == spaceId }?.let { com.example.analytics.AnalyticsTracker.wishlist(it, added = !wasSaved) }
-                if (wasSaved && context != null) {
+                if (wasSaved && announce) {
                     UiMessages.show(uiText(R.string.removed_from_saved), actionLabel = uiText(R.string.undo), onAction = { toggleSavedSpace(spaceId) })
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -1155,8 +1145,7 @@ class ProHostViewModel(
     }
 
     /** Pause/Resume a published listing, or publish a Draft — see setListingStatus's doc comment. */
-    fun setListingStatus(spaceId: String, status: ListingStatus, context: Context) {
-        val appContext = context.applicationContext
+    fun setListingStatus(spaceId: String, status: ListingStatus) {
         val previous = spaces.value.firstOrNull { it.id == spaceId }?.status
         viewModelScope.launch {
             try {
@@ -1166,7 +1155,7 @@ class ProHostViewModel(
                 if (success && previous != null && previous != ListingStatus.DRAFT && previous != status) {
                     UiMessages.show(if (status == ListingStatus.PAUSED) uiText(R.string.listing_paused) else uiText(R.string.listing_is_live_again),
                         actionLabel = uiText(R.string.undo),
-                        onAction = { setListingStatus(spaceId, previous, appContext) }
+                        onAction = { setListingStatus(spaceId, previous) }
                     )
                 }
                 if (!success) {
@@ -1175,13 +1164,13 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, R.string.couldn_t_update_this_listing_please_try_ag)
+                reportFailure(e, R.string.couldn_t_update_this_listing_please_try_ag)
             }
         }
     }
 
     // --- Schedule & Blackout Management ---
-    fun addBlackoutSlot(spaceId: String, dayOfWeek: String, startTime: String, endTime: String, reason: String, context: Context) {
+    fun addBlackoutSlot(spaceId: String, dayOfWeek: String, startTime: String, endTime: String, reason: String) {
         // Id left to BlackoutSlot's own UUID default: the availability editor can
         // now create one slot per hour, and a 3-digit random id would collide.
         val slot = BlackoutSlot(
@@ -1190,27 +1179,25 @@ class ProHostViewModel(
             endTime = endTime,
             reason = reason
         )
-        val appContext = context.applicationContext
         viewModelScope.launch {
             try {
                 val success = repository.addBlackoutSlot(spaceId, slot)
                 if (success) {
                     com.example.analytics.AnalyticsTracker.blackoutAdd()
                     UiMessages.show(uiText(R.string.x_x_x_is_no_longer_offered, dayOfWeek, startTime, endTime),
-                        actionLabel = uiText(R.string.undo), onAction = { removeBlackoutSlot(spaceId, slot.id, appContext) })
+                        actionLabel = uiText(R.string.undo), onAction = { removeBlackoutSlot(spaceId, slot.id) })
                 } else {
                     UiMessages.show(uiText(R.string.couldn_t_switch_that_slot_off_please_try_a))
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, R.string.couldn_t_switch_that_slot_off_please_try_a_2)
+                reportFailure(e, R.string.couldn_t_switch_that_slot_off_please_try_a_2)
             }
         }
     }
 
-    fun removeBlackoutSlot(spaceId: String, slotId: String, context: Context) {
-        val appContext = context.applicationContext
+    fun removeBlackoutSlot(spaceId: String, slotId: String) {
         val removed = spaces.value.firstOrNull { it.id == spaceId }?.schedule?.blackoutSlots?.firstOrNull { it.id == slotId }
         viewModelScope.launch {
             try {
@@ -1218,7 +1205,7 @@ class ProHostViewModel(
                 if (success) {
                     com.example.analytics.AnalyticsTracker.blackoutRemove()
                     UiMessages.show(uiText(R.string.slot_is_back_on_offer), actionLabel = removed?.let { uiText(R.string.undo) }, onAction = removed?.let { slot ->
-                        { addBlackoutSlot(spaceId, slot.dayOfWeek, slot.startTime, slot.endTime, slot.reason, appContext) }
+                        { addBlackoutSlot(spaceId, slot.dayOfWeek, slot.startTime, slot.endTime, slot.reason) }
                     })
                 } else {
                     UiMessages.show(uiText(R.string.couldn_t_switch_that_slot_on_please_try_ag))
@@ -1226,7 +1213,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, R.string.couldn_t_switch_that_slot_on_please_try_ag_2)
+                reportFailure(e, R.string.couldn_t_switch_that_slot_on_please_try_ag_2)
             }
         }
     }
@@ -1245,8 +1232,7 @@ class ProHostViewModel(
     )
 
     /** Adds one room/desk to an already-published listing — see SubdivisionForm. */
-    fun addSubdivision(spaceId: String, subdivision: Subdivision, context: Context) {
-        val appContext = context.applicationContext
+    fun addSubdivision(spaceId: String, subdivision: Subdivision) {
         viewModelScope.launch {
             try {
                 val success = repository.addSubdivision(spaceId, subdivision)
@@ -1257,13 +1243,12 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, R.string.couldn_t_add_this_room_please_try_again_2)
+                reportFailure(e, R.string.couldn_t_add_this_room_please_try_again_2)
             }
         }
     }
 
-    fun removeSubdivision(spaceId: String, subdivisionId: String, context: Context) {
-        val appContext = context.applicationContext
+    fun removeSubdivision(spaceId: String, subdivisionId: String) {
         viewModelScope.launch {
             try {
                 val success = repository.removeSubdivision(spaceId, subdivisionId)
@@ -1274,7 +1259,7 @@ class ProHostViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                reportFailure(appContext, e, R.string.couldn_t_remove_this_room_please_try_again_2)
+                reportFailure(e, R.string.couldn_t_remove_this_room_please_try_again_2)
             }
         }
     }
@@ -1317,7 +1302,7 @@ class ProHostViewModel(
     }
 
     /** [fallback] is a string resource: shown in the app language, while app_error's area comes from its English text. */
-    private fun reportFailure(appContext: Context, e: Exception, @androidx.annotation.StringRes fallback: Int) {
+    private fun reportFailure(e: Exception, @androidx.annotation.StringRes fallback: Int) {
         val english = com.example.ui.util.UiText.english(fallback)
         android.util.Log.e("ProHostVM", english, e)
         com.example.analytics.AnalyticsTracker.appError(com.example.analytics.AnalyticsTracker.areaKey(english), com.example.analytics.AnalyticsTracker.errorCode(e))

@@ -116,7 +116,7 @@ fun MyFavoritesScreen(
                             onClick = { onSelectSpace(space) },
                             onQuickWhatsApp = { viewModel.launchWhatsAppInquiry(context, space, null) },
                             isSaved = true,
-                            onToggleSave = { viewModel.toggleSavedSpace(space.id, context) }
+                            onToggleSave = { viewModel.toggleSavedSpace(space.id, announce = true) }
                         )
                     }
 }
@@ -134,7 +134,7 @@ fun MyFavoritesScreen(
                         // Inserted/removed rows slide and fade instead of jumping.
                         Box(Modifier.animateItem()) {
                         UnavailableFavoriteCard(
-                            onRemove = { viewModel.toggleSavedSpace(spaceId, context) }
+                            onRemove = { viewModel.toggleSavedSpace(spaceId, announce = true) }
                         )
                     }
 }

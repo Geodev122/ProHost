@@ -180,7 +180,7 @@ fun RequirementsSheet(
                             savingAddress = true
                             addressError = null
                             scope.launch {
-                                addressError = viewModel.updateAddress(context, addressCountry.name, addressCity.trim())
+                                addressError = viewModel.updateAddress(addressCountry.name, addressCity.trim())
                                 savingAddress = false
                             }
                         },
