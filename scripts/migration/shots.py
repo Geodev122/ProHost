@@ -19,24 +19,44 @@ def load_rgba(path: Path) -> np.ndarray:
     return np.asarray(Image.open(path).convert("RGBA"), dtype=np.int16)
 
 
-def compare(golden: Path, candidate: Path, channel_tol: int = 0) -> dict:
-    """Pixel comparison. `diff_ratio` = share of pixels where any channel differs by more than channel_tol."""
+def masks_for(name: str, masks: dict | None) -> list[list[int]]:
+    """Rectangles [x, y, w, h] (pixels of the full-size image) to ignore for file `name`; keys are fnmatch patterns."""
+    import fnmatch
+    out: list[list[int]] = []
+    for pattern, rects in (masks or {}).items():
+        if pattern.startswith("_"):
+            continue  # documentation keys
+        if fnmatch.fnmatch(name, pattern):
+            out += rects
+    return out
+
+
+def _delta(a: np.ndarray, b: np.ndarray, rects: list[list[int]]) -> np.ndarray:
+    delta = np.abs(a - b).max(axis=2)
+    for x, y, w, h in rects:
+        delta[y:y + h, x:x + w] = 0
+    return delta
+
+
+def compare(golden: Path, candidate: Path, channel_tol: int = 0, rects: list[list[int]] | None = None) -> dict:
+    """Pixel comparison. `diff_ratio` = share of pixels where any channel differs by more than channel_tol
+    (outside the masked rectangles, which mark known dynamic regions such as a wall-clock timestamp)."""
     a, b = load_rgba(golden), load_rgba(candidate)
     if a.shape != b.shape:
         return {"same_size": False, "golden_size": a.shape[1::-1], "candidate_size": b.shape[1::-1],
                 "diff_pixels": None, "diff_ratio": 1.0, "max_channel_diff": None}
-    delta = np.abs(a - b).max(axis=2)
+    delta = _delta(a, b, rects or [])
     changed = delta > channel_tol
     return {"same_size": True, "golden_size": a.shape[1::-1], "candidate_size": b.shape[1::-1],
             "diff_pixels": int(changed.sum()), "diff_ratio": float(changed.mean()),
             "max_channel_diff": int(delta.max())}
 
 
-def diff_image(golden: Path, candidate: Path, channel_tol: int = 0) -> Image.Image:
+def diff_image(golden: Path, candidate: Path, channel_tol: int = 0, rects: list[list[int]] | None = None) -> Image.Image:
     """Faded candidate with changed pixels in red (same-size images only)."""
     a, b = load_rgba(golden), load_rgba(candidate)
     base = (b[..., :3] * 0.35 + 255 * 0.65).astype(np.uint8)
-    mask = np.abs(a - b).max(axis=2) > channel_tol
+    mask = _delta(a, b, rects or []) > channel_tol
     base[mask] = (255, 0, 0)
     return Image.fromarray(base, "RGB")
 

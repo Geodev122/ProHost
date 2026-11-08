@@ -27,6 +27,10 @@ Moving Pro Host drawer items into tabs, removing Explore's menu button, iOS-styl
 - **Golden baseline:** the git proxy refuses tag pushes, so there is no `kmp-golden-v1047` tag on GitHub (a local tag at `d30c331` was not pushed; creating the tag in the GitHub UI is optional).
   The baseline is the Design Screenshots run 42474484795 on commit `7ed5728686cd7e7c9abe16c655493f296953e443` (app code identical to `d30c331`), stored as git commit
   `d841cccf2e7e1acbd8acf32a2226ba221444d3ad` under `refs/design-shots/golden-v1047`: **280 PNGs, 0 render errors**, flat names `<screen>_<variant>.png` (variants light, dark, small, rtl, ar).
+- **Golden determinism (checked 8 Nov 2026):** rendering the same app code twice gave 274 of 280 identical PNGs. The 6 that differ are test-harness noise, not app changes: the five `request_detail_*`
+  renders print a wall-clock "Submitted" time from mock data (11:16 vs 11:23), and `explore_list_light`'s first hero photo is a network image that loaded in one render and not in the other. They are masked in
+  `docs/migration/golden-masks.json` (`diff_shots.py --masks`; with the masks the two sets compare 280/280 identical; a third render confirms it). The hero-image mask is large (it also covers the Verified chip and
+  heart on that one card), so P2 should freeze the clock in the preview data and preload/replace the network image in the harness, then recapture the golden once and delete the masks.
 - **Known Kotlin/TypeScript divergences** (pinned by `kotlinExpected` in `tests/vectors/booking-terms.json`; behaviour NOT changed):
   1. ~~`bookingTerm` month arithmetic~~ **FIXED 8 Nov 2026 (owner request):** the server (`functions/src/bookings/bookingTerms.ts` `addMonths`) overflowed into the next month
      (2026-01-31 + 1 month = 2026-03-03); it now clamps to the last day of the target month like the app's `Calendar.add(MONTH)` (2026-02-28). Effect on production once deployed (merge to `main`):

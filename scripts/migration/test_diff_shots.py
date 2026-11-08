@@ -70,6 +70,37 @@ class DiffShotsTest(unittest.TestCase):
         self.assertEqual(1, json.loads((out / "r.json").read_text())["failed"])
 
 
+class MaskTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.g, self.c = self.tmp / "g", self.tmp / "c"
+        png(self.g / "request_detail_light.png")
+        png(self.c / "request_detail_light.png", dot=(10, 10))
+        png(self.g / "other.png")
+        png(self.c / "other.png", dot=(10, 10))
+
+    def masks(self, data):
+        path = self.tmp / "masks.json"
+        path.write_text(json.dumps(data))
+        return str(path)
+
+    def run_diff(self, masks_path):
+        return diff_shots.main(["--golden", str(self.g), "--candidate", str(self.c), "--masks", masks_path])
+
+    def test_masked_region_hides_a_known_dynamic_change_only_for_matching_files(self):
+        m = self.masks({"_comment": "docs", "request_detail_*.png": [[8, 8, 6, 6]]})
+        self.assertEqual(1, self.run_diff(m))  # other.png still differs
+        summary = diff_shots.run(self.g, self.c, [], 0, 0.0, {"request_detail_*.png": [[8, 8, 6, 6]]})
+        self.assertEqual({"request_detail_light.png": "same", "other.png": "changed"}, {r["name"]: r["status"] for r in summary["results"]})
+
+    def test_change_outside_the_mask_is_still_caught(self):
+        summary = diff_shots.run(self.g, self.c, [], 0, 0.0, {"*.png": [[0, 0, 5, 5]]})
+        self.assertEqual(2, summary["failed"])
+
+    def test_all_masked_passes(self):
+        self.assertEqual(0, self.run_diff(self.masks({"*.png": [[8, 8, 6, 6]]})))
+
+
 class CompareAndroidIosTest(unittest.TestCase):
     def test_sheets_and_missing_lists(self):
         tmp = Path(tempfile.mkdtemp())

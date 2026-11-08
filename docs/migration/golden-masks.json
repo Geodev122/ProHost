@@ -1,0 +1,51 @@
+{
+  "_comment": "Known dynamic regions of golden-v1047 (measured from two renders of the same app code, 8 Nov 2026): request_detail_*: the 'Submitted' wall-clock time in the mock booking; explore_list_light: the first card's hero photo (network image that loaded in one render and not in the other). Keep masks tiny: they hide regressions inside them. Remove once the harness freezes the clock and preloads images (P2).",
+  "explore_list_light.png": [
+    [
+      88,
+      412,
+      994,
+      566
+    ]
+  ],
+  "request_detail_light.png": [
+    [
+      428,
+      1978,
+      59,
+      46
+    ]
+  ],
+  "request_detail_dark.png": [
+    [
+      428,
+      1978,
+      59,
+      46
+    ]
+  ],
+  "request_detail_small.png": [
+    [
+      518,
+      1927,
+      69,
+      53
+    ]
+  ],
+  "request_detail_rtl.png": [
+    [
+      986,
+      1978,
+      59,
+      46
+    ]
+  ],
+  "request_detail_ar.png": [
+    [
+      986,
+      1978,
+      59,
+      46
+    ]
+  ]
+}
