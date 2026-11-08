@@ -1,0 +1,89 @@
+name: Migration Checks
+
+# Gates for the KMP + Compose Multiplatform migration (docs/migration/MASTER_PLAN.md). Read-only: it never deploys.
+#  - shared Kotlin/TypeScript test vectors (tests/vectors) still match the server code and the Kotlin app
+#  - docs/migration/PARITY.md lists every Kotlin source file
+#  - the screenshot diff tools behave (they are the parity gate)
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: ["claude/**"]
+    paths:
+      - "tests/vectors/**"
+      - "scripts/migration/**"
+      - "docs/migration/**"
+      - "functions/src/**"
+      - "app/src/test/java/com/example/vectors/**"
+      - ".github/workflows/migration-checks.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: migration-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tools-and-vectors:
+    name: Vectors, parity table, diff tools
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Build functions and run the TypeScript vectors test
+        working-directory: functions
+        run: |
+          npm ci
+          npm run build
+          node --test lib/lib/vectors.test.js
+
+      - name: Vectors are in sync with the server code
+        run: node scripts/migration/export_vectors.js --check
+
+      - name: Parity table lists every source file
+        run: python3 scripts/migration/gen_parity_table.py --check
+
+      - name: Screenshot tool tests
+        run: |
+          pip install --quiet pillow numpy
+          python3 -I scripts/migration/test_diff_shots.py
+
+  kotlin-vectors:
+    name: Kotlin side of the vectors
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.7.1"
+
+      - name: Generate Debug Keystore
+        run: |
+          keytool -genkey -v -keystore debug.keystore -storepass android \
+            -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 \
+            -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+
+      - name: Run the Kotlin vectors test
+        run: |
+          set -o pipefail
+          gradle :app:testDebugUnitTest --tests "com.example.vectors.*" --no-daemon --stacktrace 2>&1 | tee gradle.log
+
+      - name: Report compile errors
+        if: failure()
+        run: |
+          grep -iE "^e: |error|FAILED|AssertionError|expected" gradle.log | head -40 | while IFS= read -r line; do echo "::error title=kotlin::${line}"; done
