@@ -73,13 +73,15 @@ jobs:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ steps.site.outputs.id }}
         run: |
+          npm install --global --silent netlify-cli@17.38.1 || npm install --global netlify-cli@17.38.1
+          netlify --version
           ok=0
           for attempt in 1 2 3; do
-            dbg=""; [ "$attempt" = 3 ] && dbg="--debug"
-            if npx --yes netlify-cli@17.38.1 deploy --prod --dir=public $dbg --message "${GITHUB_REF_NAME} ${GITHUB_SHA::7}" --json > "$RUNNER_TEMP/deploy.json" 2> "$RUNNER_TEMP/deploy.err"; then ok=1; break; fi
-            echo "::warning::netlify deploy attempt $attempt failed"
-            head -c 1200 "$RUNNER_TEMP/deploy.err"; echo; head -c 800 "$RUNNER_TEMP/deploy.json"; echo
-            sleep 20
+            if netlify deploy --prod --dir=public --message "${GITHUB_REF_NAME} ${GITHUB_SHA::7}" --json > "$RUNNER_TEMP/deploy.json" 2> "$RUNNER_TEMP/deploy.err"; then ok=1; break; fi
+            code=$?
+            echo "::warning::netlify deploy attempt $attempt failed (exit $code)"
+            echo "--- stderr"; head -c 1500 "$RUNNER_TEMP/deploy.err"; echo "--- stdout"; head -c 1500 "$RUNNER_TEMP/deploy.json"; echo
+            sleep 25
           done
           if [ "$ok" != 1 ]; then echo "::error::netlify deploy failed after 3 attempts"; exit 1; fi
           python3 - <<'PY'
