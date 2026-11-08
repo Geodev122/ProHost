@@ -23,29 +23,15 @@
     public static ** valueOf(java.lang.String);
 }
 
-# Room Database rules
--keep class androidx.room.** { *; }
--dontwarn androidx.room.**
--keep class * extends androidx.room.RoomDatabase
--keep @androidx.room.Dao interface * { *; }
--keep @androidx.room.Entity class * { *; }
-
-# Moshi rules
+# Attributes the app and its libraries (Firebase, Crashlytics, Play services) rely on. They used to sit in the Moshi and
+# Retrofit sections; kept exactly as they were when those libraries were removed (migration P2.1, no change to release output).
 -keepattributes *Annotation*, Signature, InnerClasses, EnclosingMethod
--dontwarn javax.annotation.**
--keep class com.squareup.moshi.** { *; }
--keep interface com.squareup.moshi.** { *; }
--keepclassmembers class * {
-    @com.squareup.moshi.Json <fields>;
-    @com.squareup.moshi.FromJson <methods>;
-    @com.squareup.moshi.ToJson <methods>;
-}
-
-# Retrofit & OkHttp rules
--dontwarn retrofit2.**
--keep class retrofit2.** { *; }
--keepattributes Signature, InnerClasses, EnclosingMethod
 -keepattributes RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
+-dontwarn javax.annotation.**
+
+# Warning guards (harmless; the libraries below are no longer dependencies except OkHttp/Okio, which Coil uses)
+-dontwarn androidx.room.**
+-dontwarn retrofit2.**
 -dontwarn okhttp3.**
 -dontwarn okio.**
 
