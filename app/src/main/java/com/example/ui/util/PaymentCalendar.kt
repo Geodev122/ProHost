@@ -2,8 +2,6 @@ package com.example.ui.util
 
 import com.example.R
 import android.content.ActivityNotFoundException
-import android.content.Context
-import android.content.Intent
 import android.provider.CalendarContract
 import com.example.data.model.BookingRequest
 import com.example.data.model.RentalFormulaType
@@ -39,7 +37,7 @@ object PaymentCalendar {
         }
     }
 
-    fun addPaymentReminders(context: Context, booking: BookingRequest, bookingRef: String) {
+    fun addPaymentReminders(booking: BookingRequest, bookingRef: String) {
         val schedule = scheduleFor(booking)
         if (schedule == null) {
             UiMessages.show(uiText(R.string.calendar_no_start_date), long = true)
@@ -65,24 +63,16 @@ object PaymentCalendar {
             }
             append(uiText(R.string.calendar_pay_directly))
         }
-        // All-day events must start at UTC midnight (CalendarContract requirement).
-        val insert = Intent(Intent.ACTION_INSERT)
-            .setData(CalendarContract.Events.CONTENT_URI)
-            .putExtra(CalendarContract.Events.TITLE, uiText(R.string.calendar_rent_due_x, booking.spaceTitle))
-            .putExtra(CalendarContract.Events.DESCRIPTION, description)
-            .putExtra(CalendarContract.EXTRA_EVENT_ALL_DAY, true)
-            .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, schedule.firstDueUtcMillis)
-            .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, schedule.firstDueUtcMillis + DAY_MILLIS)
-            .putExtra(CalendarContract.Events.AVAILABILITY, CalendarContract.Events.AVAILABILITY_FREE)
-            .putExtra(CalendarContract.Events.HAS_ALARM, 1)
-        if (schedule.isMonthly) {
-            insert.putExtra(CalendarContract.Events.RRULE, "FREQ=MONTHLY;COUNT=${schedule.occurrences}")
-        }
         try {
-            // A chooser lets people with several calendar apps pick the one they use.
-            val chooser = Intent.createChooser(insert, uiText(R.string.calendar_add_reminders_to))
-            if (context !is android.app.Activity) chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(chooser)
+            // All-day events must start at UTC midnight (CalendarContract requirement); a chooser lets people with several calendar apps pick theirs.
+            PlatformActions.require().addCalendarEvent(
+                chooserTitle = uiText(R.string.calendar_add_reminders_to),
+                title = uiText(R.string.calendar_rent_due_x, booking.spaceTitle),
+                description = description,
+                allDayStartUtcMillis = schedule.firstDueUtcMillis,
+                allDayEndUtcMillis = schedule.firstDueUtcMillis + DAY_MILLIS,
+                rrule = if (schedule.isMonthly) "FREQ=MONTHLY;COUNT=${schedule.occurrences}" else null
+            )
         } catch (e: ActivityNotFoundException) {
             UiMessages.show(uiText(R.string.calendar_no_app), long = true)
         }

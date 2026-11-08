@@ -312,7 +312,7 @@ fun MyBookingsScreen(
                             editSourceBooking = booking
                         },
                         onAddPaymentReminders = {
-                            com.example.ui.util.PaymentCalendar.addPaymentReminders(context, booking, booking.publicCode)
+                            com.example.ui.util.PaymentCalendar.addPaymentReminders(booking, booking.publicCode)
                             com.example.analytics.AnalyticsTracker.calendarReminderAdd()
                         },
                         onViewAgreement = {

@@ -3,6 +3,7 @@ package com.example.ui.util
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
+import android.provider.CalendarContract
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.test.core.app.ApplicationProvider
@@ -104,5 +105,38 @@ class AndroidPlatformActionsTest {
         assertTrue(Intent(Intent.ACTION_VIEW, Uri.parse("https://pro-host.tech/")).filterEquals(got))
         assertTrue(got.flags and Intent.FLAG_ACTIVITY_NEW_TASK != 0)
         assertFalse(shadowOf(activity).nextStartedActivity != null)
+    }
+
+    @Test
+    fun addCalendarEventIsTheOldInsertIntentInsideAChooser() {
+        AndroidPlatformActions.addCalendarEvent("Add reminders to", "Rent due: Suite", "Line 1\nLine 2", 1_790_000_000_000L, 1_790_086_400_000L, "FREQ=MONTHLY;COUNT=3")
+        val chooser = started()
+        assertEquals(Intent.ACTION_CHOOSER, chooser.action)
+        assertEquals("Add reminders to", chooser.getCharSequenceExtra(Intent.EXTRA_TITLE)?.toString())
+        @Suppress("DEPRECATION")
+        val inner = chooser.getParcelableExtra<Intent>(Intent.EXTRA_INTENT) ?: error("no inner intent")
+        // the old call site, verbatim
+        val old = Intent(Intent.ACTION_INSERT)
+            .setData(CalendarContract.Events.CONTENT_URI)
+            .putExtra(CalendarContract.Events.TITLE, "Rent due: Suite")
+            .putExtra(CalendarContract.Events.DESCRIPTION, "Line 1\nLine 2")
+            .putExtra(CalendarContract.EXTRA_EVENT_ALL_DAY, true)
+            .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, 1_790_000_000_000L)
+            .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, 1_790_086_400_000L)
+            .putExtra(CalendarContract.Events.AVAILABILITY, CalendarContract.Events.AVAILABILITY_FREE)
+            .putExtra(CalendarContract.Events.HAS_ALARM, 1)
+            .putExtra(CalendarContract.Events.RRULE, "FREQ=MONTHLY;COUNT=3")
+        assertTrue(old.filterEquals(inner))
+        for (key in old.extras!!.keySet()) assertEquals(key, old.extras!!.get(key), inner.extras!!.get(key))
+        assertEquals(old.extras!!.keySet(), inner.extras!!.keySet())
+        assertEquals(0, chooser.flags and Intent.FLAG_ACTIVITY_NEW_TASK) // started from the Activity: no NEW_TASK
+    }
+
+    @Test
+    fun addCalendarEventWithoutARuleHasNoRrule() {
+        AndroidPlatformActions.addCalendarEvent("t", "title", "d", 1L, 2L, null)
+        @Suppress("DEPRECATION")
+        val inner = started().getParcelableExtra<Intent>(Intent.EXTRA_INTENT)!!
+        assertFalse(inner.hasExtra(CalendarContract.Events.RRULE))
     }
 }

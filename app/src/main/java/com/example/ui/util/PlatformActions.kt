@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.provider.CalendarContract
 import android.provider.Settings
 import java.lang.ref.WeakReference
 
@@ -28,6 +29,16 @@ interface PlatformActions {
 
     /** Opens the system's per-app language settings (API 33+) or the device language settings. */
     fun openAppLanguageSettings()
+
+    /**
+     * Hands an all-day event to the person's own calendar app through a chooser titled [chooserTitle] (no calendar permission needed). The event
+     * starts at UTC midnight [allDayStartUtcMillis] (CalendarContract requirement) and ends at [allDayEndUtcMillis]; [rrule] repeats it
+     * (e.g. `FREQ=MONTHLY;COUNT=3`). Throws `ActivityNotFoundException` when no calendar app can answer, as before.
+     */
+    fun addCalendarEvent(
+        chooserTitle: String, title: String, description: String,
+        allDayStartUtcMillis: Long, allDayEndUtcMillis: Long, rrule: String?
+    )
 
     /** Shows the system share sheet titled [chooserTitle] for plain [text] with an optional [subject]. */
     fun shareText(chooserTitle: String, subject: String, text: String)
@@ -96,6 +107,24 @@ object AndroidPlatformActions : PlatformActions {
             Intent(Settings.ACTION_LOCALE_SETTINGS)
         }
         start(intent)
+    }
+
+    override fun addCalendarEvent(
+        chooserTitle: String, title: String, description: String,
+        allDayStartUtcMillis: Long, allDayEndUtcMillis: Long, rrule: String?
+    ) {
+        val insert = Intent(Intent.ACTION_INSERT)
+            .setData(CalendarContract.Events.CONTENT_URI)
+            .putExtra(CalendarContract.Events.TITLE, title)
+            .putExtra(CalendarContract.Events.DESCRIPTION, description)
+            .putExtra(CalendarContract.EXTRA_EVENT_ALL_DAY, true)
+            .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, allDayStartUtcMillis)
+            .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, allDayEndUtcMillis)
+            .putExtra(CalendarContract.Events.AVAILABILITY, CalendarContract.Events.AVAILABILITY_FREE)
+            .putExtra(CalendarContract.Events.HAS_ALARM, 1)
+        if (rrule != null) insert.putExtra(CalendarContract.Events.RRULE, rrule)
+        // A chooser lets people with several calendar apps pick the one they use (start() adds NEW_TASK when there is no Activity).
+        start(Intent.createChooser(insert, chooserTitle))
     }
 
     override fun shareText(chooserTitle: String, subject: String, text: String) {
