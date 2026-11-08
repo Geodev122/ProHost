@@ -26,10 +26,39 @@ object UiMessages {
     @Volatile
     internal var hosts = 0
 
+    /** The Toast shown when no Snackbar host is on screen. Registered once by [init]; the only Android-specific part of this object. */
+    @Volatile
+    private var toastFallback: ((CharSequence, Boolean) -> Unit)? = null
+
+    /** Called from `ProHostApplication.onCreate`: the fallback Toast uses the application context, as it always did. */
+    fun init(applicationContext: Context) {
+        val app = applicationContext.applicationContext
+        toastFallback = { text, long -> toast(app, text, long) }
+    }
+
+    /** Test hook: replaces the Toast fallback (no Android needed). */
+    internal fun setToastFallback(fallback: ((CharSequence, Boolean) -> Unit)?) {
+        toastFallback = fallback
+    }
+
+    /** Context-free: view models and shared code call this. */
+    fun show(text: CharSequence?, long: Boolean = false, actionLabel: String? = null, onAction: (() -> Unit)? = null) {
+        deliver(text, long, actionLabel, onAction) { t, l -> toastFallback?.invoke(t, l) }
+    }
+
+    /** Existing call sites; same behaviour as before (the Toast fallback is shown on [context]'s application context). */
     fun show(context: Context, text: CharSequence?, long: Boolean = false, actionLabel: String? = null, onAction: (() -> Unit)? = null) {
+        deliver(text, long, actionLabel, onAction) { t, l -> toast(context.applicationContext, t, l) }
+    }
+
+    private inline fun deliver(text: CharSequence?, long: Boolean, actionLabel: String?, noinline onAction: (() -> Unit)?, fallback: (CharSequence, Boolean) -> Unit) {
         if (text.isNullOrBlank()) return
         val message = Message(text.toString(), long, actionLabel, onAction)
         if (hosts > 0 && _messages.tryEmit(message)) return
-        Toast.makeText(context.applicationContext, text, if (long) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
+        fallback(text, long)
+    }
+
+    private fun toast(context: Context, text: CharSequence, long: Boolean) {
+        Toast.makeText(context, text, if (long) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
     }
 }

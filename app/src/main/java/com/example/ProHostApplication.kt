@@ -14,6 +14,7 @@ class ProHostApplication : Application() {
             android.content.res.Configuration(resources.configuration).apply { setLocale(java.util.Locale.ENGLISH) }
         ).resources
         com.example.ui.util.UiText.init(resources, english)
+        com.example.ui.util.UiMessages.init(this)
         com.example.data.auth.GoogleCredentialState.init(this)
         try {
             if (FirebaseApp.getApps(this).isEmpty()) {
