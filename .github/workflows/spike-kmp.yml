@@ -103,6 +103,19 @@ jobs:
               c = np.asarray(Image.open(f).convert("RGBA"), dtype=np.int16)
               n = int((np.abs(box(g) - box(c)).max(axis=2) > 0).sum())
               if best is None or n < best[0]: best = (n, f)
+          # contact strip for people: golden spinner box, then every 6th animation frame (3x zoom), published with the before/after sheet
+          import os
+          from PIL import ImageDraw
+          os.makedirs("parity/before_after", exist_ok=True)
+          frames = sorted(glob.glob("spike/kmp/androidApp/build/spike-shots/phase/*.png"))[::6]
+          tiles = [("GOLDEN", Image.open("golden/splash_light.png"))] + [(f.split("_")[-1][:-4], Image.open(f)) for f in frames]
+          z = 3
+          strip = Image.new("RGB", (len(tiles) * (w * z + 8), h * z + 18), (246, 248, 251))
+          for i, (label, im) in enumerate(tiles):
+              crop = im.convert("RGB").crop((x, y, x + w, y + h)).resize((w * z, h * z))
+              strip.paste(crop, (i * (w * z + 8), 18))
+              ImageDraw.Draw(strip).text((i * (w * z + 8) + 2, 2), label, fill=(22, 32, 47))
+          strip.save("parity/before_after/phase_strip.png")
           print(f"::notice title=splash-phase::SPLASH-PHASE frames={len(glob.glob('spike/kmp/androidApp/build/spike-shots/phase/*.png'))} best_diff_px={best[0] if best else 'n/a'} frame={best[1].split('/')[-1] if best else 'n/a'}")
           PY
         env:
