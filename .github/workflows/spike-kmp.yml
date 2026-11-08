@@ -14,7 +14,7 @@ on:
       - ".github/workflows/spike-kmp.yml"
 
 permissions:
-  contents: read
+  contents: write # only to store the splash before/after sheet under refs/design-shots/spike-splash
 
 concurrency:
   group: spike-kmp-${{ github.ref }}
@@ -88,6 +88,23 @@ jobs:
             --only splash_light,splash_dark --masks docs/migration/golden-masks.json --report parity/diff.html --json parity/diff.json | tee parity/summary.txt || true
           while IFS= read -r line; do echo "::notice title=splash-parity::${line}"; done < parity/summary.txt
           grep -h "FONT-SCALE-SEEN" gradle-parity.log | head -3 | while IFS= read -r line; do echo "::notice title=font-cap::${line}"; done || true
+
+      # Before | After | Difference sheet of the splash (golden = Compose 1.7 app, candidate = Compose 1.12 shared module), stored
+      # under refs/design-shots/spike-splash so it can be opened through the GitHub API.
+      - name: Splash before/after sheet
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          [ -d spike/kmp/androidApp/build/spike-shots ] || exit 0
+          python3 scripts/migration/before_after.py --golden golden --candidate spike/kmp/androidApp/build/spike-shots --out parity/before_after \
+            --from-json parity/diff.json --show splash_ --masks docs/migration/golden-masks.json
+          cd parity/before_after
+          git init -q
+          git add -A
+          git -c user.name="spike" -c user.email="spike@users.noreply.github.com" commit -q -m "Splash before/after for ${GITHUB_SHA}"
+          git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/design-shots/spike-splash"
+          echo "::notice title=before-after::$(git rev-parse HEAD) refs/design-shots/spike-splash"
 
       - name: Compose for Web (wasmJs) builds from the same shared UI
         if: always()
