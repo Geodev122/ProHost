@@ -126,3 +126,9 @@ Last updated: 8 Nov 2026
 48. **Android release** with the new in-app legal text and consent version "November 8, 2026" (code is on `main`; ships with the next Android build). Until you ship it, the app still shows the old in-app text.
 49. **Before the iOS release (engineering, mine):** in-app Report/Block on Android and iOS (App Review 1.2), Sign in with Apple token revocation on account deletion, privacy manifest and permission strings (`docs/APPLE_DECLARATIONS.md` sections 6, 7, 9, 10).
 
+### KMP + Compose Multiplatform decision (8 Nov 2026) - supersedes the SwiftUI items above
+50. **Review and approve `docs/migration/MASTER_PLAN.md`** (phases P0-P10), then answer the open decisions in `docs/migration/DECISIONS.md` (mobile admin account behaviour, admin quirks, report/block UI, legal PDF, Roboto on iOS).
+51. **Admin web hosting:** create the second Netlify site and DNS record for `admin.pro-host.tech` at Hostinger (steps will be added to `docs/OWNER_GUIDE.md` when P1.0 starts); add the domain to Firebase authorized domains and the OAuth web client.
+52. **AI agent project:** decide the new Google project and billing account; later, an agreed window to repoint the Meta webhook callback URLs.
+53. **Still needed:** a borrowed iPhone for TestFlight, the pending Apple/Firebase confirmations (APNs key upload, Firebase iOS key restriction), and the Apple business items (Paid Apps Agreement, trader status).
+

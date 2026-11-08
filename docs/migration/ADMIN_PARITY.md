@@ -1,0 +1,7 @@
+# Admin Console parity checklist (web rebuild)
+
+Source of truth: the Android admin (Kotlin files under `ui/screens/admin/`, `AdminConsoleScreen.kt`, `AdminAnalyticsScreen.kt`, `AdminViewModel.kt`, `AdminDossierSheet.kt`, admin parts of drawer/profile/nav) plus the admin callables in `functions/src`. The Android admin is removed only after every row is ticked and the owner has walked through the web console.
+
+Scope groups (70 items, full table to be saved here in P0 from the 8 Nov inventory): shell and sign-in gate (7) · Packages (10) · Users (11) · Listings & Bookings (11) · Analytics (5) · Schema (8) · Security (4) · Demo Control (7) · debugger, Admin-as-Pro-Host tools, GA4 secret, mailing console, WhatsApp alerts, maintenance tasks, IG control room (7).
+
+Backend touchpoints: ~25 admin callables (adminCounts/Search/UserDossier/ExportUsers, getAdminAnalytics, lookupUserForGrant, forceProHostUpgrade, setListingVerification, setListingSubscriptionActive, adminVerificationDocUrl, updatePricing, billingHealthCheck, billingRtdnSelfTest, adminBillingPending, adminActivatePurchase, runBillingSync, grantAdminRole, setAccountSuspended, revokeProHostRole, recordClientAuditLog, backfill*/migrate*/purgeDemoContent, configureGa4ApiSecret) and direct Firestore/Storage writes (schema_architecture, legal_documents + Storage, user_profiles edit/delete, workspace_listings edit/delete + Storage purge).

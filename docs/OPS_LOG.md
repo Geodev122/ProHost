@@ -106,3 +106,8 @@ Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, ot
 - `functions/src/legal/deleteAccountPage.ts` regenerated from the HTML (test keeps them equal). New `docs/APPLE_DECLARATIONS.md`. site-deploy probes now require "Sign in with Apple" on /privacy and "Apple App Store" on /terms.
 - Search Console: the failed sitemap row belongs to the `prohost-f766f.web.app` property; submit `sitemap.xml` under the `pro-host.tech` property instead.
 - iOS S2 (session store, router, role tab shell) pushed; iOS CI green on 767d5fd. No TestFlight build uploaded for it yet.
+
+
+## 8 Nov 2026 (evening) - architecture decision recorded (no GCP, Drive, Play or GitHub setting changed)
+- Owner chose Kotlin Multiplatform + Compose Multiplatform for Android and iOS; Admin Console to become a web app; AI agent to become its own project. Plan and rules written to `CLAUDE.md` (new section), `docs/migration/*`; `docs/IOS_PLAN.md` and `docs/IOS_READINESS.md` marked superseded for the UI approach. CLAUDE.md Gradle note corrected to 9.7.1.
+
