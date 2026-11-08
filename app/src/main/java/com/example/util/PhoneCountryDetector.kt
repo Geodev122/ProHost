@@ -4,17 +4,13 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Geocoder
-import android.location.Location
 import android.telephony.TelephonyManager
 import androidx.core.content.ContextCompat
 import com.example.data.model.Country
 import com.example.data.model.findCountryByIsoCode
-import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.util.Locale
-import kotlin.coroutines.resume
 
 /**
  * Best-effort ISO-3166 country detection used to prefill the phone number field's dial
@@ -44,15 +40,7 @@ object PhoneCountryDetector {
     private suspend fun lastKnownLocationCountryIso(context: Context): String? {
         if (!hasLocationPermission(context)) return null
         val location = try {
-            suspendCancellableCoroutine<Location?> { cont ->
-                try {
-                    LocationServices.getFusedLocationProviderClient(context).lastLocation
-                        .addOnSuccessListener { loc -> if (cont.isActive) cont.resume(loc) }
-                        .addOnFailureListener { if (cont.isActive) cont.resume(null) }
-                } catch (e: SecurityException) {
-                    if (cont.isActive) cont.resume(null)
-                }
-            }
+            (LocationProvider.current ?: AndroidLocationProvider(context)).lastLocation()
         } catch (e: Exception) {
             null
         } ?: return null

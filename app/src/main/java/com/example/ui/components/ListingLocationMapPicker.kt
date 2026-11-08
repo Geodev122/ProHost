@@ -7,12 +7,9 @@ import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
 import com.example.ui.util.UiMessages
-import android.Manifest
-import android.content.pm.PackageManager
 import android.content.Context
 import android.location.Address
 import android.location.Geocoder
-import android.location.Location
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -29,10 +26,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
-import com.google.android.gms.tasks.CancellationTokenSource
+import com.example.util.LocateResult
+import com.example.util.LocationProvider
+import com.example.util.locate
 import com.google.maps.android.compose.*
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -116,30 +112,19 @@ fun ListingLocationMapPicker(
         position = CameraPosition.fromLatLngZoom(defaultCenter, if (initialLat != null && initialLng != null) 15f else 2f)
     }
 
-    val fusedLocationClient = remember {
-        LocationServices.getFusedLocationProviderClient(context)
-    }
-
     fun requestHighAccuracyLocation() {
-        val finePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-        val coarsePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-        if (finePerm == PackageManager.PERMISSION_GRANTED || coarsePerm == PackageManager.PERMISSION_GRANTED) {
+        val provider = LocationProvider.require()
+        if (provider.hasPermission()) {
             isLocating = true
-            val cancelToken = CancellationTokenSource()
-            fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cancelToken.token)
-                .addOnSuccessListener { location: Location? ->
-                    isLocating = false
-                    if (location != null) {
-                        val latLng = LatLng(location.latitude, location.longitude)
-                        coroutineScope.launch {
-                            cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
-                        }
-                    }
+            coroutineScope.launch {
+                when (val result = locate(provider, fallbackToLast = false, onFreshFixDone = { isLocating = false })) {
+                    is LocateResult.Found -> cameraPositionState.animate(
+                        CameraUpdateFactory.newLatLngZoom(LatLng(result.point.latitude, result.point.longitude), 15f)
+                    )
+                    LocateResult.Unavailable -> UiMessages.show(uiText(R.string.gps_signal_unavailable))
+                    LocateResult.NoFix, LocateResult.Silent -> Unit
                 }
-                .addOnFailureListener {
-                    isLocating = false
-                    UiMessages.show(uiText(R.string.gps_signal_unavailable))
-                }
+            }
         }
     }
 
@@ -152,8 +137,7 @@ fun ListingLocationMapPicker(
     }
 
     Box(modifier = modifier.clipToBounds()) {
-        val hasLocationPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-                                    ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val hasLocationPermission = LocationProvider.require().hasPermission()
 
         GoogleMap(
             modifier = Modifier.fillMaxSize(),

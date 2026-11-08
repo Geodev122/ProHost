@@ -17,6 +17,7 @@ class ProHostApplication : Application() {
         com.example.ui.util.UiMessages.init(this)
         com.example.ui.util.AndroidPlatformActions.init(this)
         com.example.util.FileAccess.current = com.example.util.AndroidFileAccess(this)
+        com.example.util.LocationProvider.current = com.example.util.AndroidLocationProvider(this)
         com.example.legal.LegalPdfs.current = com.example.legal.AndroidLegalPdfs(this)
         com.example.data.auth.GoogleCredentialState.init(this)
         try {

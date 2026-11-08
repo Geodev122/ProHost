@@ -6,13 +6,10 @@ import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
 import com.example.ui.util.UiMessages
-import android.Manifest
 import android.content.Context
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
-import android.location.Location
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -47,15 +44,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import com.example.data.model.SchemaItem
 import com.example.data.model.SpaceListing
 import com.example.data.model.SpaceType
 import com.example.data.model.Subdivision
 import com.example.ui.theme.*
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
-import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.maps.android.compose.*
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
@@ -70,7 +63,10 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.graphicsLayer
+import com.example.util.LocateResult
+import com.example.util.LocationProvider
 import com.example.util.PhoneCountryDetector
+import com.example.util.locate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -282,43 +278,22 @@ fun LebanonMapCanvas(
 
     val listState = rememberLazyListState()
 
-    val fusedLocationClient = remember {
-        LocationServices.getFusedLocationProviderClient(context)
-    }
-
     fun requestHighAccuracyLocation() {
-        val finePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-        val coarsePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-        if (finePerm == PackageManager.PERMISSION_GRANTED || coarsePerm == PackageManager.PERMISSION_GRANTED) {
+        val provider = LocationProvider.require()
+        if (provider.hasPermission()) {
             isLocating = true
-            val cancelToken = CancellationTokenSource()
-            fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cancelToken.token)
-                .addOnSuccessListener { location: Location? ->
-                    isLocating = false
-                    if (location != null) {
-                        val latLng = LatLng(location.latitude, location.longitude)
+            coroutineScope.launch {
+                when (val result = locate(provider, fallbackToLast = true, onFreshFixDone = { isLocating = false })) {
+                    is LocateResult.Found -> {
+                        val latLng = LatLng(result.point.latitude, result.point.longitude)
                         userLocation = latLng
-                        coroutineScope.launch {
-                            cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(latLng, 14f))
-                        }
-                    } else {
-                        fusedLocationClient.lastLocation.addOnSuccessListener { lastLoc ->
-                            if (lastLoc != null) {
-                                val latLng = LatLng(lastLoc.latitude, lastLoc.longitude)
-                                userLocation = latLng
-                                coroutineScope.launch {
-                                    cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(latLng, 14f))
-                                }
-                            } else {
-                                UiMessages.show(uiText(R.string.cannot_determine_location))
-                            }
-                        }
+                        cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(latLng, 14f))
                     }
+                    LocateResult.NoFix -> UiMessages.show(uiText(R.string.cannot_determine_location))
+                    LocateResult.Unavailable -> UiMessages.show(uiText(R.string.gps_signal_unavailable))
+                    LocateResult.Silent -> Unit
                 }
-                .addOnFailureListener {
-                    isLocating = false
-                    UiMessages.show(uiText(R.string.gps_signal_unavailable))
-                }
+            }
         }
     }
 
@@ -433,8 +408,7 @@ fun LebanonMapCanvas(
     Box(
         modifier = modifier.fillMaxSize().clipToBounds()
     ) {
-        val hasLocationPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-                                    ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val hasLocationPermission = LocationProvider.require().hasPermission()
                                     
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
