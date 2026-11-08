@@ -7,7 +7,6 @@ import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesS
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.compose)
-  alias(libs.plugins.roborazzi)
   alias(libs.plugins.google.services)
   // Required while firebase-crashlytics is a dependency: it generates the build ID the SDK
   // checks at startup. Removing it crashed v1.0.33 on launch.
@@ -225,10 +224,13 @@ dependencies {
 // A unit test that blocks (e.g. awaiting a real network call) fails fast instead of
 // hanging the CI job until GitHub's 6-hour limit. Recording the design screenshots (every screen,
 // sheet and dialog in five variants) legitimately takes longer.
-val recordingScreenshots = gradle.startParameter.taskNames.any { it.contains("recordRoborazzi") }
+// The Roborazzi Gradle plugin is not applied (it needs AGP's old DSL, which the shared module's plugin does not use); the Roborazzi
+// library is all the harness needs: DesignScreenshotTest renders only when -Proborazzi.test.record=true and writes to build/design-shots.
+val recordingScreenshots = providers.gradleProperty("roborazzi.test.record").orElse("false").map { it == "true" }
 val designOnly = providers.gradleProperty("designOnly").orElse("")
 tasks.withType<Test>().configureEach {
-  timeout.set(Duration.ofMinutes(if (recordingScreenshots) 60 else 15))
+  timeout.set(Duration.ofMinutes(if (recordingScreenshots.get()) 60 else 15))
+  systemProperty("roborazzi.test.record", recordingScreenshots.get().toString())
   // DesignScreenshotTest: -PdesignOnly=screen1,screen2 renders only those.
   systemProperty("design.only", designOnly.get())
 }

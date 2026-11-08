@@ -74,7 +74,7 @@ jobs:
       - name: Render the 280 design screenshots
         run: |
           set -o pipefail
-          gradle :app:recordRoborazziDebug --tests "com.example.design.*" -PdesignOnly="" --no-daemon --stacktrace 2>&1 | tee gradle-shots.log
+          gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly="" --no-daemon --stacktrace 2>&1 | tee gradle-shots.log
 
       - name: Surface build errors
         if: failure()
@@ -121,7 +121,7 @@ jobs:
             echo "attempt ${attempt}: re-rendering ${screens} (${names})"
             set +e
             set -o pipefail
-            gradle :app:recordRoborazziDebug --tests "com.example.design.*" -PdesignOnly="${screens}" --no-daemon --stacktrace 2>&1 | tee "gradle-rerun-${attempt}.log"
+            gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly="${screens}" --no-daemon --stacktrace 2>&1 | tee "gradle-rerun-${attempt}.log"
             set +o pipefail
             python3 scripts/migration/diff_shots.py --golden golden --candidate app/build/design-shots --only "$names" \
               --masks docs/migration/golden-masks.json --report parity/diff-rerun.html --json parity/diff-rerun.json | tee parity/summary-rerun.txt

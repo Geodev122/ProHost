@@ -68,7 +68,7 @@ A **unit** = one screen/sheet/dialog/component group/logic file. Tracked in `doc
 Three tracks run in parallel after P0: **Track K** (KMP app, P2→P7, P10), **Track W** (admin web, P1), **Track A** (agent, P9). Backend-for-iOS (P8) starts once P5 starts.
 
 ### P0 – Freeze, knowledge, tooling (no product-code change) — ✔ DONE 8 Nov 2026 (spike report final: GO, Kotlin 2.3.20 / CMP 1.12.2 / AGP 9.4.1 / Gradle 9.7.1)
-- Tag `kmp-golden-v1047`; run `recordRoborazziDebug` once; store the 280 PNGs on `refs/design-shots/golden-v1047`; write `scripts/migration/diff_shots.py` (pixel diff + HTML contact sheet) and `compare_android_ios.py`.
+- Tag `kmp-golden-v1047`; run `testDebugUnitTest -Proborazzi.test.record=true` once; store the 280 PNGs on `refs/design-shots/golden-v1047`; write `scripts/migration/diff_shots.py` (pixel diff + HTML contact sheet) and `compare_android_ios.py`.
 - Write `docs/migration/MASTER_PLAN.md` (this plan, condensed), `PARITY.md` (130 non-admin units, classes A1/A2/B/C), `ADMIN_PARITY.md` (70 items), `AGENT_ADAPTER.md` (contract), `DECISIONS.md`.
 - **Project memory** (§10): CLAUDE.md section, updates to `docs/IOS_PLAN.md`, `OWNER_TODO.md`, `OPS_LOG.md`; new skills/agents/hooks (§11).
 - **Test vectors first**: add Kotlin tests for `bookingTerms`, `listingPrices`, `legacyPricing` (TS-only today); export shared JSON fixtures consumed by `node --test` and Kotlin.

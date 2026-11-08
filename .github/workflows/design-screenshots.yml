@@ -62,7 +62,7 @@ jobs:
       - name: Record screenshots
         run: |
           set -o pipefail
-          gradle :app:recordRoborazziDebug --tests "com.example.design.*" -PdesignOnly="${{ inputs.only }}" --no-daemon --stacktrace 2>&1 | tee gradle.log
+          gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly="${{ inputs.only }}" --no-daemon --stacktrace 2>&1 | tee gradle.log
 
       # Logs aren't readable from every client; surface compile errors as annotations instead.
       - name: Report compile errors
