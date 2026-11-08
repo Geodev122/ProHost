@@ -134,7 +134,7 @@ fun LoginAuthScreen(
     val credentialManager = remember(context, isPreview) { if (!isPreview) CredentialManager.create(context) else null }
 
     // Pre-fill values extracted from Google credential — applied to the registration form
-    // via LaunchedEffect(step) below, after regFullName/regProfilePicUri are initialized.
+    // via LaunchedEffect(step) below, after regFullName/regProfilePic are initialized.
     var prefillGoogleName by rememberSaveable { mutableStateOf("") }
     var prefillGooglePictureUri by rememberSaveable { mutableStateOf<Uri?>(null) }
 
@@ -231,7 +231,7 @@ fun LoginAuthScreen(
     }
 
     // --- Registration form state ---
-    var regProfilePicUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+    var regProfilePic by rememberSaveable(stateSaver = com.example.util.PickedFileSaver) { mutableStateOf<com.example.util.PickedFile?>(null) }
     var regFullName by rememberSaveable { mutableStateOf("") }
     var regSpecialty by rememberSaveable { mutableStateOf("") }
     var regPhoneNumber by rememberSaveable { mutableStateOf("") }
@@ -262,7 +262,7 @@ fun LoginAuthScreen(
     LaunchedEffect(step) {
         if (step == AuthStep.REG_PROFILE) {
             if (prefillGoogleName.isNotBlank() && regFullName.isBlank()) regFullName = prefillGoogleName
-            if (prefillGooglePictureUri != null && regProfilePicUri == null) regProfilePicUri = prefillGooglePictureUri
+            if (prefillGooglePictureUri != null && regProfilePic == null) regProfilePic = prefillGooglePictureUri?.toPickedFile()
         }
         if (step == AuthStep.REG_WHATSAPP) {
             if (!isPreview && !phoneHintOffered && regPhoneNumber.isBlank() && resumePhoneE164.isNullOrBlank()) {
@@ -427,7 +427,7 @@ fun LoginAuthScreen(
                 country = regCountry.name,
                 governorate = regGovernorateArea.trim(),
                 city = regCity.trim(),
-                profilePicture = regProfilePicUri?.toPickedFile(),
+                profilePicture = regProfilePic,
                 tosAccepted = tosAccepted
             ),
             onSuccess = onLoginSuccess
@@ -515,7 +515,7 @@ fun LoginAuthScreen(
         ) {
             if (firebaseEmail.isNotBlank()) AuthInfoLine(Icons.Default.VerifiedUser, uiText(R.string.signed_in_as_x, firebaseEmail))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                ProfilePicturePickerField(pictureUri = regProfilePicUri, onPictureSelected = { regProfilePicUri = it })
+                ProfilePicturePickerField(pictureFile = regProfilePic, onPictureSelected = { regProfilePic = it })
                 Column {
                     Text(stringResource(R.string.profile_picture_2), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                     Text(stringResource(R.string.optional), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

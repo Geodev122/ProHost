@@ -236,14 +236,10 @@ fun CreateListingDialog(
 
     val ownershipProofUrl = existingDraft?.ownershipProofUrl
     val ownershipRole = existingDraft?.ownershipDocRole
-    val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri == null) return@rememberLauncherForActivityResult
+    val pickCoverPhoto = rememberImagePicker { picked ->
         coroutineScope.launch {
             isUploadingPhoto = true
             photoUploadError = null
-            val picked = uri.toPickedFile()
             val fileSizeBytes = FileAccess.require().sizeBytes(picked)
             if (fileSizeBytes != null && fileSizeBytes > 15 * 1024 * 1024) {
                 photoUploadError = uiText(R.string.one_or_more_images_exceed_the_15_mb_limit)
@@ -593,7 +589,7 @@ fun CreateListingDialog(
                                   CoverPhotoTile(
                                       url = coverUrl,
                                       isUploading = isUploadingPhoto,
-                                      onPick = { photoPickerLauncher.launch("image/*") },
+                                      onPick = { pickCoverPhoto() },
                                       onRemove = { coverUrl = null; hasUserTyped = true }
                                   )
                                   if (photoUploadError != null) {

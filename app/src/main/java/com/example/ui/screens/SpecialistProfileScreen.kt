@@ -708,17 +708,17 @@ fun SpecialistProfileScreen(
                             icon = Icons.Default.Badge
                         )
 
-                        var pendingProfilePicUri by remember { mutableStateOf<android.net.Uri?>(null) }
+                        var pendingProfilePic by remember { mutableStateOf<com.example.util.PickedFile?>(null) }
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                             ProfilePicturePickerField(
-                                pictureUri = pendingProfilePicUri,
+                                pictureFile = pendingProfilePic,
                                 existingUrl = user.profilePictureUrl,
-                                onPictureSelected = { pendingProfilePicUri = it }
+                                onPictureSelected = { pendingProfilePic = it }
                             )
                             Column {
                                 Text(stringResource(R.string.profile_picture_2), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                                 Text(
-                                    if (user.profilePictureUrl != null || pendingProfilePicUri != null) stringResource(R.string.tap_to_replace) else stringResource(R.string.tap_to_add_a_photo),
+                                    if (user.profilePictureUrl != null || pendingProfilePic != null) stringResource(R.string.tap_to_replace) else stringResource(R.string.tap_to_add_a_photo),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -805,11 +805,11 @@ fun SpecialistProfileScreen(
                                 coroutineScope.launch {
                                     try {
                                         var profilePictureUrl: String? = null
-                                        val localPicUri = pendingProfilePicUri
+                                        val localPic = pendingProfilePic
                                         var pictureUploadFailed = false
-                                        if (localPicUri != null) {
+                                        if (localPic != null) {
                                             val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
-                                            profilePictureUrl = storageService.uploadProfilePicture(user.id, localPicUri.toPickedFile())
+                                            profilePictureUrl = storageService.uploadProfilePicture(user.id, localPic)
                                             pictureUploadFailed = profilePictureUrl == null
                                         }
                                         val success = viewModel.updateProfile(

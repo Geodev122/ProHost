@@ -55,11 +55,6 @@ data class DocumentPickerState(
     val isSelected: Boolean get() = file != null
 }
 
-private fun createCameraCaptureUri(context: Context): Uri {
-    val photoFile = File.createTempFile("kyc_doc_", ".jpg", context.cacheDir)
-    return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", photoFile)
-}
-
 @Composable
 fun DocumentPickerField(
     label: String,
@@ -69,31 +64,9 @@ fun DocumentPickerField(
     modifier: Modifier = Modifier,
     required: Boolean = true
 ) {
-    val context = LocalContext.current
     var showSourceMenu by remember { mutableStateOf(false) }
-    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
-
-    val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            var resolvedName: String? = null
-            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                if (cursor.moveToFirst() && nameIndex >= 0) resolvedName = cursor.getString(nameIndex)
-            }
-            onStateChanged(DocumentPickerState(uri.toPickedFile(), resolvedName ?: (uri.lastPathSegment ?: "document")))
-        }
-    }
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture()
-    ) { success: Boolean ->
-        val uri = pendingCameraUri
-        if (success && uri != null) {
-            onStateChanged(DocumentPickerState(uri.toPickedFile(), "document_photo.jpg"))
-        }
-        pendingCameraUri = null
-    }
+    val chooseFile = rememberDocumentPicker { file, name -> onStateChanged(DocumentPickerState(file, name)) }
+    val takePhoto = rememberCameraCapture { file -> onStateChanged(DocumentPickerState(file, "document_photo.jpg")) }
 
     Column(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -164,14 +137,7 @@ fun DocumentPickerField(
                 leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null) },
                 onClick = {
                     showSourceMenu = false
-                    val uri = createCameraCaptureUri(context)
-                    pendingCameraUri = uri
-                    try {
-                        cameraLauncher.launch(uri)
-                    } catch (e: android.content.ActivityNotFoundException) {
-                        pendingCameraUri = null
-                        UiMessages.show(uiText(R.string.no_camera_app_found_choose_a_file_instead), long = true)
-                    }
+                    takePhoto()
                 }
             )
             DropdownMenuItem(
@@ -179,7 +145,7 @@ fun DocumentPickerField(
                 leadingIcon = { Icon(Icons.Default.AttachFile, contentDescription = null) },
                 onClick = {
                     showSourceMenu = false
-                    filePickerLauncher.launch("application/pdf,image/*")
+                    chooseFile()
                 }
             )
         }
@@ -195,20 +161,18 @@ fun DocumentPickerField(
  * [existingUrl] is the account's already-uploaded remote picture (AppUser.
  * profilePictureUrl) — without it, this field had no way to show a returning user
  * their own current picture at all (only ever previewed a *freshly local-picked*
- * [pictureUri]), so opening the profile screen always looked like no picture was on
- * file even when one genuinely was. [pictureUri] always wins once the user picks a
+ * [pictureFile]), so opening the profile screen always looked like no picture was on
+ * file even when one genuinely was. [pictureFile] always wins once the user picks a
  * new one this session, same as before.
  */
 @Composable
 fun ProfilePicturePickerField(
-    pictureUri: Uri?,
-    onPictureSelected: (Uri) -> Unit,
+    pictureFile: com.example.util.PickedFile?,
+    onPictureSelected: (com.example.util.PickedFile) -> Unit,
     modifier: Modifier = Modifier,
     existingUrl: String? = null
 ) {
-    val pickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? -> if (uri != null) onPictureSelected(uri) }
+    val pickImage = rememberImagePicker(onPictureSelected)
 
     Box(
         modifier = modifier
@@ -216,10 +180,10 @@ fun ProfilePicturePickerField(
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
             .border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape)
-            .clickable { pickerLauncher.launch("image/*") },
+            .clickable { pickImage() },
         contentAlignment = Alignment.Center
     ) {
-        val previewModel: Any? = pictureUri ?: existingUrl
+        val previewModel: Any? = pictureFile?.handle ?: existingUrl
         if (previewModel != null) {
             AsyncImage(
                 model = previewModel,

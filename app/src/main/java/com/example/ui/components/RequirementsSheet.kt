@@ -90,12 +90,11 @@ fun RequirementsSheet(
         if (!needsPhoto && !needsPhone && !needsAddress) onReady()
     }
 
-    val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
-        if (uri == null) return@rememberLauncherForActivityResult
+    val pickPhoto = rememberVisualMediaImagePicker { file ->
         uploading = true
         photoError = null
         scope.launch {
-            photoError = viewModel.updateProfilePhoto(uri.toPickedFile())
+            photoError = viewModel.updateProfilePhoto(file)
             uploading = false
         }
     }
@@ -133,7 +132,7 @@ fun RequirementsSheet(
                 ProPrimaryButton(
                     text = if (uploading) stringResource(R.string.uploading) else stringResource(R.string.add_a_photo),
                     onClick = {
-                        pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        pickPhoto()
                     },
                     enabled = !uploading,
                     isLoading = uploading,

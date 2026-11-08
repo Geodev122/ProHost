@@ -136,17 +136,14 @@ fun SubdivisionForm(
         } else null
     )
 
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetMultipleContents()
-    ) { uris: List<Uri> ->
-        if (uris.isEmpty()) return@rememberLauncherForActivityResult
+    val pickDivisionImages = rememberImagesPicker { files ->
         coroutineScope.launch {
             isUploadingSubImage = true
             subImageUploadError = null
             var failureCount = 0
-            uris.forEach { uri ->
+            files.forEach { file ->
                 val imageId = com.example.util.Ids.uuid().take(8)
-                val bytes = com.example.util.FileAccess.require().readBytes(uri.toPickedFile())
+                val bytes = com.example.util.FileAccess.require().readBytes(file)
                 val url = if (bytes != null) {
                     storageService.uploadSubdivisionImageBytes(
                         spaceId = spaceId,
@@ -160,10 +157,10 @@ fun SubdivisionForm(
             }
             if (failureCount > 0) {
                 val detail = FirebaseStorageService.lastUploadError ?: uiText(R.string.check_your_connection_and_try_again)
-                subImageUploadError = if (failureCount == uris.size) {
-                    if (uris.size == 1) uiText(R.string.couldnt_upload_that_photo_x, detail) else uiText(R.string.couldnt_upload_those_photos_x, detail)
+                subImageUploadError = if (failureCount == files.size) {
+                    if (files.size == 1) uiText(R.string.couldnt_upload_that_photo_x, detail) else uiText(R.string.couldnt_upload_those_photos_x, detail)
                 } else {
-                    uiText(R.string.x_of_x_photos_failed_to_upload_x, failureCount, uris.size, detail)
+                    uiText(R.string.x_of_x_photos_failed_to_upload_x, failureCount, files.size, detail)
                 }
             }
             isUploadingSubImage = false
@@ -368,7 +365,7 @@ fun SubdivisionForm(
                     Surface(
                         modifier = Modifier
                             .size(72.dp)
-                            .clickable(enabled = !isUploadingSubImage) { imagePickerLauncher.launch("image/*") },
+                            .clickable(enabled = !isUploadingSubImage) { pickDivisionImages() },
                         shape = MaterialTheme.shapes.medium,
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
