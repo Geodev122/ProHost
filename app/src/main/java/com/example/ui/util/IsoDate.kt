@@ -25,6 +25,10 @@ object IsoDate {
         null
     }
 
+    val WEEKDAY_ABBREVIATIONS: Set<String> = setOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+
+    fun plusMonths(date: LocalDate, months: Int): LocalDate = date.plus(months, DateTimeUnit.MONTH)
+
     fun nextDay(date: LocalDate): LocalDate = date.plus(1, DateTimeUnit.DAY)
 
     fun addDays(iso: String, days: Int): String? = parse(iso)?.plus(days, DateTimeUnit.DAY)?.toString()

@@ -1148,7 +1148,7 @@ private fun BookingSlotSelectorDialog(
                         selectedStrategyType == RentalStrategyType.DAY_BASED -> dayBasedCalendarDates.sorted().firstOrNull() ?: ""
                         // Always a real ISO date (the term's start), never the preset's label:
                         // a label can't be parsed, so the booking would lock its slots forever.
-                        else -> java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(startDate.time)
+                        else -> startDate.toString()
                     }
                     val canSubmit = selectedStrategyType != null && selectedSlotsForPricing.isNotEmpty() &&
                         (selectedStrategyType != RentalStrategyType.SHIFT_BASED || selectedCalendarDates.isNotEmpty()) &&

@@ -1,7 +1,7 @@
 package com.example.ui.util
 
 import com.example.data.model.*
-import java.util.Calendar
+import kotlinx.datetime.LocalDate
 
 /**
  * One rentable unit of time produced by a rental pricing strategy. Shared source of
@@ -69,8 +69,8 @@ object SpaceCalculationUtils {
         schedule: SpaceOperatingSchedule,
         sourceId: String,
         sourceLabel: String,
-        referenceMonth: Int = java.util.Calendar.getInstance().get(java.util.Calendar.MONTH) + 1,
-        referenceYear: Int = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+        referenceMonth: Int = IsoDate.todayDate().monthNumber,
+        referenceYear: Int = IsoDate.todayDate().year
     ): List<RentableSlot> {
         val operatingDays = effectiveOperatingDays(schedule)
         if (operatingDays.isEmpty()) return emptyList()
@@ -570,7 +570,7 @@ object SpaceCalculationUtils {
         selectedSlots: List<RentableSlot>,
         recurrence: BookingRecurrence,
         durationMonths: Int,
-        startDate: Calendar = Calendar.getInstance()
+        startDate: LocalDate = IsoDate.todayDate()
     ): Double {
         val strategy = selectedSlots.firstOrNull()?.strategyType
         val effectiveMonths = durationMonths.coerceAtLeast(1)
@@ -590,12 +590,6 @@ object SpaceCalculationUtils {
         }
     }
 
-    private val dayAbbreviationToCalendarDay = mapOf(
-        "Sun" to Calendar.SUNDAY, "Mon" to Calendar.MONDAY, "Tue" to Calendar.TUESDAY,
-        "Wed" to Calendar.WEDNESDAY, "Thu" to Calendar.THURSDAY, "Fri" to Calendar.FRIDAY,
-        "Sat" to Calendar.SATURDAY
-    )
-
     /**
      * How many times a slot on [day] is actually delivered under [recurrence] over a
      * term of [durationMonths] months beginning on [startDate] (term window is
@@ -607,7 +601,7 @@ object SpaceCalculationUtils {
     fun countRecurrenceOccurrences(
         day: String,
         recurrence: BookingRecurrence,
-        startDate: Calendar,
+        startDate: LocalDate,
         durationMonths: Int
     ): Int {
         val months = durationMonths.coerceAtLeast(1)
@@ -615,13 +609,13 @@ object SpaceCalculationUtils {
             BookingRecurrence.ONE_TIME, BookingRecurrence.FLAT -> 1
             BookingRecurrence.SAME_DAY_EVERY_MONTH -> months
             BookingRecurrence.SAME_DAY_EVERY_WEEK -> {
-                val target = dayAbbreviationToCalendarDay[day.take(3)] ?: return 0
-                val end = (startDate.clone() as Calendar).apply { add(Calendar.MONTH, months) }
-                val cursor = startDate.clone() as Calendar
+                val target = day.take(3).takeIf { it in IsoDate.WEEKDAY_ABBREVIATIONS } ?: return 0
+                val end = IsoDate.plusMonths(startDate, months)
+                var cursor = startDate
                 var count = 0
-                while (cursor.before(end)) {
-                    if (cursor.get(Calendar.DAY_OF_WEEK) == target) count++
-                    cursor.add(Calendar.DAY_OF_MONTH, 1)
+                while (cursor < end) {
+                    if (IsoDate.dayAbbreviation(cursor) == target) count++
+                    cursor = IsoDate.nextDay(cursor)
                 }
                 count
             }
@@ -637,18 +631,11 @@ object SpaceCalculationUtils {
      * RentalBookingDialog's own calendar picker (item 7b) resolves a specific date
      * before submitting a Shift-Based request.
      */
-    fun nextDateForWeekday(day: String, from: Calendar = Calendar.getInstance()): String {
-        val target = dayAbbreviationToCalendarDay[day.take(3)] ?: Calendar.MONDAY
-        val cal = (from.clone() as Calendar).apply {
-            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-        }
-        while (cal.get(Calendar.DAY_OF_WEEK) != target) {
-            cal.add(Calendar.DAY_OF_MONTH, 1)
-        }
-        return "%04d-%02d-%02d".format(
-            cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH)
-        )
+    fun nextDateForWeekday(day: String, from: LocalDate = IsoDate.todayDate()): String {
+        val target = day.take(3).takeIf { it in IsoDate.WEEKDAY_ABBREVIATIONS } ?: "Mon"
+        var date = from
+        while (IsoDate.dayAbbreviation(date) != target) date = IsoDate.nextDay(date)
+        return date.toString()
     }
 
     /**
@@ -657,25 +644,21 @@ object SpaceCalculationUtils {
      * custom option parsed from "yyyy-MM-dd" and falling back to tomorrow if it
      * can't be parsed, so the occurrence count above always has a real anchor.
      */
-    fun resolveStartDate(option: String, customIsoDate: String): Calendar {
-        val cal = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-        }
-        when (option) {
-            "Next Monday" -> do { cal.add(Calendar.DAY_OF_MONTH, 1) } while (cal.get(Calendar.DAY_OF_WEEK) != Calendar.MONDAY)
-            "1st of Next Month" -> { cal.add(Calendar.MONTH, 1); cal.set(Calendar.DAY_OF_MONTH, 1) }
+    fun resolveStartDate(option: String, customIsoDate: String, today: LocalDate = IsoDate.todayDate()): LocalDate {
+        val tomorrow = IsoDate.nextDay(today)
+        return when (option) {
+            "Next Monday" -> {
+                var date = tomorrow
+                while (IsoDate.dayAbbreviation(date) != "Mon") date = IsoDate.nextDay(date)
+                date
+            }
+            "1st of Next Month" -> IsoDate.firstOfNextMonth(today)
             "Custom Date" -> {
                 val parts = customIsoDate.trim().split("-").mapNotNull { it.toIntOrNull() }
-                if (parts.size == 3) {
-                    cal.set(parts[0], parts[1] - 1, parts[2])
-                } else {
-                    cal.add(Calendar.DAY_OF_MONTH, 1)
-                }
+                if (parts.size == 3) IsoDate.dateOrNull(parts[0], parts[1], parts[2]) ?: tomorrow else tomorrow
             }
-            else -> cal.add(Calendar.DAY_OF_MONTH, 1)
+            else -> tomorrow
         }
-        return cal
     }
 
     // A buildWhatsAppInquiryUrl(...) helper used to live here, duplicating
