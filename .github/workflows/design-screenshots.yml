@@ -11,6 +11,10 @@ on:
         description: "Comma-separated screen name prefixes to render (empty = all)"
         required: false
         default: ""
+      store_as:
+        description: "Name of the stored ref (refs/design-shots/<name>); empty = the branch name. Used to freeze the golden baseline (docs/migration)."
+        required: false
+        default: ""
 
   push:
     branches: [main, "claude/**"]
@@ -85,6 +89,8 @@ jobs:
           git add -A
           git -c user.name="design-shots" -c user.email="design-shots@users.noreply.github.com" \
             commit -q -m "Design screenshots for ${GITHUB_SHA}"
-          ref="refs/design-shots/${GITHUB_REF_NAME//\//-}"
+          name="${{ inputs.store_as }}"
+          [ -n "$name" ] || name="${GITHUB_REF_NAME//\//-}"
+          ref="refs/design-shots/${name}"
           git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${ref}"
           echo "::notice title=design-shots::$(git rev-parse HEAD) ${ref} for ${GITHUB_SHA}"
