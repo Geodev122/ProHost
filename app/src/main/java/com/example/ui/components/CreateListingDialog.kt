@@ -52,7 +52,8 @@ import com.example.ui.theme.Spacing
 import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.util.ListingDivisions
 import com.example.ui.util.UiMessages
-import com.google.android.gms.maps.model.LatLng
+import com.example.util.GeoPoint
+import com.example.util.GeoPointSaver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -331,9 +332,8 @@ fun CreateListingDialog(
     // far better starting point on the map than the generic default center, and the
     // host still explicitly confirms/moves it before Publish unlocks (see the Step 1
     // gate below).
-    // GeoPoint implements Parcelable/Serializable, so it's Bundle-safe with the
-    // default saver directly — no custom Saver needed.
-    var pickedLatLng by rememberSaveable { mutableStateOf(existingDraft?.let { LatLng(it.lat, it.lng) }) }
+    // GeoPoint is a plain data class, so it is saved through GeoPointSaver (latitude, longitude).
+    var pickedLatLng by rememberSaveable(stateSaver = GeoPointSaver) { mutableStateOf(existingDraft?.let { GeoPoint(it.lat, it.lng) }) }
     // Numeric floor, range -5..30 per spec (basement levels down to a high-rise's
     // upper floors). Was a free-text "Floor & Accessibility" string; accessibility
     // notes belong in the description/rules now, not smuggled into a number field.
@@ -609,7 +609,7 @@ fun CreateListingDialog(
                                           .height(240.dp)
                                           .clip(MaterialTheme.shapes.medium),
                                       onLocationConfirmed = { address ->
-                                          pickedLatLng = LatLng(address.lat, address.lng)
+                                          pickedLatLng = GeoPoint(address.lat, address.lng)
                                           val streetLine = listOf(address.street, address.area).filter { it.isNotBlank() }.joinToString(", ")
                                           if (streetLine.isNotBlank()) streetAddress = streetLine
                                           // A resolved pin replaces the whole place (a city left from an earlier pin would be
@@ -890,7 +890,7 @@ fun CreateListingDialog(
                   // by both "Publish Listing" (status ACTIVE) and "Save as Draft" (status
                   // DRAFT, no requiredness gating) so the two paths can never disagree on
                   // how a listing gets assembled.
-                  fun buildListing(status: ListingStatus, fallbackLatLng: LatLng? = null): SpaceListing {
+                  fun buildListing(status: ListingStatus, fallbackLatLng: GeoPoint? = null): SpaceListing {
                       // An undivided listing (one division = the whole place) carries that division's pricing; `monthly` is only
                       // the rough monthly-equivalent kept for baseMonthlyRateUsd.
                       val shape = ListingDivisions.toListingShape(
@@ -1021,7 +1021,7 @@ fun CreateListingDialog(
                   // default) whenever a pin already exists or there's nothing to geocode —
                   // matches ListingLocationMapPicker.resolveAndEmit()'s exact pattern.
                   @Suppress("DEPRECATION")
-                  suspend fun resolveFallbackGeocode(): LatLng? {
+                  suspend fun resolveFallbackGeocode(): GeoPoint? {
                       if (pickedLatLng != null) return null
                       if (streetAddress.isBlank()) return null
                       return withContext(Dispatchers.IO) {
@@ -1029,7 +1029,7 @@ fun CreateListingDialog(
                               val fullAddress = listOf(streetAddress, city, country).filter { it.isNotBlank() }.joinToString(", ")
                               val geocoder = android.location.Geocoder(context, java.util.Locale.ENGLISH)
                               val addresses = geocoder.getFromLocationName(fullAddress, 1)
-                              addresses?.firstOrNull()?.let { LatLng(it.latitude, it.longitude) }
+                              addresses?.firstOrNull()?.let { GeoPoint(it.latitude, it.longitude) }
                           } catch (e: Exception) {
                               null
                           }

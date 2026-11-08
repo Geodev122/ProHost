@@ -64,6 +64,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.graphicsLayer
 import com.example.util.LocateResult
+import com.example.util.MapCamera
 import com.example.util.LocationProvider
 import com.example.util.PhoneCountryDetector
 import com.example.util.locate
@@ -249,8 +250,8 @@ fun LebanonMapCanvas(
     // loaded page may not cover the new area.
     onSearchArea: () -> Unit = {},
     // Restores the camera after a round-trip to a listing; [onCameraSaved] reports it on leave.
-    initialCamera: CameraPosition? = null,
-    onCameraSaved: (CameraPosition) -> Unit = {},
+    initialCamera: MapCamera? = null,
+    onCameraSaved: (MapCamera) -> Unit = {},
     // Receives the "Search this area" pill to place under the controls.
     topControls: (@Composable BoxScope.(searchAreaPill: @Composable () -> Unit) -> Unit)? = null,
     // Space the app's floating bottom navigation takes; the carousel and locate button sit above it.
@@ -269,11 +270,11 @@ fun LebanonMapCanvas(
     
     val defaultCenter = LatLng(33.8886, 35.5184) // Beirut
     val cameraPositionState = rememberCameraPositionState {
-        position = initialCamera ?: CameraPosition.fromLatLngZoom(defaultCenter, 10f)
+        position = initialCamera?.toCameraPosition() ?: CameraPosition.fromLatLngZoom(defaultCenter, 10f)
     }
     val latestOnCameraSaved by rememberUpdatedState(onCameraSaved)
     DisposableEffect(cameraPositionState) {
-        onDispose { latestOnCameraSaved(cameraPositionState.position) }
+        onDispose { latestOnCameraSaved(cameraPositionState.position.toMapCamera()) }
     }
 
     val listState = rememberLazyListState()

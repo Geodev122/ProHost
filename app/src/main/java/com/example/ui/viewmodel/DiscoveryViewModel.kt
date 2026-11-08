@@ -317,11 +317,11 @@ class DiscoveryViewModel(
         private set
     var listScrollOffset: Int = 0
         private set
-    var mapCamera: com.google.android.gms.maps.model.CameraPosition? = null
+    var mapCamera: com.example.util.MapCamera? = null
         private set
 
     fun saveListPosition(index: Int, offset: Int) { listScrollIndex = index; listScrollOffset = offset }
-    fun saveMapCamera(position: com.google.android.gms.maps.model.CameraPosition) { mapCamera = position }
+    fun saveMapCamera(position: com.example.util.MapCamera) { mapCamera = position }
 
     /** Explore paging: loads the next page of active listings when one may exist. */
     fun loadMore() = repository.loadMoreSpaces()
