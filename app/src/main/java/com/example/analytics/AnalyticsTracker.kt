@@ -496,7 +496,7 @@ object AnalyticsTracker {
     fun transactionId(orderId: String): String =
         java.security.MessageDigest.getInstance("SHA-256")
             .digest(orderId.toByteArray(Charsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
+            .joinToString("") { com.example.util.Hex.of(it) }
             .take(24)
 
     fun redeemCodeOpen() = log(Event.REDEEM_CODE_OPEN)

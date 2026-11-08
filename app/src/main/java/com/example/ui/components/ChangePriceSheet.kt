@@ -39,8 +39,7 @@ import java.util.Locale
 private enum class PriceStep { LISTING, DIVISION, SLOTS, EDIT, IMPACT }
 
 /** "$1,250" / "$12.50" — no trailing ".00" on whole amounts. */
-fun formatUsd(v: Double): String =
-    if (v % 1.0 == 0.0) String.format(Locale.US, "$%,.0f", v) else String.format(Locale.US, "$%,.2f", v)
+fun formatUsd(v: Double): String = com.example.util.NumberFormats.usdAuto(v)
 
 /**
  * Pro Host "Change price" (Manage page, request detail, Renting Progress). Steps: listing → division →

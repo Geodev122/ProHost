@@ -70,8 +70,7 @@ object AttendeePricing {
         return "${booking.attendeeCount} attendee${if (booking.attendeeCount == 1) "" else "s"}$perPerson$tier"
     }
 
-    fun formatUsd(amount: Double): String =
-        if (amount % 1.0 == 0.0) amount.toLong().toString() else String.format(java.util.Locale.US, "%.2f", amount)
+    fun formatUsd(amount: Double): String = com.example.util.NumberFormats.plainAmount(amount)
 
     fun lowestPricePerPerson(sub: Subdivision, fallback: List<AttendeePackage> = emptyList()): Double? =
         tiersFor(sub, fallback).minOfOrNull { it.pricePerAttendeeUsd }

@@ -375,7 +375,7 @@ fun OwnerAnalyticsScreen(
                                     color = mixColors[index % mixColors.size]
                                 )
                                 Text(
-                                    stringResource(R.string.x_accepted_x_value, row.accepted, "$" + String.format(java.util.Locale.US, "%,.0f", row.acceptedValueUsd)),
+                                    stringResource(R.string.x_accepted_x_value, row.accepted, com.example.util.NumberFormats.usdWhole(row.acceptedValueUsd)),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -385,7 +385,7 @@ fun OwnerAnalyticsScreen(
                             val people = acceptedAttendeeBookings.sumOf { it.attendeeCount }
                             Text(
                                 stringResource(R.string.per_attendee_x_accepted_x_attendees, acceptedAttendeeBookings.size, people) + " " +
-                                    stringResource(R.string.average_group_x, String.format(java.util.Locale.US, "%.1f", people.toDouble() / acceptedAttendeeBookings.size)),
+                                    stringResource(R.string.average_group_x, com.example.util.NumberFormats.oneDecimal(people.toDouble() / acceptedAttendeeBookings.size)),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold
                             )

@@ -332,7 +332,7 @@ private fun DivisionPerformanceCard(
                             )
                             Spacer(modifier = Modifier.width(Spacing.xs))
                             Text(
-                                stringResource(R.string.vs_x_last_month, "$" + String.format(java.util.Locale.US, "%,.0f", lastMonthYield)),
+                                stringResource(R.string.vs_x_last_month, com.example.util.NumberFormats.usdWhole(lastMonthYield)),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
