@@ -3,6 +3,8 @@
 plugins {
   alias(libs.plugins.kotlin.multiplatform)
   alias(libs.plugins.android.kotlin.multiplatform.library)
+  alias(libs.plugins.kotlin.compose)
+  alias(libs.plugins.jetbrains.compose)
 }
 
 kotlin {
@@ -18,6 +20,12 @@ kotlin {
   sourceSets {
     commonMain.dependencies {
       api(libs.kotlinx.coroutines.core)
+      // Compose Multiplatform: exposed with api because the app's screens (and later the shared ones) use these types directly.
+      api(compose.runtime)
+      api(compose.foundation)
+      api(compose.material3)
+      api(compose.ui)
+      api("org.jetbrains.compose.material:material-icons-extended:${libs.versions.materialIconsExtended.get()}")
     }
   }
 }
