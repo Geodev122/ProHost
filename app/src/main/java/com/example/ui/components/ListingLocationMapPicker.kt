@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiText
 import com.example.ui.theme.Spacing
 
 import com.example.R
@@ -137,7 +138,7 @@ fun ListingLocationMapPicker(
                 }
                 .addOnFailureListener {
                     isLocating = false
-                    UiMessages.show(context.getString(R.string.gps_signal_unavailable))
+                    UiMessages.show(uiText(R.string.gps_signal_unavailable))
                 }
         }
     }

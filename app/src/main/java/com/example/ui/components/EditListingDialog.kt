@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -49,7 +50,7 @@ fun EditListingDialog(space: SpaceListing, viewModel: ProHostViewModel, onDone: 
             coroutineScope.launch {
                 val success = viewModel.updateOwnerListing(updated)
                 onDone()
-                UiMessages.show(if (success) context.getString(R.string.listing_updated_successfully) else context.getString(R.string.failed_to_update_listing_please_try_again)
+                UiMessages.show(if (success) uiText(R.string.listing_updated_successfully) else uiText(R.string.failed_to_update_listing_please_try_again)
                 )
             }
         }

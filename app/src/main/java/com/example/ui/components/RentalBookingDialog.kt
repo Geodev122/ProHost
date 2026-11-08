@@ -1172,7 +1172,7 @@ private fun BookingSlotSelectorDialog(
                         onClick = {
                             val formula = buildFormulaForSubmission()
                             if (formula == null) {
-                                UiMessages.show(context.getString(R.string.please_select_an_available_slot_first))
+                                UiMessages.show(uiText(R.string.please_select_an_available_slot_first))
                                 return@ProOutlinedButton
                             }
                             viewModel.submitBookingRequest(
@@ -1216,7 +1216,7 @@ private fun BookingSlotSelectorDialog(
                         text = secondaryButtonText,
                         onClick = {
                             val formula = buildFormulaForSubmission() ?: run {
-                                UiMessages.show(context.getString(R.string.please_select_a_time_slot_before_sending_v))
+                                UiMessages.show(uiText(R.string.please_select_a_time_slot_before_sending_v))
                                 return@CustomButton
                             }
                             viewModel.submitBookingRequest(

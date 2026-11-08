@@ -824,16 +824,16 @@ fun SpecialistProfileScreen(
                                         // saved; only the new picture didn't, and that needs its own
                                         // message rather than a blanket "Updated Successfully!".
                                         when {
-                                            !success -> UiMessages.show(context.getString(R.string.failed_to_update_profile_please_try_again))
+                                            !success -> UiMessages.show(uiText(R.string.failed_to_update_profile_please_try_again))
                                             pictureUploadFailed -> {
                                                 profilePicUploadError = uiText(R.string.profile_saved_but_the_new_photo_couldn_t_b)
-                                                UiMessages.show(context.getString(R.string.profile_saved_photo_upload_failed_please_r), long = true)
+                                                UiMessages.show(uiText(R.string.profile_saved_photo_upload_failed_please_r), long = true)
                                             }
-                                            else -> UiMessages.show(context.getString(R.string.profile_updated_successfully))
+                                            else -> UiMessages.show(uiText(R.string.profile_updated_successfully))
                                         }
                                     } catch (e: Exception) {
                                         isSavingProfile = false
-                                        UiMessages.show(context.getString(R.string.an_error_occurred_please_try_again))
+                                        UiMessages.show(uiText(R.string.an_error_occurred_please_try_again))
                                     }
                                 }
                             },
@@ -893,9 +893,9 @@ fun SpecialistProfileScreen(
                                 onClick = {
                                     if (inAppUpdateManager != null) {
                                         inAppUpdateManager.checkForAppUpdate(preferImmediate = false)
-                                        UiMessages.show(context.getString(R.string.checking_google_play_for_updates))
+                                        UiMessages.show(uiText(R.string.checking_google_play_for_updates))
                                     } else {
-                                        UiMessages.show(context.getString(R.string.prohost_vx_is_up_to_date, com.example.BuildConfig.VERSION_NAME))
+                                        UiMessages.show(uiText(R.string.prohost_vx_is_up_to_date, com.example.BuildConfig.VERSION_NAME))
                                     }
                                 },
                                 compact = true
@@ -1060,7 +1060,7 @@ fun SpecialistProfileScreen(
                                 result.exceptionOrNull()?.let { error ->
                                     UiMessages.show(com.example.util.friendlyErrorMessage(
                                             error,
-                                            context.getString(R.string.couldn_t_delete_your_account_please_try_ag)
+                                            uiText(R.string.couldn_t_delete_your_account_please_try_ag)
                                         ),
                                         long = true)
                                 }

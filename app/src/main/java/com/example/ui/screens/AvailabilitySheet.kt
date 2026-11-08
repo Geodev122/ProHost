@@ -566,7 +566,7 @@ internal fun AvailabilitySheet(
                                     )
                                     context.startActivity(intent)
                                 } catch (e: Exception) {
-                                    UiMessages.show(context.getString(R.string.whatsapp_not_installed))
+                                    UiMessages.show(uiText(R.string.whatsapp_not_installed))
                                 }
                             },
                             modifier = Modifier.weight(1f),

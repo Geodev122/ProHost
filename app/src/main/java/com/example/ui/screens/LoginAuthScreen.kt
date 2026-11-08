@@ -146,7 +146,7 @@ fun LoginAuthScreen(
     fun launchGoogleSignIn() {
         coroutineScope.launch {
             val cm = credentialManager ?: return@launch
-            val webClientId = context.getString(R.string.default_web_client_id)
+            val webClientId = uiText(R.string.default_web_client_id)
             // One nonce per attempt, in every request below; the ID token must carry it back (see GoogleNonce).
             val nonce = com.example.data.auth.GoogleNonce.newNonce()
 
@@ -158,7 +158,7 @@ fun LoginAuthScreen(
                     val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
                     if (!com.example.data.auth.GoogleNonce.idTokenMatchesNonce(googleIdTokenCredential.idToken, nonce)) {
                         com.example.analytics.AnalyticsTracker.authError("google", "nonce_mismatch")
-                        UiMessages.show(context.getString(R.string.google_sign_in_isn_t_available_right_now_p),
+                        UiMessages.show(uiText(R.string.google_sign_in_isn_t_available_right_now_p),
                             long = true)
                         return
                     }
@@ -208,13 +208,13 @@ fun LoginAuthScreen(
                 } catch (e2: GetCredentialException) {
                     android.util.Log.w("LoginAuthScreen", "Google sign-in unavailable: ${e2.type}")
                     com.example.analytics.AnalyticsTracker.authError("google", "unavailable")
-                    UiMessages.show(context.getString(R.string.google_sign_in_isn_t_available_on_this_dev),
+                    UiMessages.show(uiText(R.string.google_sign_in_isn_t_available_on_this_dev),
                         long = true)
                 }
             } catch (e: GetCredentialException) {
                 android.util.Log.w("LoginAuthScreen", "Google sign-in error: ${e.type}")
                 com.example.analytics.AnalyticsTracker.authError("google", "credential_error")
-                UiMessages.show(context.getString(R.string.google_sign_in_isn_t_available_right_now_p),
+                UiMessages.show(uiText(R.string.google_sign_in_isn_t_available_right_now_p),
                     long = true)
             }
         }
@@ -314,7 +314,7 @@ fun LoginAuthScreen(
             .addCredentialOption(
                 GetGoogleIdOption.Builder()
                     .setFilterByAuthorizedAccounts(true)
-                    .setServerClientId(context.getString(R.string.default_web_client_id))
+                    .setServerClientId(uiText(R.string.default_web_client_id))
                     .setNonce(returningNonce)
                     .build()
             )

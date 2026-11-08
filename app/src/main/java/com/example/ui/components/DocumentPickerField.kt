@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiText
 import com.example.util.toPickedFile
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -169,7 +170,7 @@ fun DocumentPickerField(
                         cameraLauncher.launch(uri)
                     } catch (e: android.content.ActivityNotFoundException) {
                         pendingCameraUri = null
-                        UiMessages.show(context.getString(R.string.no_camera_app_found_choose_a_file_instead), long = true)
+                        UiMessages.show(uiText(R.string.no_camera_app_found_choose_a_file_instead), long = true)
                     }
                 }
             )
