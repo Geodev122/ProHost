@@ -8,6 +8,7 @@ import androidx.activity.ComponentActivity
 import com.example.R
 import com.example.hermeticRepository
 import com.example.ui.preview.mockBooking1
+import com.example.ui.preview.mockSpace1
 import com.example.ui.util.AndroidPlatformActions
 import com.example.ui.util.UiText
 import org.junit.Assert.assertEquals
@@ -52,6 +53,7 @@ class PlatformIntentsTest {
     private fun actShareListing(title: String, content: String) = vm.shareListing(title, content)
     private fun actCopyLink(url: String) = vm.copyListingLink(url)
     private fun actWhatsApp(request: com.example.data.model.BookingRequest) = vm.launchWhatsAppToPractitioner(request)
+    private fun actWhatsAppInquiry(space: com.example.data.model.SpaceListing) = vm.launchWhatsAppInquiry(activity, space)
 
     private fun nextIntent(): Intent = shadowOf(activity).nextStartedActivity ?: error("no activity was started")
 
@@ -101,6 +103,27 @@ class PlatformIntentsTest {
     @Test
     fun whatsAppWithoutANumberStartsNothing() {
         actWhatsApp(mockBooking1.copy(practitionerPhone = ""))
+        assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
+    @Test
+    fun whatsAppInquiryToTheHostViewsAWaMeLinkWithTheListingInTheMessage() {
+        val space = mockSpace1.copy(ownerPhone = "+961 70 123 456")
+        actWhatsAppInquiry(space)
+        val intent = nextIntent()
+        assertEquals(Intent.ACTION_VIEW, intent.action)
+        val uri = intent.data!!
+        assertEquals("https", uri.scheme)
+        assertEquals("wa.me", uri.host)
+        assertEquals("/96170123456", uri.path)
+        val text = uri.getQueryParameter("text").orEmpty()
+        assertTrue(text, text.contains("*Space:* ${space.title}"))
+        assertTrue(text, text.contains(space.publicCode))
+    }
+
+    @Test
+    fun whatsAppInquiryWithoutAHostNumberStartsNothing() {
+        actWhatsAppInquiry(mockSpace1.copy(ownerPhone = ""))
         assertNull(shadowOf(activity).nextStartedActivity)
     }
 }
