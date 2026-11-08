@@ -4,21 +4,14 @@ name: Spike KMP
 # Versions can be overridden to find the working Kotlin / Compose Multiplatform / AGP combination.
 
 on:
-  workflow_dispatch:
-    inputs:
-      kotlin:
-        description: "Kotlin version"
-        default: "2.2.10"
-      cmp:
-        description: "Compose Multiplatform version"
-        default: "1.12.2"
-      agp:
-        description: "Android Gradle Plugin version"
-        default: "9.4.1"
-      ios:
-        description: "Also run the macOS iOS job (costs macOS minutes)"
-        type: boolean
-        default: true
+  workflow_dispatch: {}
+  # A workflow that is not on the default branch cannot be dispatched, so the spike runs on pushes that touch spike/**.
+  # Versions come from spike/kmp/versions.env (edit it and push to try another Kotlin / CMP / AGP combination).
+  push:
+    branches: ["claude/**"]
+    paths:
+      - "spike/**"
+      - ".github/workflows/spike-kmp.yml"
 
 permissions:
   contents: read
@@ -27,11 +20,26 @@ concurrency:
   group: spike-kmp-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  GRADLE_ARGS: -p spike/kmp -Pspike.kotlin=${{ inputs.kotlin }} -Pspike.cmp=${{ inputs.cmp }} -Pspike.agp=${{ inputs.agp }} --no-daemon --stacktrace
-
 jobs:
+  prep:
+    name: Read versions
+    runs-on: ubuntu-latest
+    outputs:
+      args: ${{ steps.v.outputs.args }}
+      ios: ${{ steps.v.outputs.ios }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        run: |
+          . spike/kmp/versions.env
+          echo "args=-p spike/kmp -Pspike.kotlin=$KOTLIN -Pspike.cmp=$CMP -Pspike.agp=$AGP --no-daemon --stacktrace" >> "$GITHUB_OUTPUT"
+          echo "ios=$IOS" >> "$GITHUB_OUTPUT"
+          echo "::notice title=versions::Kotlin $KOTLIN, CMP $CMP, AGP $AGP, iOS job $IOS"
+
   linux:
+    needs: prep
+    env:
+      GRADLE_ARGS: ${{ needs.prep.outputs.args }}
     name: Android + desktop tests + web (Linux)
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -79,7 +87,10 @@ jobs:
 
   ios:
     name: iOS framework + simulator tests (macOS)
-    if: ${{ inputs.ios }}
+    needs: prep
+    if: ${{ needs.prep.outputs.ios == 'true' }}
+    env:
+      GRADLE_ARGS: ${{ needs.prep.outputs.args }}
     runs-on: macos-latest
     timeout-minutes: 75
     steps:
