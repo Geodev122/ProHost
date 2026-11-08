@@ -1,7 +1,6 @@
 package com.example.data.billing
 
 import com.android.billingclient.api.ProductDetails
-import kotlinx.datetime.plus
 
 /**
  * Human-readable price terms for the offer PlayBillingManager.launchSubscriptionPurchase
@@ -129,20 +128,18 @@ object PlayOfferText {
 
     /** Pure: when the regular price starts if the intro phases begin at [startMillis]. */
     fun regularPriceStartsAt(startMillis: Long, introPeriods: List<Pair<String, Int>>): Long {
-        // Calendar arithmetic in the device's time zone (wall-clock time of day kept across DST), one period after the other.
-        val zone = kotlinx.datetime.TimeZone.currentSystemDefault()
-        var at = kotlinx.datetime.Instant.fromEpochMilliseconds(startMillis)
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = startMillis }
         for ((iso, cycles) in introPeriods) {
             val (n, unit) = parse(iso) ?: continue
-            val step = when (unit) {
-                "day" -> kotlinx.datetime.DateTimeUnit.DAY
-                "week" -> kotlinx.datetime.DateTimeUnit.WEEK
-                "month" -> kotlinx.datetime.DateTimeUnit.MONTH
-                else -> kotlinx.datetime.DateTimeUnit.YEAR
+            val field = when (unit) {
+                "day" -> java.util.Calendar.DAY_OF_YEAR
+                "week" -> java.util.Calendar.WEEK_OF_YEAR
+                "month" -> java.util.Calendar.MONTH
+                else -> java.util.Calendar.YEAR
             }
-            at = at.plus(n * cycles, step, zone)
+            cal.add(field, n * cycles)
         }
-        return at.toEpochMilliseconds()
+        return cal.timeInMillis
     }
 
     /** "first month", "first 3 months", "first year", "first 7 days". */
