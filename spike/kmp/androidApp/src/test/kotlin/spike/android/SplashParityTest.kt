@@ -34,6 +34,25 @@ class SplashParityTest {
 
     @Test fun splashDark() = capture("splash_dark", dark = true)
 
+    /**
+     * The spinner is an endless animation, so one frame can never be compared to the golden's frame unless both were taken at the same
+     * animation time. This renders the light splash at 30 ms steps on a manual clock (0..2.7 s); the workflow then looks for any frame whose
+     * spinner box equals the golden's. A match proves the rendering (geometry, stroke, colours, track) is identical and only the phase differed.
+     */
+    @Test fun splashLightPhaseScan() {
+        System.setProperty("roborazzi.test.record", "true")
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(3f, 1f)) { SpikeTheme(false) { SplashScreen(onSplashCompleted = {}) } }
+        }
+        File("build/spike-shots/phase").mkdirs()
+        Thread.sleep(400) // async image decode
+        for (i in 0 until 90) {
+            compose.mainClock.advanceTimeBy(30)
+            compose.onRoot().captureRoboImage(filePath = "build/spike-shots/phase/splash_light_p%03d.png".format(i))
+        }
+    }
+
     private fun capture(name: String, dark: Boolean) {
         System.setProperty("roborazzi.test.record", "true")
         compose.setContent {

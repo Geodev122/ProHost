@@ -89,6 +89,26 @@ jobs:
           while IFS= read -r line; do echo "::notice title=splash-parity::${line}"; done < parity/summary.txt
           grep -h "FONT-SCALE-SEEN" gradle-parity.log | head -3 | while IFS= read -r line; do echo "::notice title=font-cap::${line}"; done || true
 
+      - name: Splash spinner phase scan (does any animation frame equal the golden?)
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob, numpy as np
+          from PIL import Image
+          g = np.asarray(Image.open("golden/splash_light.png").convert("RGBA"), dtype=np.int16)
+          x, y, w, h = 523, 2260, 124, 125  # the golden/candidate difference box (543,2280,84,85) plus 20 px
+          box = lambda a: a[y:y + h, x:x + w]
+          best = None
+          for f in sorted(glob.glob("spike/kmp/androidApp/build/spike-shots/phase/*.png")):
+              c = np.asarray(Image.open(f).convert("RGBA"), dtype=np.int16)
+              n = int((np.abs(box(g) - box(c)).max(axis=2) > 0).sum())
+              if best is None or n < best[0]: best = (n, f)
+          print(f"::notice title=splash-phase::SPLASH-PHASE frames={len(glob.glob('spike/kmp/androidApp/build/spike-shots/phase/*.png'))} best_diff_px={best[0] if best else 'n/a'} frame={best[1].split('/')[-1] if best else 'n/a'}")
+          PY
+        env:
+          PYTHONUNBUFFERED: "1"
+        shell: bash
+
       # Before | After | Difference sheet of the splash (golden = Compose 1.7 app, candidate = Compose 1.12 shared module), stored
       # under refs/design-shots/spike-splash so it can be opened through the GitHub API.
       - name: Splash before/after sheet
