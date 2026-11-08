@@ -8,6 +8,7 @@ import androidx.activity.ComponentActivity
 import com.example.R
 import com.example.hermeticRepository
 import com.example.ui.preview.mockBooking1
+import com.example.data.model.publicCode
 import com.example.ui.preview.mockSpace1
 import com.example.ui.util.AndroidPlatformActions
 import com.example.ui.util.UiText
