@@ -33,6 +33,7 @@ class AndroidPlatformActionsTest {
 
     @Before
     fun setUp() {
+        com.example.util.FileProviderTestSupport.reset()
         activity = Robolectric.buildActivity(ComponentActivity::class.java).setup().get()
         AndroidPlatformActions.init(ApplicationProvider.getApplicationContext())
         AndroidPlatformActions.attach(activity)

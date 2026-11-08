@@ -30,6 +30,9 @@ import org.robolectric.annotation.Config
 class MediaPickersTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
+    @org.junit.Before
+    fun resetFileProvider() = com.example.util.FileProviderTestSupport.reset()
+
     private class FakeRegistry(private val answer: (Any?) -> Any?) : ActivityResultRegistry() {
         val launched = mutableListOf<Any?>()
 
