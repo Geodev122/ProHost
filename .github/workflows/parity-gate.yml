@@ -112,16 +112,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          python3 - <<'PY' > parity/rerun-names.txt
-          import json
-          print(",".join(r["name"] for r in json.load(open("parity/diff.json"))["results"] if r["status"] != "same"))
-          PY
+          failing() { python3 -c "import json,sys; print(','.join(r['name'] for r in json.load(open(sys.argv[1]))['results'] if r['status'] != 'same'))" "$1"; }
+          screens_of() { python3 -c "import sys; print(','.join(sorted({n[:-4].rsplit('_',1)[0] for n in sys.argv[1].split(',') if n})))" "$1"; }
+          names=$(failing parity/diff.json)
           status=1
           for attempt in 1 2 3; do
-            names=$(cat parity/rerun-names.txt)
-            screens=$(python3 -c "import sys; print(','.join(sorted({n[:-4].rsplit('_',1)[0] for n in sys.argv[1].split(',') if n})))" "$names")
+            screens=$(screens_of "$names")
             echo "attempt ${attempt}: re-rendering ${screens} (${names})"
-            set +e; set -o pipefail
+            set +e
+            set -o pipefail
             gradle :app:recordRoborazziDebug --tests "com.example.design.*" -PdesignOnly="${screens}" --no-daemon --stacktrace 2>&1 | tee "gradle-rerun-${attempt}.log"
             set +o pipefail
             python3 scripts/migration/diff_shots.py --golden golden --candidate app/build/design-shots --only "$names" \
@@ -130,10 +129,7 @@ jobs:
             set -e
             tail -1 parity/summary-rerun.txt | while IFS= read -r line; do echo "::notice title=parity-reproduce-${attempt}::${line}"; done
             [ "$status" = 0 ] && break
-            python3 - <<'PY' > parity/rerun-names.txt
-            import json
-            print(",".join(r["name"] for r in json.load(open("parity/diff-rerun.json"))["results"] if r["status"] != "same"))
-            PY
+            names=$(failing parity/diff-rerun.json)
           done
           if [ "$status" = 0 ]; then
             echo "::notice title=parity::first-pass differences did not reproduce (timing race, matched on re-render ${attempt}); final result: identical"
