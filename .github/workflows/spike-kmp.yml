@@ -53,6 +53,9 @@ jobs:
         with:
           gradle-version: "9.7.1"
 
+      - name: System libraries for the Skia runtime used by JVM host tests
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libgl1 libfontconfig1 libxrender1 libxtst6 libxi6
+
       - name: Resources, plurals and format tests on the JVM host
         run: |
           set -o pipefail
@@ -77,6 +80,15 @@ jobs:
             [ -f $f ] || continue
             grep -iE "^e: |error:|FAILED|AssertionError|Unresolved|incompatible|requires" $f | head -25 | while IFS= read -r line; do echo "::error title=$f::${line}"; done
           done
+          # first lines of each failing test's exception (Gradle prints them indented under the FAILED line)
+          [ -f gradle-desktop.log ] && grep -A4 " FAILED$" gradle-desktop.log | head -40 | while IFS= read -r line; do echo "::warning title=desktop-test-detail::${line}"; done || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: spike-test-reports
+          path: spike/kmp/shared/build/reports/tests
+          if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v4
         if: always()

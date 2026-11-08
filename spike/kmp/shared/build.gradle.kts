@@ -38,6 +38,10 @@ kotlin {
             implementation(kotlin("test"))
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
         }
+        // The JVM host target needs the Skia native runtime on its test classpath (round 3: skiko LibraryLoadException).
+        val desktopTest by getting {
+            dependencies { implementation(compose.desktop.currentOs) }
+        }
     }
 }
 
