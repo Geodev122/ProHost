@@ -20,7 +20,6 @@ import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.UUID
 
 class ProHostRepository(
     internal val firestoreService: FirestoreService = FirestoreService.getInstance(),
@@ -315,7 +314,7 @@ class ProHostRepository(
         actorEmail: String = _currentUser.value?.email ?: "system@prohost.app"
     ) {
         val log = AuditSecurityLog(
-            id = "LOG-" + UUID.randomUUID().toString().take(6).uppercase(),
+            id = "LOG-" + com.example.util.Ids.uuid().take(6).uppercase(),
             timestamp = System.currentTimeMillis(),
             actionType = actionType,
             details = details,

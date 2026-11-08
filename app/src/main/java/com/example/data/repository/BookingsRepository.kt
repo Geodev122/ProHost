@@ -20,7 +20,6 @@ import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.UUID
 
 /**
  * Part of [ProHostRepository], split out by area. Every function runs against the shared
@@ -86,7 +85,7 @@ internal class BookingsRepository(private val repo: ProHostRepository) {
             // into one Firestore document. A UUID-derived id makes a collision
             // practically impossible (16^10 space) without losing the readable
             // "REQ-XXXXXXXXXX" shape the toasts/audit log already display.
-            val requestId = "REQ-" + UUID.randomUUID().toString().replace("-", "").take(10).uppercase()
+            val requestId = "REQ-" + com.example.util.Ids.uuid().replace("-", "").take(10).uppercase()
             val totalUsd = if (calculatedTotalUsd > 0) calculatedTotalUsd else (formula.rateUsd * durationMonths)
 
             val daysChosen = if (selectedDays.isNotEmpty()) selectedDays else formula.daysOfWeek

@@ -56,7 +56,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.UUID
 
 // Savers for rememberSaveable — process death mid-wizard would otherwise lose all
 // in-progress state. The debounced 3s Draft auto-save already covers a kill that
@@ -209,7 +208,7 @@ fun CreateListingDialog(
     // Editing" -> "Publish" all write to the same document instead of forking a
     // second listing.
     // Internal key only — people see the server-assigned L- display code.
-    val listingId = remember { existingDraft?.id ?: ("SPC-" + UUID.randomUUID().toString().replace("-", "").take(10).uppercase()) }
+    val listingId = remember { existingDraft?.id ?: ("SPC-" + com.example.util.Ids.uuid().replace("-", "").take(10).uppercase()) }
     var hasUserTyped by rememberSaveable { mutableStateOf(existingDraft != null) }
     // Edit mode: a published listing saved straight back (Save in the header on every step, all steps reachable).
     val isEditing = onListingUpdated != null
@@ -259,7 +258,7 @@ fun CreateListingDialog(
             val url = if (bytes != null) {
                 storageService.uploadListingImageBytes(
                     spaceId = listingId,
-                    imageId = UUID.randomUUID().toString().take(8),
+                    imageId = com.example.util.Ids.uuid().take(8),
                     rawBytes = bytes,
                     fileExtension = "jpg"
                 )

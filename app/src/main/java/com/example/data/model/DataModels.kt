@@ -1,6 +1,5 @@
 package com.example.data.model
 
-import java.util.UUID
 
 enum class SpaceType(val displayName: String, val iconName: String) {
     PRIVATE_OFFICE("Private Office", "Apartment"),
@@ -391,7 +390,7 @@ data class RentalPricingConfig(
 }
 
 data class Subdivision(
-    val id: String = "SUB-" + java.util.UUID.randomUUID().toString().take(6).uppercase(),
+    val id: String = "SUB-" + com.example.util.Ids.uuid().take(6).uppercase(),
     val name: String,
     val type: Level2Type,
     val imageUrls: List<String> = emptyList(),
@@ -453,7 +452,7 @@ enum class RentalFormulaType(val displayName: String) {
 }
 
 data class RentalFormula(
-    val id: String = "FRM-" + java.util.UUID.randomUUID().toString().take(6).uppercase(),
+    val id: String = "FRM-" + com.example.util.Ids.uuid().take(6).uppercase(),
     val type: RentalFormulaType,
     val rateUsd: Double,
     val scheduleDescription: String,
@@ -467,7 +466,7 @@ data class RentalFormula(
 )
 
 data class BlackoutSlot(
-    val id: String = "BLK-" + java.util.UUID.randomUUID().toString().take(6).uppercase(),
+    val id: String = "BLK-" + com.example.util.Ids.uuid().take(6).uppercase(),
     val dayOfWeek: String, // e.g. "Sunday", "Friday"
     val startTime: String = "18:00",
     val endTime: String = "22:00",
@@ -503,7 +502,7 @@ data class SpaceOperatingSchedule(
             val blackoutList = (map["blackoutSlots"] as? List<*>)?.mapNotNull { bItem ->
                 (bItem as? Map<*, *>)?.let { bMap ->
                     BlackoutSlot(
-                        id = bMap["id"] as? String ?: UUID.randomUUID().toString(),
+                        id = bMap["id"] as? String ?: com.example.util.Ids.uuid(),
                         dayOfWeek = bMap["dayOfWeek"] as? String ?: "Sunday",
                         startTime = bMap["startTime"] as? String ?: "18:00",
                         endTime = bMap["endTime"] as? String ?: "22:00",
@@ -552,7 +551,7 @@ enum class CancellationReasonCode(val displayName: String) {
  * Stores rental formula, selected date/time range, and booking lifecycle status.
  */
 data class BookingRequest(
-    val id: String = "BRQ-" + java.util.UUID.randomUUID().toString().take(6).uppercase(),
+    val id: String = "BRQ-" + com.example.util.Ids.uuid().take(6).uppercase(),
     val spaceId: String,
     val spaceTitle: String,
     val spaceDistrict: String = "Beirut",
@@ -1100,7 +1099,7 @@ data class SpaceListing(
                     val catStr = map["category"] as? String ?: EquipmentCategory.WORKSPACES.name
                     val cat = runCatching { EquipmentCategory.valueOf(catStr) }.getOrDefault(EquipmentCategory.WORKSPACES)
                     EquipmentItem(
-                        id = map["id"] as? String ?: UUID.randomUUID().toString(),
+                        id = map["id"] as? String ?: com.example.util.Ids.uuid(),
                         name = map["name"] as? String ?: "Equipment Item",
                         category = cat,
                         quantity = (map["quantity"] as? Number)?.toInt() ?: 1,
@@ -1116,7 +1115,7 @@ data class SpaceListing(
                     val typeStr = map["type"] as? String ?: RentalFormulaType.FULL_MONTH.name
                     val type = runCatching { RentalFormulaType.valueOf(typeStr) }.getOrDefault(RentalFormulaType.FULL_MONTH)
                     RentalFormula(
-                        id = map["id"] as? String ?: ("FRM-" + UUID.randomUUID().toString().take(4)),
+                        id = map["id"] as? String ?: ("FRM-" + com.example.util.Ids.uuid().take(4)),
                         type = type,
                         rateUsd = (map["rateUsd"] as? Number)?.toDouble() ?: 300.0,
                         scheduleDescription = map["scheduleDescription"] as? String ?: "Formula Slot",
@@ -1169,7 +1168,7 @@ data class SpaceListing(
                     val pricingModeStr = sMap["pricingMode"] as? String ?: SubdivisionPricingMode.STRATEGY_BASED.name
                     val pricingMode = runCatching { SubdivisionPricingMode.valueOf(pricingModeStr) }.getOrDefault(SubdivisionPricingMode.STRATEGY_BASED)
                     Subdivision(
-                        id = sMap["id"] as? String ?: ("SUB-" + UUID.randomUUID().toString().take(6)),
+                        id = sMap["id"] as? String ?: ("SUB-" + com.example.util.Ids.uuid().take(6)),
                         displayCode = sMap["displayCode"] as? String ?: "",
                         name = sMap["name"] as? String ?: "Subdivision Unit",
                         type = lvlType,
@@ -1606,7 +1605,7 @@ data class AdminPricingState(
  * written by functions/src/lib/push.ts for every push and kept 48 h (expireAt).
  */
 data class FCMAlert(
-    val id: String = java.util.UUID.randomUUID().toString(),
+    val id: String = com.example.util.Ids.uuid(),
     val title: String,
     val body: String,
     val timestamp: Long = System.currentTimeMillis(),
@@ -1809,7 +1808,7 @@ data class SpaceArchitectureSchema(
  * Tracks overall shopping cart or service purchase.
  */
 data class Order(
-    val id: String = "ORD-" + java.util.UUID.randomUUID().toString().take(8).uppercase(),
+    val id: String = "ORD-" + com.example.util.Ids.uuid().take(8).uppercase(),
     val userId: String,
     val totalAmount: Double,
     val currency: String = "USD", // USD or LBP

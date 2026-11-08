@@ -36,7 +36,6 @@ import com.example.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.UUID
 
 /**
  * One division of a listing (a room, desk, hall…): name, type, amenities, photos, pricing and optional own hours. The
@@ -108,7 +107,7 @@ fun SubdivisionForm(
 
     // Id generated up front so photos upload to their final path before the division
     // itself is saved; an edited division keeps its own id (bookings reference it).
-    val pendingSubId = remember { initial?.id ?: ("SUB-" + UUID.randomUUID().toString().take(6).uppercase()) }
+    val pendingSubId = remember { initial?.id ?: ("SUB-" + com.example.util.Ids.uuid().take(6).uppercase()) }
 
 
     fun buildCurrentSubdivision(): Subdivision = Subdivision(
@@ -145,7 +144,7 @@ fun SubdivisionForm(
             subImageUploadError = null
             var failureCount = 0
             uris.forEach { uri ->
-                val imageId = UUID.randomUUID().toString().take(8)
+                val imageId = com.example.util.Ids.uuid().take(8)
                 val bytes = withContext(kotlinx.coroutines.Dispatchers.IO) {
                     runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
                 }
@@ -856,7 +855,7 @@ private fun AttendeeTierEditor(
                     val nextMin = (tiers.mapNotNull { it.maxAttendees }.maxOrNull() ?: 0) + 1
                     onTiersChange(
                         tiers + AttendeePackage(
-                            id = "TIER-" + UUID.randomUUID().toString().take(6).uppercase(),
+                            id = "TIER-" + com.example.util.Ids.uuid().take(6).uppercase(),
                             name = uiText(R.string.tier_x, tiers.size + 1),
                             pricePerAttendeeUsd = 0.0,
                             minAttendees = nextMin,
@@ -872,7 +871,7 @@ private fun AttendeeTierEditor(
                     onClick = {
                         onTiersChange(
                             templates.sortedBy { it.minAttendees }.map {
-                                it.copy(id = "TIER-" + UUID.randomUUID().toString().take(6).uppercase(), isSystemDefault = false)
+                                it.copy(id = "TIER-" + com.example.util.Ids.uuid().take(6).uppercase(), isSystemDefault = false)
                             }
                         )
                     },

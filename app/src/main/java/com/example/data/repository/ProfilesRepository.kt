@@ -20,7 +20,6 @@ import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.UUID
 
 /**
  * Part of [ProHostRepository], split out by area. Every function runs against the shared
