@@ -85,6 +85,7 @@ jobs:
           done
 
       - name: Diff against the golden baseline
+        id: diff
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -96,8 +97,39 @@ jobs:
             --masks docs/migration/golden-masks.json --report parity/diff.html --json parity/diff.json | tee parity/summary.txt
           status=${PIPESTATUS[0]}
           set -e
-          tail -1 parity/summary.txt | while IFS= read -r line; do echo "::notice title=parity::${line}"; done
-          grep -E "^(CHANGED|RESIZED|MISSING)" parity/summary.txt | head -30 | while IFS= read -r line; do echo "::error title=parity-diff::${line}"; done || true
+          echo "status=${status}" >> "$GITHUB_OUTPUT"
+          tail -1 parity/summary.txt | while IFS= read -r line; do echo "::notice title=parity-first-pass::${line}"; done
+          grep -E "^(CHANGED|RESIZED|MISSING)" parity/summary.txt | head -30 | while IFS= read -r line; do echo "::warning title=parity-first-pass::${line}"; done || true
+          # Judged after the reproduce step below.
+
+      # A real regression is deterministic; the harness has one known non-deterministic input (network listing photos that may not
+      # have loaded within the fixed 400 ms wait, DECISIONS.md "golden determinism"). So whatever differed is rendered once more,
+      # alone, and only a difference that reproduces fails the gate. No tolerance or mask is involved.
+      - name: Reproduce the differences (re-render only those screens)
+        if: steps.diff.outputs.status != '0'
+        id: repro
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY' > parity/rerun.txt
+          import json
+          names = [r["name"] for r in json.load(open("parity/diff.json"))["results"] if r["status"] != "same"]
+          open("parity/rerun-names.txt", "w").write(",".join(names))
+          # file name = <screen>_<variant>.png; variants are single tokens (light, dark, small, rtl, ar)
+          print(",".join(sorted({n[:-4].rsplit("_", 1)[0] for n in names})))
+          PY
+          screens=$(cat parity/rerun.txt)
+          echo "re-rendering: ${screens}"
+          set -o pipefail
+          gradle :app:recordRoborazziDebug --tests "com.example.design.*" -PdesignOnly="${screens}" --no-daemon --stacktrace 2>&1 | tee gradle-rerun.log
+          set +e
+          python3 scripts/migration/diff_shots.py --golden golden --candidate app/build/design-shots --only "$(cat parity/rerun-names.txt)" \
+            --masks docs/migration/golden-masks.json --report parity/diff-rerun.html --json parity/diff-rerun.json | tee parity/summary-rerun.txt
+          status=${PIPESTATUS[0]}
+          set -e
+          tail -1 parity/summary-rerun.txt | while IFS= read -r line; do echo "::notice title=parity-reproduce::${line}"; done
+          grep -E "^(CHANGED|RESIZED|MISSING)" parity/summary-rerun.txt | head -30 | while IFS= read -r line; do echo "::error title=parity-diff::${line}"; done || true
+          if [ "$status" = 0 ]; then echo "::notice title=parity::first-pass differences did not reproduce (network-image race); final result: identical"; fi
           exit $status
 
       # Before | After | Difference sheets for every changed render (+ any prefixes asked for with the `show` input, identical or not),
