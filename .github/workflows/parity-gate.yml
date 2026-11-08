@@ -58,6 +58,12 @@ jobs:
           set -o pipefail
           gradle :app:testDebugUnitTest :app:assembleDebug :app:compileReleaseKotlin --no-daemon --stacktrace 2>&1 | tee gradle-unit.log
 
+      # Release shrinking: proves proguard/dependency changes still produce a valid R8 build (the release-bundle workflow needs secrets).
+      - name: R8 release shrink compiles
+        run: |
+          set -o pipefail
+          gradle :app:minifyReleaseWithR8 --no-daemon --stacktrace 2>&1 | tee gradle-r8.log
+
       - name: Render the 280 design screenshots
         run: |
           set -o pipefail
@@ -66,7 +72,7 @@ jobs:
       - name: Surface build errors
         if: failure()
         run: |
-          for f in gradle-unit.log gradle-shots.log; do
+          for f in gradle-unit.log gradle-r8.log gradle-shots.log; do
             [ -f $f ] || continue
             grep -iE "^e: |FAILED|error:" $f | head -30 | while IFS= read -r line; do echo "::error title=$f::${line}"; done
           done
