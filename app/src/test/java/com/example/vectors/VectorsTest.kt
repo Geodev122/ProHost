@@ -32,7 +32,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * Runs the shared test vectors in tests/vectors/*.json (generated from the TypeScript implementation by
+ * Runs the shared test vectors in the JSON files under tests/vectors (generated from the TypeScript implementation by
  * scripts/migration/export_vectors.js; functions/src/lib/vectors.test.ts runs the same files). Kotlin and TypeScript
  * must agree. A case with `kotlinExpected` is a KNOWN divergence recorded in docs/migration/DECISIONS.md: this test
  * pins today's Kotlin behaviour and is not a licence to change it (owner rule: no behaviour change in the migration).
