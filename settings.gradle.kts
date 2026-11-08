@@ -24,4 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "ProSpace"
 
-include(":app")
+include(":app", ":shared")

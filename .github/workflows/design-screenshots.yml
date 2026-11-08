@@ -20,6 +20,7 @@ on:
     branches: [main, "claude/**"]
     paths:
       - "app/src/main/java/com/example/ui/**"
+      - "shared/src/**"
       - "app/src/main/res/**"
       - "app/src/test/java/com/example/design/**"
       - ".github/workflows/design-screenshots.yml"
