@@ -45,4 +45,5 @@ Moving Pro Host drawer items into tabs, removing Explore's menu button, iOS-styl
 - **Spike round 1 (8 Nov 2026, CI run 42476244758): Kotlin 2.2.10 + CMP 1.12.2 does NOT work.** The iOS build refuses CMP 1.12.2's klibs: "incompatible ABI version '2.3.0'. The library was produced by '2.3.20' compiler";
   on JVM the generated resource accessors fail with "Missing stdlib class". The CMP docs' "at least Kotlin 2.1.0" is wrong for 1.12.2 in practice. **Kotlin must move to >= 2.3.20 with CMP 1.12.2** (or CMP must go back to a release built with <= 2.2.10).
   The Kotlin bump is therefore part of the migration (P3), and it also moves Compose from Jetpack 1.7 to 1.12 (Material 3 drift to be caught by the golden diff). Round 2 tests Kotlin 2.3.20.
-- **Spike result:** see `docs/migration/SPIKE_REPORT.md`.
+- **Spike rounds 2-4 (8 Nov 2026): Kotlin 2.3.20 + CMP 1.12.2 + AGP 9.4.1 + Gradle 9.7.1 works** for Android, iOS (framework + simulator tests), wasmJs and a JVM test host, including Arabic plurals/format/`\u0020` through composeResources.
+  **Target versions for P3: Kotlin 2.3.20 (minimum), Compose Multiplatform 1.12.2, AGP 9.4.1, Gradle 9.7.1.** Full results, fallbacks and the items still open (Splash parity, font cap, web interop, map, Swift auth): `docs/migration/SPIKE_REPORT.md`.
