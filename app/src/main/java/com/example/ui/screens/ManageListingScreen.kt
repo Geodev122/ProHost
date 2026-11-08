@@ -34,6 +34,8 @@ import com.example.ui.components.ProSectionHeader
 import com.example.ui.components.ProSurfaceCard
 import com.example.ui.theme.*
 import com.example.ui.util.RentableSlot
+import com.example.ui.util.DateLabels
+import com.example.ui.util.IsoDate
 import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.viewmodel.ProHostViewModel
 import kotlinx.coroutines.launch
@@ -429,9 +431,9 @@ private fun monthlyCells(config: MonthlyConfig, divisionBookings: List<RentalBoo
         // rolling 12-month window starting from whichever is later: the
         // configured start, or right now (so a term that started long ago
         // doesn't scroll a manager through a year of already-past months).
-        val now = Calendar.getInstance()
-        val curM = now.get(Calendar.MONTH) + 1
-        val curY = now.get(Calendar.YEAR)
+        val today = IsoDate.todayDate()
+        val curM = today.monthNumber
+        val curY = today.year
         if (y < curY || (y == curY && m < curM)) {
             m = curM; y = curY
         }
@@ -481,24 +483,18 @@ private fun monthIsWithinBooking(booking: RentalBookingRequest, mm: Int, yy: Int
 /** One upcoming calendar day of a weekly-strategy division: its date, label and slots. */
 private data class DayRow(val isoDate: String, val label: String, val slots: List<RentableSlot>)
 
-private val ISO_DATE = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
-// In the app language at the time of formatting (Arabic users see Arabic day and month names).
-private fun dayLabelFormat() = java.text.SimpleDateFormat("EEE d MMM", com.example.ui.util.UiText.resources?.configuration?.locales?.get(0) ?: java.util.Locale.getDefault())
-private val WEEKDAY_SHORT = java.text.SimpleDateFormat("EEE", java.util.Locale.US)
-
 /** The next 7 days (today first) with the division's slots for each weekday. */
 private fun upcomingDays(division: DivisionInfo): List<DayRow> {
     val slotsByDay = SpaceCalculationUtils.buildBookableSlots(division.pricing, division.schedule, division.id, division.name)
         .groupBy { it.day }
-    val cal = Calendar.getInstance()
+    var date = IsoDate.todayDate()
     return (0 until 7).map {
-        val date = cal.time
         val row = DayRow(
-            isoDate = ISO_DATE.format(date),
-            label = dayLabelFormat().format(date),
-            slots = slotsByDay[WEEKDAY_SHORT.format(date)].orEmpty().sortedBy { s -> s.startTime }
+            isoDate = date.toString(),
+            label = DateLabels.dayLabel(date),
+            slots = slotsByDay[IsoDate.dayAbbreviation(date)].orEmpty().sortedBy { s -> s.startTime }
         )
-        cal.add(Calendar.DAY_OF_YEAR, 1)
+        date = IsoDate.nextDay(date)
         row
     }.filter { it.slots.isNotEmpty() }
 }
@@ -511,18 +507,9 @@ private fun upcomingDays(division: DivisionInfo): List<DayRow> {
 private fun isBookedOn(slot: RentableSlot, isoDate: String, spaceId: String, accepted: List<RentalBookingRequest>): Boolean =
     SpaceCalculationUtils.isCalendarDateLocked(slot, isoDate, spaceId, accepted.filter { bookingCoversDate(it, isoDate) })
 
-private fun bookingCoversDate(booking: RentalBookingRequest, isoDate: String): Boolean {
-    if (booking.selectedCalendarDates.isNotEmpty()) return isoDate in booking.selectedCalendarDates
-    val start = booking.startDate.trim().take(10)
-    if (start.length < 7) return true // no term recorded: treat as ongoing
-    val startKey = if (start.length == 7) "$start-01" else start
-    val end = runCatching {
-        val cal = Calendar.getInstance().apply { time = ISO_DATE.parse(startKey) ?: return true }
-        cal.add(Calendar.MONTH, booking.durationMonths.coerceAtLeast(1))
-        ISO_DATE.format(cal.time)
-    }.getOrNull() ?: return true
-    return isoDate >= startKey && isoDate < end
-}
+/** The one rule for "does this booking's term cover that date" lives in SpaceCalculationUtils (it was duplicated here). */
+private fun bookingCoversDate(booking: RentalBookingRequest, isoDate: String): Boolean =
+    SpaceCalculationUtils.bookingCoversDate(booking, isoDate)
 
 /** Booked/free for every cell the availability table shows (used by the performance card). */
 private fun occupancyCells(division: DivisionInfo, spaceId: String, accepted: List<RentalBookingRequest>): List<Boolean> =

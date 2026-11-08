@@ -827,10 +827,8 @@ fun BookingStatusProgressStepper(
     val steps = listOf("Requested", "Host Review", "Confirmed", "Access Active")
     // An accepted booking is only "Access Active" once its start date arrives.
     val hasStarted = remember(startDate) {
-        runCatching {
-            val start = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).parse(startDate)
-            start == null || !start.after(java.util.Date())
-        }.getOrDefault(true)
+        // Started once the start date (midnight, local) is no later than now, i.e. the date is today or earlier; anything that is not a date counts as started.
+        com.example.ui.util.BookingDates.hasStarted(startDate)
     }
     val currentStepIndex = when (status) {
         BookingRequestStatus.PENDING -> 1

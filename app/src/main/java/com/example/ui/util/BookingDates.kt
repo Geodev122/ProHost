@@ -41,4 +41,12 @@ internal object BookingDates {
         }
         return dates
     }
+
+    /**
+     * Whether a booking that starts on [startDate] (an ISO date, or anything else) has started: the start (midnight, local) is no later than now, i.e. the
+     * date is [today] or earlier. Anything that is not a date counts as started (legacy labels). Prefix-compatible with the old lenient parse of
+     * `yyyy-MM-dd...` (only the first 10 characters are read).
+     */
+    fun hasStarted(startDate: String, today: kotlinx.datetime.LocalDate = IsoDate.todayDate()): Boolean =
+        IsoDate.parse(startDate.take(10))?.let { it <= today } ?: true
 }

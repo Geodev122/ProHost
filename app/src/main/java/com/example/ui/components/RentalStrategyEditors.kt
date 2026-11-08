@@ -16,7 +16,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.model.*
 import com.example.ui.theme.Spacing
-import java.util.Calendar
 
 /**
  * The single "Renting Formula Allocation" editor (spec Step 3, item 2/3) — one
@@ -123,8 +122,8 @@ fun MonthlyStrategyEditor(
     onConfigChange: (MonthlyConfig) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val nowCal = remember { Calendar.getInstance() }
-    val currentYear = nowCal.get(Calendar.YEAR)
+    val today = remember { com.example.ui.util.IsoDate.todayDate() }
+    val currentYear = today.year
     val monthNames = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
@@ -208,7 +207,7 @@ fun MonthlyStrategyEditor(
                 onConfigChange(
                     config.copy(
                         excludedRanges = config.excludedRanges + MonthYearRange(
-                            nowCal.get(Calendar.MONTH) + 1, currentYear, nowCal.get(Calendar.MONTH) + 1, currentYear
+                            today.monthNumber, currentYear, today.monthNumber, currentYear
                         )
                     )
                 )
