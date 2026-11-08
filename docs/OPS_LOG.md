@@ -105,4 +105,4 @@ Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, ot
 - In-app Privacy/Terms in `LegalContent.kt` are now generated from the website pages by `scripts/legal/sync_legal_content.py` (CI step `--check` in build-and-deploy.yml); revocation policy stale lines fixed. `EFFECTIVE_DATE` and `CURRENT_CONSENT_VERSION` = "November 8, 2026". The in-app Terms now carry the website's Section 17 (arbitration in Beirut) instead of the old "exclusive courts of Beirut" sentence.
 - `functions/src/legal/deleteAccountPage.ts` regenerated from the HTML (test keeps them equal). New `docs/APPLE_DECLARATIONS.md`. site-deploy probes now require "Sign in with Apple" on /privacy and "Apple App Store" on /terms.
 - Search Console: the failed sitemap row belongs to the `prohost-f766f.web.app` property; submit `sitemap.xml` under the `pro-host.tech` property instead.
-
+- iOS S2 (session store, router, role tab shell) pushed; iOS CI green on 767d5fd. No TestFlight build uploaded for it yet.
