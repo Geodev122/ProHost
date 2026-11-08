@@ -83,6 +83,10 @@ jobs:
       - name: Shared test vectors are in sync
         run: node scripts/migration/export_vectors.js --check
 
+      # docs/migration/PARITY.md must list every Kotlin source file (one row per migration unit).
+      - name: Parity table lists every source file
+        run: python3 scripts/migration/gen_parity_table.py --check
+
   rules-tests:
     name: Security Rules Tests (emulator)
     runs-on: ubuntu-latest
