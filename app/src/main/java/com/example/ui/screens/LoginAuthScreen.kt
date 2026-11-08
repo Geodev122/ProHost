@@ -157,8 +157,7 @@ fun LoginAuthScreen(
                     val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
                     if (!com.example.data.auth.GoogleNonce.idTokenMatchesNonce(googleIdTokenCredential.idToken, nonce)) {
                         com.example.analytics.AnalyticsTracker.authError("google", "nonce_mismatch")
-                        UiMessages.show(context,
-                            context.getString(R.string.google_sign_in_isn_t_available_right_now_p),
+                        UiMessages.show(context.getString(R.string.google_sign_in_isn_t_available_right_now_p),
                             long = true)
                         return
                     }
@@ -208,15 +207,13 @@ fun LoginAuthScreen(
                 } catch (e2: GetCredentialException) {
                     android.util.Log.w("LoginAuthScreen", "Google sign-in unavailable: ${e2.type}")
                     com.example.analytics.AnalyticsTracker.authError("google", "unavailable")
-                    UiMessages.show(context,
-                        context.getString(R.string.google_sign_in_isn_t_available_on_this_dev),
+                    UiMessages.show(context.getString(R.string.google_sign_in_isn_t_available_on_this_dev),
                         long = true)
                 }
             } catch (e: GetCredentialException) {
                 android.util.Log.w("LoginAuthScreen", "Google sign-in error: ${e.type}")
                 com.example.analytics.AnalyticsTracker.authError("google", "credential_error")
-                UiMessages.show(context,
-                    context.getString(R.string.google_sign_in_isn_t_available_right_now_p),
+                UiMessages.show(context.getString(R.string.google_sign_in_isn_t_available_right_now_p),
                     long = true)
             }
         }

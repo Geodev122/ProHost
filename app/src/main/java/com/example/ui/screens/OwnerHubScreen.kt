@@ -222,7 +222,7 @@ fun OwnerHubScreen(
         val saved = viewModel.saveListingDraft(newListing.copy(status = ListingStatus.DRAFT))
         showCreateListingDialog = false
         draftToEdit = null
-        UiMessages.show(context, if (saved) successMessage else failureMessage, long = true)
+        UiMessages.show(if (saved) successMessage else failureMessage, long = true)
         if (saved) {
             viewModel.setPendingAutoPublishDraft(newListing.id)
             onOpenSubscriptions?.invoke()
@@ -250,8 +250,7 @@ fun OwnerHubScreen(
                     val success = viewModel.saveListingDraft(updatedDraft)
                     showCreateListingDialog = false
                     draftToEdit = null
-                    UiMessages.show(context,
-                        if (success) context.getString(R.string.draft_saved_continue_it_anytime_from_my_li) else context.getString(R.string.couldn_t_save_this_draft_please_try_again),
+                    UiMessages.show(if (success) context.getString(R.string.draft_saved_continue_it_anytime_from_my_li) else context.getString(R.string.couldn_t_save_this_draft_please_try_again),
                         long = false)
                 }
             },
@@ -266,7 +265,7 @@ fun OwnerHubScreen(
                         is ListingCreateResult.Success -> {
                             showCreateListingDialog = false
                             draftToEdit = null
-                            UiMessages.show(context, context.getString(R.string.workspace_listing_published_successfully))
+                            UiMessages.show(context.getString(R.string.workspace_listing_published_successfully))
                         }
                         is ListingCreateResult.NoActivePackage -> {
                             redirectBlockedListingToPayment(
@@ -276,8 +275,7 @@ fun OwnerHubScreen(
                             )
                         }
                         is ListingCreateResult.Failed -> {
-                            UiMessages.show(context,
-                                context.getString(R.string.couldn_t_publish_this_listing_check_your_c),
+                            UiMessages.show(context.getString(R.string.couldn_t_publish_this_listing_check_your_c),
                                 long = true)
                         }
                     }
@@ -307,8 +305,7 @@ fun OwnerHubScreen(
                 coroutineScope.launch {
                     val success = viewModel.deleteOwnerListing(space.id)
                     deletingSpace = null
-                    UiMessages.show(context,
-                        if (success) context.getString(R.string.listing_removed) else context.getString(R.string.failed_to_remove_listing_please_try_again),
+                    UiMessages.show(if (success) context.getString(R.string.listing_removed) else context.getString(R.string.failed_to_remove_listing_please_try_again),
                         long = false)
                 }
             }

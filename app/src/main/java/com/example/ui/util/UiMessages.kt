@@ -41,21 +41,12 @@ object UiMessages {
         toastFallback = fallback
     }
 
-    /** Context-free: view models and shared code call this. */
+    /** Context-free: view models, screens and shared code all call this. */
     fun show(text: CharSequence?, long: Boolean = false, actionLabel: String? = null, onAction: (() -> Unit)? = null) {
-        deliver(text, long, actionLabel, onAction) { t, l -> toastFallback?.invoke(t, l) }
-    }
-
-    /** Existing call sites; same behaviour as before (the Toast fallback is shown on [context]'s application context). */
-    fun show(context: Context, text: CharSequence?, long: Boolean = false, actionLabel: String? = null, onAction: (() -> Unit)? = null) {
-        deliver(text, long, actionLabel, onAction) { t, l -> toast(context.applicationContext, t, l) }
-    }
-
-    private inline fun deliver(text: CharSequence?, long: Boolean, actionLabel: String?, noinline onAction: (() -> Unit)?, fallback: (CharSequence, Boolean) -> Unit) {
         if (text.isNullOrBlank()) return
         val message = Message(text.toString(), long, actionLabel, onAction)
         if (hosts > 0 && _messages.tryEmit(message)) return
-        fallback(text, long)
+        toastFallback?.invoke(text, long)
     }
 
     private fun toast(context: Context, text: CharSequence, long: Boolean) {

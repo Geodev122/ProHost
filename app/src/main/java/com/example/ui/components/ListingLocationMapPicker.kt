@@ -137,7 +137,7 @@ fun ListingLocationMapPicker(
                 }
                 .addOnFailureListener {
                     isLocating = false
-                    UiMessages.show(context, context.getString(R.string.gps_signal_unavailable))
+                    UiMessages.show(context.getString(R.string.gps_signal_unavailable))
                 }
         }
     }

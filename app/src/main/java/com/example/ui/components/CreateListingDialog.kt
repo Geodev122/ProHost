@@ -869,21 +869,19 @@ fun CreateListingDialog(
                                   onAdd = {
                                       // A booked whole place can't be split into divisions: its bookings are for the place.
                                       if (wholePlaceBooked && divisions.size == 1 && divisions[0].id == ListingDivisions.WHOLE_PLACE_ID) {
-                                          UiMessages.show(context, uiText(R.string.whole_place_has_bookings), long = true)
+                                          UiMessages.show(uiText(R.string.whole_place_has_bookings), long = true)
                                       } else editingDivision = -1
                                   },
                                   onEdit = { editingDivision = it },
                                   onDelete = delete@{ index ->
                                       val removed = divisions[index]
                                       if (removed.id in bookedDivisionIds || (removed.id == ListingDivisions.WHOLE_PLACE_ID && wholePlaceBooked)) {
-                                          UiMessages.show(context, uiText(R.string.division_has_bookings), long = true)
+                                          UiMessages.show(uiText(R.string.division_has_bookings), long = true)
                                           return@delete
                                       }
                                       divisions = divisions.filterIndexed { i, _ -> i != index }
                                       hasUserTyped = true
-                                      UiMessages.show(
-                                          context,
-                                          uiText(R.string.division_deleted, removed.name),
+                                      UiMessages.show(uiText(R.string.division_deleted, removed.name),
                                           actionLabel = uiText(R.string.undo),
                                           onAction = {
                                               divisions = divisions.toMutableList().apply { add(index.coerceAtMost(size), removed) }

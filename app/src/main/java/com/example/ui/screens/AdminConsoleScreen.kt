@@ -75,19 +75,19 @@ fun AdminConsoleScreen(
         adminViewModel.events.collectLatest { event ->
             when (event) {
                 is AdminUiEvent.ShowToast -> {
-                    UiMessages.show(context, event.message)
+                    UiMessages.show(event.message)
                 }
                 is AdminUiEvent.PricingUpdated -> {
-                    UiMessages.show(context, "Subscription fee updated to $${event.newFee} USD")
+                    UiMessages.show("Subscription fee updated to $${event.newFee} USD")
                 }
                 is AdminUiEvent.DataExportReady -> {
-                    UiMessages.show(context, "${event.title} ready for download")
+                    UiMessages.show("${event.title} ready for download")
                 }
                 is AdminUiEvent.OpenUrl -> {
                     try {
                         context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(event.url)))
                     } catch (e: Exception) {
-                        UiMessages.show(context, "No app can open this document.")
+                        UiMessages.show("No app can open this document.")
                     }
                 }
             }

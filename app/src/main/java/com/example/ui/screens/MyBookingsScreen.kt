@@ -297,8 +297,7 @@ fun MyBookingsScreen(
                             // Only the booking's own workspace — never another listing (which
                             // would send the request to a different host).
                             if (space == null) {
-                                UiMessages.show(context,
-                                    context.getString(R.string.this_workspace_is_no_longer_available_to_b),
+                                UiMessages.show(context.getString(R.string.this_workspace_is_no_longer_available_to_b),
                                     long = false)
                             } else {
                                 rebookTargetSpaceId = space.id
@@ -321,7 +320,7 @@ fun MyBookingsScreen(
                                 try {
                                     context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)))
                                 } catch (e: Exception) {
-                                    UiMessages.show(context, context.getString(R.string.could_not_open_the_agreement))
+                                    UiMessages.show(context.getString(R.string.could_not_open_the_agreement))
                                 }
                             }
                         },
@@ -396,7 +395,7 @@ fun MyBookingsScreen(
         // guards it explicitly rather than force-unwrapping.
         if (targetSpace == null) {
             LaunchedEffect(editTargetSpaceId) {
-                UiMessages.show(context, context.getString(R.string.this_space_is_no_longer_available_to_edit))
+                UiMessages.show(context.getString(R.string.this_space_is_no_longer_available_to_edit))
                 editTargetSpaceId = null
                 editSourceBooking = null
             }

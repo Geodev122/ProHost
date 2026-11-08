@@ -495,7 +495,7 @@ plan** (`docs/IOS_PLAN.md` / `IOS_READINESS.md`: their Apple account, backend M1
 - One of each: `ProCard(variant, onClick)` (ModernCard/ProSurfaceCard delegate to it), main action colours
   `proPrimaryButtonColors()` / `ProPrimaryButton` (orange), `ProHostAlertBanner`, `ProHostCountBadge`/`ProHostDotBadge`,
   `PhotoCarouselArrow` (48 dp), dialogs on 28 dp `surfaceContainerHigh`.
-- Feedback goes through `UiMessages.show(context, text, actionLabel?, onAction?)` → Snackbar above the nav pill
+- Feedback goes through `UiMessages.show(text, actionLabel?, onAction?)` (no `Context` since P2.2a/b; the Toast fallback is registered by `UiMessages.init(application)` in `ProHostApplication`; text comes from `uiText(...)`) → Snackbar above the nav pill
   (`ProHostSnackbarHost`; Toast only when no shell is on screen). Reversible actions offer Undo.
 - Page changes fade/rise in the shell (`rememberReducedMotion()` snaps when animations are off).
 - Strings: user-facing text lives in `res/values/strings.xml` with Arabic in `res/values-ar/strings.xml` (keep keys and

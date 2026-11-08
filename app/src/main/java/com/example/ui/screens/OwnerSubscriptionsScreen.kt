@@ -145,7 +145,7 @@ fun OwnerSubscriptionsScreen(
     // The banners sit at the top of a scrolling screen, out of view from the plan
     // cards — also toast errors so a failed tap never looks like nothing happened.
     LaunchedEffect(billingError) {
-        billingError?.let { UiMessages.show(context, it, long = true) }
+        billingError?.let { UiMessages.show(it, long = true) }
     }
     LaunchedEffect(billingSuccess) {
         if (billingSuccess != null) {
@@ -453,7 +453,7 @@ fun OwnerSubscriptionsScreen(
                             } else if (activity != null) {
                                 viewModel.billing.launchGooglePaySubscription(activity, selectedPlan)
                             } else {
-                                UiMessages.show(context, context.getString(R.string.cannot_launch_google_play_on_this_device))
+                                UiMessages.show(context.getString(R.string.cannot_launch_google_play_on_this_device))
                             }
                         },
                         enabled = enabled,
@@ -602,7 +602,7 @@ fun OwnerSubscriptionsScreen(
                         onCopy = {
                             val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                             clipboard.setPrimaryClip(android.content.ClipData.newPlainText("ProHost promo code", livePromo.code))
-                            UiMessages.show(context, context.getString(R.string.code_x_copied, livePromo.code))
+                            UiMessages.show(context.getString(R.string.code_x_copied, livePromo.code))
                         },
                         onUse = { showRedeemDialog = false; redeemCodeInput = ""; showPromoHowTo = true }
                     )

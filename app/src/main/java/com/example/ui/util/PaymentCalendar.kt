@@ -42,7 +42,7 @@ object PaymentCalendar {
     fun addPaymentReminders(context: Context, booking: BookingRequest, bookingRef: String) {
         val schedule = scheduleFor(booking)
         if (schedule == null) {
-            UiMessages.show(context, uiText(R.string.calendar_no_start_date), long = true)
+            UiMessages.show(uiText(R.string.calendar_no_start_date), long = true)
             return
         }
         val money = NumberFormat.getCurrencyInstance(Locale.US).format(schedule.amountPerPaymentUsd)
@@ -84,7 +84,7 @@ object PaymentCalendar {
             if (context !is android.app.Activity) chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(chooser)
         } catch (e: ActivityNotFoundException) {
-            UiMessages.show(context, uiText(R.string.calendar_no_app), long = true)
+            UiMessages.show(uiText(R.string.calendar_no_app), long = true)
         }
     }
 

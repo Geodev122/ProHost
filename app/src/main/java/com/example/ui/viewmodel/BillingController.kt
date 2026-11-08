@@ -314,7 +314,7 @@ class BillingController(
             _pendingRetryBasePlanId = basePlanId
             _pendingRetryActivity = java.lang.ref.WeakReference(activity)
             _pendingRetryAtMillis = System.currentTimeMillis()
-            UiMessages.show(activity, activity.getString(R.string.connecting_to_google_play_store))
+            UiMessages.show(activity.getString(R.string.connecting_to_google_play_store))
             // Merges into productDetailsList, whose collector above retries this launch.
             manager?.queryProductDetailsForId(productId) { found ->
                 if (found == null) {
@@ -360,7 +360,7 @@ class BillingController(
         try {
             activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)))
         } catch (e: android.content.ActivityNotFoundException) {
-            UiMessages.show(activity, activity.getString(R.string.no_app_available_to_open_this_link))
+            UiMessages.show(activity.getString(R.string.no_app_available_to_open_this_link))
         }
     }
 

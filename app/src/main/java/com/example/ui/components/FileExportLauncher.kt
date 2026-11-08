@@ -40,10 +40,9 @@ fun rememberFileExportLauncher(mimeType: String): (fileName: String, content: St
             context.contentResolver.openOutputStream(uri)?.use { stream ->
                 stream.write(content.toByteArray(Charsets.UTF_8))
             }
-            UiMessages.show(context, context.getString(R.string.saved))
+            UiMessages.show(context.getString(R.string.saved))
         } catch (e: Exception) {
-            UiMessages.show(context,
-                com.example.util.friendlyErrorMessage(e, context.getString(R.string.couldn_t_save_file_please_try_again)),
+            UiMessages.show(com.example.util.friendlyErrorMessage(e, context.getString(R.string.couldn_t_save_file_please_try_again)),
                 long = true)
         }
     }

@@ -283,8 +283,7 @@ fun ProHostAppRoot(
     LaunchedEffect(emailVerifiedDeepLink, currentUser?.id) {
         if (emailVerifiedDeepLink && !emailVerifiedConsumed.value && currentUser != null) {
             emailVerifiedConsumed.value = true
-            UiMessages.show(appContext,
-                appContext.getString(R.string.email_verified_your_account_is_now_level_2),
+            UiMessages.show(appContext.getString(R.string.email_verified_your_account_is_now_level_2),
                 long = true)
         }
     }
@@ -321,7 +320,7 @@ fun ProHostAppRoot(
             openDeepLinked(fetched)
         } else {
             consumedDeepLinkSpaceId = id
-            UiMessages.show(appContext, uiText(R.string.listing_link_unavailable))
+            UiMessages.show(uiText(R.string.listing_link_unavailable))
             navigateTo("search_map")
         }
     }

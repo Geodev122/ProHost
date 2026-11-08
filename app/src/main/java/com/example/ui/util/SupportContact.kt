@@ -26,6 +26,6 @@ fun launchSupportEmail(context: Context, user: AppUser?, roleName: String) {
     try {
         context.startActivity(intent)
     } catch (e: android.content.ActivityNotFoundException) {
-        UiMessages.show(context, uiText(R.string.no_email_app_reach_us_x, SUPPORT_EMAIL), long = true)
+        UiMessages.show(uiText(R.string.no_email_app_reach_us_x, SUPPORT_EMAIL), long = true)
     }
 }

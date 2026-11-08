@@ -310,14 +310,14 @@ fun LebanonMapCanvas(
                                     cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(latLng, 14f))
                                 }
                             } else {
-                                UiMessages.show(context, context.getString(R.string.cannot_determine_location))
+                                UiMessages.show(context.getString(R.string.cannot_determine_location))
                             }
                         }
                     }
                 }
                 .addOnFailureListener {
                     isLocating = false
-                    UiMessages.show(context, context.getString(R.string.gps_signal_unavailable))
+                    UiMessages.show(context.getString(R.string.gps_signal_unavailable))
                 }
         }
     }

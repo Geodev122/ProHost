@@ -49,9 +49,7 @@ fun EditListingDialog(space: SpaceListing, viewModel: ProHostViewModel, onDone: 
             coroutineScope.launch {
                 val success = viewModel.updateOwnerListing(updated)
                 onDone()
-                UiMessages.show(
-                    context,
-                    if (success) context.getString(R.string.listing_updated_successfully) else context.getString(R.string.failed_to_update_listing_please_try_again)
+                UiMessages.show(if (success) context.getString(R.string.listing_updated_successfully) else context.getString(R.string.failed_to_update_listing_please_try_again)
                 )
             }
         }

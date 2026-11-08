@@ -168,7 +168,7 @@ fun DocumentPickerField(
                         cameraLauncher.launch(uri)
                     } catch (e: android.content.ActivityNotFoundException) {
                         pendingCameraUri = null
-                        UiMessages.show(context, context.getString(R.string.no_camera_app_found_choose_a_file_instead), long = true)
+                        UiMessages.show(context.getString(R.string.no_camera_app_found_choose_a_file_instead), long = true)
                     }
                 }
             )

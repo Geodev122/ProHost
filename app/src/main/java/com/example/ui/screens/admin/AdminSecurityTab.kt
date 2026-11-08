@@ -347,7 +347,7 @@ internal fun AdminExportDataDialog(
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             val clip = ClipData.newPlainText(title, content)
                             clipboard.setPrimaryClip(clip)
-                            UiMessages.show(context, "Copied to clipboard!")
+                            UiMessages.show("Copied to clipboard!")
                         },
                         modifier = Modifier.weight(1f),
                         variant = CustomButtonVariant.OUTLINED,
