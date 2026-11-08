@@ -1,3 +1,7 @@
+> **SUPERSEDED 8 Nov 2026 (UI approach only):** the owner chose Kotlin Multiplatform + Compose Multiplatform instead of a native SwiftUI port. The SwiftUI screen port,
+> design-system files and icon/string pipelines described below are cancelled. Still valid: Apple account/keys/App Store Connect steps, M1 backend (Apple purchases,
+> notifications V2, APNs, report/block, AASA), signing/TestFlight CI, M5-M7 submission work. See `docs/migration/MASTER_PLAN.md`.
+
 # iOS plan for ProHost (approved 7 Nov 2026; supersedes the 5 Nov outline)
 
 **Status:** no iOS code yet. Decisions: native SwiftUI, no Mac (GitHub macOS runners + TestFlight on the owner's iPhone),

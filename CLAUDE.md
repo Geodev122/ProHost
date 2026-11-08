@@ -445,6 +445,43 @@ plan + recurring price + date;
 - Payment reminders go to the user's own calendar via `PaymentCalendar` (insert intent, monthly
   RRULE) — no calendar permission, no Google Calendar API.
 
+## KMP + Compose Multiplatform migration (decided 8 Nov 2026) — READ FIRST for any UI, iOS, admin or agent work
+
+Owner decision: **one cross-platform app** (Android + iOS) built with **Kotlin Multiplatform + Compose Multiplatform**, the **Admin Console
+rebuilt as a web app**, the **AI lead/marketing agent moved to its own project**. Plan: `docs/migration/MASTER_PLAN.md` (phases P0-P10),
+decisions and open owner questions: `docs/migration/DECISIONS.md`, per-unit tracker: `docs/migration/PARITY.md`. This **supersedes the native SwiftUI
+plan** (`docs/IOS_PLAN.md` / `IOS_READINESS.md`: their Apple account, backend M1 and App Review parts stay valid; the SwiftUI screen port is cancelled).
+
+- **Owner rules (non-negotiable):** (1) NO change to UI, UX, layouts, behaviour or experience — anything that would change them is listed in
+  `DECISIONS.md` and asked, never slipped in; (2) every unit (screen, sheet, component group, logic file) goes learn → plan → execute → compare →
+  confirm identical → only then the next one; (3) every phase ends with an audit of database ↔ backend ↔ frontend ↔ admin web integration
+  (callables vs exports, Firestore/Storage paths vs rules vs rules tests, `docs/DATA_MODEL.md`, mirrored Kotlin/TS logic via shared JSON vectors, e2e flows);
+  (4) the AI agent is being moved out but stays linked and operating on this app, built to serve many apps; (5) the Admin Console is a web app "as it is"
+  (never miss a screen or function), kept out of both mobile builds.
+- **Compare = evidence:** the Android baseline is the untouched app at tag `kmp-golden-v1047` (280 renders from `DesignScreenshotTest`: 14 screens + 42
+  overlays × light/dark/small/rtl/ar, stored on `refs/design-shots/golden-v1047`). After each unit diff against it (`scripts/migration/diff_shots.py`);
+  iOS is judged by Android | iOS contact sheets. A unit is done only when its `PARITY.md` row is ticked. Android keeps shipping from the shared code at every phase.
+- **Layout (target):** `shared/` (KMP library: theme, components, screens, ViewModels, models, rules, `composeResources`), `androidApp/` (application only),
+  `iosApp/` (Xcode host + Swift actuals), `adminWeb/` (Compose for Web, never a dependency of the mobile apps). Platform differences sit behind interfaces in
+  `commonMain` (StringProvider, Messenger/`UiMessages`, PlatformActions, MediaPicker with `PickedFile`, Permissions, Location, MapView, Google/Apple sign-in,
+  Auth/Functions/Firestore/Storage gateways, SubscriptionStore Play|StoreKit 2, Push, DeepLinkRouter, Haptics, SoundPlayer, KeyValueStore, Logger…).
+  Firebase on iOS = gateways with native (Swift) implementations; keep `fromFirestoreMap` payloads byte-identical. Never put `Context`, `Uri`, `java.*`
+  (`Calendar`, `SimpleDateFormat`, `String.format`, `UUID`), `R.*` or `android.*` into code meant for `shared/` — use kotlinx-datetime, `kotlin.uuid`, `Res.*`, the seams.
+- **Do not:** add SwiftUI screens or design-system files under `ios/ProHost/DesignSystem`; touch admin code in the Android app before the web console passes all 70
+  items of `docs/migration/ADMIN_PARITY.md` (the Android admin stays as is until the cutover gate, then is removed in one reviewed change); read ProHost collections
+  directly from new agent code (use the adapter contract `docs/migration/AGENT_ADAPTER.md`); change pricing/date/rounding logic without updating the shared vectors;
+  re-introduce Room/Moshi/Retrofit/Navigation-Compose (declared but unused, to be removed in P2).
+- **Admin web:** `adminWeb` (Compose for Web, fallback React only if the P1.0 spike fails) on its own origin (`admin.pro-host.tech`, add to authorized domains via
+  `authconfig`); sign-in = Firebase Auth + `assignInitialRole` + forced ID-token refresh + `claims.role == "ADMIN"` (rules' `isAdmin()` stays a pure claim check).
+  The mailing console `public/admin.html` stays as is; the IG Control Room moves with the agent.
+- **Agent project:** new repo + new Google project, linked through a versioned adapter (`searchListings`, `accountInsight`, `offers`, `leadSink`, `adminNotify`,
+  `knowledge`, `health`, OIDC-authenticated). First decouple inside this repo (P9 steps 1-5), then move; Meta webhook cutover is one coordinated, reversible step.
+- **Corrections found 8 Nov:** Gradle is 9.7.1; Room, Moshi, Retrofit, OkHttp, CameraX, DataStore, kotlinx-serialization and Navigation-Compose are declared but unused;
+  `docs/INSTAGRAM.md` still mentions Gemini/Vertex (code is Anthropic-only); Maintenance lists `aiprobe`/`aiquota` with no handler; NIGHTHAWK's callable-name check misses
+  names routed through `callAdmin`/`runAdminMaintenance`.
+- **Every session on this topic:** read this section and `docs/migration/MASTER_PLAN.md` + `DECISIONS.md` first, state which phase/unit your task belongs to, and end the
+  status report with the open items of `docs/OWNER_TODO.md`.
+
 ## Design system and languages (1.0.43)
 
 - Follow `.claude/skills/prohost-design/` for any UI change; verify with the Design Screenshots workflow (light, dark,
@@ -537,7 +574,7 @@ plan + recurring price + date;
   applies `org.jetbrains.kotlin.android` (`android.builtInKotlin=false`): `newDsl=true` makes that plugin
   fail with `ApplicationExtensionImpl cannot be cast to BaseExtension` (broke main run 11, 2026-10-03).
 - CI (`.github/workflows/*.yml`) installs Gradle itself: keep `gradle-version` equal to
-  `gradle/wrapper/gradle-wrapper.properties` (AGP 9.4 needs Gradle 9.6.0). A mismatch broke every
+  `gradle/wrapper/gradle-wrapper.properties` (wrapper and CI are on 9.7.1 since Nov 2026; AGP 9.4 needs at least 9.6.0). A mismatch broke every
   CI build from 2026-10-01; earlier pushes also failed. Functions run on Node 22.
 - A function whose Cloud Run service still binds a secret the code no longer declares (the retired
   `HOSTINGER_SMTP_API_KEY`) fails every deploy with "Permission denied on secret" and keeps running old code — this
