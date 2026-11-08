@@ -6,7 +6,6 @@ import android.database.Cursor
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -59,13 +58,14 @@ class PickedFileAccessTest {
     }
 
     @Test
-    fun knownCases() {
-        assertEquals("pdf", access.extension(PickedFile("content://files.test/doc"), "bin"))
-        // Android's own MimeTypeMap decides between "jpg" and "jpeg"; exactness is covered by extensionEqualsTheOldFunctionForEveryInput.
-        assertTrue(access.extension(PickedFile("content://files.test/pic"), "bin") in setOf("jpg", "jpeg"))
-        assertEquals("png", access.extension(PickedFile("content://files.test/png"), "bin"))
+    fun nameBasedCasesDoNotDependOnTheContentProvider() {
+        // (the MIME-type path is exercised by extensionEqualsTheOldFunctionForEveryInput with the fake provider; its exact answers belong to
+        // Android's MimeTypeMap and to how Robolectric wires a provider, not to this code)
         assertEquals("docx", access.extension(PickedFile("content://files.test/unknown.docx"), "bin"))
+        assertEquals("pdf", access.extension(PickedFile("content://files.test/report.final.pdf"), "bin"))
         assertEquals("bin", access.extension(PickedFile("content://files.test/noext"), "bin"))
+        assertEquals("jpg", access.extension(PickedFile("https://example.com/photo.jpg"), "bin"))
+        assertEquals("pdf", access.extension(PickedFile("file:///storage/emulated/0/Download/lease.pdf"), "bin"))
     }
 
     @Test
