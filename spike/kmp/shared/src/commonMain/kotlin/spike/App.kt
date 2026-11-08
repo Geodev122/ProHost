@@ -6,6 +6,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -32,6 +33,15 @@ private val SteelBlue = Color(0xFF2B5A8C)
 fun FontScaleCap(max: Float = 1.15f, content: @Composable () -> Unit) {
     val d = LocalDensity.current
     CompositionLocalProvider(LocalDensity provides Density(d.density, minOf(d.fontScale, max)), content = content)
+}
+
+/** The app's primary colour in light (#2B5A8C) and dark (#93B8E0) - Color.kt / Theme.kt. */
+@Composable
+fun SpikeTheme(dark: Boolean, content: @Composable () -> Unit) {
+    MaterialTheme(
+        colorScheme = if (dark) darkColorScheme(primary = Color(0xFF93B8E0)) else lightColorScheme(primary = SteelBlue),
+        content = content
+    )
 }
 
 @Composable
