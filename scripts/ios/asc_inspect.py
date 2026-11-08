@@ -27,6 +27,13 @@ for a in apps:
     if a["attributes"].get("bundleId") == BUNDLE:
         s, d = api.get(f'/v1/builds?filter[app]={a["id"]}&sort=-uploadedDate&limit=5')
         show("latest builds", s, [f'v{b["attributes"].get("version")} processing={b["attributes"].get("processingState")} uploaded={b["attributes"].get("uploadedDate")} expired={b["attributes"].get("expired")}' for b in d.get("data", [])] or [d])
+        # TestFlight groups and their testers (names and state only, no emails).
+        s, d = api.get(f'/v1/betaGroups?filter[app]={a["id"]}&limit=20')
+        show("tester groups", s, [f'{g["attributes"].get("name")} internal={g["attributes"].get("isInternalGroup")} testers-public-link={g["attributes"].get("publicLinkEnabled")}' for g in d.get("data", [])] or ["(none)"] if s == 200 else [d])
+        if s == 200:
+            for g in d.get("data", []):
+                s2, d2 = api.get(f'/v1/betaGroups/{g["id"]}/betaTesters?limit=50')
+                print(f'   group {g["attributes"].get("name")}: {len(d2.get("data", [])) if s2 == 200 else "HTTP " + str(s2)} tester(s), states={sorted({t["attributes"].get("state") for t in d2.get("data", [])}) if s2 == 200 else ""}')
 
 s, d = api.get("/v1/certificates?limit=50")
 show("certificates", s, [f'{c["id"]} {c["attributes"].get("certificateType")} {c["attributes"].get("displayName")} exp={c["attributes"].get("expirationDate")}' for c in d.get("data", [])] or [d])
