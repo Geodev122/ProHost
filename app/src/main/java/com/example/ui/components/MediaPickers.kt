@@ -26,7 +26,7 @@ import java.io.File
  * same MIME filters and error messages); it becomes the `expect`/`actual` `MediaPicker` seam in P3 (iOS: PHPicker, UIDocumentPicker, camera).
  */
 
-/** One image from the system content picker (`GetContent("image/*")`); [onPicked] is not called when the person cancels. */
+/** One image from the system content picker (`GetContent` with the image MIME filter); [onPicked] is not called when the person cancels. */
 @Composable
 fun rememberImagePicker(onPicked: (PickedFile) -> Unit): () -> Unit {
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -44,7 +44,7 @@ fun rememberVisualMediaImagePicker(onPicked: (PickedFile) -> Unit): () -> Unit {
     return { launcher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
 }
 
-/** Several images at once (`GetMultipleContents("image/*")`); [onPicked] is not called with an empty list. */
+/** Several images at once (`GetMultipleContents` with the image MIME filter); [onPicked] is not called with an empty list. */
 @Composable
 fun rememberImagesPicker(onPicked: (List<PickedFile>) -> Unit): () -> Unit {
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris: List<Uri> ->
