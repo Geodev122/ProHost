@@ -89,14 +89,22 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             applyVariantToActivity(variant)
             // Every screen runs on a manual clock (golden-v2, migration P3.4): animations (sheet springs, scrim fades, dialog dim, progress
             // spinners) then end in the same state on every run and on every Compose version, instead of being captured wherever the
-            // idle check happened to stop them. (A text field inside a Dialog never reports idle under Robolectric either.)
-            val manualClock = true
-            compose.mainClock.autoAdvance = false
-            // The rule's setContent waits for idle, which a manual clock never reaches: set it on the activity.
-            compose.runOnUiThread { compose.activity.setContent { Variant(variant) { Screen(screen, vm) } } }
-            advance(300)
+            // idle check happened to stop them. (A text field inside a Dialog never reports idle under Robolectric either.) The few screens
+            // that never finish under a manual clock (IDLE_SCREENS, found by CI diagnostics) keep the idle wait the original golden used.
+            val manualClock = screen !in IDLE_SCREENS
+            if (manualClock) {
+                compose.mainClock.autoAdvance = false
+                // The rule's setContent waits for idle, which a manual clock never reaches: set it on the activity.
+                compose.runOnUiThread { compose.activity.setContent { Variant(variant) { Screen(screen, vm) } } }
+                advance(300)
+            } else {
+                compose.setContent { Variant(variant) { Screen(screen, vm) } }
+                compose.waitForIdle()
+                Thread.sleep(400) // let async image decoding land before the capture
+                compose.waitForIdle()
+            }
             TAPS[screen]?.forEach { tap(it, manualClock) }
-            advance(1_000) // springs, scrim fades and dialog dim settle well inside this
+            if (manualClock) advance(1_000) // springs, scrim fades and dialog dim settle well inside this
             if (screen in OVERLAYS) captureWithWindows("$OUT_DIR/$name.png")
             else compose.onRoot().captureRoboImage(filePath = "$OUT_DIR/$name.png")
         } catch (e: Throwable) {
@@ -402,6 +410,9 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         )
         /** Dialogs holding a text field: rendered on a manual clock (see capture()). */
         val FIELD_DIALOGS = setOf("cancel_booking", "country_picker", "reject_request")
+
+        /** Screens that hang under the manual clock (CI diagnostics, 9 Nov 2026): they use the idle wait. */
+        val IDLE_SCREENS = setOf("delete_account", "listing_wizard_2", "listing_wizard_3", "listing_wizard_3_empty")
         /** Overlays opened by tapping a control on their screen (string resources of the controls, in order). */
         val TAPS: Map<String, List<Tap>> = mapOf(
             "delete_account" to listOf(Tap.Res(R.string.delete_account)),
