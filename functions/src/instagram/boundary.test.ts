@@ -6,8 +6,8 @@ import { join, relative } from "node:path";
 /**
  * Agent boundary (migration plan P9, docs/migration/AGENT_ADAPTER.md). The AI agent (functions/src/instagram) is being decoupled from the ProHost
  * backend so it can move to its own project and serve many apps. Two directions are pinned here:
- *  1. ProHost code must not import the agent, except the function exports in index.ts and the one composition root that wires the agent's
- *     owner-DM channel into the lead sink (website/officeLeadSync.ts).
+ *  1. ProHost code must not import the agent, except the function exports in index.ts, adapter/prohostAdapter.ts (the AppAdapter implementation) and the one composition root
+ *     that wires the agent's owner-DM channel into the lead sink (website/officeLeadSync.ts).
  *  2. The agent may import only this list of ProHost modules. Each entry is a seam still to be replaced by the AppAdapter interface
  *     (searchListings, accountInsight, offers, leadSink, adminNotify, knowledge, health). The list may shrink, never grow.
  */
@@ -24,7 +24,7 @@ function walk(dir: string): string[] {
 const IMPORT = /from\s+"([^"]+)"/g;
 const importsOf = (file: string) => [...readFileSync(file, "utf8").matchAll(IMPORT)].map((m) => m[1]).filter((s) => s.startsWith("."));
 
-const ALLOWED_PROHOST_IMPORTERS = new Set(["index.ts", join("website", "officeLeadSync.ts")]);
+const ALLOWED_PROHOST_IMPORTERS = new Set(["index.ts", join("website", "officeLeadSync.ts"), join("adapter", "prohostAdapter.ts")]);
 
 test("ProHost modules do not import the agent (except the composition root)", () => {
   const offenders: string[] = [];
@@ -41,9 +41,6 @@ test("ProHost modules do not import the agent (except the composition root)", ()
 
 // Seams the agent still uses today (target modules relative to src/). Replace them with AppAdapter calls, then delete the entry.
 const AGENT_SEAMS = new Set([
-  "billing/playCatalogLive", // aiOffers.ts -> adapter.offers
-  "lib/email", // notify.ts -> adapter.adminNotify
-  "lib/emailTemplates", // notify.ts
   "website/sitemapXml", // aiListings.ts -> adapter.searchListings
   "listings/listingLocation", // aiListings.ts
   "listings/listingPrices", // aiListings.ts

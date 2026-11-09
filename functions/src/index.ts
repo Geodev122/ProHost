@@ -1,5 +1,6 @@
 import { setGlobalOptions } from "firebase-functions/v2";
 import "./lib/admin";
+import "./adapter/prohostAdapter"; // registers ProHost as the AI agent's host app (AppAdapter)
 
 setGlobalOptions({ region: "europe-west1", maxInstances: 10 });
 

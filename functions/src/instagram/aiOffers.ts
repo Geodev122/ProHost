@@ -1,7 +1,18 @@
 import { getFirestore } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import "../lib/admin";
-import { LiveBasePlan, LiveOffer, LivePhase, PROMO_TAG, periodMonths, readPlayCatalog } from "../billing/playCatalogLive";
+import { OfferBasePlan, OfferData, OfferPhase, appAdapter } from "./appAdapter";
+
+/** Offers tagged `promo` in Play are code-only campaigns and never quoted to a stranger (same tag the app's PlayPromo uses). */
+const PROMO_TAG = "promo";
+
+/** ISO-8601 period (P1M, P1Y, P7D...) in months; 0 when unreadable. Same rule as the app side. */
+function periodMonths(iso: string | null | undefined): number {
+  const m = /^P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?$/.exec(iso ?? "");
+  if (!m) return 0;
+  const [, y, mo, w, d] = m.map((x) => Number(x ?? 0));
+  return y * 12 + mo + (w * 7 + d) / 30.4375;
+}
 
 const REFRESH_MS = 15 * 60_000;
 const STALE_MS = 6 * 3_600_000;
@@ -9,7 +20,7 @@ const STALE_MS = 6 * 3_600_000;
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
 const trim = (n: number) => (Math.round(n * 10) / 10).toString();
 
-function phaseText(p: LivePhase): string {
+function phaseText(p: OfferPhase): string {
   const per = periodMonths(p.duration);
   const total = per * (p.recurrenceCount || 1);
   const span = total >= 12 && total % 12 === 0 ? plural(total / 12, "year") : plural(Number(trim(total)) || 1, "month");
@@ -21,7 +32,7 @@ function phaseText(p: LivePhase): string {
 }
 
 /** Live offers a NEW subscriber can get, in plain words, straight from Play's data (no invented numbers). Pure. */
-export function formatOffers(basePlans: LiveBasePlan[]): string {
+export function formatOffers(basePlans: OfferBasePlan[]): string {
   const lines: string[] = [];
   for (const bp of basePlans) {
     if (bp.state !== "ACTIVE") continue;
@@ -30,7 +41,7 @@ export function formatOffers(basePlans: LiveBasePlan[]): string {
     if (!kind) continue;
     const list = bp.prices.US && bp.prices.US !== "n/a" ? bp.prices.US : bp.prices.LB;
     const every = kind === "Yearly" ? "year" : "month";
-    const offers = bp.offers.filter((o: LiveOffer) =>
+    const offers = bp.offers.filter((o: OfferData) =>
       o.state === "ACTIVE" && !o.tags.includes(PROMO_TAG) && (o.availableIn.US || o.availableIn.LB || o.otherRegions) && /new customers/.test(o.eligibility));
     const best = offers
       .map((o) => ({ o, text: o.phases.map(phaseText).filter(Boolean).join(", then ") }))
@@ -45,7 +56,7 @@ export function formatOffers(basePlans: LiveBasePlan[]): string {
 let memo: { text: string; at: number } | null = null;
 
 /** Cached text of the live offers; refreshed from Google Play at most every 15 minutes. Empty string = unknown. */
-export async function liveOffersText(now: number, read: typeof readPlayCatalog = readPlayCatalog): Promise<string> {
+export async function liveOffersText(now: number, read: () => Promise<{ basePlans: OfferBasePlan[] }> = () => appAdapter().readOffers()): Promise<string> {
   if (memo && now - memo.at < REFRESH_MS) return memo.text;
   const ref = getFirestore().collection("app_config").doc("instagram_offers");
   const cached = (await ref.get().catch(() => null))?.data();
