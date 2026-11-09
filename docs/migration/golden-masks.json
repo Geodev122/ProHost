@@ -337,5 +337,34 @@
       38
     ]
   ],
-  "_library_rendering": "9 Nov 2026 (Compose 1.12 / Material 3 1.4): splash = indeterminate spinner phase; explore_map = the Google Maps stub text at the top and the card photos in the bottom strip (image filtering differs by a few levels, visually identical); renting_progress_ar/rtl = the 0 % progress bar's end dot; premium_plans = the renewal date, which moves with the day (golden taken 8 Nov). Remove with the P4 re-baseline (frozen clock, preloaded images)."
+  "_library_rendering": "9 Nov 2026 (Compose 1.12 / Material 3 1.4): splash = indeterminate spinner phase; explore_map = the Google Maps stub text at the top and the card photos in the bottom strip (image filtering differs by a few levels, visually identical); renting_progress_ar/rtl = the 0 % progress bar's end dot; premium_plans = the renewal date, which moves with the day (golden taken 8 Nov). Remove with the P4 re-baseline (frozen clock, preloaded images).",
+  "edit_booking_small.png": [
+    [
+      52,
+      640,
+      1066,
+      25
+    ],
+    [
+      52,
+      2040,
+      1066,
+      56
+    ]
+  ],
+  "rebook_small.png": [
+    [
+      52,
+      640,
+      1066,
+      25
+    ],
+    [
+      52,
+      2040,
+      1066,
+      56
+    ]
+  ],
+  "_scroll_viewport_edges": "edit_booking_small / rebook_small: the 18 rows under the scrolled list's top edge and the 45 rows above its bottom edge show different slices of the content because the list sits 4 px lower than in the golden (scroll-to-node rule of the test framework, docs/migration/scroll-offset.json); the rows between must match exactly after shifting."
 }

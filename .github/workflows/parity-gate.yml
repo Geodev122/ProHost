@@ -53,6 +53,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "9.7.1"
+          # Feature branches saved no Gradle cache (read-only by default), so every job downloaded the Kotlin compiler again and tripped over
+          # Maven Central/GitHub 504s. Let these jobs save it.
+          cache-read-only: false
       - name: Generate Debug Keystore
         run: |
           keytool -genkey -v -keystore debug.keystore -storepass android \
@@ -106,6 +109,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "9.7.1"
+          # Feature branches saved no Gradle cache (read-only by default), so every job downloaded the Kotlin compiler again and tripped over
+          # Maven Central/GitHub 504s. Let these jobs save it.
+          cache-read-only: false
       - name: Generate Debug Keystore
         run: |
           keytool -genkey -v -keystore debug.keystore -storepass android \
@@ -149,6 +155,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "9.7.1"
+          # Feature branches saved no Gradle cache (read-only by default), so every job downloaded the Kotlin compiler again and tripped over
+          # Maven Central/GitHub 504s. Let these jobs save it.
+          cache-read-only: false
       - name: Generate Debug Keystore
         run: |
           keytool -genkey -v -keystore debug.keystore -storepass android \
