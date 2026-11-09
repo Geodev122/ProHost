@@ -12,6 +12,8 @@ kotlin {
     namespace = "com.example.shared"
     compileSdk = 37
     minSdk = 24
+    // Compose resources (strings, later fonts and drawables) are packaged as Android assets/resources.
+    androidResources { enable = true }
   }
   // iOS targets compile on macOS runners only; on Linux they are skipped.
   iosArm64()
@@ -25,7 +27,13 @@ kotlin {
       api(compose.foundation)
       api(compose.material3)
       api(compose.ui)
+      api(compose.components.resources)
       api("org.jetbrains.compose.material:material-icons-extended:${libs.versions.materialIconsExtended.get()}")
     }
   }
+}
+
+compose.resources {
+  publicResClass = true
+  packageOfResClass = "com.example.shared.resources"
 }

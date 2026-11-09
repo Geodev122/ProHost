@@ -206,3 +206,6 @@ To do at the P4 re-baseline: freeze the clock and preload images in the harness,
 
 ### P4.1 Theme tokens in `:shared` — ✔ 9 Nov 2026 (Parity Gate run 42587092971: compile, tests, R8, 280/280 identical)
 `Color`, `Elevation`, `Radius`, `Shape`, `Spacing`, `ProHostColors` moved to `shared/src/commonMain` (packages unchanged; the two palettes became public because they now cross a module boundary). What is left in `:app` depends on Android resources (`R.string`, fonts, drawables), `Context`/Firebase, Coil 2 or the other not-yet-ported seams; the next shared candidates are the pure components (`ChoiceCard`, `ResizableBottomSheet`, `AutofillHints`, `ProHostButtons`), then **string resources → Compose resources** (1,225 strings + plurals in en/ar, the gate for almost everything else).
+
+### P4.2 Pure components in `:shared` — ✔ 9 Nov 2026 (Parity Gate run 42589110694: 280/280 identical)
+`ChoiceCard`, `AutofillHints` and the Material wrappers (`ProHostButtons.kt`) moved. `ResizableBottomSheet` stayed (depends on `ProHostBottomSheet` in `ProHostBrandComponents.kt`); `SelectField` stays until `InputField` moves.

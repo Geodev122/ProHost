@@ -61,6 +61,8 @@ jobs:
           keytool -genkey -v -keystore debug.keystore -storepass android \
             -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 \
             -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+      - name: Compose string resources equal the Android ones
+        run: python3 scripts/i18n/to_compose_resources.py --check
       - name: Compile (debug + release) and run the unit tests
         run: |
           set +e
