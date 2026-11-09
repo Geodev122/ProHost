@@ -251,3 +251,6 @@ Step 3 (hard-coded ProHost wording → `BrandProfile`: `FALLBACK_REPLY`, goodbye
 
 ### P5 unit: schema models + default catalogue to :shared (9 Nov 2026)
 `SchemaCategory`, `SchemaItem`, `AttendeePackage`, `SpaceArchitectureSchema` (moved out of `DataModels.kt`, same package `com.example.data.model`) and `createDefaultSchema()` (`DefaultSchema.kt`, now public, package `com.example.data.repository`) live in `shared/src/commonMain` so the admin web console edits the same schema with the same mappers and built-in catalogue. No behaviour change for the app; verified by the Parity Gate (280/280) and unit tests.
+
+### P11.5 (partial) dead Maintenance entries removed (9 Nov 2026)
+`aiprobe` / `aiquota` (Vertex tasks with no handler) removed from the Maintenance workflow description; `aitest` text says Claude (not Gemini); `docs/INSTAGRAM.md` no longer lists `geminiprobe`; CLAUDE.md correction note updated.
