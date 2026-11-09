@@ -46,9 +46,15 @@ test("the agent never writes app data", () => {
   assert.deepEqual(offenders, []);
 });
 
-test("the scan sees the agent's reads of app data", () => {
+test("the agent touches no app collection directly: reads live in the AppAdapter implementation (adapter/), read-only", () => {
   const all = sources.map((s) => s.text).join("\n");
   for (const name of ['"workspace_listings"', '"user_profiles"', '"booking_requests"']) {
-    assert.ok(all.includes(`.collection(${name})`), `${name} is read somewhere`);
+    assert.ok(!all.includes(`.collection(${name})`), `${name} must be read through AppAdapter, not by the agent`);
   }
+  const adapterDir = join(__dirname, "..", "..", "src", "adapter");
+  const adapter = readdirSync(adapterDir).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts")).map((f) => readFileSync(join(adapterDir, f), "utf8")).join("\n");
+  for (const name of ['"workspace_listings"', '"user_profiles"', '"booking_requests"']) {
+    assert.ok(adapter.includes(`.collection(${name})`), `${name} is read by the adapter`);
+  }
+  assert.ok(!/\)\.(set|update|add|delete|create)\(/.test(adapter) && !/\.(batch|runTransaction)\(/.test(adapter), "the adapter only reads app data");
 });
