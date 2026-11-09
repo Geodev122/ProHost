@@ -13,6 +13,8 @@ import admin.firebase.getDoc
 import admin.firebase.getDocs
 import admin.firebase.getStorage
 import admin.firebase.limit
+import admin.firebase.orderBy
+import admin.firebase.query2
 import admin.firebase.listAll
 import admin.firebase.query
 import admin.firebase.ref
@@ -54,6 +56,8 @@ interface AdminGateway {
   suspend fun readDoc(path: String): String?
   /** Listings waiting for verification review: `isVerified == false and verificationRequestedAt > 0`, newest 50, as a JSON array. */
   suspend fun reviewQueue(): String
+  /** Top 50 hashtags by `count` from `hashtag_usage`, as a JSON array. */
+  suspend fun hashtagUsage(): String
   /** Deletes every object under a Storage path (walks prefixes, like the Android purge). */
   suspend fun purgeStorage(path: String)
 }
@@ -121,6 +125,10 @@ class FirebaseWebGateway : AdminGateway {
 
   override suspend fun reviewQueue(): String = docsJson(
     getDocs(query(collection(firestore, "workspace_listings"), where("isVerified", "==", parseObj("false")), where("verificationRequestedAt", ">", parseObj("0")), limit(50))).await<JsAny>()
+  )
+
+  override suspend fun hashtagUsage(): String = docsJson(
+    getDocs(query2(collection(firestore, "hashtag_usage"), orderBy("count", "desc"), limit(50))).await<JsAny>()
   )
 
   override suspend fun purgeStorage(path: String) = purge(ref(storage, path))

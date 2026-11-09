@@ -32,6 +32,16 @@ class Json private constructor(private val v: JsAny?) {
     return List(lenJs(keys)) { i -> val k = strJs(atJs(keys, i)!!); k to Json(getJs(o, k)) }
   }
 
+  /** Plain Kotlin value: null, String, Double, Boolean, List or Map (insertion ordered). */
+  fun toKotlin(): Any? = when {
+    v == null -> null
+    kindJs(v) == "array" -> list().map { it.toKotlin() }
+    kindJs(v) == "object" -> entries().associate { it.first to it.second.toKotlin() }
+    kindJs(v) == "boolean" -> bool()
+    kindJs(v) == "number" -> num()
+    else -> str()
+  }
+
   /** One CSV cell as the Android export prints it: lists joined by spaces, numbers as whole numbers. */
   fun cell(): String = if (v == null) "" else if (kindJs(v) == "array") list().joinToString(" ") { it.cell() } else num()?.toLong()?.toString() ?: str()
   fun list(): List<Json> {
@@ -85,3 +95,15 @@ private fun nextMonthJs(ms: Double): Double = js("(function () { var d = new Dat
 /** Thousands-separated whole number like `%,.0f` (Locale.US). */
 fun groupedWhole(v: Double): String = groupedJs(v)
 private fun groupedJs(v: Double): String = js("Math.round(v).toLocaleString('en-US')")
+
+/** JSON text for a plain Kotlin value (null, String, Number, Boolean, List, Map). */
+fun toJsonText(value: Any?): String = when (value) {
+  null -> "null"
+  is String -> jsonQuote(value)
+  is Boolean -> value.toString()
+  is Int, is Long -> value.toString()
+  is Number -> value.toDouble().let { if (it == kotlin.math.floor(it) && kotlin.math.abs(it) < 1e15) it.toLong().toString() else it.toString() }
+  is List<*> -> value.joinToString(",", "[", "]") { toJsonText(it) }
+  is Map<*, *> -> value.entries.joinToString(",", "{", "}") { "${jsonQuote(it.key.toString())}:${toJsonText(it.value)}" }
+  else -> jsonQuote(value.toString())
+}

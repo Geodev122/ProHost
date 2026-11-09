@@ -28,3 +28,9 @@ external fun limit(n: Int): JsAny
 external fun getDocs(q: JsAny): Promise<JsAny>
 
 external fun getDoc(ref: DocRef): Promise<JsAny>
+
+/** Same JS function as [query] with two constraints (ordering + limit). */
+@JsName("query")
+external fun query2(ref: JsAny, c1: JsAny, c2: JsAny): JsAny
+
+external fun orderBy(field: String, direction: String): JsAny
