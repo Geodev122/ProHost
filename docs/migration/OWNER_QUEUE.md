@@ -45,3 +45,6 @@ Standing list: `docs/OWNER_TODO.md` (Google Trust & Safety case, Play domain che
 
 ## D. State of the autonomous run (9 Nov 2026)
 Done and proven by the 280-render Parity Gate: P0, P2 (all seams), P3 (Kotlin 2.3.20, built-in Kotlin, `:shared` module, Compose Multiplatform 1.12.2 with the app looking as before), P4.1-P4.3a (theme tokens, pure components, generated Compose string resources). Waiting for work that needs more than CI: P4.3b+ (move screens, Coil 3, string call sites, view models), P5 data gateways, P6 screens, P7-P8 iOS (macOS runners and a device), P1 admin web (D-items and M1), P9 agent move (D8, M2), P10 hardening, P11 backend efficiency (Q1-Q8 and sections 2-7 of `BACKLOG_BACKEND_COST.md`). Each is a sequence of small gated units; the order, risks and per-unit method are in `MASTER_PLAN.md`, `PROGRESS.md` and the backlog.
+
+## E. Device test build (9 Nov 2026)
+Play probe (Release bundle, `probe`): the CI account works; Play holds version codes up to 46, production = 1.0.46 (46), internal and beta empty. `main` is at versionCode 47 / 1.0.47 (not uploaded yet), so the migration build uses **versionCode 48 / 1.0.48** to leave 47 free for the real 1.0.47 release. Uploaded to the **internal** track only; production stays 1.0.46 and `docs/release/published.txt` is untouched.

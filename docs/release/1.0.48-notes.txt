@@ -1,0 +1,3 @@
+<en-US>
+Internal test build of the new ProHost engine (Kotlin 2.3 and Compose Multiplatform). Same screens as 1.0.47; please report anything that looks or behaves differently.
+</en-US>
