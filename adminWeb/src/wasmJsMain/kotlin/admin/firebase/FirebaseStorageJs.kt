@@ -21,3 +21,7 @@ external fun ref(storage: Storage, path: String): StorageRef
 external fun listAll(ref: StorageRef): Promise<ListResult>
 
 external fun deleteObject(ref: StorageRef): Promise<JsAny?>
+
+external fun uploadBytes(ref: StorageRef, data: JsAny, metadata: JsAny): Promise<JsAny>
+
+external fun getDownloadURL(ref: StorageRef): Promise<JsString>

@@ -107,3 +107,15 @@ fun toJsonText(value: Any?): String = when (value) {
   is Map<*, *> -> value.entries.joinToString(",", "{", "}") { "${jsonQuote(it.key.toString())}:${toJsonText(it.value)}" }
   else -> jsonQuote(value.toString())
 }
+
+/** `yyyy-MM-dd HH:mm:ss` in the browser's local time (the Android console prints device-local time). */
+fun dateTimeLocal(ms: Double): String = dateTimeJs(ms)
+private fun dateTimeJs(ms: Double): String = js("(function () { var d = new Date(ms); function p(n) { return String(n).padStart(2, '0'); } return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()); })()")
+
+/** Opens the browser's file chooser; completes with the chosen `File`, or null when cancelled. */
+fun pickFile(accept: String): kotlin.js.Promise<JsAny?> = pickJs(accept)
+private fun pickJs(accept: String): kotlin.js.Promise<JsAny?> = js("new Promise(function (resolve) { var i = document.createElement('input'); i.type = 'file'; i.accept = accept; i.onchange = function () { resolve(i.files && i.files[0] ? i.files[0] : null); }; i.oncancel = function () { resolve(null); }; i.click(); })")
+
+/** `file.name` of a browser `File`. */
+fun fileNameOf(file: JsAny): String = fileNameJs(file)
+private fun fileNameJs(file: JsAny): String = js("String(file.name || '')")

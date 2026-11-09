@@ -11,7 +11,9 @@ import admin.firebase.collection
 import admin.firebase.deleteObject
 import admin.firebase.getDoc
 import admin.firebase.getDocs
+import admin.firebase.getDownloadURL
 import admin.firebase.getStorage
+import admin.firebase.uploadBytes
 import admin.firebase.limit
 import admin.firebase.orderBy
 import admin.firebase.query2
@@ -58,6 +60,10 @@ interface AdminGateway {
   suspend fun reviewQueue(): String
   /** Top 50 hashtags by `count` from `hashtag_usage`, as a JSON array. */
   suspend fun hashtagUsage(): String
+  /** The newest 500 `audit_security_logs` (timestamp descending) as a JSON array. */
+  suspend fun auditLogs(): String
+  /** Uploads a browser `File` (as a JS value) to a Storage path with the given content type and returns its download URL. */
+  suspend fun uploadFile(path: String, file: JsAny, contentType: String): String
   /** Deletes every object under a Storage path (walks prefixes, like the Android purge). */
   suspend fun purgeStorage(path: String)
 }
@@ -75,6 +81,7 @@ private fun claimOf(result: JsAny, name: String): String = js("String(result.cla
 private fun invoke(callable: JsAny, json: String): Promise<JsString> = js("callable(JSON.parse(json)).then(function (r) { return JSON.stringify(r.data === undefined ? null : r.data); })")
 
 private fun parseObj(json: String): JsAny = js("JSON.parse(json)")
+private fun contentTypeMeta(type: String): JsAny = js("({ contentType: type })")
 private fun mergeOption(): JsAny = js("({ merge: true })")
 
 private fun docsJson(snap: JsAny): String = js("JSON.stringify(snap.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }))")
@@ -130,6 +137,16 @@ class FirebaseWebGateway : AdminGateway {
   override suspend fun hashtagUsage(): String = docsJson(
     getDocs(query2(collection(firestore, "hashtag_usage"), orderBy("count", "desc"), limit(50))).await<JsAny>()
   )
+
+  override suspend fun auditLogs(): String = docsJson(
+    getDocs(query2(collection(firestore, "audit_security_logs"), orderBy("timestamp", "desc"), limit(500))).await<JsAny>()
+  )
+
+  override suspend fun uploadFile(path: String, file: JsAny, contentType: String): String {
+    val r = ref(storage, path)
+    uploadBytes(r, file, contentTypeMeta(contentType)).await<JsAny>()
+    return getDownloadURL(r).await<JsString>().toString()
+  }
 
   override suspend fun purgeStorage(path: String) = purge(ref(storage, path))
 
