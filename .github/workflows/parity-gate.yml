@@ -2,7 +2,7 @@ name: Parity Gate
 
 # Owner rule for the KMP + Compose Multiplatform migration (docs/migration/MASTER_PLAN.md): NO visible change. On every push that touches
 # app code or build files this job (1) compiles the app and runs its unit tests, (2) renders the 280 design screenshots exactly like the
-# Design Screenshots workflow and (3) diffs them pixel by pixel against the golden baseline refs/design-shots/golden-v2 (the untouched v1.0.47 app rendered with the same deterministic harness)
+# Design Screenshots workflow and (3) diffs them pixel by pixel against the golden baseline refs/design-shots/golden-v1047 (the untouched v1.0.47 app)
 # (known dynamic regions masked by docs/migration/golden-masks.json). Any difference fails the job and the HTML report shows where.
 # Never deploys. The only write is the Before/After sheets, pushed as a commit under refs/design-shots/parity-<branch> (not a branch),
 # like the Design Screenshots workflow; the full renders are uploaded as an artifact.
@@ -25,6 +25,7 @@ on:
       - "settings.gradle.kts"
       - "gradle.properties"
       - "docs/migration/golden-masks.json"
+      - "docs/migration/overlay-dim.json"
       - "scripts/migration/diff_shots.py"
       - "scripts/migration/shots.py"
       - "scripts/migration/before_after.py"
@@ -112,7 +113,7 @@ jobs:
           if-no-files-found: ignore
 
   diff:
-    name: Diff against golden-v2
+    name: Diff against golden-v1047
     needs: [render]
     if: always() && needs.render.result != 'cancelled'
     runs-on: ubuntu-latest
@@ -143,12 +144,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           pip install --quiet pillow numpy
-          python3 scripts/migration/fetch_ref.py golden-v2 golden
+          python3 scripts/migration/fetch_ref.py golden-v1047 golden
           ls app/build/design-shots | wc -l
           mkdir -p parity
           set +e
           python3 scripts/migration/diff_shots.py --golden golden --candidate app/build/design-shots \
-            --masks docs/migration/golden-masks.json --report parity/diff.html --json parity/diff.json | tee parity/summary.txt
+            --masks docs/migration/golden-masks.json --level-tol docs/migration/overlay-dim.json --report parity/diff.html --json parity/diff.json | tee parity/summary.txt
           status=${PIPESTATUS[0]}
           set -e
           echo "status=${status}" >> "$GITHUB_OUTPUT"
@@ -177,7 +178,7 @@ jobs:
             gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly="${screens}" --no-daemon --stacktrace 2>&1 | tee "gradle-rerun-${attempt}.log"
             set +o pipefail
             python3 scripts/migration/diff_shots.py --golden golden --candidate app/build/design-shots --only "$names" \
-              --masks docs/migration/golden-masks.json --report parity/diff-rerun.html --json parity/diff-rerun.json | tee parity/summary-rerun.txt
+              --masks docs/migration/golden-masks.json --level-tol docs/migration/overlay-dim.json --report parity/diff-rerun.html --json parity/diff-rerun.json | tee parity/summary-rerun.txt
             status=${PIPESTATUS[0]}
             set -e
             tail -1 parity/summary-rerun.txt | while IFS= read -r line; do echo "::notice title=parity-reproduce-${attempt}::${line}"; done

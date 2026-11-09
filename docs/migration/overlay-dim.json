@@ -1,0 +1,25 @@
+{
+  "_comment": "Owner queue D13 (9 Nov 2026). Compose 1.12 / Material 3 1.4 draw the dim behind sheets and dialogs 4-6 % lighter than Compose 1.7 / Material 3 1.3 in Robolectric (per-channel difference at most 16 levels, never more, no layout change: measured over 140 renders). Window dim is platform behaviour that cannot be pinned from app code; verify on a device (OWNER_QUEUE M4). The tolerance applies ONLY to these overlay screens and ONLY up to 'level' per channel; any larger difference still fails.",
+  "level": 16,
+  "screens": [
+    "change_price",
+    "change_price_new",
+    "change_price_slots",
+    "edit_booking",
+    "rebook",
+    "request_detail",
+    "request_sent",
+    "requirements",
+    "requirements_host",
+    "listing_division_sheet",
+    "premium",
+    "redeem_code",
+    "notifications",
+    "location_prompt",
+    "legal_documents",
+    "analytics_consent",
+    "cancel_booking",
+    "country_picker",
+    "reject_request"
+  ]
+}

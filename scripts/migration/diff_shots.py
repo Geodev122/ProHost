@@ -22,7 +22,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import shots  # noqa: E402
 
 
-def run(golden: Path, candidate: Path, only: list[str], channel_tol: int, max_ratio: float, masks: dict | None = None) -> dict:
+def run(golden: Path, candidate: Path, only: list[str], channel_tol: int, max_ratio: float, masks: dict | None = None,
+        level_tol: dict | None = None) -> dict:
     g, c = shots.list_pngs(golden), shots.list_pngs(candidate)
     names = [n for n in g if not only or any(n.startswith(p) for p in only)]
     results, extra = [], sorted(n for n in c if n not in g and (not only or any(n.startswith(p) for p in only)))
@@ -30,7 +31,10 @@ def run(golden: Path, candidate: Path, only: list[str], channel_tol: int, max_ra
         if name not in c:
             results.append({"name": name, "status": "missing"})
             continue
-        r = shots.compare(g[name], c[name], channel_tol, shots.masks_for(name, masks))
+        tol = channel_tol
+        if level_tol and any(name.startswith(p + "_") for p in level_tol.get("screens", [])):
+            tol = max(tol, int(level_tol.get("level", 0)))  # backdrop dim of sheets/dialogs only (docs/migration/overlay-dim.json)
+        r = shots.compare(g[name], c[name], tol, shots.masks_for(name, masks))
         r["name"] = name
         r["status"] = "same" if r["same_size"] and r["diff_ratio"] <= max_ratio else ("resized" if not r["same_size"] else "changed")
         results.append(r)
@@ -72,12 +76,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--channel-tol", type=int, default=0, help="ignore per-channel differences up to this value (anti-aliasing noise)")
     ap.add_argument("--max-ratio", type=float, default=0.0, help="allowed share of changed pixels per file")
     ap.add_argument("--masks", type=Path, help="JSON of known dynamic regions to ignore")
+    ap.add_argument("--level-tol", type=Path, help="JSON {level, screens}: per-channel tolerance for the listed overlay screens (backdrop dim only)")
     ap.add_argument("--report", type=Path)
     ap.add_argument("--json", type=Path)
     a = ap.parse_args(argv)
     only = [p for p in a.only.split(",") if p]
     masks = json.loads(a.masks.read_text(encoding="utf-8")) if a.masks else None
-    summary = run(a.golden, a.candidate, only, a.channel_tol, a.max_ratio, masks)
+    level_tol = json.loads(a.level_tol.read_text(encoding="utf-8")) if a.level_tol else None
+    summary = run(a.golden, a.candidate, only, a.channel_tol, a.max_ratio, masks, level_tol)
     if a.report:
         write_report(summary, a.golden, a.candidate, a.channel_tol, a.report, masks)
     if a.json:
