@@ -7,6 +7,7 @@
 //   node scripts/maintenance/run.js j8               production data hygiene (backup → cleanup)
 //   node scripts/maintenance/run.js retiregrowth     retired plans (growth/enterprise): holders → permanent grant, rows closed
 //   node scripts/maintenance/run.js occupancy        rebuild booking_occupancy from ACCEPTED bookings
+//   node scripts/maintenance/run.js lifecycle [apply]     Storage retention: delete listing_verification_docs/ and booking_agreements/ after 365 days (dry run shows the bucket's rules)
 //   node scripts/maintenance/run.js ttl [apply]           Firestore TTL policies on notifications.ttlAt (48 h) and mail.expireAt (30 d): dry run shows state, apply creates them
 //   node scripts/maintenance/run.js favrecount [apply] listing save counts (favoriteCount) recounted from user_profiles.savedSpaceIds,
 //                                                    the owner's own save excluded; dry run prints counts only, apply writes
@@ -355,6 +356,31 @@ async function ttl(db, arg) {
     const mail = await db.collection("mail").where("expireAt", "<", now).count().get();
     const n = await db.collectionGroup("notifications").where("expireAt", "<", Date.now()).count().get();
     return `expired mail docs=${mail.data().count} expired notifications (old prune job handles these)=${n.data().count}`;
+  });
+}
+
+async function lifecycle(arg) {
+  // Storage retention (owner approved 9 Nov 2026, D16): verification documents and booking agreements are deleted
+  // about one year after upload (~ one year after review). Dry run prints the bucket's current rules; code `apply`
+  // adds (never replaces) the two rules. Age counts from upload, so an agreement for a booking longer than a year goes too.
+  const bucket = admin.storage().bucket().name;
+  const url = `https://storage.googleapis.com/storage/v1/b/${bucket}?fields=lifecycle`;
+  const WANT = ["listing_verification_docs/", "booking_agreements/"].map((prefix) => ({
+    action: { type: "Delete" }, condition: { age: 365, matchesPrefix: [prefix] },
+  }));
+  await step(arg === "apply" ? "lifecycle apply" : "lifecycle (dry run)", async () => {
+    const r = await googleApi(url);
+    if (!r.ok) throw new Error(`HTTP ${r.status} ${(await r.text()).slice(0, 200)}`);
+    const rules = (await r.json()).lifecycle?.rule || [];
+    const has = (w) => rules.some((x) => x.action?.type === "Delete" && x.condition?.age === 365 && JSON.stringify(x.condition.matchesPrefix) === JSON.stringify(w.condition.matchesPrefix));
+    const missing = WANT.filter((w) => !has(w));
+    const show = rules.map((x) => `${x.action?.type}:${JSON.stringify(x.condition)}`).join(" ; ") || "none";
+    if (arg === "apply" && missing.length) {
+      const p = await googleApi(`https://storage.googleapis.com/storage/v1/b/${bucket}`, { method: "PATCH", body: JSON.stringify({ lifecycle: { rule: [...rules, ...missing] } }) });
+      if (!p.ok) throw new Error(`HTTP ${p.status} ${(await p.text()).slice(0, 200)}`);
+      return `bucket=${bucket} added ${missing.length} rule(s); had: ${show}`;
+    }
+    return `bucket=${bucket} existing rules: ${show}; missing=${missing.length}${missing.length && arg !== "apply" ? " — run with code apply to add" : ""}`;
   });
 }
 
@@ -1912,6 +1938,7 @@ async function smsauth(db, arg) {
   else if (task === "occupancy") await occupancy(db);
   else if (task === "favrecount") await favrecount(db, (arg || "").trim());
   else if (task === "ttl") await ttl(db, (arg || "").trim());
+  else if (task === "lifecycle") await lifecycle((arg || "").trim());
   else if (task === "retiregrowth") { await retiregrowth(db); await audit(db, auth); }
   else if (task === "emailauth") await emailauth(db);
   else if (task === "enableemaillink") { await enableemaillink(); await emailauth(db); }
