@@ -32,13 +32,11 @@ jobs:
             unzip -q -o s.jar || true
             cd ..
           done
-      - name: OLD 1.3.1 outlined field layout
+      - name: OLD 1.3.1 outlined field composable
         run: |
           f=m3-1.3.1/commonMain/androidx/compose/material3/OutlinedTextField.kt
-          echo "##### 1.3.1 lines 640-720"; sed -n 640,720p $f
-          echo "##### 1.3.1 lines 985-1090"; sed -n 985,1090p $f
-      - name: NEW 1.4.0 outlined field layout
+          echo "##### 1.3.1 composable"; sed -n 190,260p $f
+      - name: NEW 1.4.0 outlined field composable
         run: |
           f=m3-1.4.0/commonMain/androidx/compose/material3/OutlinedTextField.kt
-          echo "##### 1.4.0 lines 860-940"; sed -n 860,940p $f
-          echo "##### 1.4.0 lines 1210-1300"; sed -n 1210,1300p $f
+          echo "##### 1.4.0 composable"; grep -n "padding\|defaultMinSize\|labelProgress\|Modifier" $f | sed -n 1,80p
