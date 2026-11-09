@@ -366,5 +366,14 @@
       56
     ]
   ],
-  "_scroll_viewport_edges": "edit_booking_small / rebook_small: the 18 rows under the scrolled list's top edge and the 45 rows above its bottom edge show different slices of the content because the list sits 4 px lower than in the golden (scroll-to-node rule of the test framework, docs/migration/scroll-offset.json); the rows between must match exactly after shifting."
+  "_scroll_viewport_edges": "edit_booking_small / rebook_small: the 18 rows under the scrolled list's top edge and the 45 rows above its bottom edge show different slices of the content because the list sits 4 px lower than in the golden (scroll-to-node rule of the test framework, docs/migration/scroll-offset.json); the rows between must match exactly after shifting.",
+  "delete_account_small.png": [
+    [
+      290,
+      775,
+      60,
+      60
+    ]
+  ],
+  "_version_text": "delete_account_small: the profile's update row prints the app version (golden: v1.0.47). The migration test build is 1.0.48; the digit is masked. Remove when the golden is re-baselined at the next version."
 }
