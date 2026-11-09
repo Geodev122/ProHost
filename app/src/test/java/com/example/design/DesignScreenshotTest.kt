@@ -83,46 +83,40 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         }
         val out = File(OUT_DIR).apply { mkdirs() }
         val name = "${screen}_$variant"
-        File(out, "_last.txt").writeText(name) // the render a hung run was in (CI uploads it with the renders)
+        File(out, "_last_${System.getProperty("design.shard").orEmpty().replace('/', 'o')}.txt").writeText(name) // the render a hung run was in
         try {
             val vm = signedInViewModel(if (screen in HOST_SCREENS) UserRole.PRO_HOST else UserRole.SPECIALIST)
             applyVariantToActivity(variant)
-            // Every screen runs on a manual clock (golden-v2, migration P3.4): animations (sheet springs, scrim fades, dialog dim, progress
-            // spinners) then end in the same state on every run and on every Compose version, instead of being captured wherever the
-            // idle check happened to stop them. (A text field inside a Dialog never reports idle under Robolectric either.) The few screens
-            // that never finish under a manual clock (IDLE_SCREENS, found by CI diagnostics) keep the idle wait the original golden used.
-            val manualClock = screen !in IDLE_SCREENS
+            // A text field inside a Dialog window never reports idle under Robolectric (Material's own field included):
+            // those overlays run on a manual clock instead of waiting for idle.
+            val manualClock = screen in FIELD_DIALOGS
+            if (manualClock) compose.mainClock.autoAdvance = false
             if (manualClock) {
-                compose.mainClock.autoAdvance = false
-                // The rule's setContent waits for idle, which a manual clock never reaches: set it on the activity.
+                // The rule's setContent waits for idle, which a field in a Dialog never reaches: set it on the activity.
                 compose.runOnUiThread { compose.activity.setContent { Variant(variant) { Screen(screen, vm) } } }
-                advance(300)
             } else {
                 compose.setContent { Variant(variant) { Screen(screen, vm) } }
+            }
+            if (manualClock) {
+                compose.mainClock.advanceTimeBy(1_000)
+            } else {
                 compose.waitForIdle()
                 Thread.sleep(400) // let async image decoding land before the capture
                 compose.waitForIdle()
             }
             TAPS[screen]?.forEach { tap(it, manualClock) }
-            if (manualClock) advance(System.getenv("DESIGN_SETTLE_MS")?.toLongOrNull() ?: 1_000L) // springs, scrim fades and dialog dim settle inside this
+            if (manualClock) compose.mainClock.advanceTimeBy(1_000)
+            else System.getenv("DESIGN_EXTRA_SETTLE_MS")?.toLongOrNull()?.takeIf { it > 0 }?.let {
+                // Springs in newer Material sheets/dialogs keep running after the idle check: let them end before the capture.
+                compose.mainClock.advanceTimeBy(it)
+                compose.waitForIdle()
+            }
             if (screen in OVERLAYS) captureWithWindows("$OUT_DIR/$name.png")
             else compose.onRoot().captureRoboImage(filePath = "$OUT_DIR/$name.png")
         } catch (e: Throwable) {
             File(out, "$name.error.txt").writeText(e.stackTraceToString())
         } finally {
-            // A manual clock left stopped makes the rule's end-of-test idle wait hang until the Gradle test timeout (seen on delete_account).
             runCatching { compose.mainClock.autoAdvance = true }
-        }
-    }
-
-    /** Moves the manual clock forward in 100 ms steps with a short real-time pause each, so async image decoding can land between frames. */
-    private fun advance(ms: Long) {
-        var left = ms
-        while (left > 0) {
-            val step = minOf(left, 100L)
-            Thread.sleep(15)
-            compose.mainClock.advanceTimeBy(step)
-            left -= step
         }
     }
 
@@ -139,10 +133,9 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             is Tap.Desc -> androidx.compose.ui.test.hasContentDescription(com.example.ui.util.UiText.get(target.id))
         }
         runCatching { compose.onAllNodes(hasScrollToNodeAction()).onFirst().performScrollToNode(matcher) }
-        if (manualClock) advance(200) // lazy lists compose the scrolled-to item on the next frames
         compose.onAllNodes(matcher, useUnmergedTree = true).onFirst().performClick()
         if (manualClock) {
-            advance(300)
+            compose.mainClock.advanceTimeBy(800)
         } else {
             compose.waitForIdle()
             Thread.sleep(300)
@@ -410,9 +403,6 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         )
         /** Dialogs holding a text field: rendered on a manual clock (see capture()). */
         val FIELD_DIALOGS = setOf("cancel_booking", "country_picker", "reject_request")
-
-        /** Screens that hang under the manual clock (CI diagnostics, 9 Nov 2026): they use the idle wait. */
-        val IDLE_SCREENS = setOf("delete_account", "listing_wizard_2", "listing_wizard_3", "listing_wizard_3_empty")
         /** Overlays opened by tapping a control on their screen (string resources of the controls, in order). */
         val TAPS: Map<String, List<Tap>> = mapOf(
             "delete_account" to listOf(Tap.Res(R.string.delete_account)),

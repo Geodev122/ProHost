@@ -58,7 +58,7 @@ jobs:
 
       - name: Record screenshots
         env:
-          DESIGN_SETTLE_MS: ${{ inputs.settle }}
+          DESIGN_EXTRA_SETTLE_MS: ${{ inputs.settle }}
         run: |
           set -o pipefail
           gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly="${{ inputs.only }}" --no-daemon --stacktrace 2>&1 | tee gradle.log
