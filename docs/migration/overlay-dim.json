@@ -20,6 +20,9 @@
     "analytics_consent",
     "cancel_booking",
     "country_picker",
-    "reject_request"
+    "reject_request",
+    "listing_verification",
+    "availability_sheet",
+    "filters"
   ]
 }

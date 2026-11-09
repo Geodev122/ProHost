@@ -128,5 +128,214 @@
       185
     ]
   ],
-  "_maps_stub": "Listing wizard step 1 and edit listing: the Google Maps SDK draws its own 'ProHost won't run without Google Play services' text when Play services are missing (always the case in Robolectric); its colour differs between Compose versions. It never appears on a device with Play services. Rectangles measured 9 Nov 2026 with a few px slack."
+  "_maps_stub": "Listing wizard step 1 and edit listing: the Google Maps SDK draws its own 'ProHost won't run without Google Play services' text when Play services are missing (always the case in Robolectric); its colour differs between Compose versions. It never appears on a device with Play services. Rectangles measured 9 Nov 2026 with a few px slack.",
+  "explore_map_ar.png": [
+    [
+      0,
+      0,
+      1170,
+      180
+    ],
+    [
+      0,
+      2330,
+      1170,
+      200
+    ]
+  ],
+  "explore_map_dark.png": [
+    [
+      0,
+      0,
+      1170,
+      180
+    ],
+    [
+      0,
+      2330,
+      1170,
+      200
+    ]
+  ],
+  "explore_map_light.png": [
+    [
+      0,
+      0,
+      1170,
+      180
+    ],
+    [
+      0,
+      2330,
+      1170,
+      200
+    ]
+  ],
+  "explore_map_rtl.png": [
+    [
+      0,
+      0,
+      1170,
+      180
+    ],
+    [
+      0,
+      2330,
+      1170,
+      200
+    ]
+  ],
+  "explore_map_small.png": [
+    [
+      0,
+      0,
+      1170,
+      180
+    ],
+    [
+      0,
+      2330,
+      1170,
+      200
+    ]
+  ],
+  "splash_ar.png": [
+    [
+      550,
+      2230,
+      110,
+      160
+    ]
+  ],
+  "splash_dark.png": [
+    [
+      550,
+      2230,
+      110,
+      160
+    ]
+  ],
+  "splash_light.png": [
+    [
+      550,
+      2230,
+      110,
+      160
+    ]
+  ],
+  "splash_rtl.png": [
+    [
+      550,
+      2230,
+      110,
+      160
+    ]
+  ],
+  "splash_small.png": [
+    [
+      550,
+      2230,
+      110,
+      160
+    ]
+  ],
+  "premium_plans_ar.png": [
+    [
+      769,
+      1239,
+      46,
+      52
+    ],
+    [
+      806,
+      1006,
+      46,
+      54
+    ]
+  ],
+  "premium_plans_dark.png": [
+    [
+      803,
+      1197,
+      46,
+      55
+    ],
+    [
+      393,
+      1017,
+      45,
+      57
+    ]
+  ],
+  "premium_plans_light.png": [
+    [
+      803,
+      1197,
+      46,
+      55
+    ],
+    [
+      393,
+      1017,
+      45,
+      57
+    ]
+  ],
+  "premium_plans_rtl.png": [
+    [
+      806,
+      1017,
+      46,
+      57
+    ],
+    [
+      769,
+      1250,
+      46,
+      55
+    ]
+  ],
+  "premium_plans_small.png": [
+    [
+      463,
+      1183,
+      52,
+      66
+    ],
+    [
+      978,
+      1473,
+      49,
+      60
+    ]
+  ],
+  "renting_progress_ar.png": [
+    [
+      1051,
+      2100,
+      38,
+      38
+    ],
+    [
+      80,
+      2100,
+      38,
+      38
+    ]
+  ],
+  "renting_progress_rtl.png": [
+    [
+      1051,
+      2201,
+      38,
+      38
+    ],
+    [
+      80,
+      2201,
+      38,
+      38
+    ]
+  ],
+  "_library_rendering": "9 Nov 2026 (Compose 1.12 / Material 3 1.4): splash = indeterminate spinner phase; explore_map = the Google Maps stub text at the top and the card photos in the bottom strip (image filtering differs by a few levels, visually identical); renting_progress_ar/rtl = the 0 % progress bar's end dot; premium_plans = the renewal date, which moves with the day (golden taken 8 Nov). Remove with the P4 re-baseline (frozen clock, preloaded images)."
 }
