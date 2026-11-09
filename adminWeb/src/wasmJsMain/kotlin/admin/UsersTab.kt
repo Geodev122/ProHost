@@ -63,6 +63,7 @@ fun UsersTab(gateway: AdminGateway) {
   var editing by remember { mutableStateOf<Json?>(null) }
   var notice by remember { mutableStateOf<String?>(null) }
   var exporting by remember { mutableStateOf(false) }
+  var dossier by remember { mutableStateOf<Json?>(null) }
   val scope = rememberCoroutineScope()
 
   LaunchedEffect(Unit) { counts = try { Json.parse(gateway.call("adminCounts")) } catch (_: Throwable) { null } }
@@ -115,9 +116,17 @@ fun UsersTab(gateway: AdminGateway) {
       shown.isEmpty() -> EmptyState("No users found", "No account matches \"${query.trim()}\".")
     }
     notice?.let { Text(it, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium) }
-    shown.forEach { u -> UserCard(u, onEdit = { editing = u }, onAction = { kind -> pending = kind to u }) }
+    shown.forEach { u -> UserCard(u, onProfile = {
+      notice = null
+      scope.launch {
+        try { dossier = Json.parse(gateway.call("adminUserDossier", """{"uid":${jsonQuote(u["id"].str())}}""")) } catch (e: Throwable) { notice = "Couldn't open the profile: ${e.message}" }
+      }
+    }, onEdit = { editing = u }, onAction = { kind -> pending = kind to u }) }
   }
 
+  dossier?.let { d ->
+    DossierDialog(d, onDismiss = { dossier = null }, onEdit = { p -> dossier = null; editing = p }, onAction = { kind, p -> dossier = null; pending = kind to p })
+  }
   pending?.let { (kind, user) ->
     ConfirmDialog(kind, user, onDismiss = { pending = null }) {
       pending = null; notice = null
@@ -271,7 +280,7 @@ private fun Badge(text: String, container: Color, content: Color) {
 }
 
 @Composable
-private fun UserCard(u: Json, onEdit: () -> Unit, onAction: (String) -> Unit) {
+private fun UserCard(u: Json, onProfile: () -> Unit, onEdit: () -> Unit, onAction: (String) -> Unit) {
   val role = u["role"].str()
   val verified = u["isVerified"].bool()
   val location = u["city"].str().ifBlank { u["governorate"].str().ifBlank { u["country"].str() } }
@@ -302,6 +311,7 @@ private fun UserCard(u: Json, onEdit: () -> Unit, onAction: (String) -> Unit) {
         Detail("Last Sign-In:", u["lastSignInAtMillis"].num()?.let { dateLabel(it) } ?: "—")
       }
       Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
+        Button(onClick = onProfile) { Text("Profile") }
         OutlinedButton(onClick = onEdit) { Text("Edit") }
         if (role != "ADMIN") TextButton(onClick = { onAction("grant") }) { Text("Grant Admin") }
         if (role != "ADMIN") TextButton(onClick = { onAction(if (u["isSuspended"].bool()) "reactivate" else "suspend") }) {
