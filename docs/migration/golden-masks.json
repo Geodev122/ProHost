@@ -47,5 +47,86 @@
       362,
       46
     ]
-  ]
+  ],
+  "listing_wizard_1_ar.png": [
+    [
+      96,
+      1561,
+      1034,
+      114
+    ]
+  ],
+  "listing_wizard_1_dark.png": [
+    [
+      37,
+      1547,
+      1028,
+      114
+    ]
+  ],
+  "listing_wizard_1_light.png": [
+    [
+      39,
+      1550,
+      1023,
+      108
+    ]
+  ],
+  "listing_wizard_1_rtl.png": [
+    [
+      39,
+      1550,
+      1023,
+      108
+    ]
+  ],
+  "listing_wizard_1_small.png": [
+    [
+      45,
+      1651,
+      986,
+      185
+    ]
+  ],
+  "listing_edit_ar.png": [
+    [
+      96,
+      1561,
+      1034,
+      114
+    ]
+  ],
+  "listing_edit_dark.png": [
+    [
+      37,
+      1547,
+      1028,
+      114
+    ]
+  ],
+  "listing_edit_light.png": [
+    [
+      39,
+      1550,
+      1023,
+      108
+    ]
+  ],
+  "listing_edit_rtl.png": [
+    [
+      39,
+      1550,
+      1023,
+      108
+    ]
+  ],
+  "listing_edit_small.png": [
+    [
+      45,
+      1651,
+      986,
+      185
+    ]
+  ],
+  "_maps_stub": "Listing wizard step 1 and edit listing: the Google Maps SDK draws its own 'ProHost won't run without Google Play services' text when Play services are missing (always the case in Robolectric); its colour differs between Compose versions. It never appears on a device with Play services. Rectangles measured 9 Nov 2026 with a few px slack."
 }

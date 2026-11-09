@@ -133,12 +133,17 @@ fun InputChip(
 
 object ProHostButtonDefaults {
     @Composable
-    fun buttonColors(containerColor: Color = Color.Unspecified, contentColor: Color = Color.Unspecified): ButtonColors =
+    fun buttonColors(
+        containerColor: Color = Color.Unspecified,
+        contentColor: Color = Color.Unspecified,
+        disabledContainerColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+        disabledContentColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+    ): ButtonColors =
         ButtonDefaults.buttonColors(
             containerColor = containerColor,
             contentColor = contentColor,
-            disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
-            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            disabledContainerColor = disabledContainerColor,
+            disabledContentColor = disabledContentColor
         )
 
     @Composable
