@@ -81,29 +81,31 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         try {
             val vm = signedInViewModel(if (screen in HOST_SCREENS) UserRole.PRO_HOST else UserRole.SPECIALIST)
             applyVariantToActivity(variant)
-            // A text field inside a Dialog window never reports idle under Robolectric (Material's own field included):
-            // those overlays run on a manual clock instead of waiting for idle.
-            val manualClock = screen in FIELD_DIALOGS
-            if (manualClock) compose.mainClock.autoAdvance = false
-            if (manualClock) {
-                // The rule's setContent waits for idle, which a field in a Dialog never reaches: set it on the activity.
-                compose.runOnUiThread { compose.activity.setContent { Variant(variant) { Screen(screen, vm) } } }
-            } else {
-                compose.setContent { Variant(variant) { Screen(screen, vm) } }
-            }
-            if (manualClock) {
-                compose.mainClock.advanceTimeBy(1_000)
-            } else {
-                compose.waitForIdle()
-                Thread.sleep(400) // let async image decoding land before the capture
-                compose.waitForIdle()
-            }
+            // Every screen runs on a manual clock (golden-v2, migration P3.4): animations (sheet springs, scrim fades, dialog dim, progress
+            // spinners) then end in the same state on every run and on every Compose version, instead of being captured wherever the
+            // idle check happened to stop them. (A text field inside a Dialog never reports idle under Robolectric either.)
+            val manualClock = true
+            compose.mainClock.autoAdvance = false
+            // The rule's setContent waits for idle, which a manual clock never reaches: set it on the activity.
+            compose.runOnUiThread { compose.activity.setContent { Variant(variant) { Screen(screen, vm) } } }
+            advance(1_000)
             TAPS[screen]?.forEach { tap(it, manualClock) }
-            if (manualClock) compose.mainClock.advanceTimeBy(1_000)
+            advance(1_000)
             if (screen in OVERLAYS) captureWithWindows("$OUT_DIR/$name.png")
             else compose.onRoot().captureRoboImage(filePath = "$OUT_DIR/$name.png")
         } catch (e: Throwable) {
             File(out, "$name.error.txt").writeText(e.stackTraceToString())
+        }
+    }
+
+    /** Moves the manual clock forward in 100 ms steps with a short real-time pause each, so async image decoding can land between frames. */
+    private fun advance(ms: Long) {
+        var left = ms
+        while (left > 0) {
+            val step = minOf(left, 100L)
+            Thread.sleep(30)
+            compose.mainClock.advanceTimeBy(step)
+            left -= step
         }
     }
 
@@ -122,7 +124,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         runCatching { compose.onAllNodes(hasScrollToNodeAction()).onFirst().performScrollToNode(matcher) }
         compose.onAllNodes(matcher, useUnmergedTree = true).onFirst().performClick()
         if (manualClock) {
-            compose.mainClock.advanceTimeBy(800)
+            advance(800)
         } else {
             compose.waitForIdle()
             Thread.sleep(300)

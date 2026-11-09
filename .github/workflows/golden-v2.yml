@@ -1,0 +1,73 @@
+name: Golden v2 (re-record the untouched app with the deterministic harness)
+
+# Migration P3.4: the original golden (golden-v1047) captured sheets/dialogs/spinners wherever the idle check stopped them. This workflow renders
+# the SAME untouched app code (commit 7ed5728, identical to tag kmp-golden-v1047) with the deterministic manual-clock harness (HEAD's
+# DesignScreenshotTest.kt) and stores it as refs/design-shots/golden-v2. Parity Gate then compares the migrated app to golden-v2.
+# New workflows cannot be dispatched from a branch, so it also runs when this file changes.
+on:
+  push:
+    branches: ["claude/**"]
+    paths: [".github/workflows/golden-v2.yml", "app/src/test/java/com/example/design/DesignScreenshotTest.kt"]
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: "App commit to render (default: the untouched v1.0.47 code)"
+        required: false
+        default: "7ed5728686cd7e7c9abe16c655493f296953e443"
+      store_as:
+        required: false
+        default: "golden-v2"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: golden-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout (harness and scripts)
+        uses: actions/checkout@v4
+        with:
+          path: head
+      - name: Checkout the untouched app code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit || '7ed5728686cd7e7c9abe16c655493f296953e443' }}
+          path: old
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "21" }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: "9.7.1" }
+      - name: Debug keystore
+        run: |
+          cd old
+          keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 \
+            -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+      - name: Use the deterministic harness on the old code
+        run: cp head/app/src/test/java/com/example/design/DesignScreenshotTest.kt old/app/src/test/java/com/example/design/DesignScreenshotTest.kt
+      - name: Record screenshots (old build uses the Roborazzi plugin task)
+        run: |
+          cd old
+          set -o pipefail
+          gradle :app:recordRoborazziDebug --tests "com.example.design.*" -PdesignOnly="" --no-daemon --stacktrace 2>&1 | tee ../gradle.log
+      - name: Report compile errors
+        if: failure()
+        run: grep -iE "^e: |error|FAILED" gradle.log | head -40 | while IFS= read -r line; do echo "::error title=build::${line}"; done
+      - name: Store as refs/design-shots/golden-v2
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          [ -d old/app/build/design-shots ] || exit 0
+          cd old/app/build/design-shots
+          git init -q
+          git add -A
+          git -c user.name="design-shots" -c user.email="design-shots@users.noreply.github.com" commit -q -m "Golden v2 rendered from ${{ inputs.commit || '7ed5728' }} with the deterministic harness"
+          name="${{ inputs.store_as || 'golden-v2' }}"
+          git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/design-shots/${name}"
+          echo "::notice title=golden-v2::$(git rev-parse HEAD) refs/design-shots/${name} files=$(ls | wc -l)"
