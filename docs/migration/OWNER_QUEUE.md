@@ -17,6 +17,12 @@ Kept by the migration sessions while they run on their own (owner request, 8 Nov
 | D10 | Roborazzi Gradle plugin dropped (needs AGP's old DSL; the library stays, record mode = `-Proborazzi.test.record=true`) | Adopted: build tooling only, no visible effect |
 | D11 | Application module stays named `:app` (not renamed `androidApp`): renaming touches every workflow and script for no benefit | Adopted |
 | D12 | Device-locale number/time formats (`hourLabel`, "this month's yield", availability total) follow the device language's digits, `PriceChange.pad` is fixed `Locale.US` | Unchanged; listed so you can choose one rule later |
+| D13 | Dim behind sheets/dialogs is 4-6 % lighter under Compose 1.12 in Robolectric (<= 16 levels, nothing moves); tolerated only for the listed overlay screens (`docs/migration/overlay-dim.json`); verify on a device (M4) | Tolerated |
+| D14 | Deferred deep links / attribution: Play Install Referrer on Android (free); on iOS a Universal Link + App Store campaign token, or a paid attribution vendor | Free options only |
+| D15 | Public images behind a CDN: Firebase Hosting rewrite, Cloud CDN, or Cloudflare in front | Firebase/Cloud CDN, no third party |
+| D16 | Retention periods: audit log (13 months hot), verification documents and booking agreements (legal period), notifications (48 h, existing), mail history (30 days) | As listed |
+| D17 | Search service when listings pass ~2 k-50 k (Typesense on Cloud Run vs Algolia vs Firestore geohash only) | Geohash first, decide on measured data |
+| D18 | Terraform to codify budgets, alerts, IAM and TTL policies | Yes, after the parity work |
 
 ## B. Manual jobs (only you can do these)
 Standing list: `docs/OWNER_TODO.md` (Google Trust & Safety case, Play domain checks and deep links, quotas, Play permission trim, Maps key restrictions, Play declarations, secret rotation, App Check decision, `BOOTSTRAP_SECRET`, uptime URLs, Auth Platform branding, iOS items, legal items). New from the migration:
@@ -24,6 +30,10 @@ Standing list: `docs/OWNER_TODO.md` (Google Trust & Safety case, Play domain che
 - M2. Create the new Google project (+ billing) for the AI agent when you choose to move it (D8).
 - M3. iPhone for device tests, APNs key confirmation, Firebase iOS key restriction, Paid Apps Agreement, trader status (Apple/Play accounts).
 - M4. Play Console: invite/confirm the CI service account for releases; internal-testing install to smoke-test the Kotlin 2.3 / Compose Multiplatform build before any production rollout; emulator check on API 24/25 for the desktop-java-time (desugaring) paths.
+- M6. Create GCP budgets + alerts (25/50/90/100 %) and enable the BigQuery billing export (billing-account admin only).
+- M7. Approve enabling Firestore TTL policies (console or Maintenance task) and Storage lifecycle rules (D16 periods).
+- M8. Restrict/rotate API keys (Maps, Firebase iOS) and set per-key quotas; confirm the Anthropic monthly spend cap in the Anthropic console.
+- M9. Pick the CDN option (D15) and, if wanted, the attribution vendor (D14); add DNS records if a CDN needs them.
 - M5. Approve the plan/decisions list (A) and walk through the admin web console before the Android admin is removed (P1.F).
 
 ## C. Notes the work will not decide for you
