@@ -245,3 +245,6 @@ Owner decision D16: verification documents and booking agreements are deleted 1 
 
 ### P9 step 5 (9 Nov 2026): contract tests
 `functions/src/adapter/contract.test.ts` pins the AppAdapter contract: a listing row has exactly the contract fields and no owner id/email/phone; ProHost rows feed the agent's pure matching; Play's live catalogue is assignable to the neutral `OfferBasePlan` (compile-time) and formats the same; the registry throws without an adapter. A future HTTPS adapter implementation must pass the same shapes.
+
+### P9 steps 3-4 deferred on purpose (9 Nov 2026)
+Step 3 (hard-coded ProHost wording → `BrandProfile`: `FALLBACK_REPLY`, goodbyes, comment DM hook, `LISTING_BASE`, `aiKnowledge`, insight text, subject tags) and step 4 (lead recording for other brands: `ig_brands/{id}/leads` has no recording trigger) change nothing for ProHost today and carry real risk for the live agent's wording; they are only needed when a second brand goes live. They are bundled with the go-live decision D8 (new Google project, Meta webhook window) and listed in OWNER_QUEUE. The seams that must move first are already closed (AppAdapter, boundary test).
