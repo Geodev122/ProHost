@@ -88,9 +88,9 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             compose.mainClock.autoAdvance = false
             // The rule's setContent waits for idle, which a manual clock never reaches: set it on the activity.
             compose.runOnUiThread { compose.activity.setContent { Variant(variant) { Screen(screen, vm) } } }
-            advance(1_000)
+            advance(300)
             TAPS[screen]?.forEach { tap(it, manualClock) }
-            advance(1_000)
+            advance(1_000) // springs, scrim fades and dialog dim settle well inside this
             if (screen in OVERLAYS) captureWithWindows("$OUT_DIR/$name.png")
             else compose.onRoot().captureRoboImage(filePath = "$OUT_DIR/$name.png")
         } catch (e: Throwable) {
@@ -103,7 +103,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         var left = ms
         while (left > 0) {
             val step = minOf(left, 100L)
-            Thread.sleep(30)
+            Thread.sleep(15)
             compose.mainClock.advanceTimeBy(step)
             left -= step
         }
@@ -124,7 +124,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         runCatching { compose.onAllNodes(hasScrollToNodeAction()).onFirst().performScrollToNode(matcher) }
         compose.onAllNodes(matcher, useUnmergedTree = true).onFirst().performClick()
         if (manualClock) {
-            advance(800)
+            advance(300)
         } else {
             compose.waitForIdle()
             Thread.sleep(300)

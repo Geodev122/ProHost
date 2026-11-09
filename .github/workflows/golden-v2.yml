@@ -28,7 +28,7 @@ concurrency:
 jobs:
   record:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 100
     steps:
       - name: Checkout (harness and scripts)
         uses: actions/checkout@v4
