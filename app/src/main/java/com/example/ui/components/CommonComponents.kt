@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -924,7 +925,7 @@ fun InputField(
                 unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 errorLabelColor = MaterialTheme.colorScheme.error
             ),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().then(if (label.isNotBlank()) Modifier.outlinedLabelTopPaddingFix() else Modifier)
         )
         if (isError && !errorMessage.isNullOrBlank()) {
             Spacer(modifier = Modifier.height(Spacing.xs))
@@ -1604,5 +1605,27 @@ fun PhotoCarouselArrow(
                 modifier = Modifier.size(visualSize / 2)
             )
         }
+    }
+}
+
+/**
+ * Material 3 1.3 padded an outlined field with a label by half of the *token* body-small line height (8 sp); Material 3 1.4 uses half of the
+ * *theme's* body-small line height instead (ProHost's is 18 sp, so 9 sp), which moved every labelled field and everything below it down by
+ * about 1 dp when Compose was upgraded (migration P3.4). This takes the difference back out, with the same rounding both versions apply
+ * (sp to dp to whole pixels), so field positions and sheet heights stay what they were.
+ */
+@Composable
+private fun Modifier.outlinedLabelTopPaddingFix(): Modifier {
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val themeLineHeight = MaterialTheme.typography.bodySmall.lineHeight
+    val deltaPx = with(density) {
+        val tokenHalf = 8.sp.toDp()                                                // Material 3 1.3: TypeScaleTokens.BodySmallLineHeight / 2
+        val themeHalf = (if (themeLineHeight.isSp) themeLineHeight else 16.sp).toDp() / 2 // Material 3 1.4: theme body small / 2
+        themeHalf.roundToPx() - tokenHalf.roundToPx()
+    }
+    if (deltaPx == 0) return this
+    return this.layout { measurable, constraints ->
+        val placeable = measurable.measure(constraints)
+        layout(placeable.width, (placeable.height - deltaPx).coerceAtLeast(0)) { placeable.place(0, -deltaPx) }
     }
 }
