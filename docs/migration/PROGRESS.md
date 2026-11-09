@@ -227,3 +227,6 @@ Owner decision D16: verification documents and booking agreements are deleted 1 
 
 ### P1.0 adminWeb skeleton (9 Nov 2026)
 `:adminWeb` (Kotlin/Wasm, Compose for Web) + `wasmJs` target in `:shared` (only adminWeb consumes it). Firebase JS behind `AdminGateway`: email + password, `assignInitialRole`, forced token refresh, `claims.role == "ADMIN"` guard, 7-tab shell (Users shows live `adminCounts`; others "not ported"), 900 dp content width, `index.html` noindex, no Analytics. Workflow `admin-web.yml` builds and smoke-tests in Chromium. Next: read the build, then site-deploy step (`public/console/`, `_headers`), then P1.1 tabs.
+
+### Gate fix (9 Nov 2026): render shards must never come from the Gradle build cache
+`cache-read-only: false` (added so feature branches stop re-downloading the Kotlin compiler) also saves/restores the local build cache. When a push changed no app input (only `settings.gradle.kts`, `adminWeb`, workflows), `:app:testDebugUnitTest` was restored `FROM-CACHE` in 27 s: Roborazzi's PNGs are side-effect files, not task outputs, so every render was MISSING. The render/reproduce steps now pass `--no-build-cache`. Admin Web (run 42623532587, with the Node/Yarn repository fix) is green; the `:app` build, unit tests and R8 were green in run 42623532701.

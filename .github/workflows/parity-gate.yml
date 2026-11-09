@@ -123,7 +123,7 @@ jobs:
         run: |
           set +e
           for i in 1 2 3; do
-            gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly="" -PdesignShard=${{ matrix.shard }}/6 -PdesignTimeoutMin=12 --no-daemon --stacktrace 2>&1 | tee gradle-shots.log
+            gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly="" -PdesignShard=${{ matrix.shard }}/6 -PdesignTimeoutMin=12 --no-build-cache --no-daemon --stacktrace 2>&1 | tee gradle-shots.log
             code=${PIPESTATUS[0]}
             [ "$code" = 0 ] && break
             echo "attempt $i failed (exit $code); retrying in 20 s in case of a transient dependency download error"
@@ -208,7 +208,7 @@ jobs:
             echo "attempt ${attempt}: re-rendering ${screens} (${names})"
             set +e
             set -o pipefail
-            gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly="${screens}" --no-daemon --stacktrace 2>&1 | tee "gradle-rerun-${attempt}.log"
+            gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly="${screens}" --no-build-cache --no-daemon --stacktrace 2>&1 | tee "gradle-rerun-${attempt}.log"
             set +o pipefail
             python3 scripts/migration/diff_shots.py --golden golden --candidate app/build/design-shots --only "$names" \
               --masks docs/migration/golden-masks.json --level-tol docs/migration/overlay-dim.json --shift-tol docs/migration/scroll-offset.json --report parity/diff-rerun.html --json parity/diff-rerun.json | tee parity/summary-rerun.txt
