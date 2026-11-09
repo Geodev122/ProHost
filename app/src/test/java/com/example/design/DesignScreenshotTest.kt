@@ -100,6 +100,9 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             else compose.onRoot().captureRoboImage(filePath = "$OUT_DIR/$name.png")
         } catch (e: Throwable) {
             File(out, "$name.error.txt").writeText(e.stackTraceToString())
+        } finally {
+            // A manual clock left stopped makes the rule's end-of-test idle wait hang until the Gradle test timeout (seen on delete_account).
+            runCatching { compose.mainClock.autoAdvance = true }
         }
     }
 
@@ -127,6 +130,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
             is Tap.Desc -> androidx.compose.ui.test.hasContentDescription(com.example.ui.util.UiText.get(target.id))
         }
         runCatching { compose.onAllNodes(hasScrollToNodeAction()).onFirst().performScrollToNode(matcher) }
+        if (manualClock) advance(200) // lazy lists compose the scrolled-to item on the next frames
         compose.onAllNodes(matcher, useUnmergedTree = true).onFirst().performClick()
         if (manualClock) {
             advance(300)
