@@ -36,6 +36,12 @@ Standing list: `docs/OWNER_TODO.md` (Google Trust & Safety case, Play domain che
 - M9. Pick the CDN option (D15) and, if wanted, the attribution vendor (D14); add DNS records if a CDN needs them.
 - M5. Approve the plan/decisions list (A) and walk through the admin web console before the Android admin is removed (P1.F).
 
+- M10. Install the CI build from an **internal-testing track** (or a debug APK from CI) on 2 real phones (one API 24-25, one current) and walk the main flows: the app now runs on Kotlin 2.3.20 and Compose Multiplatform 1.12; Robolectric cannot prove window dim, spring motion, fonts or the map on a device (D13).
+- M11. When you want iOS to start: borrowed iPhone, Apple Developer / App Store Connect access for CI signing (already scripted), and a decision on D6 (report/block UI). The shared UI cannot be proven on iOS until the iOS host app is built on a macOS runner (P7).
+
 ## C. Notes the work will not decide for you
 - Nothing is released to Play production or the App Store by the autonomous runs; version bumps and `docs/release/published.txt` stay yours.
-- Server change waiting for merge to `main`: month-end clamp in `bookingTerms.ts` (server end date moves 1-3 days earlier for bookings starting on the 29th-31st, equal to the app).
+- Server changes waiting for merge to `main`: mail documents carry `expireAt` (needs the TTL policy, M7);: month-end clamp in `bookingTerms.ts` (server end date moves 1-3 days earlier for bookings starting on the 29th-31st, equal to the app).
+
+## D. State of the autonomous run (9 Nov 2026)
+Done and proven by the 280-render Parity Gate: P0, P2 (all seams), P3 (Kotlin 2.3.20, built-in Kotlin, `:shared` module, Compose Multiplatform 1.12.2 with the app looking as before), P4.1-P4.3a (theme tokens, pure components, generated Compose string resources). Waiting for work that needs more than CI: P4.3b+ (move screens, Coil 3, string call sites, view models), P5 data gateways, P6 screens, P7-P8 iOS (macOS runners and a device), P1 admin web (D-items and M1), P9 agent move (D8, M2), P10 hardening, P11 backend efficiency (Q1-Q8 and sections 2-7 of `BACKLOG_BACKEND_COST.md`). Each is a sequence of small gated units; the order, risks and per-unit method are in `MASTER_PLAN.md`, `PROGRESS.md` and the backlog.
