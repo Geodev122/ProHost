@@ -49,3 +49,7 @@ private fun stampJs(): String = js("(function () { var d = new Date(); function 
 /** Epoch millis now (browser clock). */
 fun nowMillis(): Double = nowJs()
 private fun nowJs(): Double = js("Date.now()")
+
+/** Opens [url] in a new tab (no opener). */
+fun openUrl(url: String) = openJs(url)
+private fun openJs(url: String) { js("window.open(url, '_blank', 'noopener')") }

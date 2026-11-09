@@ -4,6 +4,19 @@ import admin.firebase.Auth
 import admin.firebase.FirebaseApp
 import admin.firebase.Functions
 import admin.firebase.Firestore
+import admin.firebase.ListResult
+import admin.firebase.Storage
+import admin.firebase.StorageRef
+import admin.firebase.collection
+import admin.firebase.deleteObject
+import admin.firebase.getDoc
+import admin.firebase.getDocs
+import admin.firebase.getStorage
+import admin.firebase.limit
+import admin.firebase.listAll
+import admin.firebase.query
+import admin.firebase.ref
+import admin.firebase.where
 import admin.firebase.deleteDoc
 import admin.firebase.doc
 import admin.firebase.getAuth
@@ -37,6 +50,12 @@ interface AdminGateway {
   /** `setDoc(path, json, { merge: true })` as the signed-in admin (rules `isAdmin()` decides). */
   suspend fun mergeDoc(path: String, jsonData: String)
   suspend fun deleteDoc(path: String)
+  /** One document as JSON (with its `id`), or null when it does not exist. */
+  suspend fun readDoc(path: String): String?
+  /** Listings waiting for verification review: `isVerified == false and verificationRequestedAt > 0`, newest 50, as a JSON array. */
+  suspend fun reviewQueue(): String
+  /** Deletes every object under a Storage path (walks prefixes, like the Android purge). */
+  suspend fun purgeStorage(path: String)
 }
 
 class AdminAuthException(message: String) : Exception(message)
@@ -54,12 +73,16 @@ private fun invoke(callable: JsAny, json: String): Promise<JsString> = js("calla
 private fun parseObj(json: String): JsAny = js("JSON.parse(json)")
 private fun mergeOption(): JsAny = js("({ merge: true })")
 
+private fun docsJson(snap: JsAny): String = js("JSON.stringify(snap.docs.map(function (d) { var o = d.data(); o.id = d.id; return o; }))")
+private fun docJson(snap: JsAny): String = js("(snap.exists() ? JSON.stringify(Object.assign({ id: snap.id }, snap.data())) : '')")
+
 private fun errorCode(e: Throwable): String = (e.message ?: "").substringAfter("(", "").substringBefore(")")
 
 class FirebaseWebGateway : AdminGateway {
   private val app: FirebaseApp = initializeApp(webConfig())
   private val auth: Auth = getAuth(app)
   private val firestore: Firestore = getFirestore(app)
+  private val storage: Storage = getStorage(app)
   private val functions: Functions = getFunctions(app, "europe-west1") // region of every ProHost callable
 
   override suspend fun restore(): AdminSession {
@@ -93,6 +116,23 @@ class FirebaseWebGateway : AdminGateway {
   override suspend fun mergeDoc(path: String, jsonData: String) { setDoc(doc(firestore, path), parseObj(jsonData), mergeOption()).await<JsAny?>() }
 
   override suspend fun deleteDoc(path: String) { deleteDoc(doc(firestore, path)).await<JsAny?>() }
+
+  override suspend fun readDoc(path: String): String? = docJson(getDoc(doc(firestore, path)).await<JsAny>()).ifEmpty { null }
+
+  override suspend fun reviewQueue(): String = docsJson(
+    getDocs(query(collection(firestore, "workspace_listings"), where("isVerified", "==", parseObj("false")), where("verificationRequestedAt", ">", parseObj("0")), limit(50))).await<JsAny>()
+  )
+
+  override suspend fun purgeStorage(path: String) = purge(ref(storage, path))
+
+  private suspend fun purge(r: StorageRef) {
+    val res = listAll(r).await<ListResult>()
+    for (i in 0 until res.items.length) {
+      val item = res.items[i] ?: continue
+      try { deleteObject(item).await<JsAny?>() } catch (_: Throwable) { /* best effort, like Android */ }
+    }
+    for (i in 0 until res.prefixes.length) res.prefixes[i]?.let { purge(it) }
+  }
 
   private suspend fun classify(forceRefresh: Boolean = false): AdminSession {
     val user = auth.currentUser ?: return AdminSession.SignedOut

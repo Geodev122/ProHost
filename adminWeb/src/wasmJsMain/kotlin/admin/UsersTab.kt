@@ -63,7 +63,7 @@ fun UsersTab(gateway: AdminGateway) {
   var editing by remember { mutableStateOf<Json?>(null) }
   var notice by remember { mutableStateOf<String?>(null) }
   var exporting by remember { mutableStateOf(false) }
-  var dossier by remember { mutableStateOf<Json?>(null) }
+  var profileUid by remember { mutableStateOf<String?>(null) }
   val scope = rememberCoroutineScope()
 
   LaunchedEffect(Unit) { counts = try { Json.parse(gateway.call("adminCounts")) } catch (_: Throwable) { null } }
@@ -116,17 +116,10 @@ fun UsersTab(gateway: AdminGateway) {
       shown.isEmpty() -> EmptyState("No users found", "No account matches \"${query.trim()}\".")
     }
     notice?.let { Text(it, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium) }
-    shown.forEach { u -> UserCard(u, onProfile = {
-      notice = null
-      scope.launch {
-        try { dossier = Json.parse(gateway.call("adminUserDossier", """{"uid":${jsonQuote(u["id"].str())}}""")) } catch (e: Throwable) { notice = "Couldn't open the profile: ${e.message}" }
-      }
-    }, onEdit = { editing = u }, onAction = { kind -> pending = kind to u }) }
+    shown.forEach { u -> UserCard(u, onProfile = { profileUid = u["id"].str() }, onEdit = { editing = u }, onAction = { kind -> pending = kind to u }) }
   }
 
-  dossier?.let { d ->
-    DossierDialog(d, onDismiss = { dossier = null }, onEdit = { p -> dossier = null; editing = p }, onAction = { kind, p -> dossier = null; pending = kind to p })
-  }
+  profileUid?.let { uid -> ProfileFlow(gateway, uid, onClose = { profileUid = null }, onChanged = { refresh++ }) }
   pending?.let { (kind, user) ->
     ConfirmDialog(kind, user, onDismiss = { pending = null }) {
       pending = null; notice = null
@@ -162,7 +155,7 @@ private suspend fun exportUsersCsv(gateway: AdminGateway): String {
 private fun csvCell(text: String): String = if (text.any { it == ',' || it == '"' || it == '\n' }) "\"" + text.replace("\"", "\"\"") + "\"" else text
 
 /** Grant Admin / Suspend / Reactivate / Revoke Pro Host go through the same callables as the Android console. */
-private suspend fun runUserAction(gateway: AdminGateway, kind: String, user: Json) {
+internal suspend fun runUserAction(gateway: AdminGateway, kind: String, user: Json) {
   val uid = jsonQuote(user["id"].str())
   when (kind) {
     "grant" -> gateway.call("grantAdminRole", """{"targetUid":$uid}""")
@@ -177,7 +170,7 @@ private suspend fun runUserAction(gateway: AdminGateway, kind: String, user: Jso
   }
 }
 
-private fun doneMessage(kind: String) = when (kind) {
+internal fun doneMessage(kind: String) = when (kind) {
   "grant" -> "Admin role granted."
   "suspend" -> "Account suspended."
   "reactivate" -> "Account reactivated."
@@ -185,18 +178,18 @@ private fun doneMessage(kind: String) = when (kind) {
   else -> "User record removed."
 }
 
-private suspend fun audit(gateway: AdminGateway, type: String, details: String, severity: String) {
+internal suspend fun audit(gateway: AdminGateway, type: String, details: String, severity: String) {
   try { gateway.call("recordClientAuditLog", """{"actionType":${jsonQuote(type)},"details":${jsonQuote(details)},"severity":${jsonQuote(severity)}}""") } catch (_: Throwable) { /* the change itself succeeded */ }
 }
 
-private suspend fun saveUser(gateway: AdminGateway, user: Json, f: Map<String, String>) {
+internal suspend fun saveUser(gateway: AdminGateway, user: Json, f: Map<String, String>) {
   val body = f.entries.joinToString(",") { "${jsonQuote(it.key)}:${jsonQuote(it.value)}" }
   gateway.mergeDoc("user_profiles/${user["id"].str()}", "{$body,\"updatedAt\":${nowMillis().toLong()}}")
   audit(gateway, "USER_UPDATED", "Admin updated user profile for ${f["fullName"]} (${f["email"]})", "INFO")
 }
 
 @Composable
-private fun ConfirmDialog(kind: String, user: Json, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+internal fun ConfirmDialog(kind: String, user: Json, onDismiss: () -> Unit, onConfirm: () -> Unit) {
   val who = "'${user["fullName"].str()}' (${user["email"].str()})"
   val (title, text, button) = when (kind) {
     "grant" -> Triple("Grant Admin Role?", "Are you sure you want to grant full Admin privileges to $who? This gives them unrestricted access to governance, pricing, and user management.", "Confirm Grant")
@@ -211,7 +204,7 @@ private fun ConfirmDialog(kind: String, user: Json, onDismiss: () -> Unit, onCon
 }
 
 @Composable
-private fun EditDialog(user: Json, onDismiss: () -> Unit, onSave: (Map<String, String>) -> Unit) {
+internal fun EditDialog(user: Json, onDismiss: () -> Unit, onSave: (Map<String, String>) -> Unit) {
   var fullName by remember { mutableStateOf(user["fullName"].str()) }
   var email by remember { mutableStateOf(user["email"].str()) }
   var phone by remember { mutableStateOf(user["phone"].str()) }
@@ -320,6 +313,38 @@ private fun UserCard(u: Json, onProfile: () -> Unit, onEdit: () -> Unit, onActio
         if (role == "PRO_HOST") TextButton(onClick = { onAction("revoke") }) { Text("Revoke Pro Host", color = StatusError) }
         if (role != "ADMIN") TextButton(onClick = { onAction("delete") }) { Text("Delete", color = StatusError) }
       }
+    }
+  }
+}
+
+/** The account profile (dossier) with its actions; used from the Users tab and from listing cards (host profile shortcut). */
+@Composable
+fun ProfileFlow(gateway: AdminGateway, uid: String, onClose: () -> Unit, onChanged: () -> Unit) {
+  var dossier by remember(uid) { mutableStateOf<Json?>(null) }
+  var error by remember(uid) { mutableStateOf<String?>(null) }
+  var pending by remember { mutableStateOf<Pair<String, Json>?>(null) }
+  var editing by remember { mutableStateOf<Json?>(null) }
+  var reload by remember { mutableStateOf(0) }
+  val scope = rememberCoroutineScope()
+  LaunchedEffect(uid, reload) {
+    try { dossier = Json.parse(gateway.call("adminUserDossier", """{"uid":${jsonQuote(uid)}}""")) } catch (e: Throwable) { error = "Couldn't open the profile: ${e.message}" }
+  }
+  error?.let { msg ->
+    AlertDialog(onDismissRequest = { error = null; onClose() }, title = { Text("Profile") }, text = { Text(msg) }, confirmButton = { Button(onClick = { error = null; onClose() }) { Text("Close") } })
+  }
+  if (pending == null && editing == null) dossier?.let { DossierDialog(it, onDismiss = onClose, onEdit = { p -> editing = p }, onAction = { kind, p -> pending = kind to p }) }
+  pending?.let { (kind, user) ->
+    ConfirmDialog(kind, user, onDismiss = { pending = null }) {
+      pending = null
+      scope.launch {
+        try { runUserAction(gateway, kind, user); onChanged(); if (kind == "delete") onClose() else reload++ } catch (e: Throwable) { error = "Couldn't complete that: ${e.message}" }
+      }
+    }
+  }
+  editing?.let { user ->
+    EditDialog(user, onDismiss = { editing = null }) { fields ->
+      editing = null
+      scope.launch { try { saveUser(gateway, user, fields); onChanged(); reload++ } catch (e: Throwable) { error = "Couldn't save: ${e.message}" } }
     }
   }
 }

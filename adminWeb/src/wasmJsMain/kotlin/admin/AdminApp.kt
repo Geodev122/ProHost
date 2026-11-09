@@ -110,7 +110,7 @@ private fun ConsoleShell(gateway: AdminGateway, email: String, onSignOut: () -> 
       }
       Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), Alignment.TopCenter) {
         Column(Modifier.widthIn(max = 900.dp).fillMaxWidth()) { // 900 dp content width as on the Android console (tablet layout)
-          if (tab == 0) UsersTab(gateway) else Text("${ADMIN_TABS[tab]} — not ported yet (ADMIN_PARITY.md).", color = MaterialTheme.colorScheme.onSurfaceVariant)
+          if (tab == 0) UsersTab(gateway) else if (tab == 1) ListingsTab(gateway) else Text("${ADMIN_TABS[tab]} — not ported yet (ADMIN_PARITY.md).", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
       }
     }
