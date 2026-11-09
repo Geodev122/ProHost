@@ -1,28 +1,10 @@
-import { getAuth } from "firebase-admin/auth";
-import { getFirestore } from "firebase-admin/firestore";
-import "../lib/admin";
+import { Insight, appAdapter } from "./appAdapter";
+export type { Insight } from "./appAdapter";
 
 /**
- * Read-only picture of a ProHost account, looked up ONLY after the person gave their registration email in
- * reply to a question that asked permission for exactly this. The email is self-declared and unverified, so the
- * result steers the agent's guidance and is never recited back to the person.
+ * Read-only picture of a host-app account: the host app's adapter looks it up ONLY after the person gave their registration email in
+ * reply to a question that asked permission for exactly this. The email is unverified, so the result steers the agent's guidance and is never recited back.
  */
-export interface Insight {
-  found: boolean;
-  role?: "SPECIALIST" | "PRO_HOST" | "ADMIN" | string;
-  premiumActive?: boolean;
-  premiumLapsed?: boolean;
-  listings: number;
-  published: number;
-  drafts: number;
-  rentals: number;
-  lastRentalStatus?: string;
-  hasPhoto?: boolean;
-  hasWhatsApp?: boolean;
-  hasLocation?: boolean;
-  daysSinceSignIn?: number;
-}
-
 export const NO_INSIGHT: Insight = { found: false, listings: 0, published: 0, drafts: 0, rentals: 0 };
 
 /** Compact, trusted context block for the model. Never contains names, titles, dates or exact counts to repeat. */
@@ -44,39 +26,7 @@ export function insightTag(i: Insight): string {
   return [i.role ?? "?", i.premiumActive ? "premium" : i.premiumLapsed ? "lapsed" : "free", i.listings ? "has-listing" : "no-listing", i.rentals ? "tenant" : "no-rentals"].join(",");
 }
 
-const days = (ms: number) => Math.floor(ms / 86_400_000);
-
+/** Looks the account up through the host app's adapter (read-only; the person gave the email in reply to a consent question). */
 export async function lookupInsight(email: string, now: number): Promise<Insight> {
-  try {
-    const user = await getAuth().getUserByEmail(email.trim().toLowerCase());
-    const db = getFirestore();
-    const [profileSnap, listSnap, bookSnap] = await Promise.all([
-      db.collection("user_profiles").doc(user.uid).get(),
-      db.collection("workspace_listings").where("ownerId", "==", user.uid).limit(50).get(),
-      db.collection("booking_requests").where("practitionerId", "==", user.uid).limit(20).get(),
-    ]);
-    const p = profileSnap.data();
-    if (!p || p.isDemo === true) return NO_INSIGHT;
-    const statuses = listSnap.docs.map((d) => String(d.data().status ?? ""));
-    const rentals = bookSnap.docs.map((d) => d.data()).sort((a, b) => Number(b.createdAtMillis ?? 0) - Number(a.createdAtMillis ?? 0));
-    const billing = String(p.billingStatus ?? "");
-    const lastSignIn = Date.parse(user.metadata.lastSignInTime) || 0;
-    return {
-      found: true,
-      role: String(p.role ?? "SPECIALIST"),
-      premiumActive: p.role === "PRO_HOST" && p.isOwnerPackageLapsed !== true && !["EXPIRED", "ON_HOLD", "PAUSED", "REVOKED", "REFUNDED"].includes(billing),
-      premiumLapsed: p.isOwnerPackageLapsed === true || ["EXPIRED", "ON_HOLD", "PAUSED"].includes(billing),
-      listings: statuses.length,
-      published: statuses.filter((s) => s === "ACTIVE").length,
-      drafts: statuses.filter((s) => s === "DRAFT").length,
-      rentals: rentals.length,
-      lastRentalStatus: rentals.length ? String(rentals[0].status ?? "").toLowerCase() : undefined,
-      hasPhoto: !!String(p.profilePictureUrl ?? "").trim(),
-      hasWhatsApp: /^\+\d{7,15}$/.test(String(p.phone ?? "").replace(/[\s()-]/g, "")),
-      hasLocation: !!String(p.country ?? "").trim() && !!String(p.city ?? "").trim(),
-      daysSinceSignIn: lastSignIn ? days(now - lastSignIn) : undefined,
-    };
-  } catch {
-    return NO_INSIGHT;
-  }
+  try { return await appAdapter().lookupInsight(email, now); } catch { return NO_INSIGHT; }
 }

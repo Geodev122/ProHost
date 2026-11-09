@@ -33,6 +33,27 @@ export interface ListingRow {
   rooms: RoomRow[]; features: string[]; views: number; inquiries: number; favorites: number; bookings: number; createdAt: number;
 }
 
+/**
+ * Read-only picture of a ProHost account, looked up ONLY after the person gave their registration email in
+ * reply to a question that asked permission for exactly this. The email is self-declared and unverified, so the
+ * result steers the agent's guidance and is never recited back to the person.
+ */
+export interface Insight {
+  found: boolean;
+  role?: "SPECIALIST" | "PRO_HOST" | "ADMIN" | string;
+  premiumActive?: boolean;
+  premiumLapsed?: boolean;
+  listings: number;
+  published: number;
+  drafts: number;
+  rentals: number;
+  lastRentalStatus?: string;
+  hasPhoto?: boolean;
+  hasWhatsApp?: boolean;
+  hasLocation?: boolean;
+  daysSinceSignIn?: number;
+}
+
 export interface AdminMail { to: string; subject: string; html: string; headers?: Record<string, string> }
 
 export interface AppAdapter {
@@ -40,6 +61,8 @@ export interface AppAdapter {
   readOffers(): Promise<{ basePlans: OfferBasePlan[] }>;
   /** Every publicly browsable listing as catalogue rows (read-only; the agent caches them for 10 minutes). */
   loadListings(): Promise<ListingRow[]>;
+  /** Read-only account picture for a registration email the person gave with consent; `{ found: false }` when there is none. Never throws. */
+  lookupInsight(email: string, now: number): Promise<Insight>;
   /** Queues an email through the app's mail pipeline (alerts to the app's admin). */
   sendAdminMail(mail: AdminMail): Promise<void>;
   /** HTML-escapes user-supplied text for mail bodies. */
