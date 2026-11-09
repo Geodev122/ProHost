@@ -57,7 +57,8 @@ jobs:
           gradle :app:recordRoborazziDebug --tests "com.example.design.*" -PdesignOnly="" --no-daemon --stacktrace 2>&1 | tee ../gradle.log
       - name: Report compile errors
         if: failure()
-        run: grep -iE "^e: |error|FAILED" gradle.log | head -40 | while IFS= read -r line; do echo "::error title=build::${line}"; done
+        run: |
+          grep -iE "^e: |error|FAILED" gradle.log | head -40 | while IFS= read -r line; do echo "::error title=build::${line}"; done
       - name: Store as refs/design-shots/golden-v2
         if: always()
         env:
