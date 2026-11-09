@@ -44,7 +44,10 @@ object AttendeePricing {
     }
 
     fun tierFor(count: Int, tiers: List<AttendeePackage>): AttendeePackage? =
-        tiers.firstOrNull { count >= it.minAttendees && (it.maxAttendees == null || count <= it.maxAttendees) }
+        tiers.firstOrNull { tier ->
+            val max = tier.maxAttendees // local copy: AttendeePackage lives in :shared, so a smart cast on the property is not allowed
+            count >= tier.minAttendees && (max == null || count <= max)
+        }
 
     /** Null when [count] is outside the room's limits or no tier covers it. */
     fun quote(sub: Subdivision, count: Int, fallback: List<AttendeePackage> = emptyList()): Quote? {
