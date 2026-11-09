@@ -47,7 +47,7 @@ data class ProHostColors(
     val isDark: Boolean
 )
 
-internal val LightProHostColors = ProHostColors(
+val LightProHostColors = ProHostColors(
     success = StatusSuccessStrong,
     onSuccess = PureWhite,
     successContainer = StatusSuccessContainer,
@@ -73,7 +73,7 @@ internal val LightProHostColors = ProHostColors(
     isDark = false
 )
 
-internal val DarkProHostColors = ProHostColors(
+val DarkProHostColors = ProHostColors(
     success = StatusSuccessDarkMode,
     onSuccess = Color(0xFF0B2A17),
     successContainer = Color(0xFF1A3824),
