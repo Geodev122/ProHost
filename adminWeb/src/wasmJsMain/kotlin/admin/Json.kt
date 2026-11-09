@@ -24,6 +24,8 @@ class Json private constructor(private val v: JsAny?) {
   fun num(): Double? = v?.takeIf { kindJs(it) == "number" }?.let { numJs(it) }
   fun int(default: Int = 0): Int = num()?.toInt() ?: default
   fun bool(default: Boolean = false): Boolean = v?.takeIf { kindJs(it) == "boolean" }?.let { strJs(it) == "true" } ?: default
+  /** One CSV cell as the Android export prints it: lists joined by spaces, numbers as whole numbers. */
+  fun cell(): String = if (v == null) "" else if (kindJs(v) == "array") list().joinToString(" ") { it.cell() } else num()?.toLong()?.toString() ?: str()
   fun list(): List<Json> {
     val a = v?.takeIf { kindJs(it) == "array" } ?: return emptyList()
     return List(lenJs(a)) { Json(atJs(a, it)) }
@@ -33,3 +35,17 @@ class Json private constructor(private val v: JsAny?) {
     fun parse(text: String): Json = Json(parseJs(text))
   }
 }
+
+/** Starts a browser download of [text] as a file called [name]. */
+fun downloadText(name: String, text: String, mime: String) = downloadJs(name, text, mime)
+private fun downloadJs(name: String, text: String, mime: String) {
+  js("var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: mime })); a.download = name; document.body.appendChild(a); a.click(); a.remove();")
+}
+
+/** Today as yyyyMMdd (local time), for export file names. */
+fun todayStamp(): String = stampJs()
+private fun stampJs(): String = js("(function () { var d = new Date(); function p(n) { return String(n).padStart(2, '0'); } return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()); })()")
+
+/** Epoch millis now (browser clock). */
+fun nowMillis(): Double = nowJs()
+private fun nowJs(): Double = js("Date.now()")

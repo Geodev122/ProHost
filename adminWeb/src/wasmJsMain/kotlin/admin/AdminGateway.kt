@@ -3,7 +3,12 @@ package admin
 import admin.firebase.Auth
 import admin.firebase.FirebaseApp
 import admin.firebase.Functions
+import admin.firebase.Firestore
+import admin.firebase.deleteDoc
+import admin.firebase.doc
 import admin.firebase.getAuth
+import admin.firebase.getFirestore
+import admin.firebase.setDoc
 import admin.firebase.getFunctions
 import admin.firebase.httpsCallable
 import admin.firebase.initializeApp
@@ -29,6 +34,9 @@ interface AdminGateway {
   suspend fun signOut()
   /** Calls a ProHost callable with a JSON object and returns the result's `data` as JSON text. */
   suspend fun call(name: String, jsonData: String = "{}"): String
+  /** `setDoc(path, json, { merge: true })` as the signed-in admin (rules `isAdmin()` decides). */
+  suspend fun mergeDoc(path: String, jsonData: String)
+  suspend fun deleteDoc(path: String)
 }
 
 class AdminAuthException(message: String) : Exception(message)
@@ -43,11 +51,15 @@ private fun claimOf(result: JsAny, name: String): String = js("String(result.cla
 
 private fun invoke(callable: JsAny, json: String): Promise<JsString> = js("callable(JSON.parse(json)).then(function (r) { return JSON.stringify(r.data === undefined ? null : r.data); })")
 
+private fun parseObj(json: String): JsAny = js("JSON.parse(json)")
+private fun mergeOption(): JsAny = js("({ merge: true })")
+
 private fun errorCode(e: Throwable): String = (e.message ?: "").substringAfter("(", "").substringBefore(")")
 
 class FirebaseWebGateway : AdminGateway {
   private val app: FirebaseApp = initializeApp(webConfig())
   private val auth: Auth = getAuth(app)
+  private val firestore: Firestore = getFirestore(app)
   private val functions: Functions = getFunctions(app, "europe-west1") // region of every ProHost callable
 
   override suspend fun restore(): AdminSession {
@@ -77,6 +89,10 @@ class FirebaseWebGateway : AdminGateway {
   override suspend fun signOut() { signOut(auth).await<JsAny?>() }
 
   override suspend fun call(name: String, jsonData: String): String = invoke(httpsCallable(functions, name), jsonData).await<JsString>().toString()
+
+  override suspend fun mergeDoc(path: String, jsonData: String) { setDoc(doc(firestore, path), parseObj(jsonData), mergeOption()).await<JsAny?>() }
+
+  override suspend fun deleteDoc(path: String) { deleteDoc(doc(firestore, path)).await<JsAny?>() }
 
   private suspend fun classify(forceRefresh: Boolean = false): AdminSession {
     val user = auth.currentUser ?: return AdminSession.SignedOut
