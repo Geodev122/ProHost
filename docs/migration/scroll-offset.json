@@ -1,0 +1,47 @@
+{
+  "_comment": "Test-framework scroll offset (9 Nov 2026): after the tap that scrolls to a node, the sheet's scrolled content sits 4 px lower (small) or 1 px higher (ar) than in the golden because Compose 1.12's scroll-to-node aligns differently from 1.7; the region must match EXACTLY after shifting, so any real layout change still fails. Replace by a deterministic scroll when the harness is re-baselined (P4).",
+  "edit_booking_small.png": [
+    {
+      "rect": [
+        40,
+        635,
+        1090,
+        1500
+      ],
+      "max_shift": 6
+    }
+  ],
+  "rebook_small.png": [
+    {
+      "rect": [
+        40,
+        635,
+        1090,
+        1500
+      ],
+      "max_shift": 6
+    }
+  ],
+  "edit_booking_ar.png": [
+    {
+      "rect": [
+        36,
+        613,
+        1098,
+        1520
+      ],
+      "max_shift": 6
+    }
+  ],
+  "rebook_ar.png": [
+    {
+      "rect": [
+        36,
+        613,
+        1098,
+        1520
+      ],
+      "max_shift": 6
+    }
+  ]
+}

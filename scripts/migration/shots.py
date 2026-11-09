@@ -57,6 +57,21 @@ def compare(golden: Path, candidate: Path, channel_tol: int = 0, rects: list[lis
     return out
 
 
+def best_shift_match(golden: Path, candidate: Path, rect: list[int], max_shift: int, tol: int = 0) -> int | None:
+    """The vertical offset (|s| <= max_shift, candidate rows = golden rows + s) at which the region `rect` [x, y, w, h] of the golden matches
+    the candidate exactly (per-channel difference <= tol), ignoring `max_shift` rows at the top and bottom of the region; None if none does.
+    Used only for scrolled lists whose offset depends on the test framework's scroll-to-node rule, never for layout differences."""
+    a, b = load_rgba(golden), load_rgba(candidate)
+    x, y, w, h = rect
+    m = max_shift
+    for s in sorted(range(-m, m + 1), key=abs):
+        ga = a[y + m:y + h - m, x:x + w]
+        cb = b[y + m + s:y + h - m + s, x:x + w]
+        if ga.shape == cb.shape and ga.size and int(np.abs(ga - cb).max()) <= tol:
+            return s
+    return None
+
+
 def diff_image(golden: Path, candidate: Path, channel_tol: int = 0, rects: list[list[int]] | None = None) -> Image.Image:
     """Faded candidate with changed pixels in red (same-size images only)."""
     a, b = load_rgba(golden), load_rgba(candidate)

@@ -148,3 +148,22 @@ class CompareAndroidIosTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ShiftToleranceTests(unittest.TestCase):
+    def _write(self, arr, path):
+        from PIL import Image
+        Image.fromarray(arr).save(path)
+
+    def test_a_scrolled_region_matches_after_shifting_but_a_real_change_does_not(self):
+        import numpy as np, tempfile, pathlib
+        d = pathlib.Path(tempfile.mkdtemp())
+        base = (np.random.RandomState(1).rand(200, 100, 3) * 255).astype(np.uint8)
+        self._write(base, d / "g.png")
+        self._write(np.roll(base, 3, axis=0), d / "c.png")
+        self.assertEqual(shots.best_shift_match(d / "g.png", d / "c.png", [0, 0, 100, 200], 6), 3)
+        changed = np.roll(base, 3, axis=0).copy()
+        changed[100, :, :] = 0
+        self._write(changed, d / "c2.png")
+        self.assertIsNone(shots.best_shift_match(d / "g.png", d / "c2.png", [0, 0, 100, 200], 6))
+        self.assertIsNone(shots.best_shift_match(d / "g.png", d / "c.png", [0, 0, 100, 200], 2))  # offset beyond the allowance

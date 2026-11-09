@@ -26,6 +26,7 @@ on:
       - "gradle.properties"
       - "docs/migration/golden-masks.json"
       - "docs/migration/overlay-dim.json"
+      - "docs/migration/scroll-offset.json"
       - "scripts/migration/diff_shots.py"
       - "scripts/migration/shots.py"
       - "scripts/migration/before_after.py"
@@ -152,7 +153,7 @@ jobs:
           mkdir -p parity
           set +e
           python3 scripts/migration/diff_shots.py --golden golden --candidate app/build/design-shots \
-            --masks docs/migration/golden-masks.json --level-tol docs/migration/overlay-dim.json --report parity/diff.html --json parity/diff.json | tee parity/summary.txt
+            --masks docs/migration/golden-masks.json --level-tol docs/migration/overlay-dim.json --shift-tol docs/migration/scroll-offset.json --report parity/diff.html --json parity/diff.json | tee parity/summary.txt
           status=${PIPESTATUS[0]}
           set -e
           echo "status=${status}" >> "$GITHUB_OUTPUT"
@@ -181,7 +182,7 @@ jobs:
             gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly="${screens}" --no-daemon --stacktrace 2>&1 | tee "gradle-rerun-${attempt}.log"
             set +o pipefail
             python3 scripts/migration/diff_shots.py --golden golden --candidate app/build/design-shots --only "$names" \
-              --masks docs/migration/golden-masks.json --level-tol docs/migration/overlay-dim.json --report parity/diff-rerun.html --json parity/diff-rerun.json | tee parity/summary-rerun.txt
+              --masks docs/migration/golden-masks.json --level-tol docs/migration/overlay-dim.json --shift-tol docs/migration/scroll-offset.json --report parity/diff-rerun.html --json parity/diff-rerun.json | tee parity/summary-rerun.txt
             status=${PIPESTATUS[0]}
             set -e
             tail -1 parity/summary-rerun.txt | while IFS= read -r line; do echo "::notice title=parity-reproduce-${attempt}::${line}"; done
