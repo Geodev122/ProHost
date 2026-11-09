@@ -230,3 +230,9 @@ Owner decision D16: verification documents and booking agreements are deleted 1 
 
 ### Gate fix (9 Nov 2026): render shards must never come from the Gradle build cache
 `cache-read-only: false` (added so feature branches stop re-downloading the Kotlin compiler) also saves/restores the local build cache. When a push changed no app input (only `settings.gradle.kts`, `adminWeb`, workflows), `:app:testDebugUnitTest` was restored `FROM-CACHE` in 27 s: Roborazzi's PNGs are side-effect files, not task outputs, so every render was MISSING. The render/reproduce steps now pass `--no-build-cache`. Admin Web (run 42623532587, with the Node/Yarn repository fix) is green; the `:app` build, unit tests and R8 were green in run 42623532701.
+
+### P1.0/P1.1 status (9 Nov 2026, 13:55 UTC)
+- Parity Gate run 42625305727 (head 6dd5880: `wasmJs` target in `:shared`, repositories `PREFER_PROJECT`, render steps `--no-build-cache`): **SUCCESS, 280/280 identical**. The web target and the repository mode do not change the app.
+- Admin Web run 42626950807 (Users tab): build + Chromium smoke green.
+- `site-deploy.yml` now builds `:adminWeb:wasmJsBrowserDistribution` into `public/console/` (deploys only on merge to `main`; headers noindex/no-cache/DENY framing, `/console` redirect, live probe `/console/`). No CSP yet: add one after a live sign-in test, because a wrong CSP would break Firebase calls.
+- ADMIN_PARITY items 18-21 (tiles, search, role chips, user card): built, compiled and smoke-tested but NOT yet exercised against the live backend, so the Web/Proof boxes stay unticked until an admin signs in on the deployed page. Next: 22 (dossier), 23-28 (actions, export).
