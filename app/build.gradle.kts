@@ -228,4 +228,6 @@ tasks.withType<Test>().configureEach {
   systemProperty("roborazzi.test.record", recordingScreenshots.get().toString())
   // DesignScreenshotTest: -PdesignOnly=screen1,screen2 renders only those.
   systemProperty("design.only", designOnly.get())
+  // -PdesignShard=i/n: one slice of the renders (CI runs them as parallel jobs).
+  systemProperty("design.shard", providers.gradleProperty("designShard").orElse("").get())
 }

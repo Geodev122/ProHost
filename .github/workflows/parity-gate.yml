@@ -2,7 +2,7 @@ name: Parity Gate
 
 # Owner rule for the KMP + Compose Multiplatform migration (docs/migration/MASTER_PLAN.md): NO visible change. On every push that touches
 # app code or build files this job (1) compiles the app and runs its unit tests, (2) renders the 280 design screenshots exactly like the
-# Design Screenshots workflow and (3) diffs them pixel by pixel against the golden baseline refs/design-shots/golden-v1047
+# Design Screenshots workflow and (3) diffs them pixel by pixel against the golden baseline refs/design-shots/golden-v2 (the untouched v1.0.47 app rendered with the same deterministic harness)
 # (known dynamic regions masked by docs/migration/golden-masks.json). Any difference fails the job and the HTML report shows where.
 # Never deploys. The only write is the Before/After sheets, pushed as a commit under refs/design-shots/parity-<branch> (not a branch),
 # like the Design Screenshots workflow; the full renders are uploaded as an artifact.
@@ -38,51 +38,104 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  gate:
-    name: Build, unit tests, golden diff
+  build:
+    name: Build, unit tests, R8
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
-
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "9.7.1"
-
       - name: Generate Debug Keystore
         run: |
           keytool -genkey -v -keystore debug.keystore -storepass android \
             -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 \
             -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-
       - name: Compile (debug + release) and run the unit tests
         run: |
           set -o pipefail
           gradle :app:testDebugUnitTest :app:assembleDebug :app:compileReleaseKotlin --no-daemon --stacktrace 2>&1 | tee gradle-unit.log
-
       # Release shrinking: proves proguard/dependency changes still produce a valid R8 build (the release-bundle workflow needs secrets).
       - name: R8 release shrink compiles
         run: |
           set -o pipefail
           gradle :app:minifyReleaseWithR8 --no-daemon --stacktrace 2>&1 | tee gradle-r8.log
-
-      - name: Render the 280 design screenshots
-        run: |
-          set -o pipefail
-          gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly="" --no-daemon --stacktrace 2>&1 | tee gradle-shots.log
-
       - name: Surface build errors
         if: failure()
         run: |
-          for f in gradle-unit.log gradle-r8.log gradle-shots.log; do
+          for f in gradle-unit.log gradle-r8.log; do
             [ -f $f ] || continue
             grep -iE "^e: |FAILED|error:" $f | head -30 | while IFS= read -r line; do echo "::error title=$f::${line}"; done
           done
+
+  render:
+    name: Render shard ${{ matrix.shard }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 85
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.7.1"
+      - name: Generate Debug Keystore
+        run: |
+          keytool -genkey -v -keystore debug.keystore -storepass android \
+            -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 \
+            -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+      - name: Render this shard of the 280 design screenshots
+        run: |
+          set -o pipefail
+          gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly="" -PdesignShard=${{ matrix.shard }}/6 --no-daemon --stacktrace 2>&1 | tee gradle-shots.log
+      - name: Surface build errors
+        if: failure()
+        run: |
+          grep -iE "^e: |FAILED|error:" gradle-shots.log | head -30 | while IFS= read -r line; do echo "::error title=shard-${{ matrix.shard }}::${line}"; done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shots-${{ matrix.shard }}
+          path: app/build/design-shots
+          retention-days: 3
+          if-no-files-found: ignore
+
+  diff:
+    name: Diff against golden-v2
+    needs: [render]
+    if: always() && needs.render.result != 'cancelled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 85
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.7.1"
+      - name: Generate Debug Keystore
+        run: |
+          keytool -genkey -v -keystore debug.keystore -storepass android \
+            -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 \
+            -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: shots-*
+          path: app/build/design-shots
+          merge-multiple: true
 
       - name: Diff against the golden baseline
         id: diff
@@ -90,7 +143,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           pip install --quiet pillow numpy
-          python3 scripts/migration/fetch_ref.py golden-v1047 golden
+          python3 scripts/migration/fetch_ref.py golden-v2 golden
+          ls app/build/design-shots | wc -l
           mkdir -p parity
           set +e
           python3 scripts/migration/diff_shots.py --golden golden --candidate app/build/design-shots \
@@ -102,10 +156,9 @@ jobs:
           grep -E "^(CHANGED|RESIZED|MISSING)" parity/summary.txt | head -30 | while IFS= read -r line; do echo "::warning title=parity-first-pass::${line}"; done || true
           # Judged after the reproduce step below.
 
-      # A real regression is deterministic; the harness has known timing-dependent inputs (network listing photos and their fade-in
-      # that may not have settled within the fixed 400 ms wait, DECISIONS.md "golden determinism"). So whatever differed is rendered
-      # again, alone, up to 3 times, and the gate passes only when a re-render matches the golden EXACTLY: a real regression can
-      # never match, a timing flake eventually does. No tolerance or mask is involved.
+      # A real regression is deterministic; the harness still has a few timing-dependent inputs (network listing photos). So whatever
+      # differed is rendered again, alone, up to 3 times, and the gate passes only when a re-render matches the golden EXACTLY: a real
+      # regression can never match, a timing flake eventually does. No tolerance or mask is involved.
       - name: Reproduce the differences (re-render only those screens, up to 3 times)
         if: steps.diff.outputs.status != '0'
         id: repro
@@ -139,7 +192,7 @@ jobs:
           exit $status
 
       # Before | After | Difference sheets for every changed render (+ any prefixes asked for with the `show` input, identical or not),
-      # stored under refs/design-shots/parity-<branch> so they can be opened through the GitHub API and shown to the owner.
+      # stored under refs/design-shots/parity-<branch> so they can be opened through the GitHub API.
       - name: Before/After sheets
         if: always()
         env:

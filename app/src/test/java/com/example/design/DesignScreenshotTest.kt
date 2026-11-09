@@ -76,6 +76,11 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         // -PdesignOnly=a,b renders just those screens (quick checks); empty = everything.
         val only = System.getProperty("design.only").orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }
         Assume.assumeTrue(only.isEmpty() || only.any { screen.startsWith(it) })
+        // -PdesignShard=i/n renders one slice (all variants of a screen stay together): CI runs the 280 renders as parallel jobs.
+        System.getProperty("design.shard").orEmpty().takeIf { it.contains('/') }?.let { shard ->
+            val (index, count) = shard.split('/').map { it.trim().toInt() }
+            Assume.assumeTrue(Math.floorMod(screen.hashCode(), count) == index)
+        }
         val out = File(OUT_DIR).apply { mkdirs() }
         val name = "${screen}_$variant"
         try {

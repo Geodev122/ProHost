@@ -2,8 +2,8 @@ name: Golden v2 (re-record the untouched app with the deterministic harness)
 
 # Migration P3.4: the original golden (golden-v1047) captured sheets/dialogs/spinners wherever the idle check stopped them. This workflow renders
 # the SAME untouched app code (commit 7ed5728, identical to tag kmp-golden-v1047) with the deterministic manual-clock harness (HEAD's
-# DesignScreenshotTest.kt) and stores it as refs/design-shots/golden-v2. Parity Gate then compares the migrated app to golden-v2.
-# New workflows cannot be dispatched from a branch, so it also runs when this file changes.
+# DesignScreenshotTest.kt), as 6 parallel shards, and stores the merged set as refs/design-shots/golden-v2. Parity Gate compares the migrated
+# app to golden-v2. New workflows cannot be dispatched from a branch, so it also runs when this file or the harness changes.
 on:
   push:
     branches: ["claude/**"]
@@ -26,11 +26,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  record:
+  render:
+    name: Render shard ${{ matrix.shard }}
     runs-on: ubuntu-latest
-    timeout-minutes: 100
+    timeout-minutes: 85
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5]
     steps:
-      - name: Checkout (harness and scripts)
+      - name: Checkout (harness)
         uses: actions/checkout@v4
         with:
           path: head
@@ -49,26 +54,48 @@ jobs:
           keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 \
             -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
       - name: Use the deterministic harness on the old code
-        run: cp head/app/src/test/java/com/example/design/DesignScreenshotTest.kt old/app/src/test/java/com/example/design/DesignScreenshotTest.kt
-      - name: Record screenshots (old build uses the Roborazzi plugin task)
+        run: |
+          cp head/app/src/test/java/com/example/design/DesignScreenshotTest.kt old/app/src/test/java/com/example/design/DesignScreenshotTest.kt
+          # the old build file does not know the shard property: pass it through to the test JVM
+          sed -i 's|  systemProperty("design.only", designOnly.get())|  systemProperty("design.only", designOnly.get())\n  systemProperty("design.shard", providers.gradleProperty("designShard").orElse("").get())|' old/app/build.gradle.kts
+          grep -n "design.shard" old/app/build.gradle.kts
+      - name: Record this shard (old build uses the Roborazzi plugin task)
         run: |
           cd old
           set -o pipefail
-          gradle :app:recordRoborazziDebug --tests "com.example.design.*" -PdesignOnly="" --no-daemon --stacktrace 2>&1 | tee ../gradle.log
-      - name: Report compile errors
+          gradle :app:recordRoborazziDebug --tests "com.example.design.*" -PdesignOnly="" -PdesignShard=${{ matrix.shard }}/6 --no-daemon --stacktrace 2>&1 | tee ../gradle.log
+      - name: Report build errors
         if: failure()
         run: |
           grep -iE "^e: |error|FAILED" gradle.log | head -40 | while IFS= read -r line; do echo "::error title=build::${line}"; done
-      - name: Store as refs/design-shots/golden-v2
+      - uses: actions/upload-artifact@v4
         if: always()
+        with:
+          name: golden-shard-${{ matrix.shard }}
+          path: old/app/build/design-shots
+          retention-days: 3
+          if-no-files-found: ignore
+
+  store:
+    name: Store golden-v2
+    needs: [render]
+    if: always() && needs.render.result != 'cancelled'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: golden-shard-*
+          path: shots
+          merge-multiple: true
+      - name: Store as refs/design-shots/golden-v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          [ -d old/app/build/design-shots ] || exit 0
-          cd old/app/build/design-shots
+          cd shots
+          echo "files: $(ls | wc -l); pngs: $(ls *.png | wc -l); errors: $(ls *.error.txt 2>/dev/null | wc -l)"
           git init -q
           git add -A
           git -c user.name="design-shots" -c user.email="design-shots@users.noreply.github.com" commit -q -m "Golden v2 rendered from ${{ inputs.commit || '7ed5728' }} with the deterministic harness"
           name="${{ inputs.store_as || 'golden-v2' }}"
           git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/design-shots/${name}"
-          echo "::notice title=golden-v2::$(git rev-parse HEAD) refs/design-shots/${name} files=$(ls | wc -l)"
+          echo "::notice title=golden-v2::$(git rev-parse HEAD) refs/design-shots/${name} pngs=$(ls *.png | wc -l) errors=$(ls *.error.txt 2>/dev/null | wc -l)"
