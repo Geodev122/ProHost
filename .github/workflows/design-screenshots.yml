@@ -11,6 +11,10 @@ on:
         description: "Comma-separated screen name prefixes to render (empty = all)"
         required: false
         default: ""
+      settle:
+        description: "Milliseconds the manual clock runs before the capture (default 1000); for experiments"
+        required: false
+        default: ""
       store_as:
         description: "Name of the stored ref (refs/design-shots/<name>); empty = the branch name. Used to freeze the golden baseline (docs/migration)."
         required: false
@@ -53,6 +57,8 @@ jobs:
             -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
 
       - name: Record screenshots
+        env:
+          DESIGN_SETTLE_MS: ${{ inputs.settle }}
         run: |
           set -o pipefail
           gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly="${{ inputs.only }}" --no-daemon --stacktrace 2>&1 | tee gradle.log

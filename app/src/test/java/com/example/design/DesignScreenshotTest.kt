@@ -104,7 +104,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
                 compose.waitForIdle()
             }
             TAPS[screen]?.forEach { tap(it, manualClock) }
-            if (manualClock) advance(1_000) // springs, scrim fades and dialog dim settle well inside this
+            if (manualClock) advance(System.getenv("DESIGN_SETTLE_MS")?.toLongOrNull() ?: 1_000L) // springs, scrim fades and dialog dim settle inside this
             if (screen in OVERLAYS) captureWithWindows("$OUT_DIR/$name.png")
             else compose.onRoot().captureRoboImage(filePath = "$OUT_DIR/$name.png")
         } catch (e: Throwable) {
