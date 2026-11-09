@@ -60,15 +60,27 @@ jobs:
             -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
       - name: Compile (debug + release) and run the unit tests
         run: |
-          retry() { for i in 1 2 3; do "$@" && return 0; echo "attempt $i failed; retrying in 20 s (transient dependency download errors)"; sleep 20; done; return 1; }
-          set -o pipefail
-          retry bash -c 'gradle :app:testDebugUnitTest :app:assembleDebug :app:compileReleaseKotlin --no-daemon --stacktrace 2>&1 | tee gradle-unit.log; exit ${PIPESTATUS[0]}'
+          set +e
+          for i in 1 2 3; do
+            gradle :app:testDebugUnitTest :app:assembleDebug :app:compileReleaseKotlin --no-daemon --stacktrace 2>&1 | tee gradle-unit.log
+            code=${PIPESTATUS[0]}
+            [ "$code" = 0 ] && break
+            echo "attempt $i failed (exit $code); retrying in 20 s in case of a transient dependency download error"
+            sleep 20
+          done
+          exit $code
       # Release shrinking: proves proguard/dependency changes still produce a valid R8 build (the release-bundle workflow needs secrets).
       - name: R8 release shrink compiles
         run: |
-          retry() { for i in 1 2 3; do "$@" && return 0; echo "attempt $i failed; retrying in 20 s (transient dependency download errors)"; sleep 20; done; return 1; }
-          set -o pipefail
-          retry bash -c 'gradle :app:minifyReleaseWithR8 --no-daemon --stacktrace 2>&1 | tee gradle-r8.log; exit ${PIPESTATUS[0]}'
+          set +e
+          for i in 1 2 3; do
+            gradle :app:minifyReleaseWithR8 --no-daemon --stacktrace 2>&1 | tee gradle-r8.log
+            code=${PIPESTATUS[0]}
+            [ "$code" = 0 ] && break
+            echo "attempt $i failed (exit $code); retrying in 20 s in case of a transient dependency download error"
+            sleep 20
+          done
+          exit $code
       - name: Surface build errors
         if: failure()
         run: |
@@ -101,9 +113,15 @@ jobs:
             -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
       - name: Render this shard of the 280 design screenshots
         run: |
-          retry() { for i in 1 2 3; do "$@" && return 0; echo "attempt $i failed; retrying in 20 s (transient dependency download errors)"; sleep 20; done; return 1; }
-          set -o pipefail
-          retry bash -c 'gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly="" -PdesignShard=${{ matrix.shard }}/6 -PdesignTimeoutMin=12 --no-daemon --stacktrace 2>&1 | tee gradle-shots.log; exit ${PIPESTATUS[0]}'
+          set +e
+          for i in 1 2 3; do
+            gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly="" -PdesignShard=${{ matrix.shard }}/6 -PdesignTimeoutMin=12 --no-daemon --stacktrace 2>&1 | tee gradle-shots.log
+            code=${PIPESTATUS[0]}
+            [ "$code" = 0 ] && break
+            echo "attempt $i failed (exit $code); retrying in 20 s in case of a transient dependency download error"
+            sleep 20
+          done
+          exit $code
       - name: Surface build errors
         if: failure()
         run: |
