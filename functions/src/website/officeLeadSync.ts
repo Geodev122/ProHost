@@ -12,6 +12,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { isPlausibleEmail } from "../lib/emailRateLimit";
 import { normalizeWhatsApp, profession } from "../lib/officeLeadFields";
 import { OfficeLead, recordOfficeLead } from "./officeLeads";
+import { dmOwner } from "../instagram/ownerDm"; // composition root: the one place the agent channel is wired to the lead sink
 import { runAs } from "../lib/runtimeIdentity";
 
 const str = (v: unknown, n: number) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, n) : "");
@@ -52,7 +53,7 @@ export const onOfficeLeadSaved = onDocumentWritten({ document: "ig_leads/{id}", 
   });
   if (!claimed) return;
   try {
-    await recordOfficeLead(leadFromDoc(claimed), now);
+    await recordOfficeLead(leadFromDoc(claimed), now, { dmOwner });
   } catch (e) {
     logger.error("office_lead_record_failed", { id: event.params.id, error: (e as Error).message.slice(0, 200) });
   }

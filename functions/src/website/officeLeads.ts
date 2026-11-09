@@ -22,8 +22,6 @@ import { isPlausibleEmail, takeEmailSendSlot } from "../lib/emailRateLimit";
 import { esc } from "../lib/emailTemplates";
 import { sendPushToAdmins } from "../lib/push";
 import { sendAdminWhatsApp } from "../lib/whatsappAlerts";
-import { canSend, loadConfig } from "../instagram/config";
-import { sendStep } from "../instagram/graph";
 import { clip, upsertContact } from "./addressBook";
 import { ADMIN_EMAIL } from "./mailTemplates";
 import { leadTags, normalizeWhatsApp, profession } from "../lib/officeLeadFields";
@@ -32,9 +30,15 @@ export { OFFICE_LEAD_TAGS, PROFESSIONS, leadTags, normalizeWhatsApp, profession 
 
 export const OFFICE_LEAD_SOURCE = "insta_story";
 export const OFFICE_SUBJECT_TAG = "[ProHost Office lead]";
-/** The owner's personal Instagram account; DMs reach it only inside Meta's 24 h window. */
-export const OWNER_INSTAGRAM = "geo_elnajjat";
-const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Optional owner-alert channels supplied by the caller (the composition root, officeLeadSync.ts). Keeping the Instagram DM out of
+ * this file means the website/ProHost side no longer imports the AI agent (migration plan P9 step 1, docs/migration/AGENT_ADAPTER.md).
+ */
+export interface OwnerChannels {
+  /** Best effort DM to the owner; resolves to a short status text. */
+  dmOwner?: (text: string, now: number) => Promise<string>;
+}
 
 export interface OfficeLead {
   name: string; email: string; whatsapp: string; profession: string; city: string; message: string;
@@ -101,23 +105,11 @@ function clientIp(raw: { ip?: string; headers?: Record<string, unknown> } | unde
   return fwd || raw?.ip || "unknown";
 }
 
-/** Best effort: DM the owner's Instagram account, only inside the 24 h window Meta allows. */
-export async function dmOwner(text: string, now: number): Promise<string> {
-  const config = await loadConfig();
-  if (!canSend(config)) return "instagram not live";
-  const q = await getFirestore().collection("ig_contacts").where("username", "==", OWNER_INSTAGRAM).limit(1).get();
-  const owner = q.docs[0];
-  if (!owner) return "owner never messaged the account";
-  if (now - (Number(owner.get("lastSeenAt")) || 0) > DAY_MS) return "outside the 24 h window";
-  await sendStep({ igUserId: config.igUserId, token: config.accessToken }, { type: "dm", recipientId: owner.id, text });
-  return "sent";
-}
-
 /**
  * Records one office lead everywhere and alerts the owner (called once per lead by officeLeadSync.ts): the website
  * contact book, an admin push, the admin email, an Instagram DM to the owner (24 h window) and WhatsApp (when set up).
  */
-export async function recordOfficeLead(lead: OfficeLead, now: number): Promise<Record<string, string>> {
+export async function recordOfficeLead(lead: OfficeLead, now: number, channels: OwnerChannels = {}): Promise<Record<string, string>> {
   const tags = leadTags(lead.profession);
   const message = [`Wants to list their office on ProHost.`, lead.profession && `Profession: ${lead.profession}`,
     lead.city && `City: ${lead.city}`, `WhatsApp: ${lead.whatsapp}`, lead.instagram && `Instagram: @${lead.instagram}`,
@@ -130,7 +122,7 @@ export async function recordOfficeLead(lead: OfficeLead, now: number): Promise<R
   const [queued, , dm, wa] = await Promise.all([
     sendEmail({ to: ADMIN_EMAIL, replyTo: lead.email, ...officeLeadEmail(lead) }),
     sendPushToAdmins("New office lead", alert, { category: "ADMIN_LEAD", targetTab: "admin_console" }),
-    dmOwner(alert, now).catch((e: Error) => `failed: ${e.message.slice(0, 80)}`),
+    channels.dmOwner ? channels.dmOwner(alert, now).catch((e: Error) => `failed: ${e.message.slice(0, 80)}`) : Promise.resolve("not configured"),
     sendAdminWhatsApp(alert),
   ]);
   const out = { adminEmail: queued ? "queued" : "not queued", instagramDm: dm, whatsapp: wa };
