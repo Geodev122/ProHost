@@ -1,5 +1,6 @@
 import { setAppAdapter } from "../instagram/appAdapter";
 import { readPlayCatalog } from "../billing/playCatalogLive";
+import { loadListingRows } from "./listingRows";
 import { sendEmail } from "../lib/email";
 import { esc } from "../lib/emailTemplates";
 
@@ -9,6 +10,7 @@ import { esc } from "../lib/emailTemplates";
  */
 setAppAdapter({
   readOffers: async () => ({ basePlans: (await readPlayCatalog()).basePlans }),
+  loadListings: loadListingRows,
   sendAdminMail: async (mail) => { await sendEmail(mail); },
   escapeHtml: esc,
 });

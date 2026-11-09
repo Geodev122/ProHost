@@ -41,10 +41,6 @@ test("ProHost modules do not import the agent (except the composition root)", ()
 
 // Seams the agent still uses today (target modules relative to src/). Replace them with AppAdapter calls, then delete the entry.
 const AGENT_SEAMS = new Set([
-  "website/sitemapXml", // aiListings.ts -> adapter.searchListings
-  "listings/listingLocation", // aiListings.ts
-  "listings/listingPrices", // aiListings.ts
-  "bookings/occupancyProjection", // aiListings.ts
   "lib/officeLeadFields", // aiAgent.ts / aiRuntime.ts -> adapter.leadSink
   "lib/whatsappAlerts", // sheetsBridge.ts -> adapter.health
   "lib/runtimeIdentity", // runAs(): deployment identity, stays as a deployment concern

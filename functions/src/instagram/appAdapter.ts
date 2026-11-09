@@ -20,11 +20,26 @@ export interface OfferBasePlan {
   availableIn: Record<string, boolean>; regionCount: number; offers: OfferData[];
 }
 
+/** How a slot is booked/priced (person = per attendee). */
+export type PriceUnit = "hour" | "shift" | "day" | "month" | "person";
+export interface RoomRow {
+  id: string; code: string; name: string; type: string; capacity: number | null;
+  /** How its slots are booked (hour, shift, day, month). */ offered: PriceUnit;
+  price: number | null; priceUnit: PriceUnit | null; amenities: string[];
+}
+/** One publicly browsable listing as the agent may see it: never owner names, phones or emails. */
+export interface ListingRow {
+  id: string; code: string; title: string; category: string; country: string; city: string; /** English copy of a city typed in another language (app 1.0.45). */ cityEn: string; area: string; verified: boolean;
+  rooms: RoomRow[]; features: string[]; views: number; inquiries: number; favorites: number; bookings: number; createdAt: number;
+}
+
 export interface AdminMail { to: string; subject: string; html: string; headers?: Record<string, string> }
 
 export interface AppAdapter {
   /** The app's live subscription catalogue (authoritative prices and offers); throws when unavailable. */
   readOffers(): Promise<{ basePlans: OfferBasePlan[] }>;
+  /** Every publicly browsable listing as catalogue rows (read-only; the agent caches them for 10 minutes). */
+  loadListings(): Promise<ListingRow[]>;
   /** Queues an email through the app's mail pipeline (alerts to the app's admin). */
   sendAdminMail(mail: AdminMail): Promise<void>;
   /** HTML-escapes user-supplied text for mail bodies. */

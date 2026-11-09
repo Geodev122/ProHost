@@ -1,9 +1,5 @@
-import { getFirestore } from "firebase-admin/firestore";
-import "../lib/admin";
-import { isPublicListing } from "../website/sitemapXml";
-import { listingPlace } from "../listings/listingLocation";
-import { PriceUnit, listingPricing, lowestPriceFor, roomPrice, unitOfStrategy } from "../listings/listingPrices";
-import { OCCUPANCY_COLLECTION } from "../bookings/occupancyProjection";
+import { appAdapter, ListingRow, RoomRow, PriceUnit } from "./appAdapter";
+export type { ListingRow, RoomRow, PriceUnit } from "./appAdapter";
 
 /**
  * The DM agent's read-only view of the live ProHost catalogue: every publicly browsable listing (isPublicListing) with its
@@ -12,69 +8,18 @@ import { OCCUPANCY_COLLECTION } from "../bookings/occupancyProjection";
  */
 
 type Data = Record<string, unknown>;
-export interface RoomRow {
-  id: string; code: string; name: string; type: string; capacity: number | null;
-  /** How its slots are booked (hour, shift, day, month). */ offered: PriceUnit;
-  price: number | null; priceUnit: PriceUnit | null; amenities: string[];
-}
-export interface ListingRow {
-  id: string; code: string; title: string; category: string; country: string; city: string; /** English copy of a city typed in another language (app 1.0.45). */ cityEn: string; area: string; verified: boolean;
-  rooms: RoomRow[]; features: string[]; views: number; inquiries: number; favorites: number; bookings: number; createdAt: number;
-}
-
-const ROOM_TYPES: Record<string, string> = {
-  ROOMS: "Room", OFFICE: "Office", CONFERENCE_ROOM: "Meeting room", THEATER_TRAINING: "Training hall", DESK_IN_SHARED_AREA: "Desk",
-  GYM: "Gym", TRAINING_ROOM: "Training room", SPORTS_AREA: "Sports area", STUDIO: "Studio", STORAGE: "Storage",
-};
-const SPACE_TYPES: Record<string, string> = { PRIVATE_OFFICE: "Private office", CENTER: "Center", POLYCLINIC: "Polyclinic", COWORKING_SPACE: "Coworking space" };
 
 const str = (v: unknown, n = 120) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, n) : "");
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 const strs = (v: unknown) => (Array.isArray(v) ? v.map((x) => str(x, 60)).filter(Boolean) : []);
 
-/** One listing document → its catalogue row (pure). */
-export function toListingRow(id: string, d: Data, bookings = 0): ListingRow {
-  const place = listingPlace(d);
-  const category = str(d.spaceCategoryName) || SPACE_TYPES[str(d.spaceType)] || "Workspace";
-  const subs = Array.isArray(d.subdivisions) ? (d.subdivisions as Data[]) : [];
-  const rooms: RoomRow[] = subs.length
-    ? subs.map((s) => {
-      const p = roomPrice(s);
-      const pricing = (s.pricing ?? {}) as Data;
-      return {
-        id: str(s.id, 80), code: str(s.displayCode, 12), name: str(s.name, 60) || ROOM_TYPES[str(s.type)] || "Room", type: ROOM_TYPES[str(s.type)] || "Room",
-        capacity: num(s.capacity) > 0 ? num(s.capacity) : null, offered: unitOfStrategy(pricing.strategyType),
-        price: p?.amount ?? null, priceUnit: p?.unit ?? null, amenities: strs(s.amenities).slice(0, 8),
-      };
-    })
-    : [(() => {
-      const pricing = listingPricing(d);
-      const p = lowestPriceFor(pricing);
-      return { id: "", code: "", name: str(d.title, 60), type: category, capacity: num(d.capacity) > 0 ? num(d.capacity) : null, offered: unitOfStrategy(pricing.strategyType), price: p?.amount ?? null, priceUnit: p?.unit ?? null, amenities: [] };
-    })()];
-  const equipment = Array.isArray(d.equipment) ? (d.equipment as Data[]).map((e) => str(e.name, 40)).filter(Boolean) : [];
-  return {
-    id, code: str(d.displayCode, 12), title: str(d.title, 80) || category, category, country: place.country, city: str(d.city, 60) || place.locality, cityEn: str(d.cityEn, 60),
-    area: str(d.district, 60), verified: d.isVerified === true, rooms,
-    features: [...strs(d.essentialFacilities), ...equipment].slice(0, 14),
-    views: num(d.avatarEngagementViews), inquiries: num(d.avatarInquiryClicks), favorites: num(d.favoriteCount), bookings, createdAt: num(d.createdAtMillis),
-  };
-}
-
 let cache: { rows: ListingRow[]; at: number } | null = null;
 const TTL = 10 * 60_000;
 
-/** All publicly browsable listings as rows, cached 10 minutes per instance. */
+/** All publicly browsable listings as rows (from the host app's adapter), cached 10 minutes per instance. */
 export async function listingsCatalog(now: number): Promise<ListingRow[]> {
   if (cache && now - cache.at < TTL) return cache.rows;
-  const db = getFirestore();
-  const [snap, occ] = await Promise.all([
-    db.collection("workspace_listings").where("status", "==", "ACTIVE").limit(2000).get(),
-    db.collection(OCCUPANCY_COLLECTION).select("spaceId").limit(5000).get(),
-  ]);
-  const bookings = new Map<string, number>();
-  occ.docs.forEach((o) => { const s = String(o.get("spaceId") ?? ""); if (s) bookings.set(s, (bookings.get(s) ?? 0) + 1); });
-  const rows = snap.docs.filter((d) => isPublicListing(d.data())).map((d) => toListingRow(d.id, d.data(), bookings.get(d.id) ?? 0));
+  const rows = await appAdapter().loadListings();
   cache = { rows, at: now };
   return rows;
 }

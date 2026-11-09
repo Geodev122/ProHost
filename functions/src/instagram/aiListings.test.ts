@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ListingRow, catalogOverview, cleanCriteria, formatMatches, listingButtons, listingUrl, searchListings, toListingRow } from "./aiListings";
+import { ListingRow, catalogOverview, cleanCriteria, formatMatches, listingButtons, listingUrl, searchListings } from "./aiListings";
+import { toListingRow } from "../adapter/listingRows";
 
 const NOW = Date.UTC(2026, 9, 24);
 const clinic = toListingRow("SPC-1", {
