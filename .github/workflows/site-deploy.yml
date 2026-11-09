@@ -7,7 +7,7 @@ name: Site deploy (temporary host)
 on:
   push:
     branches: [main, "site-deploy/**"]
-    paths: ["public/**", "netlify.toml", ".github/workflows/site-deploy.yml"]
+    paths: ["public/**", "netlify.toml", ".github/workflows/site-deploy.yml", "adminWeb/**", "shared/**", "gradle/**", "build.gradle.kts", "settings.gradle.kts"]
   workflow_dispatch:
     inputs:
       probe_host:
@@ -37,6 +37,32 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+
+      # Admin Console (Compose for Web, plan P1): built here and published as an independent page at pro-host.tech/console
+      # (its own index.html + wasm bundle, guarded by the admin sign-in). Nothing multi-MB is committed to the repository.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.7.1"
+      - name: Build the admin console into public/console
+        run: |
+          set +e
+          for i in 1 2 3; do
+            gradle :adminWeb:wasmJsBrowserDistribution --no-daemon --stacktrace
+            code=$?
+            [ "$code" = 0 ] && break
+            echo "::warning::admin console build attempt $i failed (exit $code); retrying in 20 s"
+            sleep 20
+          done
+          [ "$code" = 0 ] || exit "$code"
+          rm -rf public/console
+          mkdir -p public/console
+          cp -r adminWeb/build/dist/wasmJs/productionExecutable/. public/console/
+          test -f public/console/index.html
+          du -sh public/console
 
       - name: Find or create the Netlify site
         id: site
@@ -141,6 +167,7 @@ jobs:
           check /robots.txt 200
           check /sitemap.xml 200 "<urlset"
           check /ig-webhook 403
+          check /console/ 200 "ProHost Admin"
           if [ -n "$PROBE_HOST" ]; then
             # Real domain only: the www alias and the plain-http address must end on https with a 200.
             for u in "https://www.$PROBE_HOST/" "http://$PROBE_HOST/privacy"; do

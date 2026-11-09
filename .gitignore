@@ -32,3 +32,6 @@ __pycache__/
 marketing/source/out/
 
 hs_err_pid*.log
+
+# Admin console build output (copied by site-deploy.yml)
+public/console/

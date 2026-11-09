@@ -16,6 +16,9 @@
 /studio-rental-beirut /studio-rental 301
 /office-space-by-the-hour-lebanon /office-space-by-the-hour 301
 
+# Admin console page (static folder public/console, built in CI)
+/console /console/ 301
+
 # Clean URLs (cleanUrls in firebase.json)
 /admin /admin.html 200
 /ar /ar.html 200
