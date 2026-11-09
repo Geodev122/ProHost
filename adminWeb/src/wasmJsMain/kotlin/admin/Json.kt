@@ -119,3 +119,10 @@ private fun pickJs(accept: String): kotlin.js.Promise<JsAny?> = js("new Promise(
 /** `file.name` of a browser `File`. */
 fun fileNameOf(file: JsAny): String = fileNameJs(file)
 private fun fileNameJs(file: JsAny): String = js("String(file.name || '')")
+
+/** `MMM d, HH:mm` in the browser's local time (billing stamps on the Android console). */
+fun stampShort(ms: Double): String = stampShortJs(ms)
+private fun stampShortJs(ms: Double): String = js("new Date(ms).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })")
+
+/** Waits [ms] milliseconds. */
+suspend fun pause(ms: Long) = kotlinx.coroutines.delay(ms)

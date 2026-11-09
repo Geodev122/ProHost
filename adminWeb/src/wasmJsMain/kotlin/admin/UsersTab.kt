@@ -138,7 +138,7 @@ fun UsersTab(gateway: AdminGateway) {
   }
 }
 
-private suspend fun exportUsersCsv(gateway: AdminGateway): String {
+internal suspend fun exportUsersCsv(gateway: AdminGateway): String {
   val columns = listOf("uid", "displayCode", "fullName", "email", "phone", "role", "country", "city", "packageId", "packageExpiryMillis", "billingStatus", "entitlementSource", "listingCodes", "createdAtMillis")
   val out = StringBuilder(columns.joinToString(",")).append('\n')
   var cursor: String? = null
