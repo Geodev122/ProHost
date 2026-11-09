@@ -693,7 +693,7 @@ fun CustomButton(
                 modifier = modifier.defaultMinSize(minHeight = minHeight),
                 enabled = enabled && !isLoading,
                 shape = shape,
-                colors = ButtonDefaults.buttonColors(
+                colors = ProHostButtonDefaults.buttonColors(
                     containerColor = containerColor,
                     contentColor = contentColor,
                     disabledContainerColor = containerColor.copy(alpha = 0.5f),
@@ -765,7 +765,7 @@ private fun ButtonInnerContent(
 
 /** Colours of the one primary action on a screen (orange). Use with a raw Button that needs custom content. */
 @Composable
-fun proPrimaryButtonColors() = ButtonDefaults.buttonColors(
+fun proPrimaryButtonColors() = ProHostButtonDefaults.buttonColors(
     containerColor = MaterialTheme.colorScheme.secondary,
     contentColor = MaterialTheme.colorScheme.onSecondary
 )

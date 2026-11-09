@@ -28,6 +28,8 @@ import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.*
+import com.example.ui.components.Button
+import com.example.ui.components.ProHostButtonDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -635,7 +637,7 @@ fun SpaceDetailsScreenContent(
                                 onClick = onWhatsAppClick,
                                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                                 shape = MaterialTheme.shapes.medium,
-                                colors = ButtonDefaults.buttonColors(
+                                colors = ProHostButtonDefaults.buttonColors(
                                     containerColor = WhatsAppDarkGreen,
                                     contentColor = androidx.compose.ui.graphics.Color.White
                                 )

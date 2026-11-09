@@ -100,7 +100,7 @@ fun InAppUpdateBanner(
                     if (updateState == UpdateState.DOWNLOADED) {
                         Button(
                             onClick = onCompleteUpdate,
-                            colors = ButtonDefaults.buttonColors(
+                            colors = ProHostButtonDefaults.buttonColors(
                                 containerColor = onBanner,
                                 contentColor = bannerColor
                             ),

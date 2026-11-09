@@ -30,6 +30,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import com.example.ui.components.Button
+import com.example.ui.components.AssistChip
+import com.example.ui.components.ProHostButtonDefaults
 import com.example.ui.components.OutlinedButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -450,7 +453,7 @@ fun OwnerSubscriptionsScreen(
                         enabled = enabled,
                         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                         shape = Radius.Md,
-                        colors = ButtonDefaults.buttonColors(
+                        colors = ProHostButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.secondary,
                             contentColor = MaterialTheme.colorScheme.onSecondary
                         )

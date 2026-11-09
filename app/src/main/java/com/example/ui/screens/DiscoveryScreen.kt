@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import com.example.ui.components.FilterChip
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -48,6 +49,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.*
 import com.example.ui.components.*
+import com.example.ui.components.Button
 import com.example.ui.state.DiscoveryFilterState
 import com.example.ui.state.PricingFormulaFilter
 import com.example.ui.util.SpaceCalculationUtils

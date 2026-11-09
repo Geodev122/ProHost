@@ -25,7 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Redeem
-import androidx.compose.material3.Button
+import com.example.ui.components.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -128,7 +128,7 @@ fun PromoCountdownCard(
                 enabled = enabled,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
                 shape = Radius.Sm,
-                colors = ButtonDefaults.buttonColors(
+                colors = ProHostButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.secondary,
                     contentColor = MaterialTheme.colorScheme.onSecondary
                 )

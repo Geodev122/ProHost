@@ -29,6 +29,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import com.example.ui.components.Button
+import com.example.ui.components.ProHostButtonDefaults
 import com.example.ui.components.OutlinedButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -654,7 +656,7 @@ fun SpecialistProfileScreen(
                                                             },
                                                             modifier = Modifier.weight(1f),
                                                             shape = MaterialTheme.shapes.small,
-                                                            colors = ButtonDefaults.buttonColors(containerColor = WhatsAppDarkGreen),
+                                                            colors = ProHostButtonDefaults.buttonColors(containerColor = WhatsAppDarkGreen),
                                                             contentPadding = PaddingValues(vertical = 6.dp)
                                                         ) {
                                                             Icon(

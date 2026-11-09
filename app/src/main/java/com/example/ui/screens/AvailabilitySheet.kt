@@ -27,6 +27,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import com.example.ui.components.Button
+import com.example.ui.components.ProHostButtonDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -566,7 +568,7 @@ internal fun AvailabilitySheet(
                                 }
                             },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = WhatsAppDarkGreen),
+                            colors = ProHostButtonDefaults.buttonColors(containerColor = WhatsAppDarkGreen),
                             shape = MaterialTheme.shapes.medium
                         ) {
                             Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))

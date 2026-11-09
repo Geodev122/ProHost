@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.*
 import com.example.ui.components.*
+import com.example.ui.components.Button
 import com.example.ui.theme.*
 import com.example.ui.util.BookingRecurrence
 import com.example.ui.util.RentableSlot
