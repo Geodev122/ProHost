@@ -20,13 +20,13 @@ Kept by the migration sessions while they run on their own (owner request, 8 Nov
 | D13 | Dim behind sheets/dialogs is 4-6 % lighter under Compose 1.12 in Robolectric (<= 16 levels, nothing moves); tolerated only for the listed overlay screens (`docs/migration/overlay-dim.json`); verify on a device (M4) | Tolerated |
 | D14 | Deferred deep links / attribution: Play Install Referrer on Android (free); on iOS a Universal Link + App Store campaign token, or a paid attribution vendor | Free options only |
 | D15 | Public images behind a CDN: Firebase Hosting rewrite, Cloud CDN, or Cloudflare in front | Firebase/Cloud CDN, no third party |
-| D16 | Retention periods: audit log (13 months hot), verification documents and booking agreements (legal period), notifications (48 h, existing), mail history (30 days) | As listed |
+| D16 | Retention periods: audit log (13 months hot), verification documents and booking agreements (**delete 1 year after review**, owner 9 Nov), notifications (48 h, existing), mail history (30 days) | As listed; privacy text must state it (owner review) |
 | D17 | Search service when listings pass ~2 k-50 k (Typesense on Cloud Run vs Algolia vs Firestore geohash only) | Geohash first, decide on measured data |
 | D18 | Terraform to codify budgets, alerts, IAM and TTL policies | Yes, after the parity work |
 
 ## B. Manual jobs (only you can do these)
 Standing list: `docs/OWNER_TODO.md` (Google Trust & Safety case, Play domain checks and deep links, quotas, Play permission trim, Maps key restrictions, Play declarations, secret rotation, App Check decision, `BOOTSTRAP_SECRET`, uptime URLs, Auth Platform branding, iOS items, legal items). New from the migration:
-- M1. Register a Firebase **web app** for the admin console (public config values) and create the site + DNS for `admin.pro-host.tech`; add the domain to authorized domains (`authconfig`).
+- M1. ~~Firebase web app + admin subdomain~~ **Changed 9 Nov: no subdomain.** Web app registered (public config recorded in the plan file); admin console = a separate page on the existing Netlify site at `pro-host.tech/console` (built in CI into `public/console/`, email + password sign-in, `claims.role == ADMIN` guard). Nothing left for DNS/Netlify.
 - M2. Create the new Google project (+ billing) for the AI agent when you choose to move it (D8).
 - M3. iPhone for device tests, APNs key confirmation, Firebase iOS key restriction, Paid Apps Agreement, trader status (Apple/Play accounts).
 - M4. Play Console: invite/confirm the CI service account for releases; internal-testing install to smoke-test the Kotlin 2.3 / Compose Multiplatform build before any production rollout; emulator check on API 24/25 for the desktop-java-time (desugaring) paths.
@@ -49,3 +49,15 @@ Done and proven by the 280-render Parity Gate: P0, P2 (all seams), P3 (Kotlin 2.
 ## E. Device test build (9 Nov 2026)
 Play probe (Release bundle, `probe`): the CI account works; Play holds version codes up to 46, production = 1.0.46 (46), internal and beta empty. `main` is at versionCode 47 / 1.0.47 (not uploaded yet), so the migration build uses **versionCode 48 / 1.0.48** to leave 47 free for the real 1.0.47 release. Uploaded to the **internal** track only; production stays 1.0.46 and `docs/release/published.txt` is untouched.
 - 9 Nov 2026: **1.0.48 (48) released on the internal track at 100 %** (Release bundle run 42611994800; notes en-GB; symbols uploaded). Production untouched (1.0.46). Owner to install from the internal opt-in link and report (M10). Decisions D1-D18 approved with defaults; D6 concept approved (mockups before build); Play Console: appspot account removed; trims of compute/run-billing/run-ig postponed (OWNER_TODO #5); Rewa Rammal's Admin access confirmed intended.
+
+## F. Hand-off walkthrough answers (9 Nov 2026)
+1. **D1-D18**: approved with all defaults (D6 stays blocked until a design is approved; D16 updated, see above).
+2. **D6 report/block**: concept approved; screens shown as mockups before any build.
+3. **M10 device test**: owner will test 1.0.48 and report later. Production stays 1.0.46.
+4. **M1 admin web**: path `pro-host.tech/console`, email + password sign-in; web app registered. Do NOT initialise Analytics in adminWeb (opt-in policy).
+5. **M6 budget**: $50/month (alerts about $12/$25/$45/$50 + forecast 100 %); owner creates it and enables Billing export to BigQuery dataset `billing_export` (EU), then says "done".
+6. **M7 TTL/lifecycle**: approved for `notifications.expireAt` (48 h) and `mail.expireAt` (30 d) via Maintenance task `ttl` (dry run, then `apply`); Storage lifecycle about 365 days on `listing_verification_docs/` and `booking_agreements/`. Flag: an agreement for a booking longer than a year would be deleted by an age rule.
+7. **M8 keys**: owner does 7a web key referrers, 7b Android Firebase key (package + SHA-1s), 7c Maps key, 7d Anthropic monthly cap; then tests sign-in and the map on the phone.
+8. **D8/M2 agent**: "prepare, don't switch": P9 steps 1-5 inside this repo; nothing needed from the owner until a go-live window is chosen.
+9. **iOS**: 9a APNs key uploaded (done); 9b iOS API key restricted to `app.geonajjar.prohost` (done); 9c Paid Apps Agreement **Processing** (waiting on Apple); 9d EU trader status **declared as Trader** (done); 9e legal name + postal address **later** (must equal the Apple trader details; goes into privacy 1, terms 1.1 and 15.3); 9f borrowed iPhone not selected, still open.
+10. **Standing list**: see `docs/OWNER_TODO.md` (Trust & Safety case, quotas, Play trims #5, secret rotation, second-owner invitation, BOOTSTRAP_SECRET, Play declarations, App Check, Auth Platform branding, final removal of temporary access).
