@@ -248,3 +248,6 @@ Owner decision D16: verification documents and booking agreements are deleted 1 
 
 ### P9 steps 3-4 deferred on purpose (9 Nov 2026)
 Step 3 (hard-coded ProHost wording → `BrandProfile`: `FALLBACK_REPLY`, goodbyes, comment DM hook, `LISTING_BASE`, `aiKnowledge`, insight text, subject tags) and step 4 (lead recording for other brands: `ig_brands/{id}/leads` has no recording trigger) change nothing for ProHost today and carry real risk for the live agent's wording; they are only needed when a second brand goes live. They are bundled with the go-live decision D8 (new Google project, Meta webhook window) and listed in OWNER_QUEUE. The seams that must move first are already closed (AppAdapter, boundary test).
+
+### P5 unit: schema models + default catalogue to :shared (9 Nov 2026)
+`SchemaCategory`, `SchemaItem`, `AttendeePackage`, `SpaceArchitectureSchema` (moved out of `DataModels.kt`, same package `com.example.data.model`) and `createDefaultSchema()` (`DefaultSchema.kt`, now public, package `com.example.data.repository`) live in `shared/src/commonMain` so the admin web console edits the same schema with the same mappers and built-in catalogue. No behaviour change for the app; verified by the Parity Gate (280/280) and unit tests.

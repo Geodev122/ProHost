@@ -7,7 +7,7 @@ import com.example.data.model.*
  * amenities, rental strategies, attendee packages) used until an admin saves their own,
  * and by "Add missing defaults" / "Reset to defaults" in Admin › Schema.
  */
-internal fun createDefaultSchema(): SpaceArchitectureSchema {
+fun createDefaultSchema(): SpaceArchitectureSchema {
     return SpaceArchitectureSchema(
         spaceTypes = listOf(
             SchemaItem("ST-01", "Private Office", "Dedicated self-contained lockable office suites", SchemaCategory.SPACE_TYPE, "Apartment"),
