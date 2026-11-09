@@ -30,3 +30,5 @@ tests/rules/*.log
 __pycache__/
 
 marketing/source/out/
+
+hs_err_pid*.log
