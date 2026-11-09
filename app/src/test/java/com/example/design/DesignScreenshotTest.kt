@@ -83,6 +83,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         }
         val out = File(OUT_DIR).apply { mkdirs() }
         val name = "${screen}_$variant"
+        File(out, "_last.txt").writeText(name) // the render a hung run was in (CI uploads it with the renders)
         try {
             val vm = signedInViewModel(if (screen in HOST_SCREENS) UserRole.PRO_HOST else UserRole.SPECIALIST)
             applyVariantToActivity(variant)

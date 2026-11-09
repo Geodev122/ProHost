@@ -224,7 +224,7 @@ dependencies {
 val recordingScreenshots = providers.gradleProperty("roborazzi.test.record").orElse("false").map { it == "true" }
 val designOnly = providers.gradleProperty("designOnly").orElse("")
 tasks.withType<Test>().configureEach {
-  timeout.set(Duration.ofMinutes(if (recordingScreenshots.get()) 60 else 15))
+  timeout.set(Duration.ofMinutes(if (recordingScreenshots.get()) providers.gradleProperty("designTimeoutMin").orElse("60").get().toLong() else 15))
   systemProperty("roborazzi.test.record", recordingScreenshots.get().toString())
   // DesignScreenshotTest: -PdesignOnly=screen1,screen2 renders only those.
   systemProperty("design.only", designOnly.get())

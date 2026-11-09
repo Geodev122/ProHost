@@ -58,7 +58,8 @@ jobs:
           cp head/app/src/test/java/com/example/design/DesignScreenshotTest.kt old/app/src/test/java/com/example/design/DesignScreenshotTest.kt
           # the old build file does not know the shard property: pass it through to the test JVM
           sed -i 's|  systemProperty("design.only", designOnly.get())|  systemProperty("design.only", designOnly.get())\n  systemProperty("design.shard", providers.gradleProperty("designShard").orElse("").get())|' old/app/build.gradle.kts
-          grep -n "design.shard" old/app/build.gradle.kts
+          sed -i 's|Duration.ofMinutes(if (recordingScreenshots) 60 else 15)|Duration.ofMinutes(if (recordingScreenshots) 12 else 15)|' old/app/build.gradle.kts
+          grep -n "design.shard\|ofMinutes" old/app/build.gradle.kts
       - name: Record this shard (old build uses the Roborazzi plugin task)
         run: |
           cd old
