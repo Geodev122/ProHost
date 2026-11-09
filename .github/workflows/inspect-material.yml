@@ -3,6 +3,9 @@ name: Inspect Material (temporary diagnostics)
 # Prints which Compose / Material 3 versions the app resolves to and the library sources for the parts whose layout changed
 # (migration P3.4 drift analysis). Read-only; delete when the drift is fixed.
 on:
+  push:
+    branches: ["claude/**"]
+    paths: [".github/workflows/inspect-material.yml"]
   workflow_dispatch:
     inputs:
       pattern:
@@ -33,7 +36,7 @@ jobs:
             done
             unzip -q -o s.jar || true
             echo "=== $ver: files"; ls -R . | grep -E "OutlinedTextField|TextFieldImpl|ModalBottomSheet|Button.kt|AlertDialog" | head
-            echo "=== $ver: hits for ${{ inputs.pattern }}"
-            grep -rnE "${{ inputs.pattern }}" --include=*.kt . | head -40
+            echo "=== $ver: hits for ${{ inputs.pattern || 'OutlinedTextFieldTopPadding|topPadding|TopPadding' }}"
+            grep -rnE "${{ inputs.pattern || 'OutlinedTextFieldTopPadding|topPadding|TopPadding' }}" --include=*.kt . | head -40
             cd ..
           done
