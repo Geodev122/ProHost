@@ -109,3 +109,8 @@ Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, ot
 ## 8 Nov 2026 (evening) - architecture decision recorded (no GCP, Drive, Play or GitHub setting changed)
 - Owner chose Kotlin Multiplatform + Compose Multiplatform for Android and iOS; Admin Console to become a web app; AI agent to become its own project. Plan and rules written to `CLAUDE.md` (new section), `docs/migration/*`; `docs/IOS_PLAN.md` and `docs/IOS_READINESS.md` marked superseded for the UI approach. CLAUDE.md Gradle note corrected to 9.7.1.
 
+
+## 9 Nov 2026 — retention (owner-approved)
+- Firestore TTL policies created via Maintenance `ttl apply` (runs 182): collection group `notifications` field `ttlAt`, collection group `mail` field `expireAt`.
+- Storage lifecycle rules added via Maintenance `lifecycle apply` (run 183): Delete after 365 days for prefixes `listing_verification_docs/` and `booking_agreements/` on bucket `prohost-f766f.firebasestorage.app` (no rules existed before).
+- Owner also (own hands, 9 Nov): removed the appspot service account from Play Console; restricted the "iOS key (auto created by Firebase)" to bundle `app.geonajjar.prohost`; confirmed the APNs key is uploaded; declared EU trader status; Paid Apps Agreement is processing.
