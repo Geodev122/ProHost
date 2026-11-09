@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.*
 import com.example.ui.components.*
+import com.example.ui.components.OutlinedButton
 import com.example.ui.screens.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ProHostViewModel
