@@ -122,3 +122,16 @@ Columns: **Web** = built in adminWeb · **Proof** = emulator test + screenshot v
   `maintenance_requests`, `mailing_*`, `mail`.
 - Known quirks to decide (DECISIONS.md): audit CSV exports only 500 loaded rows; `SCHEMA_DEFAULTS_MERGED`, `DEMO_CONTENT_SEEDED`, `DEMO_CONTENT_PURGED` are sent but rejected by the server allow-list;
   attendee-package changes are not audited; "Delete user" leaves the Auth account; dead code (`AdminExportDataDialog`, `AdminUiEvent.PricingUpdated`, `admins` count unused); no positive admin cases in `tests/rules`.
+
+## Web build status (9 Nov 2026, code complete for the seven tabs; NOT yet ticked)
+Written in `adminWeb/src/wasmJsMain/kotlin/admin/` and compiled in CI (`admin-web.yml`); the **Web / Proof / Owner** boxes stay unticked until an admin has used each item on the deployed `pro-host.tech/console` page.
+| Items | Tab | File | Differences from Android (listed, none silent) |
+|---|---|---|---|
+| 8-17 | Packages | `PackagesTab.kt` | none known; plan label text derived from the base-plan id |
+| 18-28 | Users (+ dossier 22) | `UsersTab.kt`, `Dossier.kt` | avatar not drawn; "Payments not active yet" inside the dossier is not shown (Packages tab lists them) |
+| 29-36, 38, 39 | Listings & Bookings | `ListingsTab.kt` | **item 37 (Edit wizard) not built** (needs shared owner screens, P6-W5); price on the listing card missing (needs the shared pricing port, P5); photos not shown |
+| 40-44 | Analytics | `AnalyticsTab.kt` | from/to are `yyyy-MM-dd` text fields (no calendar popup); weeks start Sunday (en-US) |
+| 45-52 | Schema | `SchemaTab.kt` | models and default catalogue are the app's own code (`:shared`); package inclusions one per line |
+| 53-55 | Security | `SecurityTab.kt` | audit log loaded on visit + Refresh (no live listener); CSV still only the loaded rows (quirk kept) |
+| 57, 59-63 | Demo | `DemoTab.kt` | **item 58 (Generate demo content) not offered on the web** (Android debug builds only) |
+Not started: 1-7 shell items beyond sign-in/tabs (badges, notification centre, analytics events), 56 (drawer audit dialog, covered by the Security tab), 64-66 (diagnostics page, Admin-as-Pro-Host, GA4 secret UI), 67-70 stay as they are (mailing console, maintenance CI, IG control room).
