@@ -10,6 +10,7 @@ from PIL import Image
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import compare_android_ios  # noqa: E402
 import diff_shots  # noqa: E402
+import shots  # noqa: E402
 
 
 def png(path: Path, color=(10, 20, 30), size=(40, 30), dot=None):
