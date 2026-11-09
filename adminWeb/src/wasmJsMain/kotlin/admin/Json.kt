@@ -4,6 +4,7 @@ package admin
 private fun parseJs(text: String): JsAny? = js("JSON.parse(text)")
 private fun getJs(o: JsAny, k: String): JsAny? = js("(o[k] === undefined ? null : o[k])")
 private fun kindJs(o: JsAny): String = js("(Array.isArray(o) ? 'array' : typeof o)")
+private fun keysJs(o: JsAny): JsAny = js("Object.keys(o)")
 private fun strJs(o: JsAny): String = js("String(o)")
 private fun numJs(o: JsAny): Double = js("Number(o)")
 private fun lenJs(o: JsAny): Int = js("o.length")
@@ -24,6 +25,13 @@ class Json private constructor(private val v: JsAny?) {
   fun num(): Double? = v?.takeIf { kindJs(it) == "number" }?.let { numJs(it) }
   fun int(default: Int = 0): Int = num()?.toInt() ?: default
   fun bool(default: Boolean = false): Boolean = v?.takeIf { kindJs(it) == "boolean" }?.let { strJs(it) == "true" } ?: default
+  /** The members of a JSON object in order, or empty when this is not an object. */
+  fun entries(): List<Pair<String, Json>> {
+    val o = v?.takeIf { kindJs(it) == "object" } ?: return emptyList()
+    val keys = keysJs(o)
+    return List(lenJs(keys)) { i -> val k = strJs(atJs(keys, i)!!); k to Json(getJs(o, k)) }
+  }
+
   /** One CSV cell as the Android export prints it: lists joined by spaces, numbers as whole numbers. */
   fun cell(): String = if (v == null) "" else if (kindJs(v) == "array") list().joinToString(" ") { it.cell() } else num()?.toLong()?.toString() ?: str()
   fun list(): List<Json> {
@@ -53,3 +61,27 @@ private fun nowJs(): Double = js("Date.now()")
 /** Opens [url] in a new tab (no opener). */
 fun openUrl(url: String) = openJs(url)
 private fun openJs(url: String) { js("window.open(url, '_blank', 'noopener')") }
+
+/** `yyyy-MM-dd` (UTC midnight) to epoch millis, or null when it is not a valid date. */
+fun parseDayUtc(text: String): Double? = parseDayJs(text).takeIf { !it.isNaN() }
+private fun parseDayJs(text: String): Double = js("(/^\\d{4}-\\d{2}-\\d{2}$/.test(text) ? Date.parse(text + 'T00:00:00Z') : NaN)")
+
+/** `yyyy-MM-dd` of epoch millis in UTC. */
+fun dayStampUtc(ms: Double): String = dayStampJs(ms)
+private fun dayStampJs(ms: Double): String = js("new Date(ms).toISOString().slice(0, 10)")
+
+/** UTC label: `MMM yyyy` when [monthly], else `MMM d` (the Android chart's axis labels). */
+fun axisLabel(ms: Double, monthly: Boolean): String = axisJs(ms, monthly)
+private fun axisJs(ms: Double, monthly: Boolean): String = js("new Date(ms).toLocaleDateString('en-US', monthly ? { month: 'short', year: 'numeric', timeZone: 'UTC' } : { month: 'short', day: 'numeric', timeZone: 'UTC' })")
+
+/** First instant of the UTC month containing [ms]. */
+fun monthStartUtc(ms: Double): Double = monthStartJs(ms)
+private fun monthStartJs(ms: Double): Double = js("(function () { var d = new Date(ms); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1); })()")
+
+/** First instant of the UTC month after the one containing [ms]. */
+fun nextMonthUtc(ms: Double): Double = nextMonthJs(ms)
+private fun nextMonthJs(ms: Double): Double = js("(function () { var d = new Date(ms); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1); })()")
+
+/** Thousands-separated whole number like `%,.0f` (Locale.US). */
+fun groupedWhole(v: Double): String = groupedJs(v)
+private fun groupedJs(v: Double): String = js("Math.round(v).toLocaleString('en-US')")
