@@ -1,5 +1,5 @@
 import * as logger from "firebase-functions/logger";
-import { FieldValue, getFirestore } from "firebase-admin/firestore";
+import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
 import "./admin";
 
 /**
@@ -13,6 +13,14 @@ import "./admin";
  * `mail` is server-only (firestore.rules deny), so only functions queue mail.
  */
 export const MAIL_COLLECTION = "mail";
+
+/** How long a queued mail document (recipient address, subject, body) is kept; a Firestore TTL policy on `mail.expireAt` deletes it afterwards. */
+export const MAIL_RETENTION_DAYS = 30;
+
+/** The `expireAt` of a mail document queued at `nowMs`. Pure, so the retention is testable. */
+export function mailExpireAt(nowMs: number): Date {
+  return new Date(nowMs + MAIL_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+}
 
 export interface EmailPayload {
   to: string;
@@ -47,6 +55,8 @@ export async function sendEmail(payload: EmailPayload): Promise<boolean> {
         text: payload.text ?? stripHtml(payload.html),
       },
       createdAt: FieldValue.serverTimestamp(),
+      // Lets a Firestore TTL policy on `mail.expireAt` clear delivered mail (storage and recipient addresses are not kept for ever).
+      expireAt: Timestamp.fromDate(mailExpireAt(Date.now())),
     });
     logger.info("email_queued", { to: maskEmail(payload.to), subject: payload.subject, id: ref.id });
     return true;
