@@ -254,3 +254,6 @@ Step 3 (hard-coded ProHost wording → `BrandProfile`: `FALLBACK_REPLY`, goodbye
 
 ### P11.5 (partial) dead Maintenance entries removed (9 Nov 2026)
 `aiprobe` / `aiquota` (Vertex tasks with no handler) removed from the Maintenance workflow description; `aitest` text says Claude (not Gemini); `docs/INSTAGRAM.md` no longer lists `geminiprobe`; CLAUDE.md correction note updated.
+
+### P11.6 (partial) positive admin rules cases (9 Nov 2026)
+`tests/rules/firestore.rules.test.js` gained "admin console direct writes (positive cases)": schema_architecture, legal_documents (+ immutable versions), audit_security_logs (admin read, nobody writes), user_profiles (admin read + contact-field update, no protected keys), admin deletes of workspace_listings and user_profiles, and the review-queue read. These pin every direct Firestore path the web console uses. They run in the emulator in CI ("Security Rules Tests"; not runnable in this sandbox).

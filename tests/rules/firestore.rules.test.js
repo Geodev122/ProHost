@@ -8,7 +8,7 @@ import {
   assertSucceeds,
   initializeTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
 let env;
 
@@ -19,6 +19,7 @@ const SPEC2 = "spec2";
 const hostCtx = () => env.authenticatedContext(HOST, { role: "PRO_HOST", email: "h@x.com" }).firestore();
 const specCtx = () =>
   env.authenticatedContext(SPEC, { role: "SPECIALIST", email: "s@x.com", phone_number: "+96170000001" }).firestore();
+const adminCtx = () => env.authenticatedContext("admin1", { role: "ADMIN", email: "a@x.com" }).firestore();
 const spec2Ctx = () => env.authenticatedContext(SPEC2, { role: "SPECIALIST", email: "s2@x.com" }).firestore();
 
 function booking(overrides = {}) {
@@ -274,5 +275,42 @@ describe("booking occupancy projection", () => {
   test("nobody writes it from a client", async () => {
     await assertFails(setDoc(doc(specCtx(), "booking_occupancy", "fake"), { spaceId: "L1", status: "ACCEPTED" }));
     await assertFails(updateDoc(doc(hostCtx(), "booking_occupancy", "B_OTHER"), { startDate: "2020-01-01" }));
+  });
+});
+
+// Positive admin cases: the web admin console (adminWeb) writes these paths directly as the signed-in admin.
+describe("admin console direct writes (positive cases)", () => {
+  test("schema_architecture: an admin writes it, a specialist cannot, everyone reads it", async () => {
+    await assertSucceeds(setDoc(doc(adminCtx(), "schema_architecture", "main"), { spaceTypes: [], divisionTypes: [] }, { merge: true }));
+    await assertFails(setDoc(doc(specCtx(), "schema_architecture", "main"), { spaceTypes: [] }, { merge: true }));
+    await assertSucceeds(getDoc(doc(specCtx(), "schema_architecture", "main")));
+  });
+  test("legal_documents: an admin publishes the pointer and a version; a version can never be rewritten", async () => {
+    const db = adminCtx();
+    await assertSucceeds(setDoc(doc(db, "legal_documents", "privacy_policy"), { version: 1, url: "u" }, { merge: true }));
+    await assertSucceeds(setDoc(doc(db, "legal_documents", "privacy_policy", "versions", "1"), { version: 1, url: "u" }));
+    await assertFails(setDoc(doc(db, "legal_documents", "privacy_policy", "versions", "1"), { version: 1, url: "other" }));
+    await assertFails(setDoc(doc(specCtx(), "legal_documents", "privacy_policy"), { version: 2 }, { merge: true }));
+    await assertSucceeds(getDoc(doc(specCtx(), "legal_documents", "privacy_policy")));
+  });
+  test("audit_security_logs: only an admin reads, nobody writes", async () => {
+    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), "audit_security_logs", "a1"), { timestamp: 1, actionType: "X" }));
+    await assertSucceeds(getDoc(doc(adminCtx(), "audit_security_logs", "a1")));
+    await assertFails(getDoc(doc(hostCtx(), "audit_security_logs", "a1")));
+    await assertFails(setDoc(doc(adminCtx(), "audit_security_logs", "a2"), { timestamp: 2 }));
+  });
+  test("user_profiles: an admin reads another profile and edits contact fields; a specialist cannot read it", async () => {
+    await assertSucceeds(getDoc(doc(adminCtx(), "user_profiles", SPEC)));
+    await assertSucceeds(updateDoc(doc(adminCtx(), "user_profiles", SPEC), { specialty: "Therapist", city: "Beirut", updatedAt: 5 }));
+    await assertFails(getDoc(doc(specCtx(), "user_profiles", HOST)));
+  });
+  test("user_profiles and workspace_listings: an admin deletes, a specialist cannot", async () => {
+    await assertFails(deleteDoc(doc(specCtx(), "workspace_listings", "L1")));
+    await assertSucceeds(deleteDoc(doc(adminCtx(), "workspace_listings", "L1")));
+    await assertFails(deleteDoc(doc(specCtx(), "user_profiles", HOST)));
+    await assertSucceeds(deleteDoc(doc(adminCtx(), "user_profiles", HOST)));
+  });
+  test("workspace_listings: the review-queue read works for an admin", async () => {
+    await assertSucceeds(getDoc(doc(adminCtx(), "workspace_listings", "L2")));
   });
 });
