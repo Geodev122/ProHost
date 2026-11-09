@@ -1,4 +1,4 @@
-import { FieldValue, getFirestore } from "firebase-admin/firestore";
+import { FieldValue, Timestamp, getFirestore } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 import { logger } from "firebase-functions/v2";
 import "./admin";
@@ -18,6 +18,9 @@ export function notificationDoc(title: string, body: string, data: Record<string
     spaceId: data.spaceId ?? null,
     createdAt: now,
     expireAt: now + NOTIFICATION_TTL_MS,
+    // Firestore TTL deletes only on a Timestamp field; `expireAt` is epoch millis (the app compares it as a number), so
+    // the policy on notifications.ttlAt (Maintenance `ttl`) clears expired items without the hourly prune job.
+    ttlAt: Timestamp.fromMillis(now + NOTIFICATION_TTL_MS),
     read: false,
   };
 }

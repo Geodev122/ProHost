@@ -215,3 +215,6 @@ To do at the P4 re-baseline: freeze the clock and preload images in the harness,
 
 ### P11.1 (first item) Mail documents get `expireAt` — ✔ 9 Nov 2026 (functions: 257/257 tests pass locally; deploys on merge to `main`)
 `sendEmail` now writes `expireAt` = queued + 30 days (`MAIL_RETENTION_DAYS`, owner queue D16) so a Firestore TTL policy on `mail.expireAt` can delete delivered mail (recipient addresses and bodies are not kept for ever). Additive: the Trigger Email extension ignores the field. The TTL policy itself is owner job M7. Backlog correction: Q1 (CDN caching of sitemap and listing pages) and Q4 (`maxInstances: 10` global) were already in the code.
+
+### P11.1 (Q2) Firestore TTL: `ttl` Maintenance task (9 Nov 2026)
+Owner approved TTL for notifications (48 h) and mail (30 d). Finding: `notifications.expireAt` is epoch millis (the app compares it as a number), and Firestore TTL only deletes on a Timestamp, so a policy on it would never fire. Added an additive Timestamp mirror `ttlAt` in `notificationDoc` (old apps ignore it; owner may still change only `read`/`readAt`). Maintenance `ttl` (dry run prints policy state + expired backlog; code `apply` PATCHes `ttlConfig` on `notifications.ttlAt` and `mail.expireAt`). Deploys on merge to `main`; run `ttl` dry run, then `ttl apply`, then retire `pruneExpiredNotifications` once state is ACTIVE.

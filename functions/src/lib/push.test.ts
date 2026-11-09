@@ -10,6 +10,7 @@ test("in-app notifications keep the push routing and expire after 48 h", () => {
   assert.equal(doc.spaceId, null);
   assert.equal(doc.read, false);
   assert.equal(doc.expireAt - doc.createdAt, NOTIFICATION_TTL_MS);
+  assert.equal(doc.ttlAt.toMillis(), doc.expireAt, "the TTL timestamp equals the millis expiry");
   assert.equal(NOTIFICATION_TTL_MS, 48 * 60 * 60 * 1000);
 });
 

@@ -7,6 +7,7 @@
 //   node scripts/maintenance/run.js j8               production data hygiene (backup → cleanup)
 //   node scripts/maintenance/run.js retiregrowth     retired plans (growth/enterprise): holders → permanent grant, rows closed
 //   node scripts/maintenance/run.js occupancy        rebuild booking_occupancy from ACCEPTED bookings
+//   node scripts/maintenance/run.js ttl [apply]           Firestore TTL policies on notifications.ttlAt (48 h) and mail.expireAt (30 d): dry run shows state, apply creates them
 //   node scripts/maintenance/run.js favrecount [apply] listing save counts (favoriteCount) recounted from user_profiles.savedSpaceIds,
 //                                                    the owner's own save excluded; dry run prints counts only, apply writes
 //   node scripts/maintenance/run.js officeleadsmoke  live check of pro-host.tech/list-your-office: posts ONE test lead from
@@ -322,6 +323,38 @@ async function favrecount(db, arg) {
     }
     if (w) await w.close();
     return `listings=${listings.size} changed=${changed} (up ${up}, down ${down}) totalSaves=${total}${w ? " written" : " — run with code apply to write"}`;
+  });
+}
+
+async function ttl(db, arg) {
+  // Firestore TTL policies (owner approved 9 Nov 2026): notifications.ttlAt (48 h, Timestamp mirror of expireAt) and
+  // mail.expireAt (30 days). Dry run lists the current state; code `apply` creates the policies (idempotent).
+  const project = process.env.GCLOUD_PROJECT;
+  const targets = [["notifications", "ttlAt"], ["mail", "expireAt"]];
+  const base = (group, field) => `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/collectionGroups/${group}/fields/${field}`;
+  for (const [group, field] of targets) {
+    await step(`ttl ${group}.${field}${arg === "apply" ? " apply" : ""}`, async () => {
+      const get = async () => {
+        const r = await googleApi(base(group, field));
+        if (!r.ok) throw new Error(`HTTP ${r.status} ${(await r.text()).slice(0, 200)}`);
+        return r.json();
+      };
+      let f = await get();
+      let note = "";
+      if (arg === "apply" && !f.ttlConfig) {
+        const r = await googleApi(`${base(group, field)}?updateMask=ttlConfig`, { method: "PATCH", body: JSON.stringify({ ttlConfig: {} }) });
+        if (!r.ok) throw new Error(`HTTP ${r.status} ${(await r.text()).slice(0, 200)}`);
+        note = " policy requested;";
+        f = await get();
+      }
+      return `${note} ttlState=${f.ttlConfig ? f.ttlConfig.state : "none"}${f.ttlConfig || arg === "apply" ? "" : " — run with code apply to create"}`;
+    });
+  }
+  await step("ttl backlog", async () => {
+    const now = new Date();
+    const mail = await db.collection("mail").where("expireAt", "<", now).count().get();
+    const n = await db.collectionGroup("notifications").where("expireAt", "<", Date.now()).count().get();
+    return `expired mail docs=${mail.data().count} expired notifications (old prune job handles these)=${n.data().count}`;
   });
 }
 
@@ -1878,6 +1911,7 @@ async function smsauth(db, arg) {
   else if (task === "j8") { await j8(db, auth); await audit(db, auth); }
   else if (task === "occupancy") await occupancy(db);
   else if (task === "favrecount") await favrecount(db, (arg || "").trim());
+  else if (task === "ttl") await ttl(db, (arg || "").trim());
   else if (task === "retiregrowth") { await retiregrowth(db); await audit(db, auth); }
   else if (task === "emailauth") await emailauth(db);
   else if (task === "enableemaillink") { await enableemaillink(); await emailauth(db); }
