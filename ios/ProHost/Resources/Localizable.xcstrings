@@ -2075,6 +2075,57 @@
         }
       }
     },
+    "booking_window": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Booking window"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نافذة الحجز"
+          }
+        }
+      }
+    },
+    "booking_window_hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How far ahead people can ask for a date."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إلى أي مدى مسبقاً يمكن طلب تاريخ."
+          }
+        }
+      }
+    },
+    "booking_window_label": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accept bookings up to"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استقبال الحجوزات حتى"
+          }
+        }
+      }
+    },
     "bookings": {
       "extractionState": "manual",
       "localizations": {
@@ -2238,6 +2289,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "حجز ProHost %1$@ — %2$@"
+          }
+        }
+      }
+    },
+    "calendar_legend_closed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Closed"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مغلق"
+          }
+        }
+      }
+    },
+    "calendar_legend_free": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free times"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أوقات متاحة"
+          }
+        }
+      }
+    },
+    "calendar_legend_full": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fully booked"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "محجوز بالكامل"
           }
         }
       }
@@ -3224,6 +3326,74 @@
           "stringUnit": {
             "state": "translated",
             "value": "إغلاق البحث"
+          }
+        }
+      }
+    },
+    "closed_dates": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Closed dates"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أيام الإغلاق"
+          }
+        }
+      }
+    },
+    "closed_dates_count": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Closed: %1$@"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مغلق: %1$@"
+          }
+        }
+      }
+    },
+    "closed_dates_hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap the dates you take no bookings on, such as holidays. Tap again to reopen."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضغط على التواريخ التي لا تستقبل فيها حجوزات، مثل العطل. اضغط مجدداً لإعادة فتحها."
+          }
+        }
+      }
+    },
+    "closed_dates_none": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No closed dates"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا توجد أيام إغلاق"
           }
         }
       }
@@ -4686,6 +4856,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "خصّص التوفّر الذي تحتاجه"
+          }
+        }
+      }
+    },
+    "dates": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dates"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التواريخ"
+          }
+        }
+      }
+    },
+    "dates_and_times_summary": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@"
           }
         }
       }
@@ -6588,6 +6792,23 @@
         }
       }
     },
+    "fewer_months": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fewer months"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أشهر أقل"
+          }
+        }
+      }
+    },
     "fill_all_hours": {
       "extractionState": "manual",
       "localizations": {
@@ -7965,6 +8186,23 @@
         }
       }
     },
+    "how_long": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How long?"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "كم المدة؟"
+          }
+        }
+      }
+    },
     "how_your_offer_works": {
       "extractionState": "manual",
       "localizations": {
@@ -9189,6 +9427,23 @@
         }
       }
     },
+    "monthly_window_invalid": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The last month is before the first month. Change one of them to save."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الشهر الأخير يسبق الشهر الأول. غيِّر أحدهما للحفظ."
+          }
+        }
+      }
+    },
     "more": {
       "extractionState": "manual",
       "localizations": {
@@ -9257,6 +9512,23 @@
         }
       }
     },
+    "more_months": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More months"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أشهر أكثر"
+          }
+        }
+      }
+    },
     "more_options": {
       "extractionState": "manual",
       "localizations": {
@@ -9304,6 +9576,201 @@
           "stringUnit": {
             "state": "translated",
             "value": "إعلاناتي (%1$@)"
+          }
+        }
+      }
+    },
+    "n_dates": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld date"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld dates"
+                }
+              }
+            }
+          }
+        },
+        "ar": {
+          "variations": {
+            "plural": {
+              "zero": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "لا تواريخ"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "تاريخ واحد"
+                }
+              },
+              "two": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "تاريخان"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld تواريخ"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld تاريخاً"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld تاريخ"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "n_months": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld month"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld months"
+                }
+              }
+            }
+          }
+        },
+        "ar": {
+          "variations": {
+            "plural": {
+              "zero": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "لا أشهر"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "شهر واحد"
+                }
+              },
+              "two": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "شهران"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld أشهر"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld شهراً"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld شهر"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "n_times": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld time"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld times"
+                }
+              }
+            }
+          }
+        },
+        "ar": {
+          "variations": {
+            "plural": {
+              "zero": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "لا أوقات"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "وقت واحد"
+                }
+              },
+              "two": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "وقتان"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld أوقات"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld وقتاً"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld وقت"
+                }
+              }
+            }
           }
         }
       }
@@ -9508,6 +9975,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "التالي"
+          }
+        }
+      }
+    },
+    "next_month": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next month"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الشهر التالي"
           }
         }
       }
@@ -9916,6 +10400,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "لم تُختر مرافق"
+          }
+        }
+      }
+    },
+    "no_free_dates_this_month": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No free dates this month. Try the next month."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا تواريخ متاحة هذا الشهر. جرّب الشهر التالي."
           }
         }
       }
@@ -11739,6 +12240,23 @@
         }
       }
     },
+    "period": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Period"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الفترة"
+          }
+        }
+      }
+    },
     "period_shown_until_you_cancel_cancel_anyti": {
       "extractionState": "manual",
       "localizations": {
@@ -11752,6 +12270,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "المدة المعروضة حتى تُلغي. يمكنك الإلغاء في أي وقت من Google Play › المدفوعات والاشتراكات؛ وتحتفظ "
+          }
+        }
+      }
+    },
+    "period_x_to_x": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ → %2$@"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ ← %2$@"
           }
         }
       }
@@ -11858,6 +12393,23 @@
         }
       }
     },
+    "pick_dates_then_times": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick your dates, then the times you need."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختر التواريخ ثم الأوقات التي تحتاجها."
+          }
+        }
+      }
+    },
     "pick_specific_dates": {
       "extractionState": "manual",
       "localizations": {
@@ -11888,6 +12440,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "اختر تواريخ محددة (%1$@$ لكل منها):"
+          }
+        }
+      }
+    },
+    "pick_start_date_and_length": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick a start date and how many months."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختر تاريخ البدء وعدد الأشهر."
           }
         }
       }
@@ -12194,6 +12763,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "وضع المعاينة"
+          }
+        }
+      }
+    },
+    "previous_month": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previous month"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الشهر السابق"
           }
         }
       }
@@ -13966,6 +14552,23 @@
         }
       }
     },
+    "rental_type_locked": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This division has bookings, so its rental type stays as it is. You can still change prices and times."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لهذا القسم حجوزات، لذا يبقى نوع التأجير كما هو. ما زال بإمكانك تغيير الأسعار والأوقات."
+          }
+        }
+      }
+    },
     "rented": {
       "extractionState": "manual",
       "localizations": {
@@ -14149,6 +14752,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "أُرسل الطلب"
+          }
+        }
+      }
+    },
+    "request_these_dates": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Request these dates"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اطلب هذه التواريخ"
+          }
+        }
+      }
+    },
+    "request_this_period": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Request this period"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اطلب هذه الفترة"
           }
         }
       }
@@ -16218,6 +16855,23 @@
         }
       }
     },
+    "slot_taken": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taken"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "محجوز"
+          }
+        }
+      }
+    },
     "slots_booked_hidden": {
       "extractionState": "manual",
       "localizations": {
@@ -17606,6 +18260,23 @@
         }
       }
     },
+    "tap_a_date_to_see_its_times": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap a date to see its times."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضغط على تاريخ لعرض أوقاته."
+          }
+        }
+      }
+    },
     "tap_a_day_to_expand_and_select_open_slots": {
       "extractionState": "manual",
       "localizations": {
@@ -18282,6 +18953,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "هذه الفئة متوقفة."
+          }
+        }
+      }
+    },
+    "this_time_has_passed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "These times have already passed today."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انقضت هذه الأوقات اليوم."
           }
         }
       }
@@ -19595,6 +20283,23 @@
         }
       }
     },
+    "when_do_you_start": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When do you start?"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "متى تبدأ؟"
+          }
+        }
+      }
+    },
     "which_shifts_are_offered_on_which_day": {
       "extractionState": "manual",
       "localizations": {
@@ -19608,6 +20313,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "أي المناوبات تُعرض في أي يوم."
+          }
+        }
+      }
+    },
+    "whole_day_x_to_x": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Whole day · %1$@–%2$@"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يوم كامل · %1$@–%2$@"
           }
         }
       }
@@ -20371,6 +21093,23 @@
         }
       }
     },
+    "x_per_month_times_x": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ / month × %2$lld"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ / شهر × %2$lld"
+          }
+        }
+      }
+    },
     "x_person": {
       "extractionState": "manual",
       "localizations": {
@@ -20571,6 +21310,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@: للقيام به"
+          }
+        }
+      }
+    },
+    "x_to_x_time": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@–%2$@"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@–%2$@"
           }
         }
       }
