@@ -1,0 +1,570 @@
+{
+ "description": "Booking on real dates: what each calendar date offers and when a monthly term may start. Generated from functions/src/bookings/dateSlots.ts (UPDATE_VECTORS=1 npm test); the Kotlin engine com.example.ui.util.DateSlots must produce the same.",
+ "today": "2026-11-14",
+ "schedule": {
+  "openingHour": "09:00",
+  "closingHour": "18:00",
+  "operatingDays": [
+   "Mon",
+   "Tue",
+   "Wed",
+   "Thu",
+   "Fri"
+  ],
+  "isSundayOperating": false
+ },
+ "rooms": {
+  "hourly": {
+   "strategyType": "HOURLY",
+   "hourly": {
+    "cellPrices": {
+     "Tue|9": 12,
+     "Tue|10": 12,
+     "Tue|11": 15,
+     "Thu|15": 12,
+     "Sat|9": 12,
+     "Tue|12": 0
+    }
+   }
+  },
+  "shifts": {
+   "strategyType": "SHIFT_BASED",
+   "shiftBased": {
+    "shifts": [
+     {
+      "name": "MORNING",
+      "startHour": 8,
+      "endHour": 12,
+      "isUnavailable": false,
+      "price": 40
+     },
+     {
+      "name": "EVENING",
+      "startHour": 16,
+      "endHour": 20,
+      "isUnavailable": false,
+      "price": 45
+     },
+     {
+      "name": "NIGHT",
+      "startHour": 20,
+      "endHour": 23,
+      "isUnavailable": true,
+      "price": 30
+     }
+    ],
+    "distribution": {
+     "Wed": [
+      "MORNING",
+      "EVENING",
+      "NIGHT"
+     ],
+     "Thu": [
+      "MORNING"
+     ]
+    }
+   }
+  },
+  "daily": {
+   "strategyType": "DAY_BASED",
+   "dayBased": {
+    "useFacilityHours": true,
+    "distribution": {
+     "Tue": {
+      "price": 75
+     },
+     "Fri": {
+      "price": 0
+     }
+    }
+   }
+  }
+ },
+ "monthly": {
+  "strategyType": "MONTHLY",
+  "monthly": {
+   "rateUsd": 450,
+   "fromMonth": 11,
+   "fromYear": 2026,
+   "isIndefinite": false,
+   "toMonth": 6,
+   "toYear": 2027,
+   "excludedRanges": [
+    {
+     "fromMonth": 4,
+     "fromYear": 2027,
+     "toMonth": 4,
+     "toYear": 2027
+    }
+   ]
+  }
+ },
+ "closedDates": [
+  "2026-11-24"
+ ],
+ "bookings": [
+  {
+   "bookedSlots": [
+    {
+     "date": "2026-11-17",
+     "key": "10",
+     "startHour": 10,
+     "endHour": 11,
+     "priceUsd": 12
+    }
+   ]
+  },
+  {
+   "formula": {
+    "type": "HOURLY",
+    "startHour": "15:00",
+    "endHour": "16:00",
+    "daysOfWeek": [
+     "Thu"
+    ]
+   },
+   "startDate": "2026-11-01",
+   "durationMonths": 1
+  }
+ ],
+ "monthlyBookings": [
+  {
+   "formula": {
+    "type": "FULL_MONTH"
+   },
+   "startDate": "2026-11-10",
+   "durationMonths": 1
+  }
+ ],
+ "dayCases": [
+  {
+   "room": "hourly",
+   "date": "2026-11-13",
+   "expected": {
+    "state": "past",
+    "slots": []
+   }
+  },
+  {
+   "room": "hourly",
+   "date": "2026-11-14",
+   "expected": {
+    "state": "not_offered",
+    "slots": []
+   }
+  },
+  {
+   "room": "hourly",
+   "date": "2026-11-17",
+   "expected": {
+    "state": "open",
+    "slots": [
+     {
+      "key": "9",
+      "startHour": 9,
+      "endHour": 10,
+      "shiftName": null,
+      "priceUsd": 12,
+      "taken": false
+     },
+     {
+      "key": "10",
+      "startHour": 10,
+      "endHour": 11,
+      "shiftName": null,
+      "priceUsd": 12,
+      "taken": true
+     },
+     {
+      "key": "11",
+      "startHour": 11,
+      "endHour": 12,
+      "shiftName": null,
+      "priceUsd": 15,
+      "taken": false
+     }
+    ]
+   }
+  },
+  {
+   "room": "hourly",
+   "date": "2026-11-18",
+   "expected": {
+    "state": "not_offered",
+    "slots": []
+   }
+  },
+  {
+   "room": "hourly",
+   "date": "2026-11-19",
+   "expected": {
+    "state": "open",
+    "slots": [
+     {
+      "key": "15",
+      "startHour": 15,
+      "endHour": 16,
+      "shiftName": null,
+      "priceUsd": 12,
+      "taken": true
+     }
+    ]
+   }
+  },
+  {
+   "room": "hourly",
+   "date": "2026-11-21",
+   "expected": {
+    "state": "not_offered",
+    "slots": []
+   }
+  },
+  {
+   "room": "hourly",
+   "date": "2026-11-24",
+   "expected": {
+    "state": "closed",
+    "slots": []
+   }
+  },
+  {
+   "room": "hourly",
+   "date": "2026-12-03",
+   "expected": {
+    "state": "open",
+    "slots": [
+     {
+      "key": "15",
+      "startHour": 15,
+      "endHour": 16,
+      "shiftName": null,
+      "priceUsd": 12,
+      "taken": false
+     }
+    ]
+   }
+  },
+  {
+   "room": "hourly",
+   "date": "2027-02-14",
+   "expected": {
+    "state": "not_offered",
+    "slots": []
+   }
+  },
+  {
+   "room": "hourly",
+   "date": "2027-02-16",
+   "expected": {
+    "state": "beyond",
+    "slots": []
+   }
+  },
+  {
+   "room": "shifts",
+   "date": "2026-11-13",
+   "expected": {
+    "state": "past",
+    "slots": []
+   }
+  },
+  {
+   "room": "shifts",
+   "date": "2026-11-14",
+   "expected": {
+    "state": "not_offered",
+    "slots": []
+   }
+  },
+  {
+   "room": "shifts",
+   "date": "2026-11-17",
+   "expected": {
+    "state": "not_offered",
+    "slots": []
+   }
+  },
+  {
+   "room": "shifts",
+   "date": "2026-11-18",
+   "expected": {
+    "state": "open",
+    "slots": [
+     {
+      "key": "MORNING",
+      "startHour": 8,
+      "endHour": 12,
+      "shiftName": "MORNING",
+      "priceUsd": 40,
+      "taken": false
+     },
+     {
+      "key": "EVENING",
+      "startHour": 16,
+      "endHour": 20,
+      "shiftName": "EVENING",
+      "priceUsd": 45,
+      "taken": false
+     }
+    ]
+   }
+  },
+  {
+   "room": "shifts",
+   "date": "2026-11-19",
+   "expected": {
+    "state": "open",
+    "slots": [
+     {
+      "key": "MORNING",
+      "startHour": 8,
+      "endHour": 12,
+      "shiftName": "MORNING",
+      "priceUsd": 40,
+      "taken": false
+     }
+    ]
+   }
+  },
+  {
+   "room": "shifts",
+   "date": "2026-11-21",
+   "expected": {
+    "state": "not_offered",
+    "slots": []
+   }
+  },
+  {
+   "room": "shifts",
+   "date": "2026-11-24",
+   "expected": {
+    "state": "closed",
+    "slots": []
+   }
+  },
+  {
+   "room": "shifts",
+   "date": "2026-12-03",
+   "expected": {
+    "state": "open",
+    "slots": [
+     {
+      "key": "MORNING",
+      "startHour": 8,
+      "endHour": 12,
+      "shiftName": "MORNING",
+      "priceUsd": 40,
+      "taken": false
+     }
+    ]
+   }
+  },
+  {
+   "room": "shifts",
+   "date": "2027-02-14",
+   "expected": {
+    "state": "not_offered",
+    "slots": []
+   }
+  },
+  {
+   "room": "shifts",
+   "date": "2027-02-16",
+   "expected": {
+    "state": "beyond",
+    "slots": []
+   }
+  },
+  {
+   "room": "daily",
+   "date": "2026-11-13",
+   "expected": {
+    "state": "past",
+    "slots": []
+   }
+  },
+  {
+   "room": "daily",
+   "date": "2026-11-14",
+   "expected": {
+    "state": "not_offered",
+    "slots": []
+   }
+  },
+  {
+   "room": "daily",
+   "date": "2026-11-17",
+   "expected": {
+    "state": "open",
+    "slots": [
+     {
+      "key": "DAY",
+      "startHour": 9,
+      "endHour": 18,
+      "shiftName": null,
+      "priceUsd": 75,
+      "taken": true
+     }
+    ]
+   }
+  },
+  {
+   "room": "daily",
+   "date": "2026-11-18",
+   "expected": {
+    "state": "not_offered",
+    "slots": []
+   }
+  },
+  {
+   "room": "daily",
+   "date": "2026-11-19",
+   "expected": {
+    "state": "not_offered",
+    "slots": []
+   }
+  },
+  {
+   "room": "daily",
+   "date": "2026-11-21",
+   "expected": {
+    "state": "not_offered",
+    "slots": []
+   }
+  },
+  {
+   "room": "daily",
+   "date": "2026-11-24",
+   "expected": {
+    "state": "closed",
+    "slots": []
+   }
+  },
+  {
+   "room": "daily",
+   "date": "2026-12-03",
+   "expected": {
+    "state": "not_offered",
+    "slots": []
+   }
+  },
+  {
+   "room": "daily",
+   "date": "2027-02-14",
+   "expected": {
+    "state": "not_offered",
+    "slots": []
+   }
+  },
+  {
+   "room": "daily",
+   "date": "2027-02-16",
+   "expected": {
+    "state": "beyond",
+    "slots": []
+   }
+  }
+ ],
+ "monthlyCases": [
+  {
+   "start": "2026-11-13",
+   "months": 1,
+   "term": {
+    "start": "2026-11-13",
+    "end": "2026-12-13"
+   },
+   "problem": "Choose a start date from today onward.",
+   "maxMonths": 0
+  },
+  {
+   "start": "2026-12-09",
+   "months": 1,
+   "term": {
+    "start": "2026-12-09",
+    "end": "2027-01-09"
+   },
+   "problem": "Part of that period is already booked.",
+   "maxMonths": 0
+  },
+  {
+   "start": "2026-12-10",
+   "months": 1,
+   "term": {
+    "start": "2026-12-10",
+    "end": "2027-01-10"
+   },
+   "problem": null,
+   "maxMonths": 3
+  },
+  {
+   "start": "2026-12-14",
+   "months": 2,
+   "term": {
+    "start": "2026-12-14",
+    "end": "2027-02-14"
+   },
+   "problem": null,
+   "maxMonths": 3
+  },
+  {
+   "start": "2027-01-31",
+   "months": 1,
+   "term": {
+    "start": "2027-01-31",
+    "end": "2027-02-28"
+   },
+   "problem": null,
+   "maxMonths": 2
+  },
+  {
+   "start": "2027-03-01",
+   "months": 1,
+   "term": {
+    "start": "2027-03-01",
+    "end": "2027-04-01"
+   },
+   "problem": null,
+   "maxMonths": 1
+  },
+  {
+   "start": "2027-03-15",
+   "months": 1,
+   "term": {
+    "start": "2027-03-15",
+    "end": "2027-04-15"
+   },
+   "problem": "The host doesn't rent this room for part of that period.",
+   "maxMonths": 0
+  },
+  {
+   "start": "2027-05-01",
+   "months": 2,
+   "term": {
+    "start": "2027-05-01",
+    "end": "2027-07-01"
+   },
+   "problem": null,
+   "maxMonths": 2
+  },
+  {
+   "start": "2027-05-01",
+   "months": 3,
+   "term": {
+    "start": "2027-05-01",
+    "end": "2027-08-01"
+   },
+   "problem": "The host doesn't rent this room for part of that period.",
+   "maxMonths": 2
+  },
+  {
+   "start": "2026-12-14",
+   "months": 13,
+   "term": {
+    "start": "2026-12-14",
+    "end": "2028-01-14"
+   },
+   "problem": "Choose between 1 and 12 months.",
+   "maxMonths": 3
+  }
+ ]
+}

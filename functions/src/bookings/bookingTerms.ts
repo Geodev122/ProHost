@@ -19,7 +19,7 @@ export interface Term { start: string; end: string }
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 const ISO_MONTH = /^\d{4}-\d{2}$/;
 
-function addDays(iso: string, days: number): string {
+export function addDays(iso: string, days: number): string {
   const d = new Date(`${iso}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
@@ -30,7 +30,7 @@ function addDays(iso: string, days: number): string {
  * the app's java.util.Calendar.add(MONTH). Date.setUTCMonth would overflow into the following month instead
  * (→ 2026-03-03) and make the server believe a term ends days after the app shows it; tests/vectors pins both sides.
  */
-function addMonths(iso: string, months: number): string {
+export function addMonths(iso: string, months: number): string {
   const d = new Date(`${iso}T00:00:00Z`);
   const total = d.getUTCFullYear() * 12 + d.getUTCMonth() + months;
   const year = Math.floor(total / 12);
