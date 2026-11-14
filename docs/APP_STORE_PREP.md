@@ -7,26 +7,23 @@ Source of the listing: `ios/store/metadata.json`. Tools: `scripts/ios/asc_store_
 
 ## Done through Apple's API (14 Nov 2026)
 Name and subtitle (English, Arabic) · description, keywords, promotional text, support and marketing URLs (English, Arabic; country-neutral) ·
-privacy policy URL · categories Business / Productivity · content-rights declaration · age-rating questionnaire (user-generated content = yes,
-everything else none) · free app price · available in all 175 countries and regions · capability Associated Domains (plus the existing Sign in
-with Apple, Push, In-App Purchase, App Attest) · TestFlight test information · subscription group "ProHost Premium" with
-`prohost.premium.monthly` and `prohost.premium.yearly` (names and descriptions in both languages).
+privacy policy URL · categories Business / Productivity · content-rights declaration · age-rating questionnaire + 18+ override · copyright
+"2026 Georges El Najjar" · free app price · available in all 175 countries and regions · capability Associated Domains (plus Sign in with
+Apple, Push, In-App Purchase, App Attest) · TestFlight test information and beta-review contact · App Review contact · subscription group
+"ProHost Premium": `prohost.premium.monthly` $8.99 and `prohost.premium.yearly` $79.99 with Apple's equivalent price in every country, names in
+both languages, launch offers for new subscribers (monthly: 1 month free; yearly: first year $39.99), as on Google Play.
 
 ## Still open — Claude
 | Item | Needs |
 |---|---|
-| Subscription prices (monthly $8.99, yearly as on Google Play) in every country | being applied; yearly price read from Play |
-| Launch offers (1 month free monthly, 50 % off first year) | Paid Apps Agreement active |
-| Screenshots, iPhone 6.9" (English, Arabic) | rendered from the store-screenshot source now; replaced by real iOS captures before submission |
-| Review notes + two demo accounts (Specialist, Pro Host) | Maintenance task creates them; passwords only in GitHub secrets |
+| Screenshots, iPhone 6.9" (English, Arabic) and the subscription review screenshot | being rendered and uploaded; replaced by real iOS captures before submission |
+| Review notes + two demo accounts (Specialist, Pro Host) | notes now; accounts when the iOS build exists |
 | App Store Server Notifications URLs | the Apple billing backend (milestone D) |
 | Build attached to the version | the Compose iOS app (milestone C) |
 | Privacy manifest, purpose strings, `apple-app-site-association` | repository work, in progress |
-| Age shown on the store | Apple computed 4+ from the answers; the Terms require 18+. Decision for the owner: set the 18+ override (recommended) |
 
 ## Still open — owner (Apple offers no API for these, or they are personal details)
-1. **Paid Apps Agreement, tax, bank.** appstoreconnect.apple.com → **Business** → **Agreements**. "Paid Apps" must read **Active** (it is
-   processing). If a row shows a warning, open it and complete the tax form or bank details it asks for.
+1. ~~Paid Apps Agreement~~ Active (owner, 14 Nov 2026).
 2. **App Privacy.** App Store Connect → **Apps** → ProHost → left menu **App Privacy** → **Get Started** (or **Edit**).
    - *Do you or your third-party partners collect data from this app?* → **Yes, we collect data from this app.**
    - *Tick these 13 data types, nothing else:* Contact Info: **Name**, **Email Address**, **Phone Number** · User Content: **Photos or Videos**,
@@ -55,13 +52,12 @@ with Apple, Push, In-App Purchase, App Attest) · TestFlight test information ·
      Text Messages, Audio Data, Gameplay Content, Customer Support, Browsing History, Search History, Advertising Data, Other Usage Data,
      Other Diagnostic Data, Sensitive Info, Surroundings, Body, Other Data Types.
    - Press **Publish**. Why each answer: `docs/APPLE_DECLARATIONS.md` section 3.
-3. **Review contact.** GitHub → the ProHost repository → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**, four
-   times: `APP_REVIEW_FIRST_NAME`, `APP_REVIEW_LAST_NAME`, `APP_REVIEW_PHONE` (with country code, e.g. +961…), `APP_REVIEW_EMAIL`. Apple's
-   reviewers use them only if they have a question. Tell Claude "review contact added"; Claude fills the form.
-4. **Legal name** (for the copyright line "2026 <name>" and the legal pages): send it in chat, exactly as in your trader details.
-5. **Age 18+ decision** (see the table above): reply "18+" or "keep 4+".
-6. **TestFlight on an iPhone** (iOS 17 or later): install the TestFlight app, open the invitation email from Apple, tap **View in TestFlight** →
-   **Accept**. If the email is lost: App Store Connect → **Users and Access** → your tester → **Resend invitation**.
+3. ~~Review contact~~, 4. ~~legal name~~, 5. ~~age 18+~~: given 14 Nov 2026 and applied. Please look once at App Store Connect → ProHost →
+   **App Information** → Age Rating and confirm it reads 18+ (Apple's older data field only goes up to 17+).
+6. **Rewa's invitation.** Apple already holds a team invitation for her e-mail. She opens Apple's e-mail "You're invited to join a development
+   team" (from App Store Connect), taps **Accept invitation** and signs in with her Apple ID. If the e-mail is lost: App Store Connect →
+   **Users and Access** → her row → **Resend invitation**. Then tell Claude "Rewa accepted": Claude adds her to the TestFlight group and Apple
+   sends the TestFlight e-mail; on her iPhone (iOS 17+) she installs the TestFlight app and taps **View in TestFlight** → **Accept**.
 7. **Firebase → Authentication → Sign-in method → Apple → Enable → Save** (only if Claude reports that the automatic attempt was refused).
 8. **At submission time only:** look at the final screenshots, then App Store Connect → ProHost → **Add for Review**. Claude prepares
    everything before that click.
