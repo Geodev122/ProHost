@@ -61,6 +61,8 @@ object LegalContent {
                     "rental agreement between users. ProHost is the data controller (or, for California and " +
                     "similar U.S. state laws, the \"business\") responsible for the personal data described " +
                     "in this Policy.",
+                    "ProHost is operated by Georges El Najjar, Maalaka North, Zahle, Central Bekaa, Lebanon " +
+                    "(المعلقة الشمالية، زحلة، البقاع الأوسط، لبنان).",
                     "Privacy contact and single point of contact for users and authorities (including under " +
                     "the EU Digital Services Act): admin@pro-host.tech. We write to you in English; you may " +
                     "write to us in English or Arabic."
@@ -466,6 +468,9 @@ object LegalContent {
                     "Pro Host. ProHost does not own, manage, operate or control any listed space, and is not " +
                     "responsible for acts or omissions of any user.",
                     "1.1 Who provides the service",
+                    "The ProHost service is provided by Georges El Najjar, Maalaka North, Zahle, Central " +
+                    "Bekaa, Lebanon (المعلقة الشمالية، زحلة، البقاع الأوسط، لبنان), referred to in these " +
+                    "Terms as \"ProHost\", \"we\" or \"us\".",
                     "Contact for questions, notices and complaints: admin@pro-host.tech.",
                     "1.2 Our automated assistant",
                     "ProHost uses an automated AI assistant to answer questions on ProHost's Instagram " +
@@ -849,7 +854,8 @@ object LegalContent {
                     "Government as a \"terrorist supporting\" country, and that you are not listed on any " +
                     "U.S. Government list of prohibited or restricted parties.",
                     "• Developer contact. Questions, complaints or claims about the app can be sent to " +
-                    "ProHost at admin@pro-host.tech.",
+                    "ProHost at admin@pro-host.tech, or to Georges El Najjar, Maalaka North, Zahle, Central " +
+                    "Bekaa, Lebanon, telephone +961 78 885 080.",
                     "• Third-party terms. You must comply with applicable third-party terms of agreement when " +
                     "using the app, for example your wireless data service agreement and the Apple Media " +
                     "Services Terms.",
