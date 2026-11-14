@@ -4,6 +4,24 @@ name: iOS Apple inspect
 # Run from the Actions tab (needs the file on main) or by pushing a branch named `ios-inspect/<n>`.
 on:
   workflow_dispatch:
+    inputs:
+      prepare:
+        description: "App Store preparation: none = read only; plan = show what would change; apply = write (same tool as the 'iOS App Store prepare' workflow, usable before that file is on main)"
+        type: choice
+        options: [none, plan, apply]
+        default: none
+      only:
+        description: "Optional sections for prepare: app,categories,info,version,capability,price,availability,age,testflight,subscriptions,review"
+        required: false
+        default: ""
+      copyright:
+        description: "Copyright line, e.g. 2026 Legal Name (optional)"
+        required: false
+        default: ""
+      yearly_usd:
+        description: "Yearly subscription price in USD (optional)"
+        required: false
+        default: ""
   push:
     branches: ["ios-inspect/**"]
 
@@ -24,5 +42,18 @@ jobs:
         run: pip install --quiet pyjwt cryptography
       - name: Snapshot
         run: python3 scripts/ios/asc_inspect.py
+      - name: App Store preparation (${{ inputs.prepare || 'none' }})
+        if: inputs.prepare == 'plan' || inputs.prepare == 'apply'
+        env:
+          ASC_COPYRIGHT: ${{ inputs.copyright }}
+          SUBSCRIPTION_YEARLY_USD: ${{ inputs.yearly_usd }}
+          REVIEW_FIRST_NAME: ${{ secrets.APP_REVIEW_FIRST_NAME }}
+          REVIEW_LAST_NAME: ${{ secrets.APP_REVIEW_LAST_NAME }}
+          REVIEW_PHONE: ${{ secrets.APP_REVIEW_PHONE }}
+          REVIEW_EMAIL: ${{ secrets.APP_REVIEW_EMAIL }}
+          REVIEW_DEMO_USER: ${{ secrets.APP_REVIEW_DEMO_USER }}
+          REVIEW_DEMO_PASSWORD: ${{ secrets.APP_REVIEW_DEMO_PASSWORD }}
+          REVIEW_NOTES: ${{ secrets.APP_REVIEW_NOTES }}
+        run: python3 scripts/ios/asc_prepare.py ${{ inputs.prepare == 'apply' && '--apply' || '' }} --only "${{ inputs.only }}"
       - name: App Store readiness (what is filled in, what is missing)
         run: python3 scripts/ios/asc_store_status.py
