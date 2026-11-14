@@ -27,14 +27,34 @@ with Apple, Push, In-App Purchase, App Attest) · TestFlight test information ·
 ## Still open — owner (Apple offers no API for these, or they are personal details)
 1. **Paid Apps Agreement, tax, bank.** appstoreconnect.apple.com → **Business** → **Agreements**. "Paid Apps" must read **Active** (it is
    processing). If a row shows a warning, open it and complete the tax form or bank details it asks for.
-2. **App Privacy.** App Store Connect → **Apps** → ProHost → left menu **App Privacy** → **Get Started**.
-   - "Do you or your third-party partners collect data from this app?" → **Yes**.
-   - Tick these data types: **Contact Info**: Name, Email Address, Phone Number · **User Content**: Photos or Videos, Other User Content ·
-     **Identifiers**: User ID, Device ID · **Purchases**: Purchase History · **Location**: Precise Location, Coarse Location ·
-     **Usage Data**: Product Interaction · **Diagnostics**: Crash Data, Performance Data.
-   - For each type Apple asks three things. Answer: *purpose* = **App Functionality** (Product Interaction: **Analytics**; User ID and Device ID:
-     also tick nothing else) · *linked to the user's identity* = **Yes** (Crash Data and Performance Data: **No**) · *used for tracking* = **No**.
-   - Press **Publish** (top right). Full table: `docs/APPLE_DECLARATIONS.md` section 3.
+2. **App Privacy.** App Store Connect → **Apps** → ProHost → left menu **App Privacy** → **Get Started** (or **Edit**).
+   - *Do you or your third-party partners collect data from this app?* → **Yes, we collect data from this app.**
+   - *Tick these 13 data types, nothing else:* Contact Info: **Name**, **Email Address**, **Phone Number** · User Content: **Photos or Videos**,
+     **Other User Content** · Identifiers: **User ID**, **Device ID** · Purchases: **Purchase History** · Location: **Precise Location**,
+     **Coarse Location** · Usage Data: **Product Interaction** · Diagnostics: **Crash Data**, **Performance Data**.
+   - Apple then asks three questions per type. Answers:
+
+   | Data type | Purposes to tick | Linked to the user's identity? | Used for tracking? |
+   |---|---|---|---|
+   | Name | App Functionality | Yes | No |
+   | Email Address | App Functionality | Yes | No |
+   | Phone Number | App Functionality | Yes | No |
+   | Photos or Videos | App Functionality | Yes | No |
+   | Other User Content | App Functionality | Yes | No |
+   | User ID | App Functionality, Analytics | Yes | No |
+   | Device ID | App Functionality, Analytics | Yes | No |
+   | Purchase History | App Functionality | Yes | No |
+   | Precise Location | App Functionality | Yes | No |
+   | Coarse Location | App Functionality | Yes | No |
+   | Product Interaction | Analytics | Yes | No |
+   | Crash Data | App Functionality | No | No |
+   | Performance Data | App Functionality | No | No |
+
+   - Never tick Third-Party Advertising, Developer's Advertising or Marketing, Product Personalization or Other Purposes.
+   - Leave unticked: Physical Address, Other Contact Info, Health, Fitness, Payment Info, Credit Info, Other Financial Info, Contacts, Emails or
+     Text Messages, Audio Data, Gameplay Content, Customer Support, Browsing History, Search History, Advertising Data, Other Usage Data,
+     Other Diagnostic Data, Sensitive Info, Surroundings, Body, Other Data Types.
+   - Press **Publish**. Why each answer: `docs/APPLE_DECLARATIONS.md` section 3.
 3. **Review contact.** GitHub → the ProHost repository → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**, four
    times: `APP_REVIEW_FIRST_NAME`, `APP_REVIEW_LAST_NAME`, `APP_REVIEW_PHONE` (with country code, e.g. +961…), `APP_REVIEW_EMAIL`. Apple's
    reviewers use them only if they have a question. Tell Claude "review contact added"; Claude fills the form.
