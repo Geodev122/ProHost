@@ -61,3 +61,8 @@ both languages, launch offers for new subscribers (monthly: 1 month free; yearly
 7. **Firebase → Authentication → Sign-in method → Apple → Enable → Save** (only if Claude reports that the automatic attempt was refused).
 8. **At submission time only:** look at the final screenshots, then App Store Connect → ProHost → **Add for Review**. Claude prepares
    everything before that click.
+
+## Media (14 Nov 2026)
+- **Screenshots, iPhone 6.9" (1320 × 2868), English and Arabic:** `ios/store/screenshots/<locale>/01…08.jpg`, rendered by `node scripts/ios/render_store_screenshots.js` from the store-screenshot source (`play/screenshots/source/shots.html?f=ios&lang=`). Captions name no country. Uploaded with `asc_prepare.py --only screenshots`.
+- **Subscription review screenshot:** `ios/store/screenshots/review/premium-plans.png` (the Premium screen), uploaded for both products with their review note (`--only subreview`).
+- **Before "Add for Review":** these are captioned mock-ups of the app's screens, and screen 4 still shows the weekday slot picker. Apple expects the app as it runs on iPhone, so replace all of them (and the Premium screenshot, which must show App Store prices) with captures of the iOS build (milestone C). App preview videos are optional and need that build.

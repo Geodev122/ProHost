@@ -115,3 +115,9 @@ Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, ot
 - Storage lifecycle rules added via Maintenance `lifecycle apply` (run 183): Delete after 365 days for prefixes `listing_verification_docs/` and `booking_agreements/` on bucket `prohost-f766f.firebasestorage.app` (no rules existed before).
 - Owner also (own hands, 9 Nov): removed the appspot service account from Play Console; restricted the "iOS key (auto created by Firebase)" to bundle `app.geonajjar.prohost`; confirmed the APNs key is uploaded; declared EU trader status; Paid Apps Agreement is processing.
 - iOS S2 (session store, router, role tab shell) pushed; iOS CI green on 767d5fd. No TestFlight build uploaded for it yet.
+
+## 14 Nov 2026 — branch merged to `main` (owner: "merge")
+- `main` fast-forwarded 987c19a → 2ef0493 (204 commits). CI deploys functions, rules, indexes and the website.
+- Goes live: dated-booking server checks (only for requests carrying `dateModel: 2`; the published app 1.0.46 does not send it), report/block callables + rules + indexes, `notifications.ttlAt`, operator block in the legal pages, `/.well-known/apple-app-site-association`, admin console page `/console`.
+- `pruneExpiredNotifications` stays until the deploy has run 48 h with the TTL policy ACTIVE.
+- App Store Connect: 6.9-inch screenshots (EN, AR) and the subscriptions' review screenshot uploaded through the API (`asc_prepare.py` sections `screenshots`, `subreview`).
