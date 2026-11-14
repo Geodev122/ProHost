@@ -1249,6 +1249,13 @@
     <string name="this_time_has_passed">These times have already passed today.</string>
     <string name="dates">Dates</string>
     <string name="period">Period</string>
+    <string name="closed_dates">Closed dates</string>
+    <string name="closed_dates_hint">Tap the dates you take no bookings on, such as holidays. Tap again to reopen.</string>
+    <string name="closed_dates_none">No closed dates</string>
+    <string name="closed_dates_count">Closed: %1$s</string>
+    <string name="booking_window">Booking window</string>
+    <string name="booking_window_hint">How far ahead people can ask for a date.</string>
+    <string name="booking_window_label">Accept bookings up to</string>
     <plurals name="x_dates">
         <item quantity="one">%1$s • 1 date</item>
         <item quantity="other">%1$s • %2$d dates</item>

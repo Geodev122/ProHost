@@ -75,7 +75,7 @@ fun SubdivisionForm(
     var subAmenitiesSelected by remember { mutableStateOf(initial?.amenities?.toSet() ?: setOf()) }
     var subHashtags by remember { mutableStateOf(initial?.hashtags ?: listOf()) }
     var hashtagInput by remember { mutableStateOf("") }
-    var showMoreOptions by remember { mutableStateOf(initial?.scheduleOverride != null || initial?.hashtags?.isNotEmpty() == true) }
+    var showMoreOptions by remember { mutableStateOf(initial?.scheduleOverride != null || initial?.hashtags?.isNotEmpty() == true || initial?.pricing?.bookingHorizonMonths != null) }
     var showAmenityPicker by remember { mutableStateOf(false) }
     var subImageUrls by remember { mutableStateOf(initial?.imageUrls ?: listOf()) }
     var isUploadingSubImage by remember { mutableStateOf(false) }
@@ -421,6 +421,14 @@ fun SubdivisionForm(
             Icon(if (showMoreOptions) Icons.Default.ExpandLess else Icons.Default.ExpandMore, contentDescription = null)
         }
         if (showMoreOptions) {
+            if (subPricing.strategyType != RentalStrategyType.MONTHLY) {
+                FormSection(title = stringResource(R.string.booking_window), hint = stringResource(R.string.booking_window_hint)) {
+                    BookingWindowStepper(
+                        months = subPricing.bookingHorizonMonths,
+                        onChange = { subPricing = subPricing.copy(bookingHorizonMonths = it) }
+                    )
+                }
+            }
             FormSection(title = stringResource(R.string.hashtags), hint = stringResource(R.string.division_hashtags_hint)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),

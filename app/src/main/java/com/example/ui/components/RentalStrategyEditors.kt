@@ -77,7 +77,8 @@ fun RentalPricingConfigEditor(
                             monthly = if (type == RentalStrategyType.MONTHLY) config.monthly ?: MonthlyConfig() else null,
                             hourly = if (type == RentalStrategyType.HOURLY) config.hourly ?: HourlyConfig() else null,
                             shiftBased = if (type == RentalStrategyType.SHIFT_BASED) config.shiftBased ?: ShiftBasedConfig() else null,
-                            dayBased = if (type == RentalStrategyType.DAY_BASED) config.dayBased ?: DayBasedConfig() else null
+                            dayBased = if (type == RentalStrategyType.DAY_BASED) config.dayBased ?: DayBasedConfig() else null,
+                            bookingHorizonMonths = config.bookingHorizonMonths
                         )
                     )
                 }

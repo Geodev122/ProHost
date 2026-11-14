@@ -433,3 +433,53 @@ fun MonthlyPeriodPicker(
         }
     }
 }
+
+/**
+ * Host tool: dates the place (or one division) takes no bookings on. Tap a date to close it, tap again to reopen.
+ * Past dates are dropped from the list when it changes, so it never grows without bound.
+ */
+@Composable
+fun ClosedDatesEditor(
+    closedDates: List<String>,
+    onChange: (List<String>) -> Unit,
+    today: String = IsoDate.todayIso(),
+    modifier: Modifier = Modifier,
+) {
+    val todayDate = remember(today) { IsoDate.parse(today) ?: IsoDate.todayDate() }
+    var month by remember(today) { mutableStateOf(IsoDate.firstOfMonth(todayDate)) }
+    val upcoming = remember(closedDates, today) { closedDates.filter { it >= today }.distinct().sorted() }
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        MonthCalendar(
+            month = month,
+            onMonthChange = { month = it },
+            canGoBack = month > IsoDate.firstOfMonth(todayDate),
+            selected = upcoming.toSet(),
+            today = today,
+            kindOf = { if (it >= today) CellKind.FREE else CellKind.OFF },
+            onTap = { date -> onChange(if (date in upcoming) upcoming - date else (upcoming + date).sorted()) }
+        )
+        Text(
+            if (upcoming.isEmpty()) stringResource(R.string.closed_dates_none)
+            else stringResource(R.string.closed_dates_count, pluralStringResource(R.plurals.n_dates, upcoming.size, upcoming.size)),
+            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+/** Host tool: how far ahead dates can be requested (hourly, shift and day rooms). [months] null = the default. */
+@Composable
+fun BookingWindowStepper(months: Int?, onChange: (Int) -> Unit, modifier: Modifier = Modifier) {
+    val value = (months ?: com.example.data.model.DEFAULT_BOOKING_HORIZON_MONTHS).coerceIn(1, 12)
+    Surface(modifier = modifier, shape = MaterialTheme.shapes.medium, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), color = MaterialTheme.colorScheme.surface) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.booking_window_label), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            IconButton(onClick = { onChange(value - 1) }, enabled = value > 1) {
+                Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.fewer_months))
+            }
+            Text(pluralStringResource(R.plurals.n_months, value, value), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            IconButton(onClick = { onChange(value + 1) }, enabled = value < 12) {
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.more_months))
+            }
+        }
+    }
+}

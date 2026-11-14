@@ -1249,4 +1249,11 @@
     <string name="this_time_has_passed">انقضت هذه الأوقات اليوم.</string>
     <string name="dates">التواريخ</string>
     <string name="period">الفترة</string>
+    <string name="closed_dates">أيام الإغلاق</string>
+    <string name="closed_dates_hint">اضغط على التواريخ التي لا تستقبل فيها حجوزات، مثل العطل. اضغط مجدداً لإعادة فتحها.</string>
+    <string name="closed_dates_none">لا توجد أيام إغلاق</string>
+    <string name="closed_dates_count">مغلق: %1$s</string>
+    <string name="booking_window">نافذة الحجز</string>
+    <string name="booking_window_hint">إلى أي مدى مسبقاً يمكن طلب تاريخ.</string>
+    <string name="booking_window_label">استقبال الحجوزات حتى</string>
 </resources>

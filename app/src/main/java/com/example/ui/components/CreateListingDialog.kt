@@ -379,6 +379,8 @@ fun CreateListingDialog(
     }
     var openingHour by rememberSaveable { mutableStateOf(existingDraft?.schedule?.openingHour ?: "08:00") }
     var closingHour by rememberSaveable { mutableStateOf(existingDraft?.schedule?.closingHour ?: "20:00") }
+    // Dates the whole place takes no bookings on (dated booking, host tools).
+    var closedDates by rememberSaveable(stateSaver = StringSetSaver) { mutableStateOf(existingDraft?.schedule?.closedDates?.toSet() ?: emptySet()) }
 
 
 
@@ -774,6 +776,22 @@ fun CreateListingDialog(
                                       weekDayOptions = weekDayOptions
                                   )
 
+                                  Text(
+                                      stringResource(R.string.closed_dates),
+                                      fontWeight = FontWeight.Bold,
+                                      style = MaterialTheme.typography.labelLarge,
+                                      color = MaterialTheme.colorScheme.primary
+                                  )
+                                  Text(
+                                      stringResource(R.string.closed_dates_hint),
+                                      style = MaterialTheme.typography.bodySmall,
+                                      color = MaterialTheme.colorScheme.onSurfaceVariant
+                                  )
+                                  ClosedDatesEditor(
+                                      closedDates = closedDates.sorted(),
+                                      onChange = { closedDates = it.toSet(); hasUserTyped = true }
+                                  )
+
                                   HorizontalDivider()
 
                                   Text(stringResource(R.string.shared_essential_facilities), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
@@ -990,6 +1008,7 @@ fun CreateListingDialog(
                               // No in-wizard control adds to this anymore (removed on request —
                               // see the removal note near this dialog's top-level state) — carry
                               // forward whatever a listing already had rather than wiping it.
+                              closedDates = closedDates.sorted(),
                               blackoutSlots = existingDraft?.schedule?.blackoutSlots ?: emptyList()
                           ),
                           ownerId = activeUser.id,
