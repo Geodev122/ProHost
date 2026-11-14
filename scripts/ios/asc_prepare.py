@@ -128,7 +128,7 @@ if info and want("age"):
             else:
                 answers[k] = "NONE"
         # Owner decision 14 Nov 2026: the store shows 18+ (the Terms require adults), whatever the questionnaire computes.
-        override = os.environ.get("ASC_AGE_OVERRIDE", "").strip()
+        override = os.environ.get("ASC_AGE_OVERRIDE", "").strip() or META.get("ageRatingOverride", "")  # kept in metadata so a later run never resets it
         if override and "ageRatingOverrideV2" in keys:
             answers["ageRatingOverrideV2"] = override
         changed = {k: v for k, v in answers.items() if keys.get(k) != v}
