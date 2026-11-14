@@ -79,6 +79,18 @@ def write_report(summary: dict, golden: Path, candidate: Path, channel_tol: int,
     path.write_text(shots.page("Screenshot parity", head + table), encoding="utf-8")
 
 
+def apply_approved(summary: dict, approved: dict) -> None:
+    """Marks changed (never missing or resized) renders that are on the approved list; the gate then fails only on the rest."""
+    prefixes = tuple(approved.get("prefixes", []))
+    files = set(approved.get("files", []))
+    for r in summary["results"]:
+        if r["status"] == "changed" and (r["name"] in files or (prefixes and r["name"].startswith(prefixes))):
+            r["status"] = "approved"
+    summary["approved"] = sum(1 for r in summary["results"] if r["status"] == "approved")
+    summary["failed"] = sum(1 for r in summary["results"] if r["status"] not in ("same", "approved"))
+    summary["ok"] = summary["failed"] == 0 and bool(summary["results"])
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--golden", type=Path, required=True)
@@ -89,6 +101,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--masks", type=Path, help="JSON of known dynamic regions to ignore")
     ap.add_argument("--level-tol", type=Path, help="JSON {level, screens}: per-channel tolerance for the listed overlay screens (backdrop dim only)")
     ap.add_argument("--shift-tol", type=Path, help="JSON {file: [{rect:[x,y,w,h], max_shift:n}]}: a scrolled region that may sit a few px higher/lower (test scroll-to-node offset) but must match exactly after shifting")
+    ap.add_argument("--approved", type=Path, help="JSON {prefixes:[...], files:[...]}: renders whose change the owner approved (or a documented harness artifact); reported as APPROVED, not failed, until the next golden")
     ap.add_argument("--report", type=Path)
     ap.add_argument("--json", type=Path)
     a = ap.parse_args(argv)
@@ -99,6 +112,8 @@ def main(argv: list[str] | None = None) -> int:
     summary = run(a.golden, a.candidate, only, a.channel_tol, a.max_ratio, masks, level_tol, shift_tol)
     if a.report:
         write_report(summary, a.golden, a.candidate, a.channel_tol, a.report, masks)
+    if a.approved:
+        apply_approved(summary, json.loads(a.approved.read_text(encoding="utf-8")))
     if a.json:
         a.json.parent.mkdir(parents=True, exist_ok=True)
         a.json.write_text(json.dumps(summary, indent=2), encoding="utf-8")
@@ -110,7 +125,8 @@ def main(argv: list[str] | None = None) -> int:
                   + (f"  masks={shots.masks_for(r['name'], masks)}" if masks and shots.masks_for(r["name"], masks) else ""))
         elif r.get("shifted"):
             print(f"SHIFTED  {r['name']}  scrolled region matches exactly after a {[x['shift_px'] for x in r['shifted']]} px offset")
-    print(f"{summary['compared']} compared, {summary['failed']} not identical, {len(summary['extra_in_candidate'])} extra")
+    print(f"{summary['compared']} compared, {summary['failed']} not identical, {len(summary['extra_in_candidate'])} extra"
+          + (f", {summary['approved']} approved change(s)" if summary.get("approved") else ""))
     if not summary["results"]:
         print("nothing compared: check --golden / --only", file=sys.stderr)
     return 0 if summary["ok"] else 1

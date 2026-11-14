@@ -1,0 +1,16 @@
+{
+  "_comment": "Renders that differ from golden-v1047 on purpose. The Parity Gate reports them as APPROVED instead of failing. Remove an entry when the next golden is captured.",
+  "prefixes": [
+    "availability_sheet_",
+    "rebook_",
+    "edit_booking_"
+  ],
+  "files": [
+    "listing_edit_small.png"
+  ],
+  "why": {
+    "availability_sheet_": "Dated booking (owner request and mockup approval, 14 Nov 2026): the sheet opens on a month calendar instead of weekday bars. Final Before | After approval pending (plan B6).",
+    "listing_edit_small.png": "Harness artifact, not an app change: the cover photo is decoded from a local file since 14 Nov (frozen-date harness), which resamples differently in this one variant. Goes away with the harness-v2 baseline (golden-v1047-h2).",
+    "rebook_ / edit_booking_": "Dated booking: Re-book and Edit use the same calendar picker as the availability sheet (approved mockup). Final Before | After approval pending (plan B6)."
+  }
+}

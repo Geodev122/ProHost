@@ -24,7 +24,7 @@ both languages, launch offers for new subscribers (monthly: 1 month free; yearly
 
 ## Still open — owner (Apple offers no API for these, or they are personal details)
 1. ~~Paid Apps Agreement~~ Active (owner, 14 Nov 2026).
-2. **App Privacy.** App Store Connect → **Apps** → ProHost → left menu **App Privacy** → **Get Started** (or **Edit**).
+2. ~~App Privacy~~ **Published by the owner, 14 Nov 2026.** Kept for reference (answers must stay equal to `ios/ProHost/Resources/PrivacyInfo.xcprivacy`): App Store Connect → **Apps** → ProHost → left menu **App Privacy** → **Get Started** (or **Edit**).
    - *Do you or your third-party partners collect data from this app?* → **Yes, we collect data from this app.**
    - *Tick these 13 data types, nothing else:* Contact Info: **Name**, **Email Address**, **Phone Number** · User Content: **Photos or Videos**,
      **Other User Content** · Identifiers: **User ID**, **Device ID** · Purchases: **Purchase History** · Location: **Precise Location**,

@@ -184,7 +184,7 @@ jobs:
           mkdir -p parity
           set +e
           python3 scripts/migration/diff_shots.py --golden golden --candidate app/build/design-shots \
-            --masks docs/migration/golden-masks.json --level-tol docs/migration/overlay-dim.json --shift-tol docs/migration/scroll-offset.json --report parity/diff.html --json parity/diff.json | tee parity/summary.txt
+            --masks docs/migration/golden-masks.json --level-tol docs/migration/overlay-dim.json --shift-tol docs/migration/scroll-offset.json --approved docs/migration/approved-changes.json --report parity/diff.html --json parity/diff.json | tee parity/summary.txt
           status=${PIPESTATUS[0]}
           set -e
           echo "status=${status}" >> "$GITHUB_OUTPUT"
@@ -203,7 +203,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          failing() { python3 -c "import json,sys; print(','.join(r['name'] for r in json.load(open(sys.argv[1]))['results'] if r['status'] != 'same'))" "$1"; }
+          failing() { python3 -c "import json,sys; print(','.join(r['name'] for r in json.load(open(sys.argv[1]))['results'] if r['status'] not in ('same', 'approved')))" "$1"; }
           screens_of() { python3 -c "import sys; print(','.join(sorted({n[:-4].rsplit('_',1)[0] for n in sys.argv[1].split(',') if n})))" "$1"; }
           names=$(failing parity/diff.json)
           status=1
@@ -215,7 +215,7 @@ jobs:
             gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly="${screens}" --no-build-cache --no-daemon --stacktrace 2>&1 | tee "gradle-rerun-${attempt}.log"
             set +o pipefail
             python3 scripts/migration/diff_shots.py --golden golden --candidate app/build/design-shots --only "$names" \
-              --masks docs/migration/golden-masks.json --level-tol docs/migration/overlay-dim.json --shift-tol docs/migration/scroll-offset.json --report parity/diff-rerun.html --json parity/diff-rerun.json | tee parity/summary-rerun.txt
+              --masks docs/migration/golden-masks.json --level-tol docs/migration/overlay-dim.json --shift-tol docs/migration/scroll-offset.json --approved docs/migration/approved-changes.json --report parity/diff-rerun.html --json parity/diff-rerun.json | tee parity/summary-rerun.txt
             status=${PIPESTATUS[0]}
             set -e
             tail -1 parity/summary-rerun.txt | while IFS= read -r line; do echo "::notice title=parity-reproduce-${attempt}::${line}"; done

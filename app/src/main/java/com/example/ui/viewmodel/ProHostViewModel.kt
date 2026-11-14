@@ -810,7 +810,10 @@ class ProHostViewModel(
         val attendeeCount: Int = 0,
         val selectedAttendeePackageId: String? = null,
         val attendeePackageName: String? = null,
-        val attendeePackagePriceUsd: Double = 0.0
+        val attendeePackagePriceUsd: Double = 0.0,
+        /** Dated booking (`dateModel` 2): the exact date + time slots asked for. Empty for a monthly term. */
+        val bookedSlots: List<com.example.data.model.BookedSlot> = emptyList(),
+        val dateModel: Int = 0
     )
 
     fun submitBookingRequest(
@@ -868,7 +871,9 @@ class ProHostViewModel(
                     attendeeCount = attendeeCount,
                     selectedAttendeePackageId = selectedAttendeePackageId,
                     attendeePackageName = attendeePackageName,
-                    attendeePackagePriceUsd = attendeePackagePriceUsd
+                    attendeePackagePriceUsd = attendeePackagePriceUsd,
+                    bookedSlots = submission.bookedSlots,
+                    dateModel = submission.dateModel
                 )
                 if (synced) {
                     com.example.analytics.AnalyticsTracker.bookingRequest(
