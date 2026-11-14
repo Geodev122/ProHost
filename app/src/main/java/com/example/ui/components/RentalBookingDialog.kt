@@ -234,7 +234,7 @@ private fun BookingSlotSelectorDialog(
             UiMessages.show(problem)
             return
         }
-        val summary = if (isMonthly) "$start × $monthlyMonths" else com.example.ui.util.DateSlots.describe(pickedSlots)
+        val summary = if (isMonthly) com.example.ui.util.DateSlots.describeMonthly(start.orEmpty(), monthlyMonths) else com.example.ui.util.DateSlots.describe(pickedSlots)
         val hh = { hour: Int -> hour.toString().padStart(2, '0') + ":00" }
         val startHour = if (isMonthly) schedule.openingHour else hh(pickedSlots.minOf { it.startHour })
         val endHour = if (isMonthly) schedule.closingHour else hh(pickedSlots.maxOf { it.endHour })

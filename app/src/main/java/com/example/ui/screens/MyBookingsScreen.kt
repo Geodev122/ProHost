@@ -599,7 +599,9 @@ fun BookingReservationCard(
                                 timeRange(booking.formula.startHour, booking.formula.endHour)
                             }
                             Text(
-                                text = "$daysStr @ $timeStr",
+                                // Dated requests print their real dates and times; older ones their weekdays.
+                                text = booking.selectedDateTimeRange.takeIf { booking.dateModel == 2 && it.isNotBlank() }
+                                    ?.let { "\u2066$it\u2069" } ?: "$daysStr @ $timeStr",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )

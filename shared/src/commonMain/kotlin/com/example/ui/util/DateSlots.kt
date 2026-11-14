@@ -171,6 +171,12 @@ object DateSlots {
     /** Stored, language-neutral summary of a dated booking: "2026-11-17 10:00-12:00; 2026-11-19 15:00-16:00". Screens print their own localized form. */
     fun describe(slots: List<BookedSlot>): String = ranges(slots).joinToString("; ") { (date, start, end) -> "$date ${hh(start)}-${hh(end)}" }
 
+    /** A monthly term as text: first day → last day (inclusive), e.g. "2026-12-14 → 2027-01-13". */
+    fun describeMonthly(start: String, months: Int): String {
+        val endExclusive = IsoDate.addMonths(start, months.coerceAtLeast(1)) ?: return start
+        return "$start → ${IsoDate.addDays(endExclusive, -1) ?: endExclusive}"
+    }
+
     private fun monthIndex(year: Int, month: Int) = year * 12 + (month - 1)
 
     /** Whether the host rents the room in the calendar month [year]-[month] (inside the from/to window and not excluded). */

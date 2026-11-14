@@ -120,7 +120,12 @@ internal class BookingsRepository(private val repo: ProHostRepository) {
                 selectedStartHour = startH,
                 selectedEndHour = endH,
                 selectedShift = selectedShift,
-                selectedDateTimeRange = if (bookedSlots.isNotEmpty()) com.example.ui.util.DateSlots.describe(bookedSlots) else rangeString,
+                selectedDateTimeRange = when {
+                    bookedSlots.isNotEmpty() -> com.example.ui.util.DateSlots.describe(bookedSlots)
+                    // A dated monthly term: its first and last day, not weekday labels.
+                    dateModel == 2 -> com.example.ui.util.DateSlots.describeMonthly(startDate, durationMonths)
+                    else -> rangeString
+                },
                 bookedSlots = bookedSlots,
                 dateModel = dateModel,
                 durationMonths = durationMonths,

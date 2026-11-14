@@ -390,7 +390,8 @@ fun OwnerRentingProgressScreenContent(
                                 }
 
                                 Text(
-                                    text = stringResource(R.string.shift_x_x, chosenDaysStr, chosenHoursStr),
+                                    text = booking.selectedDateTimeRange.takeIf { booking.dateModel == 2 && it.isNotBlank() }
+                                        ?.let { "\u2066$it\u2069" } ?: stringResource(R.string.shift_x_x, chosenDaysStr, chosenHoursStr),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface

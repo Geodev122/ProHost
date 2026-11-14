@@ -949,7 +949,7 @@ fun SpaceDetailsScreenContent(
                 isAttendeeMode -> attendeeQuote?.totalUsd ?: 0.0
                 else -> slots.sumOf { it.priceUsd }
             }
-            val summary = if (isMonthly) "$monthlyStartDate × $months" else com.example.ui.util.DateSlots.describe(slots)
+            val summary = if (isMonthly) com.example.ui.util.DateSlots.describeMonthly(monthlyStartDate.orEmpty(), months) else com.example.ui.util.DateSlots.describe(slots)
             val hh = { hour: Int -> hour.toString().padStart(2, '0') + ":00" }
             val startHour = if (isMonthly) schedule.openingHour else hh(slots.minOf { it.startHour })
             val endHour = if (isMonthly) schedule.closingHour else hh(slots.maxOf { it.endHour })

@@ -435,7 +435,7 @@ fun OwnerRequestDetailSheet(
 
             DetailRow(Icons.Default.Apartment, uiText(R.string.space), request.spaceTitle)
             request.subdivisionName?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.Default.MeetingRoom, uiText(R.string.room_area), it) }
-            DetailRow(Icons.Default.AccessTime, uiText(R.string.schedule), "${chosenDays.joinToString(", ") { localizedLabel(it) }} · \u2066$chosenHours\u2069${if (request.selectedShift.isNotBlank()) " · ${localizedLabel(request.selectedShift)}" else ""}")
+            DetailRow(Icons.Default.AccessTime, uiText(R.string.schedule), request.selectedDateTimeRange.takeIf { request.dateModel == 2 && it.isNotBlank() }?.let { "\u2066$it\u2069" } ?: "${chosenDays.joinToString(", ") { localizedLabel(it) }} · \u2066$chosenHours\u2069${if (request.selectedShift.isNotBlank()) " · ${localizedLabel(request.selectedShift)}" else ""}")
             DetailRow(Icons.Default.CalendarToday, uiText(R.string.start_date), "\u2066${request.startDate}\u2069${if (request.durationMonths > 0) " · " + uiPlural(R.plurals.x_month_term, request.durationMonths, request.durationMonths) else ""}")
             DetailRow(Icons.Default.AttachMoney, uiText(R.string.total), "\u2066${formatUsd(request.totalAmountUsd)} USD\u2069${if (attendeeLine != null) " · $attendeeLine" else ""}")
             request.lastPriceChange?.let { PriceChangeNote(it, Modifier.fillMaxWidth()) }
