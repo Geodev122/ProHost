@@ -272,3 +272,9 @@ Pure files (no Android/JVM imports, no nullable public properties, no `internal`
 - Migration Checks run 43561142478 (head 6e6a790): success, all jobs (the 9 Nov 'failure' with 2 of 3 jobs was a job that never started, not a test failure).
 - TTL policies ACTIVE (Maintenance run 184). Retire `pruneExpiredNotifications` only after merge to main + 48 h.
 - D6 mockups published (OWNER_QUEUE G2); build waits for approval.
+
+### 14 Nov 2026 decisions and lessons
+- Owner approved D6 report/block as shown and "keep Swift plumbing, drop SwiftUI screens" (OWNER_QUEUE G1/G2). Road-to-launch milestones A-H and owner task list: plan section 25 (summary in OWNER_QUEUE H).
+- P5 data models unit: `DataModels.kt` + `Ids` in `:shared`, `nowMillis()` (kotlin.time.Clock) replaces `System.currentTimeMillis()`. First compile listed exactly 3 cross-module smart casts (fixed with local copies).
+- **Lesson:** the Parity Gate compiles only the Android target, which accepts JVM APIs inside `commonMain` (`Character.toChars` in `Countries.kt` passed). The **Admin Web (wasm) build is the commonMain purity check** — read it after every move to `:shared`. Before moving a file grep it for `Character\.|String\(|java\.|System\.|String.format|Locale`.
+- **Tool:** `python3 scripts/ci/errors.py <saved get_job_logs result> [max]` prints the unique error lines of a CI log (use it instead of reading logs).

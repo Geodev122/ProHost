@@ -67,3 +67,21 @@ Play probe (Release bundle, `probe`): the CI account works; Play holds version c
 - **G1 (decision, 14 Nov 2026):** `main` contains native SwiftUI work from another session dated 8 Nov ("iOS S2": `SessionStore`, `RootView`, `MainShell`, 332 lines under `ios/ProHost/`). The SwiftUI screen port was cancelled by the KMP decision. Default if you say nothing: leave it untouched now; when the Compose iOS host (`iosApp`) exists, keep `SessionStore`/auth pieces as Swift gateway code and delete the SwiftUI shell/tab UI. Please also tell that other session to stop (prompt in CLAUDE.md migration section / plan §10).
 - **G2 (your approval, D6):** report/block mockups are ready: https://claude.ai/artifact/B8PeU93h7QBFXCPWA9SZUG (source `docs/migration/mockups/report-block.html`). Five points to confirm are at the bottom of the page (reasons list, what a block does, menu position, 24-hour review promise, admin actions). Nothing is built until you approve.
 - **G3 (info):** Firestore TTL policies are ACTIVE (Maintenance `ttl` run 184, 14 Nov: `notifications.ttlAt`, `mail.expireAt`). `pruneExpiredNotifications` must stay until the `ttlAt` code is deployed (merge to `main`) plus 48 h, because older notifications carry no `ttlAt`.
+- **G1 ANSWER (14 Nov 2026):** keep the Swift plumbing (session/auth/functions/App Check), delete the SwiftUI shell and DesignSystem when the Compose iOS host (`iosApp`) is created.
+- **G2 ANSWER (14 Nov 2026): D6 report/block APPROVED as shown** (six reasons, block effect, three-dot menus + Profile › More › Blocked people, 24-hour promise, admin Dismiss / Hide / Suspend). Owner duty once shipped: check Console › Security › Reports daily.
+
+## H. Your tasks on the road to launch (with steps) — full list in the plan section 25.3, summary here
+1. Stop the other session doing SwiftUI (paste the prompt from CLAUDE.md "Every session on this topic" / tell it to read the migration section).
+2. Test 1.0.48 from the internal track on your phone; report "ok" or what broke.
+3. Cloud console → Billing → Budgets & alerts → $50/month budget; Billing export → BigQuery standard usage cost → dataset `billing_export` (EU).
+4. Cloud console → APIs & Services → Credentials: restrict the browser key (3 website patterns), the Android key (package + SHA-1s), the Maps key (Android apps + Maps SDK for Android); Anthropic console → Limits → monthly cap. Then test Google sign-in and the map.
+5. Send the operator legal name + postal address (same as Apple trader details).
+6. Review the privacy retention sentences when I send them.
+7. Tell me when the Apple Paid Apps Agreement is Active.
+8. Have an iPhone (iOS 17+) with TestFlight and the accepted tester invite.
+9. When asked: enable Maps SDK for iOS, create an iOS-restricted key, save it as GitHub secret `MAPS_IOS_API_KEY`.
+10. When asked: enable Sign in with Apple on the App ID (developer.apple.com) and the Apple provider in Firebase Authentication.
+11. When asked: create the subscription group and the two subscriptions in App Store Connect (I supply ids, prices, texts, notification URL).
+12. Daily Reports check in the web console once report/block ships.
+13. Walk the web admin console against `ADMIN_PARITY.md` after the next merge to `main`.
+14. Say "merge" when backend changes should go live.
