@@ -1,6 +1,6 @@
 """Fill App Store Connect for ProHost from ios/store/metadata.json. Idempotent; prints a plan and changes nothing unless --apply.
 
-    python3 scripts/ios/asc_prepare.py [--apply] [--only app,categories,info,version,capability,price,availability,age,testflight,subscriptions,review]
+    python3 scripts/ios/asc_prepare.py [--apply] [--only app,categories,info,version,capability,price,availability,age,testflight,subscriptions,review,betareview,tester,offers]
 
 Environment (optional, never printed): ASC_COPYRIGHT ("2026 Legal Name"), REVIEW_FIRST_NAME, REVIEW_LAST_NAME, REVIEW_PHONE, REVIEW_EMAIL,
 REVIEW_DEMO_USER, REVIEW_DEMO_PASSWORD, REVIEW_NOTES, SUBSCRIPTION_YEARLY_USD. Sections whose inputs are missing are skipped with a note.
@@ -127,6 +127,10 @@ if info and want("age"):
                 answers[k] = False
             else:
                 answers[k] = "NONE"
+        # Owner decision 14 Nov 2026: the store shows 18+ (the Terms require adults), whatever the questionnaire computes.
+        override = os.environ.get("ASC_AGE_OVERRIDE", "").strip()
+        if override and "ageRatingOverrideV2" in keys:
+            answers["ageRatingOverrideV2"] = override
         changed = {k: v for k, v in answers.items() if keys.get(k) != v}
         if changed:
             write("PATCH", f'/v1/ageRatingDeclarations/{decl["id"]}', {"data": {"type": "ageRatingDeclarations", "id": decl["id"], "attributes": changed}},
@@ -305,5 +309,97 @@ if want("subscriptions"):
                 if status not in (200, 201) and ok == 0:
                     print("FAILED ", p["productId"], "price", terr, status, "; ".join(str(e.get("detail")) for e in (data or {}).get("errors", []))[:400]); failures.append(p["productId"] + " price"); break
             print(f'DONE    {p["productId"]} price ${usd}: {ok} of {len(targets)} countries')
+
+
+# ---- TestFlight beta-review contact (same person as the App Review contact)
+if want("betareview"):
+    env = {k: os.environ.get(k, "").strip() for k in ("REVIEW_FIRST_NAME", "REVIEW_LAST_NAME", "REVIEW_PHONE", "REVIEW_EMAIL")}
+    if not all(env.values()):
+        print("SKIP    TestFlight beta-review contact (needs the review contact)")
+    else:
+        write("PATCH", f"/v1/betaAppReviewDetails/{APP}", {"data": {"type": "betaAppReviewDetails", "id": APP, "attributes": {
+            "contactFirstName": env["REVIEW_FIRST_NAME"], "contactLastName": env["REVIEW_LAST_NAME"], "contactPhone": env["REVIEW_PHONE"],
+            "contactEmail": env["REVIEW_EMAIL"], "demoAccountRequired": False}}}, "TestFlight beta-review contact")
+
+# ---- TestFlight tester: (re)send the invitation to one person (TESTER_EMAIL, names from the review contact). Emails are never printed.
+if want("tester"):
+    email = os.environ.get("TESTER_EMAIL", "").strip().lower()
+    first, last = os.environ.get("REVIEW_FIRST_NAME", "").strip(), os.environ.get("REVIEW_LAST_NAME", "").strip()
+    if not email:
+        print("SKIP    tester invitation (needs TESTER_EMAIL)")
+    else:
+        groups = get_all(f"/v1/betaGroups?filter[app]={APP}&limit=20")
+        internal = next((g for g in groups if g["attributes"].get("isInternalGroup")), None)
+        testers = get_all(f"/v1/betaTesters?filter[email]={email}&limit=5")
+        team_user = any((u["attributes"].get("username") or "").lower() == email for u in get_all("/v1/users?limit=200"))
+        pending = any((u["attributes"].get("email") or "").lower() == email for u in get_all("/v1/userInvitations?limit=200"))
+        print(f"INFO    tester: already a tester={bool(testers)} team member={team_user} team invitation pending={pending}")
+        if testers:
+            tid = testers[0]["id"]
+            if internal:
+                write("POST", f'/v1/betaGroups/{internal["id"]}/relationships/betaTesters', {"data": [{"type": "betaTesters", "id": tid}]}, "tester in the internal TestFlight group")
+            write("POST", "/v1/betaTesterInvitations", {"data": {"type": "betaTesterInvitations", "relationships": {
+                "betaTester": rel("betaTesters", tid), "app": rel("apps", APP)}}}, "TestFlight invitation e-mail sent again")
+        elif team_user and internal:
+            write("POST", "/v1/betaTesters", {"data": {"type": "betaTesters", "attributes": {"email": email, "firstName": first, "lastName": last},
+                  "relationships": {"betaGroups": {"data": [{"type": "betaGroups", "id": internal["id"]}]}}}}, "tester added to the internal TestFlight group (invitation e-mail follows)")
+        elif pending:
+            print("OK      a team invitation is already waiting in her inbox (from Apple, subject 'You have been invited to join a development team'); she accepts it first, then run this again")
+        else:
+            write("POST", "/v1/userInvitations", {"data": {"type": "userInvitations", "attributes": {
+                "email": email, "firstName": first or "Tester", "lastName": last or "ProHost", "roles": ["DEVELOPER"], "allAppsVisible": False, "provisioningAllowed": False},
+                "relationships": {"visibleApps": {"data": [{"type": "apps", "id": APP}]}}}},
+                "team invitation sent (role Developer, this app only); after she accepts, run this again to add her to TestFlight")
+
+# ---- launch offers for new subscribers, mirroring Google Play: monthly = 1 month free; yearly = first year at half price
+if want("offers"):
+    group = next((g for g in get_all(f"/v1/apps/{APP}/subscriptionGroups?limit=20") if g["attributes"].get("referenceName") == META["subscriptions"]["groupReferenceName"]), None)
+    subs = {x["attributes"]["productId"]: x for x in (get_all(f'/v1/subscriptionGroups/{group["id"]}/subscriptions?limit=50') if group else [])}
+    plans = [("prohost.premium.monthly", {"offerMode": "FREE_TRIAL", "duration": "ONE_MONTH", "numberOfPeriods": 1}, None),
+             ("prohost.premium.yearly", {"offerMode": "PAY_UP_FRONT", "duration": "ONE_YEAR", "numberOfPeriods": 1}, os.environ.get("YEARLY_INTRO_USD", "").strip())]
+    for product, attrs, intro_usd in plans:
+        s = subs.get(product)
+        if not s:
+            print(f"SKIP    {product} offer (subscription missing)")
+            continue
+        if get_all(f'/v1/subscriptions/{s["id"]}/introductoryOffers?limit=5'):
+            same(f"{product} introductory offer")
+            continue
+        targets = []
+        if attrs["offerMode"] == "FREE_TRIAL":
+            targets = [(t["id"], None) for t in get_all("/v1/territories?limit=200")]
+        elif not intro_usd:
+            print(f"SKIP    {product} offer (needs YEARLY_INTRO_USD)")
+            continue
+        else:
+            points = get_all(f'/v1/subscriptions/{s["id"]}/pricePoints?filter[territory]=USA&limit=200')
+            base = next((x for x in points if abs(float(x["attributes"].get("customerPrice") or 0) - float(intro_usd)) < 0.001), None)
+            if not base:
+                print(f"FAILED  {product}: Apple has no ${intro_usd} price point"); failures.append(product + " offer")
+                continue
+            targets = [("USA", base["id"])]
+            for eq in get_all(f'/v1/subscriptionPricePoints/{base["id"]}/equalizations?include=territory&limit=200'):
+                terr = ((eq.get("relationships", {}).get("territory", {}).get("data")) or {}).get("id")
+                if terr and terr != "USA":
+                    targets.append((terr, eq["id"]))
+        label = "1 month free" if attrs["offerMode"] == "FREE_TRIAL" else f"first year ${intro_usd}"
+        if not args.apply:
+            print(f"PLAN    {product} offer for new subscribers: {label} in {len(targets)} countries")
+            continue
+        ok, first_error = 0, ""
+        for terr, point in targets:
+            relationships = {"subscription": rel("subscriptions", s["id"]), "territory": rel("territories", terr)}
+            if point:
+                relationships["subscriptionPricePoint"] = rel("subscriptionPricePoints", point)
+            status, data = api.request("POST", "/v1/subscriptionIntroductoryOffers", {"data": {"type": "subscriptionIntroductoryOffers", "attributes": attrs, "relationships": relationships}})
+            if status in (200, 201):
+                ok += 1
+            elif not first_error:
+                first_error = f"{terr} HTTP {status} " + "; ".join(str(e.get("detail")) for e in (data or {}).get("errors", []))[:300]
+                if ok == 0:
+                    break
+        print(f'{"DONE   " if ok else "FAILED "} {product} offer ({label}): {ok} of {len(targets)} countries' + (f" · first error: {first_error}" if first_error else ""))
+        if not ok:
+            failures.append(product + " offer")
 
 print("\nRESULT ", "plan only (nothing changed)" if not args.apply else ("applied with %d failure(s): %s" % (len(failures), ", ".join(failures)) if failures else "applied"))

@@ -22,6 +22,26 @@ on:
         description: "Yearly subscription price in USD (optional)"
         required: false
         default: ""
+      yearly_intro_usd:
+        description: "Yearly first-year offer price in USD (optional, e.g. 39.99)"
+        required: false
+        default: ""
+      age_override:
+        description: "Age shown on the store, e.g. EIGHTEEN_PLUS (optional)"
+        required: false
+        default: ""
+      review_name:
+        description: "Review contact: first name, then family name (optional; else the APP_REVIEW_* secrets)"
+        required: false
+        default: ""
+      review_phone:
+        description: "Review contact phone with country code (optional)"
+        required: false
+        default: ""
+      review_email:
+        description: "Review contact e-mail; also the TestFlight tester for section 'tester' (optional)"
+        required: false
+        default: ""
   push:
     branches: ["ios-inspect/**"]
 
@@ -47,13 +67,19 @@ jobs:
         env:
           ASC_COPYRIGHT: ${{ inputs.copyright }}
           SUBSCRIPTION_YEARLY_USD: ${{ inputs.yearly_usd }}
+          REVIEW_NAME_INPUT: ${{ inputs.review_name }}
           REVIEW_FIRST_NAME: ${{ secrets.APP_REVIEW_FIRST_NAME }}
           REVIEW_LAST_NAME: ${{ secrets.APP_REVIEW_LAST_NAME }}
-          REVIEW_PHONE: ${{ secrets.APP_REVIEW_PHONE }}
-          REVIEW_EMAIL: ${{ secrets.APP_REVIEW_EMAIL }}
+          REVIEW_PHONE: ${{ inputs.review_phone || secrets.APP_REVIEW_PHONE }}
+          REVIEW_EMAIL: ${{ inputs.review_email || secrets.APP_REVIEW_EMAIL }}
+          TESTER_EMAIL: ${{ inputs.review_email }}
+          YEARLY_INTRO_USD: ${{ inputs.yearly_intro_usd }}
+          ASC_AGE_OVERRIDE: ${{ inputs.age_override }}
           REVIEW_DEMO_USER: ${{ secrets.APP_REVIEW_DEMO_USER }}
           REVIEW_DEMO_PASSWORD: ${{ secrets.APP_REVIEW_DEMO_PASSWORD }}
           REVIEW_NOTES: ${{ secrets.APP_REVIEW_NOTES }}
-        run: python3 scripts/ios/asc_prepare.py ${{ inputs.prepare == 'apply' && '--apply' || '' }} --only "${{ inputs.only }}"
+        run: |
+          if [ -n "$REVIEW_NAME_INPUT" ]; then export REVIEW_FIRST_NAME="${REVIEW_NAME_INPUT%% *}" REVIEW_LAST_NAME="${REVIEW_NAME_INPUT#* }"; fi
+          python3 scripts/ios/asc_prepare.py ${{ inputs.prepare == 'apply' && '--apply' || '' }} --only "${{ inputs.only }}"
       - name: App Store readiness (what is filled in, what is missing)
         run: python3 scripts/ios/asc_store_status.py
