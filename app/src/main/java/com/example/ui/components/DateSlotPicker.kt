@@ -484,3 +484,37 @@ fun BookingWindowStepper(months: Int?, onChange: (Int) -> Unit, modifier: Modifi
         }
     }
 }
+
+/** Host view (Manage page): one month at a time, each date free, fully booked or closed. Read-only. */
+@Composable
+fun OccupancyMonthCalendar(
+    pricing: RentalPricingConfig,
+    schedule: SpaceOperatingSchedule,
+    closedDates: Collection<String>,
+    bookings: List<BookingRequest>,
+    today: String = IsoDate.todayIso(),
+    modifier: Modifier = Modifier,
+) {
+    val todayDate = remember(today) { IsoDate.parse(today) ?: IsoDate.todayDate() }
+    var month by remember(today) { mutableStateOf(IsoDate.firstOfMonth(todayDate)) }
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        MonthCalendar(
+            month = month,
+            onMonthChange = { month = it },
+            canGoBack = month > IsoDate.firstOfMonth(todayDate),
+            selected = emptySet(),
+            today = today,
+            kindOf = { date ->
+                val v = DateSlots.dayView(date, today, pricing, schedule, closedDates, bookings)
+                when {
+                    v.state == DateSlots.DayState.CLOSED -> CellKind.CLOSED
+                    v.state != DateSlots.DayState.OPEN || v.slots.isEmpty() -> CellKind.OFF
+                    v.slots.all { it.taken } -> CellKind.FULL
+                    else -> CellKind.FREE
+                }
+            },
+            onTap = {}
+        )
+        CalendarLegend()
+    }
+}

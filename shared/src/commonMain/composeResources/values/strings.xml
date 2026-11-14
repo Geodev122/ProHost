@@ -1256,6 +1256,8 @@
     <string name="booking_window">Booking window</string>
     <string name="booking_window_hint">How far ahead people can ask for a date.</string>
     <string name="booking_window_label">Accept bookings up to</string>
+    <string name="rental_type_locked">This division has bookings, so its rental type stays as it is. You can still change prices and times.</string>
+    <string name="monthly_window_invalid">The last month is before the first month. Change one of them to save.</string>
     <plurals name="x_dates">
         <item quantity="one">%1$s • 1 date</item>
         <item quantity="other">%1$s • %2$d dates</item>

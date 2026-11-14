@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import com.example.ui.util.uiText
+import com.example.ui.util.UiMessages
 import com.example.ui.util.localizedLabel
 import com.example.R
 import androidx.compose.ui.res.stringResource
@@ -36,6 +38,8 @@ fun RentalPricingConfigEditor(
     // attendee tiers (see AttendeePricing), so price inputs are hidden, Monthly isn't
     // offered, and offered slots carry the availability marker price.
     availabilityOnly: Boolean = false,
+    // A division with live bookings keeps its rental type (hourly bookings cannot become monthly ones); prices and slots stay editable.
+    strategyLocked: Boolean = false,
     // Shown between the strategy choice and its price table (the division form asks "fixed price or per person" there).
     afterStrategy: (@Composable ColumnScope.() -> Unit)? = null
 ) {
@@ -70,7 +74,9 @@ fun RentalPricingConfigEditor(
             choices = choices,
             selected = config.strategyType,
             onSelect = { type ->
-                if (config.strategyType != type) {
+                if (config.strategyType != type && strategyLocked) {
+                    UiMessages.show(uiText(R.string.rental_type_locked), long = true)
+                } else if (config.strategyType != type) {
                     emitConfig(
                         RentalPricingConfig(
                             strategyType = type,
@@ -128,9 +134,10 @@ fun MonthlyStrategyEditor(
     val monthNames = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        val rateText = rememberPriceText(config.rateUsd)
         InputField(
-            value = if (config.rateUsd == 0.0) "" else config.rateUsd.toInt().toString(),
-            onValueChange = { onConfigChange(config.copy(rateUsd = it.toDoubleOrNull() ?: 0.0)) },
+            value = rateText.value,
+            onValueChange = { val clean = cleanPrice(it); rateText.value = clean; onConfigChange(config.copy(rateUsd = clean.toDoubleOrNull() ?: 0.0)) },
             label = stringResource(R.string.rate_usd_mo),
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
@@ -356,9 +363,12 @@ fun ShiftStrategyEditor(
                     // Single flat price per shift (item 7b) — the specialist
                     // configures occurrences (which dates, how many) at booking
                     // time instead of picking one of 3 pre-set commitment tiers.
+                    val shiftPriceText = rememberPriceText(shift.price, shift.name)
                     if (!availabilityOnly) InputField(
-     value = if (shift.price == 0.0) "" else shift.price.toInt().toString(),
-     onValueChange = { v ->
+     value = shiftPriceText.value,
+     onValueChange = { raw ->
+                            val v = cleanPrice(raw)
+                            shiftPriceText.value = v
                             onConfigChange(
                                 config.copy(
                                     shifts = config.shifts.map {
@@ -475,9 +485,12 @@ fun DayBasedStrategyEditor(
                 // rework, same request applied to Day-Based) — occurrence count and
                 // recurrence (one-time vs. weekly-recurring) are configured by the
                 // specialist at booking time, not pre-set here.
+                val dayPriceText = rememberPriceText(dp.price, day)
                 InputField(
-                    value = if (dp.price == 0.0) "" else dp.price.toInt().toString(),
-                    onValueChange = { v ->
+                    value = dayPriceText.value,
+                    onValueChange = { raw ->
+                        val v = cleanPrice(raw)
+                        dayPriceText.value = v
                         val updated = dp.copy(price = v.toDoubleOrNull() ?: 0.0)
                         onConfigChange(config.copy(distribution = config.distribution + (day to updated)))
                     },
@@ -488,4 +501,25 @@ fun DayBasedStrategyEditor(
             }
         }
     }
+}
+
+
+/**
+ * Text of a price field. Kept as text so decimals can be typed ("12.5"): deriving it from the number on every
+ * change dropped the decimal point. Follows the number when it changes from outside.
+ */
+@Composable
+private fun rememberPriceText(value: Double, key: Any? = null): MutableState<String> {
+    val state = remember(key) { mutableStateOf(if (value == 0.0) "" else com.example.util.NumberFormats.plainAmount(value)) }
+    if ((state.value.toDoubleOrNull() ?: 0.0) != value) {
+        state.value = if (value == 0.0) "" else com.example.util.NumberFormats.plainAmount(value)
+    }
+    return state
+}
+
+/** Digits and one decimal point, at most two decimals. */
+private fun cleanPrice(raw: String): String {
+    val filtered = raw.replace(',', '.').filter { it.isDigit() || it == '.' }
+    val dot = filtered.indexOf('.')
+    return if (dot < 0) filtered else filtered.substring(0, dot + 1) + filtered.substring(dot + 1).replace(".", "").take(2)
 }

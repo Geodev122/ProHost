@@ -1226,6 +1226,9 @@ fun CreateListingDialog(
             DivisionSheet(
                 spaceId = listingId,
                 initial = divisions.getOrNull(index),
+                hasBookings = divisions.getOrNull(index)?.let { d ->
+                    d.id in bookedDivisionIds || (d.id == ListingDivisions.WHOLE_PLACE_ID && wholePlaceBooked)
+                } == true,
                 onSave = { saved ->
                     divisions = if (index in divisions.indices) {
                         divisions.mapIndexed { i, existing -> if (i == index) saved else existing }

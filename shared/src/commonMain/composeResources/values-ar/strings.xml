@@ -1255,6 +1255,8 @@
     <string name="booking_window">نافذة الحجز</string>
     <string name="booking_window_hint">إلى أي مدى مسبقاً يمكن طلب تاريخ.</string>
     <string name="booking_window_label">استقبال الحجوزات حتى</string>
+    <string name="rental_type_locked">لهذا القسم حجوزات، لذا يبقى نوع التأجير كما هو. ما زال بإمكانك تغيير الأسعار والأوقات.</string>
+    <string name="monthly_window_invalid">الشهر الأخير يسبق الشهر الأول. غيِّر أحدهما للحفظ.</string>
     <plurals name="x_dates">
         <item quantity="zero">%1$s • لا تواريخ</item>
         <item quantity="one">%1$s • تاريخ واحد</item>

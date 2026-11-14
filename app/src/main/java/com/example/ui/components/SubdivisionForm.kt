@@ -63,7 +63,9 @@ fun SubdivisionForm(
     // division type. No-op default so unupdated callers don't crash.
     onAddCustomAmenity: ((name: String, divisionTypeId: String) -> Unit)? = null,
     // Admin attendee packages — host can copy them as a starting point for tiers.
-    attendeeTemplates: List<AttendeePackage> = emptyList()
+    attendeeTemplates: List<AttendeePackage> = emptyList(),
+    // The division has pending or accepted bookings that have not ended: its rental type stays as it is.
+    hasBookings: Boolean = false
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -197,7 +199,14 @@ fun SubdivisionForm(
             else -> null
         }
     }
-    val isSubFormValid = subName.isNotBlank() && if (isPerAttendee) {
+    // Monthly: an end month before the start month would offer nothing.
+    val monthlyWindowInvalid = subPricing.monthly?.let { m ->
+        val toM = m.toMonth
+        val toY = m.toYear
+        subPricing.strategyType == RentalStrategyType.MONTHLY && !m.isIndefinite && toM != null && toY != null &&
+            (toY * 12 + toM) < (m.fromYear * 12 + m.fromMonth)
+    } == true
+    val isSubFormValid = subName.isNotBlank() && !monthlyWindowInvalid && if (isPerAttendee) {
         attendeeBlocker == null
     } else {
         subPricing.hasRealPrice()
@@ -270,6 +279,7 @@ fun SubdivisionForm(
                 openingHour = if (subScheduleOverrideEnabled) subOverrideOpeningHour else openingHour,
                 closingHour = if (subScheduleOverrideEnabled) subOverrideClosingHour else closingHour,
                 onConfigChange = { subPricing = it },
+                strategyLocked = hasBookings,
                 availabilityOnly = isPerAttendee,
                 afterStrategy = {
                     // Per person is not offered for Monthly, which is a whole-month lease.
@@ -608,7 +618,7 @@ fun SubdivisionForm(
         // ── Save / cancel ─────────────────────────────────────────────────
         if (!isSubFormValid && attendeeBlocker == null) {
             Text(
-                stringResource(R.string.division_save_hint),
+                stringResource(if (monthlyWindowInvalid) R.string.monthly_window_invalid else R.string.division_save_hint),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -900,7 +910,9 @@ fun DivisionSheet(
     closingHour: String,
     availableAmenities: List<SchemaItem> = emptyList(),
     onAddCustomAmenity: ((name: String, divisionTypeId: String) -> Unit)? = null,
-    attendeeTemplates: List<AttendeePackage> = emptyList()
+    attendeeTemplates: List<AttendeePackage> = emptyList(),
+    // The division has pending or accepted bookings that have not ended: its rental type stays as it is.
+    hasBookings: Boolean = false
 ) {
     TrackScreen("listing_division_sheet", "CreateListingDialog")
     ProHostBottomSheet(
@@ -930,7 +942,8 @@ fun DivisionSheet(
                 closingHour = closingHour,
                 availableAmenities = availableAmenities,
                 onAddCustomAmenity = onAddCustomAmenity,
-                attendeeTemplates = attendeeTemplates
+                attendeeTemplates = attendeeTemplates,
+                hasBookings = hasBookings
             )
         }
     }

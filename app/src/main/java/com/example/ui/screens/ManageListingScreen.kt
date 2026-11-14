@@ -44,7 +44,9 @@ private data class DivisionInfo(
     val id: String,
     val name: String,
     val pricing: RentalPricingConfig,
-    val schedule: SpaceOperatingSchedule
+    val schedule: SpaceOperatingSchedule,
+    /** Dates the host closed: the listing's own plus this division's. */
+    val closedDates: List<String> = emptyList()
 )
 
 /**
@@ -78,10 +80,11 @@ fun ManageListingScreen(
 
     val divisions = remember(liveSpace) {
         if (liveSpace.subdivisions.isEmpty()) {
-            listOf(DivisionInfo(liveSpace.id, liveSpace.title, liveSpace.pricing, liveSpace.schedule))
+            listOf(DivisionInfo(liveSpace.id, liveSpace.title, liveSpace.pricing, liveSpace.schedule, liveSpace.schedule.closedDates))
         } else {
             liveSpace.subdivisions.map { sub ->
-                DivisionInfo(sub.id, sub.name, sub.pricing, sub.scheduleOverride ?: liveSpace.schedule)
+                DivisionInfo(sub.id, sub.name, sub.pricing, sub.scheduleOverride ?: liveSpace.schedule,
+                    liveSpace.schedule.closedDates + sub.scheduleOverride?.closedDates.orEmpty())
             }
         }
     }
@@ -352,7 +355,21 @@ private fun DivisionAvailabilityTable(
 ) {
     when (division.pricing.strategyType) {
         RentalStrategyType.MONTHLY -> MonthlyAvailabilityTable(division, spaceId, acceptedBookings)
-        else -> WeeklyAvailabilityTable(division, spaceId, acceptedBookings)
+        else -> {
+            WeeklyAvailabilityTable(division, spaceId, acceptedBookings)
+            // The months ahead, date by date: free, fully booked or closed (same engine the booking sheet uses).
+            Spacer(modifier = Modifier.height(Spacing.md))
+            val isWholePlace = division.id == spaceId
+            val held = remember(acceptedBookings, division.id) {
+                acceptedBookings.filter { b -> b.spaceId == spaceId && (if (isWholePlace) b.subdivisionId.isNullOrBlank() else b.subdivisionId == division.id) }
+            }
+            com.example.ui.components.OccupancyMonthCalendar(
+                pricing = division.pricing,
+                schedule = division.schedule,
+                closedDates = division.closedDates,
+                bookings = held
+            )
+        }
     }
 }
 
