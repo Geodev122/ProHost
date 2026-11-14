@@ -443,6 +443,7 @@ fun ClosedDatesEditor(
     closedDates: List<String>,
     onChange: (List<String>) -> Unit,
     today: String = IsoDate.todayIso(),
+    showCount: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val todayDate = remember(today) { IsoDate.parse(today) ?: IsoDate.todayDate() }
@@ -458,7 +459,7 @@ fun ClosedDatesEditor(
             kindOf = { if (it >= today) CellKind.FREE else CellKind.OFF },
             onTap = { date -> onChange(if (date in upcoming) upcoming - date else (upcoming + date).sorted()) }
         )
-        Text(
+        if (showCount) Text(
             if (upcoming.isEmpty()) stringResource(R.string.closed_dates_none)
             else stringResource(R.string.closed_dates_count, pluralStringResource(R.plurals.n_dates, upcoming.size, upcoming.size)),
             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant

@@ -6,6 +6,7 @@ import com.example.util.FileAccess
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.uiText
 import com.example.R
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -787,10 +788,30 @@ fun CreateListingDialog(
                                       style = MaterialTheme.typography.bodySmall,
                                       color = MaterialTheme.colorScheme.onSurfaceVariant
                                   )
-                                  ClosedDatesEditor(
-                                      closedDates = closedDates.sorted(),
-                                      onChange = { closedDates = it.toSet(); hasUserTyped = true }
-                                  )
+                                  // Folded by default: the calendar is tall and most hosts never need it.
+                                  var showClosedDates by rememberSaveable { mutableStateOf(false) }
+                                  val upcomingClosed = closedDates.count { it >= com.example.ui.util.IsoDate.todayIso() }
+                                  Row(
+                                      modifier = Modifier.fillMaxWidth(),
+                                      verticalAlignment = Alignment.CenterVertically
+                                  ) {
+                                      Text(
+                                          if (upcomingClosed == 0) stringResource(R.string.closed_dates_none)
+                                          else stringResource(R.string.closed_dates_count, pluralStringResource(R.plurals.n_dates, upcomingClosed, upcomingClosed)),
+                                          style = MaterialTheme.typography.bodyMedium,
+                                          modifier = Modifier.weight(1f)
+                                      )
+                                      TextButton(onClick = { showClosedDates = !showClosedDates }) {
+                                          Text(stringResource(if (showClosedDates) R.string.done else R.string.see_more))
+                                      }
+                                  }
+                                  if (showClosedDates) {
+                                      ClosedDatesEditor(
+                                          closedDates = closedDates.sorted(),
+                                          onChange = { closedDates = it.toSet(); hasUserTyped = true },
+                                          showCount = false
+                                      )
+                                  }
 
                                   HorizontalDivider()
 
