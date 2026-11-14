@@ -67,6 +67,8 @@ fun SecurityTab(gateway: AdminGateway, adminEmail: String) {
   }
 
   Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+    ReportsCard(gateway)
+
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
       Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Text("Security & Audit", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)

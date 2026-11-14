@@ -135,3 +135,6 @@ Written in `adminWeb/src/wasmJsMain/kotlin/admin/` and compiled in CI (`admin-we
 | 53-55 | Security | `SecurityTab.kt` | audit log loaded on visit + Refresh (no live listener); CSV still only the loaded rows (quirk kept) |
 | 57, 59-63 | Demo | `DemoTab.kt` | **item 58 (Generate demo content) not offered on the web** (Android debug builds only) |
 Not started: 1-7 shell items beyond sign-in/tabs (badges, notification centre, analytics events), 56 (drawer audit dialog, covered by the Security tab), 64-66 (diagnostics page, Admin-as-Pro-Host, GA4 secret UI), 67-70 stay as they are (mailing console, maintenance CI, IG control room).
+
+## New on the web console (not in the Android admin)
+- **N1 Reports queue** (Security tab, `ReportsCard.kt`, 14 Nov 2026): list from `reports` (newest first, 200), status pill with hours left, Dismiss / Hide listing (`setListingSubscriptionActive` false) / Suspend (`setAccountSuspended`) / Reopen, each recorded by `adminResolveReport` (audit log `REPORT_REVIEWED`). Approved by the owner with the D6 mockups. To verify live after the next merge to `main`.
