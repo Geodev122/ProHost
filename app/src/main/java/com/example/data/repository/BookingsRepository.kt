@@ -61,7 +61,10 @@ internal class BookingsRepository(private val repo: ProHostRepository) {
         attendeeCount: Int = 0,
         selectedAttendeePackageId: String? = null,
         attendeePackageName: String? = null,
-        attendeePackagePriceUsd: Double = 0.0
+        attendeePackagePriceUsd: Double = 0.0,
+        // Booking on real dates: the exact dated slots (hourly / shift / day) and the model marker the server validates (2).
+        bookedSlots: List<com.example.data.model.BookedSlot> = emptyList(),
+        dateModel: Int = 0
     ): Pair<RentalBookingRequest, Boolean> {
         return with(repo) {
             if (practitioner.id == space.ownerId) {
@@ -117,7 +120,9 @@ internal class BookingsRepository(private val repo: ProHostRepository) {
                 selectedStartHour = startH,
                 selectedEndHour = endH,
                 selectedShift = selectedShift,
-                selectedDateTimeRange = rangeString,
+                selectedDateTimeRange = if (bookedSlots.isNotEmpty()) com.example.ui.util.DateSlots.describe(bookedSlots) else rangeString,
+                bookedSlots = bookedSlots,
+                dateModel = dateModel,
                 durationMonths = durationMonths,
                 totalAmountUsd = totalUsd,
                 clinicalNotes = notes,

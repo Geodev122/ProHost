@@ -200,6 +200,14 @@ fun SpaceDetailsScreenContent(
     // Multi-day HOURLY selection: day → set of selected start-hour strings
     val selectedHoursPerDayState = remember { mutableStateOf(mapOf<String, Set<String>>()) }
     var selectedHoursPerDay by selectedHoursPerDayState
+    // Booking on real dates: date ("yyyy-MM-dd") → the slot keys picked on it (hourly / shift / day rooms) …
+    val datedSelectionState = remember { mutableStateOf(mapOf<String, Set<String>>()) }
+    var datedSelection by datedSelectionState
+    // … or, for a monthly room, the start date and the number of months.
+    val monthlyStartState = remember { mutableStateOf<String?>(null) }
+    var monthlyStart by monthlyStartState
+    val monthlyMonthsState = remember { mutableStateOf(1) }
+    var monthlyMonths by monthlyMonthsState
     val showSendConfirmState = remember { mutableStateOf(false) }
     var showSendConfirm by showSendConfirmState
     var isSendingSlotRequest by remember { mutableStateOf(false) }
@@ -214,7 +222,7 @@ fun SpaceDetailsScreenContent(
         // Booking funnel: Request tapped (begin_checkout), then either the confirm step or the requirements gate.
         val sub = liveSpace.subdivisions.find { it.id == selectedSubdivisionId }
         com.example.analytics.AnalyticsTracker.beginBookingCheckout(liveSpace, sub)
-        com.example.analytics.AnalyticsTracker.bookingSlotSelect(sub?.pricing?.strategyType?.name ?: liveSpace.pricing.strategyType.name, selectedSlots.size)
+        com.example.analytics.AnalyticsTracker.bookingSlotSelect(sub?.pricing?.strategyType?.name ?: liveSpace.pricing.strategyType.name, datedSelection.values.sumOf { it.size }.coerceAtLeast(if (monthlyStart != null) 1 else 0))
         if (user.canTransact()) showSendConfirm = true else showRequirements = true
     }
     val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
@@ -238,6 +246,9 @@ fun SpaceDetailsScreenContent(
         if (selectedSubdivisionId != sub.id) {
             selectedSlots = emptySet()
             selectedHoursPerDay = emptyMap()
+            datedSelection = emptyMap()
+            monthlyStart = null
+            monthlyMonths = 1
         }
         // Show the room's lowest per-slot price on the bottom strip, not the sum of every
         // open slot — representativeFormula sums whatever it's given, so pass one slot.
@@ -889,6 +900,136 @@ fun SpaceDetailsScreenContent(
         }
     }
 
+    /**
+     * Booking on real dates: sends the dated slots picked in the sheet (hourly / shift / day rooms), or a monthly period
+     * ([monthlyStartDate] + [months]). The request carries `dateModel = 2`, so the server re-checks every date, time and the
+     * total against the room (functions/src/bookings/datedBookingCheck.ts); the same checks run here first for a clear message.
+     */
+    fun sendDatedRequest(
+        slots: List<BookedSlot>,
+        monthlyStartDate: String?,
+        months: Int,
+        attendeeQuote: com.example.ui.util.AttendeePricing.Quote? = null
+    ) {
+        val user = currentUser ?: return
+        if (!user.canTransact()) {
+            showRequirements = true
+            return
+        }
+        val subdivision = liveSpace.subdivisions.find { it.id == selectedSubdivisionId }
+        val pricing = subdivision?.pricing ?: liveSpace.pricing
+        val schedule = subdivision?.scheduleOverride ?: liveSpace.schedule
+        val isMonthly = pricing.strategyType == RentalStrategyType.MONTHLY
+        val isAttendeeMode = com.example.ui.util.AttendeePricing.isPerAttendee(subdivision)
+        if (isAttendeeMode && attendeeQuote == null) {
+            coroutineScope.launch { snackbarHostState.showSnackbar(uiText(R.string.choose_a_valid_number_of_attendees_first)) }
+            return
+        }
+        val today = com.example.ui.util.IsoDate.todayIso()
+        val held = acceptedBookings.filter { b ->
+            b.spaceId == liveSpace.id && (if (subdivision == null) b.subdivisionId.isNullOrBlank() else b.subdivisionId == subdivision.id)
+        }
+        val problem = if (isMonthly) {
+            com.example.ui.util.DateSlots.monthlyProblem(monthlyStartDate.orEmpty(), months, today, pricing, held)
+        } else {
+            com.example.ui.util.DateSlots.bookedSlotsProblem(
+                slots, today, pricing, schedule,
+                liveSpace.schedule.closedDates + subdivision?.scheduleOverride?.closedDates.orEmpty(), held, checkPrices = !isAttendeeMode
+            )
+        }
+        if (problem != null) {
+            coroutineScope.launch { snackbarHostState.showSnackbar(problem) }
+            return
+        }
+        isSendingSlotRequest = true
+        coroutineScope.launch {
+            val monthlyRate = pricing.monthly?.rateUsd ?: 0.0
+            val price = when {
+                isMonthly -> monthlyRate * months
+                isAttendeeMode -> attendeeQuote?.totalUsd ?: 0.0
+                else -> slots.sumOf { it.priceUsd }
+            }
+            val summary = if (isMonthly) "$monthlyStartDate × $months" else com.example.ui.util.DateSlots.describe(slots)
+            val hh = { hour: Int -> hour.toString().padStart(2, '0') + ":00" }
+            val startHour = if (isMonthly) schedule.openingHour else hh(slots.minOf { it.startHour })
+            val endHour = if (isMonthly) schedule.closingHour else hh(slots.maxOf { it.endHour })
+            val weekdays = slots.map { com.example.ui.util.DateSlots.weekdayOf(it.date) }.distinct()
+            val shiftLabel = slots.firstOrNull()?.shiftName
+                ?.let { n -> ShiftName.entries.firstOrNull { it.name == n }?.displayName }.orEmpty()
+            val formula = RentalFormula(
+                type = SpaceCalculationUtils.legacyFormulaType(pricing.strategyType),
+                rateUsd = if (isMonthly) monthlyRate else slots.firstOrNull()?.priceUsd ?: 0.0,
+                scheduleDescription = summary,
+                daysOfWeek = if (isMonthly) schedule.operatingDays else weekdays,
+                startHour = startHour,
+                endHour = endHour,
+                shiftName = shiftLabel.ifBlank { "Full Day" }
+            )
+            val notes = buildString {
+                append(uiText(R.string.requested_via_live_slot_selection))
+                append(" — $summary")
+                if (isAttendeeMode && attendeeQuote != null) append(" | ${com.example.ui.util.AttendeePricing.describe(attendeeQuote)}")
+            }
+            val sendResult = try {
+                viewModel.repository.createBookingRequest(
+                    space = liveSpace,
+                    formula = formula,
+                    practitioner = user,
+                    startDate = if (isMonthly) monthlyStartDate.orEmpty() else slots.minOf { it.date },
+                    durationMonths = if (isMonthly) months else 1,
+                    notes = notes,
+                    selectedDays = if (isMonthly) emptyList() else weekdays,
+                    selectedCalendarDates = slots.map { it.date }.distinct().sorted(),
+                    selectedStartHour = startHour,
+                    selectedEndHour = endHour,
+                    selectedShift = shiftLabel,
+                    calculatedTotalUsd = price,
+                    subdivisionId = subdivision?.id,
+                    subdivisionName = subdivision?.name,
+                    attendeeCount = if (isAttendeeMode) attendeeQuote?.attendees ?: 0 else 0,
+                    selectedAttendeePackageId = if (isAttendeeMode) attendeeQuote?.tier?.id else null,
+                    attendeePackageName = if (isAttendeeMode) attendeeQuote?.tier?.name else null,
+                    attendeePackagePriceUsd = if (isAttendeeMode) attendeeQuote?.tier?.pricePerAttendeeUsd ?: 0.0 else 0.0,
+                    bookedSlots = slots,
+                    dateModel = 2
+                )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                isSendingSlotRequest = false
+                throw e
+            } catch (e: Exception) {
+                isSendingSlotRequest = false
+                com.example.analytics.AnalyticsTracker.bookingRequestFailed(com.example.analytics.AnalyticsTracker.errorCode(e))
+                snackbarHostState.showSnackbar(
+                    e.message?.takeIf { (e is IllegalStateException || e is IllegalArgumentException) && it.isNotBlank() }
+                        ?: uiText(R.string.couldn_t_send_your_request_check_your_conn)
+                )
+                return@launch
+            }
+            val (request, synced) = sendResult
+            isSendingSlotRequest = false
+            showSendConfirm = false
+            if (synced) {
+                com.example.analytics.AnalyticsTracker.bookingRequest(
+                    space = liveSpace,
+                    sub = subdivision,
+                    valueUsd = price,
+                    strategy = formula.type.name,
+                    attendeeCount = if (isAttendeeMode) attendeeQuote?.attendees else null,
+                    isRebook = false
+                )
+                datedSelection = emptyMap()
+                monthlyStart = null
+                monthlyMonths = 1
+                availabilitySheetState.hide()
+                availabilityPanelState = "hidden"
+                sentRequest = request
+            } else {
+                com.example.analytics.AnalyticsTracker.bookingRequestFailed("not_synced")
+                snackbarHostState.showSnackbar(uiText(R.string.couldn_t_send_your_request_check_your_conn))
+            }
+        }
+    }
+
     // Sends one booking request covering all currently-selected slots (multi-select).
     // HOURLY multi-hour selections are treated as separate slot lines in the notes.
     // Per-attendee rooms: the total is the attendee quote (one per-person price for the
@@ -1015,18 +1156,18 @@ fun SpaceDetailsScreenContent(
             viewModel = viewModel,
             acceptedBookings = acceptedBookings,
             architectureSchema = architectureSchema,
-            strategyPreviewGroups = strategyPreviewGroups,
             isSpecialistViewer = isSpecialistViewer,
             selectedSubdivisionId = selectedSubdivisionId,
             availabilitySheetState = availabilitySheetState,
             isSendingSlotRequest = isSendingSlotRequest,
             availabilityPanelStateHolder = availabilityPanelStateHolder,
-            selectedSlotsState = selectedSlotsState,
-            selectedHoursPerDayState = selectedHoursPerDayState,
+            datedSelectionState = datedSelectionState,
+            monthlyStartState = monthlyStartState,
+            monthlyMonthsState = monthlyMonthsState,
             showSendConfirmState = showSendConfirmState,
             onSelectRoom = { selectRoom(it) },
             onRequest = { requestWithRequirements() },
-            onSendRequest = { slots, hours, all, quote -> sendMultiSlotRequest(slots, hours, all, quote) }
+            onSendRequest = { slots, start, months, quote -> sendDatedRequest(slots, start, months, quote) }
         )
     }
 

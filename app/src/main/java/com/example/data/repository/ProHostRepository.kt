@@ -1066,8 +1066,10 @@ class ProHostRepository(
         attendeeCount: Int = 0,
         selectedAttendeePackageId: String? = null,
         attendeePackageName: String? = null,
-        attendeePackagePriceUsd: Double = 0.0
-    ): Pair<RentalBookingRequest, Boolean> = bookingsRepo.createBookingRequest(space = space, formula = formula, practitioner = practitioner, startDate = startDate, durationMonths = durationMonths, notes = notes, selectedDays = selectedDays, selectedCalendarDates = selectedCalendarDates, selectedStartHour = selectedStartHour, selectedEndHour = selectedEndHour, selectedShift = selectedShift, calculatedTotalUsd = calculatedTotalUsd, subdivisionId = subdivisionId, subdivisionName = subdivisionName, replacesBookingId = replacesBookingId, attendeeCount = attendeeCount, selectedAttendeePackageId = selectedAttendeePackageId, attendeePackageName = attendeePackageName, attendeePackagePriceUsd = attendeePackagePriceUsd)
+        attendeePackagePriceUsd: Double = 0.0,
+        bookedSlots: List<com.example.data.model.BookedSlot> = emptyList(),
+        dateModel: Int = 0
+    ): Pair<RentalBookingRequest, Boolean> = bookingsRepo.createBookingRequest(space = space, formula = formula, practitioner = practitioner, startDate = startDate, durationMonths = durationMonths, notes = notes, selectedDays = selectedDays, selectedCalendarDates = selectedCalendarDates, selectedStartHour = selectedStartHour, selectedEndHour = selectedEndHour, selectedShift = selectedShift, calculatedTotalUsd = calculatedTotalUsd, subdivisionId = subdivisionId, subdivisionName = subdivisionName, replacesBookingId = replacesBookingId, attendeeCount = attendeeCount, selectedAttendeePackageId = selectedAttendeePackageId, attendeePackageName = attendeePackageName, attendeePackagePriceUsd = attendeePackagePriceUsd, bookedSlots = bookedSlots, dateModel = dateModel)
 
     fun findAcceptConflict(requestId: String): RentalBookingRequest? = bookingsRepo.findAcceptConflict(requestId = requestId)
 

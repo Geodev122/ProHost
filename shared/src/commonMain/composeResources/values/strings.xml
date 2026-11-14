@@ -1225,6 +1225,30 @@
     <string name="saves_this_month_up">+%1$d this month</string>
     <string name="saves_this_month_down">+%1$d this month (%2$d last)</string>
     <string name="save_inquiry_rates">%1$d views · %2$d%% saved · %3$d%% asked</string>
+    <string name="pick_dates_then_times">Pick your dates, then the times you need.</string>
+    <string name="pick_start_date_and_length">Pick a start date and how many months.</string>
+    <string name="calendar_legend_free">Free times</string>
+    <string name="calendar_legend_full">Fully booked</string>
+    <string name="calendar_legend_closed">Closed</string>
+    <string name="slot_taken">Taken</string>
+    <string name="whole_day_x_to_x">Whole day · %1$s–%2$s</string>
+    <string name="x_to_x_time">%1$s–%2$s</string>
+    <string name="tap_a_date_to_see_its_times">Tap a date to see its times.</string>
+    <string name="no_free_dates_this_month">No free dates this month. Try the next month.</string>
+    <string name="previous_month">Previous month</string>
+    <string name="next_month">Next month</string>
+    <string name="request_these_dates">Request these dates</string>
+    <string name="request_this_period">Request this period</string>
+    <string name="when_do_you_start">When do you start?</string>
+    <string name="how_long">How long?</string>
+    <string name="fewer_months">Fewer months</string>
+    <string name="more_months">More months</string>
+    <string name="period_x_to_x">%1$s → %2$s</string>
+    <string name="x_per_month_times_x">%1$s / month × %2$d</string>
+    <string name="dates_and_times_summary">%1$s · %2$s</string>
+    <string name="this_time_has_passed">These times have already passed today.</string>
+    <string name="dates">Dates</string>
+    <string name="period">Period</string>
     <plurals name="x_dates">
         <item quantity="one">%1$s • 1 date</item>
         <item quantity="other">%1$s • %2$d dates</item>
@@ -1264,5 +1288,17 @@
     <plurals name="x_month_term">
         <item quantity="one">%1$d month term</item>
         <item quantity="other">%1$d month term</item>
+    </plurals>
+    <plurals name="n_dates">
+        <item quantity="one">%d date</item>
+        <item quantity="other">%d dates</item>
+    </plurals>
+    <plurals name="n_times">
+        <item quantity="one">%d time</item>
+        <item quantity="other">%d times</item>
+    </plurals>
+    <plurals name="n_months">
+        <item quantity="one">%d month</item>
+        <item quantity="other">%d months</item>
     </plurals>
 </resources>

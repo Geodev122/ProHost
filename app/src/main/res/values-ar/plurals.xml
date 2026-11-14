@@ -80,4 +80,28 @@
         <item quantity="many">مدة %1$d شهرًا</item>
         <item quantity="other">مدة %1$d شهر</item>
     </plurals>
+    <plurals name="n_dates">
+        <item quantity="zero">لا تواريخ</item>
+        <item quantity="one">تاريخ واحد</item>
+        <item quantity="two">تاريخان</item>
+        <item quantity="few">%d تواريخ</item>
+        <item quantity="many">%d تاريخاً</item>
+        <item quantity="other">%d تاريخ</item>
+    </plurals>
+    <plurals name="n_times">
+        <item quantity="zero">لا أوقات</item>
+        <item quantity="one">وقت واحد</item>
+        <item quantity="two">وقتان</item>
+        <item quantity="few">%d أوقات</item>
+        <item quantity="many">%d وقتاً</item>
+        <item quantity="other">%d وقت</item>
+    </plurals>
+    <plurals name="n_months">
+        <item quantity="zero">لا أشهر</item>
+        <item quantity="one">شهر واحد</item>
+        <item quantity="two">شهران</item>
+        <item quantity="few">%d أشهر</item>
+        <item quantity="many">%d شهراً</item>
+        <item quantity="other">%d شهر</item>
+    </plurals>
 </resources>

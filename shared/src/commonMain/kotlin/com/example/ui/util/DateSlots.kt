@@ -155,6 +155,22 @@ object DateSlots {
         return null
     }
 
+    private fun hh(hour: Int) = hour.toString().padStart(2, '0') + ":00"
+
+    /** Consecutive slots of one date merged into ranges: [(date, startHour, endHour)], in date and time order. */
+    fun ranges(slots: List<BookedSlot>): List<Triple<String, Int, Int>> {
+        val out = ArrayList<Triple<String, Int, Int>>()
+        for (s in slots.sortedWith(compareBy({ it.date }, { it.startHour }))) {
+            val last = out.lastOrNull()
+            if (last != null && last.first == s.date && last.third == s.startHour) out[out.size - 1] = Triple(last.first, last.second, s.endHour)
+            else out.add(Triple(s.date, s.startHour, s.endHour))
+        }
+        return out
+    }
+
+    /** Stored, language-neutral summary of a dated booking: "2026-11-17 10:00-12:00; 2026-11-19 15:00-16:00". Screens print their own localized form. */
+    fun describe(slots: List<BookedSlot>): String = ranges(slots).joinToString("; ") { (date, start, end) -> "$date ${hh(start)}-${hh(end)}" }
+
     private fun monthIndex(year: Int, month: Int) = year * 12 + (month - 1)
 
     /** Whether the host rents the room in the calendar month [year]-[month] (inside the from/to window and not excluded). */
