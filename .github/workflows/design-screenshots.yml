@@ -57,7 +57,7 @@ jobs:
             -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
 
       - name: Install libfaketime (renders run at the golden's capture date; see app/build.gradle.kts)
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq libfaketime && ls /usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libfaketime && ls /usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1 && bash scripts/migration/fetch_design_photos.sh
       - name: Record screenshots
         env:
           DESIGN_EXTRA_SETTLE_MS: ${{ inputs.settle }}

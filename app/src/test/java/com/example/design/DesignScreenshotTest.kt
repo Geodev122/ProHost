@@ -70,6 +70,25 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
 
     @get:Rule val compose = androidx.compose.ui.test.junit4.createAndroidComposeRule<androidx.activity.ComponentActivity>()
 
+    /**
+     * The mock listings' photos are network images. With -Pdesign.photoDir (CI downloads them first, with the real clock) they are
+     * read from that folder instead: the render JVM runs at a frozen date (see app/build.gradle.kts), where TLS certificates issued
+     * since then are "not yet valid", and a local file also removes the network timing the gate had to re-render around.
+     */
+    private fun useLocalPhotos() {
+        val dir = System.getProperty("design.photoDir").orEmpty().takeIf { it.isNotBlank() }?.let(::File)?.takeIf { it.isDirectory } ?: return
+        val context = org.robolectric.RuntimeEnvironment.getApplication()
+        coil.Coil.setImageLoader(
+            coil.ImageLoader.Builder(context).components {
+                add(coil.intercept.Interceptor { chain ->
+                    val url = chain.request.data as? String
+                    val local = url?.takeIf { it.startsWith("https://images.unsplash.com/") }?.let { File(dir, it.substringAfterLast('/') + ".jpg") }
+                    if (local != null && local.isFile) chain.proceed(chain.request.newBuilder().data(local).build()) else chain.proceed(chain.request)
+                })
+            }.build()
+        )
+    }
+
     @Test
     fun capture() {
         Assume.assumeTrue(System.getProperty("roborazzi.test.record") == "true")
@@ -84,6 +103,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         val out = File(OUT_DIR).apply { mkdirs() }
         val name = "${screen}_$variant"
         File(out, "_last_${System.getProperty("design.shard").orEmpty().replace('/', 'o')}.txt").writeText(name) // the render a hung run was in
+        useLocalPhotos()
         try {
             val vm = signedInViewModel(if (screen in HOST_SCREENS) UserRole.PRO_HOST else UserRole.SPECIALIST)
             applyVariantToActivity(variant)

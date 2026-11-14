@@ -233,6 +233,8 @@ tasks.withType<Test>().configureEach {
   // Several screens print today's date or time (Manage listing's next 7 dates, Premium's "regular price starts", a request's
   // "Submitted" time), so renders drifted from the golden as days passed. When libfaketime is installed (the CI render steps
   // install it) the screenshot test JVM, and only it, runs at the golden's capture time; Gradle keeps the real clock.
+  // Mock listing photos downloaded by CI before the render (scripts/migration/fetch_design_photos.sh); absent locally = network as before.
+  layout.buildDirectory.dir("design-photos").get().asFile.takeIf { it.isDirectory }?.let { systemProperty("design.photoDir", it.path) }
   val faketimeLib = file("/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1")
   if (recordingScreenshots.get() && faketimeLib.exists()) {
     environment("LD_PRELOAD", faketimeLib.path)
