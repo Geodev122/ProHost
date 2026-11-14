@@ -69,7 +69,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/components/MultiSelectDropdownField.kt` | 94 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/components/OfflineStatusBanner.kt` | 30 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/components/OperatingScheduleEditorSection.kt` | 73 | A1 | — |  |  | ☐ | ☐ | todo |
-| `ui/components/OwnerIncomingRequestsView.kt` | 511 | A2 | Context removal, java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
+| `ui/components/OwnerIncomingRequestsView.kt` | 512 | A2 | Context removal, java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/components/PermissionPrompts.kt` | 225 | B | Context removal, MediaPicker(PickedFile), MediaPicker/Permissions, PlatformActions |  |  | ☐ | ☐ | todo |
 | `ui/components/PhoneNumberHint.kt` | 93 | C | Context removal, Logger, MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
 | `ui/components/ProHostBrandComponents.kt` | 749 | A1 | Context removal |  |  | ☐ | ☐ | todo |
@@ -121,20 +121,17 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/theme/Theme.kt` | 224 | B | — |  |  | ☐ | ☐ | todo |
 | `ui/theme/Type.kt` | 47 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/util/AttendeePricing.kt` | 113 | A2 | — |  |  | ☐ | ☐ | todo |
-| `ui/util/BookingDates.kt` | 53 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/util/ContextUtils.kt` | 15 | C | Context removal |  |  | ☐ | ☐ | todo |
 | `ui/util/DateLabels.kt` | 21 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/util/Haptics.kt` | 23 | A1 | Haptics |  |  | ☐ | ☐ | todo |
-| `ui/util/IsoDate.kt` | 119 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/util/ListingDivisions.kt` | 94 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/util/ListingLocation.kt` | 49 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/util/LocalizedLabels.kt` | 103 | A1 | — |  |  | ☐ | ☐ | todo |
-| `ui/util/MonthBoundaries.kt` | 36 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/util/PaymentCalendar.kt` | 93 | B | PlatformActions(calendar) |  |  | ☐ | ☐ | todo |
 | `ui/util/PlatformActions.kt` | 158 | B | Clipboard, Context removal, MediaPicker(PickedFile), PlatformActions, PlatformActions(calendar) |  |  | ☐ | ☐ | todo |
 | `ui/util/PriceChange.kt` | 224 | A2 | — |  |  | ☐ | ☐ | todo |
 | `ui/util/SaveStats.kt` | 24 | A2 | — |  |  | ☐ | ☐ | todo |
-| `ui/util/SpaceCalculationUtils.kt` | 670 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
+| `ui/util/SpaceCalculationUtils.kt` | 672 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/util/SupportContact.kt` | 27 | B | MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
 | `ui/util/UiMessages.kt` | 56 | B | Context removal, Messenger |  |  | ☐ | ☐ | todo |
 | `ui/util/UiText.kt` | 45 | B | — |  |  | ☐ | ☐ | todo |
@@ -160,6 +157,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 45 / 10246, A2 21 / 10978, B 39 / 13866, C 20 / 4222, X 17 / 7353.
 Automatic class totals (files / lines): A1 45 / 10246, A2 24 / 11183, B 39 / 13866, C 20 / 4222, X 17 / 7353.
 Automatic class totals (files / lines): A1 45 / 10246, A2 26 / 12856, B 39 / 13866, C 20 / 4252, X 17 / 7353.
 Automatic class totals (files / lines): A1 49 / 10563, A2 26 / 12856, B 39 / 13866, C 20 / 4252, X 17 / 7353.

@@ -131,6 +131,12 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
                 compose.mainClock.advanceTimeBy(it)
                 compose.waitForIdle()
             }
+            // The real Play Billing client answers "can't load plans" from its own thread at an arbitrary moment under Robolectric;
+            // its banner must never be half-present in a render (the golden has none), so a message that already arrived is dismissed.
+            if (vm.billing.billingError.value != null) {
+                compose.runOnUiThread { vm.billing.clearBillingMessages() }
+                if (manualClock) compose.mainClock.advanceTimeBy(100) else compose.waitForIdle()
+            }
             if (screen in OVERLAYS) captureWithWindows("$OUT_DIR/$name.png")
             else compose.onRoot().captureRoboImage(filePath = "$OUT_DIR/$name.png")
         } catch (e: Throwable) {

@@ -27,6 +27,8 @@ kotlin {
   sourceSets {
     commonMain.dependencies {
       api(libs.kotlinx.coroutines.core)
+      // Dates in shared logic (IsoDate, booking terms, dated slots). Wraps java.time on Android: the app keeps core-library desugaring on.
+      api(libs.kotlinx.datetime)
       // Compose Multiplatform: exposed with api because the app's screens (and later the shared ones) use these types directly.
       api(compose.runtime)
       api(compose.foundation)

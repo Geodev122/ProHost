@@ -166,7 +166,9 @@ data class RentalPricingConfig(
     val monthly: MonthlyConfig? = null,
     val hourly: HourlyConfig? = null,
     val shiftBased: ShiftBasedConfig? = null,
-    val dayBased: DayBasedConfig? = null
+    val dayBased: DayBasedConfig? = null,
+    /** Hourly / shift / day rooms: how many months ahead a date can be booked (null = [DEFAULT_BOOKING_HORIZON_MONTHS]). */
+    val bookingHorizonMonths: Int? = null
 ) {
     fun toFirestoreMap(): Map<String, Any?> = mapOf(
         "strategyType" to strategyType.name,
@@ -199,7 +201,7 @@ data class RentalPricingConfig(
                 "distribution" to dbc.distribution.mapValues { (_, v) -> mapOf("price" to v.price) }
             )
         }
-    )
+    ) + (bookingHorizonMonths?.let { mapOf("bookingHorizonMonths" to it) } ?: emptyMap()) // written only when set: older documents stay byte-identical
 
     /** Whether this config carries at least one real, non-zero price — mirrors
      *  functions/src/listings/publishValidation.ts's structuredConfigHasRealPrice
@@ -316,7 +318,7 @@ data class RentalPricingConfig(
                     distribution = distribution
                 )
             }
-            return RentalPricingConfig(type, monthly, hourly, shiftBased, dayBased)
+            return RentalPricingConfig(type, monthly, hourly, shiftBased, dayBased, (data["bookingHorizonMonths"] as? Number)?.toInt())
         }
 
         /** Old model allowed a LIST of formulas/strategies; new model is exactly one
@@ -478,7 +480,9 @@ data class SpaceOperatingSchedule(
     val closingHour: String = "20:00",
     val operatingDays: List<String> = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat"),
     val blackoutSlots: List<BlackoutSlot> = emptyList(),
-    val isSundayOperating: Boolean = false
+    val isSundayOperating: Boolean = false,
+    /** Calendar dates ("yyyy-MM-dd") the host is closed: nothing can be booked on them. */
+    val closedDates: List<String> = emptyList()
 ) {
     fun toFirestoreMap(): Map<String, Any?> = mapOf(
         "openingHour" to openingHour,
@@ -491,7 +495,7 @@ data class SpaceOperatingSchedule(
                 "startTime" to it.startTime, "endTime" to it.endTime, "reason" to it.reason
             )
         }
-    )
+    ) + (if (closedDates.isEmpty()) emptyMap() else mapOf("closedDates" to closedDates)) // written only when set
 
     companion object {
         // Shared by both SpaceListing.schedule (top-level, defaults to
@@ -516,7 +520,8 @@ data class SpaceOperatingSchedule(
                 operatingDays = (map["operatingDays"] as? List<*>)?.mapNotNull { it as? String }
                     ?: listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat"),
                 blackoutSlots = blackoutList,
-                isSundayOperating = map["isSundayOperating"] as? Boolean ?: false
+                isSundayOperating = map["isSundayOperating"] as? Boolean ?: false,
+                closedDates = (map["closedDates"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
             )
         }
     }
@@ -575,6 +580,12 @@ data class BookingRequest(
     // bookings made before this field existed (isSlotLocked/findAcceptConflict
     // fall back to weekday-level locking in that case).
     val selectedCalendarDates: List<String> = emptyList(),
+    // Booking on real dates (dateModel 2): the exact dated slots of an hourly / shift / day booking. They are what locks the room and
+    // what the server re-checks and prices; selectedCalendarDates holds their distinct dates for older readers. Empty for monthly
+    // bookings (startDate + durationMonths) and for bookings made before this model.
+    val bookedSlots: List<BookedSlot> = emptyList(),
+    /** 2 = sent by an app that books on real dates (the server then validates dates, slots and total); 0 = older request. */
+    val dateModel: Int = 0,
     val selectedStartHour: String = "", // Chosen start time
     val selectedEndHour: String = "", // Chosen end time
     val selectedShift: String = "", // e.g. "Morning Shift (08:00 - 13:00)"
@@ -694,7 +705,7 @@ data class BookingRequest(
             "attendeePackageName" to attendeePackageName,
             "attendeePackagePriceUsd" to attendeePackagePriceUsd,
             "isDemo" to isDemo
-        )
+        ) + (if (dateModel == 0) emptyMap() else mapOf("dateModel" to dateModel, "bookedSlots" to bookedSlots.map { it.toFirestoreMap() })) // only on dated requests
     }
 
     companion object {
@@ -748,6 +759,8 @@ data class BookingRequest(
                 endDate = data["endDate"] as? String ?: "",
                 selectedDays = daysList,
                 selectedCalendarDates = (data["selectedCalendarDates"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+                bookedSlots = (data["bookedSlots"] as? List<*>)?.mapNotNull { BookedSlot.fromFirestoreMap(it as? Map<*, *>) } ?: emptyList(),
+                dateModel = (data["dateModel"] as? Number)?.toInt() ?: 0,
                 selectedStartHour = data["selectedStartHour"] as? String ?: "",
                 selectedEndHour = data["selectedEndHour"] as? String ?: "",
                 selectedShift = data["selectedShift"] as? String ?: "",
@@ -781,6 +794,39 @@ data class BookingRequest(
 }
 
 typealias RentalBookingRequest = BookingRequest
+
+/** Months ahead a date can be booked when the host set no window (owner decision 14 Nov 2026). */
+const val DEFAULT_BOOKING_HORIZON_MONTHS = 3
+
+/**
+ * One dated slot of a booking: [key] is the hourly start hour ("9"), the shift name ("MORNING") or "DAY"; it occupies
+ * [startHour, endHour) on [date] ("yyyy-MM-dd"). Mirrors `BookedSlot` in functions/src/bookings/dateSlots.ts.
+ */
+data class BookedSlot(
+    val date: String,
+    val key: String,
+    val startHour: Int,
+    val endHour: Int,
+    val shiftName: String? = null,
+    val priceUsd: Double = 0.0
+) {
+    fun toFirestoreMap(): Map<String, Any?> = mapOf(
+        "date" to date, "key" to key, "startHour" to startHour, "endHour" to endHour, "shiftName" to shiftName, "priceUsd" to priceUsd
+    )
+
+    companion object {
+        fun fromFirestoreMap(map: Map<*, *>?): BookedSlot? {
+            val date = map?.get("date") as? String ?: return null
+            val start = (map["startHour"] as? Number)?.toInt() ?: return null
+            val end = (map["endHour"] as? Number)?.toInt() ?: return null
+            if (end <= start) return null
+            return BookedSlot(
+                date, map["key"] as? String ?: "", start, end,
+                (map["shiftName"] as? String)?.takeIf { it.isNotBlank() }, (map["priceUsd"] as? Number)?.toDouble() ?: 0.0
+            )
+        }
+    }
+}
 
 /** How a host's price change was applied to a booking (see functions/src/listings/changeSlotPrice.ts). */
 enum class PriceChangeMode(val label: String) {

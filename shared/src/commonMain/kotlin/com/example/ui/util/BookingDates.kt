@@ -6,7 +6,7 @@ package com.example.ui.util
  * Malformed input (a date that does not exist, e.g. `2026-02-30`) falls back instead of being rolled into the next month; the dialog only ever
  * passes dates the picker produced.
  */
-internal object BookingDates {
+object BookingDates {
     private val ABBREVIATIONS = setOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
     /** `Sun`..`Sat` of the UTC date [utcTimeMillis] falls on. */
