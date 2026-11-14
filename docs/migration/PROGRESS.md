@@ -264,3 +264,6 @@ Grep/offset-limit instead of re-reading files; CI logs via `failed_only` + `tail
 
 ### P5/P4 unit batch: PlayCatalog, FirestoreSchema, Countries, AppNavTab to :shared (14 Nov 2026)
 Pure files (no Android/JVM imports, no nullable public properties, no `internal`), moved with `git mv`, same packages. Gate result recorded below when read. Also: `main` merged into the branch (another session's SwiftUI "iOS S2" under `ios/` — conflicts with the cancelled SwiftUI port; left untouched, flagged in OWNER_QUEUE).
+
+### P11.4 (part 1) shared deep-link routing (14 Nov 2026)
+`shared/.../util/DeepLinkRouter.kt` (pure: `Link(scheme, host, path, room, code)` → `Route(source, analyticsTarget, tab, listing, emailVerified, isRedeem, promoCode)`) now holds the routing that lived inline in `MainActivity.handleIncomingIntent` / `logIncomingIntent`; MainActivity only splits the `Uri` and applies the route (same order: extras first, then link). Cases: `tests/vectors/deep-links.json` (18, hand-written; no server twin), run by `DeepLinkRouterTest`; the iOS host must run the same file. One hardening: query parameters are read only from hierarchical URIs (the old code would throw on an opaque one; no intent filter delivers those). Still open in P11.4: Universal Links (`apple-app-site-association`), Play Install Referrer.

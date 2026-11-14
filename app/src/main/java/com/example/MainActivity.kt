@@ -120,15 +120,8 @@ class MainActivity : ComponentActivity() {
                 intent.getStringExtra("target_tab")
             )
             data != null -> {
-                val source = when {
-                    data.host == "pro-host.tech" && data.path?.startsWith("/listing/") == true -> "share_link"
-                    data.scheme == "prohost" && data.host == "verify-email" -> "email"
-                    data.scheme == "prohost" && data.host == "redeem" -> "promo_link"
-                    data.scheme == "prohost" -> "prohost_scheme"
-                    else -> "web_link"
-                }
-                val target = if (source == "share_link") "space_details" else data.host
-                com.example.analytics.AnalyticsTracker.deepLinkOpen(source, target)
+                val route = routeOf(data)
+                com.example.analytics.AnalyticsTracker.deepLinkOpen(route.source, route.analyticsTarget)
             }
         }
     }
@@ -146,53 +139,30 @@ class MainActivity : ComponentActivity() {
         }
         intent.getStringExtra("space_id")?.takeIf { it.isNotBlank() }?.let { targetSpaceId = it }
 
-        val data = intent.data
-        // A tapped listing share link (pro-host.tech/listing/{spaceId} — see
-        // functions/src/listings/shareLanding.ts) only reaches here when the OS's App Link verification succeeded and the
-        // app is installed; a link-preview crawler or a user without the app never
-        // hits this code path at all, they see the landing page's own HTML instead.
-        // ProHostNavGraph resolves the id against the live spaces list once the user
-        // is signed in and it's loaded.
-        // `?room=` (the Instagram agent's links) opens the details page on that room's card.
-        val listingLink = data?.let {
-            com.example.util.ListingDeepLink.parse(it.scheme, it.host, it.path, it.getQueryParameter("room"))
+        // Link routing is pure and shared with iOS (com.example.util.DeepLinkRouter, cases in tests/vectors/deep-links.json):
+        // listing share links (pro-host.tech/listing/{spaceId}?room=, reached only through a verified App Link),
+        // prohost://verify-email/success, prohost://redeem?code= (the code is only ever handed to Google Play's redeem
+        // page) and prohost://<tab> links from notification action buttons.
+        val route = intent.data?.let(::routeOf) ?: return
+        route.listing?.let {
+            targetSpaceId = it.spaceId
+            targetRoomId = it.roomId
         }
-        if (listingLink != null) {
-            targetSpaceId = listingLink.spaceId
-            targetRoomId = listingLink.roomId
-        }
-
-        // Email verification return: prohost://verify-email/success (from verifyEmailLink
-        // Cloud Function — redirects the browser to this deep link on success).
-        val isEmailVerified = data != null && data.scheme == "prohost" &&
-            data.host == "verify-email" && data.path?.startsWith("/success") == true
-        if (isEmailVerified) {
-            emailVerifiedDeepLink = true
-        }
-
-        // Promo-code links: prohost://redeem?code=XXXX — open Subscriptions with the Redeem
-        // dialog pre-filled (the code is only ever handed to Google Play's redeem page).
-        if (data != null && data.scheme == "prohost" && data.host == "redeem") {
-            com.example.data.billing.PendingPromoCode.offer(data.getQueryParameter("code"))
-            targetTab = "owner_subscriptions"
-        }
-
-        // Tab deep links: prohost://<tabId> — sent by notification action buttons and
-        // external links to navigate directly to a specific tab inside the app.
-        if (data != null && data.scheme == "prohost" && !isEmailVerified) {
-            val tabFromHost = when (data.host) {
-                "owner_subscriptions" -> "owner_subscriptions"
-                "profile" -> "pro_profile"
-                "owner_hub" -> "manage_listings"
-                "my_bookings" -> "pro_rentals"
-                "discovery" -> "search_map"
-                else -> null
-            }
-            if (tabFromHost != null) {
-                targetTab = tabFromHost
-            }
-        }
+        if (route.emailVerified) emailVerifiedDeepLink = true
+        if (route.isRedeem) com.example.data.billing.PendingPromoCode.offer(route.promoCode)
+        route.tab?.let { targetTab = it }
     }
+
+    private fun routeOf(data: android.net.Uri) = com.example.util.DeepLinkRouter.route(
+        com.example.util.DeepLinkRouter.Link(
+            scheme = data.scheme,
+            host = data.host,
+            path = data.path,
+            // getQueryParameter throws on non-hierarchical URIs (mailto:); such links carry no room or code.
+            room = if (data.isHierarchical) data.getQueryParameter("room") else null,
+            code = if (data.isHierarchical) data.getQueryParameter("code") else null,
+        )
+    )
 }
 
 

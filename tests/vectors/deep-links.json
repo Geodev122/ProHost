@@ -1,0 +1,365 @@
+{
+ "description": "Deep-link routing cases shared by Android and iOS (com.example.util.DeepLinkRouter). Hand-written: there is no server implementation. 'tab' null = leave the current target alone.",
+ "cases": [
+  {
+   "name": "share link",
+   "link": {
+    "scheme": "https",
+    "host": "pro-host.tech",
+    "path": "/listing/abc123",
+    "room": null,
+    "code": null
+   },
+   "expected": {
+    "source": "share_link",
+    "analyticsTarget": "space_details",
+    "tab": null,
+    "spaceId": "abc123",
+    "roomId": null,
+    "emailVerified": false,
+    "isRedeem": false,
+    "promoCode": null
+   }
+  },
+  {
+   "name": "share link with room",
+   "link": {
+    "scheme": "https",
+    "host": "pro-host.tech",
+    "path": "/listing/abc123",
+    "room": "r_1",
+    "code": null
+   },
+   "expected": {
+    "source": "share_link",
+    "analyticsTarget": "space_details",
+    "tab": null,
+    "spaceId": "abc123",
+    "roomId": "r_1",
+    "emailVerified": false,
+    "isRedeem": false,
+    "promoCode": null
+   }
+  },
+  {
+   "name": "share link trailing slash, bad room ignored",
+   "link": {
+    "scheme": "https",
+    "host": "pro-host.tech",
+    "path": "/listing/abc123/",
+    "room": "bad room!",
+    "code": null
+   },
+   "expected": {
+    "source": "share_link",
+    "analyticsTarget": "space_details",
+    "tab": null,
+    "spaceId": "abc123",
+    "roomId": null,
+    "emailVerified": false,
+    "isRedeem": false,
+    "promoCode": null
+   }
+  },
+  {
+   "name": "share link with invalid id opens nothing",
+   "link": {
+    "scheme": "https",
+    "host": "pro-host.tech",
+    "path": "/listing/a b",
+    "room": null,
+    "code": null
+   },
+   "expected": {
+    "source": "share_link",
+    "analyticsTarget": "space_details",
+    "tab": null,
+    "spaceId": null,
+    "roomId": null,
+    "emailVerified": false,
+    "isRedeem": false,
+    "promoCode": null
+   }
+  },
+  {
+   "name": "http share link is logged but not opened",
+   "link": {
+    "scheme": "http",
+    "host": "pro-host.tech",
+    "path": "/listing/abc123",
+    "room": null,
+    "code": null
+   },
+   "expected": {
+    "source": "share_link",
+    "analyticsTarget": "space_details",
+    "tab": null,
+    "spaceId": null,
+    "roomId": null,
+    "emailVerified": false,
+    "isRedeem": false,
+    "promoCode": null
+   }
+  },
+  {
+   "name": "other web page",
+   "link": {
+    "scheme": "https",
+    "host": "pro-host.tech",
+    "path": "/get",
+    "room": null,
+    "code": null
+   },
+   "expected": {
+    "source": "web_link",
+    "analyticsTarget": "pro-host.tech",
+    "tab": null,
+    "spaceId": null,
+    "roomId": null,
+    "emailVerified": false,
+    "isRedeem": false,
+    "promoCode": null
+   }
+  },
+  {
+   "name": "other host",
+   "link": {
+    "scheme": "https",
+    "host": "example.com",
+    "path": "/listing/abc123",
+    "room": null,
+    "code": null
+   },
+   "expected": {
+    "source": "web_link",
+    "analyticsTarget": "example.com",
+    "tab": null,
+    "spaceId": null,
+    "roomId": null,
+    "emailVerified": false,
+    "isRedeem": false,
+    "promoCode": null
+   }
+  },
+  {
+   "name": "email verified",
+   "link": {
+    "scheme": "prohost",
+    "host": "verify-email",
+    "path": "/success",
+    "room": null,
+    "code": null
+   },
+   "expected": {
+    "source": "email",
+    "analyticsTarget": "verify-email",
+    "tab": null,
+    "spaceId": null,
+    "roomId": null,
+    "emailVerified": true,
+    "isRedeem": false,
+    "promoCode": null
+   }
+  },
+  {
+   "name": "email verify other path",
+   "link": {
+    "scheme": "prohost",
+    "host": "verify-email",
+    "path": "/failed",
+    "room": null,
+    "code": null
+   },
+   "expected": {
+    "source": "email",
+    "analyticsTarget": "verify-email",
+    "tab": null,
+    "spaceId": null,
+    "roomId": null,
+    "emailVerified": false,
+    "isRedeem": false,
+    "promoCode": null
+   }
+  },
+  {
+   "name": "redeem with code",
+   "link": {
+    "scheme": "prohost",
+    "host": "redeem",
+    "path": "",
+    "room": null,
+    "code": "PROHOST2026"
+   },
+   "expected": {
+    "source": "promo_link",
+    "analyticsTarget": "redeem",
+    "tab": "owner_subscriptions",
+    "spaceId": null,
+    "roomId": null,
+    "emailVerified": false,
+    "isRedeem": true,
+    "promoCode": "PROHOST2026"
+   }
+  },
+  {
+   "name": "redeem without code",
+   "link": {
+    "scheme": "prohost",
+    "host": "redeem",
+    "path": null,
+    "room": null,
+    "code": null
+   },
+   "expected": {
+    "source": "promo_link",
+    "analyticsTarget": "redeem",
+    "tab": "owner_subscriptions",
+    "spaceId": null,
+    "roomId": null,
+    "emailVerified": false,
+    "isRedeem": true,
+    "promoCode": null
+   }
+  },
+  {
+   "name": "tab premium",
+   "link": {
+    "scheme": "prohost",
+    "host": "owner_subscriptions",
+    "path": null,
+    "room": null,
+    "code": null
+   },
+   "expected": {
+    "source": "prohost_scheme",
+    "analyticsTarget": "owner_subscriptions",
+    "tab": "owner_subscriptions",
+    "spaceId": null,
+    "roomId": null,
+    "emailVerified": false,
+    "isRedeem": false,
+    "promoCode": null
+   }
+  },
+  {
+   "name": "tab profile",
+   "link": {
+    "scheme": "prohost",
+    "host": "profile",
+    "path": null,
+    "room": null,
+    "code": null
+   },
+   "expected": {
+    "source": "prohost_scheme",
+    "analyticsTarget": "profile",
+    "tab": "pro_profile",
+    "spaceId": null,
+    "roomId": null,
+    "emailVerified": false,
+    "isRedeem": false,
+    "promoCode": null
+   }
+  },
+  {
+   "name": "tab listings",
+   "link": {
+    "scheme": "prohost",
+    "host": "owner_hub",
+    "path": null,
+    "room": null,
+    "code": null
+   },
+   "expected": {
+    "source": "prohost_scheme",
+    "analyticsTarget": "owner_hub",
+    "tab": "manage_listings",
+    "spaceId": null,
+    "roomId": null,
+    "emailVerified": false,
+    "isRedeem": false,
+    "promoCode": null
+   }
+  },
+  {
+   "name": "tab rentals",
+   "link": {
+    "scheme": "prohost",
+    "host": "my_bookings",
+    "path": null,
+    "room": null,
+    "code": null
+   },
+   "expected": {
+    "source": "prohost_scheme",
+    "analyticsTarget": "my_bookings",
+    "tab": "pro_rentals",
+    "spaceId": null,
+    "roomId": null,
+    "emailVerified": false,
+    "isRedeem": false,
+    "promoCode": null
+   }
+  },
+  {
+   "name": "tab explore",
+   "link": {
+    "scheme": "prohost",
+    "host": "discovery",
+    "path": null,
+    "room": null,
+    "code": null
+   },
+   "expected": {
+    "source": "prohost_scheme",
+    "analyticsTarget": "discovery",
+    "tab": "search_map",
+    "spaceId": null,
+    "roomId": null,
+    "emailVerified": false,
+    "isRedeem": false,
+    "promoCode": null
+   }
+  },
+  {
+   "name": "unknown prohost host",
+   "link": {
+    "scheme": "prohost",
+    "host": "admin_console",
+    "path": null,
+    "room": null,
+    "code": null
+   },
+   "expected": {
+    "source": "prohost_scheme",
+    "analyticsTarget": "admin_console",
+    "tab": null,
+    "spaceId": null,
+    "roomId": null,
+    "emailVerified": false,
+    "isRedeem": false,
+    "promoCode": null
+   }
+  },
+  {
+   "name": "code on a non-redeem link is ignored",
+   "link": {
+    "scheme": "prohost",
+    "host": "profile",
+    "path": null,
+    "room": null,
+    "code": "X"
+   },
+   "expected": {
+    "source": "prohost_scheme",
+    "analyticsTarget": "profile",
+    "tab": "pro_profile",
+    "spaceId": null,
+    "roomId": null,
+    "emailVerified": false,
+    "isRedeem": false,
+    "promoCode": null
+   }
+  }
+ ]
+}
