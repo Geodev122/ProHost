@@ -116,7 +116,8 @@ if info and want("age"):
         explicit = {"userGeneratedContent": True, "unrestrictedWebAccess": False, "gambling": False, "lootBox": False, "advertising": False,
                     "messagingAndChat": False, "parentalControls": False, "ageAssurance": False, "healthOrWellnessTopics": False,
                     "kidsAgeBand": None, "koreaAgeRatingOverride": "NONE", "ageRatingOverride": "NONE", "ageRatingOverrideV2": "NONE",
-                    "developerAgeRatingInfoUrl": None, "seventeenPlus": None}
+                    "developerAgeRatingInfoUrl": None, "seventeenPlus": None, "gracRatingClassificationNumber": None,
+                    "socialMedia": False, "socialMediaAgeRestricted": False}
         answers = {}
         for k, v in keys.items():
             if k in explicit:

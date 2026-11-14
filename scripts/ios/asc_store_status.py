@@ -105,7 +105,7 @@ for inc in (d or {}).get("included", []):
         info("subscription", f'{a.get("productId")} period={a.get("subscriptionPeriod")} state={a.get("state")} level={a.get("groupLevel")}')
 
 # Price / availability
-d, s = get(f"/v1/apps/{app_id}/appPriceSchedule?include=manualPrices,baseTerritory")
+d, s = get(f"/v1/apps/{app_id}/appPriceSchedule")
 line(d is not None and bool((d or {}).get("data")), "app price schedule (free app)", "" if d else f"HTTP {s}")
 d, s = get(f"/v1/apps/{app_id}/appAvailabilityV2")
 line(d is not None, "availability (countries)", "" if d else f"HTTP {s}")
