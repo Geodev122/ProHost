@@ -442,10 +442,11 @@ fun OwnerRequestDetailSheet(
             DetailRow(Icons.Default.Schedule, uiText(R.string.submitted), formattedTime)
             if (request.clinicalNotes.isNotBlank()) DetailRow(Icons.AutoMirrored.Filled.Notes, uiText(R.string.notes), request.clinicalNotes)
 
-            if (request.status == BookingRequestStatus.REJECTED && !request.rejectionReason.isNullOrBlank()) {
+            val rejectionReason = request.rejectionReason // local copy: the model lives in :shared (no smart cast across modules)
+            if (request.status == BookingRequestStatus.REJECTED && !rejectionReason.isNullOrBlank()) {
                 Surface(color = MaterialTheme.colorScheme.errorContainer, shape = MaterialTheme.shapes.small) {
                     Text(
-                        text = stringResource(R.string.declined_x, request.rejectionReason),
+                        text = stringResource(R.string.declined_x, rejectionReason),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(8.dp)

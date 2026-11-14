@@ -82,8 +82,10 @@ object SpaceCalculationUtils {
                 val m = config.monthly ?: return emptyList()
                 fun beforeOrEqual(m1: Int, y1: Int, m2: Int, y2: Int) = y1 < y2 || (y1 == y2 && m1 <= m2)
                 val afterFrom = beforeOrEqual(m.fromMonth, m.fromYear, referenceMonth, referenceYear)
-                val beforeTo = m.isIndefinite || (m.toMonth != null && m.toYear != null &&
-                    beforeOrEqual(referenceMonth, referenceYear, m.toMonth, m.toYear))
+                val toMonth = m.toMonth // local copies: the model lives in :shared (no smart cast across modules)
+                val toYear = m.toYear
+                val beforeTo = m.isIndefinite || (toMonth != null && toYear != null &&
+                    beforeOrEqual(referenceMonth, referenceYear, toMonth, toYear))
                 val excluded = m.excludedRanges.any { r ->
                     beforeOrEqual(r.fromMonth, r.fromYear, referenceMonth, referenceYear) &&
                         beforeOrEqual(referenceMonth, referenceYear, r.toMonth, r.toYear)
