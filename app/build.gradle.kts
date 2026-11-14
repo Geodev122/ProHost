@@ -230,4 +230,15 @@ tasks.withType<Test>().configureEach {
   systemProperty("design.only", designOnly.get())
   // -PdesignShard=i/n: one slice of the renders (CI runs them as parallel jobs).
   systemProperty("design.shard", providers.gradleProperty("designShard").orElse("").get())
+  // Several screens print today's date or time (Manage listing's next 7 dates, Premium's "regular price starts", a request's
+  // "Submitted" time), so renders drifted from the golden as days passed. When libfaketime is installed (the CI render steps
+  // install it) the screenshot test JVM, and only it, runs at the golden's capture time; Gradle keeps the real clock.
+  val faketimeLib = file("/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1")
+  if (recordingScreenshots.get() && faketimeLib.exists()) {
+    environment("LD_PRELOAD", faketimeLib.path)
+    environment("FAKETIME", providers.gradleProperty("designFreezeTime").orElse("@2026-11-08 11:16:00").get())
+    environment("DONT_FAKE_MONOTONIC", "1") // the JVM's timed waits need the real monotonic clock
+    environment("NO_FAKE_STAT", "1")        // file timestamps stay real (Gradle's up-to-date checks)
+    environment("TZ", "UTC")
+  }
 }

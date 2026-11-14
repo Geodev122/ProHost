@@ -119,6 +119,8 @@ jobs:
           keytool -genkey -v -keystore debug.keystore -storepass android \
             -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 \
             -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+      - name: Install libfaketime (renders run at the golden's capture date; see app/build.gradle.kts)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libfaketime && ls /usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1
       - name: Render this shard of the 280 design screenshots
         run: |
           set +e
@@ -193,6 +195,8 @@ jobs:
       # A real regression is deterministic; the harness still has a few timing-dependent inputs (network listing photos). So whatever
       # differed is rendered again, alone, up to 3 times, and the gate passes only when a re-render matches the golden EXACTLY: a real
       # regression can never match, a timing flake eventually does. No tolerance or mask is involved.
+      - name: Install libfaketime (renders run at the golden's capture date; see app/build.gradle.kts)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libfaketime && ls /usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1
       - name: Reproduce the differences (re-render only those screens, up to 3 times)
         if: steps.diff.outputs.status != '0'
         id: repro
