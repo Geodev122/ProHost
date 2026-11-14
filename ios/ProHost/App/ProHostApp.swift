@@ -6,8 +6,14 @@ struct ProHostApp: App {
 
     var body: some Scene {
         WindowGroup {
-            SplashView()
-                .dynamicTypeSize(...TextScale.maxSize)
+            Group {
+                if AppInfo.isRunningUnitTests {
+                    Color.clear
+                } else {
+                    RootView()
+                }
+            }
+            .dynamicTypeSize(...TextScale.maxSize)
         }
     }
 }

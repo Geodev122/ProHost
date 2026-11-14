@@ -114,3 +114,4 @@ Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, ot
 - Firestore TTL policies created via Maintenance `ttl apply` (runs 182): collection group `notifications` field `ttlAt`, collection group `mail` field `expireAt`.
 - Storage lifecycle rules added via Maintenance `lifecycle apply` (run 183): Delete after 365 days for prefixes `listing_verification_docs/` and `booking_agreements/` on bucket `prohost-f766f.firebasestorage.app` (no rules existed before).
 - Owner also (own hands, 9 Nov): removed the appspot service account from Play Console; restricted the "iOS key (auto created by Firebase)" to bundle `app.geonajjar.prohost`; confirmed the APNs key is uploaded; declared EU trader status; Paid Apps Agreement is processing.
+- iOS S2 (session store, router, role tab shell) pushed; iOS CI green on 767d5fd. No TestFlight build uploaded for it yet.

@@ -8,7 +8,7 @@ final class ProHostAppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return true }
+        guard !AppInfo.isRunningUnitTests else { return true }
         #if DEBUG
         AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
         #else
