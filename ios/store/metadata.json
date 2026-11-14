@@ -1,0 +1,72 @@
+{
+ "_about": "App Store Connect listing for ProHost (source of truth; applied by scripts/ios/asc_prepare.py). Country-neutral by owner decision 14 Nov 2026. No prices or offers in listing text. Limits: name 30, subtitle 30, keywords 100, promotionalText 170, description 4000.",
+ "bundleId": "app.geonajjar.prohost",
+ "primaryCategory": "BUSINESS",
+ "secondaryCategory": "PRODUCTIVITY",
+ "contentRightsDeclaration": "DOES_NOT_USE_THIRD_PARTY_CONTENT",
+ "availability": "ALL",
+ "urls": {
+  "privacy": "https://pro-host.tech/privacy",
+  "support": "https://pro-host.tech",
+  "marketing": "https://pro-host.tech"
+ },
+ "testFlight": {
+  "feedbackEmail": "admin@pro-host.tech",
+  "description": "ProHost for iPhone. Please check: sign in (Apple, Google, email), Explore map and list, opening a listing, sending a booking request, My Rentals, Premium page, language switch (English / Arabic)."
+ },
+ "locales": {
+  "en-US": {
+   "name": "ProHost: Rooms by the Hour",
+   "subtitle": "Clinics, offices, studios",
+   "keywords": "clinic,therapy room,office,meeting room,training,studio,coworking,rent,hourly,workspace,booking,host",
+   "promotionalText": "Book a clinic room, office, studio or meeting room for exactly the time you need. Own a space? List it and fill the hours it sits empty.",
+   "description": "ProHost is the workspace rental app. Professionals book clinic rooms, therapy rooms, offices, training rooms, studios and meeting rooms by the hour, shift, day, month or per attendee. Space owners turn empty rooms into steady income.\n\nFOR PROFESSIONALS: BOOK EXACTLY THE TIME YOU NEED\nPsychologists who see clients two evenings a week. Doctors who need a clinic every Tuesday morning. Trainers with 20 people on Saturday. Coaches, dietitians, physiotherapists, consultants and freelancers. ProHost lets you book the room you need, only for the time you need it, without a long lease.\n\n• Search clinics, therapy rooms, offices, studios, classrooms and meeting rooms on a live map\n• Filter by space type, room type and pricing: hourly, shift, daily, monthly or per attendee\n• See every room's photos, capacity, facilities and live availability before you book\n• Pick your days and hours and see the total before you send your request\n• Message the host on WhatsApp with one tap\n• Track every request and booking in My Rentals, mark payments and add payment reminders to your calendar\n• Save your favourite spaces\n• Free to download and free to book\n\nFOR SPACE OWNERS: FILL THE HOURS YOUR ROOMS SIT EMPTY\nHotels with meeting rooms that are empty on weekdays. Medical centers and polyclinics with clinic rooms free in the afternoons. Training centers, institutes and schools with classrooms free at night. Yoga, pilates and dance studios. Coworking spaces, business centers and office owners.\n\n• List your space and every room in it, each with its own photos, schedule and pricing\n• Rent by the hour, shift, day, month or per attendee\n• Receive requests from professionals with a WhatsApp number and a profile photo\n• Accept or decline in one tap; accepted bookings lock their slots, so there are no double bookings\n• See the week's occupancy and this month's revenue for every room\n• Change prices any time, now or from the next term; ProHost notifies your tenants for you\n• No commission on your bookings\n\nPROHOST PREMIUM\nPublishing and managing listings is part of ProHost Premium, an auto-renewing monthly or yearly subscription. Booking a space is always free. Payment is charged to your Apple Account at confirmation of purchase. The subscription renews automatically unless it is cancelled at least 24 hours before the end of the current period. Manage or cancel it any time in Settings > Apple Account > Subscriptions.\n\nTerms of Use: https://pro-host.tech/terms\nPrivacy Policy: https://pro-host.tech/privacy\n\nQuestions? admin@pro-host.tech · pro-host.tech"
+  },
+  "ar-SA": {
+   "name": "ProHost: تأجير غرف بالساعة",
+   "subtitle": "عيادات ومكاتب واستوديوهات",
+   "keywords": "عيادة,غرفة علاج,مكتب,قاعة اجتماعات,تدريب,استوديو,تأجير,بالساعة,حجز,مساحة عمل,إيجار",
+   "promotionalText": "احجز عيادة أو مكتباً أو استوديو أو قاعة اجتماعات للوقت الذي تحتاجه فقط. تملك مساحة؟ اعرضها واملأ ساعاتها الفارغة.",
+   "description": "ProHost تطبيق تأجير مساحات العمل. يحجز المهنيون عيادات وغرف علاج نفسي ومكاتب وقاعات تدريب واستوديوهات وقاعات اجتماعات بالساعة أو بالدوام أو باليوم أو بالشهر أو حسب عدد المشاركين، ويحوّل أصحاب المساحات غرفهم الفارغة إلى دخل ثابت.\n\nللمهنيين: احجز الوقت الذي تحتاجه فقط\nمعالج نفسي يستقبل مرضاه مساءين في الأسبوع، طبيب يحتاج عيادة كل ثلاثاء صباحاً، مدرّب مع 20 مشاركاً يوم السبت، مدرّبو الحياة وأخصائيو التغذية والعلاج الفيزيائي والاستشاريون والمستقلون. مع ProHost تحجز الغرفة التي تحتاجها للوقت الذي تحتاجه، من دون عقد طويل.\n\n• ابحث عن عيادات وغرف علاج ومكاتب واستوديوهات وصفوف وقاعات اجتماعات على خريطة مباشرة\n• فلتر حسب نوع المساحة والغرفة وطريقة التسعير: بالساعة، بالدوام، باليوم، بالشهر أو حسب عدد المشاركين\n• شاهد صور كل غرفة وسعتها وتجهيزاتها وتوفّرها المباشر قبل الحجز\n• اختر أيامك وساعاتك وشاهد المجموع قبل إرسال الطلب\n• راسل صاحب المساحة على واتساب بلمسة واحدة\n• تابع طلباتك وحجوزاتك في «إيجاراتي» وأضف تذكيرات الدفع إلى تقويمك\n• التنزيل والحجز مجانيان\n\nلأصحاب المساحات: املأ الساعات الفارغة\nفنادق بقاعات اجتماعات فارغة خلال الأسبوع، مراكز طبية وعيادات متعددة الاختصاصات، مراكز تدريب ومعاهد ومدارس، استوديوهات يوغا ورقص، مساحات عمل مشتركة ومراكز أعمال ومكاتب.\n\n• اعرض مساحتك وكل غرفة فيها بصورها وجدولها وأسعارها\n• أجّر بالساعة أو بالدوام أو باليوم أو بالشهر أو حسب عدد المشاركين\n• استقبل طلبات من مهنيين برقم واتساب وصورة شخصية\n• اقبل أو ارفض بلمسة؛ الحجوزات المقبولة تقفل أوقاتها فلا حجز مزدوج\n• شاهد إشغال الأسبوع وإيرادات الشهر لكل غرفة\n• غيّر الأسعار في أي وقت، الآن أو من الفترة التالية، ويُبلَّغ المستأجرون تلقائياً\n• لا عمولة على حجوزاتك\n\nProHost Premium\nنشر المساحات وإدارتها جزء من اشتراك ProHost Premium الشهري أو السنوي المتجدّد تلقائياً. الحجز مجاني دائماً. يُخصم المبلغ من حساب Apple عند تأكيد الشراء، ويتجدّد الاشتراك تلقائياً ما لم يُلغَ قبل 24 ساعة على الأقل من نهاية الفترة الحالية. أدر اشتراكك أو ألغه في أي وقت من الإعدادات > حساب Apple > الاشتراكات.\n\nشروط الاستخدام: https://pro-host.tech/terms\nسياسة الخصوصية: https://pro-host.tech/privacy\n\nأسئلة؟ admin@pro-host.tech · pro-host.tech"
+  }
+ },
+ "subscriptions": {
+  "groupReferenceName": "ProHost Premium",
+  "groupDisplayName": {
+   "en-US": "ProHost Premium",
+   "ar-SA": "ProHost Premium"
+  },
+  "products": [
+   {
+    "productId": "prohost.premium.monthly",
+    "referenceName": "ProHost Premium Monthly",
+    "period": "ONE_MONTH",
+    "groupLevel": 2,
+    "usd": "8.99",
+    "name": {
+     "en-US": "Premium Monthly",
+     "ar-SA": "بريميوم شهري"
+    },
+    "description": {
+     "en-US": "Publish and manage your listings.",
+     "ar-SA": "انشر مساحاتك وأدِرها."
+    }
+   },
+   {
+    "productId": "prohost.premium.yearly",
+    "referenceName": "ProHost Premium Yearly",
+    "period": "ONE_YEAR",
+    "groupLevel": 1,
+    "usd": null,
+    "name": {
+     "en-US": "Premium Yearly",
+     "ar-SA": "بريميوم سنوي"
+    },
+    "description": {
+     "en-US": "Publish and manage your listings.",
+     "ar-SA": "انشر مساحاتك وأدِرها."
+    }
+   }
+  ]
+ }
+}

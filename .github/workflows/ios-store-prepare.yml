@@ -1,0 +1,60 @@
+name: iOS App Store prepare
+
+# Fills App Store Connect for ProHost from ios/store/metadata.json (listing texts, categories, age rating, price, countries,
+# capability, TestFlight information, subscriptions). Default is a plan that changes nothing; choose apply to write.
+# Never submits the app for review and never makes anything public. Contact details and demo passwords are typed into the
+# form or read from secrets; they are never stored in the repository or printed.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "plan = show what would change; apply = write to App Store Connect"
+        type: choice
+        options: [plan, apply]
+        default: plan
+      only:
+        description: "Optional sections: app,categories,info,version,capability,price,availability,age,testflight,subscriptions,review"
+        required: false
+        default: ""
+      copyright:
+        description: "Copyright line, e.g. 2026 Legal Name (optional)"
+        required: false
+        default: ""
+      yearly_usd:
+        description: "Yearly subscription price in USD, e.g. 79.99 (optional)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-store-prepare
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      ASC_COPYRIGHT: ${{ inputs.copyright }}
+      SUBSCRIPTION_YEARLY_USD: ${{ inputs.yearly_usd }}
+      REVIEW_FIRST_NAME: ${{ secrets.APP_REVIEW_FIRST_NAME }}
+      REVIEW_LAST_NAME: ${{ secrets.APP_REVIEW_LAST_NAME }}
+      REVIEW_PHONE: ${{ secrets.APP_REVIEW_PHONE }}
+      REVIEW_EMAIL: ${{ secrets.APP_REVIEW_EMAIL }}
+      REVIEW_DEMO_USER: ${{ secrets.APP_REVIEW_DEMO_USER }}
+      REVIEW_DEMO_PASSWORD: ${{ secrets.APP_REVIEW_DEMO_PASSWORD }}
+      REVIEW_NOTES: ${{ secrets.APP_REVIEW_NOTES }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install client dependencies
+        run: pip install --quiet pyjwt cryptography
+      - name: Prepare App Store Connect (${{ inputs.mode }})
+        run: python3 scripts/ios/asc_prepare.py ${{ inputs.mode == 'apply' && '--apply' || '' }} --only "${{ inputs.only }}"
+      - name: Readiness after the run
+        if: always()
+        run: python3 scripts/ios/asc_store_status.py
