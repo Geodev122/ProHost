@@ -583,7 +583,7 @@ data class BookingRequest(
     val totalAmountUsd: Double = 0.0,
     val clinicalNotes: String = "",
     val status: BookingRequestStatus = BookingRequestStatus.PENDING,
-    val createdAt: Long = System.currentTimeMillis(),
+    val createdAt: Long = com.example.util.nowMillis(),
     val reviewedAt: Long? = null,
     val rejectionReason: String? = null,
     val subdivisionId: String? = null,
@@ -756,7 +756,7 @@ data class BookingRequest(
                 totalAmountUsd = (data["totalAmountUsd"] as? Number)?.toDouble() ?: 0.0,
                 clinicalNotes = data["clinicalNotes"] as? String ?: "",
                 status = status,
-                createdAt = (data["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis(),
+                createdAt = (data["createdAt"] as? Number)?.toLong() ?: com.example.util.nowMillis(),
                 reviewedAt = (data["reviewedAt"] as? Number)?.toLong(),
                 rejectionReason = data["rejectionReason"] as? String,
                 subdivisionId = data["subdivisionId"] as? String,
@@ -1080,7 +1080,7 @@ data class SpaceListing(
             // never written back from a host's save; isDemo only when true (demo seeding).
             "ownerProfilePictureUrl" to ownerProfilePictureUrl,
             "status" to status.name,
-            "updatedAt" to System.currentTimeMillis()
+            "updatedAt" to com.example.util.nowMillis()
         ) + (if (isDemo) mapOf("isDemo" to true) else emptyMap())
     }
 
@@ -1275,7 +1275,7 @@ enum class UserRole(val displayName: String) {
 
 data class AuditSecurityLog(
     val id: String,
-    val timestamp: Long = System.currentTimeMillis(),
+    val timestamp: Long = com.example.util.nowMillis(),
     val actionType: String,
     val details: String,
     val actorEmail: String = "system@prohost.app",
@@ -1300,7 +1300,7 @@ data class AuditSecurityLog(
         fun fromFirestoreMap(docId: String, data: Map<String, Any?>): AuditSecurityLog {
             return AuditSecurityLog(
                 id = docId,
-                timestamp = (data["timestamp"] as? Number)?.toLong() ?: System.currentTimeMillis(),
+                timestamp = (data["timestamp"] as? Number)?.toLong() ?: com.example.util.nowMillis(),
                 actionType = data["actionType"] as? String ?: "SYSTEM_EVENT",
                 details = data["details"] as? String ?: "",
                 actorEmail = data["actorEmail"] as? String ?: "admin@prohost.lb",
@@ -1460,7 +1460,7 @@ data class AppUser(
             // document write, so they are intentionally excluded.
             "savedSpaceIds" to savedSpaceIds,
             "isDemo" to isDemo,
-            "updatedAt" to System.currentTimeMillis()
+            "updatedAt" to com.example.util.nowMillis()
         )
     }
 
@@ -1581,7 +1581,7 @@ data class AdminPricingState(
             "baselineFeeUsd" to baselineFeeUsd,
             "presetOptions" to presetOptions,
             "governanceTag" to governanceTag,
-            "updatedAt" to System.currentTimeMillis()
+            "updatedAt" to com.example.util.nowMillis()
         )
     }
 
@@ -1608,7 +1608,7 @@ data class FCMAlert(
     val id: String = com.example.util.Ids.uuid(),
     val title: String,
     val body: String,
-    val timestamp: Long = System.currentTimeMillis(),
+    val timestamp: Long = com.example.util.nowMillis(),
     val isRead: Boolean = false,
     // Server-sent categories: BOOKING_REQUEST, BOOKING_UPDATE, PAYMENT_REMINDER,
     // PACKAGE_EXPIRED, PACKAGE_ACTIVATED, PACKAGE_RENEWED,
@@ -1623,7 +1623,7 @@ data class FCMAlert(
         const val TTL_MS = 48L * 60 * 60 * 1000
 
         fun fromFirestoreMap(id: String, data: Map<String, Any?>): FCMAlert {
-            val created = (data["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis()
+            val created = (data["createdAt"] as? Number)?.toLong() ?: com.example.util.nowMillis()
             return FCMAlert(
                 id = id,
                 title = data["title"] as? String ?: "ProHost",
@@ -1651,7 +1651,7 @@ data class Order(
     val userId: String,
     val totalAmount: Double,
     val currency: String = "USD", // USD or LBP
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = com.example.util.nowMillis()
 )
 
 
