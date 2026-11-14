@@ -18,7 +18,7 @@ data class Country(
 ) {
     val flagEmoji: String
         get() = isoCode.uppercase().map { 0x1F1E6 + (it - 'A') }
-            .joinToString("") { String(Character.toChars(it)) }
+            .joinToString("") { codePointToString(it) }
 
     val displayLabel: String get() = "$flagEmoji $name ($dialCode)"
 }
@@ -145,3 +145,11 @@ fun splitE164(phone: String?, fallback: Country): Pair<Country, String> {
         ?: return fallback to clean.removePrefix("+")
     return country to clean.removePrefix(country.dialCode)
 }
+
+/** What `String(Character.toChars(codePoint))` returns on the JVM, in common Kotlin (UTF-16 surrogate pair above the BMP). */
+private fun codePointToString(codePoint: Int): String =
+    if (codePoint < 0x10000) codePoint.toChar().toString()
+    else {
+        val offset = codePoint - 0x10000
+        charArrayOf((0xD800 + (offset shr 10)).toChar(), (0xDC00 + (offset and 0x3FF)).toChar()).concatToString()
+    }
