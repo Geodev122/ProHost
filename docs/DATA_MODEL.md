@@ -94,3 +94,9 @@ own config documents (`app_config/instagram`, `instagram_knowledge`, `instagram_
 operating settings (mode, killSwitch, settings, ai, sheetId, enabled) and `platforms.instagram` / `platforms.whatsapp` (account ids, app ids). Sub-collections:
 events, contacts, threads, leads, learn, rules, stats, `private/secrets` (tokens, app secrets, AI keys), `private/knowledge`. The first brand, `prohost`, keeps
 the original `ig_*` collections and `app_config/instagram*`, plus an optional `ig_brands/prohost` profile overlay.
+
+## Report / block (server-written, added 14 Nov 2026; app UI not built yet)
+- `reports/{id}`: review queue. Fields: `status` (NEW · DISMISSED · ACTIONED), `targetType` (listing · user), `listingId`, `listingTitle`, `listingCode`, `targetUid`, `targetCode`, `bookingId`, `reason` (MISLEADING · SCAM · OFFENSIVE · UNSAFE · HARASSMENT · OTHER), `details` (≤ 500), `reporterUid`, `reporterCode`, `createdAtMillis`, `dueAtMillis` (+24 h), then `lastAction`, `resolutionNote`, `reviewedAtMillis`, `reviewedByEmail`. Written by `reportContent` / `adminResolveReport`; read by admins only (web console).
+- `user_profiles/{uid}.blockedUserIds` (string[], ≤ 500, server-only) and `user_profiles/{uid}/blocks/{otherUid}` (`displayName`, `displayCode`, `blockedAtMillis`; owner reads). Written by `blockUser` / `unblockUser`.
+- Effect: `onBookingRequestCreated` auto-rejects (`rejectedBySystem`) a request when either side blocked the other; the app hides a blocked host's listings from the blocker. Nobody is notified of a block; existing bookings are untouched.
+- Logic and tests: `functions/src/reports/` (`reportRules.ts` pure, `reports.ts` callables); rules tests "report / block (server-written)".

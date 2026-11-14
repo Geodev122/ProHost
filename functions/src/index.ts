@@ -7,6 +7,7 @@ setGlobalOptions({ region: "europe-west1", maxInstances: 10 });
 export { assignInitialRole } from "./roles/assignInitialRole";
 export { grantAdminRole } from "./roles/grantAdminRole";
 export { setAccountSuspended } from "./roles/setAccountSuspended";
+export { reportContent, blockUser, unblockUser, adminResolveReport } from "./reports/reports";
 export { revokeProHostRole } from "./roles/revokeProHostRole";
 export { deleteOwnAccount } from "./roles/deleteOwnAccount";
 export { onAuthUserDeleted } from "./auth/onAuthUserDeleted";

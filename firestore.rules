@@ -289,7 +289,9 @@ service cloud.firestore {
            "entitlementSource", "billingStatus", "subscriptionExpiry", "subscriptionPlatform",
            "subscriptionId", "lastPurchaseToken",
            // email-verification resend throttle and the expiry-warning latch (server-only)
-           "emailVerificationResendCount", "emailVerificationLastResendAt", "expiryWarningSent"]
+           "emailVerificationResendCount", "emailVerificationLastResendAt", "expiryWarningSent",
+           // report/block: the block list is written only by the blockUser / unblockUser callables
+           "blockedUserIds"]
         ) &&
         // email mirrors the Firebase Auth email the person signed in with. (phone is their
         // self-declared WhatsApp contact number and stays editable; verification uses the
@@ -312,6 +314,19 @@ service cloud.firestore {
           request.resource.data.read is bool;
         allow create, delete: if false;
       }
+
+      // Report/block: the owner's list of blocked people (names for the "Blocked people" page), written only by Cloud Functions.
+      match /blocks/{blockedUid} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+    }
+
+    // Report/block (Apple Guideline 1.2): the review queue. Written only by the reportContent / adminResolveReport callables;
+    // admins read it in the web console. Reporters and reported people never read it.
+    match /reports/{reportId} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     // ---------------------------------------------------------------

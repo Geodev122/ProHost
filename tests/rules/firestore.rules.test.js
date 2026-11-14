@@ -314,3 +314,32 @@ describe("admin console direct writes (positive cases)", () => {
     await assertSucceeds(getDoc(doc(adminCtx(), "workspace_listings", "L2")));
   });
 });
+
+describe("report / block (server-written)", () => {
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, "user_profiles", SPEC), { fullName: "Spec", email: "s@x.com", role: "SPECIALIST", blockedUserIds: [HOST] }, { merge: true });
+      await setDoc(doc(db, "user_profiles", SPEC, "blocks", HOST), { displayName: "Host", displayCode: "U-AAAAAA", blockedAtMillis: 1 });
+      await setDoc(doc(db, "reports", "r1"), { status: "NEW", targetType: "user", targetUid: HOST, reporterUid: SPEC, reason: "SCAM", createdAtMillis: 1 });
+    });
+  });
+  test("the owner reads their blocked list but cannot write it", async () => {
+    await assertSucceeds(getDoc(doc(specCtx(), "user_profiles", SPEC, "blocks", HOST)));
+    await assertFails(setDoc(doc(specCtx(), "user_profiles", SPEC, "blocks", "someone"), { displayName: "x" }));
+    await assertFails(deleteDoc(doc(specCtx(), "user_profiles", SPEC, "blocks", HOST)));
+    await assertFails(getDoc(doc(hostCtx(), "user_profiles", SPEC, "blocks", HOST)));
+  });
+  test("blockedUserIds on the profile is server-only", async () => {
+    await assertFails(updateDoc(doc(specCtx(), "user_profiles", SPEC), { blockedUserIds: [] }));
+    await assertFails(updateDoc(doc(adminCtx(), "user_profiles", SPEC), { blockedUserIds: [] }));
+  });
+  test("only admins read reports; nobody writes them from a client", async () => {
+    await assertSucceeds(getDoc(doc(adminCtx(), "reports", "r1")));
+    await assertFails(getDoc(doc(specCtx(), "reports", "r1")));
+    await assertFails(getDoc(doc(hostCtx(), "reports", "r1")));
+    await assertFails(setDoc(doc(specCtx(), "reports", "r2"), { status: "NEW", reporterUid: SPEC }));
+    await assertFails(updateDoc(doc(adminCtx(), "reports", "r1"), { status: "DISMISSED" }));
+    await assertFails(deleteDoc(doc(adminCtx(), "reports", "r1")));
+  });
+});
