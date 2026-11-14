@@ -269,6 +269,15 @@ if want("subscriptions"):
                     write("POST", "/v1/subscriptionLocalizations", {"data": {"type": "subscriptionLocalizations", "attributes": {
                         "locale": locale, "name": p["name"][locale], "description": p["description"][locale]},
                         "relationships": {"subscription": rel("subscriptions", s["id"])}}}, f'[{locale}] {p["productId"]} name and description')
+            # A subscription must be available in a country before it can carry a price there.
+            if not get(f'/v1/subscriptions/{s["id"]}/subscriptionAvailability'):
+                all_territories = [t["id"] for t in get_all("/v1/territories?limit=200")]
+                write("POST", "/v1/subscriptionAvailabilities", {"data": {"type": "subscriptionAvailabilities", "attributes": {"availableInNewTerritories": True},
+                      "relationships": {"subscription": rel("subscriptions", s["id"]),
+                                        "availableTerritories": {"data": [{"type": "territories", "id": t} for t in all_territories]}}}},
+                      f'{p["productId"]} available in all {len(all_territories)} countries')
+            else:
+                same(f'{p["productId"]} availability')
             if not usd:
                 print(f'SKIP    {p["productId"]} price (needs SUBSCRIPTION_YEARLY_USD)')
                 continue
@@ -294,7 +303,7 @@ if want("subscriptions"):
                     "relationships": {"subscription": rel("subscriptions", s["id"]), "subscriptionPricePoint": rel("subscriptionPricePoints", point), "territory": rel("territories", terr)}}})
                 ok += status in (200, 201)
                 if status not in (200, 201) and ok == 0:
-                    print("FAILED ", p["productId"], "price", terr, status, str(data)[:200]); failures.append(p["productId"] + " price"); break
+                    print("FAILED ", p["productId"], "price", terr, status, "; ".join(str(e.get("detail")) for e in (data or {}).get("errors", []))[:400]); failures.append(p["productId"] + " price"); break
             print(f'DONE    {p["productId"]} price ${usd}: {ok} of {len(targets)} countries')
 
 print("\nRESULT ", "plan only (nothing changed)" if not args.apply else ("applied with %d failure(s): %s" % (len(failures), ", ".join(failures)) if failures else "applied"))
