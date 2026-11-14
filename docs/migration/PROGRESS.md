@@ -261,3 +261,6 @@ Step 3 (hard-coded ProHost wording → `BrandProfile`: `FALLBACK_REPLY`, goodbye
 
 ### Token-usage strategy (owner request, 9 Nov 2026)
 Grep/offset-limit instead of re-reading files; CI logs via `failed_only` + `tail_lines<=60`; one push per logical batch with cheap local checks first (`node --test`, `tsc`, `export_vectors --check`, `gen_parity_table --check`); write whole files once; delegate wide reads to Explore/auditor subagents; keep CLAUDE.md to durable rules, details here; use `send_later` wakes instead of polling. Full list: plan file §23.
+
+### P5/P4 unit batch: PlayCatalog, FirestoreSchema, Countries, AppNavTab to :shared (14 Nov 2026)
+Pure files (no Android/JVM imports, no nullable public properties, no `internal`), moved with `git mv`, same packages. Gate result recorded below when read. Also: `main` merged into the branch (another session's SwiftUI "iOS S2" under `ios/` — conflicts with the cancelled SwiftUI port; left untouched, flagged in OWNER_QUEUE).

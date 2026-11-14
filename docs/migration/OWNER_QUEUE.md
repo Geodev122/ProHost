@@ -61,3 +61,7 @@ Play probe (Release bundle, `probe`): the CI account works; Play holds version c
 8. **D8/M2 agent**: "prepare, don't switch": P9 steps 1-5 inside this repo; nothing needed from the owner until a go-live window is chosen.
 9. **iOS**: 9a APNs key uploaded (done); 9b iOS API key restricted to `app.geonajjar.prohost` (done); 9c Paid Apps Agreement **Processing** (waiting on Apple); 9d EU trader status **declared as Trader** (done); 9e legal name + postal address **later** (must equal the Apple trader details; goes into privacy 1, terms 1.1 and 15.3); 9f borrowed iPhone not selected, still open.
 10. **Standing list**: see `docs/OWNER_TODO.md` (Trust & Safety case, quotas, Play trims #5, secret rotation, second-owner invitation, BOOTSTRAP_SECRET, Play declarations, App Check, Auth Platform branding, final removal of temporary access).
+
+
+## G. New since the walkthrough
+- **G1 (decision, 14 Nov 2026):** `main` contains native SwiftUI work from another session dated 8 Nov ("iOS S2": `SessionStore`, `RootView`, `MainShell`, 332 lines under `ios/ProHost/`). The SwiftUI screen port was cancelled by the KMP decision. Default if you say nothing: leave it untouched now; when the Compose iOS host (`iosApp`) exists, keep `SessionStore`/auth pieces as Swift gateway code and delete the SwiftUI shell/tab UI. Please also tell that other session to stop (prompt in CLAUDE.md migration section / plan §10).

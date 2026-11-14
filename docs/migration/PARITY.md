@@ -32,13 +32,10 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `data/auth/SessionFinisher.kt` | 60 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `data/billing/PlayBillingManager.kt` | 489 | C | Context removal, Logger, MediaPicker(PickedFile), PlatformActions, SubscriptionStore |  |  | ☐ | ☐ | todo |
 | `data/billing/PlayBillingSecurity.kt` | 98 | C | Logger |  |  | ☐ | ☐ | todo |
-| `data/billing/PlayCatalog.kt` | 79 | A1 | — |  |  | ☐ | ☐ | todo |
 | `data/billing/PlayOfferText.kt` | 289 | B | SubscriptionStore |  |  | ☐ | ☐ | todo |
 | `data/billing/PlayPromo.kt` | 92 | B | SubscriptionStore |  |  | ☐ | ☐ | todo |
 | `data/demo/DemoDataGenerator.kt` | 361 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
-| `data/firestore/FirestoreSchema.kt` | 39 | A1 | — |  |  | ☐ | ☐ | todo |
 | `data/firestore/FirestoreService.kt` | 820 | C | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
-| `data/model/Countries.kt` | 148 | A1 | — |  |  | ☐ | ☐ | todo |
 | `data/model/DataModels.kt` | 1658 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `data/repository/BookingsRepository.kt` | 482 | B | Logger |  |  | ☐ | ☐ | todo |
 | `data/repository/ProHostRepository.kt` | 1200 | B | Logger |  |  | ☐ | ☐ | todo |
@@ -90,7 +87,6 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/components/dialogs/SystemDebuggerDialog.kt` | 373 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/components/drawer/AppDrawerContent.kt` | 481 | A2 | Context removal, java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/components/drawer/DrawerIdentityCard.kt` | 280 | A1 | Coil3 |  |  | ☐ | ☐ | todo |
-| `ui/navigation/AppNavTab.kt` | 51 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/navigation/ProHostNavGraph.kt` | 1021 | B | BackHandler, Context removal |  |  | ☐ | ☐ | todo |
 | `ui/preview/AppScreensPreview.kt` | 492 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/screens/AdminAnalyticsScreen.kt` | 520 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
@@ -166,5 +162,6 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 45 / 10246, A2 26 / 12856, B 39 / 13866, C 20 / 4252, X 17 / 7353.
 Automatic class totals (files / lines): A1 49 / 10563, A2 26 / 12856, B 39 / 13866, C 20 / 4252, X 17 / 7353.
 Automatic class totals (files / lines): A1 51 / 8816, A2 23 / 13223, B 36 / 15999, C 20 / 4261, X 17 / 7350.
