@@ -1,8 +1,7 @@
 package com.example.util
 
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
-
-/** Wall-clock time in epoch milliseconds: what `System.currentTimeMillis()` returns, available on every target. */
-@OptIn(ExperimentalTime::class)
-fun nowMillis(): Long = Clock.System.now().toEpochMilliseconds()
+/**
+ * Wall-clock time in epoch milliseconds. Android keeps calling `System.currentTimeMillis()` exactly as the models always did (so tests
+ * that control the clock, e.g. Robolectric, still do); the other targets use the Kotlin clock.
+ */
+expect fun nowMillis(): Long
