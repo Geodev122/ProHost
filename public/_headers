@@ -1,6 +1,8 @@
 # Netlify headers for the temporary host (same rules as firebase.json "headers").
 /.well-known/assetlinks.json
   Content-Type: application/json
+/.well-known/apple-app-site-association
+  Content-Type: application/json
 /img/*
   Cache-Control: public, max-age=604800
 /media/*

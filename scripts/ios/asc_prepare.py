@@ -176,8 +176,9 @@ if version and want("review"):
                  "contactEmail": env["REVIEW_EMAIL"], "demoAccountRequired": bool(env["REVIEW_DEMO_USER"])}
         if env["REVIEW_DEMO_USER"]:
             attrs.update({"demoAccountName": env["REVIEW_DEMO_USER"], "demoAccountPassword": env["REVIEW_DEMO_PASSWORD"]})
-        if env["REVIEW_NOTES"]:
-            attrs["notes"] = env["REVIEW_NOTES"]
+        notes = env["REVIEW_NOTES"] or META.get("reviewNotes", "")
+        if notes:
+            attrs["notes"] = notes
         detail = next((i for i in versions.get("included", []) if i["type"] == "appStoreReviewDetails"), None)
         if detail:
             write("PATCH", f'/v1/appStoreReviewDetails/{detail["id"]}', {"data": {"type": "appStoreReviewDetails", "id": detail["id"], "attributes": attrs}}, "review contact and demo account")

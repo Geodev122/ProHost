@@ -1,0 +1,22 @@
+{
+ "applinks": {
+  "details": [
+   {
+    "appIDs": [
+     "884APQLMP4.app.geonajjar.prohost"
+    ],
+    "components": [
+     {
+      "/": "/listing/*",
+      "comment": "listing share links open the listing in the app"
+     }
+    ]
+   }
+  ]
+ },
+ "webcredentials": {
+  "apps": [
+   "884APQLMP4.app.geonajjar.prohost"
+  ]
+ }
+}

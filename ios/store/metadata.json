@@ -68,5 +68,6 @@
     }
    }
   ]
- }
+ },
+ "reviewNotes": "ProHost connects professionals (\"Specialists\") who need a room for a few hours or days with space owners (\"Pro Hosts\").\n\nSIGN-IN: Sign in with Apple, Google, or e-mail and password. Demo accounts (one Specialist, one Pro Host) are in the sign-in fields of this form.\n\nPURCHASES: Browsing, saving and sending booking requests are free. Publishing and managing listings needs ProHost Premium, an auto-renewing subscription (group \"ProHost Premium\": monthly and yearly). It is sold only through In-App Purchase. Payment for a room itself happens between the two people outside the app; ProHost takes no commission and processes no room payments.\n\nUSER-GENERATED CONTENT (1.2): listings and profiles are user content. Report and Block are in the three-dot menu of a listing and of a booking request; blocked people are listed under Profile > More > Blocked people. Reports are reviewed within 24 hours. The Terms forbid objectionable content.\n\nACCOUNT DELETION (5.1.1): Profile > More > Delete account.\n\nLOCATION: used only when the person taps \"Locate me\" on the map or sets the pin of their own listing.\n\nCONTACT BETWEEN USERS: the app opens WhatsApp for conversations; there is no in-app chat. The 18+ rating reflects the Terms (adults only)."
 }

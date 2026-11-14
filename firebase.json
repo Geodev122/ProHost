@@ -24,24 +24,94 @@
       "**/node_modules/**"
     ],
     "redirects": [
-      { "source": "/app", "destination": "/get", "type": 302 },
-      { "source": "/download", "destination": "/get", "type": 302 },
-      { "source": "/ig", "destination": "/get?utm_source=instagram&utm_medium=social&utm_campaign=launch", "type": 302 },
-      { "source": "/fb", "destination": "/get?utm_source=facebook&utm_medium=social&utm_campaign=launch", "type": 302 },
-      { "source": "/wa", "destination": "/get?utm_source=whatsapp&utm_medium=social&utm_campaign=launch", "type": 302 },
-      { "source": "/li", "destination": "/get?utm_source=linkedin&utm_medium=social&utm_campaign=launch", "type": 302 },
-      { "source": "/qr", "destination": "/get?utm_source=qr&utm_medium=print&utm_campaign=launch", "type": 302 },
-      { "source": "/clinic-room-rental-lebanon", "destination": "/clinic-room-rental", "type": 301 },
-      { "source": "/therapy-room-rental-beirut", "destination": "/therapy-room-rental", "type": 301 },
-      { "source": "/meeting-room-rental-beirut", "destination": "/meeting-room-rental", "type": 301 },
-      { "source": "/training-room-rental-lebanon", "destination": "/training-room-rental", "type": 301 },
-      { "source": "/studio-rental-beirut", "destination": "/studio-rental", "type": 301 },
-      { "source": "/office-space-by-the-hour-lebanon", "destination": "/office-space-by-the-hour", "type": 301 }
+      {
+        "source": "/app",
+        "destination": "/get",
+        "type": 302
+      },
+      {
+        "source": "/download",
+        "destination": "/get",
+        "type": 302
+      },
+      {
+        "source": "/ig",
+        "destination": "/get?utm_source=instagram&utm_medium=social&utm_campaign=launch",
+        "type": 302
+      },
+      {
+        "source": "/fb",
+        "destination": "/get?utm_source=facebook&utm_medium=social&utm_campaign=launch",
+        "type": 302
+      },
+      {
+        "source": "/wa",
+        "destination": "/get?utm_source=whatsapp&utm_medium=social&utm_campaign=launch",
+        "type": 302
+      },
+      {
+        "source": "/li",
+        "destination": "/get?utm_source=linkedin&utm_medium=social&utm_campaign=launch",
+        "type": 302
+      },
+      {
+        "source": "/qr",
+        "destination": "/get?utm_source=qr&utm_medium=print&utm_campaign=launch",
+        "type": 302
+      },
+      {
+        "source": "/clinic-room-rental-lebanon",
+        "destination": "/clinic-room-rental",
+        "type": 301
+      },
+      {
+        "source": "/therapy-room-rental-beirut",
+        "destination": "/therapy-room-rental",
+        "type": 301
+      },
+      {
+        "source": "/meeting-room-rental-beirut",
+        "destination": "/meeting-room-rental",
+        "type": 301
+      },
+      {
+        "source": "/training-room-rental-lebanon",
+        "destination": "/training-room-rental",
+        "type": 301
+      },
+      {
+        "source": "/studio-rental-beirut",
+        "destination": "/studio-rental",
+        "type": 301
+      },
+      {
+        "source": "/office-space-by-the-hour-lebanon",
+        "destination": "/office-space-by-the-hour",
+        "type": 301
+      }
     ],
     "rewrites": [
-      { "source": "/sitemap.xml", "function": { "functionId": "siteSitemap", "region": "europe-west1" } },
-      { "source": "/ig-webhook", "function": { "functionId": "igWebhook", "region": "europe-west1" } },
-      { "source": "/wa-webhook", "function": { "functionId": "waWebhook", "region": "europe-west1" } },
+      {
+        "source": "/sitemap.xml",
+        "function": {
+          "functionId": "siteSitemap",
+          "region": "europe-west1"
+        }
+      },
+      {
+        "source": "/ig-webhook",
+        "function": {
+          "functionId": "igWebhook",
+          "region": "europe-west1"
+        }
+      },
+      {
+        "source": "/wa-webhook",
+        "function": {
+          "functionId": "waWebhook",
+          "region": "europe-west1"
+        }
+      },
       {
         "source": "/privacy",
         "destination": "/privacy.html"
@@ -95,11 +165,60 @@
           }
         ]
       },
-      { "source": "/img/**", "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }] },
-      { "source": "/media/**", "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }] },
-      { "source": "**/*.@(css|woff2|svg)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }] },
-      { "source": "/@(get|admin|emaillink|redeem|404)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }] },
-      { "source": "/@(get|admin|emaillink|redeem|404).html", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }] }
+      {
+        "source": "/.well-known/apple-app-site-association",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ]
+      },
+      {
+        "source": "/img/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=604800"
+          }
+        ]
+      },
+      {
+        "source": "/media/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=604800"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(css|woff2|svg)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=86400"
+          }
+        ]
+      },
+      {
+        "source": "/@(get|admin|emaillink|redeem|404)",
+        "headers": [
+          {
+            "key": "X-Robots-Tag",
+            "value": "noindex"
+          }
+        ]
+      },
+      {
+        "source": "/@(get|admin|emaillink|redeem|404).html",
+        "headers": [
+          {
+            "key": "X-Robots-Tag",
+            "value": "noindex"
+          }
+        ]
+      }
     ]
   },
   "emulators": {
