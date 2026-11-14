@@ -1,0 +1,285 @@
+<title>ProHost Dated Booking</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Roboto:wght@400;500&family=Cairo:wght@400;600;700&display=swap">
+<style>
+/* Layout: a review sheet. Sections follow the order a booking happens: professional picks dates, then the host's tools. */
+:root{
+  --bg:#f6f8fb; --fg:#1b242f; --muted:#5b6777; --line:#dfe5ec; --panel:#ffffff;
+  --steel:#2B5A8C; --orange:#D2432F; --ok:#2e7d4f;
+  --display:"Manrope",system-ui,sans-serif; --body:"Roboto",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121824;--fg:#e8edf4;--muted:#9aa7b8;--line:#3B485E;--panel:#1a2231;--steel:#93B8E0;--orange:#FF8A75;--ok:#7fd3a0;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121824;--fg:#e8edf4;--muted:#9aa7b8;--line:#3B485E;--panel:#1a2231;--steel:#93B8E0;--orange:#FF8A75;--ok:#7fd3a0;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;padding-block:28px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:36px}
+h1{font-family:var(--display);font-weight:800;font-size:28px;margin:0;text-wrap:balance}
+h2{font-family:var(--display);font-weight:700;font-size:19px;margin:0}
+.lede{color:var(--muted);max-width:68ch;margin:6px 0 0}
+.tag{font-family:var(--display);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--steel);font-weight:700}
+section{display:flex;flex-direction:column;gap:14px}
+.note{color:var(--muted);max-width:72ch;margin:0}
+.row{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start}
+figure{margin:0;display:flex;flex-direction:column;gap:8px;width:272px;max-width:100%}
+figcaption{font-size:13px;color:var(--muted)}
+figcaption b{color:var(--fg);font-weight:500}
+.cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.cmp div{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.cmp b{font-family:var(--display);font-size:13px}
+
+/* The app (ProHost tokens). .p light, .p.dk dark. */
+.p{--s:#fff;--s2:#f3f6fa;--t:#1b242f;--t2:#5b6777;--o:#dfe5ec;--pri:#2B5A8C;--priC:#e3ecf6;--cta:#D2432F;--err:#D32F2F;--free:#e3f3e8;--freeT:#256b41;--busy:#fbe6e4;--scrim:rgba(18,24,36,.45);
+  background:var(--s2);color:var(--t);border:1px solid var(--line);border-radius:28px;height:590px;position:relative;overflow:hidden;font-size:12.5px;line-height:1.35}
+.p.dk{--s:#1a2231;--s2:#121824;--t:#e8edf4;--t2:#9aa7b8;--o:#3B485E;--pri:#93B8E0;--priC:#24364d;--cta:#FF8A75;--err:#ff8a80;--free:#1f3a2b;--freeT:#8fd6a8;--busy:#4a2320;--scrim:rgba(0,0,0,.6)}
+.p.ar{font-family:"Cairo",var(--body)}
+.bar{display:flex;align-items:center;gap:8px;padding:12px 14px 9px;font-family:var(--display);font-weight:700;font-size:14.5px;background:var(--s);border-bottom:1px solid var(--o)}
+.bar .sp{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.photo{height:70px;background:linear-gradient(135deg,#c9d6e6,#e9eef5)}
+.dk .photo{background:linear-gradient(135deg,#27344a,#1d2738)}
+.scrim{position:absolute;inset:0;background:var(--scrim)}
+.sheet{position:absolute;inset:auto 0 0 0;top:54px;background:var(--s);border-radius:28px 28px 0 0;padding:8px 14px 12px;display:flex;flex-direction:column;gap:8px}
+.grab{width:32px;height:4px;border-radius:2px;background:var(--o);align-self:center;flex:none}
+.h3{font-family:var(--display);font-weight:700;font-size:15px}
+.t2{color:var(--t2)}
+.tabs{display:flex;gap:6px}
+.tab{padding:5px 10px;border-radius:10px 10px 0 0;border:1px solid var(--o);border-bottom:0;color:var(--t2)}
+.tab.on{background:var(--priC);color:var(--pri);font-weight:500}
+.cal{border:1px solid var(--o);border-radius:14px;padding:8px}
+.calh{display:flex;justify-content:space-between;align-items:center;font-family:var(--display);font-weight:700;padding:0 4px 6px}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.dow{color:var(--t2);font-size:10.5px;padding-bottom:2px}
+.d{height:26px;border-radius:13px;display:grid;place-items:center;position:relative}
+.d.av::after{content:"";position:absolute;bottom:2px;width:4px;height:4px;border-radius:2px;background:var(--freeT)}
+.d.off{color:var(--t2);opacity:.45}
+.d.full{color:var(--t2);text-decoration:line-through}
+.d.cl{background:repeating-linear-gradient(135deg,transparent 0 3px,var(--o) 3px 4px);color:var(--t2)}
+.d.sel{background:var(--pri);color:var(--s);font-weight:500}
+.d.sel::after{display:none}
+.d.rng{background:var(--priC);border-radius:0}
+.d.today{outline:1px solid var(--pri)}
+.legend{display:flex;gap:10px;flex-wrap:wrap;color:var(--t2);font-size:11px}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:4px;margin-inline-end:4px;vertical-align:middle}
+.dc{border:1px solid var(--o);border-radius:14px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+.dch{display:flex;justify-content:space-between;font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{border:1px solid var(--o);border-radius:999px;padding:3px 8px}
+.chip.on{background:var(--pri);border-color:var(--pri);color:var(--s)}
+.chip.tk{color:var(--t2);text-decoration:line-through;background:var(--s2)}
+.sr{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--o);border-radius:10px;padding:6px 9px}
+.sr.on{border-color:var(--pri);background:var(--priC)}
+.sr.tk{color:var(--t2);background:var(--s2)}
+.sum{margin-top:auto;display:flex;flex-direction:column;gap:6px}
+.btn{border-radius:999px;padding:9px 14px;text-align:center;font-weight:500;background:var(--cta);color:#fff}
+.dk .btn{color:#1a0f0d}
+.btn.o{background:transparent;color:var(--pri);border:1px solid var(--o)}
+.step{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--o);border-radius:14px;padding:6px 10px}
+.pm{display:flex;align-items:center;gap:10px;font-weight:500}
+.pm span{width:26px;height:26px;border-radius:13px;border:1px solid var(--o);display:grid;place-items:center}
+.pad{padding:10px 14px;display:flex;flex-direction:column;gap:8px}
+.card{background:var(--s);border:1px solid var(--o);border-radius:14px;padding:9px 11px}
+.field{border:1px solid var(--o);border-radius:12px;padding:8px 10px}
+.lock{background:var(--s2);border-radius:10px;padding:7px 9px;color:var(--t2)}
+.dlg{position:absolute;left:20px;right:20px;top:170px;background:var(--s);border-radius:28px;padding:18px 16px 12px;display:flex;flex-direction:column;gap:9px;text-align:center}
+.cell{height:30px;border-radius:8px;display:grid;place-items:center}
+.cell.f{background:var(--free);color:var(--freeT)}
+.cell.b{background:var(--busy);color:var(--err)}
+.cell.c{background:repeating-linear-gradient(135deg,transparent 0 3px,var(--o) 3px 4px);color:var(--t2)}
+.cell.x{color:var(--t2);opacity:.45}
+ol.q{margin:0;padding-left:22px;max-width:78ch;display:flex;flex-direction:column;gap:8px}
+ol.q b{font-weight:500}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="tag">Mockups for approval · nothing in the app has changed yet</div>
+    <h1>Booking on real dates</h1>
+    <p class="lede">Today the availability sheet lists weekdays ("Mon", "Tue") and their slots, and the app quietly books the next occurrence. In the proposal the professional always picks dates on a calendar first (or a start date for monthly rooms), and the host gets closed dates, a booking window and protection for rooms that already have bookings. Example rooms, names and prices are invented; "today" in these drawings is 14 November 2026.</p>
+  </header>
+
+  <section>
+    <div class="tag">What changes</div>
+    <div class="cmp">
+      <div><b>Hourly, shift, day rooms</b><br>Before: tap a weekday, then a slot; the date is chosen for you.<br>After: tap one or more dates on a calendar, then the free slots of each date.</div>
+      <div><b>Monthly rooms</b><br>Before: one "slot" per weekday at the monthly price, starting mid-week.<br>After: pick a start date and a number of months; the end date and total are shown.</div>
+      <div><b>What is taken</b><br>Before: a slot booked for a specific date could still look free.<br>After: every date shows exactly which slots are free, taken or closed, and the server refuses clashes.</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Professional · step 1</div>
+    <h2>Pick dates, then slots</h2>
+    <p class="note">One sheet for every room type. The calendar marks days that have free slots; closed, full and past days cannot be tapped. Each chosen date gets its own card.</p>
+    <div class="row">
+      <figure>
+        <div class="p"><div class="bar"><span>←</span><span class="sp">Cedar Therapy Rooms</span></div><div class="photo"></div><div class="scrim"></div>
+          <div class="sheet"><div class="grab"></div>
+            <div class="tabs"><span class="tab on">Room 2 · Therapy</span><span class="tab">Room 3</span></div>
+            <div class="cal" data-cal="2026-11" data-today="14" data-sel="17,19" data-full="20" data-closed="22,25" data-off="1,8,15,29"></div>
+            <div class="legend"><span><i style="background:var(--freeT)"></i>Free slots</span><span><i style="background:var(--o)"></i>Closed</span><span><s>20</s> Full</span></div>
+            <div class="dc"><div class="dch"><span>Tue 17 Nov</span><span class="t2">$12 / hour</span></div>
+              <div class="chips"><span class="chip">09:00</span><span class="chip on">10:00</span><span class="chip on">11:00</span><span class="chip tk">12:00</span><span class="chip">13:00</span><span class="chip">14:00</span></div></div>
+            <div class="dc"><div class="dch"><span>Thu 19 Nov</span><span class="t2">$12 / hour</span></div>
+              <div class="chips"><span class="chip tk">09:00</span><span class="chip tk">10:00</span><span class="chip">11:00</span><span class="chip on">15:00</span><span class="chip">16:00</span></div></div>
+            <div class="sum"><div class="dch"><span>2 dates · 3 hours</span><span>$36.00</span></div><div class="btn">Request these dates</div></div>
+          </div></div>
+        <figcaption><b>Hourly room.</b> Taken hours are struck through. Total updates as hours are tapped.</figcaption>
+      </figure>
+      <figure>
+        <div class="p"><div class="bar"><span>←</span><span class="sp">Atlas Training Hall</span></div><div class="photo"></div><div class="scrim"></div>
+          <div class="sheet"><div class="grab"></div>
+            <div class="tabs"><span class="tab on">Main hall</span></div>
+            <div class="cal" data-cal="2026-11" data-today="14" data-sel="18" data-full="" data-closed="22" data-off="1,8,15,29"></div>
+            <div class="dc"><div class="dch"><span>Wed 18 Nov</span><span class="t2">Pick shifts</span></div>
+              <div class="sr on"><span>Morning · 08:00–12:00</span><span>$40</span></div>
+              <div class="sr tk"><span>Mid-day · 12:00–16:00</span><span>Taken</span></div>
+              <div class="sr"><span>Evening · 16:00–20:00</span><span>$45</span></div></div>
+            <div class="t2">Tap another date to add it.</div>
+            <div class="sum"><div class="dch"><span>1 date · 1 shift</span><span>$40.00</span></div><div class="btn">Request these dates</div></div>
+          </div></div>
+        <figcaption><b>Shift room.</b> Same calendar; each date lists its shifts.</figcaption>
+      </figure>
+      <figure>
+        <div class="p"><div class="bar"><span>←</span><span class="sp">Studio Nine</span></div><div class="photo"></div><div class="scrim"></div>
+          <div class="sheet"><div class="grab"></div>
+            <div class="tabs"><span class="tab on">Whole place</span></div>
+            <div class="cal" data-cal="2026-11" data-today="14" data-sel="21,24,28" data-full="23" data-closed="22" data-off="1,8,15,29"></div>
+            <div class="dc"><div class="sr on"><span>Sat 21 Nov · 09:00–18:00</span><span>$90</span></div>
+              <div class="sr on"><span>Tue 24 Nov · 09:00–18:00</span><span>$75</span></div>
+              <div class="sr on"><span>Sat 28 Nov · 09:00–18:00</span><span>$90</span></div></div>
+            <div class="sum"><div class="dch"><span>3 days</span><span>$255.00</span></div><div class="btn">Request these dates</div></div>
+          </div></div>
+        <figcaption><b>Day room.</b> A tapped date is the booking; the list shows each day's price.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Professional · monthly rooms</div>
+    <h2>Pick a start date and how many months</h2>
+    <p class="note">Any start date; the booking runs whole months from that day. Dates that would run into another booking or a month the host excluded cannot be picked, and the months stepper stops where availability ends.</p>
+    <div class="row">
+      <figure>
+        <div class="p"><div class="bar"><span>←</span><span class="sp">Harbor Clinic Suite</span></div><div class="photo"></div><div class="scrim"></div>
+          <div class="sheet"><div class="grab"></div>
+            <div class="tabs"><span class="tab on">Consulting room A</span></div>
+            <div class="h3">When do you start?</div>
+            <div class="cal" data-cal="2026-12" data-today="0" data-sel="14" data-full="" data-closed="" data-off="1,2,3,4,5,6,7,8,9" data-range="15-31"></div>
+            <div class="t2">Booked by someone else until 9 Dec.</div>
+            <div class="step"><span>How long?</span><span class="pm"><span>−</span>2 months<span>+</span></span></div>
+            <div class="card"><div class="dch"><span>14 Dec 2026 → 13 Feb 2027</span></div><div class="t2">$450 / month × 2</div></div>
+            <div class="sum"><div class="dch"><span>Total</span><span>$900.00</span></div><div class="btn">Request this period</div></div>
+          </div></div>
+        <figcaption><b>Monthly room.</b> Start date, length, then the exact period and total.</figcaption>
+      </figure>
+      <figure>
+        <div class="p dk"><div class="bar"><span>←</span><span class="sp">Cedar Therapy Rooms</span></div><div class="photo"></div><div class="scrim"></div>
+          <div class="sheet"><div class="grab"></div>
+            <div class="tabs"><span class="tab on">Room 2 · Therapy</span><span class="tab">Room 3</span></div>
+            <div class="cal" data-cal="2026-11" data-today="14" data-sel="17" data-full="20" data-closed="22,25" data-off="1,8,15,29"></div>
+            <div class="dc"><div class="dch"><span>Tue 17 Nov</span><span class="t2">$12 / hour</span></div>
+              <div class="chips"><span class="chip">09:00</span><span class="chip on">10:00</span><span class="chip on">11:00</span><span class="chip tk">12:00</span><span class="chip">13:00</span></div></div>
+            <div class="sum"><div class="dch"><span>1 date · 2 hours</span><span>$24.00</span></div><div class="btn">Request these dates</div></div>
+          </div></div>
+        <figcaption><b>Dark theme.</b></figcaption>
+      </figure>
+      <figure>
+        <div class="p ar" dir="rtl"><div class="bar"><span>→</span><span class="sp">غرف سيدار للعلاج</span></div><div class="photo"></div><div class="scrim"></div>
+          <div class="sheet"><div class="grab"></div>
+            <div class="tabs"><span class="tab on">غرفة ٢ · علاج</span></div>
+            <div class="cal" data-cal="2026-11" data-ar="1" data-today="14" data-sel="17" data-full="20" data-closed="22,25" data-off="1,8,15,29"></div>
+            <div class="dc"><div class="dch"><span>الثلاثاء ١٧ نوفمبر</span><span class="t2">١٢$ / ساعة</span></div>
+              <div class="chips"><span class="chip">09:00</span><span class="chip on">10:00</span><span class="chip on">11:00</span><span class="chip tk">12:00</span><span class="chip">13:00</span></div></div>
+            <div class="sum"><div class="dch"><span>تاريخ واحد · ساعتان</span><span>$24.00</span></div><div class="btn">اطلب هذه التواريخ</div></div>
+          </div></div>
+        <figcaption><b>Arabic.</b> Draft wording.</figcaption>
+      </figure>
+    </div>
+    <p class="note">Re-book and Edit in My Rentals use this same picker, replacing today's "Next Monday / Custom date" chips and the typed date. The confirmation, My Rentals, the host's request card, WhatsApp text and emails all list the real dates and hours.</p>
+  </section>
+
+  <section>
+    <div class="tag">Host · creating and editing a room</div>
+    <h2>Closed dates, booking window, and protection for booked rooms</h2>
+    <p class="note">The weekly pattern stays the way a host describes a normal week. Two additions sit under "More options". When a room already has upcoming bookings, editing is guarded.</p>
+    <div class="row">
+      <figure>
+        <div class="p"><div class="bar"><span>✕</span><span class="sp">Room 2 · More options</span></div>
+          <div class="pad">
+            <div class="h3">Closed dates</div><div class="t2">Holidays or maintenance. These dates can't be booked.</div>
+            <div class="cal" data-cal="2026-12" data-today="0" data-sel="" data-full="" data-closed="24,25,31" data-off=""></div>
+            <div class="chips"><span class="chip">24 Dec ✕</span><span class="chip">25 Dec ✕</span><span class="chip">31 Dec ✕</span></div>
+            <div class="h3">Booking window</div>
+            <div class="step"><span>Accept bookings up to</span><span class="pm"><span>−</span>3 months ahead<span>+</span></span></div>
+          </div></div>
+        <figcaption><b>New in the room editor.</b> Tap dates to close or reopen them. Applies to hourly, shift and day rooms.</figcaption>
+      </figure>
+      <figure>
+        <div class="p"><div class="bar"><span>✕</span><span class="sp">Edit Room 2</span></div>
+          <div class="pad">
+            <div class="lock">🔒 Rental type: Hourly. It can't be changed while this room has 4 upcoming bookings.</div>
+            <div class="card"><b>Tuesday</b><div class="chips" style="margin-top:6px"><span class="chip on">09:00</span><span class="chip on">10:00</span><span class="chip on">11:00</span><span class="chip">12:00</span></div></div>
+          </div><div class="scrim"></div>
+          <div class="dlg"><div class="h3">2 bookings use Tuesday 10:00</div>
+            <div class="t2">They stay as they are. New requests for this hour stop from today. To change what booked people pay, use Change price.</div>
+            <div class="btn">Stop new bookings</div><div class="btn o">Keep this hour</div></div></div>
+        <figcaption><b>Editing a booked room.</b> Type is locked; removing a booked hour, shift or day asks first and never cancels anyone.</figcaption>
+      </figure>
+      <figure>
+        <div class="p"><div class="bar"><span>←</span><span class="sp">Manage · Room 2</span></div>
+          <div class="pad">
+            <div class="calh"><span>November 2026</span><span class="t2">‹ ›</span></div>
+            <div class="grid" data-manage="1"></div>
+            <div class="legend"><span><i style="background:var(--free)"></i>Free</span><span><i style="background:var(--busy)"></i>Booked</span><span><i style="background:var(--o)"></i>Closed</span></div>
+            <div class="card"><div class="dch"><span>Tue 17 Nov</span><span class="t2">2 of 6 hours booked</span></div>
+              <div class="t2">10:00–12:00 · Omar H. · $24</div>
+              <div class="chips" style="margin-top:6px"><span class="chip">Close this date</span><span class="chip">Change price</span></div></div>
+          </div></div>
+        <figcaption><b>Manage page.</b> A month calendar replaces the 7-day strip; tap a date to see who booked and to close it.</figcaption>
+      </figure>
+    </div>
+    <p class="note">Checks added when saving a room: every offered hour needs a price above zero; start hour before end hour; monthly end not before start; prices keep their decimals (12.50 stays 12.50); months a host excludes show as unavailable.</p>
+  </section>
+
+  <section>
+    <div class="tag">Your decisions</div>
+    <h2>Please confirm or correct</h2>
+    <ol class="q">
+      <li><b>Calendar first.</b> The sheet opens on the calendar for the selected room, as drawn.</li>
+      <li><b>Booking window default.</b> 3 months ahead unless the host changes it (1 to 12). Say another number if you prefer.</li>
+      <li><b>Monthly limit.</b> Up to 12 months in one request.</li>
+      <li><b>Same-day booking.</b> Today can be booked for hours that have not started yet.</li>
+      <li><b>Existing bookings.</b> Bookings made before this change keep working as they are; nothing is rewritten.</li>
+      <li><b>Manage page.</b> The month calendar replaces the "next 7 dates" strip.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(function () {
+  var EN = ["S","M","T","W","T","F","S"], AR = ["ح","ن","ث","ر","خ","ج","س"];
+  var MON = {"2026-11":"November 2026","2026-12":"December 2026"}, MONAR = {"2026-11":"نوفمبر ٢٠٢٦"};
+  function set(s){ var o = {}; (s || "").split(",").forEach(function (x) { if (x) o[+x] = 1; }); return o; }
+  document.querySelectorAll("[data-cal]").forEach(function (el) {
+    var ym = el.dataset.cal.split("-"), y = +ym[0], m = +ym[1] - 1, ar = el.dataset.ar;
+    var first = new Date(Date.UTC(y, m, 1)).getUTCDay(), days = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+    var sel = set(el.dataset.sel), full = set(el.dataset.full), cl = set(el.dataset.closed), off = set(el.dataset.off);
+    var today = +el.dataset.today, rng = (el.dataset.range || "").split("-").map(Number);
+    var h = '<div class="calh"><span>' + ((ar && MONAR[el.dataset.cal]) || MON[el.dataset.cal]) + '</span><span class="t2">‹ ›</span></div><div class="grid">';
+    (ar ? AR : EN).forEach(function (d) { h += '<div class="dow">' + d + '</div>'; });
+    for (var i = 0; i < first; i++) h += '<div></div>';
+    for (var d = 1; d <= days; d++) {
+      var c = "d";
+      if (sel[d]) c += " sel"; else if (cl[d]) c += " cl"; else if (full[d]) c += " full";
+      else if (off[d] || (today && d < today)) c += " off"; else if (rng.length === 2 && d >= rng[0] && d <= rng[1]) c += " rng"; else c += " av";
+      if (d === today) c += " today";
+      h += '<div class="' + c + '">' + d + '</div>';
+    }
+    el.innerHTML = h + '</div>';
+  });
+  document.querySelectorAll("[data-manage]").forEach(function (el) {
+    var booked = {17:1,19:1,20:1,24:1}, closed = {22:1,25:1}, h = "";
+    EN.forEach(function (d) { h += '<div class="dow">' + d + '</div>'; });
+    for (var d = 1; d <= 30; d++) h += '<div class="cell ' + (d < 14 ? "x" : closed[d] ? "c" : booked[d] ? "b" : "f") + '">' + d + '</div>';
+    el.innerHTML = h;
+  });
+})();
+</script>
