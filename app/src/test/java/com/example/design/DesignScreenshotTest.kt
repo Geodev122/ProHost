@@ -79,7 +79,11 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         val dir = System.getProperty("design.photoDir").orEmpty().takeIf { it.isNotBlank() }?.let(::File)?.takeIf { it.isDirectory } ?: return
         val context = org.robolectric.RuntimeEnvironment.getApplication()
         coil.Coil.setImageLoader(
-            coil.ImageLoader.Builder(context).components {
+            coil.ImageLoader.Builder(context)
+                // Fetch and decode on the main thread, immediately: the photo is on screen before the capture instead of racing it.
+                .dispatcher(kotlinx.coroutines.Dispatchers.Main.immediate)
+                .crossfade(false)
+                .components {
                 add(coil.intercept.Interceptor { chain ->
                     val url = chain.request.data as? String
                     val local = url?.takeIf { it.startsWith("https://images.unsplash.com/") }?.let { File(dir, it.substringAfterLast('/') + ".jpg") }
