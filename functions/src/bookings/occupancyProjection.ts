@@ -2,6 +2,7 @@ import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { getFirestore } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 import { runAs } from "../lib/runtimeIdentity";
+import { bookedSlotsOf } from "./dateSlots";
 
 /**
  * booking_occupancy/{bookingId}: the public, person-free projection of every ACCEPTED booking —
@@ -26,6 +27,10 @@ export function occupancyFields(d: FirebaseFirestore.DocumentData): Record<strin
     },
     selectedDays: Array.isArray(d.selectedDays) ? d.selectedDays : [],
     selectedCalendarDates: Array.isArray(d.selectedCalendarDates) ? d.selectedCalendarDates : [],
+    // Booking on real dates: the exact slots held (no person, no price), so other people's pickers lock them precisely.
+    bookedSlots: bookedSlotsOf(d).map((x) => ({ date: x.date, key: x.key, startHour: x.startHour, endHour: x.endHour })),
+    selectedStartHour: d.selectedStartHour ?? null,
+    selectedEndHour: d.selectedEndHour ?? null,
     startDate: typeof d.startDate === "string" ? d.startDate : "",
     durationMonths: typeof d.durationMonths === "number" ? d.durationMonths : 1,
     updatedAt: Date.now(),

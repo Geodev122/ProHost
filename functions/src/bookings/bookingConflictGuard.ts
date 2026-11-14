@@ -1,3 +1,4 @@
+import { bookedSlotsOf, occupiedOn } from "./dateSlots";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { getFirestore } from "firebase-admin/firestore";
 import { recordAuditLog } from "../lib/auditLog";
@@ -64,6 +65,15 @@ function hoursOverlap(aStart?: string, aEnd?: string, bStart?: string, bEnd?: st
   return s1 < e2 && s2 < e1;
 }
 
+/** Exact clash test when at least one booking has dated slots; null when neither has (legacy comparison applies). */
+function datedClash(a: BookingDoc, b: BookingDoc): boolean | null {
+  const sa = bookedSlotsOf(a);
+  const sb = bookedSlotsOf(b);
+  if (!sa.length && !sb.length) return null;
+  const [withSlots, other] = sa.length ? [sa, b] : [sb, a];
+  return withSlots.some((s) => occupiedOn(other, s.date).some(([start, end]) => start < s.endHour && s.startHour < end));
+}
+
 function bookingScope(booking: BookingDoc): string | undefined {
   return booking.subdivisionId ?? booking.spaceId;
 }
@@ -97,6 +107,9 @@ export function findConflict(
     if (hasEnded(other, today)) return false;
     if (!termsOverlap(other, candidate)) return false;
     if (other.formula?.type === "FULL_MONTH" || candidate.formula?.type === "FULL_MONTH") return true;
+    // Booking on real dates: when either side carries dated slots, compare the exact date and hours.
+    const dated = datedClash(candidate, other);
+    if (dated !== null) return dated;
     if (!hoursOverlap(other.formula?.startHour, other.formula?.endHour, candidate.formula?.startHour, candidate.formula?.endHour)) {
       return false;
     }

@@ -21,6 +21,7 @@ import "../lib/admin";
 import { sendGa4Event } from "../lib/ga4";
 import { runAs } from "../lib/runtimeIdentity";
 import { blockedBookingProblem } from "../reports/reports";
+import { datedBookingProblem } from "../bookings/datedBookingCheck";
 
 /**
  * Server check for per-attendee bookings (the client computes the total, so it must
@@ -78,6 +79,17 @@ export const onBookingRequestCreated = onDocumentCreated(
     // Report/block: a request between two people where either blocked the other never reaches the host.
     const blocked = problem ? null : await blockedBookingProblem(booking);
     if (blocked) problem = blocked;
+    // Booking on real dates: slots, dates, window and total are re-checked against the room (fail closed on a read error).
+    let dated: string | null = null;
+    if (!problem) {
+      try {
+        dated = await datedBookingProblem(event.params.bookingId, booking);
+      } catch (e) {
+        logger.error("onBookingRequestCreated: couldn't verify the dated slots", e);
+        dated = "We couldn't confirm these dates. Please send the request again.";
+      }
+      if (dated) problem = dated;
+    }
     if (problem) {
       // Never reaches the host; the status change notifies the specialist with the reason.
       // Only while still PENDING, and never recreating a booking deleted meanwhile.
@@ -90,7 +102,7 @@ export const onBookingRequestCreated = onDocumentCreated(
       }) : false;
       if (!rejected) return;
       if (typeof booking.practitionerId === "string") {
-        await sendGa4Event(booking.practitionerId, "booking_auto_rejected", { reason: blocked ? "blocked_pair" : "attendee_price_mismatch" });
+        await sendGa4Event(booking.practitionerId, "booking_auto_rejected", { reason: blocked ? "blocked_pair" : dated ? "dated_slots_invalid" : "attendee_price_mismatch" });
       }
       return;
     }
