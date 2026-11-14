@@ -14,6 +14,8 @@
   --err:#D32F2F; --errc:#FDE8E8; --ink:#1B242F; --muted:rgba(56,65,82,.70); --sv:#ECEFF4; --outline:#D1D5DC; --ov:#E2E4E8;
   --bg:#FBFCFE; --wa:#1E7E34;
 }
+@font-face{font-family:Cairo;src:url(../../../marketing/social/assets/fonts/cairo-arabic-800-normal.woff2) format('woff2');font-weight:800;font-display:block}
+@font-face{font-family:Cairo;src:url(../../../marketing/social/assets/fonts/cairo-arabic-600-normal.woff2) format('woff2');font-weight:500 600;font-display:block}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{width:1080px;height:1920px;overflow:hidden}
 body{font-family:PJ,sans-serif;background:#F3F6FA;position:relative;color:var(--ink)}
@@ -96,6 +98,13 @@ body.host .nav .on{background:var(--sec)}
 .wide .nav{max-width:480px;margin:0 auto}
 .wide .sheet{max-width:640px;margin:0 auto}
 .wide .detail{padding-left:max(16px,calc(50% - 404px))!important;padding-right:max(16px,calc(50% - 404px))!important}
+body.ios .cap{top:150px}
+body.ios .phone{top:560px;transform:scale(1.26);transform-origin:50% 0}
+body.ios .punch{width:86px;height:20px;border-radius:10px;margin-left:-43px;top:4px}
+body.ar .cap{direction:rtl}
+body.ar .kick{font-family:Cairo;letter-spacing:0;font-size:34px}
+body.ar .head{font-family:Cairo;letter-spacing:0;line-height:1.3}
+body.ar .sub{font-family:Cairo;font-weight:600}
 body.land .cap{left:110px;right:auto;width:640px;top:50%;transform:translateY(-50%);text-align:left}
 body.land .head{font-size:72px;letter-spacing:-2px}
 body.land .sub{font-size:31px}
@@ -153,7 +162,9 @@ const pinSvg = (c1, c2) => `<svg class="pin" viewBox="0 0 30 40"><defs><linearGr
   <path d="M15 1C7.3 1 1 7.1 1 14.7 1 25 15 39 15 39s14-14 14-24.3C29 7.1 22.7 1 15 1z" fill="url(#g${c1.slice(1)})"/><circle cx="15" cy="14.5" r="5.2" fill="#fff"/></svg>`;
 
 const FORMATS = { phone: { cw: 1080, ch: 1920, W: 360, kind: "phone" }, tab7: { cw: 1080, ch: 1920, W: 600, kind: "tablet" },
-  tab10: { cw: 1080, ch: 1920, W: 800, kind: "tablet" }, desk: { cw: 1920, ch: 1080, W: 840, kind: "desk" }, xr: { cw: 1920, ch: 1080, W: 820, kind: "xr" } };
+  tab10: { cw: 1080, ch: 1920, W: 800, kind: "tablet" }, desk: { cw: 1920, ch: 1080, W: 840, kind: "desk" }, xr: { cw: 1920, ch: 1080, W: 820, kind: "xr" },
+  // App Store 6.9" (1320x2868): the phone layout on a taller canvas, drawn at 1080 px wide and zoomed.
+  ios: { cw: 1080, ch: 2347, W: 360, kind: "phone", zoom: 1320 / 1080 } };
 const F = FORMATS[new URLSearchParams(location.search).get("f") || "phone"];
 // Explore map at tablet/window width: a sharpened 2.5x crop of the real capture (map-wide.jpg, source y 318–995),
 // with the app's own floating controls, pins, "Search this area", my-location, map list cards and the collapsed nav handle.
@@ -342,9 +353,24 @@ const SHOTS = {
 
 const n = +(location.hash.slice(1) || 1);
 const s = SHOTS[n];
-document.getElementById("kick").textContent = s.kick;
-document.getElementById("head").innerHTML = s.head;
-document.getElementById("sub").textContent = s.sub;
+// Captions: Arabic for the App Store's Arabic listing (?lang=ar); the App Store set names no country.
+const LANG = new URLSearchParams(location.search).get("lang") || "en";
+const AR = {
+  1: { kick: "ابحث عن مساحة عمل", head: "غرف <em>لممارستك</em> على خريطة واحدة", sub: "عيادات وغرف علاج واستوديوهات وقاعات اجتماعات بالقرب منك" },
+  2: { kick: "بحث وتصفية", head: "بالساعة أو <em>بالمناوبة</em> أو باليوم أو بالشهر", sub: "صفِّ حسب نوع المساحة والغرفة والسعر لتجد ما يناسب جدولك" },
+  3: { kick: "كل غرفة بالتفصيل", head: "شاهد كل <em>غرفة</em> قبل أن تحجز", sub: "صور وسعة وأسعار وتوفّر مباشر لكل غرفة" },
+  4: { kick: "احجز في ثوانٍ", head: "اختر أوقاتك و<em>أرسل</em> طلبك", sub: "اختر الأيام والساعات التي تحتاجها، والمضيف يؤكّد داخل التطبيق" },
+  5: { kick: "ابقَ منظَّماً", head: "كل <em>حجوزاتك</em> في مكان واحد", sub: "تابع الطلبات وراسل المضيفين عبر واتساب وأضف تذكيرات الدفع" },
+  6: { kick: "لأصحاب المساحات", head: "اعرض غرفك و<em>املأ</em> الساعات الفارغة", sub: "أجِّر بالساعة أو بالمناوبة أو باليوم أو بالشهر أو لكل مشارك" },
+  7: { kick: "لأصحاب المساحات", head: "اقبل الطلبات <em>بنقرة واحدة</em>", sub: "راجع كل طلب ثم اقبله أو ارفضه أو غيِّر السعر" },
+  8: { kick: "لأصحاب المساحات", head: "<em>الإشغال</em> والإيرادات في لمحة", sub: "شاهد الأوقات المحجوزة والمتاحة للأسبوع القادم وغيِّر الأسعار متى شئت" },
+};
+const cap = LANG === "ar" ? AR[n] : (F.zoom && n === 1 ? { ...s, sub: "Clinics, therapy rooms, studios and meeting rooms near you" } : s);
+if (LANG === "ar") document.body.classList.add("ar");
+if (F.zoom) { document.documentElement.style.zoom = F.zoom; document.body.classList.add("ios"); }
+document.getElementById("kick").textContent = cap.kick;
+document.getElementById("head").innerHTML = cap.head;
+document.getElementById("sub").textContent = cap.sub;
 if (s.host) document.body.classList.add("host");
 const portrait = F.kind === "phone" || F.kind === "tablet";
 document.documentElement.style.width = document.body.style.width = F.cw + "px";

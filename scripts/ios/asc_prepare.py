@@ -1,6 +1,6 @@
 """Fill App Store Connect for ProHost from ios/store/metadata.json. Idempotent; prints a plan and changes nothing unless --apply.
 
-    python3 scripts/ios/asc_prepare.py [--apply] [--only app,categories,info,version,capability,price,availability,age,testflight,subscriptions,review,betareview,tester,offers]
+    python3 scripts/ios/asc_prepare.py [--apply] [--only app,categories,info,version,capability,price,availability,age,testflight,subscriptions,review,betareview,tester,offers,screenshots,subreview]
 
 Environment (optional, never printed): ASC_COPYRIGHT ("2026 Legal Name"), REVIEW_FIRST_NAME, REVIEW_LAST_NAME, REVIEW_PHONE, REVIEW_EMAIL,
 REVIEW_DEMO_USER, REVIEW_DEMO_PASSWORD, REVIEW_NOTES, SUBSCRIPTION_YEARLY_USD. Sections whose inputs are missing are skipped with a note.
@@ -402,5 +402,94 @@ if want("offers"):
         print(f'{"DONE   " if ok else "FAILED "} {product} offer ({label}): {ok} of {len(targets)} countries' + (f" · first error: {first_error}" if first_error else ""))
         if not ok:
             failures.append(product + " offer")
+
+
+# --- media: App Store screenshots and the subscriptions' review screenshot -------------------------------------------------------------
+# Files: ios/store/screenshots/<locale>/*.jpg (scripts/ios/render_store_screenshots.js) and review/premium-plans.png.
+import hashlib  # noqa: E402
+import urllib.request  # noqa: E402
+
+SHOTS_DIR = os.path.join(ROOT, "ios/store/screenshots")
+
+
+def _upload(kind, relationship, file_path, label):
+    """Reserve → PUT the parts → commit with the MD5. Returns True when Apple accepted the file."""
+    raw = open(file_path, "rb").read()
+    body = {"data": {"type": kind, "attributes": {"fileName": os.path.basename(file_path), "fileSize": len(raw)}, "relationships": relationship}}
+    status, data = api.request("POST", f"/v1/{kind}", body)
+    if status not in (200, 201):
+        print(f"FAILED  {label} reserve (HTTP {status}) " + "; ".join(str(e.get("detail")) for e in (data or {}).get("errors", []))[:300])
+        failures.append(label)
+        return False
+    item = data["data"]
+    for op in item["attributes"].get("uploadOperations") or []:
+        req = urllib.request.Request(op["url"], data=raw[op["offset"]:op["offset"] + op["length"]], method=op["method"])
+        for h in op.get("requestHeaders") or []:
+            req.add_header(h["name"], h["value"])
+        with urllib.request.urlopen(req, timeout=120) as r:
+            if r.status not in (200, 201, 204):
+                print(f"FAILED  {label} upload part (HTTP {r.status})")
+                failures.append(label)
+                return False
+    status, data = api.request("PATCH", f'/v1/{kind}/{item["id"]}', {"data": {"type": kind, "id": item["id"], "attributes": {"uploaded": True, "sourceFileChecksum": hashlib.md5(raw).hexdigest()}}})
+    if status != 200:
+        print(f"FAILED  {label} commit (HTTP {status})")
+        failures.append(label)
+        return False
+    print(f"DONE    {label}")
+    return True
+
+
+def _md5(path):
+    return hashlib.md5(open(path, "rb").read()).hexdigest()
+
+
+if want("screenshots") and version:
+    for loc in get_all(f'/v1/appStoreVersions/{version["id"]}/appStoreVersionLocalizations?limit=50'):
+        locale = loc["attributes"]["locale"]
+        folder = os.path.join(SHOTS_DIR, locale)
+        files = sorted(f for f in os.listdir(folder) if f.lower().endswith((".jpg", ".png"))) if os.path.isdir(folder) else []
+        if not files:
+            print(f"SKIP    screenshots {locale}: no files in ios/store/screenshots/{locale}")
+            continue
+        sets = get_all(f'/v1/appStoreVersionLocalizations/{loc["id"]}/appScreenshotSets?limit=50')
+        cur = next((x for x in sets if x["attributes"]["screenshotDisplayType"] == "APP_IPHONE_67"), None)
+        existing = get_all(f'/v1/appScreenshotSets/{cur["id"]}/appScreenshots?limit=50') if cur else []
+        have = [(x["attributes"].get("fileName"), x["attributes"].get("sourceFileChecksum")) for x in existing]
+        wanted = [(f, _md5(os.path.join(folder, f))) for f in files]
+        if have == wanted:
+            same(f"screenshots {locale}: {len(files)} files")
+            continue
+        if not args.apply:
+            print(f"PLAN    screenshots {locale}: upload {len(files)} files (6.9-inch iPhone), replacing {len(existing)}")
+            continue
+        if not cur:
+            created = write("POST", "/v1/appScreenshotSets", {"data": {"type": "appScreenshotSets", "attributes": {"screenshotDisplayType": "APP_IPHONE_67"},
+                            "relationships": {"appStoreVersionLocalization": rel("appStoreVersionLocalizations", loc["id"])}}}, f"screenshot set {locale}")
+            cur = (created or {}).get("data")
+            if not cur:
+                continue
+        for x in existing:
+            api.request("DELETE", f'/v1/appScreenshots/{x["id"]}')
+        for f in files:
+            _upload("appScreenshots", {"appScreenshotSet": rel("appScreenshotSets", cur["id"])}, os.path.join(folder, f), f"screenshot {locale} {f}")
+
+if want("subreview"):
+    shot = os.path.join(SHOTS_DIR, "review/premium-plans.png")
+    note = META["subscriptions"].get("reviewNote", "")
+    group = next((g for g in get_all(f"/v1/apps/{APP}/subscriptionGroups?limit=20") if g["attributes"].get("referenceName") == META["subscriptions"]["groupReferenceName"]), None)
+    for s_ in (get_all(f'/v1/subscriptionGroups/{group["id"]}/subscriptions?limit=50') if group else []):
+        product = s_["attributes"]["productId"]
+        if note and s_["attributes"].get("reviewNote") != note:
+            write("PATCH", f'/v1/subscriptions/{s_["id"]}', {"data": {"type": "subscriptions", "id": s_["id"], "attributes": {"reviewNote": note}}}, f"{product} review note")
+        current = (get(f'/v1/subscriptions/{s_["id"]}/appStoreReviewScreenshot') or {}).get("data")
+        if current and current["attributes"].get("sourceFileChecksum") == _md5(shot):
+            same(f"{product} review screenshot")
+        elif not args.apply:
+            print(f"PLAN    {product} review screenshot: upload the Premium screen")
+        else:
+            if current:
+                api.request("DELETE", f'/v1/subscriptionAppStoreReviewScreenshots/{current["id"]}')
+            _upload("subscriptionAppStoreReviewScreenshots", {"subscription": rel("subscriptions", s_["id"])}, shot, f"{product} review screenshot")
 
 print("\nRESULT ", "plan only (nothing changed)" if not args.apply else ("applied with %d failure(s): %s" % (len(failures), ", ".join(failures)) if failures else "applied"))
