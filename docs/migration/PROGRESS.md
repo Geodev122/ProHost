@@ -267,3 +267,8 @@ Pure files (no Android/JVM imports, no nullable public properties, no `internal`
 
 ### P11.4 (part 1) shared deep-link routing (14 Nov 2026)
 `shared/.../util/DeepLinkRouter.kt` (pure: `Link(scheme, host, path, room, code)` → `Route(source, analyticsTarget, tab, listing, emailVerified, isRedeem, promoCode)`) now holds the routing that lived inline in `MainActivity.handleIncomingIntent` / `logIncomingIntent`; MainActivity only splits the `Uri` and applies the route (same order: extras first, then link). Cases: `tests/vectors/deep-links.json` (18, hand-written; no server twin), run by `DeepLinkRouterTest`; the iOS host must run the same file. One hardening: query parameters are read only from hierarchical URIs (the old code would throw on an opaque one; no intent filter delivers those). Still open in P11.4: Universal Links (`apple-app-site-association`), Play Install Referrer.
+
+### 14 Nov 2026 status notes
+- Migration Checks run 43561142478 (head 6e6a790): success, all jobs (the 9 Nov 'failure' with 2 of 3 jobs was a job that never started, not a test failure).
+- TTL policies ACTIVE (Maintenance run 184). Retire `pruneExpiredNotifications` only after merge to main + 48 h.
+- D6 mockups published (OWNER_QUEUE G2); build waits for approval.

@@ -1,0 +1,260 @@
+<title>ProHost Report and Block</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Roboto:wght@400;500&family=Cairo:wght@400;600;700&display=swap">
+<style>
+/* Layout: a review sheet. Each row = one decision; phone mockups left to right in the order a person meets them. */
+:root{
+  --bg:#f6f8fb; --fg:#1b242f; --muted:#5b6777; --line:#dfe5ec; --panel:#ffffff;
+  --steel:#2B5A8C; --orange:#D2432F; --ok:#2e7d4f;
+  --display:"Manrope",system-ui,sans-serif; --body:"Roboto",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121824;--fg:#e8edf4;--muted:#9aa7b8;--line:#3B485E;--panel:#1a2231;--steel:#93B8E0;--orange:#FF8A75;--ok:#7fd3a0;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121824;--fg:#e8edf4;--muted:#9aa7b8;--line:#3B485E;--panel:#1a2231;--steel:#93B8E0;--orange:#FF8A75;--ok:#7fd3a0;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5;padding-block:28px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:36px}
+h1{font-family:var(--display);font-weight:800;font-size:28px;margin:0;text-wrap:balance}
+h2{font-family:var(--display);font-weight:700;font-size:19px;margin:0}
+.lede{color:var(--muted);max-width:65ch;margin:6px 0 0}
+.tag{font-family:var(--display);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--steel);font-weight:700}
+section{display:flex;flex-direction:column;gap:14px}
+.note{color:var(--muted);max-width:70ch;margin:0}
+.row{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start}
+figure{margin:0;display:flex;flex-direction:column;gap:8px;width:264px;max-width:100%}
+figcaption{font-size:13px;color:var(--muted)}
+figcaption b{color:var(--fg);font-weight:500}
+
+/* The app itself (ProHost tokens). .p = light app, .p.dk = dark app. */
+.p{--s:#fff;--s2:#f3f6fa;--t:#1b242f;--t2:#5b6777;--o:#dfe5ec;--pri:#2B5A8C;--cta:#D2432F;--err:#D32F2F;--scrim:rgba(18,24,36,.45);
+  background:var(--s2);color:var(--t);border:1px solid var(--line);border-radius:28px;height:520px;position:relative;overflow:hidden;font-size:13px;line-height:1.35}
+.p.dk{--s:#1a2231;--s2:#121824;--t:#e8edf4;--t2:#9aa7b8;--o:#3B485E;--pri:#93B8E0;--cta:#FF8A75;--err:#ff8a80;--scrim:rgba(0,0,0,.6)}
+.p.ar{font-family:"Cairo",var(--body)}
+.bar{display:flex;align-items:center;gap:8px;padding:14px 14px 10px;font-family:var(--display);font-weight:700;font-size:15px;background:var(--s);border-bottom:1px solid var(--o)}
+.bar .sp{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dots{width:28px;height:28px;border-radius:14px;display:grid;place-items:center;font-size:18px;color:var(--t2)}
+.dots.on{background:var(--s2);color:var(--t)}
+.photo{height:120px;background:linear-gradient(135deg,#c9d6e6,#e9eef5)}
+.dk .photo{background:linear-gradient(135deg,#27344a,#1d2738)}
+.pad{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.card{background:var(--s);border:1px solid var(--o);border-radius:14px;padding:10px 12px}
+.t2{color:var(--t2)}
+.menu{position:absolute;top:46px;inset-inline-end:10px;background:var(--s);border:1px solid var(--o);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.18);min-width:170px;padding:6px 0}
+.menu div{padding:10px 14px}
+.menu .d{color:var(--err)}
+.scrim{position:absolute;inset:0;background:var(--scrim)}
+.sheet{position:absolute;inset:auto 0 0 0;background:var(--s);border-radius:28px 28px 0 0;padding:10px 16px 16px;display:flex;flex-direction:column;gap:9px}
+.grab{width:32px;height:4px;border-radius:2px;background:var(--o);align-self:center}
+.sheet h3,.dlg h3{font-family:var(--display);font-weight:700;font-size:16px;margin:2px 0 0}
+.opt{display:flex;gap:10px;align-items:center;padding:4px 0}
+.rad{flex:none;width:16px;height:16px;border-radius:8px;border:2px solid var(--t2)}
+.rad.on{border-color:var(--pri);box-shadow:inset 0 0 0 3px var(--s),inset 0 0 0 8px var(--pri)}
+.chk{flex:none;width:16px;height:16px;border-radius:4px;border:2px solid var(--t2)}
+.field{border:1px solid var(--o);border-radius:12px;padding:9px 11px;color:var(--t2);min-height:36px}
+.btn{border-radius:999px;padding:10px 14px;text-align:center;font-weight:500;background:var(--cta);color:#fff}
+.dk .btn{color:#1a0f0d}
+.btn.o{background:transparent;color:var(--pri);border:1px solid var(--o)}
+.dlg{position:absolute;left:22px;right:22px;top:150px;background:var(--s);border-radius:28px;padding:20px 18px 14px;display:flex;flex-direction:column;gap:10px;text-align:center}
+.ico{width:40px;height:40px;border-radius:20px;background:var(--s2);display:grid;place-items:center;align-self:center;font-size:18px}
+.li{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--o)}
+.av{flex:none;width:34px;height:34px;border-radius:17px;background:var(--s2);display:grid;place-items:center;font-weight:500;color:var(--pri)}
+.li .sp{flex:1;min-width:0}
+.link{color:var(--pri);font-weight:500}
+
+.tw{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--display);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+tr:last-child td{border-bottom:0}
+.pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 9px;font-size:12px}
+.pill.new{border-color:var(--orange);color:var(--orange)}
+.pill.done{border-color:var(--ok);color:var(--ok)}
+.acts{color:var(--steel);font-weight:500;white-space:nowrap}
+ol.q{margin:0;padding-left:22px;max-width:75ch;display:flex;flex-direction:column;gap:8px}
+ol.q b{font-weight:500}
+.mono{font-variant-numeric:tabular-nums}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="tag">Decision D6 · mockups for approval · nothing is built yet</div>
+    <h1>Report and block</h1>
+    <p class="lede">Apple requires every app with user-created content to let people report content, block other users, and to act on reports within 24 hours. This is the one planned addition to the app. It would be added to Android and iOS together, with a review queue in the web admin console. Example names and listings below are invented.</p>
+  </header>
+
+  <section>
+    <div class="tag">Step 1</div>
+    <h2>Where people find it</h2>
+    <p class="note">A three-dot menu on the listing page (for specialists) and on a booking request (for hosts). Nothing else on those pages moves.</p>
+    <div class="row">
+      <figure>
+        <div class="p">
+          <div class="bar"><span>←</span><span class="sp">Cedar Therapy Rooms</span><span class="dots on">⋮</span></div>
+          <div class="photo"></div>
+          <div class="pad">
+            <div class="card"><b>Room 2 · Therapy room</b><div class="t2">From $12 / hour</div></div>
+            <div class="card"><b>Hosted by Dana K.</b><div class="t2">Ask the host on WhatsApp</div></div>
+          </div>
+          <div class="menu"><div>Share listing</div><div class="d">Report listing</div><div class="d">Block host</div></div>
+        </div>
+        <figcaption><b>Listing page, specialist.</b> "Share listing" is today's share button, shown here only for position.</figcaption>
+      </figure>
+      <figure>
+        <div class="p">
+          <div class="bar"><span>←</span><span class="sp">Request B-7K2M9Q</span><span class="dots on">⋮</span></div>
+          <div class="pad">
+            <div class="card"><b>Omar H.</b><div class="t2">Psychologist · Room 2 · Mondays 10:00–12:00</div></div>
+            <div class="card"><div class="t2">Total</div><b>$96.00</b></div>
+          </div>
+          <div class="menu"><div class="d">Report this person</div><div class="d">Block this person</div></div>
+        </div>
+        <figcaption><b>Request detail, Pro Host.</b> Same two actions about the specialist.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Step 2</div>
+    <h2>Sending a report</h2>
+    <p class="note">One sheet: pick a reason, add details if you want, send. The reported person is never told who reported them.</p>
+    <div class="row">
+      <figure>
+        <div class="p">
+          <div class="bar"><span>←</span><span class="sp">Cedar Therapy Rooms</span><span class="dots">⋮</span></div>
+          <div class="photo"></div><div class="scrim"></div>
+          <div class="sheet">
+            <div class="grab"></div>
+            <h3>Report this listing</h3>
+            <div class="t2">Why are you reporting it?</div>
+            <div class="opt"><span class="rad"></span>Misleading or false information</div>
+            <div class="opt"><span class="rad on"></span>Scam or fraud</div>
+            <div class="opt"><span class="rad"></span>Offensive or inappropriate content</div>
+            <div class="opt"><span class="rad"></span>Unsafe space</div>
+            <div class="opt"><span class="rad"></span>Harassment or abusive behaviour</div>
+            <div class="opt"><span class="rad"></span>Something else</div>
+            <div class="field">Add details (optional)</div>
+            <div class="opt"><span class="chk"></span>Also block this host</div>
+            <div class="btn">Send report</div>
+          </div>
+        </div>
+        <figcaption><b>Report sheet, light.</b> The button is enabled once a reason is picked.</figcaption>
+      </figure>
+      <figure>
+        <div class="p dk">
+          <div class="bar"><span>←</span><span class="sp">Cedar Therapy Rooms</span><span class="dots">⋮</span></div>
+          <div class="photo"></div><div class="scrim"></div>
+          <div class="sheet">
+            <div class="grab"></div>
+            <h3>Report this listing</h3>
+            <div class="t2">Why are you reporting it?</div>
+            <div class="opt"><span class="rad"></span>Misleading or false information</div>
+            <div class="opt"><span class="rad on"></span>Scam or fraud</div>
+            <div class="opt"><span class="rad"></span>Offensive or inappropriate content</div>
+            <div class="opt"><span class="rad"></span>Unsafe space</div>
+            <div class="opt"><span class="rad"></span>Harassment or abusive behaviour</div>
+            <div class="opt"><span class="rad"></span>Something else</div>
+            <div class="field">Add details (optional)</div>
+            <div class="opt"><span class="chk"></span>Also block this host</div>
+            <div class="btn">Send report</div>
+          </div>
+        </div>
+        <figcaption><b>Same sheet, dark.</b></figcaption>
+      </figure>
+      <figure>
+        <div class="p ar" dir="rtl">
+          <div class="bar"><span>→</span><span class="sp">غرف سيدار للعلاج</span><span class="dots">⋮</span></div>
+          <div class="photo"></div><div class="scrim"></div>
+          <div class="sheet">
+            <div class="grab"></div>
+            <h3>الإبلاغ عن هذا الإعلان</h3>
+            <div class="t2">ما سبب الإبلاغ؟</div>
+            <div class="opt"><span class="rad"></span>معلومات مضلِّلة أو غير صحيحة</div>
+            <div class="opt"><span class="rad on"></span>احتيال</div>
+            <div class="opt"><span class="rad"></span>محتوى مسيء أو غير لائق</div>
+            <div class="opt"><span class="rad"></span>مكان غير آمن</div>
+            <div class="opt"><span class="rad"></span>مضايقة أو سلوك مسيء</div>
+            <div class="opt"><span class="rad"></span>سبب آخر</div>
+            <div class="field">أضف تفاصيل (اختياري)</div>
+            <div class="opt"><span class="chk"></span>احظر هذا المضيف أيضًا</div>
+            <div class="btn">إرسال البلاغ</div>
+          </div>
+        </div>
+        <figcaption><b>Same sheet, Arabic.</b> Draft wording, to be reviewed with the rest of the Arabic text.</figcaption>
+      </figure>
+      <figure>
+        <div class="p">
+          <div class="bar"><span>←</span><span class="sp">Cedar Therapy Rooms</span><span class="dots">⋮</span></div>
+          <div class="photo"></div><div class="scrim"></div>
+          <div class="sheet" style="text-align:center;gap:12px;padding-bottom:20px">
+            <div class="grab"></div>
+            <div class="ico">✓</div>
+            <h3>Report sent</h3>
+            <div class="t2">Thank you. Our team reviews every report within 24 hours. We don't tell the host who sent it.</div>
+            <div class="btn">Done</div>
+          </div>
+        </div>
+        <figcaption><b>After sending.</b></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Step 3</div>
+    <h2>Blocking and unblocking</h2>
+    <p class="note">Blocking is private and immediate. The list of blocked people lives in Profile › More, next to Language and Legal.</p>
+    <div class="row">
+      <figure>
+        <div class="p">
+          <div class="bar"><span>←</span><span class="sp">Cedar Therapy Rooms</span><span class="dots">⋮</span></div>
+          <div class="photo"></div><div class="scrim"></div>
+          <div class="dlg">
+            <div class="ico">⦸</div>
+            <h3>Block Dana K.?</h3>
+            <div class="t2">You won't see their listings, and they can't send you booking requests. They aren't told. Bookings you already have with them stay as they are.</div>
+            <div class="btn">Block</div>
+            <div class="btn o">Cancel</div>
+          </div>
+        </div>
+        <figcaption><b>Confirm block.</b> Same dialog style as the app's other confirmations.</figcaption>
+      </figure>
+      <figure>
+        <div class="p">
+          <div class="bar"><span>←</span><span class="sp">Blocked people</span></div>
+          <div class="pad">
+            <div class="li"><span class="av">D</span><span class="sp"><b>Dana K.</b><div class="t2">Blocked 14 Nov 2026</div></span><span class="link">Unblock</span></div>
+            <div class="li"><span class="av">S</span><span class="sp"><b>Sami R.</b><div class="t2">Blocked 2 Nov 2026</div></span><span class="link">Unblock</span></div>
+            <div class="t2" style="padding-top:6px">People you block can't send you booking requests and you won't see their listings.</div>
+          </div>
+        </div>
+        <figcaption><b>Profile › More › Blocked people.</b> Empty state: "You haven't blocked anyone."</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="tag">Step 4</div>
+    <h2>Review queue in the web admin console</h2>
+    <p class="note">A new "Reports" list in the Security tab. Admins see who reported; hosts and specialists never do. Each action is written to the audit log.</p>
+    <div class="tw">
+      <table>
+        <thead><tr><th>Received</th><th>About</th><th>Reason</th><th>Reported by</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">14 Nov 09:12</td><td>Listing L-4HT9QK<br><span class="note">Cedar Therapy Rooms</span></td><td>Scam or fraud<br><span class="note">"Asked for a deposit outside the app."</span></td><td class="mono">U-8M2PXA</td><td><span class="pill new">New · 21 h left</span></td><td class="acts">Dismiss · Hide listing · Suspend host</td></tr>
+          <tr><td class="mono">13 Nov 18:40</td><td>Person U-3QK7NB<br><span class="note">from request B-7K2M9Q</span></td><td>Harassment or abusive behaviour</td><td class="mono">U-5RT1WD</td><td><span class="pill new">New · 6 h left</span></td><td class="acts">Dismiss · Suspend user</td></tr>
+          <tr><td class="mono">12 Nov 11:03</td><td>Listing L-9ZD2MC</td><td>Misleading or false information</td><td class="mono">U-2HB6YE</td><td><span class="pill done">Dismissed</span></td><td class="acts">Reopen</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Admins also get a push for every new report, like the existing subscription alerts.</p>
+  </section>
+
+  <section>
+    <div class="tag">Your decisions</div>
+    <h2>What I need you to confirm</h2>
+    <ol class="q">
+      <li><b>The six reasons.</b> Keep this list, or change any wording?</li>
+      <li><b>What a block does.</b> Proposed: the blocker stops seeing the other person's listings, and the blocked person's booking requests to them are refused. Existing bookings are untouched. The blocked person is not told.</li>
+      <li><b>Where it sits.</b> A three-dot menu on the listing page and on request details, plus "Blocked people" in Profile › More. The listing page's top bar gains the three-dot button; nothing else moves.</li>
+      <li><b>The 24-hour promise.</b> The confirmation says reports are reviewed within 24 hours, which is what Apple asks for. Someone must check the queue daily.</li>
+      <li><b>Admin actions.</b> Dismiss, hide the listing, suspend the user. "Hide" and "Suspend" reuse the existing listing toggle and owner suspension.</li>
+    </ol>
+  </section>
+</div>
