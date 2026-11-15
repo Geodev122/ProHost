@@ -1,5 +1,6 @@
 package com.example.data.auth
 
+import com.example.data.gateway.SlotPriceChangeResult
 import android.util.Log
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.functions.FirebaseFunctions
@@ -11,7 +12,7 @@ import kotlinx.coroutines.tasks.await
  * token claims — is the ONLY way this app ever learns or changes a user's
  * role. Nothing here accepts a role as a trusted client-side value.
  */
-open class FirebaseFunctionsClient {
+open class FirebaseFunctionsClient : com.example.data.gateway.FunctionsGateway {
 
     private val tag = "FirebaseFunctionsClient"
 
@@ -36,7 +37,7 @@ open class FirebaseFunctionsClient {
      * Integrity in a log-only capacity (see assignInitialRole.ts) — a missing or
      * failed verdict never blocks this call from succeeding.
      */
-    suspend fun ensureInitialRole(registrationDraft: Map<String, Any?>? = null, integrityToken: String? = null): Result<String> {
+    override suspend fun ensureInitialRole(registrationDraft: Map<String, Any?>?, integrityToken: String?): Result<String> {
         return try {
             val payload: Map<String, Any?>? = if (registrationDraft != null || integrityToken != null) {
                 mapOf("registration" to registrationDraft, "integrityToken" to integrityToken)
@@ -338,7 +339,7 @@ open class FirebaseFunctionsClient {
      * denies every direct client write. actorEmail is never accepted from the
      * client; the server always uses the caller's own verified token email.
      */
-    open suspend fun recordAuditLog(actionType: String, details: String, severity: String = "INFO"): Result<Unit> {
+    override suspend fun recordAuditLog(actionType: String, details: String, severity: String): Result<Unit> {
         return try {
             functions.getHttpsCallable("recordClientAuditLog")
                 .call(mapOf("actionType" to actionType, "details" to details, "severity" to severity))
@@ -380,7 +381,7 @@ open class FirebaseFunctionsClient {
      *
      * Returns the verified expiry timestamp (ms) on success.
      */
-    suspend fun verifyAndRestorePurchase(purchaseToken: String, productId: String, fromCheckout: Boolean = false): Result<Long> {
+    override suspend fun verifyAndRestorePurchase(purchaseToken: String, productId: String, fromCheckout: Boolean): Result<Long> {
         return try {
             // The server reads the base plan from Google; the app never states what it bought.
             val result = functions.getHttpsCallable("verifyAndRestorePurchase")
@@ -402,7 +403,7 @@ open class FirebaseFunctionsClient {
      * an accepted booking (functions/src/notifications/sendPaymentReminder.ts) — the
      * server verifies the caller actually owns the booking's space before sending.
      */
-    suspend fun sendPaymentReminder(bookingId: String): Result<Unit> {
+    override suspend fun sendPaymentReminder(bookingId: String): Result<Unit> {
         return try {
             functions.getHttpsCallable("sendPaymentReminder")
                 .call(mapOf("bookingId" to bookingId))
@@ -431,7 +432,7 @@ open class FirebaseFunctionsClient {
      * Pro Host "Change price" (functions/src/listings/changeSlotPrice.ts): sets one slot's price and
      * applies [decisions] (bookingId → KEEP / NOW / NEXT_TERM) to the bookings that use it.
      */
-    open suspend fun changeSlotPrice(
+    override suspend fun changeSlotPrice(
         spaceId: String,
         scopeId: String,
         kind: String,
@@ -479,7 +480,7 @@ open class FirebaseFunctionsClient {
      * "failed-precondition" HttpsError (surfaced via the caught exception's
      * message) if no qualifying document has been uploaded yet.
      */
-    suspend fun requestListingVerification(spaceId: String): Result<Unit> {
+    override suspend fun requestListingVerification(spaceId: String): Result<Unit> {
         return try {
             functions.getHttpsCallable("requestListingVerification")
                 .call(mapOf("spaceId" to spaceId))
@@ -498,13 +499,13 @@ open class FirebaseFunctionsClient {
      * uploads, Firestore profile, and finally their Firebase Auth account itself.
      */
     /** Report a listing or a person (App Review 1.2). [payload] keys: targetType, listingId, targetUid, bookingId, reason, details, alsoBlock. */
-    open suspend fun reportContent(payload: Map<String, Any?>): Result<Unit> = callUnit("reportContent", payload)
+    override suspend fun reportContent(payload: Map<String, Any?>): Result<Unit> = callUnit("reportContent", payload)
 
     /** Block a person, given directly ([targetUid]) or as the owner of [listingId]. */
-    open suspend fun blockUser(targetUid: String?, listingId: String?): Result<Unit> =
+    override suspend fun blockUser(targetUid: String?, listingId: String?): Result<Unit> =
         callUnit("blockUser", mapOf("targetUid" to targetUid, "listingId" to listingId).filterValues { it != null })
 
-    open suspend fun unblockUser(targetUid: String): Result<Unit> = callUnit("unblockUser", mapOf("targetUid" to targetUid))
+    override suspend fun unblockUser(targetUid: String): Result<Unit> = callUnit("unblockUser", mapOf("targetUid" to targetUid))
 
     private suspend fun callUnit(name: String, payload: Map<String, Any?>): Result<Unit> = try {
         functions.getHttpsCallable(name).call(payload).await()
@@ -514,7 +515,7 @@ open class FirebaseFunctionsClient {
         Result.failure(e)
     }
 
-    suspend fun deleteOwnAccount(): Result<Unit> {
+    override suspend fun deleteOwnAccount(): Result<Unit> {
         return try {
             // Cleanup of listings and files can take a while; the default 70 s callable timeout
             // made large accounts fail on the client while the server was still working.
@@ -532,7 +533,7 @@ open class FirebaseFunctionsClient {
      * "Forgot password": our branded reset email (functions/src/auth/passwordReset.ts). The server
      * answers ok whether or not an account exists, so this never reveals who has one.
      */
-    open suspend fun sendPasswordResetLink(email: String): Result<Unit> {
+    override suspend fun sendPasswordResetLink(email: String): Result<Unit> {
         return try {
             functions.getHttpsCallable("sendPasswordResetLink").call(mapOf("email" to email)).await()
             Result.success(Unit)
@@ -549,7 +550,7 @@ open class FirebaseFunctionsClient {
      *
      * Replaces the legacy resendEmailVerification (HMAC-JWT + verifyEmailLink) pipeline.
      */
-    suspend fun sendVerificationEmailLink(): Result<Unit> {
+    override suspend fun sendVerificationEmailLink(): Result<Unit> {
         return try {
             functions.getHttpsCallable("sendVerificationEmailLink").call(null).await()
             Result.success(Unit)
@@ -630,4 +631,3 @@ data class AttendeeBookingStats(
 )
 
 /** What changeSlotPrice did: bookings affected and how each was handled. */
-data class SlotPriceChangeResult(val affected: Int, val now: Int, val nextTerm: Int, val keep: Int)

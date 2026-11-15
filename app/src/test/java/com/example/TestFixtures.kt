@@ -1,7 +1,7 @@
 package com.example
 
 import com.example.data.auth.FirebaseFunctionsClient
-import com.example.data.auth.SlotPriceChangeResult
+import com.example.data.gateway.SlotPriceChangeResult
 import com.example.data.firestore.FirestoreService
 import com.example.data.model.*
 import com.example.data.repository.ProHostRepository

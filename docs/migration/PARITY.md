@@ -36,7 +36,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `data/demo/DemoDataGenerator.kt` | 361 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `data/firestore/FirestoreService.kt` | 820 | C | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
 | `data/repository/BookingsRepository.kt` | 492 | B | Logger |  |  | ☐ | ☐ | todo |
-| `data/repository/ProHostRepository.kt` | 1202 | B | Logger |  |  | ☐ | ☐ | todo |
+| `data/repository/ProHostRepository.kt` | 1203 | B | Logger |  |  | ☐ | ☐ | todo |
 | `data/repository/ProfilesRepository.kt` | 350 | B | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
 | `data/repository/RepositoryCsv.kt` | 89 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `data/storage/FirebaseStorageService.kt` | 327 | C | Context removal, Firebase gateways, ImageCodec/Pdf, Logger, MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
@@ -152,6 +152,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 41 / 10074, A2 20 / 10247, B 39 / 14003, C 20 / 4244, X 17 / 7353.
 Automatic class totals (files / lines): A1 41 / 10074, A2 20 / 10247, B 39 / 14002, C 20 / 4244, X 17 / 7353.
 Automatic class totals (files / lines): A1 41 / 10074, A2 21 / 10296, B 39 / 14002, C 20 / 4240, X 17 / 7353.
 Automatic class totals (files / lines): A1 43 / 10425, A2 21 / 10328, B 39 / 14002, C 20 / 4239, X 17 / 7353.

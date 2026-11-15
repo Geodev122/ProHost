@@ -1,5 +1,6 @@
 package com.example.data.repository
 
+import com.example.data.gateway.SlotPriceChangeResult
 import android.util.Log
 import com.example.data.auth.toUserMessage
 import com.example.data.auth.FirebaseFunctionsClient
@@ -492,7 +493,7 @@ class ProHostRepository(
         ref: com.example.ui.util.PriceChange.SlotRef,
         newPrice: Double,
         decisions: Map<String, PriceChangeMode>
-    ): Result<com.example.data.auth.SlotPriceChangeResult> = functionsClient.changeSlotPrice(
+    ): Result<com.example.data.gateway.SlotPriceChangeResult> = functionsClient.changeSlotPrice(
         spaceId = spaceId,
         scopeId = ref.scopeId,
         kind = ref.kind.name,
