@@ -44,7 +44,7 @@ object SpaceCalculationUtils {
     private fun parseHour(value: String): Int? =
         value.substringBefore(':').trim().toIntOrNull()?.takeIf { it in 0..24 }
 
-    private fun hourLabel(hour: Int): String = "%02d:00".format(hour)
+    private fun hourLabel(hour: Int): String = hour.toString().padStart(2, '0') + ":00"
 
     private fun effectiveOperatingDays(schedule: SpaceOperatingSchedule): List<String> {
         val days = schedule.operatingDays.toMutableList()

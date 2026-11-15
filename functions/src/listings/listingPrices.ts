@@ -1,6 +1,6 @@
 /**
  * Server mirror of SpaceCalculationUtils.lowestPriceFor / findLowestPriceForSubdivision
- * (app/src/main/java/com/example/ui/util/SpaceCalculationUtils.kt) — keep both identical
+ * (shared/src/commonMain/kotlin/com/example/ui/util/SpaceCalculationUtils.kt) — keep both identical
  * (listingPrices.test.ts pins the cases). Used by the Instagram agent's listing finder.
  */
 import { isPerAttendee, tiersFor } from "../lib/attendeePricing";

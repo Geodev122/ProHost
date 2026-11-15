@@ -18,7 +18,6 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `analytics/AnalyticsConsent.kt` | 58 | B | Context removal, KeyValueStore |  |  | ☐ | ☐ | todo |
 | `analytics/AnalyticsSink.kt` | 71 | C | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `analytics/AnalyticsTracker.kt` | 529 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
-| `analytics/ListingAnalytics.kt` | 36 | A1 | — |  |  | ☐ | ☐ | todo |
 | `data/auth/AdminDirectoryModels.kt` | 246 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `data/auth/AuthErrors.kt` | 34 | A1 | Firebase gateways |  |  | ☐ | ☐ | todo |
 | `data/auth/AuthFlow.kt` | 168 | B | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
@@ -27,7 +26,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `data/auth/FirebaseFunctionsClient.kt` | 634 | C | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
 | `data/auth/GoogleCredentialState.kt` | 38 | C | Context removal, GoogleSignIn, Logger |  |  | ☐ | ☐ | todo |
 | `data/auth/GoogleNonce.kt` | 42 | B | — |  |  | ☐ | ☐ | todo |
-| `data/auth/SessionFinisher.kt` | 60 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
+| `data/auth/SessionFinisher.kt` | 59 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `data/billing/PlayBillingManager.kt` | 489 | C | Context removal, Logger, MediaPicker(PickedFile), PlatformActions, SubscriptionStore |  |  | ☐ | ☐ | todo |
 | `data/billing/PlayBillingSecurity.kt` | 98 | C | Logger |  |  | ☐ | ☐ | todo |
 | `data/billing/PlayOfferText.kt` | 289 | B | SubscriptionStore |  |  | ☐ | ☐ | todo |
@@ -35,7 +34,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `data/demo/DemoDataGenerator.kt` | 361 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `data/firestore/FirestoreService.kt` | 821 | C | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
 | `data/repository/BookingsRepository.kt` | 492 | B | Logger |  |  | ☐ | ☐ | todo |
-| `data/repository/ProHostRepository.kt` | 1203 | B | Logger |  |  | ☐ | ☐ | todo |
+| `data/repository/ProHostRepository.kt` | 1206 | B | Logger |  |  | ☐ | ☐ | todo |
 | `data/repository/ProfilesRepository.kt` | 350 | B | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
 | `data/repository/RepositoryCsv.kt` | 89 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `data/storage/FirebaseStorageService.kt` | 327 | C | Context removal, Firebase gateways, ImageCodec/Pdf, Logger, MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
@@ -116,7 +115,6 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/screens/admin/AdminUsersTab.kt` | 647 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/screens/auth/AuthSteps.kt` | 514 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/state/AdminUiState.kt` | 133 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
-| `ui/state/DiscoveryUiState.kt` | 76 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/theme/FontScaleCap.kt` | 20 | C | Context removal |  |  | ☐ | ☐ | todo |
 | `ui/theme/Theme.kt` | 224 | B | — |  |  | ☐ | ☐ | todo |
 | `ui/theme/Type.kt` | 47 | A1 | — |  |  | ☐ | ☐ | todo |
@@ -125,8 +123,6 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/util/Haptics.kt` | 23 | A1 | Haptics |  |  | ☐ | ☐ | todo |
 | `ui/util/PaymentCalendar.kt` | 93 | B | PlatformActions(calendar) |  |  | ☐ | ☐ | todo |
 | `ui/util/PlatformActions.kt` | 158 | B | Clipboard, Context removal, MediaPicker(PickedFile), PlatformActions, PlatformActions(calendar) |  |  | ☐ | ☐ | todo |
-| `ui/util/SaveStats.kt` | 24 | A2 | — |  |  | ☐ | ☐ | todo |
-| `ui/util/SpaceCalculationUtils.kt` | 640 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/util/SupportContact.kt` | 27 | B | MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
 | `ui/util/UiMessages.kt` | 56 | B | Context removal, Messenger |  |  | ☐ | ☐ | todo |
 | `ui/util/UiText.kt` | 45 | B | — |  |  | ☐ | ☐ | todo |
@@ -147,10 +143,10 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/PhoneCountryDetector.kt` | 95 | C | Context removal, Location/Geocoder |  |  | ☐ | ☐ | todo |
 | `util/PickedFileSaver.kt` | 8 | A1 | — |  |  | ☐ | ☐ | todo |
 | `util/PlayIntegrityManager.kt` | 51 | C | Context removal, Logger |  |  | ☐ | ☐ | todo |
-| `util/ShareLinks.kt` | 24 | A1 | — |  |  | ☐ | ☐ | todo |
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 36 / 9844, A2 19 / 9607, B 39 / 14005, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 40 / 10004, A2 20 / 10247, B 39 / 14003, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 40 / 10031, A2 20 / 10247, B 39 / 14003, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 40 / 10031, A2 20 / 10247, B 39 / 14003, C 20 / 4254, X 17 / 7353.
