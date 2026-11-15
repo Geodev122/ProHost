@@ -44,7 +44,7 @@ class ProHostViewModel(
 ) : ViewModel() {
 
     // Cross-cutting callables (e.g. sendPaymentReminder) used from several screens.
-    private val functionsClient = com.example.data.auth.FirebaseFunctionsClient()
+    private val functionsClient: com.example.data.gateway.FunctionsGateway = com.example.data.auth.FirebaseFunctionsClient()
 
     // Cold-start session restoration — the actual fix for "signed out whenever the app
     // is closed." repository.currentUser previously started (and, on a fresh process,
@@ -298,7 +298,7 @@ class ProHostViewModel(
     fun resendEmailVerification() {
         viewModelScope.launch {
             try {
-                val result = functionsClient.resendEmailVerification()
+                val result = functionsClient.sendVerificationEmailLink()
                 val msg = if (result.isSuccess) {
                     uiText(R.string.verification_email_sent_check_your_inbox)
                 } else {

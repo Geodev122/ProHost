@@ -40,7 +40,7 @@ data class RegistrationDetails(
  */
 suspend fun completeVerifiedLogin(
     repository: ProHostRepository,
-    functionsClient: FirebaseFunctionsClient,
+    functionsClient: com.example.data.gateway.FunctionsGateway,
     firebaseUser: FirebaseUser,
     integrityToken: String? = null
 ): AppUser {
@@ -84,7 +84,7 @@ private suspend fun refreshFcmToken(repository: ProHostRepository, uid: String) 
  */
 suspend fun completeVerifiedRegistration(
     repository: ProHostRepository,
-    functionsClient: FirebaseFunctionsClient,
+    functionsClient: com.example.data.gateway.FunctionsGateway,
     firebaseUser: FirebaseUser,
     details: RegistrationDetails,
     integrityToken: String? = null
@@ -117,7 +117,7 @@ suspend fun completeVerifiedRegistration(
  */
 suspend fun completeGoogleRegistration(
     repository: ProHostRepository,
-    functionsClient: FirebaseFunctionsClient,
+    functionsClient: com.example.data.gateway.FunctionsGateway,
     firebaseUser: FirebaseUser,
     details: RegistrationDetails,
     integrityToken: String? = null
@@ -133,7 +133,7 @@ suspend fun completeGoogleRegistration(
 )
 
 private suspend fun resolveVerifiedRole(
-    functionsClient: FirebaseFunctionsClient,
+    functionsClient: com.example.data.gateway.FunctionsGateway,
     firebaseUser: FirebaseUser,
     integrityToken: String? = null
 ): UserRole {

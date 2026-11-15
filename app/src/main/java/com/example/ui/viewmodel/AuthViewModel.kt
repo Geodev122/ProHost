@@ -38,7 +38,7 @@ import kotlinx.coroutines.tasks.await
 class AuthViewModel(
     private val repository: ProHostRepository = ProHostRepository.getInstance(),
     authGateway: AuthGateway? = null,
-    private val functionsClient: FirebaseFunctionsClient = FirebaseFunctionsClient(),
+    private val functionsClient: com.example.data.gateway.FunctionsGateway = FirebaseFunctionsClient(),
     sessionFinisher: SessionFinisher? = null
 ) : ViewModel() {
 

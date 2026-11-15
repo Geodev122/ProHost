@@ -27,7 +27,7 @@ interface SessionFinisher {
 class FirebaseSessionFinisher(
     private val context: Context,
     private val repository: ProHostRepository,
-    private val functionsClient: FirebaseFunctionsClient
+    private val functionsClient: com.example.data.gateway.FunctionsGateway
 ) : SessionFinisher {
 
     private fun user() = FirebaseAuth.getInstance().currentUser
