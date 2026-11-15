@@ -1,0 +1,3 @@
+<en-US>
+Internal test build. New: booking on real calendar dates (pick dates, then times; monthly bookings start on any date), closed dates and a booking window for hosts, a month calendar on the Manage page, and Report / Block on listings and requests. Please report anything that looks or behaves wrong.
+</en-US>
