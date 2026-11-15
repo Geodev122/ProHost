@@ -3,7 +3,6 @@ package com.example.data.auth
 import android.content.Context
 import com.example.data.model.AppUser
 import com.example.data.repository.ProHostRepository
-import com.example.data.storage.FirebaseStorageService
 import com.example.util.PlayIntegrityManager
 import com.google.firebase.auth.FirebaseAuth
 
@@ -46,7 +45,7 @@ class FirebaseSessionFinisher(
     }
 
     override suspend fun uploadProfilePicture(file: com.example.util.PickedFile): String? =
-        FirebaseStorageService.getInstance().uploadProfilePicture(user().uid, file)
+        repository.storage.uploadProfilePicture(user().uid, file)
 
     override suspend fun existingProfileComplete(): Boolean =
         repository.getUserProfile(user().uid)?.fullName?.isNotBlank() == true

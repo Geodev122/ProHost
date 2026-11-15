@@ -179,6 +179,9 @@ class ProHostRepository(
 
     // Explore's paged live list (see FirestoreService.setPublicListingsLimit).
     internal var publicListingsLimit = FirestoreService.PUBLIC_LISTINGS_PAGE
+
+    /** Uploads (photos, agreements, verification documents) through the platform-neutral gateway; created on first use. */
+    val storage: com.example.data.gateway.StorageGateway by lazy { com.example.data.storage.FirebaseStorageService.getInstance() }
     internal val _hasMoreSpaces = MutableStateFlow(false)
     /** True when Explore's loaded page is full, so more active listings may exist. */
     val hasMoreSpaces: StateFlow<Boolean> = _hasMoreSpaces.asStateFlow()
@@ -538,7 +541,7 @@ class ProHostRepository(
         val success = firestoreService.deleteWorkspace(spaceId)
         if (success) {
             _spaces.value = _spaces.value.filterNot { it.id == spaceId }
-            com.example.data.storage.FirebaseStorageService.getInstance().purgeListingStorage(spaceId)
+            storage.purgeListingStorage(spaceId)
             addAuditLog(
                 actionType = "LISTING_DELETED",
                 details = "Admin permanently deleted workspace listing #${spaceId} (${target?.title ?: "Unknown"})",

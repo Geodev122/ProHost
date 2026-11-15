@@ -583,7 +583,7 @@ class ProHostViewModel(
     suspend fun updateProfilePhoto(file: com.example.util.PickedFile): String? {
         val uid = currentUser.value?.id ?: return uiText(R.string.your_session_expired_please_sign_in_again_2)
         return try {
-            val url = com.example.data.storage.FirebaseStorageService.getInstance()
+            val url = repository.storage
                 .uploadProfilePicture(uid, file)
                 ?: return uiText(R.string.the_photo_couldn_t_be_uploaded_check_your)
             val saved = repository.updateProfilePicture(url)
@@ -949,7 +949,7 @@ class ProHostViewModel(
                     return@launch
                 }
                 val agreementUrl = if (agreement != null) {
-                    val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
+                    val storageService = repository.storage
                     val ext = com.example.util.FileAccess.require().extension(agreement, "pdf")
                     storageService.uploadBookingAgreement(requestId, agreement, ext).also {
                         if (it == null) {
