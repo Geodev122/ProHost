@@ -132,3 +132,4 @@ Last updated: 8 Nov 2026
 52. **AI agent project:** decide the new Google project and billing account; later, an agreed window to repoint the Meta webhook callback URLs.
 53. **Still needed:** a borrowed iPhone for TestFlight, the pending Apple/Firebase confirmations (APNs key upload, Firebase iOS key restriction), and the Apple business items (Paid Apps Agreement, trader status).
 
+54. **Netlify token for the website deploy (since 15 Nov 10:26 UTC):** every "Site deploy" run on `main` stops at "Find or create the Netlify site", which means the GitHub secret `NETLIFY_AUTH_TOKEN` is missing or no longer valid. The live site keeps its last deploy, but new site changes (the admin console at `/console`, page edits) are not published. Netlify → User settings → Applications → Personal access tokens → New access token; then GitHub repo → Settings → Secrets and variables → Actions → `NETLIFY_AUTH_TOKEN` → Update (or New). Tell Claude, who re-runs the deploy.

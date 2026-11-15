@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SRC = ROOT / "app/src/main/java/com/example/ui/util/LocalizedLabels.kt"
+SRC = ROOT / "shared/src/commonMain/kotlin/com/example/ui/util/LocalizedLabels.kt"
 OUT = ROOT / "ios/ProHost/Core/Util/LocalizedLabels.swift"
 
 
