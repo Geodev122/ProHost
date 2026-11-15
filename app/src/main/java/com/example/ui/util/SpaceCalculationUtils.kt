@@ -250,40 +250,18 @@ object SpaceCalculationUtils {
      * null when no term was recorded (legacy docs saved a label) — treated as ongoing.
      * Mirrors functions/src/bookings/bookingTerms.ts.
      */
-    fun bookingTerm(booking: RentalBookingRequest): Pair<String, String>? {
-        val dates = booking.selectedCalendarDates.filter { Regex("\\d{4}-\\d{2}-\\d{2}").matches(it) }.sorted()
-        if (dates.isNotEmpty()) return IsoDate.addDays(dates.last(), 1)?.let { dates.first() to it }
-        val raw = booking.startDate.trim().take(10)
-        val start = when {
-            Regex("\\d{4}-\\d{2}-\\d{2}").matches(raw) -> raw
-            Regex("\\d{4}-\\d{2}").matches(raw) -> "$raw-01"
-            else -> return null
-        }
-        return IsoDate.addMonths(start, booking.durationMonths.coerceAtLeast(1))?.let { start to it }
-    }
+    fun bookingTerm(booking: RentalBookingRequest): Pair<String, String>? = BookingTerms.bookingTerm(booking)
 
     private fun todayIso(): String = IsoDate.todayIso()
 
     /** True once the booking's whole term is over — it no longer locks anything. */
-    fun hasEnded(booking: RentalBookingRequest, today: String = todayIso()): Boolean =
-        bookingTerm(booking)?.let { it.second <= today } ?: false
+    fun hasEnded(booking: RentalBookingRequest, today: String = todayIso()): Boolean = BookingTerms.hasEnded(booking, today)
 
     /** Whether two bookings' terms share a day (an unknown term overlaps everything). */
-    fun termsOverlap(a: RentalBookingRequest, b: RentalBookingRequest): Boolean {
-        val ta = bookingTerm(a) ?: return true
-        val tb = bookingTerm(b) ?: return true
-        return ta.first < tb.second && tb.first < ta.second
-    }
+    fun termsOverlap(a: RentalBookingRequest, b: RentalBookingRequest): Boolean = BookingTerms.termsOverlap(a, b)
 
     /** Whether [booking]'s term (its calendar dates, or startDate + durationMonths) covers [isoDate]. */
-    fun bookingCoversDate(booking: RentalBookingRequest, isoDate: String): Boolean {
-        if (booking.selectedCalendarDates.isNotEmpty()) return isoDate in booking.selectedCalendarDates
-        val start = booking.startDate.trim().take(10)
-        if (start.length < 7) return true // no term recorded: treat as ongoing
-        val startKey = if (start.length == 7) "$start-01" else start
-        val end = IsoDate.addMonths(startKey, booking.durationMonths.coerceAtLeast(1)) ?: return true
-        return isoDate >= startKey && isoDate < end
-    }
+    fun bookingCoversDate(booking: RentalBookingRequest, isoDate: String): Boolean = BookingTerms.bookingCoversDate(booking, isoDate)
 
     /**
      * This week's occupancy of [space] (every room): each offered slot on each of the next 7
@@ -419,7 +397,7 @@ object SpaceCalculationUtils {
     }
 
     /** Unit for per-attendee rooms: one per-person price covers the whole booking. */
-    val PER_PERSON_UNIT: String get() = localizedLabel("/person")
+    val PER_PERSON_UNIT: String get() = BookingTerms.PER_PERSON_UNIT
 
     fun findLowestPriceForSubdivision(sub: com.example.data.model.Subdivision): PriceDisplay =
         if (AttendeePricing.isPerAttendee(sub)) {
@@ -450,12 +428,7 @@ object SpaceCalculationUtils {
      * "Monthly Rate ($ USD)"). Deriving a per-shift or per-day number from the
      * monthly one would be inventing a figure the host never set.
      */
-    fun rateUnitLabel(type: RentalFormulaType): String = when (type) {
-        RentalFormulaType.HOURLY -> localizedLabel("/hr")
-        RentalFormulaType.SHIFT -> localizedLabel("/shift")
-        RentalFormulaType.DAY_PER_WEEK -> localizedLabel("/day")
-        RentalFormulaType.FULL_MONTH -> localizedLabel("/mo")
-    }
+    fun rateUnitLabel(type: RentalFormulaType): String = BookingTerms.rateUnitLabel(type)
 
     /**
      * Maps a real [RentalStrategyType] onto the legacy [RentalFormulaType] that
@@ -463,12 +436,7 @@ object SpaceCalculationUtils {
      * WhatsApp templates still key off downstream — a deliberately thin, honest
      * mapping, not a data-model migration (see [representativeFormula]'s doc comment).
      */
-    fun legacyFormulaType(strategy: RentalStrategyType): RentalFormulaType = when (strategy) {
-        RentalStrategyType.MONTHLY -> RentalFormulaType.FULL_MONTH
-        RentalStrategyType.HOURLY -> RentalFormulaType.HOURLY
-        RentalStrategyType.SHIFT_BASED -> RentalFormulaType.SHIFT
-        RentalStrategyType.DAY_BASED -> RentalFormulaType.DAY_PER_WEEK
-    }
+    fun legacyFormulaType(strategy: RentalStrategyType): RentalFormulaType = BookingTerms.legacyFormulaType(strategy)
 
     /** "/hr", "/shift", "/day" or "/mo" for a pricing strategy — never hard-code a suffix. */
     fun strategyUnitLabel(strategy: RentalStrategyType): String = rateUnitLabel(legacyFormulaType(strategy))

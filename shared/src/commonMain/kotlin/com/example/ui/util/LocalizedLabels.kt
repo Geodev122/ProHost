@@ -93,7 +93,15 @@ private val AR_LABELS: Map<String, String> = mapOf(
     "Friday" to "الجمعة", "Saturday" to "السبت", "Sunday" to "الأحد"
 )
 
-private fun isArabic(): Boolean = UiText.resources?.configuration?.locales?.get(0)?.language == "ar"
+/**
+ * The app's language code ("ar", "en"…). Set by the platform at start-up (Android: `ProHostApplication`, from the app's resources;
+ * "" until then, which reads as English exactly as before the move to `:shared`).
+ */
+object AppLanguage {
+    var current: () -> String = { "" }
+}
+
+private fun isArabic(): Boolean = AppLanguage.current() == "ar"
 
 /** The label in the app language (Arabic when the app runs in Arabic), else unchanged. */
 fun localizedLabel(english: String): String = if (isArabic()) AR_LABELS[english] ?: english else english

@@ -69,14 +69,14 @@ object PriceChange {
         val sub = division.subdivision
         if (sub != null && AttendeePricing.isPerAttendee(sub)) {
             return sub.attendeeTiers.filter { it.isEnabled && it.pricePerAttendeeUsd > 0 }.map {
-                PriceSlot(SlotRef(division.scopeId, SlotKind.TIER, it.id), "Per person", it.name, it.pricePerAttendeeUsd, SpaceCalculationUtils.PER_PERSON_UNIT)
+                PriceSlot(SlotRef(division.scopeId, SlotKind.TIER, it.id), "Per person", it.name, it.pricePerAttendeeUsd, BookingTerms.PER_PERSON_UNIT)
             }
         }
         return slotsOfPricing(division.scopeId, sub?.pricing ?: space.pricing)
     }
 
     fun slotsOfPricing(scopeId: String, pricing: RentalPricingConfig): List<PriceSlot> {
-        val unit = SpaceCalculationUtils.strategyUnitLabel(pricing.strategyType)
+        val unit = BookingTerms.strategyUnitLabel(pricing.strategyType)
         return when (pricing.strategyType) {
             RentalStrategyType.MONTHLY -> pricing.monthly?.takeIf { it.rateUsd > 0 }?.let {
                 listOf(PriceSlot(SlotRef(scopeId, SlotKind.MONTHLY, ""), "Monthly", "Monthly rent", it.rateUsd, unit))
@@ -184,7 +184,7 @@ object PriceChange {
     private fun undatedUnitsFrom(b: BookingRequest, pricing: RentalPricingConfig?, ref: SlotRef, fromIso: String): Int? = when (ref.kind) {
         SlotKind.MONTHLY -> {
             val months = b.durationMonths.coerceAtLeast(1)
-            val term = SpaceCalculationUtils.bookingTerm(b)
+            val term = BookingTerms.bookingTerm(b)
             if (term == null) months else {
                 val startM = monthIndex(term.first)
                 val fromM = maxOf(startM, monthIndex(fromIso))
@@ -218,7 +218,7 @@ object PriceChange {
     ): Reprice {
         val total = b.totalAmountUsd
         if (mode == PriceChangeMode.KEEP) return Reprice(round2(total), "", 0)
-        val term = SpaceCalculationUtils.bookingTerm(b)
+        val term = BookingTerms.bookingTerm(b)
         var from = if (mode == PriceChangeMode.NOW) todayIso else nextTermStart(ref, todayIso)
         if (term != null && term.first > from) from = term.first
         val units = unitsFrom(b, pricing, ref, from) ?: when {
