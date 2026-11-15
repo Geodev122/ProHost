@@ -128,3 +128,6 @@ Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, ot
 - Play catalog: yearly $79.99 and `pro-monthly1` $8.99 active with their launch offers; RTDN self-test delivered in ~5 s. Last real Play notification: 4 Nov (one subscriber, so quiet is normal).
 - Data: 55 profiles, 87 Auth users (32 without a profile = abandoned registrations, known), 2 listings, 5 bookings, no legacy fields, no parked purchases.
 - To watch: `subscriptions` still holds one ACTIVE record for the retired `package_growth_mrr` plan (its holder is on a permanent admin grant; the record is ignored by every code path).
+
+## 15 Nov 2026 10:52 UTC — backend deployed again (build-and-deploy run 43705512600, `main` 1f158a5)
+First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row and an e2e test that used a price the Change price test had changed). Live now: report/block indexes, server checks for dated requests (`dateModel: 2`), the operating-days default in the date engine, price change by date + slot.

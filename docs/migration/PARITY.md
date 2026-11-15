@@ -14,7 +14,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | Unit (file) | Lines | Class | Seams / reasons | Goldens | Tests | Android diff = 0 | iOS sheet | Status |
 |---|---|---|---|---|---|---|---|---|
 | `MainActivity.kt` | 169 | C | Context removal, PlatformActions |  |  | ☐ | ☐ | todo |
-| `ProHostApplication.kt` | 96 | C | Firebase gateways, KeyValueStore, Logger |  |  | ☐ | ☐ | todo |
+| `ProHostApplication.kt` | 106 | C | Firebase gateways, KeyValueStore, Logger |  |  | ☐ | ☐ | todo |
 | `analytics/AnalyticsConsent.kt` | 58 | B | Context removal, KeyValueStore |  |  | ☐ | ☐ | todo |
 | `analytics/AnalyticsSink.kt` | 71 | C | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `analytics/AnalyticsTracker.kt` | 529 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
@@ -151,6 +151,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 40 / 10031, A2 20 / 10247, B 39 / 14003, C 20 / 4254, X 17 / 7353.
 Automatic class totals (files / lines): A1 40 / 10031, A2 20 / 10247, B 39 / 14003, C 20 / 4244, X 17 / 7353.
 Automatic class totals (files / lines): A1 41 / 10074, A2 20 / 10247, B 39 / 14003, C 20 / 4244, X 17 / 7353.
 Automatic class totals (files / lines): A1 41 / 10074, A2 20 / 10247, B 39 / 14002, C 20 / 4244, X 17 / 7353.

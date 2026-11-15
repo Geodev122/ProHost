@@ -15,6 +15,16 @@ class ProHostApplication : Application() {
         ).resources
         com.example.ui.util.UiText.init(resources, english)
         com.example.ui.util.AppLanguage.current = { com.example.ui.util.UiText.resources?.configuration?.locales?.get(0)?.language ?: "" }
+        com.example.ui.util.SharedText.lookup = { name, args ->
+            val res = com.example.ui.util.UiText.resources
+            val id = res?.getIdentifier(name, "string", packageName) ?: 0
+            if (res == null || id == 0) "" else if (args.isEmpty()) res.getString(id) else res.getString(id, *args)
+        }
+        com.example.ui.util.SharedText.plural = { name, count, args ->
+            val res = com.example.ui.util.UiText.resources
+            val id = res?.getIdentifier(name, "plurals", packageName) ?: 0
+            if (res == null || id == 0) "" else if (args.isEmpty()) res.getQuantityString(id, count) else res.getQuantityString(id, count, *args)
+        }
         com.example.ui.util.LocaleNames.country = { iso ->
             val locale = com.example.ui.util.UiText.resources?.configuration?.locales?.get(0) ?: java.util.Locale.getDefault()
             java.util.Locale("", iso).getDisplayCountry(locale)
