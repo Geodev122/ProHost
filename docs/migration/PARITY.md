@@ -147,6 +147,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 <!-- PARITY-TABLE:END -->
 
 Automatic class totals (files / lines): A1 36 / 9773, A2 19 / 9607, B 39 / 13819, C 20 / 4255, X 17 / 7353.
+Automatic class totals (files / lines): A1 36 / 9773, A2 19 / 9607, B 39 / 13819, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 36 / 9844, A2 19 / 9607, B 39 / 14005, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 40 / 10004, A2 20 / 10247, B 39 / 14003, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 40 / 10031, A2 20 / 10247, B 39 / 14003, C 20 / 4255, X 17 / 7353.

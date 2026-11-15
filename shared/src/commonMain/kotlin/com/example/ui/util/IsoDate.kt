@@ -14,7 +14,6 @@ import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration.Companion.hours
-import kotlinx.datetime.todayIn
 
 /**
  * Calendar-date arithmetic on ISO `yyyy-MM-dd` strings with no `java.util.Calendar` / `SimpleDateFormat`, so it can live in shared (commonMain)
@@ -43,7 +42,7 @@ object IsoDate {
     /** The device's local date today, as `yyyy-MM-dd`. */
     fun todayIso(): String = todayDate().toString()
 
-    fun todayDate(): LocalDate = kotlinx.datetime.Clock.System.todayIn(TimeZone.currentSystemDefault())
+    fun todayDate(): LocalDate = Instant.fromEpochMilliseconds(com.example.util.nowMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date
 
     /** `Mon`, `Tue`, ... (English, as stored in slot day keys), the same text `SimpleDateFormat("EEE", Locale.US)` printed. */
     fun dayAbbreviation(date: LocalDate): String = when (date.dayOfWeek) {
@@ -59,7 +58,7 @@ object IsoDate {
     // --- UTC helpers (server-style dates: price changes, save statistics) ---
 
     /** Today's date in UTC, `yyyy-MM-dd`. */
-    fun todayUtcIso(): String = kotlinx.datetime.Clock.System.now().toLocalDateTime(TimeZone.UTC).date.toString()
+    fun todayUtcIso(): String = Instant.fromEpochMilliseconds(com.example.util.nowMillis()).toLocalDateTime(TimeZone.UTC).date.toString()
 
     /** 0 = Sunday ... 6 = Saturday. */
     fun weekdaySunday0(date: LocalDate): Int = date.dayOfWeek.isoDayNumber % 7
@@ -80,7 +79,7 @@ object IsoDate {
     fun dateFromUtcMillis(utcMillis: Long): LocalDate = Instant.fromEpochMilliseconds(utcMillis).toLocalDateTime(TimeZone.UTC).date
 
     /** Today's date in UTC. */
-    fun todayUtcDate(): LocalDate = kotlinx.datetime.Clock.System.now().toLocalDateTime(TimeZone.UTC).date
+    fun todayUtcDate(): LocalDate = Instant.fromEpochMilliseconds(com.example.util.nowMillis()).toLocalDateTime(TimeZone.UTC).date
 
     /** Midnight UTC at the start of [date], in epoch millis (the date picker's value for that day). */
     fun startOfDayUtcMillis(date: LocalDate): Long = date.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
