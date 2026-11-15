@@ -10,7 +10,7 @@ import com.example.ui.util.SpaceCalculationUtils
 fun listingItemId(space: SpaceListing): String = space.publicCode
 
 /** GA4 `items[]` entry for a listing, or one of its rooms when [subdivision] is given. */
-internal fun SpaceListing.toAnalyticsItem(subdivision: Subdivision? = null, index: Int? = null): Map<String, Any> {
+fun SpaceListing.toAnalyticsItem(subdivision: Subdivision? = null, index: Int? = null): Map<String, Any> {
     val cfg = subdivision?.pricing ?: pricing
     val price = if (subdivision != null) {
         if (AttendeePricing.isPerAttendee(subdivision)) null
