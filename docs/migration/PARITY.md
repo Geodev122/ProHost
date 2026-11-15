@@ -145,12 +145,13 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/MapModels.kt` | 19 | A1 | — |  |  | ☐ | ☐ | todo |
 | `util/NotificationPermissionManager.kt` | 50 | C | Context removal, Logger, MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
 | `util/PhoneCountryDetector.kt` | 95 | C | Context removal, Location/Geocoder |  |  | ☐ | ☐ | todo |
-| `util/PickedFile.kt` | 35 | A1 | — |  |  | ☐ | ☐ | todo |
+| `util/PickedFileSaver.kt` | 8 | A1 | — |  |  | ☐ | ☐ | todo |
 | `util/PlayIntegrityManager.kt` | 51 | C | Context removal, Logger |  |  | ☐ | ☐ | todo |
 | `util/ShareLinks.kt` | 24 | A1 | — |  |  | ☐ | ☐ | todo |
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 40 / 10004, A2 20 / 10247, B 39 / 14003, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 40 / 10031, A2 20 / 10247, B 39 / 14003, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 40 / 10031, A2 20 / 10247, B 39 / 14003, C 20 / 4254, X 17 / 7353.
 Automatic class totals (files / lines): A1 40 / 10031, A2 20 / 10247, B 39 / 14003, C 20 / 4244, X 17 / 7353.

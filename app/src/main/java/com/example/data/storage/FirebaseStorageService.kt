@@ -32,7 +32,7 @@ class FirebaseStorageService(
             null
         }
     }
-) {
+) : com.example.data.gateway.StorageGateway {
     companion object {
         private const val TAG = "FirebaseStorageService"
 
@@ -75,7 +75,7 @@ class FirebaseStorageService(
     }
 
     /** Same as above for a [com.example.util.PickedFile] (the view models' type); the app context is the default one. */
-    suspend fun uploadProfilePicture(uid: String, file: com.example.util.PickedFile, onProgress: (Float) -> Unit = {}): String? =
+    override suspend fun uploadProfilePicture(uid: String, file: com.example.util.PickedFile, onProgress: (Float) -> Unit): String? =
         uploadProfilePicture(uid, file.toUri(), onProgress = onProgress)
 
     private suspend fun readImageBytes(context: Context, uri: Uri): ByteArray? = withContext(Dispatchers.IO) {
@@ -103,11 +103,11 @@ class FirebaseStorageService(
     }
 
     /** Same as above for a [com.example.util.PickedFile]. */
-    suspend fun uploadListingVerificationDocument(
+    override suspend fun uploadListingVerificationDocument(
         spaceId: String,
         file: com.example.util.PickedFile,
         fileExtension: String,
-        onProgress: (Float) -> Unit = {}
+        onProgress: (Float) -> Unit
     ): String? = uploadListingVerificationDocument(spaceId, file.toUri(), fileExtension, onProgress)
 
     /**
@@ -128,11 +128,11 @@ class FirebaseStorageService(
     )
 
     /** Same as above for a [com.example.util.PickedFile]. */
-    suspend fun uploadBookingAgreement(
+    override suspend fun uploadBookingAgreement(
         bookingId: String,
         file: com.example.util.PickedFile,
         fileExtension: String,
-        onProgress: (Float) -> Unit = {}
+        onProgress: (Float) -> Unit
     ): String? = uploadBookingAgreement(bookingId, file.toUri(), fileExtension, onProgress)
 
     /** Explicit type so the Storage rules' document check never depends on inference. */
@@ -148,12 +148,12 @@ class FirebaseStorageService(
     /**
      * Uploads a listing photo to `listings/{spaceId}/photos/{imageId}.jpg` with automatic compression.
      */
-    suspend fun uploadListingImageBytes(
+    override suspend fun uploadListingImageBytes(
         spaceId: String,
         imageId: String,
         rawBytes: ByteArray,
-        fileExtension: String = "jpg",
-        onProgress: (Float) -> Unit = {}
+        fileExtension: String,
+        onProgress: (Float) -> Unit
     ): String? = uploadCompressedImageBytesAndGetUrl(
         ref = storage?.reference?.child("listings/$spaceId/photos/$imageId.$fileExtension"),
         rawBytes = rawBytes,
@@ -164,13 +164,13 @@ class FirebaseStorageService(
      * Per-subdivision (room/desk) images with automatic compression stored in
      * `listings/{spaceId}/subdivisions/{subdivisionId}/{imageId}.jpg`.
      */
-    suspend fun uploadSubdivisionImageBytes(
+    override suspend fun uploadSubdivisionImageBytes(
         spaceId: String,
         subdivisionId: String,
         imageId: String,
         rawBytes: ByteArray,
-        fileExtension: String = "jpg",
-        onProgress: (Float) -> Unit = {}
+        fileExtension: String,
+        onProgress: (Float) -> Unit
     ): String? = uploadCompressedImageBytesAndGetUrl(
         ref = storage?.reference?.child("listings/$spaceId/subdivisions/$subdivisionId/$imageId.$fileExtension"),
         rawBytes = rawBytes,
@@ -180,7 +180,7 @@ class FirebaseStorageService(
     /**
      * Client-side bucket purge for all images/files stored under `listings/{spaceId}/`.
      */
-    suspend fun purgeListingStorage(spaceId: String): Boolean {
+    override suspend fun purgeListingStorage(spaceId: String): Boolean {
         val rootRef = storage?.reference?.child("listings/$spaceId") ?: return false
         return try {
             deleteRecursively(rootRef)

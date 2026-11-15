@@ -1,5 +1,7 @@
 package com.example.util
 
+import kotlin.concurrent.Volatile
+
 /**
  * A file the person picked or took (profile photo, signed agreement, verification document), as an opaque handle that only the platform layer can
  * open: on Android it is the `content://` (or `https://`) URI string. View models, repositories and shared code pass [PickedFile] around and never
@@ -26,9 +28,3 @@ interface FileAccess {
         fun require(): FileAccess = current ?: error("FileAccess is not initialised (ProHostApplication.onCreate)")
     }
 }
-
-/** Saves a nullable [PickedFile] across configuration changes and process death (as its handle string; empty = none). */
-val PickedFileSaver: androidx.compose.runtime.saveable.Saver<PickedFile?, String> = androidx.compose.runtime.saveable.Saver(
-    save = { it?.handle ?: "" },
-    restore = { handle -> handle.takeIf { it.isNotEmpty() }?.let(::PickedFile) }
-)
