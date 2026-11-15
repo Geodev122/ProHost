@@ -64,7 +64,6 @@ fun ReportBlockMenu(
 ) {
     val isListing = target.listingId != null
     var showReport by remember { mutableStateOf(false) }
-    var showSent by remember { mutableStateOf(false) }
     var showBlock by remember { mutableStateOf(false) }
 
     DropdownMenu(expanded = menuExpanded, onDismissRequest = onMenuDismiss) {
@@ -80,13 +79,33 @@ fun ReportBlockMenu(
         )
     }
 
+    ReportBlockFlows(viewModel, target, showReport, { showReport = false }, showBlock, { showBlock = false })
+}
+
+/**
+ * The report sheet, the "Report sent" note and the block confirmation, for screens that have their own menu
+ * (My Rentals' booking card): the caller owns [showReport] / [showBlock].
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ReportBlockFlows(
+    viewModel: ProHostViewModel,
+    target: ProHostViewModel.ReportTarget,
+    showReport: Boolean,
+    onReportClose: () -> Unit,
+    showBlock: Boolean,
+    onBlockClose: () -> Unit,
+) {
+    val isListing = target.listingId != null
+    var showSent by remember { mutableStateOf(false) }
+
     if (showReport) {
         TrackScreen("report_sheet")
         var reason by remember { mutableStateOf<String?>(null) }
         var details by remember { mutableStateOf("") }
         var alsoBlock by remember { mutableStateOf(false) }
         var sending by remember { mutableStateOf(false) }
-        ProHostBottomSheet(onDismissRequest = { if (!sending) showReport = false }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        ProHostBottomSheet(onDismissRequest = { if (!sending) onReportClose() }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
             Column(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.lg).padding(bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
@@ -128,7 +147,7 @@ fun ReportBlockMenu(
                         sending = true
                         viewModel.sendReport(target, picked, details, alsoBlock) { ok ->
                             sending = false
-                            if (ok) { showReport = false; showSent = true }
+                            if (ok) { onReportClose(); showSent = true }
                         }
                     },
                     enabled = reason != null && !sending,
@@ -151,7 +170,7 @@ fun ReportBlockMenu(
     if (showBlock) {
         var blocking by remember { mutableStateOf(false) }
         AlertDialog(
-            onDismissRequest = { if (!blocking) showBlock = false },
+            onDismissRequest = { if (!blocking) onBlockClose() },
             title = {
                 Text(if (target.name.isBlank()) stringResource(if (isListing) R.string.block_this_host else R.string.block_this_person) + "?"
                     else stringResource(R.string.block_x_question, target.name))
@@ -160,10 +179,10 @@ fun ReportBlockMenu(
             confirmButton = {
                 TextButton(enabled = !blocking, onClick = {
                     blocking = true
-                    viewModel.blockPerson(target) { blocking = false; showBlock = false }
+                    viewModel.blockPerson(target) { blocking = false; onBlockClose() }
                 }) { Text(stringResource(R.string.block), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(enabled = !blocking, onClick = { showBlock = false }) { Text(stringResource(R.string.cancel)) } }
+            dismissButton = { TextButton(enabled = !blocking, onClick = onBlockClose) { Text(stringResource(R.string.cancel)) } }
         )
     }
 }

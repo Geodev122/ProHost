@@ -33,8 +33,15 @@ Owner rules: (1) no change to UI/UX/layout/behaviour — list and ask, never sli
 - Keep every CLAUDE.md product rule (billing, auth, verification, IDs, per-attendee pricing, saves…): moving code does not change them.
 
 ## Build facts (verified 8 Nov 2026)
-AGP 9.4.1, Kotlin 2.2.10, Gradle 9.7.1 (wrapper and CI), Compose BOM 2025.02.00 (will change with CMP), Billing 9.1.0, `android.newDsl=false` +
+AGP 9.4.1, Kotlin 2.3.20 (bumped for CMP 1.12.2), Compose Multiplatform 1.12.2, Gradle 9.7.1 (wrapper and CI), Compose BOM 2025.02.00 (will change with CMP), Billing 9.1.0, `android.newDsl=false` +
 `android.builtInKotlin=false` stay until the P3 split (then: `com.android.kotlin.multiplatform.library` for `shared`, `com.android.application` for `androidApp`,
 no `org.jetbrains.kotlin.android`). Crashlytics + google-services + R8 + signing stay in `androidApp` (removing Crashlytics crashed v1.0.33). The sandbox has no
 Android SDK or Mac: Gradle and Xcode run in GitHub Actions. Tag pushes are refused by the git proxy: baselines are identified by SHA + `refs/design-shots/<name>`.
 Never dispatch `build-and-deploy.yml` from a branch: its deploy job runs on dispatch. Use `migration-checks.yml` / `design-screenshots.yml`.
+
+## Lessons from 14-15 Nov 2026 (apply every time)
+- Moving a model to `:shared` breaks smart casts on its public nullable properties in `:app` ("smart cast impossible, different module"): copy to a local `val` first.
+- A JVM-only call in common code (`Character.toChars`, `String.format`, `System.currentTimeMillis`) passes the Android build and fails the Admin Web (wasm) build: that build is the purity check. Seams used so far: `expect fun nowMillis()`, `expect fun formatFixed()` (Android actual keeps `String.format(Locale.US)` so no digit changes; iOS/wasm use `formatFixedPortable`).
+- After adding or moving Kotlin files run `python3 scripts/migration/gen_parity_table.py --write` (the `main` deploy fails on a missing row); after string changes regenerate compose resources and `Localizable.xcstrings`.
+- Verification is text-only (owner rule 15 Nov): read the Parity Gate result and the names of changed renders; put intended changes on `docs/migration/approved-changes.json`; never view render images.
+- Hand-over notes for a new session or model: `docs/migration/HANDOVER.md`.

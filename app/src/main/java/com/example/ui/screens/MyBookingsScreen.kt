@@ -73,6 +73,18 @@ fun MyBookingsScreen(
     }
     val allSpaces = liveSpaces + fetchedSpaces.values.filter { f -> liveSpaces.none { it.id == f.id } }
     val hasLoadedBookingsOnce by viewModel.hasLoadedBookingsOnce.collectAsState()
+    // Report / Block the host of a booking: the booking the menu was opened on, and which flow is showing.
+    var reportTarget by remember { mutableStateOf<BookingRequest?>(null) }
+    var reportShown by remember { mutableStateOf(false) }
+    var blockShown by remember { mutableStateOf(false) }
+    reportTarget?.let { b ->
+        com.example.ui.components.ReportBlockFlows(
+            viewModel = viewModel,
+            target = ProHostViewModel.ReportTarget(listingId = b.spaceId, bookingId = b.id, name = b.ownerName),
+            showReport = reportShown, onReportClose = { reportShown = false },
+            showBlock = blockShown, onBlockClose = { blockShown = false }
+        )
+    }
     val isOffline by viewModel.isOfflineMode.collectAsState()
     val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
 
@@ -324,6 +336,8 @@ fun MyBookingsScreen(
                         onCancelRequest = {
                             pendingCancelTarget = booking
                         },
+                        onReportHost = { reportTarget = booking; reportShown = true },
+                        onBlockHost = { reportTarget = booking; blockShown = true },
                         onCancelAcceptedBooking = {
                             cancelTargetBooking = booking
                         },
@@ -468,6 +482,9 @@ fun BookingReservationCard(
     onCancelRequest: () -> Unit,
     onCancelAcceptedBooking: () -> Unit = {},
     onMarkPaid: () -> Unit = {},
+    // Report / Block the host of this booking (App Review 1.2); null hides the two menu items.
+    onReportHost: (() -> Unit)? = null,
+    onBlockHost: (() -> Unit)? = null,
     // Pro Hosts are landlord-only (firestore.rules booking create), so they can view
     // bookings made before upgrading but not re-book or edit them.
     canCreateBookings: Boolean = true,
@@ -747,7 +764,8 @@ fun BookingReservationCard(
                     Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = stringResource(R.string.whatsapp_host), tint = WhatsAppDarkGreen, modifier = Modifier.size(18.dp))
                 }
 
-                val hasMoreActions = booking.status == BookingRequestStatus.ACCEPTED || booking.status == BookingRequestStatus.PENDING
+                val hasMoreActions = booking.status == BookingRequestStatus.ACCEPTED || booking.status == BookingRequestStatus.PENDING ||
+                    onReportHost != null || onBlockHost != null
                 if (hasMoreActions) {
                     Box {
                         IconButton(
@@ -803,6 +821,16 @@ fun BookingReservationCard(
                                     onClick = { showMoreMenu = false; onCancelRequest() }
                                 )
                             }
+                            if (onReportHost != null) DropdownMenuItem(
+                                text = { Text(stringResource(R.string.report_this_listing)) },
+                                leadingIcon = { Icon(Icons.Default.Flag, contentDescription = null) },
+                                onClick = { showMoreMenu = false; onReportHost() }
+                            )
+                            if (onBlockHost != null) DropdownMenuItem(
+                                text = { Text(stringResource(R.string.block_this_host)) },
+                                leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) },
+                                onClick = { showMoreMenu = false; onBlockHost() }
+                            )
                         }
                     }
                 }

@@ -8,7 +8,8 @@
     "manage_listing_",
     "space_details_",
     "share_menu_",
-    "request_detail_"
+    "request_detail_",
+    "my_rentals_"
   ],
   "files": [
     "listing_edit_small.png"
@@ -19,6 +20,7 @@
     "rebook_ / edit_booking_": "Dated booking: Re-book and Edit use the same calendar picker as the availability sheet (approved mockup). Final Before | After approval pending (plan B6).",
     "listing_wizard_2_": "Dated booking host tools: the hours step gained a folded 'Closed dates' row (owner chose closed dates, 14 Nov 2026). Before | After approval pending (plan B6).",
     "manage_listing_": "Dated booking host tools: month calendar under the 7-day table (plan B5). Before | After approval pending (plan B6).",
-    "space_details_ / share_menu_ / request_detail_": "Report / Block (Apple App Review 1.2, mockup approved 14 Nov 2026): a three-dot menu in the listing header and in the host's request detail."
+    "space_details_ / share_menu_ / request_detail_": "Report / Block (Apple App Review 1.2, mockup approved 14 Nov 2026): a three-dot menu in the listing header and in the host's request detail.",
+    "my_rentals_": "Report / Block: every booking card has the three-dot menu now (it used to show only on pending and accepted bookings)."
   }
 }

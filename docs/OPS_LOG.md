@@ -121,3 +121,10 @@ Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, ot
 - Goes live: dated-booking server checks (only for requests carrying `dateModel: 2`; the published app 1.0.46 does not send it), report/block callables + rules + indexes, `notifications.ttlAt`, operator block in the legal pages, `/.well-known/apple-app-site-association`, admin console page `/console`.
 - `pruneExpiredNotifications` stays until the deploy has run 48 h with the TTL policy ACTIVE.
 - App Store Connect: 6.9-inch screenshots (EN, AR) and the subscriptions' review screenshot uploaded through the API (`asc_prepare.py` sections `screenshots`, `subreview`).
+
+## 14 Nov 2026 21:21 UTC — Maintenance `prodcheck` after the merge (run 43642323275): healthy
+- Functions: 91 exported, 92 deployed (the extra one is the Trigger Email extension), none missing, none inactive, Node 22. No function errors in 6 h. Callables answer (401 without sign-in, as they should).
+- Indexes: 5 ready, 2 building (the two new `reports` indexes). Cloud Billing enabled. Public pages, redirects, sitemap (14 URLs) and the 6 legacy redirects fine.
+- Play catalog: yearly $79.99 and `pro-monthly1` $8.99 active with their launch offers; RTDN self-test delivered in ~5 s. Last real Play notification: 4 Nov (one subscriber, so quiet is normal).
+- Data: 55 profiles, 87 Auth users (32 without a profile = abandoned registrations, known), 2 listings, 5 bookings, no legacy fields, no parked purchases.
+- To watch: `subscriptions` still holds one ACTIVE record for the retired `package_growth_mrr` plan (its holder is on a permanent admin grant; the record is ignored by every code path).
