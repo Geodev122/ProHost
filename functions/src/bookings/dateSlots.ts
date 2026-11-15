@@ -39,7 +39,10 @@ function parseHour(v: unknown): number | null {
 }
 
 function operatingDays(schedule: Data): string[] {
-  const days = arr(schedule.operatingDays).filter((d): d is string => typeof d === "string");
+  // A listing saved without operating days gets the app model's default (Mon-Sat), as `SpaceOperatingSchedule` does when it reads the document.
+  const days = Array.isArray(schedule.operatingDays)
+    ? arr(schedule.operatingDays).filter((d): d is string => typeof d === "string")
+    : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   if (schedule.isSundayOperating === true && !days.some((d) => d.toLowerCase() === "sun")) days.push("Sun");
   return days;
 }

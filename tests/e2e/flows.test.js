@@ -235,3 +235,26 @@ test("withdrawing a request and cancelling a tenancy notify the other side", asy
   await waitFor("tenant cancel push", hasNotification(SPEC1, "Cancelled"));
   await waitFor("occupancy cleared", async () => !(await db.collection("booking_occupancy").doc("B3").get()).exists);
 });
+
+test("dated requests: a valid date + slot stays pending, a wrong price or a day not offered is rejected by the system", async () => {
+  // A Monday three weeks after WEEK1, clear of every booking made above and inside the 3-month booking window.
+  const monday = addDays(mon1, 21);
+  const dated = (id, date, priceUsd) => booking(id, SPEC2, {
+    dateModel: 2, startDate: date, selectedCalendarDates: [date], selectedDays: [],
+    bookedSlots: [{ date, key: "MORNING", startHour: 8, endHour: 12, shiftName: "MORNING", priceUsd }],
+    totalAmountUsd: priceUsd,
+  });
+
+  await db.collection("booking_requests").doc("D1").set(dated("D1", monday, 20));
+  await waitFor("dated request reaches host", async () => (await notifications(HOST)).find((n) => n.bookingId === "D1"));
+  assert.equal((await get("D1")).status, "PENDING");
+
+  await db.collection("booking_requests").doc("D2").set(dated("D2", monday, 5));
+  const d2 = await waitFor("wrong price auto-reject", async () => { const b = await get("D2"); return b.status === "REJECTED" && b; });
+  assert.equal(d2.rejectedBySystem, true);
+
+  await db.collection("booking_requests").doc("D3").set(dated("D3", addDays(mon1, 22), 20)); // a Tuesday: not offered
+  const d3 = await waitFor("day not offered auto-reject", async () => { const b = await get("D3"); return b.status === "REJECTED" && b; });
+  assert.equal(d3.rejectedBySystem, true);
+  assert.equal((await notifications(HOST)).filter((n) => n.bookingId === "D2" || n.bookingId === "D3").length, 0, "host never sees them");
+});
