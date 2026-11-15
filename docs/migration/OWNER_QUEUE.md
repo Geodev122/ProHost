@@ -99,3 +99,4 @@ Claude filled the listing through Apple's API (texts EN + AR, categories, age ra
 - **J update (14 Nov, 10:45 UTC):** owner: App Privacy answers **published**. Review notes applied (run 43583967508). Still open for you: confirm the age reads 18+ on App Information, Rewa accepts Apple's team invitation e-mail.
 
 - **J update (14 Nov, 21:15 UTC):** owner confirmed and said "merge": branch fast-forwarded to `main` (2ef0493), deploy running. App Store screenshots (EN, AR) and subscription review screenshots uploaded; to be replaced by real iOS captures before submission.
+- **K (15 Nov):** owner: no more Before | After work (too costly). The dated-booking screens stand as built; an overview exists at https://claude.ai/artifact/8VkV8q8LnA5DfyXUFPn45K for reference only, no approval step. Branch merged to `main` again (2b1d587).

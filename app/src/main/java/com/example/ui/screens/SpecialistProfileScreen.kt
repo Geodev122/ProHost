@@ -624,7 +624,9 @@ fun SpecialistProfileScreen(
                                                     )
                                                     Spacer(modifier = Modifier.width(Spacing.sm))
                                                     Text(
-                                                        text = stringResource(R.string.formula_x_x_xx, localizedLabel(req.formula.type.displayName), chosenDaysStr, chosenHoursStr, shiftDetail),
+                                                        text = req.selectedDateTimeRange.takeIf { req.dateModel == 2 && it.isNotBlank() }
+                                                            ?.let { "${localizedLabel(req.formula.type.displayName)} · \u2066$it\u2069" }
+                                                            ?: stringResource(R.string.formula_x_x_xx, localizedLabel(req.formula.type.displayName), chosenDaysStr, chosenHoursStr, shiftDetail),
                                                         style = MaterialTheme.typography.bodySmall,
                                                         color = MaterialTheme.colorScheme.primary,
                                                         fontWeight = FontWeight.SemiBold

@@ -681,7 +681,10 @@ class ProHostViewModel(
                 appendLine()
                 appendLine(uiText(R.string.booking_details))
                 if (request.displayCode.isNotBlank()) appendLine(uiText(R.string.request_x_2, request.displayCode))
-                appendLine(uiText(R.string.schedule_x_xx, daysStr, timesStr, shiftStr))
+                // Dated requests carry their real dates and times; older ones weekdays and hours.
+                val dated = request.selectedDateTimeRange.takeIf { request.dateModel == 2 && it.isNotBlank() }
+                if (dated != null) appendLine(uiText(R.string.schedule) + ": " + dated)
+                else appendLine(uiText(R.string.schedule_x_xx, daysStr, timesStr, shiftStr))
                 appendLine(uiText(R.string.start_xx, request.startDate, durationStr))
                 if (attendeeLine != null) appendLine(uiText(R.string.attendees_x, attendeeLine))
                 appendLine(uiText(R.string.total_x_usd_2, request.totalAmountUsd.toInt()))
@@ -733,7 +736,9 @@ class ProHostViewModel(
 
         val rawMessage = uiText(R.string.hello_x, request.practitionerName) +
                 uiText(R.string.i_am_x_regarding_your_booking_request_x_fo, ownerName, request.publicCode, request.spaceTitle) +
-                uiText(R.string.requested_schedule_x_x_x, daysStr, timesStr, localizedLabel(request.formula.type.displayName)) +
+                (request.selectedDateTimeRange.takeIf { request.dateModel == 2 && it.isNotBlank() }
+                    ?.let { uiText(R.string.schedule) + ": " + it + "\n" }
+                    ?: uiText(R.string.requested_schedule_x_x_x, daysStr, timesStr, localizedLabel(request.formula.type.displayName))) +
                 uiText(R.string.status_x, localizedLabel(request.status.displayName)) +
                 uiText(R.string.let_s_discuss_onboarding_and_walk_through)
 
