@@ -20,9 +20,8 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `analytics/AnalyticsTracker.kt` | 529 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `analytics/ListingAnalytics.kt` | 36 | A1 | — |  |  | ☐ | ☐ | todo |
 | `data/auth/AdminDirectoryModels.kt` | 246 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
-| `data/auth/AuthErrors.kt` | 54 | A1 | Firebase gateways |  |  | ☐ | ☐ | todo |
+| `data/auth/AuthErrors.kt` | 34 | A1 | Firebase gateways |  |  | ☐ | ☐ | todo |
 | `data/auth/AuthFlow.kt` | 168 | B | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
-| `data/auth/AuthGateway.kt` | 25 | A1 | — |  |  | ☐ | ☐ | todo |
 | `data/auth/CallableErrors.kt` | 46 | A1 | Firebase gateways |  |  | ☐ | ☐ | todo |
 | `data/auth/FirebaseAuthService.kt` | 121 | C | Context removal, Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
 | `data/auth/FirebaseFunctionsClient.kt` | 634 | C | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
@@ -132,7 +131,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/util/UiMessages.kt` | 56 | B | Context removal, Messenger |  |  | ☐ | ☐ | todo |
 | `ui/util/UiText.kt` | 45 | B | — |  |  | ☐ | ☐ | todo |
 | `ui/viewmodel/AdminViewModel.kt` | 1309 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
-| `ui/viewmodel/AuthViewModel.kt` | 321 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
+| `ui/viewmodel/AuthViewModel.kt` | 323 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `ui/viewmodel/BillingController.kt` | 525 | C | Context removal, Firebase gateways, MediaPicker(PickedFile), Messenger, PlatformActions, SubscriptionStore |  |  | ☐ | ☐ | todo |
 | `ui/viewmodel/DiscoveryViewModel.kt` | 357 | B | — |  |  | ☐ | ☐ | todo |
 | `ui/viewmodel/ProHostViewModel.kt` | 1354 | B | Clipboard, Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
@@ -152,6 +151,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 40 / 10031, A2 20 / 10247, B 39 / 14003, C 20 / 4244, X 17 / 7353.
 Automatic class totals (files / lines): A1 41 / 10074, A2 20 / 10247, B 39 / 14003, C 20 / 4244, X 17 / 7353.
 Automatic class totals (files / lines): A1 41 / 10074, A2 20 / 10247, B 39 / 14002, C 20 / 4244, X 17 / 7353.
 Automatic class totals (files / lines): A1 41 / 10074, A2 21 / 10296, B 39 / 14002, C 20 / 4240, X 17 / 7353.
