@@ -1888,6 +1888,91 @@
         }
       }
     },
+    "block": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Block"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حظر"
+          }
+        }
+      }
+    },
+    "block_explainer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You won't see their listings, and they can't send you booking requests. They aren't told. Bookings you already have with them stay as they are."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لن ترى إعلاناته، ولن يستطيع إرسال طلبات حجز إليك. لن يتم إخباره. الحجوزات القائمة بينكما تبقى كما هي."
+          }
+        }
+      }
+    },
+    "block_this_host": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Block this host"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حظر هذا المضيف"
+          }
+        }
+      }
+    },
+    "block_this_person": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Block this person"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حظر هذا الشخص"
+          }
+        }
+      }
+    },
+    "block_x_question": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Block %1$@?"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حظر %1$@؟"
+          }
+        }
+      }
+    },
     "blocked": {
       "extractionState": "manual",
       "localizations": {
@@ -1901,6 +1986,74 @@
           "stringUnit": {
             "state": "translated",
             "value": "محجوب"
+          }
+        }
+      }
+    },
+    "blocked_confirmation": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blocked. You can undo this in Profile, under Blocked people."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم الحظر. يمكنك التراجع من الملف الشخصي، ضمن الأشخاص المحظورين."
+          }
+        }
+      }
+    },
+    "blocked_people": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blocked people"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الأشخاص المحظورون"
+          }
+        }
+      }
+    },
+    "blocked_people_empty": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You haven't blocked anyone."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم تحظر أحدًا."
+          }
+        }
+      }
+    },
+    "blocked_person_unnamed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ProHost member"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عضو في ProHost"
           }
         }
       }
@@ -4146,6 +4299,23 @@
         }
       }
     },
+    "couldn_t_block": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't block this person. Try again."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر حظر هذا الشخص. حاول مجددًا."
+          }
+        }
+      }
+    },
     "couldn_t_change_the_price_please_try_again": {
       "extractionState": "manual",
       "localizations": {
@@ -4193,6 +4363,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "تعذّر حذف حسابك. حاول مرة أخرى أو تواصل مع الدعم."
+          }
+        }
+      }
+    },
+    "couldn_t_load_blocked": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't load your blocked list."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر تحميل قائمة المحظورين."
           }
         }
       }
@@ -4418,6 +4605,23 @@
         }
       }
     },
+    "couldn_t_send_report": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't send your report. Check your connection and try again."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر إرسال بلاغك. تحقق من اتصالك وحاول مجددًا."
+          }
+        }
+      }
+    },
     "couldn_t_send_the_verification_email_pleas": {
       "extractionState": "manual",
       "localizations": {
@@ -4516,6 +4720,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "تعذّر تفعيل هذه الفترة — يرجى المحاولة مرة أخرى."
+          }
+        }
+      }
+    },
+    "couldn_t_unblock": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't unblock this person. Try again."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر إلغاء حظر هذا الشخص. حاول مجددًا."
           }
         }
       }
@@ -9530,6 +9751,23 @@
       }
     },
     "more_options": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More options"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "خيارات إضافية"
+          }
+        }
+      }
+    },
+    "more_options_menu": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -14705,6 +14943,261 @@
         }
       }
     },
+    "report_also_block_host": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Also block this host"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "احظر هذا المضيف أيضًا"
+          }
+        }
+      }
+    },
+    "report_also_block_person": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Also block this person"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "احظر هذا الشخص أيضًا"
+          }
+        }
+      }
+    },
+    "report_details_optional": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add details (optional)"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أضف تفاصيل (اختياري)"
+          }
+        }
+      }
+    },
+    "report_reason_harassment": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Harassment or abusive behaviour"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مضايقة أو سلوك مسيء"
+          }
+        }
+      }
+    },
+    "report_reason_misleading": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Misleading or false information"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "معلومات مضلِّلة أو غير صحيحة"
+          }
+        }
+      }
+    },
+    "report_reason_offensive": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offensive or inappropriate content"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "محتوى مسيء أو غير لائق"
+          }
+        }
+      }
+    },
+    "report_reason_other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Something else"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "سبب آخر"
+          }
+        }
+      }
+    },
+    "report_reason_scam": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scam or fraud"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "احتيال"
+          }
+        }
+      }
+    },
+    "report_reason_unsafe": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unsafe space"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مكان غير آمن"
+          }
+        }
+      }
+    },
+    "report_sent": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Report sent"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم إرسال البلاغ"
+          }
+        }
+      }
+    },
+    "report_sent_body_host": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thank you. Our team reviews every report within 24 hours. We don't tell the host who sent it."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "شكرًا لك. يراجع فريقنا كل بلاغ خلال 24 ساعة. لا نخبر المضيف بمن أرسله."
+          }
+        }
+      }
+    },
+    "report_sent_body_person": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thank you. Our team reviews every report within 24 hours. We don't tell the person who sent it."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "شكرًا لك. يراجع فريقنا كل بلاغ خلال 24 ساعة. لا نخبر الشخص بمن أرسله."
+          }
+        }
+      }
+    },
+    "report_this_listing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Report this listing"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الإبلاغ عن هذا الإعلان"
+          }
+        }
+      }
+    },
+    "report_this_person": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Report this person"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الإبلاغ عن هذا الشخص"
+          }
+        }
+      }
+    },
+    "report_why": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Why are you reporting it?"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ما سبب الإبلاغ؟"
+          }
+        }
+      }
+    },
     "request": {
       "extractionState": "manual",
       "localizations": {
@@ -16293,6 +16786,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "إرسال"
+          }
+        }
+      }
+    },
+    "send_report": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send report"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إرسال البلاغ"
           }
         }
       }
@@ -19412,6 +19922,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "غير متاح"
+          }
+        }
+      }
+    },
+    "unblock": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unblock"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إلغاء الحظر"
           }
         }
       }

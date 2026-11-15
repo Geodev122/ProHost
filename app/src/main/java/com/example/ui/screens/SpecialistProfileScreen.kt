@@ -68,6 +68,8 @@ fun SpecialistProfileScreen(
     val needsEmailVerification by viewModel.needsEmailVerification.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val currentUser by viewModel.currentUser.collectAsState()
+    var showBlockedPeople by remember { mutableStateOf(false) }
+    if (showBlockedPeople) com.example.ui.components.BlockedPeopleSheet(viewModel) { showBlockedPeople = false }
 
     // No fabricated Super Admin fallback here anymore — a null currentUser means the
     // session genuinely isn't signed in (this screen used to bake in a real hardcoded
@@ -979,6 +981,11 @@ fun SpecialistProfileScreen(
                                 onClick = {
                                     runCatching { com.example.ui.util.PlatformActions.require().openAppLanguageSettings() }
                                 }
+                            )
+                            ProfileMoreRow(
+                                icon = Icons.Default.Block,
+                                label = stringResource(R.string.blocked_people),
+                                onClick = { showBlockedPeople = true }
                             )
                             ProfileMoreRow(
                                 icon = Icons.AutoMirrored.Filled.Help,

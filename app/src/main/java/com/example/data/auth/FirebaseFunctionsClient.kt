@@ -497,6 +497,23 @@ open class FirebaseFunctionsClient {
      * a target uid. Purges the caller's owned listings, ID/profile-picture
      * uploads, Firestore profile, and finally their Firebase Auth account itself.
      */
+    /** Report a listing or a person (App Review 1.2). [payload] keys: targetType, listingId, targetUid, bookingId, reason, details, alsoBlock. */
+    open suspend fun reportContent(payload: Map<String, Any?>): Result<Unit> = callUnit("reportContent", payload)
+
+    /** Block a person, given directly ([targetUid]) or as the owner of [listingId]. */
+    open suspend fun blockUser(targetUid: String?, listingId: String?): Result<Unit> =
+        callUnit("blockUser", mapOf("targetUid" to targetUid, "listingId" to listingId).filterValues { it != null })
+
+    open suspend fun unblockUser(targetUid: String): Result<Unit> = callUnit("unblockUser", mapOf("targetUid" to targetUid))
+
+    private suspend fun callUnit(name: String, payload: Map<String, Any?>): Result<Unit> = try {
+        functions.getHttpsCallable(name).call(payload).await()
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Log.e(tag, "$name failed: ${e.message}", e)
+        Result.failure(e)
+    }
+
     suspend fun deleteOwnAccount(): Result<Unit> {
         return try {
             // Cleanup of listings and files can take a while; the default 70 s callable timeout

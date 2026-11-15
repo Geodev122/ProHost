@@ -1458,6 +1458,8 @@ data class AppUser(
     // simply absent from firestore.rules' user_profiles protected-key list and writable
     // by the owner like any other profile field. See ProHostRepository.toggleSavedSpace.
     val savedSpaceIds: List<String> = emptyList(),
+    /** People this user blocked (server-written; read only here, never sent back). */
+    val blockedUserIds: List<String> = emptyList(),
     // Server-only — set by Firebase Auth natively via email link; a client write would
     // let anyone claim email-verified status without clicking the link.
     val emailVerified: Boolean = false,
@@ -1541,6 +1543,7 @@ data class AppUser(
                 isSuspended = data["isSuspended"] as? Boolean ?: false,
                 activeListingCount = (data["activeListingCount"] as? Number)?.toInt() ?: 0,
                 savedSpaceIds = (data["savedSpaceIds"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                blockedUserIds = (data["blockedUserIds"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                 emailVerified = data["emailVerified"] as? Boolean ?: false,
                 isDemo = data["isDemo"] as? Boolean ?: (docId.startsWith("demo-") || docId.startsWith("DEMO-") || (data["email"] as? String)?.startsWith("demo.") == true)
             )

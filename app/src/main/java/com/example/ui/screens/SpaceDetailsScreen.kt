@@ -183,6 +183,9 @@ fun SpaceDetailsScreenContent(
     val currentUser by viewModel.currentUser.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var showShareMenu by remember { mutableStateOf(false) }
+    var showReportMenu by remember { mutableStateOf(false) }
+    val viewer = currentUser
+    val canReportListing = viewer != null && viewer.id != liveSpace.ownerId && currentUserRole != UserRole.ADMIN
     // "hidden" | "peek" | "full"
     // peek = division selected, animated slice visible above bottom of screen; press to expand
     // full = full ModalBottomSheet open
@@ -472,7 +475,27 @@ fun SpaceDetailsScreenContent(
                                 IconButton(onClick = { showShareMenu = true }, modifier = Modifier.size(42.dp)) {
                                     Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.share), modifier = Modifier.size(20.dp))
                                 }
+                                // Report / Block: signed-in people looking at someone else's listing.
+                                if (canReportListing) {
+                                    Box(
+                                        Modifier
+                                            .width(1.dp)
+                                            .height(20.dp)
+                                            .background(MaterialTheme.colorScheme.outlineVariant)
+                                    )
+                                    IconButton(onClick = { showReportMenu = true }, modifier = Modifier.size(42.dp)) {
+                                        Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more_options_menu), modifier = Modifier.size(20.dp))
+                                    }
+                                }
                             }
+                        }
+                        if (canReportListing) {
+                            com.example.ui.components.ReportBlockMenu(
+                                viewModel = viewModel,
+                                target = ProHostViewModel.ReportTarget(listingId = liveSpace.id),
+                                menuExpanded = showReportMenu,
+                                onMenuDismiss = { showReportMenu = false }
+                            )
                         }
                         DropdownMenu(
                             expanded = showShareMenu,

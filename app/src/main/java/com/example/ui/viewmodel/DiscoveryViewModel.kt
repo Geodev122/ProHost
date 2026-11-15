@@ -85,8 +85,10 @@ class DiscoveryViewModel(
         // host's package lapsed with no renewal — see expirePackages.ts) without
         // unpublishing it; a specialist who already has an ACCEPTED booking there
         // still reaches it via My Bookings, unaffected by this filter.
+        // People the viewer blocked: their listings are hidden from Explore (report / block, App Review 1.2).
+        val blocked = user?.blockedUserIds.orEmpty().toSet()
         val liveSpaces = spaces.filter {
-            it.status == ListingStatus.ACTIVE && !it.isOwnerSuspended && !it.isOwnerPackageLapsed
+            it.status == ListingStatus.ACTIVE && !it.isOwnerSuspended && !it.isOwnerPackageLapsed && it.ownerId !in blocked
         }
         val tokens = query.lowercase().split(Regex("\\s+")).filter { it.isNotBlank() }
         val singleStrategy = filter.selectedStrategies.singleOrNull()

@@ -170,6 +170,7 @@ fun OwnerIncomingRequestsView(
                 detailRequest?.let { req ->
                     OwnerRequestDetailSheet(
                         request = req,
+                        viewModel = viewModel,
                         onDismiss = { detailRequest = null },
                         onAccept = {
                             detailRequest = null
@@ -367,7 +368,9 @@ fun OwnerRequestDetailSheet(
     onAccept: () -> Unit,
     onReject: () -> Unit,
     onWhatsApp: () -> Unit,
-    onChangePrice: (() -> Unit)? = null
+    onChangePrice: (() -> Unit)? = null,
+    // Report / Block the person who sent the request (three-dot menu in the header); null hides it.
+    viewModel: ProHostViewModel? = null
 ) {
     val sdf = remember { SimpleDateFormat("MMM d, yyyy · HH:mm", Locale.US) }
     val formattedTime = remember(request.createdAt) { sdf.format(Date(request.createdAt)) }
@@ -394,8 +397,23 @@ fun OwnerRequestDetailSheet(
                 Text(
                     text = if (request.replacesBookingId.isNullOrBlank()) stringResource(R.string.booking_request) else stringResource(R.string.change_request),
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
                 )
+                if (viewModel != null && request.practitionerId.isNotBlank()) {
+                    var showReportMenu by remember { mutableStateOf(false) }
+                    Box {
+                        IconButton(onClick = { showReportMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more_options_menu))
+                        }
+                        ReportBlockMenu(
+                            viewModel = viewModel,
+                            target = ProHostViewModel.ReportTarget(targetUid = request.practitionerId, bookingId = request.id, name = request.practitionerName),
+                            menuExpanded = showReportMenu,
+                            onMenuDismiss = { showReportMenu = false }
+                        )
+                    }
+                }
                 when (request.status) {
                     BookingRequestStatus.ACCEPTED -> ProStatusBadge(ProBadgeType.ACCEPTED_LOCKED)
                     BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = uiText(R.string.pending_approval))

@@ -1294,6 +1294,56 @@ class ProHostViewModel(
     }
 
     /** [fallback] is a string resource: shown in the app language, while app_error's area comes from its English text. */
+    // ---- report / block (App Review 1.2) ----
+
+    /** What a report or a block is about: a listing (its owner is resolved by the server) or a person. */
+    data class ReportTarget(val listingId: String? = null, val targetUid: String? = null, val bookingId: String? = null, val name: String = "")
+
+    data class BlockedPerson(val uid: String, val name: String)
+
+    fun sendReport(target: ReportTarget, reason: String, details: String, alsoBlock: Boolean, onDone: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val payload = mapOf(
+                "targetType" to if (target.listingId != null) "listing" else "user",
+                "listingId" to target.listingId, "targetUid" to target.targetUid, "bookingId" to target.bookingId,
+                "reason" to reason, "details" to details.trim(), "alsoBlock" to alsoBlock
+            ).filterValues { it != null }
+            val result = functionsClient.reportContent(payload)
+            result.exceptionOrNull()?.let { reportFailure((it as? Exception) ?: Exception(it), R.string.couldn_t_send_report) }
+            onDone(result.isSuccess)
+        }
+    }
+
+    fun blockPerson(target: ReportTarget, onDone: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val result = functionsClient.blockUser(target.targetUid, target.listingId.takeIf { target.targetUid == null })
+            result.exceptionOrNull()?.let { reportFailure((it as? Exception) ?: Exception(it), R.string.couldn_t_block) }
+            if (result.isSuccess) UiMessages.show(uiText(R.string.blocked_confirmation))
+            onDone(result.isSuccess)
+        }
+    }
+
+    fun unblockPerson(uid: String, onDone: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val result = functionsClient.unblockUser(uid)
+            result.exceptionOrNull()?.let { reportFailure((it as? Exception) ?: Exception(it), R.string.couldn_t_unblock) }
+            onDone(result.isSuccess)
+        }
+    }
+
+    /** The signed-in user's blocked list with names (owner-readable subcollection written by the server). */
+    suspend fun loadBlockedPeople(): List<BlockedPerson> {
+        val uid = currentUser.value?.id ?: return emptyList()
+        return try {
+            com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                .collection("user_profiles").document(uid).collection("blocks").get().await()
+                .documents.map { BlockedPerson(it.id, it.getString("displayName").orEmpty()) }
+        } catch (e: Exception) {
+            reportFailure(e, R.string.couldn_t_load_blocked)
+            emptyList()
+        }
+    }
+
     private fun reportFailure(e: Exception, @androidx.annotation.StringRes fallback: Int) {
         val english = com.example.ui.util.UiText.english(fallback)
         android.util.Log.e("ProHostVM", english, e)

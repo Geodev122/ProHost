@@ -5,7 +5,10 @@
     "rebook_",
     "edit_booking_",
     "listing_wizard_2_",
-    "manage_listing_"
+    "manage_listing_",
+    "space_details_",
+    "share_menu_",
+    "request_detail_"
   ],
   "files": [
     "listing_edit_small.png"
@@ -15,6 +18,7 @@
     "listing_edit_small.png": "Harness artifact, not an app change: the cover photo is decoded from a local file since 14 Nov (frozen-date harness), which resamples differently in this one variant. Goes away with the harness-v2 baseline (golden-v1047-h2).",
     "rebook_ / edit_booking_": "Dated booking: Re-book and Edit use the same calendar picker as the availability sheet (approved mockup). Final Before | After approval pending (plan B6).",
     "listing_wizard_2_": "Dated booking host tools: the hours step gained a folded 'Closed dates' row (owner chose closed dates, 14 Nov 2026). Before | After approval pending (plan B6).",
-    "manage_listing_": "Dated booking host tools: month calendar under the 7-day table (plan B5). Before | After approval pending (plan B6)."
+    "manage_listing_": "Dated booking host tools: month calendar under the 7-day table (plan B5). Before | After approval pending (plan B6).",
+    "space_details_ / share_menu_ / request_detail_": "Report / Block (Apple App Review 1.2, mockup approved 14 Nov 2026): a three-dot menu in the listing header and in the host's request detail."
   }
 }
