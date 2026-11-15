@@ -246,15 +246,23 @@ test("dated requests: a valid date + slot stays pending, a wrong price or a day 
     totalAmountUsd: priceUsd,
   });
 
-  await db.collection("booking_requests").doc("D1").set(dated("D1", monday, 20));
-  await waitFor("dated request reaches host", async () => (await notifications(HOST)).find((n) => n.bookingId === "D1"));
+  // The Change price test above moved Room A's morning price: read what the room charges now.
+  const room = (await db.collection("workspace_listings").doc(SPACE).get()).data().subdivisions.find((r) => r.id === "SUB-1");
+  const price = room.pricing.shiftBased.shifts.find((x) => x.name === "MORNING").price;
+
+  await db.collection("booking_requests").doc("D1").set(dated("D1", monday, price));
+  await waitFor("dated request reaches host", async () => {
+    const b = await get("D1");
+    if (b?.status === "REJECTED") throw new Error(`D1 rejected: ${b.rejectionReason}`);
+    return (await notifications(HOST)).find((n) => n.bookingId === "D1");
+  });
   assert.equal((await get("D1")).status, "PENDING");
 
-  await db.collection("booking_requests").doc("D2").set(dated("D2", monday, 5));
+  await db.collection("booking_requests").doc("D2").set(dated("D2", monday, price + 7));
   const d2 = await waitFor("wrong price auto-reject", async () => { const b = await get("D2"); return b.status === "REJECTED" && b; });
   assert.equal(d2.rejectedBySystem, true);
 
-  await db.collection("booking_requests").doc("D3").set(dated("D3", addDays(mon1, 43), 20)); // a Tuesday: not offered
+  await db.collection("booking_requests").doc("D3").set(dated("D3", addDays(mon1, 43), price)); // a Tuesday: not offered
   const d3 = await waitFor("day not offered auto-reject", async () => { const b = await get("D3"); return b.status === "REJECTED" && b; });
   assert.equal(d3.rejectedBySystem, true);
   assert.equal((await notifications(HOST)).filter((n) => n.bookingId === "D2" || n.bookingId === "D3").length, 0, "host never sees them");
