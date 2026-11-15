@@ -100,3 +100,4 @@ Claude filled the listing through Apple's API (texts EN + AR, categories, age ra
 
 - **J update (14 Nov, 21:15 UTC):** owner confirmed and said "merge": branch fast-forwarded to `main` (2ef0493), deploy running. App Store screenshots (EN, AR) and subscription review screenshots uploaded; to be replaced by real iOS captures before submission.
 - **K (15 Nov):** owner: no more Before | After work (too costly). The dated-booking screens stand as built; an overview exists at https://claude.ai/artifact/8VkV8q8LnA5DfyXUFPn45K for reference only, no approval step. Branch merged to `main` again (2b1d587).
+- **L (15 Nov):** owner confirmed: App Information shows 18+; Rewa accepted Apple's team invitation (Claude ran `ios-inspect` `only=tester` to add her to the internal TestFlight group); the other SwiftUI session is stopped.
