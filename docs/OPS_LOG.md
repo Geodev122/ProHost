@@ -131,3 +131,4 @@ Admin batch (`assignInitialRole`, `forceProHostUpgrade`, `revokeProHostRole`, ot
 
 ## 15 Nov 2026 10:52 UTC — backend deployed again (build-and-deploy run 43705512600, `main` 1f158a5)
 First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row and an e2e test that used a price the Change price test had changed). Live now: report/block indexes, server checks for dated requests (`dateModel: 2`), the operating-days default in the date engine, price change by date + slot.
+- 15 Nov 11:38 UTC: build-and-deploy run 43709428115 on main cab798d (FunctionsGateway, AuthGateway to :shared, SharedText seam) succeeded incl. e2e; no backend change.
