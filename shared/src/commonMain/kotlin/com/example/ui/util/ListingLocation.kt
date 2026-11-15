@@ -2,7 +2,6 @@ package com.example.ui.util
 
 import com.example.data.model.COUNTRIES
 import com.example.data.model.SpaceListing
-import java.util.Locale
 
 /**
  * Where a listing is, as the host set it in the Create listing wizard: "City, Country" (country in the app language).
@@ -32,8 +31,7 @@ object ListingLocation {
     /** A stored English country name in the app language ("Lebanon" → "لبنان" in Arabic); unknown names stay as typed. */
     fun countryLabel(countryEn: String): String {
         val iso = COUNTRIES.firstOrNull { it.name.equals(countryEn.trim(), ignoreCase = true) }?.isoCode ?: return countryEn
-        val locale = UiText.resources?.configuration?.locales?.get(0) ?: Locale.getDefault()
-        return Locale("", iso).getDisplayCountry(locale).ifBlank { countryEn }
+        return LocaleNames.country(iso).ifBlank { countryEn }
     }
 }
 
@@ -44,5 +42,13 @@ fun SpaceListing.locationLine(): String = ListingLocation.line(
     governorateLabel = localizedLabel(governorate.displayName),
     country = country,
     countryLabel = ListingLocation::countryLabel,
-    separator = if (UiText.resources?.configuration?.locales?.get(0)?.language == "ar") "، " else ", "
+    separator = if (AppLanguage.current() == "ar") "، " else ", "
 )
+
+/**
+ * Names the platform knows in the app language (Android: `java.util.Locale`, set in `ProHostApplication`). Default = no name,
+ * so callers fall back to the English text they hold.
+ */
+object LocaleNames {
+    var country: (isoCode: String) -> String = { "" }
+}

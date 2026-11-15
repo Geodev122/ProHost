@@ -15,6 +15,10 @@ class ProHostApplication : Application() {
         ).resources
         com.example.ui.util.UiText.init(resources, english)
         com.example.ui.util.AppLanguage.current = { com.example.ui.util.UiText.resources?.configuration?.locales?.get(0)?.language ?: "" }
+        com.example.ui.util.LocaleNames.country = { iso ->
+            val locale = com.example.ui.util.UiText.resources?.configuration?.locales?.get(0) ?: java.util.Locale.getDefault()
+            java.util.Locale("", iso).getDisplayCountry(locale)
+        }
         com.example.ui.util.UiMessages.init(this)
         com.example.ui.util.AndroidPlatformActions.init(this)
         com.example.util.FileAccess.current = com.example.util.AndroidFileAccess(this)
