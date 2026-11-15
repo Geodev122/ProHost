@@ -71,6 +71,7 @@ enum PHIcon: String, CaseIterable {
     case filledFavorite = "ic_filled_favorite"
     case filledFavoriteBorder = "ic_filled_favorite_border"
     case filledFilterList = "ic_filled_filter_list"
+    case filledFlag = "ic_filled_flag"
     case filledFormatListBulleted = "ic_filled_format_list_bulleted"
     case filledGavel = "ic_filled_gavel"
     case filledGroups = "ic_filled_groups"
@@ -84,6 +85,7 @@ enum PHIcon: String, CaseIterable {
     case filledInsights = "ic_filled_insights"
     case filledKey = "ic_filled_key"
     case filledKeyboardArrowDown = "ic_filled_keyboard_arrow_down"
+    case filledKeyboardArrowLeft = "ic_filled_keyboard_arrow_left"
     case filledKeyboardArrowRight = "ic_filled_keyboard_arrow_right"
     case filledKeyboardArrowUp = "ic_filled_keyboard_arrow_up"
     case filledLanguage = "ic_filled_language"
@@ -184,7 +186,7 @@ enum PHIcon: String, CaseIterable {
     /// Icons Android draws with `Icons.AutoMirrored`: they flip in right-to-left layouts.
     var autoMirrored: Bool {
         switch self {
-        case .filledArrowBack, .filledArrowBackIos, .filledArrowForward, .filledArrowForwardIos, .filledAssignment, .filledChat, .filledEventNote, .filledFactCheck, .filledFormatListBulleted, .filledHelp, .filledKeyboardArrowRight, .filledListAlt, .filledLogout, .filledNotes, .filledReceiptLong, .filledSend, .filledTrendingDown, .filledTrendingUp, .outlinedReceiptLong:
+        case .filledArrowBack, .filledArrowBackIos, .filledArrowForward, .filledArrowForwardIos, .filledAssignment, .filledChat, .filledEventNote, .filledFactCheck, .filledFormatListBulleted, .filledHelp, .filledKeyboardArrowLeft, .filledKeyboardArrowRight, .filledListAlt, .filledLogout, .filledNotes, .filledReceiptLong, .filledSend, .filledTrendingDown, .filledTrendingUp, .outlinedReceiptLong:
             return true
         default:
             return false

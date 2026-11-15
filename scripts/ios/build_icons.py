@@ -20,6 +20,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 KT = ROOT / "app/src/main/java"
+# Code moved to the KMP module keeps its icon uses (nav tabs live in shared/ since the KMP move).
+KT_DIRS = [KT, ROOT / "shared/src"]
 ASSETS = ROOT / "ios/ProHost/Resources/Assets.xcassets/Icons"
 SWIFT = ROOT / "ios/ProHost/DesignSystem/PHIcon.swift"
 PKG = "@material-design-icons/svg@0.14.15"
@@ -35,7 +37,7 @@ def snake(name):
 
 def used_icons():
     found = {}
-    for f in glob.glob(str(KT / "**/*.kt"), recursive=True):
+    for f in [x for d in KT_DIRS for x in glob.glob(str(d / "**/*.kt"), recursive=True)]:
         for m in PAT.finditer(Path(f).read_text(encoding="utf-8")):
             key = (STYLE_TAG[m.group(2)], m.group(3))
             found[key] = found.get(key, False) or bool(m.group(1))
