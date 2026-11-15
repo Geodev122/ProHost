@@ -29,13 +29,13 @@ class FirestoreService(
     },
     // Tests only: no Firestore at all, and writes report success so repository flows run
     // against in-memory state instead of production (see localOnly()).
-    val localOnly: Boolean = false
-) {
+    override val localOnly: Boolean = false
+) : com.example.data.gateway.FirestoreGateway {
     companion object {
         private const val TAG = "FirestoreService"
 
         /** Explore loads active listings a page at a time (see setPublicListingsLimit). */
-        const val PUBLIC_LISTINGS_PAGE = 100
+        const val PUBLIC_LISTINGS_PAGE = com.example.data.gateway.FirestoreGateway.PUBLIC_LISTINGS_PAGE
 
         /** user_profiles/{uid}/notifications — the in-app notification centre. */
         const val NOTIFICATIONS = "notifications"
@@ -64,7 +64,7 @@ class FirestoreService(
     private var reattachPublicListings: ((Int) -> Unit)? = null
 
     /** Grows Explore's live listing page to [limit]. */
-    fun setPublicListingsLimit(limit: Int) { reattachPublicListings?.invoke(limit) }
+    override fun setPublicListingsLimit(limit: Int) { reattachPublicListings?.invoke(limit) }
 
     /**
      * Live accepted-booking occupancy of one listing, from the server-maintained public projection
@@ -72,12 +72,12 @@ class FirestoreService(
      * can read only their own booking_requests, so this is how they see slots other people hold.
      * Returns null in local-only mode; the caller removes the registration when it leaves.
      */
-    fun listenOccupancy(
+    override fun listenOccupancy(
         spaceId: String,
         onUpdate: (List<RentalBookingRequest>) -> Unit
-    ): com.google.firebase.firestore.ListenerRegistration? {
+    ): com.example.data.gateway.ListenerHandle? {
         val db = firestore ?: return null
-        return db.collection("booking_occupancy")
+        val registration = db.collection("booking_occupancy")
             .whereEqualTo("spaceId", spaceId)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
@@ -88,6 +88,7 @@ class FirestoreService(
                     doc.data?.let { BookingRequest.fromFirestoreMap(doc.id, it) }
                 })
             }
+        return com.example.data.gateway.ListenerHandle { registration.remove() }
     }
 
     /**
@@ -115,23 +116,23 @@ class FirestoreService(
      * gone: a genuinely empty result (no listings match, no bookings exist) now reaches the
      * caller like any other real snapshot, instead of being silently dropped.
      */
-    fun attachLiveListeners(
+    override fun attachLiveListeners(
         currentUid: String?,
         isAdminCaller: Boolean,
         onWorkspacesUpdated: (List<SpaceListing>) -> Unit,
         onUsersUpdated: (List<AppUser>) -> Unit,
         onBookingsUpdated: (List<RentalBookingRequest>) -> Unit,
-        onSchemaUpdated: (SpaceArchitectureSchema) -> Unit = {},
-        onAuditLogsUpdated: (List<AuditSecurityLog>) -> Unit = {},
-        onWorkspacesError: (Exception) -> Unit = {},
-        publicListingsLimit: Int = PUBLIC_LISTINGS_PAGE,
+        onSchemaUpdated: (SpaceArchitectureSchema) -> Unit,
+        onAuditLogsUpdated: (List<AuditSecurityLog>) -> Unit,
+        onWorkspacesError: (Exception) -> Unit,
+        publicListingsLimit: Int,
         // true when a paged list filled its limit, so another page may exist.
-        onPublicListingsPage: (hasMore: Boolean) -> Unit = {},
+        onPublicListingsPage: (hasMore: Boolean) -> Unit,
         // Admin only: listings waiting for verification review (a small live queue; the
         // console finds everything else through server search — see adminDirectory.ts).
-        onReviewQueueUpdated: (List<SpaceListing>) -> Unit = {},
+        onReviewQueueUpdated: (List<SpaceListing>) -> Unit,
         // The signed-in user's in-app notification centre (last 48 h, newest first).
-        onNotificationsUpdated: (List<FCMAlert>) -> Unit = {}
+        onNotificationsUpdated: (List<FCMAlert>) -> Unit
     ) {
         val db = firestore ?: return
 
@@ -350,7 +351,7 @@ class FirestoreService(
         }
     }
 
-    fun clearListeners() {
+    override fun clearListeners() {
         activeListeners.forEach { runCatching { it.remove() } }
         activeListeners.clear()
         publicListingsRegistration?.let { runCatching { it.remove() } }
@@ -367,7 +368,7 @@ class FirestoreService(
      * subdivisions included) — previously this wrote only a partial field subset, silently
      * dropping nested data on every save.
      */
-    suspend fun deleteWorkspace(spaceId: String): Boolean {
+    override suspend fun deleteWorkspace(spaceId: String): Boolean {
         return try {
             val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS).document(spaceId).delete().await()
@@ -378,7 +379,7 @@ class FirestoreService(
         }
     }
 
-    suspend fun saveWorkspace(space: SpaceListing): Boolean {
+    override suspend fun saveWorkspace(space: SpaceListing): Boolean {
         return try {
             val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
@@ -398,7 +399,7 @@ class FirestoreService(
      * change just `status`, without re-sending (and risking overwriting) the rest
      * of the listing the way saveWorkspace()'s full-document write would.
      */
-    suspend fun updateWorkspaceListingFields(spaceId: String, fields: Map<String, Any?>): Boolean {
+    override suspend fun updateWorkspaceListingFields(spaceId: String, fields: Map<String, Any?>): Boolean {
         return try {
             val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
@@ -421,7 +422,7 @@ class FirestoreService(
      * different users, which is exactly this scenario (many different Specialists
      * viewing/inquiring on the same listing around the same time).
      */
-    suspend fun incrementSpaceCounter(spaceId: String, field: String): Boolean {
+    override suspend fun incrementSpaceCounter(spaceId: String, field: String): Boolean {
         return try {
             val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.WORKSPACE_LISTINGS)
@@ -442,7 +443,7 @@ class FirestoreService(
      * perspective (a failure here shouldn't block a listing publish), so this simply
      * returns whether it succeeded rather than throwing.
      */
-    suspend fun recordHashtagUsage(tags: List<String>, governorate: String): Boolean {
+    override suspend fun recordHashtagUsage(tags: List<String>, governorate: String): Boolean {
         val db = firestore ?: return localOnly
         return try {
             tags.map { it.trim().lowercase() }.filter { it.isNotBlank() }.forEach { tag ->
@@ -467,7 +468,7 @@ class FirestoreService(
     }
 
     /** Marks in-app notifications read (the only fields the rules let the owner change). */
-    suspend fun markNotificationsRead(uid: String, ids: List<String>): Boolean {
+    override suspend fun markNotificationsRead(uid: String, ids: List<String>): Boolean {
         val db = firestore ?: return localOnly
         if (ids.isEmpty()) return true
         return try {
@@ -491,7 +492,7 @@ class FirestoreService(
     }
 
     /** One listing by id (e.g. a booking's space outside the loaded Explore page); null if gone or unreadable. */
-    suspend fun fetchListing(spaceId: String): SpaceListing? {
+    override suspend fun fetchListing(spaceId: String): SpaceListing? {
         val db = firestore ?: return null
         if (spaceId.isBlank()) return null
         return try {
@@ -507,7 +508,7 @@ class FirestoreService(
     /** Top-used hashtags overall, for CreateListingDialog's autosuggest — a fixed
      *  top-N snapshot fetched once when the dialog opens, filtered client-side by
      *  prefix as the host types, not a per-keystroke query. */
-    suspend fun getTopHashtags(limit: Long = 30): List<String> {
+    override suspend fun getTopHashtags(limit: Long): List<String> {
         val db = firestore ?: return emptyList()
         return try {
             db.collection(FirestoreSchema.Collections.HASHTAG_USAGE)
@@ -528,7 +529,7 @@ class FirestoreService(
      *  hashtags used" requirement. governorate here is whichever listing most
      *  recently used the tag, not a full per-governorate breakdown — a reasonable
      *  first cut given this is a single-country deployment today. */
-    suspend fun getHashtagAnalytics(limit: Long = 50): List<HashtagUsageEntry> {
+    override suspend fun getHashtagAnalytics(limit: Long): List<HashtagUsageEntry> {
         val db = firestore ?: return emptyList()
         return try {
             db.collection(FirestoreSchema.Collections.HASHTAG_USAGE)
@@ -569,7 +570,7 @@ class FirestoreService(
      * Firestore then rejects the *entire* write as an attempted protected-field
      * change, even though the caller only meant to edit their name.
      */
-    suspend fun saveUserProfile(user: AppUser): Boolean {
+    override suspend fun saveUserProfile(user: AppUser): Boolean {
         return try {
             val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.USER_PROFILES)
@@ -583,7 +584,7 @@ class FirestoreService(
         }
     }
 
-    suspend fun updateUserProfileFields(uid: String, fields: Map<String, Any?>): Boolean {
+    override suspend fun updateUserProfileFields(uid: String, fields: Map<String, Any?>): Boolean {
         return try {
             val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.USER_PROFILES)
@@ -601,7 +602,7 @@ class FirestoreService(
      * Adds or removes one saved listing with arrayUnion / arrayRemove, so a heart tap never rewrites the whole list from a
      * possibly stale copy (two devices, a quick double tap). The server's favoritesSync counts the difference.
      */
-    suspend fun setSavedSpace(uid: String, spaceId: String, saved: Boolean): Boolean {
+    override suspend fun setSavedSpace(uid: String, spaceId: String, saved: Boolean): Boolean {
         return try {
             val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.USER_PROFILES)
@@ -625,7 +626,7 @@ class FirestoreService(
      * it never touches any other field; not a protected field in firestore.rules since
      * only the owning user ever writes their own token.
      */
-    suspend fun saveFcmToken(uid: String, token: String): Boolean {
+    override suspend fun saveFcmToken(uid: String, token: String): Boolean {
         return try {
             val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.USER_PROFILES)
@@ -639,7 +640,7 @@ class FirestoreService(
         }
     }
 
-    suspend fun deleteUserProfile(userId: String): Boolean {
+    override suspend fun deleteUserProfile(userId: String): Boolean {
         return try {
             val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.USER_PROFILES).document(userId).delete().await()
@@ -650,7 +651,7 @@ class FirestoreService(
         }
     }
 
-    suspend fun getUserProfile(userId: String): Map<String, Any>? {
+    override suspend fun getUserProfile(userId: String): Map<String, Any>? {
         return try {
             val db = firestore ?: return null
             val doc = db.collection(FirestoreSchema.Collections.USER_PROFILES).document(userId).get().await()
@@ -669,7 +670,7 @@ class FirestoreService(
     // persistPricingState) — firestore.rules denies every direct client write to
     // system_metadata, so a save*State function here would only ever fail.
 
-    suspend fun getPricingState(): AdminPricingState? {
+    override suspend fun getPricingState(): AdminPricingState? {
         return try {
             val db = firestore ?: return null
             val doc = db.collection(AdminPricingState.COLLECTION_PATH)
@@ -688,7 +689,7 @@ class FirestoreService(
     // BOOKING REQUESTS (schema.gql BookingRequest)
     // ==========================================
 
-    suspend fun saveBookingRequest(booking: BookingRequest): Boolean {
+    override suspend fun saveBookingRequest(booking: BookingRequest): Boolean {
         return try {
             val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS)
@@ -702,7 +703,7 @@ class FirestoreService(
         }
     }
 
-    suspend fun deleteBookingRequest(bookingId: String): Boolean {
+    override suspend fun deleteBookingRequest(bookingId: String): Boolean {
         return try {
             val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS).document(bookingId).delete().await()
@@ -713,11 +714,11 @@ class FirestoreService(
         }
     }
 
-    suspend fun updateBookingStatus(
+    override suspend fun updateBookingStatus(
         requestId: String,
         status: BookingRequestStatus,
-        rejectionReason: String? = null,
-        extraFields: Map<String, Any?> = emptyMap()
+        rejectionReason: String?,
+        extraFields: Map<String, Any?>
     ): Boolean {
         return try {
             val db = firestore ?: return localOnly
@@ -747,7 +748,7 @@ class FirestoreService(
      * appropriate for something like a payment acknowledgment — see
      * BookingRequest.paymentAcknowledgedByHost/paymentAcknowledgedBySpecialist).
      */
-    suspend fun updateBookingFields(requestId: String, fields: Map<String, Any?>): Boolean {
+    override suspend fun updateBookingFields(requestId: String, fields: Map<String, Any?>): Boolean {
         return try {
             val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.BOOKING_REQUESTS)
@@ -765,7 +766,7 @@ class FirestoreService(
     // SPACE ARCHITECTURE SCHEMA (taxonomy)
     // ==========================================
 
-    suspend fun saveSchema(schema: SpaceArchitectureSchema): Boolean {
+    override suspend fun saveSchema(schema: SpaceArchitectureSchema): Boolean {
         val db = firestore ?: return localOnly
         db.collection(FirestoreSchema.Collections.SCHEMA_ARCHITECTURE)
             .document("main")
@@ -776,7 +777,7 @@ class FirestoreService(
 
     /** One-shot read of the currently-published version of legal document [docId], or
      * null if nothing has ever been uploaded for it (or the read fails). */
-    suspend fun getLatestLegalDocumentVersion(docId: String): LegalDocumentVersion? {
+    override suspend fun getLatestLegalDocumentVersion(docId: String): LegalDocumentVersion? {
         return try {
             val db = firestore ?: return null
             val snap = db.collection(LegalDocumentVersion.COLLECTION_PATH).document(docId).get().await()
@@ -799,7 +800,7 @@ class FirestoreService(
      * the version number also has to name the Storage object and the subcollection
      * doc id consistently across both writes.
      */
-    suspend fun publishLegalDocumentVersion(docId: String, version: LegalDocumentVersion): Boolean {
+    override suspend fun publishLegalDocumentVersion(docId: String, version: LegalDocumentVersion): Boolean {
         return try {
             val db = firestore ?: return localOnly
             db.collection(LegalDocumentVersion.COLLECTION_PATH).document(docId)

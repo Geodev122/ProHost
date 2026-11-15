@@ -33,7 +33,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `data/billing/PlayOfferText.kt` | 289 | B | SubscriptionStore |  |  | ☐ | ☐ | todo |
 | `data/billing/PlayPromo.kt` | 92 | B | SubscriptionStore |  |  | ☐ | ☐ | todo |
 | `data/demo/DemoDataGenerator.kt` | 361 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
-| `data/firestore/FirestoreService.kt` | 820 | C | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
+| `data/firestore/FirestoreService.kt` | 821 | C | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
 | `data/repository/BookingsRepository.kt` | 492 | B | Logger |  |  | ☐ | ☐ | todo |
 | `data/repository/ProHostRepository.kt` | 1203 | B | Logger |  |  | ☐ | ☐ | todo |
 | `data/repository/ProfilesRepository.kt` | 350 | B | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
@@ -151,6 +151,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 40 / 10031, A2 20 / 10247, B 39 / 14003, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 40 / 10031, A2 20 / 10247, B 39 / 14003, C 20 / 4254, X 17 / 7353.
 Automatic class totals (files / lines): A1 40 / 10031, A2 20 / 10247, B 39 / 14003, C 20 / 4244, X 17 / 7353.
 Automatic class totals (files / lines): A1 41 / 10074, A2 20 / 10247, B 39 / 14003, C 20 / 4244, X 17 / 7353.

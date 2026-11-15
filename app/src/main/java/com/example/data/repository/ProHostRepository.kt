@@ -23,7 +23,7 @@ import java.util.Date
 import java.util.Locale
 
 class ProHostRepository(
-    internal val firestoreService: FirestoreService = FirestoreService.getInstance(),
+    internal val firestoreService: com.example.data.gateway.FirestoreGateway = FirestoreService.getInstance(),
     internal val functionsClient: FirebaseFunctionsClient = FirebaseFunctionsClient()
 ) {
 

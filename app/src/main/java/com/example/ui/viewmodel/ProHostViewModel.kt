@@ -496,7 +496,7 @@ class ProHostViewModel(
     // Accepted-booking occupancy per listing (public projection), watched while a listing is open.
     private val _occupancy = MutableStateFlow<Map<String, List<RentalBookingRequest>>>(emptyMap())
     val occupancy: StateFlow<Map<String, List<RentalBookingRequest>>> = _occupancy.asStateFlow()
-    private val occupancyListeners = mutableMapOf<String, com.google.firebase.firestore.ListenerRegistration>()
+    private val occupancyListeners = mutableMapOf<String, com.example.data.gateway.ListenerHandle>()
     private val occupancyWatchers = mutableMapOf<String, Int>()
 
     /** Starts (or shares) the live occupancy feed for [spaceId]; pair with [unwatchOccupancy]. */
