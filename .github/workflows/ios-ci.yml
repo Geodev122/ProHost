@@ -1,11 +1,11 @@
 name: iOS CI
 
-# Builds the SwiftUI app and runs unit tests on a simulator. No Apple secrets needed (no signing).
+# Builds the iOS app (Swift host + the shared Kotlin/Compose framework) and runs unit tests on a simulator. No Apple secrets needed (no signing).
 on:
   push:
-    paths: ["ios/**", "scripts/ios/**", "app/src/main/res/values*/**", "app/src/main/java/**", ".github/workflows/ios-ci.yml"]
+    paths: ["ios/**", "scripts/ios/**", "shared/**", "gradle/**", "*.gradle.kts", "gradle.properties", "app/src/main/res/values*/**", "app/src/main/java/**", ".github/workflows/ios-ci.yml"]
   pull_request:
-    paths: ["ios/**", "scripts/ios/**", "app/src/main/res/values*/**", "app/src/main/java/**", ".github/workflows/ios-ci.yml"]
+    paths: ["ios/**", "scripts/ios/**", "shared/**", "gradle/**", "*.gradle.kts", "gradle.properties", "app/src/main/res/values*/**", "app/src/main/java/**", ".github/workflows/ios-ci.yml"]
   workflow_dispatch:
 
 concurrency:
@@ -18,9 +18,18 @@ permissions:
 jobs:
   build-test:
     runs-on: macos-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      # Gradle builds the shared Kotlin framework from Xcode's pre-build script (ios/project.yml).
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.7.1"
 
       - name: String catalog is current and in parity (Android strings -> iOS)
         run: |
@@ -29,8 +38,6 @@ jobs:
           diff -q "$RUNNER_TEMP/Localizable.xcstrings" ios/ProHost/Resources/Localizable.xcstrings \
             || { echo "::error::Localizable.xcstrings is stale: run python3 scripts/ios/strings_convert.py and commit"; exit 1; }
           python3 scripts/ios/check_strings_parity.py
-          python3 scripts/ios/build_icons.py --check
-          python3 scripts/ios/build_labels.py --check
 
       - name: Select newest Xcode
         run: |

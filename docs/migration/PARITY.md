@@ -104,7 +104,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/screens/RoomCards.kt` | 601 | A1 | Context removal |  |  | ☐ | ☐ | todo |
 | `ui/screens/SpaceDetailsScreen.kt` | 1286 | A1 | Context removal |  |  | ☐ | ☐ | todo |
 | `ui/screens/SpecialistProfileScreen.kt` | 1144 | A2 | Context removal, java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
-| `ui/screens/SplashScreen.kt` | 74 | A1 | — |  |  | ☐ | ☐ | todo |
+| `ui/screens/SplashScreen.kt` | 30 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/screens/admin/AdminBillingRescue.kt` | 268 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/screens/admin/AdminDemoTab.kt` | 223 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/screens/admin/AdminDossierSheet.kt` | 212 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
@@ -116,8 +116,8 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/screens/auth/AuthSteps.kt` | 514 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/state/AdminUiState.kt` | 133 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/theme/FontScaleCap.kt` | 20 | C | Context removal |  |  | ☐ | ☐ | todo |
-| `ui/theme/Theme.kt` | 224 | B | — |  |  | ☐ | ☐ | todo |
-| `ui/theme/Type.kt` | 47 | A1 | — |  |  | ☐ | ☐ | todo |
+| `ui/theme/Theme.kt` | 38 | B | — |  |  | ☐ | ☐ | todo |
+| `ui/theme/Type.kt` | 20 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/util/ContextUtils.kt` | 15 | C | Context removal |  |  | ☐ | ☐ | todo |
 | `ui/util/DateLabels.kt` | 21 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/util/Haptics.kt` | 23 | A1 | Haptics |  |  | ☐ | ☐ | todo |
@@ -146,6 +146,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 36 / 9773, A2 19 / 9607, B 39 / 13819, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 36 / 9844, A2 19 / 9607, B 39 / 14005, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 40 / 10004, A2 20 / 10247, B 39 / 14003, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 40 / 10031, A2 20 / 10247, B 39 / 14003, C 20 / 4255, X 17 / 7353.

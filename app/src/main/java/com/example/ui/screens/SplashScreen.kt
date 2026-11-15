@@ -2,20 +2,8 @@ package com.example.ui.screens
 
 import com.example.R
 import androidx.compose.ui.res.stringResource
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
 
 /**
  * This is the app's OWN first screen — distinct from the OS-level SplashScreen API (API
@@ -33,41 +21,9 @@ fun SplashScreen(
     onSplashCompleted: () -> Unit,
     onError: (() -> Unit)? = null
 ) {
-    var contentAlpha by remember { mutableFloatStateOf(0f) }
-
-    LaunchedEffect(Unit) {
-        animate(
-            initialValue = 0f,
-            targetValue = 1f,
-            animationSpec = tween(400)
-        ) { value, _ ->
-            contentAlpha = value
-        }
-        // Minimum time this screen stays up (after the 400 ms fade), so it never flashes by
-        // when auth/profile state resolves instantly — not a proxy for real loading
-        // progress, which is why the spinner below is indeterminate. Kept short: it is paid
-        // on every cold start, and session restore keeps the splash up on its own if slower.
-        delay(300)
-        onSplashCompleted()
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        Image(
-            painter = painterResource(id = com.example.R.drawable.splash),
-            contentDescription = stringResource(R.string.prohost),
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
-
-        CircularProgressIndicator(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 56.dp)
-                .size(28.dp)
-                .alpha(contentAlpha),
-            color = MaterialTheme.colorScheme.primary,
-            trackColor = Color.White.copy(alpha = 0.35f),
-            strokeWidth = 3.dp
-        )
-    }
+    SplashContent(
+        painter = painterResource(id = com.example.R.drawable.splash),
+        contentDescription = stringResource(R.string.prohost),
+        onSplashCompleted = onSplashCompleted
+    )
 }

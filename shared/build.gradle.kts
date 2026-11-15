@@ -18,8 +18,13 @@ kotlin {
     androidResources { enable = true }
   }
   // iOS targets compile on macOS runners only; on Linux they are skipped.
-  iosArm64()
-  iosSimulatorArm64()
+  // The iOS app links this module as a static framework (ios/project.yml runs :shared:embedAndSignAppleFrameworkForXcode).
+  listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
+    target.binaries.framework {
+      baseName = "ProHostShared"
+      isStatic = true
+    }
+  }
   // Web target: only :adminWeb consumes it (admin console, plan P1); the mobile apps never see it.
   @OptIn(ExperimentalWasmDsl::class)
   wasmJs { browser() }

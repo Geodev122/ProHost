@@ -13,7 +13,6 @@ struct ProHostApp: App {
                     RootView()
                 }
             }
-            .dynamicTypeSize(...TextScale.maxSize)
         }
     }
 }
