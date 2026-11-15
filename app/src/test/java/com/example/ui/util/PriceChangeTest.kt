@@ -137,4 +137,28 @@ class PriceChangeTest {
         assertEquals(Reprice(48.0, "2026-10-20", 4), PriceChange.reprice(t, null, tier, 10.0, 12.0, PriceChangeMode.NOW, today))
         assertEquals(Reprice(40.0, "", 0), PriceChange.reprice(t, null, tier, 10.0, 12.0, PriceChangeMode.NEXT_TERM, today))
     }
+
+    @Test
+    fun `dated bookings are matched and counted by their date + slot pairs`() {
+        fun slot(date: String, key: String) = com.example.data.model.BookedSlot(date, key, 0, 0, null, 0.0)
+        val hourly = booking(RentalFormulaType.HOURLY, start = "09:00", end = "11:00", startDate = "2026-10-05", total = 40.0)
+            .copy(bookedSlots = listOf(slot("2026-10-05", "9"), slot("2026-10-12", "9"), slot("2026-10-12", "10"), slot("2026-10-14", "9")))
+        val mon9 = PriceChange.SlotRef("SP", PriceChange.SlotKind.HOURLY, "Mon|9")
+        assertTrue(PriceChange.bookingUses(hourly, "SP", null, mon9))
+        assertFalse(PriceChange.bookingUses(hourly, "SP", null, PriceChange.SlotRef("SP", PriceChange.SlotKind.HOURLY, "Tue|9")))
+        assertEquals(1, PriceChange.unitsFrom(hourly, null, mon9, today))
+        assertEquals(PriceChange.Reprice(45.0, today, 1), PriceChange.reprice(hourly, null, mon9, 10.0, 15.0, PriceChangeMode.NOW, today))
+        assertEquals(PriceChange.Reprice(45.0, "2026-10-12", 1), PriceChange.reprice(hourly, null, mon9, 10.0, 15.0, PriceChangeMode.NEXT_TERM, today))
+
+        val shift = booking(RentalFormulaType.SHIFT, startDate = "2026-10-12", total = 40.0)
+            .copy(bookedSlots = listOf(slot("2026-10-12", "MORNING"), slot("2026-10-14", "MORNING")))
+        val morning = PriceChange.SlotRef("SP", PriceChange.SlotKind.SHIFT, "MORNING")
+        assertTrue(PriceChange.bookingUses(shift, "SP", null, morning))
+        assertFalse(PriceChange.bookingUses(shift, "SP", null, PriceChange.SlotRef("SP", PriceChange.SlotKind.SHIFT, "EVENING")))
+        assertEquals(2, PriceChange.unitsFrom(shift, null, morning, today))
+
+        val day = booking(RentalFormulaType.DAY_PER_WEEK, startDate = "2026-10-12", total = 50.0).copy(bookedSlots = listOf(slot("2026-10-12", "DAY")))
+        assertTrue(PriceChange.bookingUses(day, "SP", null, PriceChange.SlotRef("SP", PriceChange.SlotKind.DAY, "Mon")))
+        assertFalse(PriceChange.bookingUses(day, "SP", null, PriceChange.SlotRef("SP", PriceChange.SlotKind.DAY, "Tue")))
+    }
 }

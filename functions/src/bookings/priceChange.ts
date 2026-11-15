@@ -50,6 +50,8 @@ export interface PriceBookingDoc {
   durationMonths?: number;
   selectedDays?: string[];
   selectedCalendarDates?: string[];
+  /** Dated bookings (`dateModel` 2): the exact date + slot pairs; when present they decide matching and units. */
+  bookedSlots?: Array<{ date?: string; key?: string }>;
   totalAmountUsd?: number;
   attendeeCount?: number;
   selectedAttendeePackageId?: string | null;
@@ -160,10 +162,33 @@ function bookingDays(b: PriceBookingDoc): string[] {
   return b.formula?.daysOfWeek ?? [];
 }
 
+/**
+ * Dated bookings: the booked date + slot pairs that are slot [ref] (hourly "Mon|9" = hour 9 on a Monday, shift = its name,
+ * day = a whole day on that weekday). null = not a dated booking, or a kind that isn't dated (monthly, tier).
+ */
+function datedMatches(b: PriceBookingDoc, ref: SlotRef): Array<{ date: string; key: string }> | null {
+  const slots = (b.bookedSlots ?? []).filter((s): s is { date: string; key: string } => typeof s?.date === "string" && typeof s?.key === "string");
+  if (slots.length === 0) return null;
+  switch (ref.kind) {
+  case "HOURLY": {
+    const [day, hour] = ref.key.split("|");
+    return slots.filter((s) => s.key === hour && weekdayOf(s.date) === day);
+  }
+  case "SHIFT":
+    return slots.filter((s) => s.key === ref.key);
+  case "DAY":
+    return slots.filter((s) => s.key === "DAY" && weekdayOf(s.date) === ref.key);
+  default:
+    return null;
+  }
+}
+
 /** Whether booking [b] (of space [spaceId]) is charged for slot [ref]. */
 export function bookingUses(b: PriceBookingDoc, spaceId: string, pricing: PricingDoc | null | undefined, ref: SlotRef): boolean {
   if (b.spaceId !== spaceId) return false;
   if ((b.subdivisionId || spaceId) !== ref.scopeId) return false;
+  const dated = datedMatches(b, ref);
+  if (dated) return dated.length > 0;
   const type = b.formula?.type;
   const fs = parseHour(b.formula?.startHour);
   const fe = parseHour(b.formula?.endHour);
@@ -206,6 +231,8 @@ function monthIndex(iso: string): number {
  * units aren't dated (hourly cells, attendee tiers), so only NOW can re-price them.
  */
 export function unitsFrom(b: PriceBookingDoc, pricing: PricingDoc | null | undefined, ref: SlotRef, fromIso: string): number | null {
+  const dated = datedMatches(b, ref);
+  if (dated) return dated.filter((s) => s.date >= fromIso).length;
   switch (ref.kind) {
   case "MONTHLY": {
     const term = bookingTerm(b);

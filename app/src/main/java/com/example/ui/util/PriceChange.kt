@@ -1,5 +1,6 @@
 package com.example.ui.util
 
+import com.example.data.model.BookedSlot
 import com.example.data.model.BookingRequest
 import com.example.data.model.PriceChangeMode
 import com.example.data.model.RentalFormulaType
@@ -122,10 +123,30 @@ object PriceChange {
 
     private fun bookingDays(b: BookingRequest): List<String> = b.selectedDays.ifEmpty { b.formula.daysOfWeek }
 
+    /**
+     * Dated bookings: the booked date + slot pairs that are slot [ref] (hourly "Mon|9" = hour 9 on a Monday, shift = its
+     * name, day = a whole day on that weekday). null = not a dated booking, or a kind that isn't dated (monthly, tier).
+     * Mirror of `datedMatches` in functions/src/bookings/priceChange.ts.
+     */
+    private fun datedMatches(b: BookingRequest, ref: SlotRef): List<BookedSlot>? {
+        if (b.bookedSlots.isEmpty()) return null
+        return when (ref.kind) {
+            SlotKind.HOURLY -> {
+                val day = ref.key.substringBefore("|")
+                val hour = ref.key.substringAfter("|")
+                b.bookedSlots.filter { it.key == hour && weekdayOf(it.date) == day }
+            }
+            SlotKind.SHIFT -> b.bookedSlots.filter { it.key == ref.key }
+            SlotKind.DAY -> b.bookedSlots.filter { it.key == "DAY" && weekdayOf(it.date) == ref.key }
+            else -> null
+        }
+    }
+
     /** Whether [b] is charged for slot [ref] — same scope rule as SpaceCalculationUtils.isSlotLocked. */
     fun bookingUses(b: BookingRequest, spaceId: String, pricing: RentalPricingConfig?, ref: SlotRef): Boolean {
         if (b.spaceId != spaceId) return false
         if ((b.subdivisionId?.takeIf { it.isNotBlank() } ?: spaceId) != ref.scopeId) return false
+        datedMatches(b, ref)?.let { return it.isNotEmpty() }
         val type = b.formula.type
         val fs = parseHour(b.formula.startHour)
         val fe = parseHour(b.formula.endHour)
@@ -157,7 +178,10 @@ object PriceChange {
     private fun monthIndex(iso: String): Int = iso.take(4).toInt() * 12 + iso.substring(5, 7).toInt() - 1
 
     /** Units of [ref] charged on/after [fromIso]; null = undated (hourly cells, tiers). */
-    fun unitsFrom(b: BookingRequest, pricing: RentalPricingConfig?, ref: SlotRef, fromIso: String): Int? = when (ref.kind) {
+    fun unitsFrom(b: BookingRequest, pricing: RentalPricingConfig?, ref: SlotRef, fromIso: String): Int? =
+        datedMatches(b, ref)?.count { it.date >= fromIso } ?: undatedUnitsFrom(b, pricing, ref, fromIso)
+
+    private fun undatedUnitsFrom(b: BookingRequest, pricing: RentalPricingConfig?, ref: SlotRef, fromIso: String): Int? = when (ref.kind) {
         SlotKind.MONTHLY -> {
             val months = b.durationMonths.coerceAtLeast(1)
             val term = SpaceCalculationUtils.bookingTerm(b)

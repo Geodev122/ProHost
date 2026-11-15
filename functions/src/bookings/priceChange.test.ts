@@ -113,3 +113,32 @@ test("undated units: NOW re-prices, NEXT_TERM waits for renewal", () => {
   assert.deepEqual(reprice(t, null, tier, 10, 12, "NOW", TODAY), { newTotal: 48, effectiveFrom: "2026-10-20", units: 4 });
   assert.deepEqual(reprice(t, null, tier, 10, 12, "NEXT_TERM", TODAY), { newTotal: 40, effectiveFrom: "", units: 0 });
 });
+
+test("dated bookings are matched and counted by their date + slot pairs", () => {
+  const hourly = {
+    spaceId: "SP", startDate: "2026-10-05", durationMonths: 1, totalAmountUsd: 40,
+    formula: { type: "HOURLY", startHour: "09:00", endHour: "11:00" },
+    bookedSlots: [
+      { date: "2026-10-05", key: "9" }, { date: "2026-10-12", key: "9" }, { date: "2026-10-12", key: "10" }, { date: "2026-10-14", key: "9" },
+    ],
+  };
+  const mon9: SlotRef = { scopeId: "SP", kind: "HOURLY", key: "Mon|9" };
+  assert.equal(bookingUses(hourly, "SP", hourlyPricing, mon9), true);
+  assert.equal(bookingUses(hourly, "SP", hourlyPricing, { scopeId: "SP", kind: "HOURLY", key: "Tue|9" }), false);
+  assert.equal(unitsFrom(hourly, hourlyPricing, mon9, TODAY), 1); // 5 Oct is past, 14 Oct is a Wednesday
+  assert.deepEqual(reprice(hourly, hourlyPricing, mon9, 10, 15, "NOW", TODAY), { newTotal: 45, effectiveFrom: TODAY, units: 1 });
+  assert.deepEqual(reprice(hourly, hourlyPricing, mon9, 10, 15, "NEXT_TERM", TODAY), { newTotal: 45, effectiveFrom: "2026-10-12", units: 1 });
+
+  const shift = {
+    spaceId: "SP", startDate: "2026-10-12", totalAmountUsd: 40, formula: { type: "SHIFT", startHour: "08:00", endHour: "12:00" },
+    bookedSlots: [{ date: "2026-10-12", key: "MORNING" }, { date: "2026-10-14", key: "MORNING" }],
+  };
+  const morning: SlotRef = { scopeId: "SP", kind: "SHIFT", key: "MORNING" };
+  assert.equal(bookingUses(shift, "SP", shiftPricing, morning), true);
+  assert.equal(bookingUses(shift, "SP", shiftPricing, { scopeId: "SP", kind: "SHIFT", key: "EVENING" }), false);
+  assert.equal(unitsFrom(shift, shiftPricing, morning, TODAY), 2);
+
+  const day = { spaceId: "SP", startDate: "2026-10-12", totalAmountUsd: 50, formula: { type: "DAY_PER_WEEK" }, bookedSlots: [{ date: "2026-10-12", key: "DAY" }] };
+  assert.equal(bookingUses(day, "SP", dayPricing, { scopeId: "SP", kind: "DAY", key: "Mon" }), true);
+  assert.equal(bookingUses(day, "SP", dayPricing, { scopeId: "SP", kind: "DAY", key: "Tue" }), false);
+});
