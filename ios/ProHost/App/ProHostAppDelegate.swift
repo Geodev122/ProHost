@@ -16,8 +16,9 @@ final class ProHostAppDelegate: NSObject, UIApplicationDelegate {
         AppCheck.setAppCheckProviderFactory(ProHostAppCheckProviderFactory())
         #endif
         FirebaseApp.configure()
-        // Shared Kotlin gateways (C1): Cloud Functions first; Auth, Firestore and Storage follow.
+        // Shared Kotlin gateways (C1): Cloud Functions and Auth; Firestore and Storage follow.
         IosPlatform.shared.installFunctions(transport: FirebaseCallableTransport())
+        IosPlatform.shared.installAuth(bridge: FirebaseAuthBridge())
         return true
     }
 }

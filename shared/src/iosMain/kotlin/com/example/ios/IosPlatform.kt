@@ -1,5 +1,8 @@
 package com.example.ios
 
+import com.example.data.auth.AuthBridge
+import com.example.data.auth.AuthGateway
+import com.example.data.auth.BridgedAuthGateway
 import com.example.data.gateway.CallableFunctionsGateway
 import com.example.data.gateway.CallableTransport
 import com.example.data.gateway.FunctionsGateway
@@ -12,7 +15,14 @@ object IosPlatform {
     var functions: FunctionsGateway? = null
         private set
 
+    var auth: AuthGateway? = null
+        private set
+
     fun installFunctions(transport: CallableTransport) {
         functions = CallableFunctionsGateway(transport)
+    }
+
+    fun installAuth(bridge: AuthBridge) {
+        auth = BridgedAuthGateway(bridge)
     }
 }
