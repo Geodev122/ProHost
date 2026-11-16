@@ -50,7 +50,20 @@ jobs:
           APP_CHECK_DEBUG_TOKEN: ${{ secrets.APP_CHECK_DEBUG_TOKEN }}
           # Without it the testers' APK ships an empty Maps key and every map renders blank.
           MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
-        run: gradle :app:testDebugUnitTest :app:assembleDebug :app:compileReleaseKotlin --no-daemon --stacktrace
+        # A crashed test JVM ("Test process encountered an unexpected problem", no failing test) is retried once; a failing test fails at once.
+        run: |
+          set +e
+          for i in 1 2; do
+            gradle :app:testDebugUnitTest :app:assembleDebug :app:compileReleaseKotlin --no-daemon --stacktrace 2>&1 | tee gradle-unit.log
+            code=${PIPESTATUS[0]}
+            [ "$code" = 0 ] && break
+            grep -q "Test process encountered an unexpected problem" gradle-unit.log || break
+            echo "::warning title=unit-tests::test JVM crashed without a failing test (attempt $i); retrying once"
+          done
+          if [ "$code" != 0 ]; then
+            grep -E "^e: |FAILED|unexpected problem" gradle-unit.log | head -30 | while IFS= read -r line; do echo "::error title=unit-tests::${line}"; done
+          fi
+          exit $code
 
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
