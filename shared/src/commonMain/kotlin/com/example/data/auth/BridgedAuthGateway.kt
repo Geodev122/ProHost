@@ -13,6 +13,11 @@ data class AuthReply(val errorCode: String?, val message: String?, val isNewUser
  * Firebase Auth on the platform's SDK, as plain callbacks so a Swift class can implement it (iOS: `FirebaseAuthBridge.swift`).
  * Error codes are translated to the Android names so [AuthError.fromCode] reads them the same way on both phones.
  */
+/** A single-Boolean callback. A named interface (not `(Boolean) -> Unit`) so Swift never has to build a Kotlin Boolean box. */
+fun interface BoolCallback {
+    fun done(value: Boolean)
+}
+
 interface AuthBridge {
     fun currentUid(): String?
     fun usesPassword(): Boolean
@@ -21,7 +26,7 @@ interface AuthBridge {
     fun signInWithGoogle(idToken: String, completion: (AuthReply) -> Unit)
     fun sendPasswordResetEmail(email: String, completion: (AuthReply) -> Unit)
     /** Reloads the user; true when the email is verified (and the ID token was then refreshed). */
-    fun reloadEmailVerified(completion: (Boolean) -> Unit)
+    fun reloadEmailVerified(completion: BoolCallback)
     fun signOut()
 }
 
@@ -53,7 +58,7 @@ class BridgedAuthGateway(private val bridge: AuthBridge) : AuthGateway {
 
     override suspend fun refreshEmailVerified(): Boolean {
         if (bridge.currentUid() == null) return false
-        return suspendCancellableCoroutine { cont -> bridge.reloadEmailVerified { cont.resume(it) } }
+        return suspendCancellableCoroutine { cont -> bridge.reloadEmailVerified(BoolCallback { cont.resume(it) }) }
     }
 
     override fun signOut() = bridge.signOut()

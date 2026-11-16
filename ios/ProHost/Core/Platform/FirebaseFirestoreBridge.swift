@@ -98,15 +98,15 @@ final class FirebaseFirestoreBridge: NSObject, FirestoreBridge {
     private static func toKotlin(_ value: Any) -> Any? {
         switch value {
         case is NSNull: return nil
-        case let ts as Timestamp: return KotlinLong(value: Int64(ts.seconds) * 1000 + Int64(ts.nanoseconds / 1_000_000))
+        case let ts as Timestamp: return KotlinValues.shared.long(v: Int64(ts.seconds) * 1000 + Int64(ts.nanoseconds / 1_000_000))
         case let n as NSNumber:
-            if CFGetTypeID(n) == CFBooleanGetTypeID() { return KotlinBoolean(bool: n.boolValue) }
+            if CFGetTypeID(n) == CFBooleanGetTypeID() { return KotlinValues.shared.bool(v: n.boolValue) }
             let type = String(cString: n.objCType)
-            return (type == "d" || type == "f") ? KotlinDouble(value: n.doubleValue) : KotlinLong(value: n.int64Value)
+            return (type == "d" || type == "f") ? KotlinValues.shared.double(v: n.doubleValue) : KotlinValues.shared.long(v: n.int64Value)
         case let s as String: return s
         case let a as [Any]: return a.compactMap(toKotlin)
         case let d as [String: Any]: return toKotlinMap(d)
-        case let g as GeoPoint: return ["latitude": KotlinDouble(value: g.latitude), "longitude": KotlinDouble(value: g.longitude)]
+        case let g as GeoPoint: return ["latitude": KotlinValues.shared.double(v: g.latitude), "longitude": KotlinValues.shared.double(v: g.longitude)]
         default: return String(describing: value)
         }
     }

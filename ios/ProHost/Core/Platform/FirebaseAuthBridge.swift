@@ -28,13 +28,13 @@ final class FirebaseAuthBridge: NSObject, AuthBridge {
         Auth.auth().sendPasswordReset(withEmail: email) { error in completion(Self.reply(nil, error)) }
     }
 
-    func reloadEmailVerified(completion: @escaping (KotlinBoolean) -> Void) {
-        guard let user = Auth.auth().currentUser else { return completion(KotlinBoolean(bool: false)) }
+    func reloadEmailVerified(completion: BoolCallback) {
+        guard let user = Auth.auth().currentUser else { return completion.done(value: false) }
         user.reload { error in
             let verified = error == nil && Auth.auth().currentUser?.isEmailVerified == true
-            guard verified else { return completion(KotlinBoolean(bool: false)) }
+            guard verified else { return completion.done(value: false) }
             // The ID token only carries email_verified after a refresh; the server mirrors it from there (as on Android).
-            Auth.auth().currentUser?.getIDTokenForcingRefresh(true) { _, _ in completion(KotlinBoolean(bool: true)) }
+            Auth.auth().currentUser?.getIDTokenForcingRefresh(true) { _, _ in completion.done(value: true) }
         }
     }
 

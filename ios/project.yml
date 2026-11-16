@@ -117,12 +117,26 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: app.geonajjar.prohost.tests
+  ProHostUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: ProHostUITests
+    dependencies:
+      - target: ProHost
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: app.geonajjar.prohost.uitests
+        TEST_TARGET_NAME: ProHost
 schemes:
   ProHost:
     build:
       targets:
         ProHost: all
         ProHostTests: [test]
+        ProHostUITests: [test]
     test:
       targets:
         - ProHostTests
+        - ProHostUITests

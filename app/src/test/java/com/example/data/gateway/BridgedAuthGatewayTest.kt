@@ -4,6 +4,7 @@ import com.example.data.auth.AuthBridge
 import com.example.data.auth.AuthError
 import com.example.data.auth.AuthOutcome
 import com.example.data.auth.AuthReply
+import com.example.data.auth.BoolCallback
 import com.example.data.auth.BridgedAuthGateway
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -19,7 +20,7 @@ class BridgedAuthGatewayTest {
         override fun createAccount(email: String, password: String, completion: (AuthReply) -> Unit) = completion(reply)
         override fun signInWithGoogle(idToken: String, completion: (AuthReply) -> Unit) = completion(reply)
         override fun sendPasswordResetEmail(email: String, completion: (AuthReply) -> Unit) = completion(reply)
-        override fun reloadEmailVerified(completion: (Boolean) -> Unit) = completion(true)
+        override fun reloadEmailVerified(completion: BoolCallback) = completion.done(true)
         override fun signOut() { uid = null }
     }
 
