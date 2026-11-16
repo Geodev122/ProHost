@@ -4,7 +4,10 @@ import com.example.data.auth.AuthBridge
 import com.example.data.auth.AuthGateway
 import com.example.data.auth.BridgedAuthGateway
 import com.example.data.gateway.CallableFunctionsGateway
+import com.example.data.gateway.BridgedFirestoreGateway
 import com.example.data.gateway.CallableTransport
+import com.example.data.gateway.FirestoreBridge
+import com.example.data.gateway.FirestoreGateway
 import com.example.data.gateway.FunctionsGateway
 
 /**
@@ -22,7 +25,14 @@ object IosPlatform {
         functions = CallableFunctionsGateway(transport)
     }
 
+    var firestore: FirestoreGateway? = null
+        private set
+
     fun installAuth(bridge: AuthBridge) {
         auth = BridgedAuthGateway(bridge)
+    }
+
+    fun installFirestore(bridge: FirestoreBridge) {
+        firestore = BridgedFirestoreGateway(bridge)
     }
 }
