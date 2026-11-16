@@ -46,22 +46,3 @@ extension AppUser {
         )
     }
 }
-
-/// Bottom tabs per role (`SPECIALIST_BOTTOM_TABS` / `PRO_HOST_BOTTOM_TABS` in ProHostNavGraph.kt). There is no Admin console on iOS,
-/// so an admin account sees the specialist tabs.
-enum ShellTabs {
-    static func tabs(for role: UserRole) -> [AppNavTab] {
-        switch role {
-        case .proHost:
-            return [.manageListings, .searchMap, .professionalRentals, .professionalProfile]
-        case .specialist, .admin:
-            return [.searchMap, .myFavorites, .professionalRentals, .professionalProfile]
-        }
-    }
-
-    /// Explore is the centre of the app for every role.
-    static var defaultTabId: String { AppNavTab.searchMap.id }
-
-    /// Pro Hosts get the orange accent, everyone else Steel Blue.
-    static func usesSecondaryAccent(_ role: UserRole) -> Bool { role == .proHost }
-}

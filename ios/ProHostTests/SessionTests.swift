@@ -49,24 +49,3 @@ final class SessionResolverTests: XCTestCase {
         XCTAssertNil(UserRole.fromClaim("owner"))
     }
 }
-
-final class ShellTabsTests: XCTestCase {
-    func testSpecialistTabsAreExploreSavedRentalsProfile() {
-        XCTAssertEqual(ShellTabs.tabs(for: .specialist).map(\.id), ["search_map", "my_favorites", "pro_rentals", "pro_profile"])
-    }
-
-    func testProHostTabsStartWithListingsAndKeepExploreSecond() {
-        XCTAssertEqual(ShellTabs.tabs(for: .proHost).map(\.id), ["manage_listings", "search_map", "pro_rentals", "pro_profile"])
-    }
-
-    func testAdminSeesTheSpecialistTabsBecauseThereIsNoAdminConsoleOnIOS() {
-        XCTAssertEqual(ShellTabs.tabs(for: .admin).map(\.id), ShellTabs.tabs(for: .specialist).map(\.id))
-    }
-
-    func testExploreIsTheCentreAndOnlyHostsGetTheOrangeAccent() {
-        XCTAssertEqual(ShellTabs.defaultTabId, "search_map")
-        XCTAssertTrue(ShellTabs.usesSecondaryAccent(.proHost))
-        XCTAssertFalse(ShellTabs.usesSecondaryAccent(.specialist))
-        XCTAssertFalse(ShellTabs.usesSecondaryAccent(.admin))
-    }
-}
