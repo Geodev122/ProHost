@@ -150,6 +150,7 @@ Automatic class totals (files / lines): A1 36 / 9773, A2 19 / 9607, B 39 / 13813
 Automatic class totals (files / lines): A1 36 / 9773, A2 19 / 9607, B 39 / 13813, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 36 / 9773, A2 19 / 9607, B 39 / 13813, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 36 / 9773, A2 19 / 9607, B 39 / 13813, C 20 / 4255, X 17 / 7353.
+Automatic class totals (files / lines): A1 36 / 9773, A2 19 / 9607, B 39 / 13813, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 36 / 9773, A2 19 / 9607, B 39 / 13819, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 36 / 9773, A2 19 / 9607, B 39 / 13819, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 36 / 9844, A2 19 / 9607, B 39 / 14005, C 20 / 4255, X 17 / 7353.

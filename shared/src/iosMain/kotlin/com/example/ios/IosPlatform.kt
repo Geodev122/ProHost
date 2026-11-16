@@ -5,6 +5,8 @@ import com.example.data.auth.AuthGateway
 import com.example.data.auth.BridgedAuthGateway
 import com.example.data.gateway.CallableFunctionsGateway
 import com.example.data.gateway.BridgedFirestoreGateway
+import com.example.data.gateway.BridgedStorageGateway
+import com.example.data.gateway.StorageGateway
 import com.example.data.gateway.CallableTransport
 import com.example.data.gateway.FirestoreBridge
 import com.example.data.gateway.FirestoreGateway
@@ -32,7 +34,14 @@ object IosPlatform {
         auth = BridgedAuthGateway(bridge)
     }
 
+    var storage: StorageGateway? = null
+        private set
+
     fun installFirestore(bridge: FirestoreBridge) {
         firestore = BridgedFirestoreGateway(bridge)
+    }
+
+    fun installStorage(native: IosStorageNative) {
+        storage = BridgedStorageGateway(IosStorageBridge(native))
     }
 }
