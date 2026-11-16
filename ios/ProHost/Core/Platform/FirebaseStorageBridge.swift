@@ -37,8 +37,8 @@ final class FirebaseStorageBridge: NSObject, IosStorageNative {
         return output.jpegData(compressionQuality: CGFloat(quality) / 100)
     }
 
-    func deletePrefix(path: String, completion: BoolCallback) {
-        Self.deleteRecursively(storage.reference(withPath: path)) { ok in completion.done(value: ok) }
+    func deletePrefix(path: String, onDone: BoolCallback) {
+        Self.deleteRecursively(storage.reference(withPath: path)) { ok in onDone.done(value: ok) }
     }
 
     private static func deleteRecursively(_ ref: StorageReference, done: @escaping (Bool) -> Void) {

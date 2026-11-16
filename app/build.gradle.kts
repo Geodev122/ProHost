@@ -236,7 +236,10 @@ tasks.withType<Test>().configureEach {
   // Mock listing photos downloaded by CI before the render (scripts/migration/fetch_design_photos.sh); absent locally = network as before.
   layout.buildDirectory.dir("design-photos").get().asFile.takeIf { it.isDirectory }?.let { systemProperty("design.photoDir", it.path) }
   val faketimeLib = file("/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1")
-  if (recordingScreenshots.get() && faketimeLib.exists()) {
+  // -PdesignRealTime=1 skips the frozen clock: CI uses it for a one-screen warm-up so Robolectric downloads its android-all jar
+  // over TLS at the real time (under the frozen date a certificate issued after it is "not yet valid"); later runs read ~/.m2.
+  val realTime = providers.gradleProperty("designRealTime").isPresent
+  if (recordingScreenshots.get() && faketimeLib.exists() && !realTime) {
     environment("LD_PRELOAD", faketimeLib.path)
     environment("FAKETIME", providers.gradleProperty("designFreezeTime").orElse("@2026-11-08 11:16:00").get())
     environment("DONT_FAKE_MONOTONIC", "1") // the JVM's timed waits need the real monotonic clock

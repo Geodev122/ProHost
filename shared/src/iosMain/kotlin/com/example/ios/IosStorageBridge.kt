@@ -21,7 +21,7 @@ interface IosStorageNative {
     /** [fileUrl] is the `file://` URL string of a picked file (`PickedFile.handle` on iOS). */
     fun uploadFileUrl(path: String, fileUrl: String, contentType: String?, progress: ProgressCallback, completion: UploadCallback)
     fun compressJpeg(data: NSData, maxDim: Int, quality: Int): NSData?
-    fun deletePrefix(path: String, completion: BoolCallback)
+    fun deletePrefix(path: String, onDone: BoolCallback)
 }
 
 /** The shared [StorageBridge] over the Swift [IosStorageNative] (byte arrays copied once into/out of NSData). */

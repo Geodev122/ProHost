@@ -58,6 +58,10 @@ jobs:
 
       - name: Install libfaketime (renders run at the golden's capture date; see app/build.gradle.kts)
         run: sudo apt-get update -qq && sudo apt-get install -y -qq libfaketime && ls /usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1 && bash scripts/migration/fetch_design_photos.sh
+      - name: Warm up Robolectric at the real time (downloads android-all; the frozen clock rejects newer TLS certificates)
+        run: |
+          gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly=splash -PdesignRealTime=1 --no-build-cache --no-daemon -q > gradle-warmup.log 2>&1 || { echo "::warning title=warm-up::Robolectric warm-up failed"; tail -20 gradle-warmup.log; }
+          rm -rf app/build/design-shots
       - name: Record screenshots
         env:
           DESIGN_EXTRA_SETTLE_MS: ${{ inputs.settle }}
