@@ -1,7 +1,6 @@
 package com.example.ui.util
 
-import android.content.Context
-import android.widget.Toast
+import kotlin.concurrent.Volatile
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -9,7 +8,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 /**
  * The app's one feedback channel for "something happened" messages. The shell shows them as a Snackbar above the
  * bottom nav (with an optional action such as Undo); when no shell is on screen (sign-in, splash) they fall back to
- * a Toast, so a message is never lost.
+ * the platform's fallback (Android: a Toast registered by `AndroidUiMessages.init`; iOS: none), so a message is never lost on Android.
  */
 object UiMessages {
     data class Message(
@@ -24,20 +23,14 @@ object UiMessages {
 
     /** Number of Snackbar hosts currently on screen (see ProHostSnackbarHost). */
     @Volatile
-    internal var hosts = 0
+    var hosts = 0
 
-    /** The Toast shown when no Snackbar host is on screen. Registered once by [init]; the only Android-specific part of this object. */
+    /** Shown when no Snackbar host is on screen. Registered once per platform. */
     @Volatile
     private var toastFallback: ((CharSequence, Boolean) -> Unit)? = null
 
-    /** Called from `ProHostApplication.onCreate`: the fallback Toast uses the application context, as it always did. */
-    fun init(applicationContext: Context) {
-        val app = applicationContext.applicationContext
-        toastFallback = { text, long -> toast(app, text, long) }
-    }
-
-    /** Test hook: replaces the Toast fallback (no Android needed). */
-    internal fun setToastFallback(fallback: ((CharSequence, Boolean) -> Unit)?) {
+    /** Registers (or, with null, clears) the fallback for messages shown while no Snackbar host is on screen; tests use it too. */
+    fun setToastFallback(fallback: ((CharSequence, Boolean) -> Unit)?) {
         toastFallback = fallback
     }
 
@@ -47,9 +40,5 @@ object UiMessages {
         val message = Message(text.toString(), long, actionLabel, onAction)
         if (hosts > 0 && _messages.tryEmit(message)) return
         toastFallback?.invoke(text, long)
-    }
-
-    private fun toast(context: Context, text: CharSequence, long: Boolean) {
-        Toast.makeText(context, text, if (long) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
     }
 }

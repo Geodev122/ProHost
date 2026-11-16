@@ -44,4 +44,13 @@ object IosPlatform {
     fun installStorage(native: IosStorageNative) {
         storage = BridgedStorageGateway(IosStorageBridge(native))
     }
+
+    private var seamsInstalled = false
+
+    /** Runs [install] once (the Compose root can be recreated). */
+    internal fun installSeamsOnce(install: () -> Unit) {
+        if (seamsInstalled) return
+        seamsInstalled = true
+        install()
+    }
 }

@@ -29,7 +29,7 @@ class ProHostApplication : Application() {
             val locale = com.example.ui.util.UiText.resources?.configuration?.locales?.get(0) ?: java.util.Locale.getDefault()
             java.util.Locale("", iso).getDisplayCountry(locale)
         }
-        com.example.ui.util.UiMessages.init(this)
+        com.example.ui.util.AndroidUiMessages.init(this)
         com.example.ui.util.AndroidPlatformActions.init(this)
         com.example.util.FileAccess.current = com.example.util.AndroidFileAccess(this)
         com.example.util.LocationProvider.current = com.example.util.AndroidLocationProvider(this)

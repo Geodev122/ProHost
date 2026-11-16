@@ -23,7 +23,10 @@ import org.jetbrains.compose.resources.stringResource
 import platform.UIKit.UIViewController
 
 /** The iOS app's Compose root, hosted by the Swift app (`ios/ProHost/App/RootView.swift`). Screens join here as they move to `:shared`. */
-fun MainViewController(): UIViewController = ComposeUIViewController { ProHostIosApp() }
+fun MainViewController(): UIViewController {
+    IosSeams.install()
+    return ComposeUIViewController { ProHostIosApp() }
+}
 
 @Composable
 fun ProHostIosApp() {

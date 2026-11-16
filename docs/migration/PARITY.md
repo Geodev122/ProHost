@@ -118,13 +118,13 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/theme/FontScaleCap.kt` | 20 | C | Context removal |  |  | ☐ | ☐ | todo |
 | `ui/theme/Theme.kt` | 38 | B | — |  |  | ☐ | ☐ | todo |
 | `ui/theme/Type.kt` | 20 | A1 | — |  |  | ☐ | ☐ | todo |
+| `ui/util/AndroidPlatformActions.kt` | 111 | B | Clipboard, Context removal, MediaPicker(PickedFile), PlatformActions, PlatformActions(calendar) |  |  | ☐ | ☐ | todo |
+| `ui/util/AndroidUiMessages.kt` | 16 | B | Context removal, Messenger |  |  | ☐ | ☐ | todo |
 | `ui/util/ContextUtils.kt` | 15 | C | Context removal |  |  | ☐ | ☐ | todo |
 | `ui/util/DateLabels.kt` | 21 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/util/Haptics.kt` | 23 | A1 | Haptics |  |  | ☐ | ☐ | todo |
 | `ui/util/PaymentCalendar.kt` | 93 | B | PlatformActions(calendar) |  |  | ☐ | ☐ | todo |
-| `ui/util/PlatformActions.kt` | 158 | B | Clipboard, Context removal, MediaPicker(PickedFile), PlatformActions, PlatformActions(calendar) |  |  | ☐ | ☐ | todo |
 | `ui/util/SupportContact.kt` | 27 | B | MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
-| `ui/util/UiMessages.kt` | 56 | B | Context removal, Messenger |  |  | ☐ | ☐ | todo |
 | `ui/util/UiText.kt` | 45 | B | — |  |  | ☐ | ☐ | todo |
 | `ui/viewmodel/AdminViewModel.kt` | 1309 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/viewmodel/AuthViewModel.kt` | 323 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
@@ -146,6 +146,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 36 / 9773, A2 19 / 9607, B 39 / 13726, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 36 / 9773, A2 19 / 9607, B 39 / 13813, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 36 / 9773, A2 19 / 9607, B 39 / 13813, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 36 / 9773, A2 19 / 9607, B 39 / 13813, C 20 / 4255, X 17 / 7353.
