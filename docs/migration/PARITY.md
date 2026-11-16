@@ -20,7 +20,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `analytics/AnalyticsTracker.kt` | 529 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `data/auth/AdminDirectoryModels.kt` | 246 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `data/auth/AuthErrors.kt` | 34 | A1 | Firebase gateways |  |  | ☐ | ☐ | todo |
-| `data/auth/AuthFlow.kt` | 168 | B | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
+| `data/auth/AuthFlow.kt` | 162 | B | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
 | `data/auth/CallableErrors.kt` | 46 | A1 | Firebase gateways |  |  | ☐ | ☐ | todo |
 | `data/auth/FirebaseAuthService.kt` | 121 | C | Context removal, Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
 | `data/auth/FirebaseFunctionsClient.kt` | 634 | C | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
@@ -146,6 +146,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 36 / 9773, A2 19 / 9607, B 39 / 13813, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 36 / 9773, A2 19 / 9607, B 39 / 13819, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 36 / 9773, A2 19 / 9607, B 39 / 13819, C 20 / 4255, X 17 / 7353.
 Automatic class totals (files / lines): A1 36 / 9844, A2 19 / 9607, B 39 / 14005, C 20 / 4255, X 17 / 7353.

@@ -1,5 +1,6 @@
 import FirebaseAppCheck
 import FirebaseCore
+import ProHostShared
 import UIKit
 
 /// Firebase start-up. Analytics stays off until the person accepts (Info.plist keys + consent dialog later); unit tests never touch Firebase.
@@ -15,6 +16,8 @@ final class ProHostAppDelegate: NSObject, UIApplicationDelegate {
         AppCheck.setAppCheckProviderFactory(ProHostAppCheckProviderFactory())
         #endif
         FirebaseApp.configure()
+        // Shared Kotlin gateways (C1): Cloud Functions first; Auth, Firestore and Storage follow.
+        IosPlatform.shared.installFunctions(transport: FirebaseCallableTransport())
         return true
     }
 }
