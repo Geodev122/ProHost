@@ -14,6 +14,10 @@ import kotlinx.coroutines.tasks.await
  */
 open class FirebaseFunctionsClient : com.example.data.gateway.FunctionsGateway {
 
+    init {
+        AndroidCallableFailures.install() // its failures are FirebaseFunctionsException; the shared error texts must recognise them
+    }
+
     private val tag = "FirebaseFunctionsClient"
 
     // Must match the region functions are deployed to (see firebase.json /

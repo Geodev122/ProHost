@@ -1,7 +1,6 @@
 package com.example.data.repository
 
 import com.example.data.gateway.SlotPriceChangeResult
-import android.util.Log
 import com.example.data.auth.toUserMessage
 import com.example.data.auth.FirebaseFunctionsClient
 import com.example.data.auth.RegistrationDetails
@@ -18,9 +17,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 class ProHostRepository(
     internal val firestoreService: com.example.data.gateway.FirestoreGateway = FirestoreService.getInstance(),
@@ -276,7 +272,7 @@ class ProHostRepository(
                 }
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Firebase Firestore init fallback: ${e.message}")
+            com.example.util.AppLog.w(TAG, "Firebase Firestore init fallback: ${e.message}")
             _isOfflineMode.value = true
             _syncStatusMessage.value = "Offline Cache Active"
         }

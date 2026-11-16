@@ -30,6 +30,8 @@ class ProHostApplication : Application() {
             java.util.Locale("", iso).getDisplayCountry(locale)
         }
         com.example.ui.util.AndroidUiMessages.init(this)
+        com.example.data.auth.AndroidCallableFailures.install()
+        com.example.util.AndroidAppLog.install()
         com.example.ui.util.AndroidPlatformActions.init(this)
         com.example.util.FileAccess.current = com.example.util.AndroidFileAccess(this)
         com.example.util.LocationProvider.current = com.example.util.AndroidLocationProvider(this)

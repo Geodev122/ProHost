@@ -1,6 +1,5 @@
 package com.example.data.repository
 
-import android.util.Log
 import com.example.data.auth.toUserMessage
 import com.example.data.auth.FirebaseFunctionsClient
 import com.example.data.auth.RegistrationDetails
@@ -17,9 +16,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 /**
  * Part of [ProHostRepository], split out by area. Every function runs against the shared
