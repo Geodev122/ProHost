@@ -75,6 +75,14 @@ class CallableFunctionsGateway(private val transport: CallableTransport) : Funct
     override suspend fun requestListingVerification(spaceId: String): Result<Unit> =
         unit("requestListingVerification", mapOf("spaceId" to spaceId))
 
+    override suspend fun updatePricing(fields: Map<String, Any>): Result<Unit> = unit("updatePricing", fields)
+
+    override suspend fun setListingVerification(spaceId: String, verified: Boolean): Result<Unit> =
+        unit("setListingVerification", mapOf("spaceId" to spaceId, "verified" to verified))
+
+    override suspend fun setListingSubscriptionActive(spaceId: String, active: Boolean): Result<Unit> =
+        unit("setListingSubscriptionActive", mapOf("spaceId" to spaceId, "active" to active))
+
     override suspend fun reportContent(payload: Map<String, Any?>): Result<Unit> = unit("reportContent", payload)
 
     override suspend fun blockUser(targetUid: String?, listingId: String?): Result<Unit> =

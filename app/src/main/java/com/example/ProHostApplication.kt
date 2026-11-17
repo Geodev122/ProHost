@@ -2,6 +2,7 @@ package com.example
 
 import android.app.Application
 import android.util.Log
+import kotlinx.coroutines.tasks.await
 import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
@@ -32,6 +33,10 @@ class ProHostApplication : Application() {
         com.example.ui.util.AndroidUiMessages.init(this)
         com.example.data.auth.AndroidCallableFailures.install()
         com.example.util.AndroidAppLog.install()
+        com.example.util.PushTokens.fetch = {
+            @Suppress("DEPRECATION")
+            com.google.firebase.messaging.FirebaseMessaging.getInstance().token.await()
+        }
         com.example.ui.util.AndroidPlatformActions.init(this)
         com.example.util.FileAccess.current = com.example.util.AndroidFileAccess(this)
         com.example.util.LocationProvider.current = com.example.util.AndroidLocationProvider(this)

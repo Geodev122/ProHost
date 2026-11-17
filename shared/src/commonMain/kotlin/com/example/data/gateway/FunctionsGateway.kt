@@ -16,6 +16,12 @@ interface FunctionsGateway {
         spaceId: String, scopeId: String, kind: String, key: String, newPrice: Double, decisions: Map<String, String>
     ): Result<SlotPriceChangeResult>
     suspend fun requestListingVerification(spaceId: String): Result<Unit>
+    /** Admin-only (rules + callables enforce it); kept here only while the repositories still carry the Android admin tools (removed at the P1.F cutover). */
+    suspend fun updatePricing(fields: Map<String, Any>): Result<Unit>
+    /** Admin-only, see [updatePricing]. */
+    suspend fun setListingVerification(spaceId: String, verified: Boolean): Result<Unit>
+    /** Admin-only, see [updatePricing]. */
+    suspend fun setListingSubscriptionActive(spaceId: String, active: Boolean): Result<Unit>
     suspend fun reportContent(payload: Map<String, Any?>): Result<Unit>
     suspend fun blockUser(targetUid: String?, listingId: String?): Result<Unit>
     suspend fun unblockUser(targetUid: String): Result<Unit>

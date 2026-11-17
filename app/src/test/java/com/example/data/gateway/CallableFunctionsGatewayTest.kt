@@ -32,6 +32,9 @@ class CallableFunctionsGatewayTest {
         g.sendPaymentReminder("b1")
         g.changeSlotPrice("s1", "room", "HOURLY", "Mon|9", 25.0, mapOf("b1" to "NOW"))
         g.requestListingVerification("s1")
+        g.updatePricing(mapOf("governanceTag" to "t"))
+        g.setListingVerification("s1", true)
+        g.setListingSubscriptionActive("s1", false)
         g.reportContent(mapOf("reason" to "SCAM"))
         g.blockUser(null, "s1")
         g.unblockUser("u2")
@@ -56,6 +59,9 @@ class CallableFunctionsGatewayTest {
                     0
                 ),
                 Triple("requestListingVerification", mapOf("spaceId" to "s1"), 0),
+                Triple("updatePricing", mapOf("governanceTag" to "t"), 0),
+                Triple("setListingVerification", mapOf("spaceId" to "s1", "verified" to true), 0),
+                Triple("setListingSubscriptionActive", mapOf("spaceId" to "s1", "active" to false), 0),
                 Triple("reportContent", mapOf("reason" to "SCAM"), 0),
                 Triple("blockUser", mapOf("listingId" to "s1"), 0),
                 Triple("unblockUser", mapOf("targetUid" to "u2"), 0),

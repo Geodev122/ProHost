@@ -20,7 +20,7 @@ import kotlinx.coroutines.tasks.await
 
 class ProHostRepository(
     internal val firestoreService: com.example.data.gateway.FirestoreGateway = FirestoreService.getInstance(),
-    internal val functionsClient: FirebaseFunctionsClient = FirebaseFunctionsClient()
+    internal val functionsClient: com.example.data.gateway.FunctionsGateway = FirebaseFunctionsClient()
 ) {
 
     companion object {

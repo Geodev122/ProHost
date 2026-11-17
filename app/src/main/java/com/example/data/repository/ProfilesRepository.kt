@@ -1,7 +1,6 @@
 package com.example.data.repository
 
 import com.example.data.auth.toUserMessage
-import com.example.data.auth.FirebaseFunctionsClient
 import com.example.data.auth.RegistrationDetails
 import com.example.data.demo.DemoDataGenerator
 import com.example.data.firestore.FirestoreSchema
@@ -15,7 +14,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 /**
  * Part of [ProHostRepository], split out by area. Every function runs against the shared
@@ -160,10 +158,7 @@ internal class ProfilesRepository(private val repo: ProHostRepository) {
                 try {
                     // Only clear the stored token when it is THIS device's — otherwise signing
                     // out here would silence push on the user's other, still-signed-in phone.
-                    val deviceToken = runCatching {
-                        @Suppress("DEPRECATION")
-                        com.google.firebase.messaging.FirebaseMessaging.getInstance().token.await()
-                    }.getOrNull()
+                    val deviceToken = runCatching { com.example.util.PushTokens.current() }.getOrNull()
                     val storedToken = firestoreService.getUserProfile(loggedOutUser.id)?.get("fcmToken") as? String
                     if (storedToken != null && (deviceToken == null || storedToken == deviceToken)) {
                         firestoreService.updateUserProfileFields(loggedOutUser.id, mapOf("fcmToken" to null))

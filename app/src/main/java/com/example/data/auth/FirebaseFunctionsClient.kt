@@ -360,7 +360,7 @@ open class FirebaseFunctionsClient : com.example.data.gateway.FunctionsGateway {
      * that can write system_metadata/pricing now that Phase 7's Firestore rules
      * deny every client write to it. Pass only the fields being changed.
      */
-    suspend fun updatePricing(fields: Map<String, Any>): Result<Unit> {
+    override suspend fun updatePricing(fields: Map<String, Any>): Result<Unit> {
         return try {
             functions.getHttpsCallable("updatePricing").call(fields).await()
             Result.success(Unit)
@@ -420,7 +420,7 @@ open class FirebaseFunctionsClient : com.example.data.gateway.FunctionsGateway {
     }
 
     /** Admin-only: override a listing's verified badge (functions/src/admin/listings.ts). */
-    open suspend fun setListingVerification(spaceId: String, verified: Boolean): Result<Unit> {
+    override suspend fun setListingVerification(spaceId: String, verified: Boolean): Result<Unit> {
         return try {
             functions.getHttpsCallable("setListingVerification")
                 .call(mapOf("spaceId" to spaceId, "verified" to verified))
@@ -465,7 +465,7 @@ open class FirebaseFunctionsClient : com.example.data.gateway.FunctionsGateway {
     }
 
     /** Admin-only: override a listing's subscription-active flag (functions/src/admin/listings.ts). */
-    suspend fun setListingSubscriptionActive(spaceId: String, active: Boolean): Result<Unit> {
+    override suspend fun setListingSubscriptionActive(spaceId: String, active: Boolean): Result<Unit> {
         return try {
             functions.getHttpsCallable("setListingSubscriptionActive")
                 .call(mapOf("spaceId" to spaceId, "active" to active))

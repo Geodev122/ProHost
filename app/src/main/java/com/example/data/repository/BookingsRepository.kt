@@ -1,7 +1,6 @@
 package com.example.data.repository
 
 import com.example.data.auth.toUserMessage
-import com.example.data.auth.FirebaseFunctionsClient
 import com.example.data.auth.RegistrationDetails
 import com.example.data.demo.DemoDataGenerator
 import com.example.data.firestore.FirestoreSchema
