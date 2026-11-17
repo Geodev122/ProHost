@@ -33,6 +33,9 @@ class ProHostApplication : Application() {
         com.example.ui.util.AndroidUiMessages.init(this)
         com.example.data.auth.AndroidCallableFailures.install()
         com.example.util.AndroidAppLog.install()
+        com.example.data.repository.RepositoryDefaults.firestore = { com.example.data.firestore.FirestoreService.getInstance() }
+        com.example.data.repository.RepositoryDefaults.functions = { com.example.data.auth.FirebaseFunctionsClient() }
+        com.example.data.repository.RepositoryDefaults.storage = { com.example.data.storage.FirebaseStorageService.getInstance() }
         com.example.util.PushTokens.fetch = {
             @Suppress("DEPRECATION")
             com.google.firebase.messaging.FirebaseMessaging.getInstance().token.await()

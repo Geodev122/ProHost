@@ -4,7 +4,6 @@ import com.example.data.auth.toUserMessage
 import com.example.data.auth.RegistrationDetails
 import com.example.data.demo.DemoDataGenerator
 import com.example.data.firestore.FirestoreSchema
-import com.example.data.firestore.FirestoreService
 import com.example.data.model.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

@@ -11,22 +11,6 @@ import kotlinx.coroutines.tasks.await
 // AccountSuspendedException lives in :shared (data/auth/AccountSuspendedException.kt), shared with the iOS gateway.
 
 /**
- * Groups the registration-form fields shared by [completeVerifiedRegistration] and
- * [completeGoogleRegistration] so neither signature needs a long flat parameter list.
- */
-data class RegistrationDetails(
-    val fullName: String,
-    val email: String,
-    val phone: String,
-    val specialty: String,
-    val profilePictureUrl: String?,
-    val country: String,
-    val governorate: String,
-    val city: String,
-    val tosAccepted: Boolean
-)
-
-/**
  * Resolves the signed-in [firebaseUser]'s server-verified role (assigning the default
  * via Cloud Functions on first sign-in if none exists yet) and completes the local
  * sign-in against [repository]. This is the only path by which the app should ever

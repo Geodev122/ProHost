@@ -14,14 +14,14 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | Unit (file) | Lines | Class | Seams / reasons | Goldens | Tests | Android diff = 0 | iOS sheet | Status |
 |---|---|---|---|---|---|---|---|---|
 | `MainActivity.kt` | 169 | C | Context removal, PlatformActions |  |  | ☐ | ☐ | todo |
-| `ProHostApplication.kt` | 113 | C | Firebase gateways, KeyValueStore, Logger |  |  | ☐ | ☐ | todo |
+| `ProHostApplication.kt` | 116 | C | Firebase gateways, KeyValueStore, Logger |  |  | ☐ | ☐ | todo |
 | `analytics/AnalyticsConsent.kt` | 58 | B | Context removal, KeyValueStore |  |  | ☐ | ☐ | todo |
 | `analytics/AnalyticsSink.kt` | 71 | C | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `analytics/AnalyticsTracker.kt` | 529 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `data/auth/AdminDirectoryModels.kt` | 246 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `data/auth/AndroidCallableFailures.kt` | 19 | A1 | Firebase gateways |  |  | ☐ | ☐ | todo |
 | `data/auth/AuthErrors.kt` | 34 | A1 | Firebase gateways |  |  | ☐ | ☐ | todo |
-| `data/auth/AuthFlow.kt` | 162 | B | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
+| `data/auth/AuthFlow.kt` | 146 | B | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
 | `data/auth/FirebaseAuthService.kt` | 121 | C | Context removal, Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
 | `data/auth/FirebaseFunctionsClient.kt` | 638 | C | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
 | `data/auth/GoogleCredentialState.kt` | 38 | C | Context removal, GoogleSignIn, Logger |  |  | ☐ | ☐ | todo |
@@ -31,11 +31,10 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `data/billing/PlayBillingSecurity.kt` | 98 | C | Logger |  |  | ☐ | ☐ | todo |
 | `data/billing/PlayOfferText.kt` | 289 | B | SubscriptionStore |  |  | ☐ | ☐ | todo |
 | `data/billing/PlayPromo.kt` | 92 | B | SubscriptionStore |  |  | ☐ | ☐ | todo |
-| `data/demo/DemoDataGenerator.kt` | 361 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `data/firestore/FirestoreService.kt` | 821 | C | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
-| `data/repository/BookingsRepository.kt` | 487 | B | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
-| `data/repository/ProHostRepository.kt` | 1202 | B | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
-| `data/repository/ProfilesRepository.kt` | 341 | B | — |  |  | ☐ | ☐ | todo |
+| `data/repository/BookingsRepository.kt` | 486 | B | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
+| `data/repository/ProHostRepository.kt` | 1199 | B | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
+| `data/repository/ProfilesRepository.kt` | 340 | B | — |  |  | ☐ | ☐ | todo |
 | `data/repository/RepositoryCsv.kt` | 89 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `data/storage/FirebaseStorageService.kt` | 327 | C | Context removal, Firebase gateways, ImageCodec/Pdf, Logger, MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
 | `legal/LegalContent.kt` | 1163 | A1 | — |  |  | ☐ | ☐ | todo |
@@ -147,6 +146,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 37 / 10086, A2 21 / 11292, B 37 / 11680, C 20 / 4269, X 16 / 6992.
 Automatic class totals (files / lines): A1 37 / 10087, A2 21 / 11296, B 37 / 11696, C 20 / 4266, X 17 / 7353.
 Automatic class totals (files / lines): A1 37 / 10092, A2 21 / 11297, B 37 / 11696, C 20 / 4261, X 17 / 7353.
 Automatic class totals (files / lines): A1 36 / 9773, A2 19 / 9607, B 39 / 13726, C 20 / 4255, X 17 / 7353.

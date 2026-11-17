@@ -10,7 +10,7 @@ import com.example.data.model.*
 object DemoDataGenerator {
 
     fun generateDemoUsers(): List<AppUser> {
-        val now = System.currentTimeMillis()
+        val now = com.example.util.nowMillis()
         return listOf(
             AppUser(
                 id = "demo-host-01",

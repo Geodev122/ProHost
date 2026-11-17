@@ -2,11 +2,9 @@ package com.example.data.repository
 
 import com.example.data.gateway.SlotPriceChangeResult
 import com.example.data.auth.toUserMessage
-import com.example.data.auth.FirebaseFunctionsClient
 import com.example.data.auth.RegistrationDetails
 import com.example.data.demo.DemoDataGenerator
 import com.example.data.firestore.FirestoreSchema
-import com.example.data.firestore.FirestoreService
 import com.example.data.model.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,11 +14,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 class ProHostRepository(
-    internal val firestoreService: com.example.data.gateway.FirestoreGateway = FirestoreService.getInstance(),
-    internal val functionsClient: com.example.data.gateway.FunctionsGateway = FirebaseFunctionsClient()
+    internal val firestoreService: com.example.data.gateway.FirestoreGateway = RepositoryDefaults.firestore(),
+    internal val functionsClient: com.example.data.gateway.FunctionsGateway = RepositoryDefaults.functions()
 ) {
 
     companion object {
@@ -55,7 +52,7 @@ class ProHostRepository(
         }
     }
 
-    internal val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    internal val coroutineScope = CoroutineScope(SupervisorJob() + com.example.util.ioDispatcher)
     /** True for the hermetic test repository (no Firestore; see FirestoreService.localOnly). */
     val isLocalOnly: Boolean get() = firestoreService.localOnly
 
@@ -174,10 +171,10 @@ class ProHostRepository(
     }
 
     // Explore's paged live list (see FirestoreService.setPublicListingsLimit).
-    internal var publicListingsLimit = FirestoreService.PUBLIC_LISTINGS_PAGE
+    internal var publicListingsLimit = com.example.data.gateway.FirestoreGateway.PUBLIC_LISTINGS_PAGE
 
     /** Uploads (photos, agreements, verification documents) through the platform-neutral gateway; created on first use. */
-    val storage: com.example.data.gateway.StorageGateway by lazy { com.example.data.storage.FirebaseStorageService.getInstance() }
+    val storage: com.example.data.gateway.StorageGateway by lazy { RepositoryDefaults.storage() }
     internal val _hasMoreSpaces = MutableStateFlow(false)
     /** True when Explore's loaded page is full, so more active listings may exist. */
     val hasMoreSpaces: StateFlow<Boolean> = _hasMoreSpaces.asStateFlow()
@@ -188,7 +185,7 @@ class ProHostRepository(
     /** Explore: grow the live listing page by one page. No-op when everything is loaded. */
     fun loadMoreSpaces() {
         if (!_hasMoreSpaces.value) return
-        publicListingsLimit += FirestoreService.PUBLIC_LISTINGS_PAGE
+        publicListingsLimit += com.example.data.gateway.FirestoreGateway.PUBLIC_LISTINGS_PAGE
         firestoreService.setPublicListingsLimit(publicListingsLimit)
     }
 
