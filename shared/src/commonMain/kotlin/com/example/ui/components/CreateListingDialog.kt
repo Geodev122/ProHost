@@ -524,7 +524,7 @@ fun CreateListingDialog(
     // bar, and system Back stepping back through the wizard before it closes.
     Dialog(
         onDismissRequest = { requestClose() },
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
+        properties = fullScreenDialogProperties()
     ) {
         PlatformBackHandler { if (currentStep > 0) currentStep-- else requestClose() }
         // The dialog window draws under the system bars, so it sets their icon colour for its own surface.

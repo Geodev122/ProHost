@@ -25,3 +25,6 @@ actual fun FullScreenDialogWindowSetup(lightBars: Boolean) {
         }
     }
 }
+
+actual fun fullScreenDialogProperties(): androidx.compose.ui.window.DialogProperties =
+    androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
