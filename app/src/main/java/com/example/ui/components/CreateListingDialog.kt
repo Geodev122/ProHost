@@ -4,9 +4,7 @@ import com.example.util.toPickedFile
 import com.example.util.PickedFile
 import com.example.util.FileAccess
 import com.example.ui.util.localizedLabel
-import com.example.ui.util.uiText
 import com.example.R
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -61,6 +59,80 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.example.shared.resources.Res
+import com.example.shared.resources.about_the_space
+import com.example.shared.resources.add
+import com.example.shared.resources.add_cover_photo
+import com.example.shared.resources.add_new
+import com.example.shared.resources.add_new_to_master_list
+import com.example.shared.resources.back
+import com.example.shared.resources.change_cover_photo
+import com.example.shared.resources.city
+import com.example.shared.resources.close
+import com.example.shared.resources.closed_dates
+import com.example.shared.resources.closed_dates_count
+import com.example.shared.resources.closed_dates_hint
+import com.example.shared.resources.closed_dates_none
+import com.example.shared.resources.communication_setup
+import com.example.shared.resources.continue_draft_listing
+import com.example.shared.resources.country
+import com.example.shared.resources.cover_photo
+import com.example.shared.resources.cover_photo_hint
+import com.example.shared.resources.create_listing
+import com.example.shared.resources.decrease_floor
+import com.example.shared.resources.description_x_100
+import com.example.shared.resources.discard
+import com.example.shared.resources.discard_changes_body
+import com.example.shared.resources.discard_changes_title
+import com.example.shared.resources.discipline
+import com.example.shared.resources.draft_auto_saved
+import com.example.shared.resources.edit_listing_title
+import com.example.shared.resources.facility_operating_hours_days
+import com.example.shared.resources.floor
+import com.example.shared.resources.floor_x
+import com.example.shared.resources.food_allowed
+import com.example.shared.resources.ground_floor
+import com.example.shared.resources.increase_floor
+import com.example.shared.resources.location
+import com.example.shared.resources.n_dates
+import com.example.shared.resources.next
+import com.example.shared.resources.off_hours_access
+import com.example.shared.resources.one_or_two_lines_a_specialist_sees_before
+import com.example.shared.resources.pets_allowed
+import com.example.shared.resources.premises_rules_and_policy
+import com.example.shared.resources.publish_listing
+import com.example.shared.resources.publish_needs_cover
+import com.example.shared.resources.publish_needs_division
+import com.example.shared.resources.publish_needs_pin
+import com.example.shared.resources.publish_needs_price
+import com.example.shared.resources.remove
+import com.example.shared.resources.remove_photo
+import com.example.shared.resources.save
+import com.example.shared.resources.save_apply_x_selected
+import com.example.shared.resources.save_changes
+import com.example.shared.resources.save_draft_short
+import com.example.shared.resources.search_facilities
+import com.example.shared.resources.see_more
+import com.example.shared.resources.select_shared_essential_facilities
+import com.example.shared.resources.shared_essential_facilities
+import com.example.shared.resources.sign_in_required
+import com.example.shared.resources.smoking_allowed
+import com.example.shared.resources.space_category
+import com.example.shared.resources.space_name
+import com.example.shared.resources.space_name_placeholder
+import com.example.shared.resources.step1_needs_name
+import com.example.shared.resources.step1_needs_pin
+import com.example.shared.resources.street_address_building_name
+import com.example.shared.resources.target_disciplines
+import com.example.shared.resources.whatsapp_number_for_booking_requests
+import com.example.shared.resources.wizard_step_availability
+import com.example.shared.resources.wizard_step_details
+import com.example.shared.resources.wizard_step_space
+import com.example.shared.resources.wizard_step_x_of_x
+import com.example.shared.resources.your_account_couldn_t_be_loaded_please_sig
+import com.example.ui.util.appPlural
+import com.example.ui.util.appString
+import com.example.ui.util.sharedText
 
 // Savers for rememberSaveable — process death mid-wizard would otherwise lose all
 // in-progress state. The debounced 3s Draft auto-save already covers a kill that
@@ -183,13 +255,13 @@ fun CreateListingDialog(
         Dialog(onDismissRequest = onDismiss) {
             Card(shape = MaterialTheme.shapes.extraLarge, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
                 Column(modifier = Modifier.padding(Spacing.xl), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                    Text(stringResource(R.string.sign_in_required), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                    Text(appString(Res.string.sign_in_required), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        stringResource(R.string.your_account_couldn_t_be_loaded_please_sig),
+                        appString(Res.string.your_account_couldn_t_be_loaded_please_sig),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    CustomButton(text = stringResource(R.string.close), onClick = onDismiss, modifier = Modifier.align(Alignment.End), variant = CustomButtonVariant.TEXT)
+                    CustomButton(text = appString(Res.string.close), onClick = onDismiss, modifier = Modifier.align(Alignment.End), variant = CustomButtonVariant.TEXT)
                 }
             }
         }
@@ -244,7 +316,7 @@ fun CreateListingDialog(
             photoUploadError = null
             val fileSizeBytes = FileAccess.require().sizeBytes(picked)
             if (fileSizeBytes != null && fileSizeBytes > 15 * 1024 * 1024) {
-                photoUploadError = uiText(R.string.one_or_more_images_exceed_the_15_mb_limit)
+                photoUploadError = sharedText("one_or_more_images_exceed_the_15_mb_limit")
                 isUploadingPhoto = false
                 return@launch
             }
@@ -261,8 +333,8 @@ fun CreateListingDialog(
                 coverUrl = url
                 hasUserTyped = true
             } else {
-                val detail = FirebaseStorageService.lastUploadError ?: uiText(R.string.check_your_connection_and_try_again)
-                photoUploadError = uiText(R.string.couldnt_upload_that_photo_x, detail)
+                val detail = FirebaseStorageService.lastUploadError ?: sharedText("check_your_connection_and_try_again")
+                photoUploadError = sharedText("couldnt_upload_that_photo_x", detail)
             }
             isUploadingPhoto = false
         }
@@ -437,10 +509,10 @@ fun CreateListingDialog(
 
     // The one thing still missing before Publish (and before an edit can be saved) — never a silently greyed-out button.
     val publishBlocker: String? = when {
-        pickedLatLng == null -> stringResource(R.string.publish_needs_pin)
-        coverUrl == null -> stringResource(R.string.publish_needs_cover)
-        divisions.isEmpty() -> stringResource(R.string.publish_needs_division)
-        !ListingDivisions.hasRealPricing(divisions) -> stringResource(R.string.publish_needs_price)
+        pickedLatLng == null -> appString(Res.string.publish_needs_pin)
+        coverUrl == null -> appString(Res.string.publish_needs_cover)
+        divisions.isEmpty() -> appString(Res.string.publish_needs_division)
+        !ListingDivisions.hasRealPricing(divisions) -> appString(Res.string.publish_needs_price)
         else -> null
     }
     fun requestClose() {
@@ -495,15 +567,15 @@ fun CreateListingDialog(
                       verticalAlignment = Alignment.CenterVertically
                   ) {
                       IconButton(onClick = { requestClose() }) {
-                          Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
+                          Icon(Icons.Default.Close, contentDescription = appString(Res.string.close))
                       }
                       Spacer(modifier = Modifier.width(Spacing.xs))
                       Column(modifier = Modifier.weight(1f)) {
                           Text(
                               text = when {
-                                  isEditing -> stringResource(R.string.edit_listing_title)
-                                  existingDraft != null -> stringResource(R.string.continue_draft_listing)
-                                  else -> stringResource(R.string.create_listing)
+                                  isEditing -> appString(Res.string.edit_listing_title)
+                                  existingDraft != null -> appString(Res.string.continue_draft_listing)
+                                  else -> appString(Res.string.create_listing)
                               },
                               style = MaterialTheme.typography.titleLarge,
                               color = MaterialTheme.colorScheme.onSurface,
@@ -515,9 +587,9 @@ fun CreateListingDialog(
                           // actually fired — never claims a save that didn't happen.
                           Text(
                               text = if (lastAutoSavedAtMillis != null) {
-                                  stringResource(R.string.wizard_step_x_of_x, currentStep + 1, totalSteps) + " · " + stringResource(R.string.draft_auto_saved)
+                                  appString(Res.string.wizard_step_x_of_x, currentStep + 1, totalSteps) + " · " + appString(Res.string.draft_auto_saved)
                               } else {
-                                  stringResource(R.string.wizard_step_x_of_x, currentStep + 1, totalSteps)
+                                  appString(Res.string.wizard_step_x_of_x, currentStep + 1, totalSteps)
                               },
                               style = MaterialTheme.typography.labelMedium,
                               color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -530,11 +602,11 @@ fun CreateListingDialog(
                       if (isEditing) {
                           // Edits save from any step, as soon as the listing is still publishable.
                           TextButton(onClick = { saveChangesAction[0]() }, enabled = publishBlocker == null) {
-                              Text(stringResource(R.string.save), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                              Text(appString(Res.string.save), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                           }
                       } else {
                           TextButton(onClick = { saveDraftAction[0]() }) {
-                              Text(stringResource(R.string.save_draft_short), style = MaterialTheme.typography.labelLarge)
+                              Text(appString(Res.string.save_draft_short), style = MaterialTheme.typography.labelLarge)
                           }
                       }
                   }
@@ -542,9 +614,9 @@ fun CreateListingDialog(
                   Spacer(modifier = Modifier.height(Spacing.md))
                   WizardStepBar(
                       steps = listOf(
-                          stringResource(R.string.wizard_step_space),
-                          stringResource(R.string.wizard_step_details),
-                          stringResource(R.string.wizard_step_availability)
+                          appString(Res.string.wizard_step_space),
+                          appString(Res.string.wizard_step_details),
+                          appString(Res.string.wizard_step_availability)
                       ),
                       current = currentStep,
                       allReachable = isEditing,
@@ -569,7 +641,7 @@ fun CreateListingDialog(
                               // Step 1: what the place is, its cover and where it is.
                               Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                                   SelectField(
-                                      label = stringResource(R.string.space_category),
+                                      label = appString(Res.string.space_category),
                                       options = categoryOptions,
                                       selected = categoryOptions.firstOrNull { it.id == selectedCategoryId },
                                       optionLabel = { localizedLabel(it.name) },
@@ -584,8 +656,8 @@ fun CreateListingDialog(
                                   InputField(
                                       value = title,
                                       onValueChange = { title = it; hasUserTyped = true },
-                                      label = stringResource(R.string.space_name),
-                                      placeholder = stringResource(R.string.space_name_placeholder),
+                                      label = appString(Res.string.space_name),
+                                      placeholder = appString(Res.string.space_name_placeholder),
                                       modifier = Modifier.fillMaxWidth(),
                                       singleLine = true
                                   )
@@ -603,7 +675,7 @@ fun CreateListingDialog(
                                       )
                                   }
 
-                                  WizardSectionLabel(stringResource(R.string.location))
+                                  WizardSectionLabel(appString(Res.string.location))
                                   ListingLocationMapPicker(
                                       initialLat = pickedLatLng?.latitude ?: existingDraft?.lat,
                                       initialLng = pickedLatLng?.longitude ?: existingDraft?.lng,
@@ -630,7 +702,7 @@ fun CreateListingDialog(
                                   InputField(
                                       value = streetAddress,
                                       onValueChange = { streetAddress = it; hasUserTyped = true },
-                                      label = stringResource(R.string.street_address_building_name),
+                                      label = appString(Res.string.street_address_building_name),
                                       modifier = Modifier.fillMaxWidth(),
                                       singleLine = true
                                   )
@@ -639,14 +711,14 @@ fun CreateListingDialog(
                                           value = city,
                                           // A hand-typed city replaces the pin's, so its English copy no longer applies.
                                           onValueChange = { city = it; cityEn = ""; hasUserTyped = true },
-                                          label = stringResource(R.string.city),
+                                          label = appString(Res.string.city),
                                           modifier = Modifier.weight(1f),
                                           singleLine = true
                                       )
                                       InputField(
                                           value = country,
                                           onValueChange = { country = it; hasUserTyped = true },
-                                          label = stringResource(R.string.country),
+                                          label = appString(Res.string.country),
                                           modifier = Modifier.weight(1f),
                                           singleLine = true
                                       )
@@ -656,28 +728,28 @@ fun CreateListingDialog(
                                       verticalAlignment = Alignment.CenterVertically,
                                       horizontalArrangement = Arrangement.SpaceBetween
                                   ) {
-                                      Text(stringResource(R.string.floor), style = MaterialTheme.typography.bodyMedium)
+                                      Text(appString(Res.string.floor), style = MaterialTheme.typography.bodyMedium)
                                       Row(verticalAlignment = Alignment.CenterVertically) {
                                           IconButton(onClick = { if (floorNumber > -5) { floorNumber--; hasUserTyped = true } }) {
-                                              Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.decrease_floor))
+                                              Icon(Icons.Default.Remove, contentDescription = appString(Res.string.decrease_floor))
                                           }
                                           Text(
-                                              text = if (floorNumber == 0) stringResource(R.string.ground_floor) else stringResource(R.string.floor_x, floorNumber),
+                                              text = if (floorNumber == 0) appString(Res.string.ground_floor) else appString(Res.string.floor_x, floorNumber),
                                               style = MaterialTheme.typography.bodyMedium,
                                               fontWeight = FontWeight.SemiBold
                                           )
                                           IconButton(onClick = { if (floorNumber < 30) { floorNumber++; hasUserTyped = true } }) {
-                                              Icon(Icons.Default.Add, contentDescription = stringResource(R.string.increase_floor))
+                                              Icon(Icons.Default.Add, contentDescription = appString(Res.string.increase_floor))
                                           }
                                       }
                                   }
 
-                                  WizardSectionLabel(stringResource(R.string.about_the_space))
+                                  WizardSectionLabel(appString(Res.string.about_the_space))
                                   InputField(
                                       value = description,
                                       onValueChange = { if (it.length <= 100) { description = it; hasUserTyped = true } },
-                                      label = stringResource(R.string.description_x_100, description.length),
-                                      placeholder = stringResource(R.string.one_or_two_lines_a_specialist_sees_before),
+                                      label = appString(Res.string.description_x_100, description.length),
+                                      placeholder = appString(Res.string.one_or_two_lines_a_specialist_sees_before),
                                       modifier = Modifier.fillMaxWidth(),
                                       singleLine = false,
                                       maxLines = 3
@@ -686,8 +758,8 @@ fun CreateListingDialog(
                                       InputField(
                                           value = hashtagInput,
                                           onValueChange = { hashtagInput = it },
-                                          label = stringResource(R.string.target_disciplines),
-                                          placeholder = stringResource(R.string.discipline),
+                                          label = appString(Res.string.target_disciplines),
+                                          placeholder = appString(Res.string.discipline),
                                           prefix = "#",
                                           modifier = Modifier.weight(1f),
                                           singleLine = true
@@ -703,7 +775,7 @@ fun CreateListingDialog(
                                           },
                                           enabled = hashtagInput.isNotBlank()
                                       ) {
-                                          Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add), tint = MaterialTheme.colorScheme.primary)
+                                          Icon(Icons.Default.Add, contentDescription = appString(Res.string.add), tint = MaterialTheme.colorScheme.primary)
                                       }
                                   }
                                   val matchingSuggestions = suggestedHashtags.filter {
@@ -727,7 +799,7 @@ fun CreateListingDialog(
                                                   selected = true,
                                                   onClick = { selectedSpecialties = selectedSpecialties - tag; hasUserTyped = true },
                                                   label = { Text("#$tag", style = MaterialTheme.typography.labelMedium) },
-                                                  trailingIcon = { Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove), modifier = Modifier.size(14.dp)) }
+                                                  trailingIcon = { Icon(Icons.Default.Close, contentDescription = appString(Res.string.remove), modifier = Modifier.size(14.dp)) }
                                               )
                                           }
                                       }
@@ -739,7 +811,7 @@ fun CreateListingDialog(
                               // Step 2: Operational Parameters & Facility Rules
                               Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                                   Text(
-                                      stringResource(R.string.communication_setup),
+                                      appString(Res.string.communication_setup),
                                       fontWeight = FontWeight.Bold,
                                       style = MaterialTheme.typography.labelLarge,
                                       color = MaterialTheme.colorScheme.primary
@@ -755,14 +827,14 @@ fun CreateListingDialog(
                                           ownerPhoneLocal = it
                                           ownerPhone = "${ownerPhoneCountry.dialCode} $it"
                                       },
-                                      label = stringResource(R.string.whatsapp_number_for_booking_requests),
+                                      label = appString(Res.string.whatsapp_number_for_booking_requests),
                                       modifier = Modifier.fillMaxWidth()
                                   )
 
                                   HorizontalDivider()
 
                                   Text(
-                                      stringResource(R.string.facility_operating_hours_days),
+                                      appString(Res.string.facility_operating_hours_days),
                                       fontWeight = FontWeight.Bold,
                                       style = MaterialTheme.typography.labelLarge,
                                       color = MaterialTheme.colorScheme.primary
@@ -778,13 +850,13 @@ fun CreateListingDialog(
                                   )
 
                                   Text(
-                                      stringResource(R.string.closed_dates),
+                                      appString(Res.string.closed_dates),
                                       fontWeight = FontWeight.Bold,
                                       style = MaterialTheme.typography.labelLarge,
                                       color = MaterialTheme.colorScheme.primary
                                   )
                                   Text(
-                                      stringResource(R.string.closed_dates_hint),
+                                      appString(Res.string.closed_dates_hint),
                                       style = MaterialTheme.typography.bodySmall,
                                       color = MaterialTheme.colorScheme.onSurfaceVariant
                                   )
@@ -796,8 +868,8 @@ fun CreateListingDialog(
                                       verticalAlignment = Alignment.CenterVertically
                                   ) {
                                       Text(
-                                          if (upcomingClosed == 0) stringResource(R.string.closed_dates_none)
-                                          else stringResource(R.string.closed_dates_count, pluralStringResource(R.plurals.n_dates, upcomingClosed, upcomingClosed)),
+                                          if (upcomingClosed == 0) appString(Res.string.closed_dates_none)
+                                          else appString(Res.string.closed_dates_count, appPlural(Res.plurals.n_dates, upcomingClosed, upcomingClosed)),
                                           style = MaterialTheme.typography.bodyMedium,
                                           modifier = Modifier.weight(1f)
                                       )
@@ -815,11 +887,11 @@ fun CreateListingDialog(
 
                                   HorizontalDivider()
 
-                                  Text(stringResource(R.string.shared_essential_facilities), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                                  Text(appString(Res.string.shared_essential_facilities), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                                   val firstFacility = selectedFacilities.firstOrNull()
                                   val facilitySummary = when {
-                                      firstFacility == null -> uiText(R.string.no_facilities_selected)
-                                      selectedFacilities.size > 1 -> uiText(R.string.x_x_more_selected, firstFacility, selectedFacilities.size - 1)
+                                      firstFacility == null -> sharedText("no_facilities_selected")
+                                      selectedFacilities.size > 1 -> sharedText("x_x_more_selected", firstFacility, selectedFacilities.size - 1)
                                       else -> firstFacility
                                   }
                                   Surface(
@@ -840,7 +912,7 @@ fun CreateListingDialog(
                                               modifier = Modifier.weight(1f)
                                           )
                                           Text(
-                                              stringResource(R.string.see_more),
+                                              appString(Res.string.see_more),
                                               style = MaterialTheme.typography.labelMedium,
                                               fontWeight = FontWeight.Bold,
                                               color = MaterialTheme.colorScheme.primary
@@ -851,7 +923,7 @@ fun CreateListingDialog(
                                   HorizontalDivider()
 
                                   Text(
-                                      stringResource(R.string.premises_rules_and_policy),
+                                      appString(Res.string.premises_rules_and_policy),
                                       fontWeight = FontWeight.Bold,
                                       style = MaterialTheme.typography.labelLarge,
                                       color = MaterialTheme.colorScheme.primary
@@ -862,7 +934,7 @@ fun CreateListingDialog(
                                       horizontalArrangement = Arrangement.SpaceBetween,
                                       modifier = Modifier.fillMaxWidth()
                                   ) {
-                                      Text(stringResource(R.string.smoking_allowed), style = MaterialTheme.typography.bodySmall)
+                                      Text(appString(Res.string.smoking_allowed), style = MaterialTheme.typography.bodySmall)
                                       Switch(checked = smokingAllowed, onCheckedChange = { smokingAllowed = it })
                                   }
                                   Row(
@@ -870,7 +942,7 @@ fun CreateListingDialog(
                                       horizontalArrangement = Arrangement.SpaceBetween,
                                       modifier = Modifier.fillMaxWidth()
                                   ) {
-                                      Text(stringResource(R.string.food_allowed), style = MaterialTheme.typography.bodySmall)
+                                      Text(appString(Res.string.food_allowed), style = MaterialTheme.typography.bodySmall)
                                       Switch(checked = foodAllowed, onCheckedChange = { foodAllowed = it })
                                   }
                                   Row(
@@ -878,7 +950,7 @@ fun CreateListingDialog(
                                       horizontalArrangement = Arrangement.SpaceBetween,
                                       modifier = Modifier.fillMaxWidth()
                                   ) {
-                                      Text(stringResource(R.string.pets_allowed), style = MaterialTheme.typography.bodySmall)
+                                      Text(appString(Res.string.pets_allowed), style = MaterialTheme.typography.bodySmall)
                                       Switch(checked = petsAllowed, onCheckedChange = { petsAllowed = it })
                                   }
                                   Row(
@@ -886,7 +958,7 @@ fun CreateListingDialog(
                                       horizontalArrangement = Arrangement.SpaceBetween,
                                       modifier = Modifier.fillMaxWidth()
                                   ) {
-                                      Text(stringResource(R.string.off_hours_access), style = MaterialTheme.typography.bodySmall)
+                                      Text(appString(Res.string.off_hours_access), style = MaterialTheme.typography.bodySmall)
                                       Switch(checked = offHoursAccess, onCheckedChange = { offHoursAccess = it })
                                   }
                               }
@@ -899,20 +971,20 @@ fun CreateListingDialog(
                                   onAdd = {
                                       // A booked whole place can't be split into divisions: its bookings are for the place.
                                       if (wholePlaceBooked && divisions.size == 1 && divisions[0].id == ListingDivisions.WHOLE_PLACE_ID) {
-                                          UiMessages.show(uiText(R.string.whole_place_has_bookings), long = true)
+                                          UiMessages.show(sharedText("whole_place_has_bookings"), long = true)
                                       } else editingDivision = -1
                                   },
                                   onEdit = { editingDivision = it },
                                   onDelete = delete@{ index ->
                                       val removed = divisions[index]
                                       if (removed.id in bookedDivisionIds || (removed.id == ListingDivisions.WHOLE_PLACE_ID && wholePlaceBooked)) {
-                                          UiMessages.show(uiText(R.string.division_has_bookings), long = true)
+                                          UiMessages.show(sharedText("division_has_bookings"), long = true)
                                           return@delete
                                       }
                                       divisions = divisions.filterIndexed { i, _ -> i != index }
                                       hasUserTyped = true
-                                      UiMessages.show(uiText(R.string.division_deleted, removed.name),
-                                          actionLabel = uiText(R.string.undo),
+                                      UiMessages.show(sharedText("division_deleted", removed.name),
+                                          actionLabel = sharedText("undo"),
                                           onAction = {
                                               divisions = divisions.toMutableList().apply { add(index.coerceAtMost(size), removed) }
                                           }
@@ -999,7 +1071,7 @@ fun CreateListingDialog(
                           city = city.trim(),
                           cityEn = cityEn.trim(),
                           capacity = shape.capacity,
-                          floorInfo = if (floorNumber == 0) uiText(R.string.ground_floor) else uiText(R.string.floor_x, floorNumber),
+                          floorInfo = if (floorNumber == 0) sharedText("ground_floor") else sharedText("floor_x", floorNumber),
                           lat = geocodedLat,
                           lng = geocodedLng,
                           isShared = isShared,
@@ -1098,8 +1170,8 @@ fun CreateListingDialog(
                   // Why Next/Publish is greyed out, right above it — never a silently disabled button.
                   val nextBlocker: String? = when {
                       currentStep == totalSteps - 1 -> publishBlocker
-                      currentStep == 0 && title.isBlank() && streetAddress.isBlank() -> stringResource(R.string.step1_needs_name)
-                      currentStep == 0 && pickedLatLng == null -> stringResource(R.string.step1_needs_pin)
+                      currentStep == 0 && title.isBlank() && streetAddress.isBlank() -> appString(Res.string.step1_needs_name)
+                      currentStep == 0 && pickedLatLng == null -> appString(Res.string.step1_needs_pin)
                       else -> null
                   }
                   HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
@@ -1126,7 +1198,7 @@ fun CreateListingDialog(
                               onClick = { currentStep-- },
                               modifier = Modifier.size(48.dp)
                           ) {
-                              Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                              Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = appString(Res.string.back))
                           }
                       }
 
@@ -1146,7 +1218,7 @@ fun CreateListingDialog(
                       }
 
                       ProPrimaryButton(
-                          text = if (currentStep < totalSteps - 1) stringResource(R.string.next) else if (onListingUpdated != null) stringResource(R.string.save_changes) else stringResource(R.string.publish_listing),
+                          text = if (currentStep < totalSteps - 1) appString(Res.string.next) else if (onListingUpdated != null) appString(Res.string.save_changes) else appString(Res.string.publish_listing),
                           onClick = {
                               if (currentStep < totalSteps - 1) {
                                   currentStep++
@@ -1201,11 +1273,11 @@ fun CreateListingDialog(
           if (showDiscardDialog) {
               ProHostDialog(
                   onDismissRequest = { showDiscardDialog = false },
-                  title = { Text(stringResource(R.string.discard_changes_title)) },
-                  text = { Text(stringResource(R.string.discard_changes_body)) },
+                  title = { Text(appString(Res.string.discard_changes_title)) },
+                  text = { Text(appString(Res.string.discard_changes_body)) },
                   confirmButton = {
                       CustomButton(
-                          text = stringResource(R.string.save),
+                          text = appString(Res.string.save),
                           onClick = { showDiscardDialog = false; saveChangesAction[0]() },
                           enabled = publishBlocker == null,
                           compact = true
@@ -1213,7 +1285,7 @@ fun CreateListingDialog(
                   },
                   dismissButton = {
                       CustomButton(
-                          text = stringResource(R.string.discard),
+                          text = appString(Res.string.discard),
                           onClick = { showDiscardDialog = false; onDismiss() },
                           variant = CustomButtonVariant.OUTLINED,
                           compact = true
@@ -1344,15 +1416,15 @@ private fun FacilityPickerDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(stringResource(R.string.select_shared_essential_facilities), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close)) }
+                    Text(appString(Res.string.select_shared_essential_facilities), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = appString(Res.string.close)) }
                 }
 
                 InputField(
                     value = query,
                     onValueChange = { query = it },
                     label = "",
-                    placeholder = stringResource(R.string.search_facilities),
+                    placeholder = appString(Res.string.search_facilities),
                     leadingIcon = Icons.Default.Search,
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
@@ -1397,12 +1469,12 @@ private fun FacilityPickerDialog(
                         value = newFacilityInput,
                         onValueChange = { newFacilityInput = it },
                         label = "",
-                        placeholder = stringResource(R.string.add_new_to_master_list),
+                        placeholder = appString(Res.string.add_new_to_master_list),
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
                     CustomButton(
-                        text = stringResource(R.string.add_new),
+                        text = appString(Res.string.add_new),
                         onClick = {
                             val trimmed = newFacilityInput.trim()
                             if (trimmed.isNotBlank() && !facilities.contains(trimmed)) {
@@ -1415,7 +1487,7 @@ private fun FacilityPickerDialog(
                 }
 
                 CustomButton(
-                    text = stringResource(R.string.save_apply_x_selected, currentSelected.size),
+                    text = appString(Res.string.save_apply_x_selected, currentSelected.size),
                     onClick = { onSave(currentSelected); onDismiss() },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1454,7 +1526,7 @@ private fun CoverPhotoTile(url: String?, isUploading: Boolean, onPick: () -> Uni
             if (url != null) {
                 AsyncImage(
                     model = url,
-                    contentDescription = stringResource(R.string.cover_photo),
+                    contentDescription = appString(Res.string.cover_photo),
                     modifier = Modifier.fillMaxSize(),
                     contentScale = androidx.compose.ui.layout.ContentScale.Crop
                 )
@@ -1465,17 +1537,17 @@ private fun CoverPhotoTile(url: String?, isUploading: Boolean, onPick: () -> Uni
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     FilledTonalIconButton(onClick = onPick, enabled = !isUploading) {
-                        Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.change_cover_photo))
+                        Icon(Icons.Default.Edit, contentDescription = appString(Res.string.change_cover_photo))
                     }
                     FilledTonalIconButton(onClick = onRemove, enabled = !isUploading) {
-                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.remove_photo))
+                        Icon(Icons.Default.Delete, contentDescription = appString(Res.string.remove_photo))
                     }
                 }
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
-                    Text(stringResource(R.string.add_cover_photo), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    Text(stringResource(R.string.cover_photo_hint), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(appString(Res.string.add_cover_photo), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text(appString(Res.string.cover_photo_hint), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             if (isUploading) {

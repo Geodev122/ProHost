@@ -2,7 +2,6 @@ package com.example.ui.components
 
 import com.example.util.toPickedFile
 import com.example.ui.util.localizedLabel
-import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import android.net.Uri
@@ -36,6 +35,73 @@ import com.example.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.example.shared.resources.Res
+import com.example.shared.resources.add
+import com.example.shared.resources.add_blocked_time
+import com.example.shared.resources.add_division
+import com.example.shared.resources.add_hashtag
+import com.example.shared.resources.add_room_image
+import com.example.shared.resources.add_tier
+import com.example.shared.resources.add_x
+import com.example.shared.resources.amenities
+import com.example.shared.resources.attendee_tiers
+import com.example.shared.resources.blocked_times_optional
+import com.example.shared.resources.booking_window
+import com.example.shared.resources.booking_window_hint
+import com.example.shared.resources.cancel
+import com.example.shared.resources.close
+import com.example.shared.resources.custom_hours
+import com.example.shared.resources.division_capacity
+import com.example.shared.resources.division_hashtags_hint
+import com.example.shared.resources.division_how_rented
+import com.example.shared.resources.division_how_rented_hint
+import com.example.shared.resources.division_name
+import com.example.shared.resources.division_name_placeholder
+import com.example.shared.resources.division_photos_hint
+import com.example.shared.resources.division_pick_times
+import com.example.shared.resources.division_set_prices
+import com.example.shared.resources.division_what_is_it
+import com.example.shared.resources.done_x_selected
+import com.example.shared.resources.e_g_1_20_people_at_8_per_person_21_60_at_6
+import com.example.shared.resources.e_g_dentalclinic
+import com.example.shared.resources.e_g_weekly_maintenance
+import com.example.shared.resources.edit_division
+import com.example.shared.resources.from
+import com.example.shared.resources.from_hh_mm
+import com.example.shared.resources.hashtags
+import com.example.shared.resources.max_attendees
+import com.example.shared.resources.min_attendees
+import com.example.shared.resources.more_amenities
+import com.example.shared.resources.more_options
+import com.example.shared.resources.no_limit
+import com.example.shared.resources.no_matches
+import com.example.shared.resources.off_follows_the_space_s_hours
+import com.example.shared.resources.open_on_sundays
+import com.example.shared.resources.person
+import com.example.shared.resources.reason_optional_2
+import com.example.shared.resources.remove
+import com.example.shared.resources.remove_blocked_time
+import com.example.shared.resources.remove_image
+import com.example.shared.resources.remove_tier
+import com.example.shared.resources.rent_mode_fixed
+import com.example.shared.resources.rent_mode_fixed_hint
+import com.example.shared.resources.rent_mode_per_person
+import com.example.shared.resources.rent_mode_per_person_hint
+import com.example.shared.resources.room_amenities
+import com.example.shared.resources.room_photos
+import com.example.shared.resources.save_division
+import com.example.shared.resources.search_or_type_new
+import com.example.shared.resources.this_room_has_its_own_schedule
+import com.example.shared.resources.this_tier_is_turned_off
+import com.example.shared.resources.tier_name
+import com.example.shared.resources.tiers_are_saved_with_the_room_tap_save_bel
+import com.example.shared.resources.to
+import com.example.shared.resources.to_hh_mm
+import com.example.shared.resources.to_must_be_at_least_from
+import com.example.shared.resources.turn_on
+import com.example.shared.resources.use_templates
+import com.example.ui.util.appString
+import com.example.ui.util.sharedText
 
 /**
  * One division of a listing (a room, desk, hall…): name, type, amenities, photos, pricing and optional own hours. The
@@ -156,11 +222,11 @@ fun SubdivisionForm(
                 if (url != null) subImageUrls = subImageUrls + url else failureCount++
             }
             if (failureCount > 0) {
-                val detail = FirebaseStorageService.lastUploadError ?: uiText(R.string.check_your_connection_and_try_again)
+                val detail = FirebaseStorageService.lastUploadError ?: sharedText("check_your_connection_and_try_again")
                 subImageUploadError = if (failureCount == files.size) {
-                    if (files.size == 1) uiText(R.string.couldnt_upload_that_photo_x, detail) else uiText(R.string.couldnt_upload_those_photos_x, detail)
+                    if (files.size == 1) sharedText("couldnt_upload_that_photo_x", detail) else sharedText("couldnt_upload_those_photos_x", detail)
                 } else {
-                    uiText(R.string.x_of_x_photos_failed_to_upload_x, failureCount, files.size, detail)
+                    sharedText("x_of_x_photos_failed_to_upload_x", failureCount, files.size, detail)
                 }
             }
             isUploadingSubImage = false
@@ -189,11 +255,11 @@ fun SubdivisionForm(
     val attendeeBlocker: String? = if (!isPerAttendee) null else {
         val built = buildCurrentSubdivision()
         when {
-            subAttendeeTiers.isEmpty() -> uiText(R.string.add_at_least_one_pricing_tier)
-            com.example.ui.util.AttendeePricing.tiersFor(built).isEmpty() -> uiText(R.string.give_at_least_one_tier_a_price_per_person)
-            subAttendeeTiers.any { t -> t.maxAttendees.let { it != null && it < t.minAttendees } } -> uiText(R.string.a_tier_s_to_is_below_its_from)
-            !built.pricing.hasRealPrice() -> uiText(R.string.pick_at_least_one_hour_shift_or_day_this_r)
-            (subCapacity ?: Int.MAX_VALUE) < (subMinAttendees ?: 1) -> uiText(R.string.max_attendees_is_below_min_attendees)
+            subAttendeeTiers.isEmpty() -> sharedText("add_at_least_one_pricing_tier")
+            com.example.ui.util.AttendeePricing.tiersFor(built).isEmpty() -> sharedText("give_at_least_one_tier_a_price_per_person")
+            subAttendeeTiers.any { t -> t.maxAttendees.let { it != null && it < t.minAttendees } } -> sharedText("a_tier_s_to_is_below_its_from")
+            !built.pricing.hasRealPrice() -> sharedText("pick_at_least_one_hour_shift_or_day_this_r")
+            (subCapacity ?: Int.MAX_VALUE) < (subMinAttendees ?: 1) -> sharedText("max_attendees_is_below_min_attendees")
             else -> null
         }
     }
@@ -215,7 +281,7 @@ fun SubdivisionForm(
         // Pickers declared up-front so they render on top of everything
         if (showAmenityPicker) {
             SearchablePickerDialog(
-                title = stringResource(R.string.room_amenities),
+                title = appString(Res.string.room_amenities),
                 options = amenityCatalog,
                 selected = subAmenitiesSelected,
                 multiSelect = true,
@@ -232,7 +298,7 @@ fun SubdivisionForm(
         // Live preview: the card this division becomes in Step 3.
         DivisionCard(division = buildCurrentSubdivision(), onClick = null, onDelete = null)
 
-        FormSection(title = stringResource(R.string.division_what_is_it)) {
+        FormSection(title = appString(Res.string.division_what_is_it)) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Level2Type.values().forEach { type ->
                     FilterChip(
@@ -246,8 +312,8 @@ fun SubdivisionForm(
             InputField(
                 value = subName,
                 onValueChange = { subName = it },
-                label = stringResource(R.string.division_name),
-                placeholder = stringResource(R.string.division_name_placeholder, localizedLabel(subType.displayName)),
+                label = appString(Res.string.division_name),
+                placeholder = appString(Res.string.division_name_placeholder, localizedLabel(subType.displayName)),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -260,8 +326,8 @@ fun SubdivisionForm(
                         subCapacityInput = digits
                         subCapacity = digits.toIntOrNull()?.takeIf { it > 0 }
                     },
-                    label = stringResource(R.string.division_capacity),
-                    placeholder = stringResource(R.string.no_limit),
+                    label = appString(Res.string.division_capacity),
+                    placeholder = appString(Res.string.no_limit),
                     leadingIcon = Icons.Default.People,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -270,7 +336,7 @@ fun SubdivisionForm(
             }
         }
 
-        FormSection(title = stringResource(R.string.division_how_rented), hint = stringResource(R.string.division_how_rented_hint)) {
+        FormSection(title = appString(Res.string.division_how_rented), hint = appString(Res.string.division_how_rented_hint)) {
             RentalPricingConfigEditor(
                 config = subPricing,
                 operatingDays = if (subScheduleOverrideEnabled) subOverrideDays.toList() else operatingDays,
@@ -284,8 +350,8 @@ fun SubdivisionForm(
                     if (subPricing.strategyType != RentalStrategyType.MONTHLY) {
                         ChoiceGrid(
                             choices = listOf(
-                                Choice(SubdivisionPricingMode.STRATEGY_BASED, Icons.Default.Payments, stringResource(R.string.rent_mode_fixed), stringResource(R.string.rent_mode_fixed_hint)),
-                                Choice(SubdivisionPricingMode.PER_ATTENDEE, Icons.Default.Groups, stringResource(R.string.rent_mode_per_person), stringResource(R.string.rent_mode_per_person_hint))
+                                Choice(SubdivisionPricingMode.STRATEGY_BASED, Icons.Default.Payments, appString(Res.string.rent_mode_fixed), appString(Res.string.rent_mode_fixed_hint)),
+                                Choice(SubdivisionPricingMode.PER_ATTENDEE, Icons.Default.Groups, appString(Res.string.rent_mode_per_person), appString(Res.string.rent_mode_per_person_hint))
                             ),
                             selected = subPricingMode,
                             onSelect = { mode ->
@@ -299,7 +365,7 @@ fun SubdivisionForm(
                         )
                     }
                     Text(
-                        if (isPerAttendee) stringResource(R.string.division_pick_times) else stringResource(R.string.division_set_prices),
+                        if (isPerAttendee) appString(Res.string.division_pick_times) else appString(Res.string.division_set_prices),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(top = Spacing.sm)
@@ -315,7 +381,7 @@ fun SubdivisionForm(
                             subMinAttendeesInput = digits
                             subMinAttendees = digits.toIntOrNull()?.takeIf { it > 0 }
                         },
-                        label = stringResource(R.string.min_attendees),
+                        label = appString(Res.string.min_attendees),
                         placeholder = "1",
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -328,8 +394,8 @@ fun SubdivisionForm(
                             subCapacityInput = digits
                             subCapacity = digits.toIntOrNull()?.takeIf { it > 0 }
                         },
-                        label = stringResource(R.string.max_attendees),
-                        placeholder = stringResource(R.string.no_limit),
+                        label = appString(Res.string.max_attendees),
+                        placeholder = appString(Res.string.no_limit),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f)
@@ -348,7 +414,7 @@ fun SubdivisionForm(
                     )
                 } else {
                     Text(
-                        stringResource(R.string.tiers_are_saved_with_the_room_tap_save_bel),
+                        appString(Res.string.tiers_are_saved_with_the_room_tap_save_bel),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.proColors.success
                     )
@@ -356,7 +422,7 @@ fun SubdivisionForm(
             }
         }
 
-        FormSection(title = stringResource(R.string.room_photos), hint = stringResource(R.string.division_photos_hint)) {
+        FormSection(title = appString(Res.string.room_photos), hint = appString(Res.string.division_photos_hint)) {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 items(subImageUrls) { url ->
                     Box(modifier = Modifier.size(72.dp)) {
@@ -365,7 +431,7 @@ fun SubdivisionForm(
                             onClick = { subImageUrls = subImageUrls - url },
                             modifier = Modifier.align(Alignment.TopEnd).size(32.dp)
                         ) {
-                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove_image), modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Close, contentDescription = appString(Res.string.remove_image), modifier = Modifier.size(14.dp))
                         }
                     }
                 }
@@ -385,11 +451,11 @@ fun SubdivisionForm(
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Icon(
                                         Icons.Default.AddAPhoto,
-                                        contentDescription = stringResource(R.string.add_room_image),
+                                        contentDescription = appString(Res.string.add_room_image),
                                         modifier = Modifier.size(20.dp),
                                         tint = MaterialTheme.colorScheme.primary
                                     )
-                                    Text(stringResource(R.string.add), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                    Text(appString(Res.string.add), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }
@@ -401,7 +467,7 @@ fun SubdivisionForm(
             }
         }
 
-        FormSection(title = stringResource(R.string.amenities)) {
+        FormSection(title = appString(Res.string.amenities)) {
             val quickAmenities = (amenityCatalog.take(8) + subAmenitiesSelected).distinct()
             FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 quickAmenities.forEach { amenity ->
@@ -417,7 +483,7 @@ fun SubdivisionForm(
                 }
                 AssistChip(
                     onClick = { showAmenityPicker = true },
-                    label = { Text(stringResource(R.string.more_amenities)) },
+                    label = { Text(appString(Res.string.more_amenities)) },
                     leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp)) }
                 )
             }
@@ -425,19 +491,19 @@ fun SubdivisionForm(
 
         // Rarely needed settings stay folded away.
         TextButton(onClick = { showMoreOptions = !showMoreOptions }) {
-            Text(stringResource(R.string.more_options), style = MaterialTheme.typography.labelLarge)
+            Text(appString(Res.string.more_options), style = MaterialTheme.typography.labelLarge)
             Icon(if (showMoreOptions) Icons.Default.ExpandLess else Icons.Default.ExpandMore, contentDescription = null)
         }
         if (showMoreOptions) {
             if (subPricing.strategyType != RentalStrategyType.MONTHLY) {
-                FormSection(title = stringResource(R.string.booking_window), hint = stringResource(R.string.booking_window_hint)) {
+                FormSection(title = appString(Res.string.booking_window), hint = appString(Res.string.booking_window_hint)) {
                     BookingWindowStepper(
                         months = subPricing.bookingHorizonMonths,
                         onChange = { subPricing = subPricing.copy(bookingHorizonMonths = it) }
                     )
                 }
             }
-            FormSection(title = stringResource(R.string.hashtags), hint = stringResource(R.string.division_hashtags_hint)) {
+            FormSection(title = appString(Res.string.hashtags), hint = appString(Res.string.division_hashtags_hint)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -447,7 +513,7 @@ fun SubdivisionForm(
                         value = hashtagInput,
                         onValueChange = { hashtagInput = it.trimStart('#').replace(" ", "") },
                         label = "",
-                        placeholder = stringResource(R.string.e_g_dentalclinic),
+                        placeholder = appString(Res.string.e_g_dentalclinic),
                         prefix = "#",
                         singleLine = true,
                         modifier = Modifier.weight(1f)
@@ -462,7 +528,7 @@ fun SubdivisionForm(
                         },
                         enabled = hashtagInput.trim().isNotBlank()
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_hashtag), tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.Add, contentDescription = appString(Res.string.add_hashtag), tint = MaterialTheme.colorScheme.primary)
                     }
                 }
                 if (subHashtags.isNotEmpty()) {
@@ -475,20 +541,20 @@ fun SubdivisionForm(
                                 selected = false,
                                 onClick = { subHashtags = subHashtags - tag },
                                 label = { Text("#$tag", style = MaterialTheme.typography.labelSmall) },
-                                trailingIcon = { Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove), modifier = Modifier.size(14.dp)) }
+                                trailingIcon = { Icon(Icons.Default.Close, contentDescription = appString(Res.string.remove), modifier = Modifier.size(14.dp)) }
                             )
                         }
                     }
                 }
             }
-            FormSection(title = stringResource(R.string.custom_hours)) {
+            FormSection(title = appString(Res.string.custom_hours)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        if (subScheduleOverrideEnabled) stringResource(R.string.this_room_has_its_own_schedule) else stringResource(R.string.off_follows_the_space_s_hours),
+                        if (subScheduleOverrideEnabled) appString(Res.string.this_room_has_its_own_schedule) else appString(Res.string.off_follows_the_space_s_hours),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f)
@@ -520,12 +586,12 @@ fun SubdivisionForm(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(stringResource(R.string.open_on_sundays), style = MaterialTheme.typography.bodySmall)
+                        Text(appString(Res.string.open_on_sundays), style = MaterialTheme.typography.bodySmall)
                         Switch(checked = subOverrideSundayOperating, onCheckedChange = { subOverrideSundayOperating = it })
                     }
 
                     // Room-specific blocked time — independent of the whole space's blackout slots.
-                    Text(stringResource(R.string.blocked_times_optional), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                    Text(appString(Res.string.blocked_times_optional), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                     if (subOverrideBlackouts.isNotEmpty()) {
                         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             subOverrideBlackouts.forEach { slot ->
@@ -549,7 +615,7 @@ fun SubdivisionForm(
                                             onClick = { subOverrideBlackouts = subOverrideBlackouts.filterNot { it.id == slot.id } },
                                             modifier = Modifier.size(40.dp)
                                         ) {
-                                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove_blocked_time), modifier = Modifier.size(14.dp))
+                                            Icon(Icons.Default.Close, contentDescription = appString(Res.string.remove_blocked_time), modifier = Modifier.size(14.dp))
                                         }
                                     }
                                 }
@@ -572,14 +638,14 @@ fun SubdivisionForm(
                             InputField(
                                 value = blackoutStart,
                                 onValueChange = { blackoutStart = it },
-                                label = stringResource(R.string.from_hh_mm),
+                                label = appString(Res.string.from_hh_mm),
                                 modifier = Modifier.weight(1f),
                                 singleLine = true
                             )
                             InputField(
                                 value = blackoutEnd,
                                 onValueChange = { blackoutEnd = it },
-                                label = stringResource(R.string.to_hh_mm),
+                                label = appString(Res.string.to_hh_mm),
                                 modifier = Modifier.weight(1f),
                                 singleLine = true
                             )
@@ -587,8 +653,8 @@ fun SubdivisionForm(
                         InputField(
                             value = blackoutReason,
                             onValueChange = { blackoutReason = it },
-                            label = stringResource(R.string.reason_optional_2),
-                            placeholder = stringResource(R.string.e_g_weekly_maintenance),
+                            label = appString(Res.string.reason_optional_2),
+                            placeholder = appString(Res.string.e_g_weekly_maintenance),
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
@@ -598,7 +664,7 @@ fun SubdivisionForm(
                                     dayOfWeek = blackoutDay,
                                     startTime = blackoutStart,
                                     endTime = blackoutEnd,
-                                    reason = blackoutReason.ifBlank { uiText(R.string.blocked) }
+                                    reason = blackoutReason.ifBlank { sharedText("blocked") }
                                 )
                                 blackoutReason = ""
                             },
@@ -606,7 +672,7 @@ fun SubdivisionForm(
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(Spacing.sm))
-                            Text(stringResource(R.string.add_blocked_time), style = MaterialTheme.typography.labelSmall)
+                            Text(appString(Res.string.add_blocked_time), style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
@@ -623,13 +689,13 @@ fun SubdivisionForm(
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             CustomButton(
-                text = stringResource(R.string.cancel),
+                text = appString(Res.string.cancel),
                 onClick = onCancel,
                 variant = CustomButtonVariant.OUTLINED,
                 modifier = Modifier.weight(1f)
             )
             ProPrimaryButton(
-                text = stringResource(R.string.save_division),
+                text = appString(Res.string.save_division),
                 onClick = { onSave(buildCurrentSubdivision()) },
                 enabled = isSubFormValid,
                 modifier = Modifier.weight(1f)
@@ -694,13 +760,13 @@ private fun SearchablePickerDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(title, fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.titleMedium.fontSize)
-                    IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close)) }
+                    IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = appString(Res.string.close)) }
                 }
                 InputField(
                     value = query,
                     onValueChange = { query = it },
                     label = "",
-                    placeholder = stringResource(R.string.search_or_type_new),
+                    placeholder = appString(Res.string.search_or_type_new),
                     leadingIcon = Icons.Default.Search,
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
@@ -720,12 +786,12 @@ private fun SearchablePickerDialog(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                        Text(stringResource(R.string.add_x, query.trim()), fontSize = MaterialTheme.typography.bodySmall.fontSize, color = MaterialTheme.colorScheme.primary)
+                        Text(appString(Res.string.add_x, query.trim()), fontSize = MaterialTheme.typography.bodySmall.fontSize, color = MaterialTheme.colorScheme.primary)
                     }
                 }
                 if (filtered.isEmpty() && !canAddCustom) {
                     Text(
-                        stringResource(R.string.no_matches),
+                        appString(Res.string.no_matches),
                         fontSize = MaterialTheme.typography.labelSmall.fontSize,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -756,7 +822,7 @@ private fun SearchablePickerDialog(
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.small
                     ) {
-                        Text(stringResource(R.string.done_x_selected, selected.size))
+                        Text(appString(Res.string.done_x_selected, selected.size))
                     }
                 }
             }
@@ -779,9 +845,9 @@ private fun AttendeeTierEditor(
         onTiersChange(tiers.mapIndexed { i, t -> if (i == index) transform(t) else t })
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Text(stringResource(R.string.attendee_tiers), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+        Text(appString(Res.string.attendee_tiers), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
         Text(
-            stringResource(R.string.e_g_1_20_people_at_8_per_person_21_60_at_6),
+            appString(Res.string.e_g_1_20_people_at_8_per_person_21_60_at_6),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -800,12 +866,12 @@ private fun AttendeeTierEditor(
                         InputField(
                             value = tier.name,
                             onValueChange = { v -> update(index) { it.copy(name = v) } },
-                            label = stringResource(R.string.tier_name),
+                            label = appString(Res.string.tier_name),
                             singleLine = true,
                             modifier = Modifier.weight(1f)
                         )
                         IconButton(onClick = { onTiersChange(tiers.filterIndexed { i, _ -> i != index }) }) {
-                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.remove_tier), tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Default.Delete, contentDescription = appString(Res.string.remove_tier), tint = MaterialTheme.colorScheme.error)
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
@@ -817,7 +883,7 @@ private fun AttendeeTierEditor(
                                 fromText.toIntOrNull()?.takeIf { it >= 1 }?.let { n -> update(index) { it.copy(minAttendees = n) } }
                             },
                             isError = fromText.toIntOrNull()?.let { it < 1 } ?: true,
-                            label = stringResource(R.string.from),
+                            label = appString(Res.string.from),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(1f)
@@ -825,7 +891,7 @@ private fun AttendeeTierEditor(
                         InputField(
                             value = tier.maxAttendees?.toString() ?: "",
                             onValueChange = { v -> update(index) { it.copy(maxAttendees = v.filter(Char::isDigit).toIntOrNull()) } },
-                            label = stringResource(R.string.to),
+                            label = appString(Res.string.to),
                             placeholder = "∞",
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -841,7 +907,7 @@ private fun AttendeeTierEditor(
                                     update(index) { it.copy(pricePerAttendeeUsd = cleaned.toDoubleOrNull() ?: 0.0) }
                                 }
                             },
-                            label = stringResource(R.string.person),
+                            label = appString(Res.string.person),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.weight(1.2f)
@@ -849,13 +915,13 @@ private fun AttendeeTierEditor(
                     }
                     val max = tier.maxAttendees
                     if (max != null && max < tier.minAttendees) {
-                        Text(stringResource(R.string.to_must_be_at_least_from), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                        Text(appString(Res.string.to_must_be_at_least_from), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                     }
                     if (!tier.isEnabled) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(stringResource(R.string.this_tier_is_turned_off), style = MaterialTheme.typography.labelSmall,
+                            Text(appString(Res.string.this_tier_is_turned_off), style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.error, modifier = Modifier.weight(1f))
-                            TextButton(onClick = { update(index) { it.copy(isEnabled = true) } }) { Text(stringResource(R.string.turn_on)) }
+                            TextButton(onClick = { update(index) { it.copy(isEnabled = true) } }) { Text(appString(Res.string.turn_on)) }
                         }
                     }
                 }
@@ -868,7 +934,7 @@ private fun AttendeeTierEditor(
                     onTiersChange(
                         tiers + AttendeePackage(
                             id = "TIER-" + com.example.util.Ids.uuid().take(6).uppercase(),
-                            name = uiText(R.string.tier_x, tiers.size + 1),
+                            name = sharedText("tier_x", tiers.size + 1),
                             pricePerAttendeeUsd = 0.0,
                             minAttendees = nextMin,
                             isSystemDefault = false
@@ -877,7 +943,7 @@ private fun AttendeeTierEditor(
                 },
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.weight(1f)
-            ) { Text(stringResource(R.string.add_tier)) }
+            ) { Text(appString(Res.string.add_tier)) }
             if (tiers.isEmpty() && templates.isNotEmpty()) {
                 OutlinedButton(
                     onClick = {
@@ -889,7 +955,7 @@ private fun AttendeeTierEditor(
                     },
                     shape = MaterialTheme.shapes.medium,
                     modifier = Modifier.weight(1f)
-                ) { Text(stringResource(R.string.use_templates)) }
+                ) { Text(appString(Res.string.use_templates)) }
             }
         }
     }
@@ -926,7 +992,7 @@ fun DivisionSheet(
             verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
             Text(
-                if (initial != null) stringResource(R.string.edit_division) else stringResource(R.string.add_division),
+                if (initial != null) appString(Res.string.edit_division) else appString(Res.string.add_division),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.semantics { heading() }
             )

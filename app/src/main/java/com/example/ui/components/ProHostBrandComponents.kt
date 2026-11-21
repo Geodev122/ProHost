@@ -2,8 +2,6 @@ package com.example.ui.components
 
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.liveRegion
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedContent
@@ -96,6 +94,11 @@ import com.example.ui.theme.SheetShape
 import com.example.ui.theme.Spacing
 import com.example.ui.theme.Radius
 import com.example.ui.theme.proColors
+import com.example.shared.resources.Res
+import com.example.shared.resources.collapse_drawer
+import com.example.shared.resources.hide_navigation
+import com.example.shared.resources.show_navigation
+import com.example.ui.util.appString
 
 /**
  * ProHost shared brand component library for the Specialist and Pro Host surfaces.
@@ -381,7 +384,7 @@ fun ProHostBottomNavBar(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             Icons.Default.KeyboardArrowUp,
-                            contentDescription = stringResource(R.string.show_navigation),
+                            contentDescription = appString(Res.string.show_navigation),
                             tint = accent
                         )
                     }
@@ -420,7 +423,7 @@ fun ProHostBottomNavBar(
                             IconButton(onClick = { onExpandChange(false) }, modifier = Modifier.size(40.dp)) {
                                 Icon(
                                     Icons.Default.KeyboardArrowDown,
-                                    contentDescription = stringResource(R.string.hide_navigation),
+                                    contentDescription = appString(Res.string.hide_navigation),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -544,7 +547,7 @@ fun ProHostDrawerHeader(
             IconButton(onClick = onClose, modifier = Modifier.size(40.dp)) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.collapse_drawer),
+                    contentDescription = appString(Res.string.collapse_drawer),
                     tint = pro.onBrandHeader
                 )
             }

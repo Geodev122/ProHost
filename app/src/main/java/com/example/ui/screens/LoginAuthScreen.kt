@@ -50,6 +50,32 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
 
 import androidx.activity.compose.BackHandler
+import com.example.shared.resources.Res
+import com.example.shared.resources.city
+import com.example.shared.resources.e_g_beirut
+import com.example.shared.resources.e_g_dermatologist_architect_coworking_mana
+import com.example.shared.resources.e_g_maya_haddad
+import com.example.shared.resources.e_g_mount_lebanon
+import com.example.shared.resources.full_name
+import com.example.shared.resources.governorate_area
+import com.example.shared.resources.hosts_and_guests_reach_you_here_never_show
+import com.example.shared.resources.next
+import com.example.shared.resources.optional
+import com.example.shared.resources.privacy_policy
+import com.example.shared.resources.profession_job_title_optional
+import com.example.shared.resources.profile_picture_2
+import com.example.shared.resources.reg_place_subtitle
+import com.example.shared.resources.reg_place_title
+import com.example.shared.resources.reg_profile_subtitle
+import com.example.shared.resources.reg_profile_title
+import com.example.shared.resources.reg_terms_agree
+import com.example.shared.resources.reg_whatsapp_title
+import com.example.shared.resources.start_over_with_a_different_account
+import com.example.shared.resources.terms_of_use
+import com.example.shared.resources.use_this_phone_s_number
+import com.example.shared.resources.whatsapp_number_2
+import com.example.ui.util.appString
+import com.example.ui.util.sharedText
 /**
  * Sign in or create an account (1.0.45: staged, "intent first"):
  *  WELCOME (Create an account · I already have one) → PROVIDERS (Google · [Apple] · Email) → EMAIL → PASSWORD,
@@ -158,7 +184,7 @@ fun LoginAuthScreen(
                     val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
                     if (!com.example.data.auth.GoogleNonce.idTokenMatchesNonce(googleIdTokenCredential.idToken, nonce)) {
                         com.example.analytics.AnalyticsTracker.authError("google", "nonce_mismatch")
-                        UiMessages.show(uiText(R.string.google_sign_in_isn_t_available_right_now_p),
+                        UiMessages.show(sharedText("google_sign_in_isn_t_available_right_now_p"),
                             long = true)
                         return
                     }
@@ -208,13 +234,13 @@ fun LoginAuthScreen(
                 } catch (e2: GetCredentialException) {
                     android.util.Log.w("LoginAuthScreen", "Google sign-in unavailable: ${e2.type}")
                     com.example.analytics.AnalyticsTracker.authError("google", "unavailable")
-                    UiMessages.show(uiText(R.string.google_sign_in_isn_t_available_on_this_dev),
+                    UiMessages.show(sharedText("google_sign_in_isn_t_available_on_this_dev"),
                         long = true)
                 }
             } catch (e: GetCredentialException) {
                 android.util.Log.w("LoginAuthScreen", "Google sign-in error: ${e.type}")
                 com.example.analytics.AnalyticsTracker.authError("google", "credential_error")
-                UiMessages.show(uiText(R.string.google_sign_in_isn_t_available_right_now_p),
+                UiMessages.show(sharedText("google_sign_in_isn_t_available_right_now_p"),
                     long = true)
             }
         }
@@ -411,11 +437,11 @@ fun LoginAuthScreen(
         if (regPhoneNumber.filter { it.isDigit() }.length < 6 && resumePhoneE164.isNullOrBlank() ||
             !com.example.data.model.isPlausibleE164(registrationPhoneE164)
         ) {
-            localErrorMessage = uiText(R.string.please_enter_your_whatsapp_number_with_its)
+            localErrorMessage = sharedText("please_enter_your_whatsapp_number_with_its")
             return
         }
         if (!tosAccepted) {
-            localErrorMessage = uiText(R.string.please_agree_to_the_terms_of_use_and_priva)
+            localErrorMessage = sharedText("please_agree_to_the_terms_of_use_and_priva")
             return
         }
         authViewModel.completePendingRegistration(
@@ -499,33 +525,33 @@ fun LoginAuthScreen(
 
         AuthStep.REG_PROFILE -> RegistrationStepScaffold(
             step = 1,
-            title = stringResource(R.string.reg_profile_title),
-            subtitle = stringResource(R.string.reg_profile_subtitle),
+            title = appString(Res.string.reg_profile_title),
+            subtitle = appString(Res.string.reg_profile_subtitle),
             isBusy = isAuthenticating,
             error = error,
-            primaryText = stringResource(R.string.next),
+            primaryText = appString(Res.string.next),
             primaryEnabled = regFullName.isNotBlank(),
             onPrimary = { goTo(AuthStep.REG_PLACE) },
             onBack = { startOver() },
             secondary = {
                 TextButton(onClick = { startOver() }, enabled = !isAuthenticating) {
-                    Text(stringResource(R.string.start_over_with_a_different_account), style = MaterialTheme.typography.labelLarge)
+                    Text(appString(Res.string.start_over_with_a_different_account), style = MaterialTheme.typography.labelLarge)
                 }
             }
         ) {
-            if (firebaseEmail.isNotBlank()) AuthInfoLine(Icons.Default.VerifiedUser, uiText(R.string.signed_in_as_x, firebaseEmail))
+            if (firebaseEmail.isNotBlank()) AuthInfoLine(Icons.Default.VerifiedUser, sharedText("signed_in_as_x", firebaseEmail))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 ProfilePicturePickerField(pictureFile = regProfilePic, onPictureSelected = { regProfilePic = it })
                 Column {
-                    Text(stringResource(R.string.profile_picture_2), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                    Text(stringResource(R.string.optional), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(appString(Res.string.profile_picture_2), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                    Text(appString(Res.string.optional), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             InputField(
                 value = regFullName,
                 onValueChange = { regFullName = it; localErrorMessage = null },
-                label = stringResource(R.string.full_name),
-                placeholder = stringResource(R.string.e_g_maya_haddad),
+                label = appString(Res.string.full_name),
+                placeholder = appString(Res.string.e_g_maya_haddad),
                 leadingIcon = Icons.Default.Person,
                 modifier = Modifier.fillMaxWidth().testTag("registration_full_name"),
                 singleLine = true
@@ -533,8 +559,8 @@ fun LoginAuthScreen(
             InputField(
                 value = regSpecialty,
                 onValueChange = { regSpecialty = it },
-                label = stringResource(R.string.profession_job_title_optional),
-                placeholder = stringResource(R.string.e_g_dermatologist_architect_coworking_mana),
+                label = appString(Res.string.profession_job_title_optional),
+                placeholder = appString(Res.string.e_g_dermatologist_architect_coworking_mana),
                 leadingIcon = Icons.Default.Badge,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -543,11 +569,11 @@ fun LoginAuthScreen(
 
         AuthStep.REG_PLACE -> RegistrationStepScaffold(
             step = 2,
-            title = stringResource(R.string.reg_place_title),
-            subtitle = stringResource(R.string.reg_place_subtitle),
+            title = appString(Res.string.reg_place_title),
+            subtitle = appString(Res.string.reg_place_subtitle),
             isBusy = isAuthenticating,
             error = error,
-            primaryText = stringResource(R.string.next),
+            primaryText = appString(Res.string.next),
             primaryEnabled = regGovernorateArea.isNotBlank() && regCity.isNotBlank(),
             onPrimary = { goTo(AuthStep.REG_WHATSAPP) },
             onBack = { goTo(AuthStep.REG_PROFILE) }
@@ -556,8 +582,8 @@ fun LoginAuthScreen(
             InputField(
                 value = regGovernorateArea,
                 onValueChange = { regGovernorateArea = it; localErrorMessage = null },
-                label = stringResource(R.string.governorate_area),
-                placeholder = stringResource(R.string.e_g_mount_lebanon),
+                label = appString(Res.string.governorate_area),
+                placeholder = appString(Res.string.e_g_mount_lebanon),
                 leadingIcon = Icons.Default.LocationOn,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -565,8 +591,8 @@ fun LoginAuthScreen(
             InputField(
                 value = regCity,
                 onValueChange = { regCity = it; localErrorMessage = null },
-                label = stringResource(R.string.city),
-                placeholder = stringResource(R.string.e_g_beirut),
+                label = appString(Res.string.city),
+                placeholder = appString(Res.string.e_g_beirut),
                 leadingIcon = Icons.Default.LocationCity,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -575,8 +601,8 @@ fun LoginAuthScreen(
 
         AuthStep.REG_WHATSAPP -> RegistrationStepScaffold(
             step = 3,
-            title = stringResource(R.string.reg_whatsapp_title),
-            subtitle = stringResource(R.string.hosts_and_guests_reach_you_here_never_show),
+            title = appString(Res.string.reg_whatsapp_title),
+            subtitle = appString(Res.string.hosts_and_guests_reach_you_here_never_show),
             isBusy = isAuthenticating,
             error = error,
             primaryText = stringResource(if (isAuthenticating) R.string.creating_account else R.string.finish),
@@ -589,14 +615,14 @@ fun LoginAuthScreen(
                 onCountryChange = { regWhatsAppCountry = it },
                 number = regPhoneNumber,
                 onNumberChange = { regPhoneNumber = it; localErrorMessage = null },
-                label = stringResource(R.string.whatsapp_number_2),
+                label = appString(Res.string.whatsapp_number_2),
                 placeholder = "71 234 567",
                 modifier = Modifier.fillMaxWidth()
             )
             TextButton(onClick = pickDeviceNumber) {
                 Icon(Icons.Default.SimCard, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(Spacing.sm))
-                Text(stringResource(R.string.use_this_phone_s_number), style = MaterialTheme.typography.labelLarge)
+                Text(appString(Res.string.use_this_phone_s_number), style = MaterialTheme.typography.labelLarge)
             }
             Row(
                 modifier = Modifier.fillMaxWidth().clickable { tosAccepted = !tosAccepted }.testTag("registration_terms"),
@@ -604,13 +630,13 @@ fun LoginAuthScreen(
             ) {
                 Checkbox(checked = tosAccepted, onCheckedChange = { tosAccepted = it })
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.reg_terms_agree), style = MaterialTheme.typography.bodyMedium)
+                    Text(appString(Res.string.reg_terms_agree), style = MaterialTheme.typography.bodyMedium)
                     Row {
                         TextButton(onClick = showTerms, contentPadding = PaddingValues(horizontal = Spacing.xs)) {
-                            Text(stringResource(R.string.terms_of_use), style = MaterialTheme.typography.labelMedium)
+                            Text(appString(Res.string.terms_of_use), style = MaterialTheme.typography.labelMedium)
                         }
                         TextButton(onClick = showPrivacy, contentPadding = PaddingValues(horizontal = Spacing.xs)) {
-                            Text(stringResource(R.string.privacy_policy), style = MaterialTheme.typography.labelMedium)
+                            Text(appString(Res.string.privacy_policy), style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }

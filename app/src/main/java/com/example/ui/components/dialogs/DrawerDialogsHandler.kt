@@ -1,8 +1,5 @@
 package com.example.ui.components.dialogs
 
-import com.example.ui.util.uiText
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -39,6 +36,22 @@ import com.example.ui.theme.Spacing
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.example.shared.resources.Res
+import com.example.shared.resources.actor_x
+import com.example.shared.resources.cancel
+import com.example.shared.resources.clear_date_filter
+import com.example.shared.resources.close
+import com.example.shared.resources.export_csv
+import com.example.shared.resources.mark_all_read
+import com.example.shared.resources.mark_read
+import com.example.shared.resources.no_notifications_yet
+import com.example.shared.resources.notifications_are_kept_for_48_hours
+import com.example.shared.resources.open
+import com.example.shared.resources.read
+import com.example.shared.resources.real_time_updates_received_via_push_messag
+import com.example.shared.resources.x_of_x_entries
+import com.example.ui.util.appString
+import com.example.ui.util.sharedText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,15 +108,15 @@ fun DrawerDialogsHandler(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val title = when (dialogId) {
-                        "admin_audit" -> uiText(R.string.central_security_audits)
+                        "admin_audit" -> sharedText("central_security_audits")
                         // One title carrying the live unread count — this used to be a
                         // separate chrome title ("Real-time Alerts Terminal") plus a
                         // second, redundant "Notifications" heading inside the content.
                         "fcm_alerts" -> {
                             val unreadCount = fcmAlerts.count { !it.isRead }
-                            if (unreadCount > 0) uiText(R.string.notifications_x_new, unreadCount) else uiText(R.string.notifications)
+                            if (unreadCount > 0) sharedText("notifications_x_new", unreadCount) else sharedText("notifications")
                         }
-                        else -> uiText(R.string.information_sheet)
+                        else -> sharedText("information_sheet")
                     }
                     Text(
                         text = title,
@@ -112,7 +125,7 @@ fun DrawerDialogsHandler(
                         color = MaterialTheme.colorScheme.primary
                     )
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
+                        Icon(Icons.Default.Close, contentDescription = appString(Res.string.close))
                     }
                 }
 
@@ -153,7 +166,7 @@ fun DrawerDialogsHandler(
                                         onClick = { showAuditFromPicker = true },
                                         label = {
                                             Text(
-                                                auditFromMillis?.let { uiText(R.string.from_x, sdfShort.format(Date(it))) } ?: uiText(R.string.from_any),
+                                                auditFromMillis?.let { sharedText("from_x", sdfShort.format(Date(it))) } ?: sharedText("from_any"),
                                                 style = MaterialTheme.typography.labelSmall
                                             )
                                         },
@@ -163,7 +176,7 @@ fun DrawerDialogsHandler(
                                         onClick = { showAuditToPicker = true },
                                         label = {
                                             Text(
-                                                auditToMillis?.let { uiText(R.string.to_x, sdfShort.format(Date(it))) } ?: uiText(R.string.to_any),
+                                                auditToMillis?.let { sharedText("to_x", sdfShort.format(Date(it))) } ?: sharedText("to_any"),
                                                 style = MaterialTheme.typography.labelSmall
                                             )
                                         },
@@ -171,7 +184,7 @@ fun DrawerDialogsHandler(
                                     )
                                     if (auditFromMillis != null || auditToMillis != null) {
                                         IconButton(onClick = { auditFromMillis = null; auditToMillis = null }, modifier = Modifier.size(40.dp)) {
-                                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.clear_date_filter), modifier = Modifier.size(16.dp))
+                                            Icon(Icons.Default.Close, contentDescription = appString(Res.string.clear_date_filter), modifier = Modifier.size(16.dp))
                                         }
                                     }
                                 }
@@ -182,15 +195,15 @@ fun DrawerDialogsHandler(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        stringResource(R.string.x_of_x_entries, filteredAuditLogs.size, auditLogs.size),
+                                        appString(Res.string.x_of_x_entries, filteredAuditLogs.size, auditLogs.size),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     CustomButton(
-                                        text = stringResource(R.string.export_csv),
+                                        text = appString(Res.string.export_csv),
                                         onClick = {
                                             val csv = viewModel.repository.exportAuditLogsToCsv(auditFromMillis, auditToMillis)
-                                            viewModel.shareExportData(uiText(R.string.audit_logs), csv)
+                                            viewModel.shareExportData(sharedText("audit_logs"), csv)
                                         },
                                         variant = CustomButtonVariant.PRIMARY,
                                         icon = Icons.Default.Download,
@@ -227,7 +240,7 @@ fun DrawerDialogsHandler(
                                                 }
                                                 Text(log.details, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelSmall)
                                                 Text(
-                                                    stringResource(R.string.actor_x, log.actorEmail) +
+                                                    appString(Res.string.actor_x, log.actorEmail) +
                                                         "${SimpleDateFormat("MMM d, yyyy HH:mm", Locale.US).format(Date(log.timestamp))}",
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     style = MaterialTheme.typography.labelSmall
@@ -248,7 +261,7 @@ fun DrawerDialogsHandler(
                                             showAuditFromPicker = false
                                         }) { Text("OK") }
                                     },
-                                    dismissButton = { TextButton(onClick = { showAuditFromPicker = false }) { Text(stringResource(R.string.cancel)) } }
+                                    dismissButton = { TextButton(onClick = { showAuditFromPicker = false }) { Text(appString(Res.string.cancel)) } }
                                 ) {
                                     DatePicker(state = pickerState)
                                 }
@@ -265,7 +278,7 @@ fun DrawerDialogsHandler(
                                             showAuditToPicker = false
                                         }) { Text("OK") }
                                     },
-                                    dismissButton = { TextButton(onClick = { showAuditToPicker = false }) { Text(stringResource(R.string.cancel)) } }
+                                    dismissButton = { TextButton(onClick = { showAuditToPicker = false }) { Text(appString(Res.string.cancel)) } }
                                 ) {
                                     DatePicker(state = pickerState)
                                 }
@@ -291,13 +304,13 @@ fun DrawerDialogsHandler(
                                         )
                                         Spacer(modifier = Modifier.height(Spacing.sm))
                                         Text(
-                                            text = stringResource(R.string.no_notifications_yet),
+                                            text = appString(Res.string.no_notifications_yet),
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             style = MaterialTheme.typography.bodyMedium
                                         )
                                         Text(
-                                            text = stringResource(R.string.real_time_updates_received_via_push_messag),
+                                            text = appString(Res.string.real_time_updates_received_via_push_messag),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             textAlign = TextAlign.Center,
@@ -309,10 +322,10 @@ fun DrawerDialogsHandler(
                                         TextButton(
                                             onClick = { viewModel.markAllAlertsRead() },
                                             modifier = Modifier.align(Alignment.End)
-                                        ) { Text(stringResource(R.string.mark_all_read), fontWeight = FontWeight.Bold) }
+                                        ) { Text(appString(Res.string.mark_all_read), fontWeight = FontWeight.Bold) }
                                     }
                                     Text(
-                                        stringResource(R.string.notifications_are_kept_for_48_hours),
+                                        appString(Res.string.notifications_are_kept_for_48_hours),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -386,14 +399,14 @@ fun DrawerDialogsHandler(
                                                                 modifier = Modifier.heightIn(min = 48.dp)
                                                             ) {
                                                                 Text(
-                                                                    stringResource(R.string.mark_read),
+                                                                    appString(Res.string.mark_read),
                                                                     fontSize = MaterialTheme.typography.labelSmall.fontSize,
                                                                     fontWeight = FontWeight.Bold
                                                                 )
                                                             }
                                                         } else {
                                                             Text(
-                                                                text = stringResource(R.string.read),
+                                                                text = appString(Res.string.read),
                                                                 style = MaterialTheme.typography.labelSmall,
                                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                                             )
@@ -456,7 +469,7 @@ fun DrawerDialogsHandler(
                                                                         modifier = Modifier.size(12.dp)
                                                                     )
                                                                     Spacer(modifier = Modifier.width(Spacing.xs))
-                                                                    Text(stringResource(R.string.open), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                                                    Text(appString(Res.string.open), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                                                                 }
                                                             }
                                                             // A "WhatsApp" quick-reply button used to live here, but FCMAlert
@@ -497,10 +510,10 @@ private fun relativeTime(timestamp: Long, now: Long = System.currentTimeMillis()
     val yesterday = today.get(java.util.Calendar.YEAR) == then.get(java.util.Calendar.YEAR) &&
         today.get(java.util.Calendar.DAY_OF_YEAR) == then.get(java.util.Calendar.DAY_OF_YEAR)
     return when {
-        minutes < 1 -> uiText(R.string.just_now)
-        minutes < 60 -> uiText(R.string.x_min_ago, minutes)
-        sameDay -> uiText(R.string.x_h_ago, minutes / 60)
-        yesterday -> uiText(R.string.yesterday_x, time)
+        minutes < 1 -> sharedText("just_now")
+        minutes < 60 -> sharedText("x_min_ago", minutes)
+        sameDay -> sharedText("x_h_ago", minutes / 60)
+        yesterday -> sharedText("yesterday_x", time)
         else -> SimpleDateFormat("d MMM HH:mm", Locale.getDefault()).format(Date(timestamp))
     }
 }

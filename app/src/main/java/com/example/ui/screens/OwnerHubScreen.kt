@@ -5,9 +5,7 @@ package com.example.ui.screens
 import com.example.ui.util.timeRange
 import com.example.ui.util.locationLine
 import com.example.ui.util.localizedLabel
-import com.example.ui.util.uiText
 import com.example.R
-import androidx.compose.ui.res.stringResource
 import com.example.ui.util.UiMessages
 import android.content.Context
 import android.content.ContextWrapper
@@ -52,6 +50,40 @@ import com.example.ui.viewmodel.ListingCreateResult
 import com.example.ui.viewmodel.ProHostViewModel
 import kotlinx.coroutines.launch
 import java.util.Locale
+import com.example.shared.resources.Res
+import com.example.shared.resources.account_suspended_this_listing_is_hidden_f
+import com.example.shared.resources.add_listing
+import com.example.shared.resources.are_you_sure_you_want_to_permanently_remov
+import com.example.shared.resources.cancel
+import com.example.shared.resources.closed_xh
+import com.example.shared.resources.continue_editing
+import com.example.shared.resources.delete
+import com.example.shared.resources.delete_draft
+import com.example.shared.resources.delete_listing
+import com.example.shared.resources.delete_listing_2
+import com.example.shared.resources.details
+import com.example.shared.resources.edit_listing
+import com.example.shared.resources.manage
+import com.example.shared.resources.my_listings_x
+import com.example.shared.resources.no_listings_published
+import com.example.shared.resources.no_package_or_subscription_applies_to_your
+import com.example.shared.resources.open_xh
+import com.example.shared.resources.owner_dashboard_banner
+import com.example.shared.resources.pause_listing
+import com.example.shared.resources.prohost_portal
+import com.example.shared.resources.rented_xh
+import com.example.shared.resources.resume_listing
+import com.example.shared.resources.reverted_from_active
+import com.example.shared.resources.tap_to_re_submit
+import com.example.shared.resources.tap_to_submit_proof
+import com.example.shared.resources.unlimited_listings_admin_access
+import com.example.shared.resources.x_inquiries
+import com.example.shared.resources.x_saved
+import com.example.shared.resources.x_views
+import com.example.shared.resources.you_don_t_have_any_workspace_listings_yet
+import com.example.shared.resources.your_listings_availability
+import com.example.ui.util.appString
+import com.example.ui.util.sharedText
 
 @Composable
 fun OwnerHubScreen(
@@ -236,7 +268,7 @@ fun OwnerHubScreen(
                     val success = viewModel.saveListingDraft(updatedDraft)
                     showCreateListingDialog = false
                     draftToEdit = null
-                    UiMessages.show(if (success) uiText(R.string.draft_saved_continue_it_anytime_from_my_li) else uiText(R.string.couldn_t_save_this_draft_please_try_again),
+                    UiMessages.show(if (success) sharedText("draft_saved_continue_it_anytime_from_my_li") else sharedText("couldn_t_save_this_draft_please_try_again"),
                         long = false)
                 }
             },
@@ -251,17 +283,17 @@ fun OwnerHubScreen(
                         is ListingCreateResult.Success -> {
                             showCreateListingDialog = false
                             draftToEdit = null
-                            UiMessages.show(uiText(R.string.workspace_listing_published_successfully))
+                            UiMessages.show(sharedText("workspace_listing_published_successfully"))
                         }
                         is ListingCreateResult.NoActivePackage -> {
                             redirectBlockedListingToPayment(
                                 newListing,
-                                uiText(R.string.saved_as_a_draft_you_need_an_active_subscr),
-                                uiText(R.string.couldn_t_save_this_as_a_draft_check_your_c)
+                                sharedText("saved_as_a_draft_you_need_an_active_subscr"),
+                                sharedText("couldn_t_save_this_as_a_draft_check_your_c")
                             )
                         }
                         is ListingCreateResult.Failed -> {
-                            UiMessages.show(uiText(R.string.couldn_t_publish_this_listing_check_your_c),
+                            UiMessages.show(sharedText("couldn_t_publish_this_listing_check_your_c"),
                                 long = true)
                         }
                     }
@@ -291,7 +323,7 @@ fun OwnerHubScreen(
                 coroutineScope.launch {
                     val success = viewModel.deleteOwnerListing(space.id)
                     deletingSpace = null
-                    UiMessages.show(if (success) uiText(R.string.listing_removed) else uiText(R.string.failed_to_remove_listing_please_try_again),
+                    UiMessages.show(if (success) sharedText("listing_removed") else sharedText("failed_to_remove_listing_please_try_again"),
                         long = false)
                 }
             }
@@ -308,13 +340,13 @@ private fun OwnerDeleteListingDialog(
     ProHostDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-        title = { Text(stringResource(R.string.delete_listing)) },
+        title = { Text(appString(Res.string.delete_listing)) },
         text = {
-            Text(stringResource(R.string.are_you_sure_you_want_to_permanently_remov, listing.title))
+            Text(appString(Res.string.are_you_sure_you_want_to_permanently_remov, listing.title))
         },
         confirmButton = {
             CustomButton(
-                text = stringResource(R.string.delete),
+                text = appString(Res.string.delete),
                 onClick = onConfirm,
                 variant = CustomButtonVariant.DANGER,
                 icon = Icons.Default.DeleteForever,
@@ -323,7 +355,7 @@ private fun OwnerDeleteListingDialog(
         },
         dismissButton = {
             CustomButton(
-                text = stringResource(R.string.cancel),
+                text = appString(Res.string.cancel),
                 onClick = onDismiss,
                 variant = CustomButtonVariant.OUTLINED,
                 compact = true
@@ -380,7 +412,7 @@ fun OwnerHubScreenContent(
                 ) {
                     Image(
                         painter = painterResource(id = com.example.R.drawable.img_owner_hero),
-                        contentDescription = stringResource(R.string.owner_dashboard_banner),
+                        contentDescription = appString(Res.string.owner_dashboard_banner),
                         modifier = Modifier.matchParentSize(),
                         contentScale = ContentScale.Crop
                     )
@@ -415,7 +447,7 @@ fun OwnerHubScreenContent(
                                 ) {
                                     Icon(Icons.Default.Verified, contentDescription = null, tint = MaterialTheme.proColors.onBrandHeader, modifier = Modifier.size(14.dp))
                                     Spacer(modifier = Modifier.width(Spacing.xs))
-                                    Text(stringResource(R.string.prohost_portal), color = MaterialTheme.proColors.onBrandHeader, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                    Text(appString(Res.string.prohost_portal), color = MaterialTheme.proColors.onBrandHeader, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                 }
                             }
 
@@ -426,7 +458,7 @@ fun OwnerHubScreenContent(
                                 ) {
                                     Text(
                                         text = if (currentPlanId == null) {
-                                            uiText(R.string.no_active_package)
+                                            sharedText("no_active_package")
                                         } else {
                                             localizedLabel(com.example.data.billing.PlayCatalog.planBadge(currentPlanId))
                                         },
@@ -441,13 +473,13 @@ fun OwnerHubScreenContent(
 
                         if (isAdminUnlimited) {
                             Text(
-                                text = stringResource(R.string.unlimited_listings_admin_access),
+                                text = appString(Res.string.unlimited_listings_admin_access),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.proColors.onBrandHeader
                             )
                             Text(
-                                text = stringResource(R.string.no_package_or_subscription_applies_to_your),
+                                text = appString(Res.string.no_package_or_subscription_applies_to_your),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f),
                                 lineHeight = 16.sp
@@ -458,11 +490,11 @@ fun OwnerHubScreenContent(
                             }
                             Text(
                                 text = if (currentPlanId == null) {
-                                    uiText(R.string.no_active_package)
+                                    sharedText("no_active_package")
                                 } else if (com.example.data.billing.PlayCatalog.isLifetimeExpiry(ownerPackageExpiryMillis)) {
-                                    uiText(R.string.x_never_expires, localizedLabel(com.example.data.billing.PlayCatalog.planLabel(currentPlanId)))
+                                    sharedText("x_never_expires", localizedLabel(com.example.data.billing.PlayCatalog.planLabel(currentPlanId)))
                                 } else if (daysRemaining != null) {
-                                    uiText(R.string.x_renews_in_x_days, localizedLabel(com.example.data.billing.PlayCatalog.planLabel(currentPlanId)), daysRemaining)
+                                    sharedText("x_renews_in_x_days", localizedLabel(com.example.data.billing.PlayCatalog.planLabel(currentPlanId)), daysRemaining)
                                 } else {
                                     localizedLabel(com.example.data.billing.PlayCatalog.planLabel(currentPlanId))
                                 },
@@ -472,9 +504,9 @@ fun OwnerHubScreenContent(
                             )
                             Text(
                                 text = if (currentPlanId == null) {
-                                    uiText(R.string.choose_a_package_to_start_publishing_works)
+                                    sharedText("choose_a_package_to_start_publishing_works")
                                 } else {
-                                    uiText(R.string.list_your_space_set_subdivisions_choose_re)
+                                    sharedText("list_your_space_set_subdivisions_choose_re")
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.8f),
@@ -509,9 +541,9 @@ fun OwnerHubScreenContent(
                                     Spacer(modifier = Modifier.width(Spacing.sm))
                                     Text(
                                         when {
-                                            currentPlanId == null -> uiText(R.string.choose_plan)
-                                            isActiveSubscription -> uiText(R.string.manage)
-                                            else -> uiText(R.string.renew)
+                                            currentPlanId == null -> sharedText("choose_plan")
+                                            isActiveSubscription -> sharedText("manage")
+                                            else -> sharedText("renew")
                                         },
                                         color = MaterialTheme.colorScheme.onSecondary,
                                         style = MaterialTheme.typography.labelMedium,
@@ -520,7 +552,7 @@ fun OwnerHubScreenContent(
                                 }
 
                                 val activeCount = ownerSpaces.count { it.status == ListingStatus.ACTIVE }
-                                val limitText = uiText(R.string.x_active, activeCount)
+                                val limitText = sharedText("x_active", activeCount)
                                 Surface(
                                     color = MaterialTheme.proColors.onBrandHeader.copy(alpha = 0.2f),
                                     shape = MaterialTheme.shapes.medium,
@@ -545,8 +577,8 @@ fun OwnerHubScreenContent(
         // Section Title: Owner's Workspace Listings
         item {
             ProSectionHeader(
-                title = stringResource(R.string.my_listings_x, ownerSpaces.size),
-                subtitle = stringResource(R.string.your_listings_availability),
+                title = appString(Res.string.my_listings_x, ownerSpaces.size),
+                subtitle = appString(Res.string.your_listings_availability),
                 icon = Icons.Default.HomeWork
             )
         }
@@ -554,8 +586,8 @@ fun OwnerHubScreenContent(
         if (ownerSpaces.isEmpty()) {
             item {
                 ProEmptyState(
-                    title = stringResource(R.string.no_listings_published),
-                    description = stringResource(R.string.you_don_t_have_any_workspace_listings_yet),
+                    title = appString(Res.string.no_listings_published),
+                    description = appString(Res.string.you_don_t_have_any_workspace_listings_yet),
                     icon = Icons.Default.HomeWork
                 )
             }
@@ -602,9 +634,9 @@ fun OwnerHubScreenContent(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             when (space.status) {
-                                ListingStatus.ACTIVE -> ProStatusBadge(ProBadgeType.CUSTOM_SUCCESS, customText = uiText(R.string.available))
-                                ListingStatus.DRAFT -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = uiText(R.string.draft))
-                                ListingStatus.PAUSED -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = uiText(R.string.paused))
+                                ListingStatus.ACTIVE -> ProStatusBadge(ProBadgeType.CUSTOM_SUCCESS, customText = sharedText("available"))
+                                ListingStatus.DRAFT -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = sharedText("draft"))
+                                ListingStatus.PAUSED -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = sharedText("paused"))
                             }
 
                             val lowestPrice = com.example.ui.util.SpaceCalculationUtils.findLowestConfiguredPrice(space)
@@ -652,9 +684,9 @@ fun OwnerHubScreenContent(
                                     Column {
                                         Text(
                                             text = if (space.status == ListingStatus.DRAFT) {
-                                                uiText(R.string.draft_not_published_yet)
+                                                sharedText("draft_not_published_yet")
                                             } else {
-                                                uiText(R.string.paused_hidden_from_discovery)
+                                                sharedText("paused_hidden_from_discovery")
                                             },
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.SemiBold,
@@ -671,7 +703,7 @@ fun OwnerHubScreenContent(
                                         // this listing is saved.
                                         if (space.status == ListingStatus.DRAFT && space.publishBlockedReasons.isNotEmpty()) {
                                             Text(
-                                                text = stringResource(R.string.reverted_from_active) + space.publishBlockedReasons.joinToString(" "),
+                                                text = appString(Res.string.reverted_from_active) + space.publishBlockedReasons.joinToString(" "),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.error
                                             )
@@ -721,9 +753,9 @@ fun OwnerHubScreenContent(
                                     )
                                     Text(
                                         text = when {
-                                            space.isVerified -> uiText(R.string.verified_listing)
-                                            verificationPending -> uiText(R.string.pending_admin_review)
-                                            else -> uiText(R.string.earn_verified_badge)
+                                            space.isVerified -> sharedText("verified_listing")
+                                            verificationPending -> sharedText("pending_admin_review")
+                                            else -> sharedText("earn_verified_badge")
                                         },
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Bold,
@@ -732,7 +764,7 @@ fun OwnerHubScreenContent(
                                 }
                                 if (!space.isVerified) {
                                     Text(
-                                        text = if (verificationPending) stringResource(R.string.tap_to_re_submit) else stringResource(R.string.tap_to_submit_proof),
+                                        text = if (verificationPending) appString(Res.string.tap_to_re_submit) else appString(Res.string.tap_to_submit_proof),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.primary
@@ -748,7 +780,7 @@ fun OwnerHubScreenContent(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
-                                    text = stringResource(R.string.account_suspended_this_listing_is_hidden_f),
+                                    text = appString(Res.string.account_suspended_this_listing_is_hidden_f),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onErrorContainer,
@@ -791,7 +823,7 @@ fun OwnerHubScreenContent(
                                             tint = MaterialTheme.colorScheme.primary
                                         )
                                         Text(
-                                            stringResource(R.string.rented_xh, rentedH),
+                                            appString(Res.string.rented_xh, rentedH),
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.primary
@@ -804,12 +836,12 @@ fun OwnerHubScreenContent(
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                                         Icon(Icons.Default.Block, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        Text(stringResource(R.string.closed_xh, blackoutH), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(appString(Res.string.closed_xh, blackoutH), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                                         Box(modifier = Modifier.size(8.dp).background(MaterialTheme.proColors.success, CircleShape))
                                         Text(
-                                            stringResource(R.string.open_xh, openH),
+                                            appString(Res.string.open_xh, openH),
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.proColors.success
@@ -840,7 +872,7 @@ fun OwnerHubScreenContent(
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                     Spacer(modifier = Modifier.width(Spacing.sm))
-                                    Text(stringResource(R.string.x_views, space.avatarEngagementViews), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+                                    Text(appString(Res.string.x_views, space.avatarEngagementViews), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                                 }
                             }
 
@@ -855,7 +887,7 @@ fun OwnerHubScreenContent(
                                     Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.size(14.dp), tint = WhatsAppGreen)
                                     Spacer(modifier = Modifier.width(Spacing.sm))
                                     Text(
-                                        stringResource(R.string.x_inquiries, space.avatarInquiryClicks),
+                                        appString(Res.string.x_inquiries, space.avatarInquiryClicks),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.SemiBold
                                     )
@@ -874,7 +906,7 @@ fun OwnerHubScreenContent(
                                     Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.error)
                                     Spacer(modifier = Modifier.width(Spacing.sm))
                                     Text(
-                                        stringResource(R.string.x_saved, space.favoriteCount),
+                                        appString(Res.string.x_saved, space.favoriteCount),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.SemiBold,
                                         maxLines = 1
@@ -892,7 +924,7 @@ fun OwnerHubScreenContent(
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                             ) {
                                 CustomButton(
-                                    text = stringResource(R.string.details),
+                                    text = appString(Res.string.details),
                                     onClick = { onSelectSpace(space) },
                                     variant = CustomButtonVariant.OUTLINED,
                                     icon = Icons.Default.Info,
@@ -901,7 +933,7 @@ fun OwnerHubScreenContent(
                                 )
 
                                 CustomButton(
-                                    text = stringResource(R.string.continue_editing),
+                                    text = appString(Res.string.continue_editing),
                                     onClick = { onContinueDraft(space) },
                                     variant = CustomButtonVariant.PRIMARY,
                                     icon = Icons.Default.EditNote,
@@ -913,7 +945,7 @@ fun OwnerHubScreenContent(
                                     onClick = { onDeleteSpace(space) },
                                     modifier = Modifier.weight(0.6f)
                                 ) {
-                                    Icon(Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.delete_draft), tint = MaterialTheme.colorScheme.error)
+                                    Icon(Icons.Default.DeleteOutline, contentDescription = appString(Res.string.delete_draft), tint = MaterialTheme.colorScheme.error)
                                 }
                             }
                         } else {
@@ -927,7 +959,7 @@ fun OwnerHubScreenContent(
                                 // style availability table, replacing the old read-only
                                 // "Details" entry point.
                                 CustomButton(
-                                    text = stringResource(R.string.manage),
+                                    text = appString(Res.string.manage),
                                     onClick = { onManageSpace(space) },
                                     variant = CustomButtonVariant.PRIMARY,
                                     icon = Icons.Default.Dashboard,
@@ -945,7 +977,7 @@ fun OwnerHubScreenContent(
                                     onClick = { onEditSpace(space) },
                                     modifier = Modifier.weight(0.6f)
                                 ) {
-                                    Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit_listing), tint = MaterialTheme.colorScheme.primary)
+                                    Icon(Icons.Default.Edit, contentDescription = appString(Res.string.edit_listing), tint = MaterialTheme.colorScheme.primary)
                                 }
 
                                 // Pause/Resume Button — the host's own lifecycle control,
@@ -957,7 +989,7 @@ fun OwnerHubScreenContent(
                                 ) {
                                     Icon(
                                         if (space.status == ListingStatus.PAUSED) Icons.Default.PlayCircle else Icons.Default.PauseCircle,
-                                        contentDescription = if (space.status == ListingStatus.PAUSED) stringResource(R.string.resume_listing) else stringResource(R.string.pause_listing),
+                                        contentDescription = if (space.status == ListingStatus.PAUSED) appString(Res.string.resume_listing) else appString(Res.string.pause_listing),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
@@ -969,7 +1001,7 @@ fun OwnerHubScreenContent(
                                     onClick = { onDeleteSpace(space) },
                                     modifier = Modifier.weight(0.6f)
                                 ) {
-                                    Icon(Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.delete_listing_2), tint = MaterialTheme.colorScheme.error)
+                                    Icon(Icons.Default.DeleteOutline, contentDescription = appString(Res.string.delete_listing_2), tint = MaterialTheme.colorScheme.error)
                                 }
                             }
                         }
@@ -993,7 +1025,7 @@ fun OwnerHubScreenContent(
             Box(contentAlignment = Alignment.Center) {
                 Image(
                     painter = painterResource(id = com.example.R.drawable.prohost_checkmark_logo),
-                    contentDescription = stringResource(R.string.add_listing),
+                    contentDescription = appString(Res.string.add_listing),
                     modifier = Modifier.size(26.dp),
                     colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSecondary)
                 )

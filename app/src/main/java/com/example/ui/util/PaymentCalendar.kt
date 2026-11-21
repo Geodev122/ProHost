@@ -1,6 +1,5 @@
 package com.example.ui.util
 
-import com.example.R
 import android.content.ActivityNotFoundException
 import android.provider.CalendarContract
 import com.example.data.model.BookingRequest
@@ -40,41 +39,41 @@ object PaymentCalendar {
     fun addPaymentReminders(booking: BookingRequest, bookingRef: String) {
         val schedule = scheduleFor(booking)
         if (schedule == null) {
-            UiMessages.show(uiText(R.string.calendar_no_start_date), long = true)
+            UiMessages.show(sharedText("calendar_no_start_date"), long = true)
             return
         }
         val money = NumberFormat.getCurrencyInstance(Locale.US).format(schedule.amountPerPaymentUsd)
         val description = buildString {
-            appendLine(uiText(R.string.calendar_booking_line, bookingRef, booking.spaceTitle))
+            appendLine(sharedText("calendar_booking_line", bookingRef, booking.spaceTitle))
             if (schedule.isMonthly) {
-                appendLine(uiText(R.string.calendar_monthly_rent, money, schedule.occurrences))
+                appendLine(sharedText("calendar_monthly_rent", money, schedule.occurrences))
             } else {
-                appendLine(uiText(R.string.calendar_payment_due, money))
+                appendLine(sharedText("calendar_payment_due", money))
             }
             booking.lastPriceChange?.takeIf { it.changedTotal }?.let { change ->
                 val usd = NumberFormat.getCurrencyInstance(Locale.US)
                 appendLine(
                     if (change.effectiveFrom.isNotBlank()) {
-                        uiText(R.string.calendar_price_updated_from, usd.format(change.oldTotal), usd.format(change.newTotal), change.effectiveFrom)
+                        sharedText("calendar_price_updated_from", usd.format(change.oldTotal), usd.format(change.newTotal), change.effectiveFrom)
                     } else {
-                        uiText(R.string.calendar_price_updated, usd.format(change.oldTotal), usd.format(change.newTotal))
+                        sharedText("calendar_price_updated", usd.format(change.oldTotal), usd.format(change.newTotal))
                     }
                 )
             }
-            append(uiText(R.string.calendar_pay_directly))
+            append(sharedText("calendar_pay_directly"))
         }
         try {
             // All-day events must start at UTC midnight (CalendarContract requirement); a chooser lets people with several calendar apps pick theirs.
             PlatformActions.require().addCalendarEvent(
-                chooserTitle = uiText(R.string.calendar_add_reminders_to),
-                title = uiText(R.string.calendar_rent_due_x, booking.spaceTitle),
+                chooserTitle = sharedText("calendar_add_reminders_to"),
+                title = sharedText("calendar_rent_due_x", booking.spaceTitle),
                 description = description,
                 allDayStartUtcMillis = schedule.firstDueUtcMillis,
                 allDayEndUtcMillis = schedule.firstDueUtcMillis + DAY_MILLIS,
                 rrule = if (schedule.isMonthly) "FREQ=MONTHLY;COUNT=${schedule.occurrences}" else null
             )
         } catch (e: ActivityNotFoundException) {
-            UiMessages.show(uiText(R.string.calendar_no_app), long = true)
+            UiMessages.show(sharedText("calendar_no_app"), long = true)
         }
     }
 

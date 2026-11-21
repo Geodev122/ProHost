@@ -33,6 +33,37 @@ import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.ui.components.*
 import com.example.ui.theme.*
+import com.example.shared.resources.Res
+import com.example.shared.resources.auth_email_title
+import com.example.shared.resources.auth_have_account
+import com.example.shared.resources.auth_terms_note
+import com.example.shared.resources.auth_welcome_subtitle
+import com.example.shared.resources.auth_welcome_title
+import com.example.shared.resources.back
+import com.example.shared.resources.back_to_sign_in
+import com.example.shared.resources.change
+import com.example.shared.resources.check_your_email
+import com.example.shared.resources.continue_
+import com.example.shared.resources.continue_with_apple
+import com.example.shared.resources.continue_with_email
+import com.example.shared.resources.create_an_account
+import com.example.shared.resources.email_address
+import com.example.shared.resources.forgot_password
+import com.example.shared.resources.password_rule_length
+import com.example.shared.resources.password_rule_lowercase
+import com.example.shared.resources.password_rule_number
+import com.example.shared.resources.privacy_policy
+import com.example.shared.resources.prohost_login
+import com.example.shared.resources.resend_in_xs
+import com.example.shared.resources.resend_reset_link
+import com.example.shared.resources.reset_sent_body_x
+import com.example.shared.resources.reset_sent_hint
+import com.example.shared.resources.reset_subtitle
+import com.example.shared.resources.reset_title
+import com.example.shared.resources.terms_of_use
+import com.example.shared.resources.wizard_step_x_of_x
+import com.example.shared.resources.you_example_com
+import com.example.ui.util.appString
 
 /**
  * The staged sign-in path ("intent first", 1.0.45): Welcome → Providers → Email → Password, Forgot → Reset sent, and the
@@ -76,7 +107,7 @@ internal fun AuthStepScaffold(
         Row(modifier = Modifier.fillMaxWidth().height(56.dp), verticalAlignment = Alignment.CenterVertically) {
             if (onBack != null) {
                 IconButton(onClick = onBack, modifier = Modifier.testTag("auth_back")) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = appString(Res.string.back))
                 }
             }
             Spacer(Modifier.weight(1f))
@@ -91,7 +122,7 @@ internal fun AuthStepScaffold(
             } else if (showLogo) {
                 Image(
                     painter = painterResource(R.drawable.prohost_login_lockup),
-                    contentDescription = stringResource(R.string.prohost_login),
+                    contentDescription = appString(Res.string.prohost_login),
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.height(56.dp).align(Alignment.Start)
                 )
@@ -152,14 +183,14 @@ private fun AuthBackdrop() {
 internal fun AuthTermsNote(onTerms: () -> Unit, onPrivacy: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         Text(
-            stringResource(R.string.auth_terms_note),
+            appString(Res.string.auth_terms_note),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
         Row(horizontalArrangement = Arrangement.Center) {
-            TextButton(onClick = onTerms) { Text(stringResource(R.string.terms_of_use), style = MaterialTheme.typography.labelMedium) }
-            TextButton(onClick = onPrivacy) { Text(stringResource(R.string.privacy_policy), style = MaterialTheme.typography.labelMedium) }
+            TextButton(onClick = onTerms) { Text(appString(Res.string.terms_of_use), style = MaterialTheme.typography.labelMedium) }
+            TextButton(onClick = onPrivacy) { Text(appString(Res.string.privacy_policy), style = MaterialTheme.typography.labelMedium) }
         }
     }
 }
@@ -169,12 +200,12 @@ internal fun AuthTermsNote(onTerms: () -> Unit, onPrivacy: () -> Unit) {
 @Composable
 internal fun WelcomeStep(onCreate: () -> Unit, onSignIn: () -> Unit, onTerms: () -> Unit, onPrivacy: () -> Unit) {
     AuthStepScaffold(
-        title = stringResource(R.string.auth_welcome_title),
-        subtitle = stringResource(R.string.auth_welcome_subtitle),
+        title = appString(Res.string.auth_welcome_title),
+        subtitle = appString(Res.string.auth_welcome_subtitle),
         header = {
             Image(
                 painter = painterResource(R.drawable.prohost_login_lockup),
-                contentDescription = stringResource(R.string.prohost_login),
+                contentDescription = appString(Res.string.prohost_login),
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .padding(top = Spacing.xxl, bottom = Spacing.lg)
@@ -184,13 +215,13 @@ internal fun WelcomeStep(onCreate: () -> Unit, onSignIn: () -> Unit, onTerms: ()
         },
         actions = {
             ProPrimaryButton(
-                text = stringResource(R.string.create_an_account),
+                text = appString(Res.string.create_an_account),
                 onClick = onCreate,
                 icon = Icons.Default.PersonAdd,
                 modifier = Modifier.fillMaxWidth().testTag("auth_create_button")
             )
             CustomButton(
-                text = stringResource(R.string.auth_have_account),
+                text = appString(Res.string.auth_have_account),
                 onClick = onSignIn,
                 variant = CustomButtonVariant.OUTLINED,
                 modifier = Modifier.fillMaxWidth().testTag("auth_signin_button")
@@ -234,14 +265,14 @@ internal fun ProvidersStep(
             when (provider) {
                 AuthProvider.GOOGLE -> GoogleSignInButton(onClick = { onProvider(provider) }, enabled = !isBusy)
                 AuthProvider.APPLE -> CustomButton(
-                    text = stringResource(R.string.continue_with_apple),
+                    text = appString(Res.string.continue_with_apple),
                     onClick = { onProvider(provider) },
                     variant = CustomButtonVariant.OUTLINED,
                     enabled = !isBusy,
                     modifier = Modifier.fillMaxWidth()
                 )
                 AuthProvider.EMAIL -> CustomButton(
-                    text = stringResource(R.string.continue_with_email),
+                    text = appString(Res.string.continue_with_email),
                     onClick = { onProvider(provider) },
                     variant = CustomButtonVariant.OUTLINED,
                     icon = Icons.Default.Email,
@@ -265,12 +296,12 @@ internal fun EmailStep(
 ) {
     val valid = com.example.ui.viewmodel.AuthViewModel.isPlausibleEmail(email.trim().lowercase())
     AuthStepScaffold(
-        title = stringResource(R.string.auth_email_title),
+        title = appString(Res.string.auth_email_title),
         onBack = onBack,
         error = error,
         actions = {
             ProPrimaryButton(
-                text = stringResource(R.string.continue_),
+                text = appString(Res.string.continue_),
                 onClick = onContinue,
                 enabled = valid,
                 modifier = Modifier.fillMaxWidth().testTag("auth_email_continue")
@@ -280,8 +311,8 @@ internal fun EmailStep(
         InputField(
             value = email,
             onValueChange = { onEmailChange(it.trim()) },
-            label = stringResource(R.string.email_address),
-            placeholder = stringResource(R.string.you_example_com),
+            label = appString(Res.string.email_address),
+            placeholder = appString(Res.string.you_example_com),
             leadingIcon = Icons.Default.Email,
             modifier = Modifier.fillMaxWidth().emailAutofill { onEmailChange(it.trim()) }.testTag("auth_email_input"),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
@@ -334,7 +365,7 @@ internal fun PasswordStep(
             Icon(Icons.Default.Email, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(Spacing.sm))
             Text(email, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f, fill = false))
-            TextButton(onClick = onChangeEmail) { Text(stringResource(R.string.change)) }
+            TextButton(onClick = onChangeEmail) { Text(appString(Res.string.change)) }
         }
         InputField(
             value = password,
@@ -359,7 +390,7 @@ internal fun PasswordStep(
             PasswordChecklist(password)
         } else {
             TextButton(onClick = onForgot, modifier = Modifier.align(Alignment.End).testTag("forgot_password_button")) {
-                Text(stringResource(R.string.forgot_password), fontWeight = FontWeight.SemiBold)
+                Text(appString(Res.string.forgot_password), fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -370,9 +401,9 @@ internal fun PasswordStep(
 internal fun PasswordChecklist(password: String) {
     val check = com.example.util.PasswordRules.check(password)
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs), modifier = Modifier.fillMaxWidth().testTag("password_rules")) {
-        PasswordRule(check.longEnough, stringResource(R.string.password_rule_length))
-        PasswordRule(check.hasLowercase, stringResource(R.string.password_rule_lowercase))
-        PasswordRule(check.hasNumber, stringResource(R.string.password_rule_number))
+        PasswordRule(check.longEnough, appString(Res.string.password_rule_length))
+        PasswordRule(check.hasLowercase, appString(Res.string.password_rule_lowercase))
+        PasswordRule(check.hasNumber, appString(Res.string.password_rule_number))
     }
 }
 
@@ -391,8 +422,8 @@ private fun PasswordRule(met: Boolean, label: String) {
 internal fun ForgotStep(email: String, onEmailChange: (String) -> Unit, isBusy: Boolean, error: String?, onBack: () -> Unit, onSend: () -> Unit) {
     val valid = com.example.ui.viewmodel.AuthViewModel.isPlausibleEmail(email.trim().lowercase())
     AuthStepScaffold(
-        title = stringResource(R.string.reset_title),
-        subtitle = stringResource(R.string.reset_subtitle),
+        title = appString(Res.string.reset_title),
+        subtitle = appString(Res.string.reset_subtitle),
         onBack = onBack,
         isBusy = isBusy,
         error = error,
@@ -409,8 +440,8 @@ internal fun ForgotStep(email: String, onEmailChange: (String) -> Unit, isBusy: 
         InputField(
             value = email,
             onValueChange = { onEmailChange(it.trim()) },
-            label = stringResource(R.string.email_address),
-            placeholder = stringResource(R.string.you_example_com),
+            label = appString(Res.string.email_address),
+            placeholder = appString(Res.string.you_example_com),
             leadingIcon = Icons.Default.Email,
             modifier = Modifier.fillMaxWidth().testTag("reset_email_input"),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Send),
@@ -423,27 +454,27 @@ internal fun ForgotStep(email: String, onEmailChange: (String) -> Unit, isBusy: 
 @Composable
 internal fun ResetSentStep(email: String, countdownSeconds: Int, isBusy: Boolean, onResend: () -> Unit, onBackToSignIn: () -> Unit) {
     AuthStepScaffold(
-        title = stringResource(R.string.check_your_email),
-        subtitle = stringResource(R.string.reset_sent_body_x, email),
+        title = appString(Res.string.check_your_email),
+        subtitle = appString(Res.string.reset_sent_body_x, email),
         isBusy = isBusy,
         actions = {
             ProPrimaryButton(
-                text = stringResource(R.string.back_to_sign_in),
+                text = appString(Res.string.back_to_sign_in),
                 onClick = onBackToSignIn,
                 modifier = Modifier.fillMaxWidth()
             )
             if (countdownSeconds > 0) {
                 Text(
-                    stringResource(R.string.resend_in_xs, countdownSeconds),
+                    appString(Res.string.resend_in_xs, countdownSeconds),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
-                TextButton(onClick = onResend, enabled = !isBusy) { Text(stringResource(R.string.resend_reset_link), fontWeight = FontWeight.SemiBold) }
+                TextButton(onClick = onResend, enabled = !isBusy) { Text(appString(Res.string.resend_reset_link), fontWeight = FontWeight.SemiBold) }
             }
         }
     ) {
-        ProHostAlertBanner(message = stringResource(R.string.reset_sent_hint), icon = Icons.Default.MarkEmailRead)
+        ProHostAlertBanner(message = appString(Res.string.reset_sent_hint), icon = Icons.Default.MarkEmailRead)
     }
 }
 
@@ -461,7 +492,7 @@ internal fun RegistrationProgress(step: Int, total: Int = 3) {
             ) {}
         }
         Spacer(Modifier.width(Spacing.sm))
-        Text(stringResource(R.string.wizard_step_x_of_x, step, total), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(appString(Res.string.wizard_step_x_of_x, step, total), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

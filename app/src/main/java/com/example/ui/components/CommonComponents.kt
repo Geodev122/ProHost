@@ -1,11 +1,9 @@
 package com.example.ui.components
 
 import com.example.ui.util.localizedLabel
-import com.example.ui.util.uiText
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.heading
 import com.example.R
-import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
 import com.example.ui.theme.Elevation
 import android.annotation.SuppressLint
@@ -57,6 +55,23 @@ import coil.request.ImageRequest
 import androidx.compose.ui.platform.LocalContext
 import java.text.NumberFormat
 import java.util.Locale
+import com.example.shared.resources.Res
+import com.example.shared.resources.back
+import com.example.shared.resources.next_photo
+import com.example.shared.resources.notifications
+import com.example.shared.resources.notifications_x_unread
+import com.example.shared.resources.open_menu
+import com.example.shared.resources.open_side_navigation_drawer
+import com.example.shared.resources.previous_photo
+import com.example.shared.resources.prohost
+import com.example.shared.resources.prohost_logo
+import com.example.shared.resources.remove_from_saved
+import com.example.shared.resources.save_space
+import com.example.shared.resources.verified
+import com.example.shared.resources.whatsapp
+import com.example.shared.resources.x_usdx
+import com.example.ui.util.appString
+import com.example.ui.util.sharedText
 
 /**
  * Common ProHost Reusable UI Components
@@ -144,15 +159,15 @@ fun StatusBadge(
     val pro = MaterialTheme.proColors
     val scheme = MaterialTheme.colorScheme
     val (bg, text, defaultIcon, defaultText) = when (status) {
-        StatusBadgeType.AVAILABLE -> Quad(pro.success, pro.onSuccess, Icons.Default.CheckCircle, uiText(R.string.available))
-        StatusBadgeType.OCCUPIED -> Quad(pro.locked, pro.onLocked, Icons.Default.Lock, uiText(R.string.occupied_booked))
-        StatusBadgeType.VERIFIED -> Quad(pro.success, pro.onSuccess, Icons.Default.Verified, uiText(R.string.license_id_verified))
-        StatusBadgeType.PENDING -> Quad(pro.warning, pro.onWarning, Icons.Default.HourglassTop, uiText(R.string.pending_approval))
-        StatusBadgeType.MAINTENANCE -> Quad(scheme.onSurfaceVariant, scheme.surface, Icons.Default.Build, uiText(R.string.maintenance_slot))
-        StatusBadgeType.CANCELLED -> Quad(scheme.error, scheme.onError, Icons.Default.Cancel, uiText(R.string.cancelled_unavailable))
-        StatusBadgeType.ADMIN -> Quad(scheme.primary, scheme.onPrimary, Icons.Default.Shield, uiText(R.string.super_admin))
-        StatusBadgeType.GOLD -> Quad(pro.warning, pro.onWarning, Icons.Default.WorkspacePremium, uiText(R.string.premium_tier))
-        StatusBadgeType.INFO -> Quad(pro.info, pro.onInfo, Icons.Default.Info, uiText(R.string.information))
+        StatusBadgeType.AVAILABLE -> Quad(pro.success, pro.onSuccess, Icons.Default.CheckCircle, sharedText("available"))
+        StatusBadgeType.OCCUPIED -> Quad(pro.locked, pro.onLocked, Icons.Default.Lock, sharedText("occupied_booked"))
+        StatusBadgeType.VERIFIED -> Quad(pro.success, pro.onSuccess, Icons.Default.Verified, sharedText("license_id_verified"))
+        StatusBadgeType.PENDING -> Quad(pro.warning, pro.onWarning, Icons.Default.HourglassTop, sharedText("pending_approval"))
+        StatusBadgeType.MAINTENANCE -> Quad(scheme.onSurfaceVariant, scheme.surface, Icons.Default.Build, sharedText("maintenance_slot"))
+        StatusBadgeType.CANCELLED -> Quad(scheme.error, scheme.onError, Icons.Default.Cancel, sharedText("cancelled_unavailable"))
+        StatusBadgeType.ADMIN -> Quad(scheme.primary, scheme.onPrimary, Icons.Default.Shield, sharedText("super_admin"))
+        StatusBadgeType.GOLD -> Quad(pro.warning, pro.onWarning, Icons.Default.WorkspacePremium, sharedText("premium_tier"))
+        StatusBadgeType.INFO -> Quad(pro.info, pro.onInfo, Icons.Default.Info, sharedText("information"))
     }
 
     Surface(
@@ -385,7 +400,7 @@ fun ProCurrencyTag(
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
             Text(
-                text = stringResource(R.string.x_usdx, finalUsd.toInt(), suffix),
+                text = appString(Res.string.x_usdx, finalUsd.toInt(), suffix),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.primary
@@ -447,7 +462,7 @@ fun ProAvatar(
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         Icons.Default.Check,
-                        contentDescription = stringResource(R.string.verified),
+                        contentDescription = appString(Res.string.verified),
                         tint = MaterialTheme.proColors.onSuccess,
                         modifier = Modifier.size(size * 0.25f)
                     )
@@ -493,7 +508,7 @@ fun ProMemberAvatar(
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Icon(
                             Icons.Default.Verified,
-                            contentDescription = stringResource(R.string.verified),
+                            contentDescription = appString(Res.string.verified),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
@@ -1062,7 +1077,7 @@ fun WorkspaceCard(
                             modifier = Modifier.size(12.dp)
                         )
                         Text(
-                            text = stringResource(R.string.verified),
+                            text = appString(Res.string.verified),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.proColors.onSuccessContainer
@@ -1083,7 +1098,7 @@ fun WorkspaceCard(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = if (isSaved) stringResource(R.string.remove_from_saved) else stringResource(R.string.save_space),
+                            contentDescription = if (isSaved) appString(Res.string.remove_from_saved) else appString(Res.string.save_space),
                             tint = if (isSaved) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(18.dp)
                         )
@@ -1262,7 +1277,7 @@ fun WorkspaceCard(
                 }
                 if (onWhatsAppClick != null) {
                     CustomButton(
-                        text = stringResource(R.string.whatsapp),
+                        text = appString(Res.string.whatsapp),
                         onClick = onWhatsAppClick,
                         variant = CustomButtonVariant.WHATSAPP,
                         icon = Icons.AutoMirrored.Filled.Chat,
@@ -1321,7 +1336,7 @@ fun ProHostBrandLogo(
 ) {
     Image(
         painter = painterResource(id = com.example.R.drawable.ic_prohost_logo_brand),
-        contentDescription = stringResource(R.string.prohost_logo),
+        contentDescription = appString(Res.string.prohost_logo),
         contentScale = ContentScale.Fit,
         modifier = modifier.size(size)
     )
@@ -1411,7 +1426,7 @@ fun ProHostTopAppBar(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Menu,
-                            contentDescription = stringResource(R.string.open_menu),
+                            contentDescription = appString(Res.string.open_menu),
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -1426,7 +1441,7 @@ fun ProHostTopAppBar(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = stringResource(R.string.prohost),
+                            text = appString(Res.string.prohost),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -1434,9 +1449,9 @@ fun ProHostTopAppBar(
 
                         Text(
                             text = pageTitle ?: when (currentRole) {
-                                UserRole.ADMIN -> uiText(R.string.admin)
-                                UserRole.PRO_HOST -> uiText(R.string.host)
-                                UserRole.SPECIALIST -> uiText(R.string.member)
+                                UserRole.ADMIN -> sharedText("admin")
+                                UserRole.PRO_HOST -> sharedText("host")
+                                UserRole.SPECIALIST -> sharedText("member")
                             },
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
@@ -1456,7 +1471,7 @@ fun ProHostTopAppBar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Notifications,
-                        contentDescription = if (unreadAlertCount > 0) stringResource(R.string.notifications_x_unread, unreadAlertCount) else stringResource(R.string.notifications),
+                        contentDescription = if (unreadAlertCount > 0) appString(Res.string.notifications_x_unread, unreadAlertCount) else appString(Res.string.notifications),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -1559,7 +1574,7 @@ fun ProHostFullScreenTopAppBar(
             ) {
                 Icon(
                     imageVector = if (isBackNavigation) Icons.AutoMirrored.Filled.ArrowBack else Icons.Default.Menu,
-                    contentDescription = if (isBackNavigation) stringResource(R.string.back) else stringResource(R.string.open_side_navigation_drawer),
+                    contentDescription = if (isBackNavigation) appString(Res.string.back) else appString(Res.string.open_side_navigation_drawer),
                     tint = MaterialTheme.colorScheme.onSurface
                 )
             }
@@ -1600,7 +1615,7 @@ fun PhotoCarouselArrow(
         ) {
             Icon(
                 if (forward) Icons.AutoMirrored.Filled.ArrowForwardIos else Icons.AutoMirrored.Filled.ArrowBackIos,
-                contentDescription = if (forward) stringResource(R.string.next_photo) else stringResource(R.string.previous_photo),
+                contentDescription = if (forward) appString(Res.string.next_photo) else appString(Res.string.previous_photo),
                 tint = Color.White,
                 modifier = Modifier.size(visualSize / 2)
             )
