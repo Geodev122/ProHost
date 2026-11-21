@@ -14,7 +14,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | Unit (file) | Lines | Class | Seams / reasons | Goldens | Tests | Android diff = 0 | iOS sheet | Status |
 |---|---|---|---|---|---|---|---|---|
 | `MainActivity.kt` | 169 | C | Context removal, PlatformActions |  |  | ☐ | ☐ | todo |
-| `ProHostApplication.kt` | 135 | C | Firebase gateways, KeyValueStore, Logger |  |  | ☐ | ☐ | todo |
+| `ProHostApplication.kt` | 136 | C | Firebase gateways, KeyValueStore, Logger |  |  | ☐ | ☐ | todo |
 | `analytics/AndroidAnalytics.kt` | 22 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `analytics/FirebaseAnalyticsSink.kt` | 60 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `data/auth/AdminDirectoryModels.kt` | 246 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
@@ -97,18 +97,19 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/AndroidAppLog.kt` | 18 | B | Logger |  |  | ☐ | ☐ | todo |
 | `util/AndroidFiles.kt` | 32 | B | Context removal, MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
 | `util/AndroidKeyValueStore.kt` | 24 | B | Context removal, KeyValueStore |  |  | ☐ | ☐ | todo |
+| `util/AndroidLocationProvider.kt` | 41 | B | Context removal, Location/Geocoder |  |  | ☐ | ☐ | todo |
 | `util/AppSystemDebugger.kt` | 387 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `util/FileUtils.kt` | 17 | B | Context removal, MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
 | `util/FriendlyErrorMessage.kt` | 27 | A1 | Firebase gateways |  |  | ☐ | ☐ | todo |
 | `util/Geocoding.kt` | 123 | B | Context removal, Location/Geocoder |  |  | ☐ | ☐ | todo |
 | `util/InAppUpdateManager.kt` | 208 | C | Context removal, Logger, MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
-| `util/LocationProvider.kt` | 106 | B | Context removal, Location/Geocoder |  |  | ☐ | ☐ | todo |
 | `util/NotificationPermissionManager.kt` | 50 | C | Context removal, Logger, MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
 | `util/PhoneCountryDetector.kt` | 95 | C | Context removal, Location/Geocoder |  |  | ☐ | ☐ | todo |
 | `util/PlayIntegrityManager.kt` | 51 | C | Context removal, Logger |  |  | ☐ | ☐ | todo |
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 17 / 5378, A2 10 / 5463, B 33 / 9495, C 18 / 4136, X 16 / 6992.
 Automatic class totals (files / lines): A1 17 / 5378, A2 10 / 5463, B 33 / 9560, C 18 / 4135, X 16 / 6992.
 Automatic class totals (files / lines): A1 18 / 5495, A2 11 / 6021, B 35 / 9868, C 18 / 4135, X 16 / 6992.
 Automatic class totals (files / lines): A1 19 / 5664, A2 12 / 6085, B 35 / 9868, C 19 / 4228, X 16 / 6992.
