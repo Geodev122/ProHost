@@ -52,6 +52,10 @@ interface FirestoreGateway {
     suspend fun getHashtagAnalytics(limit: Long = 50): List<HashtagUsageEntry>
     suspend fun saveUserProfile(user: AppUser): Boolean
     suspend fun updateUserProfileFields(uid: String, fields: Map<String, Any?>): Boolean
+    /** Firestore `update()` of the profile (no merge, no updatedAt; fails if the document is missing). Throws on failure. */
+    suspend fun updateUserProfileDocument(uid: String, fields: Map<String, Any?>)
+    /** The `user_profiles/{uid}/blocks` documents as (blocked uid, displayName). Throws on failure. */
+    suspend fun listBlockedPeople(uid: String): List<Pair<String, String>>
     suspend fun setSavedSpace(uid: String, spaceId: String, saved: Boolean): Boolean
     suspend fun saveFcmToken(uid: String, token: String): Boolean
     suspend fun deleteUserProfile(userId: String): Boolean

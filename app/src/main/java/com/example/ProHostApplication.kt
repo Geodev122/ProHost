@@ -27,6 +27,11 @@ class ProHostApplication : Application() {
             val id = res?.getIdentifier(name, "plurals", packageName) ?: 0
             if (res == null || id == 0) "" else if (args.isEmpty()) res.getQuantityString(id, count) else res.getQuantityString(id, count, *args)
         }
+        com.example.ui.util.SharedText.english = { name ->
+            val res = com.example.ui.util.UiText.resources
+            val id = res?.getIdentifier(name, "string", packageName) ?: 0
+            if (id == 0) "" else com.example.ui.util.UiText.english(id)
+        }
         com.example.ui.util.LocaleNames.country = { iso ->
             val locale = com.example.ui.util.UiText.resources?.configuration?.locales?.get(0) ?: java.util.Locale.getDefault()
             java.util.Locale("", iso).getDisplayCountry(locale)

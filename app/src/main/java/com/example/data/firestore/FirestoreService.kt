@@ -651,6 +651,17 @@ class FirestoreService(
         }
     }
 
+    override suspend fun updateUserProfileDocument(uid: String, fields: Map<String, Any?>) {
+        val db = firestore ?: return
+        db.collection(FirestoreSchema.Collections.USER_PROFILES).document(uid).update(fields).await()
+    }
+
+    override suspend fun listBlockedPeople(uid: String): List<Pair<String, String>> {
+        val db = firestore ?: return emptyList()
+        return db.collection(FirestoreSchema.Collections.USER_PROFILES).document(uid).collection("blocks").get().await()
+            .documents.map { it.id to it.getString("displayName").orEmpty() }
+    }
+
     override suspend fun getUserProfile(userId: String): Map<String, Any>? {
         return try {
             val db = firestore ?: return null

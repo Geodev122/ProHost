@@ -310,6 +310,13 @@ class BridgedFirestoreGateway(private val bridge: FirestoreBridge) : FirestoreGa
         write { bridge.setDocument("${c.USER_PROFILES}/$uid", fields + ("updatedAt" to nowMillis()), true, it) }
     }
 
+    override suspend fun updateUserProfileDocument(uid: String, fields: Map<String, Any?>) {
+        write { bridge.updateDocument("${c.USER_PROFILES}/$uid", fields, it) }
+    }
+
+    override suspend fun listBlockedPeople(uid: String): List<Pair<String, String>> =
+        query("${c.USER_PROFILES}/$uid/blocks", null, false, 0).map { it.id to ((it.data["displayName"] as? String).orEmpty()) }
+
     override suspend fun setSavedSpace(uid: String, spaceId: String, saved: Boolean): Boolean = ok {
         val op: FieldOp = if (saved) FieldOp.ArrayUnion(listOf(spaceId)) else FieldOp.ArrayRemove(listOf(spaceId))
         write { bridge.updateDocument("${c.USER_PROFILES}/$uid", mapOf("savedSpaceIds" to op, "updatedAt" to nowMillis()), it) }
