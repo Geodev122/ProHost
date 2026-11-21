@@ -21,6 +21,9 @@ interface PlatformActions {
     /** Opens the email app on a `mailto:` URI (ACTION_SENDTO, so only email apps answer). */
     fun sendMail(mailtoUri: String)
 
+    /** True when [e] means no app on this device can handle the request (Android: `ActivityNotFoundException`). */
+    fun isNoHandler(e: Throwable): Boolean = false
+
     /** Opens a file this app wrote (e.g. a generated PDF) in the viewer for [mimeType], granting it read access (Android: FileProvider URI, own task). */
     fun openFile(file: com.example.util.PickedFile, mimeType: String)
 

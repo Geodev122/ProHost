@@ -1,5 +1,6 @@
 package com.example
 
+import com.example.data.auth.toUserMessage
 import coil3.imageDecoderEnabled
 import com.example.data.auth.from
 import com.example.data.auth.toSignedInUser
@@ -66,6 +67,9 @@ class ProHostApplication : Application() {
         com.example.util.LocationProvider.current = com.example.util.AndroidLocationProvider(this)
         com.example.util.Geocoding.current = com.example.util.AndroidGeocoding(this)
         com.example.util.SoundPlayer.current = com.example.util.AndroidSoundPlayer(this)
+        com.example.util.FriendlyErrors.callableMessage = { e, fallback ->
+            if (e is com.google.firebase.functions.FirebaseFunctionsException) e.toUserMessage(fallback) else null
+        }
         com.example.ui.util.PaymentReminders.add = { booking, ref -> com.example.ui.util.PaymentCalendar.addPaymentReminders(booking, ref) }
         com.example.legal.LegalPdfs.current = com.example.legal.AndroidLegalPdfs(this)
         com.example.data.auth.GoogleCredentialState.init(this)

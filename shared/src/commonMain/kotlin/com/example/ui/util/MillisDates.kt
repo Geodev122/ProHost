@@ -6,3 +6,6 @@ package com.example.ui.util
  * Premium page made; iOS/web: an English rendering of the patterns the app uses ("MMM d, yyyy").
  */
 expect fun formatMillisDate(millis: Long, pattern: String, languageTag: String? = null): String
+
+/** [text] parsed with a `SimpleDateFormat` [pattern] as local midnight in epoch millis, or null. Android: `SimpleDateFormat.parse` (lenient, as before). */
+expect fun parseMillisDate(text: String, pattern: String, languageTag: String? = null): Long?

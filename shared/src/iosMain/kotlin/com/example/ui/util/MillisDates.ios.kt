@@ -3,6 +3,7 @@ package com.example.ui.util
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.atStartOfDayIn
 
 private val MONTHS = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
@@ -13,3 +14,6 @@ actual fun formatMillisDate(millis: Long, pattern: String, languageTag: String?)
         .replace("MMM", MONTHS[d.monthNumber - 1])
         .replace("d", d.dayOfMonth.toString())
 }
+
+actual fun parseMillisDate(text: String, pattern: String, languageTag: String?): Long? =
+    IsoDate.parse(text.take(10))?.atStartOfDayIn(TimeZone.currentSystemDefault())?.toEpochMilliseconds()

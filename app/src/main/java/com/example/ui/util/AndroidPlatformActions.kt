@@ -70,6 +70,8 @@ object AndroidPlatformActions : PlatformActions {
         })
     }
 
+    override fun isNoHandler(e: Throwable): Boolean = e is android.content.ActivityNotFoundException
+
     override fun sendMail(mailtoUri: String) = start(Intent(Intent.ACTION_SENDTO).apply { data = Uri.parse(mailtoUri) })
 
     override fun openAppSettings() = start(

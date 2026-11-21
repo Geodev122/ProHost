@@ -1,6 +1,5 @@
 package com.example.ui.screens
 
-import com.example.util.toPickedFile
 import com.example.ui.util.timeRange
 import com.example.ui.util.localizedLabel
 import com.example.ui.theme.Elevation
@@ -211,7 +210,7 @@ fun SpecialistProfileScreen(
         val ownerActiveListings = if (ownerSpaces.isNotEmpty()) ownerSpaces else if (user.role == UserRole.ADMIN) allSpacesList else emptyList()
         val estimatedYieldUsd = ownerActiveListings.sumOf { it.baseMonthlyRateUsd }
         // The user's own entitlement: plan name only — prices live in Google Play, never here.
-        val ownerPackageExpired = user.ownerPackageExpiryMillis?.let { it <= System.currentTimeMillis() } ?: false
+        val ownerPackageExpired = user.ownerPackageExpiryMillis?.let { it <= com.example.util.nowMillis() } ?: false
         val ownerActivePlanId = if (ownerPackageExpired) null else user.ownerPackageId
 
         // =========================================================================
@@ -335,16 +334,11 @@ fun SpecialistProfileScreen(
                     val fcmAlertsForWelcome by viewModel.fcmAlerts.collectAsState()
                     val bookingsForWelcome by viewModel.practitionerBookings.collectAsState()
 
-                    val dateFormat = remember { java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US) }
                     fun daysUntil(dateStr: String): Long? {
                         if (dateStr.isBlank()) return null
-                        return try {
-                            val target = dateFormat.parse(dateStr) ?: return null
-                            val diffMs = target.time - System.currentTimeMillis()
-                            diffMs / (24 * 60 * 60 * 1000)
-                        } catch (e: Exception) {
-                            null
-                        }
+                        val target = com.example.ui.util.parseMillisDate(dateStr, "yyyy-MM-dd", "en-US") ?: return null
+                        val diffMs = target - com.example.util.nowMillis()
+                        return diffMs / (24 * 60 * 60 * 1000)
                     }
 
                     val latestRelevantAlert = fcmAlertsForWelcome
@@ -893,7 +887,7 @@ fun SpecialistProfileScreen(
                                         val localPic = pendingProfilePic
                                         var pictureUploadFailed = false
                                         if (localPic != null) {
-                                            val storageService = com.example.data.storage.FirebaseStorageService.getInstance()
+                                            val storageService = com.example.data.repository.RepositoryDefaults.storage()
                                             profilePictureUrl = storageService.uploadProfilePicture(user.id, localPic)
                                             pictureUploadFailed = profilePictureUrl == null
                                         }
