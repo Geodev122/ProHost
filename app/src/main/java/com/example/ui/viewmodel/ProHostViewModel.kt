@@ -1,5 +1,6 @@
 package com.example.ui.viewmodel
 
+import com.example.data.auth.toSignedInUser
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.locationLine
 import com.example.ui.util.uiText
@@ -88,7 +89,7 @@ class ProHostViewModel(
                     }
 
                     val user = kotlinx.coroutines.withTimeout(SESSION_RESTORE_TIMEOUT_MS) {
-                        com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
+                        com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser.toSignedInUser())
                     }
                     // Same completeness rule every sign-in path uses. Email/Google users have
                     // no phone until KYC, so a phone check here used to sign them out on

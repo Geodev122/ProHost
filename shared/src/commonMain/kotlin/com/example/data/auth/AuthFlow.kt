@@ -1,12 +1,10 @@
 package com.example.data.auth
 
-import android.util.Log
+import com.example.util.AppLog
+import com.example.util.PushTokens
 import com.example.data.model.AppUser
 import com.example.data.model.UserRole
 import com.example.data.repository.ProHostRepository
-import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.messaging.FirebaseMessaging
-import kotlinx.coroutines.tasks.await
 
 // AccountSuspendedException lives in :shared (data/auth/AccountSuspendedException.kt), shared with the iOS gateway.
 
@@ -19,7 +17,7 @@ import kotlinx.coroutines.tasks.await
 suspend fun completeVerifiedLogin(
     repository: ProHostRepository,
     functionsClient: com.example.data.gateway.FunctionsGateway,
-    firebaseUser: FirebaseUser,
+    firebaseUser: SignedInUser,
     integrityToken: String? = null
 ): AppUser {
     val role = resolveVerifiedRole(functionsClient, firebaseUser, integrityToken)
@@ -35,11 +33,10 @@ suspend fun completeVerifiedLogin(
 /** Fetches the current FCM token and saves it to the user's profile. Silently no-ops on failure. */
 private suspend fun refreshFcmToken(repository: ProHostRepository, uid: String) {
     try {
-        @Suppress("DEPRECATION")
-        val token = FirebaseMessaging.getInstance().token.await()
+        val token = PushTokens.current() ?: return
         repository.registerFcmToken(uid, token)
     } catch (e: Exception) {
-        Log.w("AuthFlow", "FCM token refresh failed: ${e.message}")
+        AppLog.w("AuthFlow", "FCM token refresh failed: ${e.message}")
     }
 }
 
@@ -63,7 +60,7 @@ private suspend fun refreshFcmToken(repository: ProHostRepository, uid: String) 
 suspend fun completeVerifiedRegistration(
     repository: ProHostRepository,
     functionsClient: com.example.data.gateway.FunctionsGateway,
-    firebaseUser: FirebaseUser,
+    firebaseUser: SignedInUser,
     details: RegistrationDetails,
     integrityToken: String? = null
 ): AppUser {
@@ -76,7 +73,7 @@ suspend fun completeVerifiedRegistration(
         integrityToken = integrityToken
     ).getOrThrow()
     // assignInitialRole just ran and set the claim — read it rather than calling it a second time.
-    val role = FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = true)
+    val role = firebaseUser.readRoleClaim(true)
         ?.let { runCatching { UserRole.valueOf(it) }.getOrNull() } ?: UserRole.SPECIALIST
     val user = repository.registerMember(
         uid = firebaseUser.uid,
@@ -96,7 +93,7 @@ suspend fun completeVerifiedRegistration(
 suspend fun completeGoogleRegistration(
     repository: ProHostRepository,
     functionsClient: com.example.data.gateway.FunctionsGateway,
-    firebaseUser: FirebaseUser,
+    firebaseUser: SignedInUser,
     details: RegistrationDetails,
     integrityToken: String? = null
 ): AppUser = completeVerifiedRegistration(
@@ -112,7 +109,7 @@ suspend fun completeGoogleRegistration(
 
 private suspend fun resolveVerifiedRole(
     functionsClient: com.example.data.gateway.FunctionsGateway,
-    firebaseUser: FirebaseUser,
+    firebaseUser: SignedInUser,
     integrityToken: String? = null
 ): UserRole {
     // forceRefresh=true makes this a real network round-trip to Firebase's token
@@ -127,7 +124,7 @@ private suspend fun resolveVerifiedRole(
     // allowed to bring down session restoration when the real fallback (network
     // ensureInitialRole call, below) might still succeed.
     val existingClaim = runCatching {
-        FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = false)
+        firebaseUser.readRoleClaim(false)
     }.getOrNull()
     // Always call assignInitialRole, not just when there's no claim yet — it's the only
     // place lastSignInAtMillis (and isVerified) get refreshed, and that needs to happen
@@ -140,6 +137,6 @@ private suspend fun resolveVerifiedRole(
         if (error is AccountSuspendedException || existingClaim == null) throw error
     }
     val claim = existingClaim
-        ?: FirebaseFunctionsClient.readRoleClaim(firebaseUser, forceRefresh = true)
+        ?: firebaseUser.readRoleClaim(true)
     return claim?.let { runCatching { UserRole.valueOf(it) }.getOrNull() } ?: UserRole.SPECIALIST
 }
