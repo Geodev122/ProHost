@@ -23,7 +23,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
@@ -99,7 +98,6 @@ fun LoginAuthScreen(
     initialEmail: String? = null,
     initialIntentName: String? = null
 ) {
-    val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
     val coroutineScope = rememberCoroutineScope()
     var step by rememberSaveable(stateSaver = AuthStepSaver) {

@@ -7,7 +7,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.platform.LocalContext
 import com.example.R
 import com.example.data.model.BookingRequestStatus
 import com.example.data.model.FacilityCatalog
@@ -24,7 +23,6 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun EditListingDialog(space: SpaceListing, viewModel: ProHostViewModel, onDone: () -> Unit) {
-    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val currentUser by viewModel.currentUser.collectAsState()
     val schema by viewModel.spaceArchitectureSchema.collectAsState()

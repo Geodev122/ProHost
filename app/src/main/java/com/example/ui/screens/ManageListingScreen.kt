@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.dp
 import com.example.data.model.*
 import com.example.ui.components.ChangePriceSheet
 import com.example.ui.components.EditListingDialog
-import androidx.compose.ui.platform.LocalContext
 import com.example.ui.components.ProSectionHeader
 import com.example.ui.components.ProSurfaceCard
 import com.example.ui.theme.*
@@ -97,7 +96,6 @@ fun ManageListingScreen(
     if (showEdit) {
         EditListingDialog(space = liveSpace, viewModel = viewModel, onDone = { showEdit = false })
     }
-    val context = LocalContext.current
     if (showChangePrice) {
         ChangePriceSheet(viewModel = viewModel, onDismiss = { showChangePrice = false }, initialSpaceId = liveSpace.id)
     }

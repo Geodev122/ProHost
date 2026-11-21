@@ -3,8 +3,6 @@ package com.example.ui.components
 import com.example.ui.theme.Spacing
 
 import com.example.ui.util.localizedLabel
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -13,6 +11,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.shared.resources.Res
+import com.example.shared.resources.closes_hh_mm
+import com.example.shared.resources.opens_hh_mm
+import com.example.shared.resources.operating_days
+import com.example.ui.util.appString
 
 /**
  * The opening/closing-hour fields + day-of-week chip row shared by
@@ -42,20 +45,20 @@ fun OperatingScheduleEditorSection(
             InputField(
                 value = openingHour,
                 onValueChange = onOpeningHourChange,
-                label = stringResource(R.string.opens_hh_mm),
+                label = appString(Res.string.opens_hh_mm),
                 modifier = Modifier.weight(1f),
                 singleLine = true
             )
             InputField(
                 value = closingHour,
                 onValueChange = onClosingHourChange,
-                label = stringResource(R.string.closes_hh_mm),
+                label = appString(Res.string.closes_hh_mm),
                 modifier = Modifier.weight(1f),
                 singleLine = true
             )
         }
 
-        Text(stringResource(R.string.operating_days), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+        Text(appString(Res.string.operating_days), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             items(weekDayOptions) { day ->
                 val isSelected = selectedDays.contains(day)

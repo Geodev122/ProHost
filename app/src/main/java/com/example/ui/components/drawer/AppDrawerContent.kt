@@ -26,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -219,8 +218,6 @@ fun SpecialistDrawerContent(
             selected = false,
             onClick = { onDrawerAction("legal_documents") }
         )
-
-        val context = LocalContext.current
         ProHostDrawerItem(
             label = stringResource(R.string.contact_support),
             icon = Icons.AutoMirrored.Filled.Help,

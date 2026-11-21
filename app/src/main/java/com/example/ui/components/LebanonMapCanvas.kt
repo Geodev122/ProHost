@@ -38,7 +38,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -260,7 +259,6 @@ fun LebanonMapCanvas(
     onUserGesture: () -> Unit = {}
 ) {
     val currentOnUserGesture by rememberUpdatedState(onUserGesture)
-    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
     var userLocation by remember { mutableStateOf<LatLng?>(null) }

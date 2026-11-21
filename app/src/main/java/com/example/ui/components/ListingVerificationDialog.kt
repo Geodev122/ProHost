@@ -15,7 +15,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -47,7 +46,6 @@ fun ListingVerificationDialog(
     onDismiss: () -> Unit
 ) {
     com.example.ui.components.TrackScreen("listing_verification", "Dialog")
-    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val storageService = remember { FirebaseStorageService.getInstance() }
 

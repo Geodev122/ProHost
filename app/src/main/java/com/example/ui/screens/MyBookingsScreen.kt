@@ -31,7 +31,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import com.example.util.AppSound
@@ -57,7 +56,6 @@ fun MyBookingsScreen(
     highlightBookingId: String? = null,
     onHighlightShown: () -> Unit = {}
 ) {
-    val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val currentUser by viewModel.currentUser.collectAsState()
     val liveSpaces by viewModel.spaces.collectAsState()

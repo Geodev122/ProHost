@@ -21,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -65,8 +64,6 @@ fun DrawerDialogsHandler(
         com.example.ui.components.LegalDocumentsMenu(onDismiss = onDismiss)
         return
     }
-
-    val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()
     val auditLogs by viewModel.auditLogs.collectAsState()
     val fcmAlerts by viewModel.fcmAlerts.collectAsState()

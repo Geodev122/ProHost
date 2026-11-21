@@ -38,7 +38,6 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
@@ -73,7 +72,6 @@ fun DiscoveryScreen(
     // A card's Availability button: the listing opens with its availability sheet up.
     onOpenAvailability: ((SpaceListing, String?) -> Unit)? = null
 ) {
-    val context = LocalContext.current
     val uiState by discoveryViewModel.uiState.collectAsState()
     val architectureSchema by viewModel.spaceArchitectureSchema.collectAsState()
     val categoryOptions = remember(architectureSchema) {

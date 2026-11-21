@@ -1,7 +1,5 @@
 package com.example.ui.components
 
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,6 +22,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.shared.resources.Res
+import com.example.shared.resources.clear_selection
+import com.example.shared.resources.filter_any
+import com.example.shared.resources.x_selected
+import com.example.ui.util.appString
 
 /**
  * A dropdown field that lets the user tick several options. The menu stays open while
@@ -37,13 +40,13 @@ fun <T> MultiSelectDropdownField(
     optionLabel: (T) -> String,
     onSelectionChange: (Set<T>) -> Unit,
     modifier: Modifier = Modifier,
-    placeholder: String = stringResource(R.string.filter_any),
+    placeholder: String = appString(Res.string.filter_any),
 ) {
     var expanded by remember { mutableStateOf(false) }
     val summary = when {
         selected.isEmpty() -> placeholder
         selected.size <= 2 -> options.filter { it in selected }.joinToString { optionLabel(it) }
-        else -> stringResource(R.string.x_selected, selected.size)
+        else -> appString(Res.string.x_selected, selected.size)
     }
     Box(modifier = modifier) {
         InputField(
@@ -75,7 +78,7 @@ fun <T> MultiSelectDropdownField(
         ) {
             if (selected.isNotEmpty()) {
                 DropdownMenuItem(
-                    text = { Text(stringResource(R.string.clear_selection)) },
+                    text = { Text(appString(Res.string.clear_selection)) },
                     leadingIcon = { Icon(Icons.Default.Clear, contentDescription = null) },
                     onClick = { onSelectionChange(emptySet()) }
                 )

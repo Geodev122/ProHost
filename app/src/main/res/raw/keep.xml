@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shared UI looks strings up by name (appString / sharedText → Resources.getIdentifier); keep them all through shrinkResources. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@string/*,@plurals/*" />

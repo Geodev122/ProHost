@@ -19,7 +19,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,7 +58,6 @@ fun ChangePriceSheet(
     val changePriceSource = if (booking != null) "booking" else "listing"
     com.example.ui.components.TrackScreen("change_price", params = mapOf(com.example.analytics.Param.SOURCE to changePriceSource))
     androidx.compose.runtime.LaunchedEffect(Unit) { com.example.analytics.AnalyticsTracker.changePriceOpen(changePriceSource) }
-    val context = LocalContext.current
     val allSpaces by viewModel.spaces.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
     val allBookings by viewModel.bookingRequests.collectAsState()

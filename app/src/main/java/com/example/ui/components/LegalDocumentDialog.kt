@@ -13,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -55,7 +54,6 @@ fun LegalDocumentDialog(
     onDismiss: () -> Unit
 ) {
     com.example.ui.components.TrackScreen("legal_" + document.id.lowercase().replace(Regex("[^a-z0-9]+"), "_"), "Dialog")
-    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var isGeneratingPdf by remember { mutableStateOf(false) }
 

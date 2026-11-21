@@ -1,11 +1,10 @@
 package com.example.ui.components
 
-import com.example.R
-import com.example.ui.util.uiText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.example.ui.util.sharedText
 
 /**
  * A thin, always-in-the-same-place banner surfacing ProHostRepository's existing
@@ -21,7 +20,7 @@ fun OfflineStatusBanner(
 ) {
     ProHostStatusStrip(
         visible = isOffline,
-        message = syncStatusMessage ?: uiText(R.string.you_re_offline_showing_cached_data),
+        message = syncStatusMessage ?: sharedText("you_re_offline_showing_cached_data"),
         severity = ProHostAlertSeverity.ERROR,
         icon = Icons.Default.CloudOff,
         modifier = modifier

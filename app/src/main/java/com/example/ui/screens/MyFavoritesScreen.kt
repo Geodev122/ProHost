@@ -14,7 +14,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.ui.components.ShimmerLoadingList
 import com.example.data.model.SpaceListing
@@ -39,7 +38,6 @@ fun MyFavoritesScreen(
     onSelectSpace: (SpaceListing) -> Unit,
     onNavigateToExplore: () -> Unit = {}
 ) {
-    val context = LocalContext.current
     val isRestoringSession by viewModel.isRestoringSession.collectAsState()
     val sessionError by viewModel.sessionRestoreError.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()

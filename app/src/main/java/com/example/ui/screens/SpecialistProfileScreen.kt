@@ -39,7 +39,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -64,7 +63,6 @@ fun SpecialistProfileScreen(
     onOpenLegal: (() -> Unit)? = null,
     onSignOut: (() -> Unit)? = null
 ) {
-    val context = LocalContext.current
     val needsEmailVerification by viewModel.needsEmailVerification.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val currentUser by viewModel.currentUser.collectAsState()

@@ -21,7 +21,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -67,7 +66,6 @@ fun SubdivisionForm(
     // The division has pending or accepted bookings that have not ended: its rental type stays as it is.
     hasBookings: Boolean = false
 ) {
-    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val storageService = remember { FirebaseStorageService.getInstance() }
     val initialOverride = initial?.scheduleOverride
