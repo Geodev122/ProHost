@@ -22,3 +22,11 @@ actual fun rememberCountryDisplayName(): (Country) -> String {
 
 @Composable
 actual fun rememberReducedMotion(): Boolean = remember { UIAccessibilityIsReduceMotionEnabled() }
+
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
+@Composable
+actual fun rememberScreenHeightDp(): Int {
+    val height = androidx.compose.ui.platform.LocalWindowInfo.current.containerSize.height
+    val density = androidx.compose.ui.platform.LocalDensity.current.density
+    return (height / density).toInt()
+}

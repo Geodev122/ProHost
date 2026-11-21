@@ -1,10 +1,7 @@
 package com.example.ui.components
 
-import com.example.R
-import com.example.ui.util.uiText
 import android.app.Activity
 import android.content.ContextWrapper
-import android.util.Log
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.filled.SimCard
@@ -29,7 +26,7 @@ import com.google.android.gms.auth.api.identity.Identity
  * no SIM number to offer or Play services can't show the sheet, so callers fall back to typing.
  */
 @Composable
-fun rememberPhoneNumberHint(onNumber: (String) -> Unit, onUnavailable: () -> Unit = {}): () -> Unit {
+actual fun rememberPhoneNumberHint(onNumber: (String) -> Unit, onUnavailable: () -> Unit): () -> Unit {
     val context = LocalContext.current
     val activity: Activity? = remember(context) {
         var ctx = context
@@ -45,7 +42,7 @@ fun rememberPhoneNumberHint(onNumber: (String) -> Unit, onUnavailable: () -> Uni
         if (result.resultCode != Activity.RESULT_OK || activity == null) return@rememberLauncherForActivityResult
         runCatching { Identity.getSignInClient(activity).getPhoneNumberFromIntent(result.data) }
             .onSuccess { number -> if (number.isNotBlank()) latestOnNumber.value(number) }
-            .onFailure { Log.w("PhoneNumberHint", "No number returned: ${it.message}") }
+            .onFailure { com.example.util.AppLog.w("PhoneNumberHint", "No number returned: ${it.message}") }
     }
     return {
         if (activity == null) {
@@ -58,35 +55,11 @@ fun rememberPhoneNumberHint(onNumber: (String) -> Unit, onUnavailable: () -> Uni
                         .onFailure { latestOnUnavailable.value() }
                 }
                 .addOnFailureListener {
-                    Log.w("PhoneNumberHint", "Phone Number Hint unavailable: ${it.message}")
+                    com.example.util.AppLog.w("PhoneNumberHint", "Phone Number Hint unavailable: ${it.message}")
                     latestOnUnavailable.value()
                 }
         }
     }
 }
 
-/** "Use this phone's number" under a [PhoneNumberField]: fills country and number from the system picker. */
-@Composable
-fun UseDeviceNumberButton(
-    fallbackCountry: com.example.data.model.Country,
-    onPicked: (country: com.example.data.model.Country, localNumber: String) -> Unit,
-    modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier
-) {
-    val pick = rememberPhoneNumberHint(
-        onNumber = { e164 ->
-            com.example.analytics.AnalyticsTracker.phoneHint("used", "whatsapp_step")
-            val (country, local) = com.example.data.model.splitE164(e164, fallbackCountry)
-            onPicked(country, local)
-        },
-        onUnavailable = { com.example.analytics.AnalyticsTracker.phoneHint("unavailable", "whatsapp_step") }
-    )
-    androidx.compose.material3.TextButton(onClick = pick, modifier = modifier) {
-        androidx.compose.material3.Icon(
-            androidx.compose.material.icons.Icons.Default.SimCard,
-            contentDescription = null,
-            modifier = androidx.compose.ui.Modifier.size(16.dp)
-        )
-        androidx.compose.foundation.layout.Spacer(androidx.compose.ui.Modifier.width(6.dp))
-        androidx.compose.material3.Text(uiText(R.string.use_this_phone_s_number), style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
-    }
-}
+actual val phoneNumberHintAvailable: Boolean = true

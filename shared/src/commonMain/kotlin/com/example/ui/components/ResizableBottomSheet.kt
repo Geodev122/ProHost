@@ -14,7 +14,6 @@ import androidx.compose.material3.SheetState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 
 /**
@@ -39,7 +38,7 @@ fun ResizableBottomSheet(
     header: @Composable ColumnScope.() -> Unit = {},
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val sheetHeight = (LocalConfiguration.current.screenHeightDp * maxHeightFraction).dp
+    val sheetHeight = (rememberScreenHeightDp() * maxHeightFraction).dp
     ProHostBottomSheet(
         onDismissRequest = onDismissRequest,
         modifier = modifier,

@@ -28,3 +28,6 @@ actual fun rememberReducedMotion(): Boolean {
         }.getOrDefault(false)
     }
 }
+
+@Composable
+actual fun rememberScreenHeightDp(): Int = LocalConfiguration.current.screenHeightDp

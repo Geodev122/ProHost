@@ -16,3 +16,7 @@ expect fun rememberCountryDisplayName(): (Country) -> String
  */
 @Composable
 expect fun rememberReducedMotion(): Boolean
+
+/** The screen height in dp (Android: Configuration.screenHeightDp; iOS/web: the window's height). */
+@Composable
+expect fun rememberScreenHeightDp(): Int

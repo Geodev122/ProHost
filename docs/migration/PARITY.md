@@ -51,11 +51,9 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/components/MediaPickers.kt` | 102 | B | Context removal, MediaPicker(PickedFile), MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
 | `ui/components/OwnerIncomingRequestsView.kt` | 558 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/components/PermissionPrompts.kt` | 225 | B | Context removal, MediaPicker(PickedFile), MediaPicker/Permissions, PlatformActions |  |  | ☐ | ☐ | todo |
-| `ui/components/PhoneNumberHint.kt` | 93 | C | Context removal, Logger, MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
 | `ui/components/PromoCountdownCard.kt` | 169 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/components/RentalBookingDialog.kt` | 598 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/components/RequirementsSheet.kt` | 217 | B | MediaPicker(PickedFile), MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
-| `ui/components/ResizableBottomSheet.kt` | 64 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/components/SubdivisionForm.kt` | 1015 | B | MediaPicker(PickedFile), MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
 | `ui/components/dialogs/DrawerDialogsHandler.kt` | 520 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/components/dialogs/SystemDebuggerDialog.kt` | 373 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
@@ -66,7 +64,6 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/screens/AdminConsoleScreen.kt` | 486 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/screens/AvailabilitySheet.kt` | 413 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/screens/DiscoveryScreen.kt` | 929 | B | — |  |  | ☐ | ☐ | todo |
-| `ui/screens/KycScreen.kt` | 169 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/screens/LoginAuthScreen.kt` | 651 | B | BackHandler, Context removal, Firebase gateways, GoogleSignIn, MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
 | `ui/screens/ManageListingScreen.kt` | 658 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/screens/MyBookingsScreen.kt` | 953 | B | Haptics |  |  | ☐ | ☐ | todo |
@@ -116,6 +113,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 18 / 5495, A2 11 / 6021, B 35 / 9868, C 18 / 4135, X 16 / 6992.
 Automatic class totals (files / lines): A1 19 / 5664, A2 12 / 6085, B 35 / 9868, C 19 / 4228, X 16 / 6992.
 Automatic class totals (files / lines): A1 19 / 5664, A2 13 / 6197, B 35 / 9868, C 19 / 4227, X 16 / 6992.
 Automatic class totals (files / lines): A1 23 / 7244, A2 14 / 6670, B 35 / 9868, C 19 / 4227, X 16 / 6992.

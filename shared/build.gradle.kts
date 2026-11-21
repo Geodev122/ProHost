@@ -53,7 +53,12 @@ kotlin {
       api(libs.coil3.compose)
       api(libs.coil3.network.ktor3)
     }
-    androidMain.dependencies { implementation(libs.ktor.client.okhttp) }
+    androidMain.dependencies {
+      implementation(libs.ktor.client.okhttp)
+      // Phone Number Hint (Play services Identity) and its activity-result launcher; same versions the app uses.
+      implementation(libs.androidx.activity.compose)
+      implementation(libs.play.services.auth)
+    }
     iosMain.dependencies { implementation(libs.ktor.client.darwin) }
     wasmJsMain.dependencies { implementation(libs.ktor.client.js) }
   }
