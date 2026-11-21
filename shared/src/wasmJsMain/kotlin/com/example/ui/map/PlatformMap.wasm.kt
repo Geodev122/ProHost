@@ -38,6 +38,7 @@ actual fun PlatformMap(
     onMapLoaded: () -> Unit,
     onMapClick: () -> Unit,
     modifier: Modifier,
+    mapToolbarEnabled: Boolean,
 ) {
     Box(modifier)
 }

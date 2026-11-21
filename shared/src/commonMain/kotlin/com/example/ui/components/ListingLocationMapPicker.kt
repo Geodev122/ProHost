@@ -1,14 +1,9 @@
 package com.example.ui.components
 
-import com.example.ui.util.uiText
 import com.example.ui.theme.Spacing
 
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
 import com.example.ui.util.UiMessages
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -20,21 +15,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.util.Geocoding
+import com.example.util.GeoPoint
+import com.example.util.MapCamera
+import com.example.ui.map.PlatformMap
+import com.example.ui.map.rememberPlatformMapState
 import com.example.util.LocateResult
 import com.example.util.LocationProvider
 import com.example.util.ResolvedAddress
 import com.example.util.locate
 import com.example.util.resolvePin
-import com.google.maps.android.compose.*
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.CameraUpdateFactory
 import kotlinx.coroutines.launch
-import java.util.Locale
+import com.example.shared.resources.Res
+import com.example.shared.resources.center_crosshair
+import com.example.shared.resources.locate_me
+import com.example.shared.resources.mark_pin_location
+import com.example.ui.util.appString
+import com.example.ui.util.sharedText
 
 @Composable
 fun ListingLocationMapPicker(
@@ -43,19 +42,17 @@ fun ListingLocationMapPicker(
     onLocationConfirmed: (ResolvedAddress) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var isLocating by remember { mutableStateOf(false) }
 
     val defaultCenter = if (initialLat != null && initialLng != null) {
-        LatLng(initialLat, initialLng)
+        GeoPoint(initialLat, initialLng)
     } else {
-        LatLng(20.0, 0.0) // world center — no country assumption
+        GeoPoint(20.0, 0.0) // world center — no country assumption
     }
-    
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(defaultCenter, if (initialLat != null && initialLng != null) 15f else 2f)
-    }
+
+    val mapState = rememberPlatformMapState(MapCamera(defaultCenter, if (initialLat != null && initialLng != null) 15f else 2f))
+    val appLanguageTag = rememberAppLanguageTag()
 
     fun requestHighAccuracyLocation() {
         val provider = LocationProvider.require()
@@ -63,10 +60,8 @@ fun ListingLocationMapPicker(
             isLocating = true
             coroutineScope.launch {
                 when (val result = locate(provider, fallbackToLast = false, onFreshFixDone = { isLocating = false })) {
-                    is LocateResult.Found -> cameraPositionState.animate(
-                        CameraUpdateFactory.newLatLngZoom(LatLng(result.point.latitude, result.point.longitude), 15f)
-                    )
-                    LocateResult.Unavailable -> UiMessages.show(uiText(R.string.gps_signal_unavailable))
+                    is LocateResult.Found -> mapState.animateTo(GeoPoint(result.point.latitude, result.point.longitude), 15f)
+                    LocateResult.Unavailable -> UiMessages.show(sharedText("gps_signal_unavailable"))
                     LocateResult.NoFix, LocateResult.Silent -> Unit
                 }
             }
@@ -76,33 +71,29 @@ fun ListingLocationMapPicker(
     // Permission, blocked-permission and location-off prompts are all native (PermissionPrompts.kt).
     val requestLocation = rememberLocationAccess { requestHighAccuracyLocation() }
 
-    suspend fun resolveLocationAndConfirm(latLng: LatLng) {
-        val appLocale = context.resources.configuration.locales[0] ?: Locale.getDefault()
-        val resolved = Geocoding.require().resolvePin(appLocale.toLanguageTag(), latLng.latitude, latLng.longitude)
+    suspend fun resolveLocationAndConfirm(point: GeoPoint) {
+        val resolved = Geocoding.require().resolvePin(appLanguageTag, point.latitude, point.longitude)
         onLocationConfirmed(resolved)
     }
 
     Box(modifier = modifier.clipToBounds()) {
         val hasLocationPermission = LocationProvider.require().hasPermission()
 
-        GoogleMap(
+        PlatformMap(
+            state = mapState,
+            markers = emptyList(),
+            contentPadding = PaddingValues(),
+            myLocationEnabled = hasLocationPermission,
+            onMapLoaded = {},
+            onMapClick = {},
             modifier = Modifier.fillMaxSize(),
-            cameraPositionState = cameraPositionState,
-            properties = MapProperties(
-                isMyLocationEnabled = hasLocationPermission,
-                mapType = MapType.NORMAL
-            ),
-            uiSettings = MapUiSettings(
-                myLocationButtonEnabled = false,
-                zoomControlsEnabled = false,
-                compassEnabled = true
-            )
+            mapToolbarEnabled = true // the picker kept Maps' default here
         )
         
         // Custom Crosshair Center Pin Overlay
         Icon(
             imageVector = Icons.Default.MyLocation,
-            contentDescription = stringResource(R.string.center_crosshair),
+            contentDescription = appString(Res.string.center_crosshair),
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier
                 .align(Alignment.Center)
@@ -120,7 +111,7 @@ fun ListingLocationMapPicker(
         ) {
             Surface(
                 onClick = {
-                    val currentCenter = cameraPositionState.position.target
+                    val currentCenter = mapState.camera.target
                     coroutineScope.launch {
                         resolveLocationAndConfirm(currentCenter)
                     }
@@ -136,7 +127,7 @@ fun ListingLocationMapPicker(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Text(stringResource(R.string.mark_pin_location), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    Text(appString(Res.string.mark_pin_location), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -155,7 +146,7 @@ fun ListingLocationMapPicker(
             if (isLocating) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
             } else {
-                Icon(Icons.Default.MyLocation, contentDescription = stringResource(R.string.locate_me), modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.MyLocation, contentDescription = appString(Res.string.locate_me), modifier = Modifier.size(20.dp))
             }
         }
     }

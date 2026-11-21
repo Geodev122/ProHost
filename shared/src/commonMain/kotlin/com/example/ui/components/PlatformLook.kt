@@ -20,3 +20,7 @@ expect fun rememberReducedMotion(): Boolean
 /** The screen height in dp (Android: Configuration.screenHeightDp; iOS/web: the window's height). */
 @Composable
 expect fun rememberScreenHeightDp(): Int
+
+/** BCP-47 tag of the app language now shown (Android: the current Configuration locale, as the screens read it). */
+@Composable
+expect fun rememberAppLanguageTag(): String

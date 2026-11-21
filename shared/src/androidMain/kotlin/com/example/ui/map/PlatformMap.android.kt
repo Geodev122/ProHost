@@ -62,6 +62,7 @@ actual fun PlatformMap(
     onMapLoaded: () -> Unit,
     onMapClick: () -> Unit,
     modifier: Modifier,
+    mapToolbarEnabled: Boolean,
 ) {
     val context = LocalContext.current
     // BitmapDescriptors are registered natively and never freed, so build one per distinct look
@@ -85,7 +86,7 @@ actual fun PlatformMap(
             myLocationButtonEnabled = false,
             zoomControlsEnabled = false,
             compassEnabled = true,
-            mapToolbarEnabled = false
+            mapToolbarEnabled = mapToolbarEnabled
         ),
         onMapLoaded = onMapLoaded,
         onMapClick = { onMapClick() }

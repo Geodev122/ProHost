@@ -87,4 +87,6 @@ expect fun PlatformMap(
     onMapLoaded: () -> Unit,
     onMapClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Android's "open in Maps" toolbar on marker taps (Explore turns it off; the pin picker kept the default, on). */
+    mapToolbarEnabled: Boolean = false,
 )

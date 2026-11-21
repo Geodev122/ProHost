@@ -16,3 +16,6 @@ actual fun rememberScreenHeightDp(): Int {
     val density = androidx.compose.ui.platform.LocalDensity.current.density
     return (height / density).toInt()
 }
+
+@Composable
+actual fun rememberAppLanguageTag(): String = com.example.ui.util.AppLanguage.current().ifBlank { "en" }

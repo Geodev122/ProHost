@@ -42,7 +42,6 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/components/FileExportLauncher.kt` | 56 | B | Context removal, MediaPicker(PickedFile), MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
 | `ui/components/InAppUpdateBanner.kt` | 137 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/components/LegalDocumentDialog.kt` | 237 | B | HtmlView |  |  | ☐ | ☐ | todo |
-| `ui/components/ListingLocationMapPicker.kt` | 163 | B | Context removal, MapView, MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
 | `ui/components/ListingVerificationDialog.kt` | 310 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/components/PromoCountdownCard.kt` | 169 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/components/RentalBookingDialog.kt` | 598 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
@@ -90,12 +89,12 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/viewmodel/BillingController.kt` | 525 | C | Context removal, Firebase gateways, MediaPicker(PickedFile), Messenger, PlatformActions, SubscriptionStore |  |  | ☐ | ☐ | todo |
 | `util/AndroidAppLog.kt` | 18 | B | Logger |  |  | ☐ | ☐ | todo |
 | `util/AndroidFiles.kt` | 32 | B | Context removal, MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
+| `util/AndroidGeocoding.kt` | 38 | B | Context removal, Location/Geocoder |  |  | ☐ | ☐ | todo |
 | `util/AndroidKeyValueStore.kt` | 24 | B | Context removal, KeyValueStore |  |  | ☐ | ☐ | todo |
 | `util/AndroidLocationProvider.kt` | 41 | B | Context removal, Location/Geocoder |  |  | ☐ | ☐ | todo |
 | `util/AppSystemDebugger.kt` | 387 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `util/FileUtils.kt` | 17 | B | Context removal, MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
 | `util/FriendlyErrorMessage.kt` | 27 | A1 | Firebase gateways |  |  | ☐ | ☐ | todo |
-| `util/Geocoding.kt` | 123 | B | Context removal, Location/Geocoder |  |  | ☐ | ☐ | todo |
 | `util/InAppUpdateManager.kt` | 208 | C | Context removal, Logger, MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
 | `util/NotificationPermissionManager.kt` | 50 | C | Context removal, Logger, MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
 | `util/PhoneCountryDetector.kt` | 95 | C | Context removal, Location/Geocoder |  |  | ☐ | ☐ | todo |
@@ -103,6 +102,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 15 / 4262, A2 10 / 5463, B 28 / 8122, C 18 / 4136, X 16 / 6992.
 Automatic class totals (files / lines): A1 15 / 4262, A2 10 / 5463, B 29 / 8370, C 18 / 4136, X 16 / 6992.
 Automatic class totals (files / lines): A1 17 / 5378, A2 10 / 5463, B 31 / 9196, C 18 / 4136, X 16 / 6992.
 Automatic class totals (files / lines): A1 17 / 5378, A2 10 / 5463, B 33 / 9495, C 18 / 4136, X 16 / 6992.

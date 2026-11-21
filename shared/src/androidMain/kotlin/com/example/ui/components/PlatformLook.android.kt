@@ -31,3 +31,6 @@ actual fun rememberReducedMotion(): Boolean {
 
 @Composable
 actual fun rememberScreenHeightDp(): Int = LocalConfiguration.current.screenHeightDp
+
+@Composable
+actual fun rememberAppLanguageTag(): String = (LocalConfiguration.current.locales[0] ?: java.util.Locale.getDefault()).toLanguageTag()
