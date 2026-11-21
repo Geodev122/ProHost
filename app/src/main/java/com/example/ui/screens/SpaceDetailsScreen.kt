@@ -392,8 +392,8 @@ fun SpaceDetailsScreenContent(
                     val pagerState = rememberPagerState(pageCount = { liveSpace.imageUrls.size })
                     val heroScope = rememberCoroutineScope()
                     HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
-                        coil.compose.AsyncImage(
-                            model = coil.request.ImageRequest.Builder(context).data(liveSpace.imageUrls[page]).size(800).build(),
+                        coil3.compose.AsyncImage(
+                            model = coil3.request.ImageRequest.Builder(context).data(liveSpace.imageUrls[page]).size(800).build(),
                             contentDescription = liveSpace.title,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = androidx.compose.ui.layout.ContentScale.Crop

@@ -82,3 +82,8 @@
 # R8 mapping file on release builds) and keep custom exception class names.
 -keepattributes SourceFile,LineNumberTable
 -keep public class * extends java.lang.Exception
+
+# Coil 3 finds its network fetcher, and Ktor its OkHttp engine, through ServiceLoader (META-INF/services): keep both implementations.
+-keep class coil3.network.ktor3.internal.KtorNetworkFetcherServiceLoaderTarget { *; }
+-keep class io.ktor.client.engine.okhttp.OkHttpEngineContainer { *; }
+-dontwarn io.ktor.**

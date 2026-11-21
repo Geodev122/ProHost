@@ -44,7 +44,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.example.data.model.*
 import com.example.data.storage.FirebaseStorageService
 import com.example.ui.theme.Spacing

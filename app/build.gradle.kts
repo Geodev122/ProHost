@@ -168,7 +168,6 @@ dependencies {
   implementation(libs.androidx.lifecycle.runtime.compose)
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.lifecycle.viewmodel.compose)
-  implementation(libs.coil.compose)
   // implementation(libs.firebase.ai)  // unused — auto-inits and may crash without config
   // Uncomment to use Firestore:
   implementation(libs.firebase.firestore)

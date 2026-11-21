@@ -28,7 +28,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.example.data.model.*
 import com.example.data.storage.FirebaseStorageService
 import com.example.ui.theme.*

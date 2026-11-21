@@ -48,6 +48,14 @@ kotlin {
       api(compose.components.resources)
       api("org.jetbrains.compose.material:material-icons-extended:${libs.versions.materialIconsExtended.get()}")
     }
+    // Coil 3 (multiplatform images; Coil 3.4.0 = newest built with Kotlin 2.3) over Ktor 3.1, one engine per platform.
+    commonMain.dependencies {
+      api(libs.coil3.compose)
+      api(libs.coil3.network.ktor3)
+    }
+    androidMain.dependencies { implementation(libs.ktor.client.okhttp) }
+    iosMain.dependencies { implementation(libs.ktor.client.darwin) }
+    wasmJsMain.dependencies { implementation(libs.ktor.client.js) }
   }
 }
 

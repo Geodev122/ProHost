@@ -668,8 +668,8 @@ fun LebanonMapCanvas(
                                     val thumb = sub?.imageUrls?.firstOrNull { it.isNotBlank() }
                                         ?: space.imageUrls.firstOrNull { it.isNotBlank() }
                                     if (thumb != null) {
-                                        coil.compose.AsyncImage(
-                                            model = coil.request.ImageRequest.Builder(context).data(thumb).size(200).build(),
+                                        coil3.compose.AsyncImage(
+                                            model = coil3.request.ImageRequest.Builder(context).data(thumb).size(200).build(),
                                             contentDescription = displayName,
                                             modifier = Modifier.fillMaxSize(),
                                             contentScale = androidx.compose.ui.layout.ContentScale.Crop
