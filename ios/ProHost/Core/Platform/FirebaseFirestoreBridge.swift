@@ -106,7 +106,7 @@ final class FirebaseFirestoreBridge: NSObject, FirestoreBridge {
         case let s as String: return s
         case let a as [Any]: return a.compactMap(toKotlin)
         case let d as [String: Any]: return toKotlinMap(d)
-        case let g as GeoPoint: return ["latitude": KotlinValues.shared.double(v: g.latitude), "longitude": KotlinValues.shared.double(v: g.longitude)]
+        case let g as FirebaseFirestore.GeoPoint: return ["latitude": KotlinValues.shared.double(v: g.latitude), "longitude": KotlinValues.shared.double(v: g.longitude)]
         default: return String(describing: value)
         }
     }
