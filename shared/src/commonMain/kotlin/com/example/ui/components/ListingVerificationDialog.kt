@@ -18,7 +18,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.ListingVerificationDocType
 import com.example.data.model.SpaceListing
-import com.example.data.storage.FirebaseStorageService
 import com.example.legal.LegalContent
 import com.example.ui.theme.Spacing
 import com.example.ui.viewmodel.ProHostViewModel
@@ -63,7 +62,7 @@ fun ListingVerificationDialog(
 ) {
     com.example.ui.components.TrackScreen("listing_verification", "Dialog")
     val coroutineScope = rememberCoroutineScope()
-    val storageService = remember { FirebaseStorageService.getInstance() }
+    val storageService = remember { com.example.data.repository.RepositoryDefaults.storage() }
 
     var chosenPath by remember { mutableStateOf<ListingVerificationDocType?>(null) }
     var showTemplateDialog by remember { mutableStateOf(false) }

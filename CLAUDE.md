@@ -360,7 +360,7 @@ plan + recurring price + date;
   country/city win; only legacy blank-country listings inside Lebanon count as Lebanon, like the app's `effectiveCountry`).
   The legal pages (terms governing law and arbitration seat, privacy) are a separate, deliberate decision: Terms Section 17 (Lebanese law, Beirut arbitration) stays as the owner wrote it.
   Legal text (8 Nov 2026): `public/privacy.html`, `public/terms.html` and `public/delete-account.html` are the single source; the app's in-app Privacy/Terms
-  (`LegalContent.kt`, between the GENERATED markers) are produced by `python3 scripts/legal/sync_legal_content.py` (CI runs `--check`), the function copy of the
+  (`shared/.../legal/LegalContent.kt`, between the GENERATED markers) are produced by `python3 scripts/legal/sync_legal_content.py` (CI runs `--check`), the function copy of the
   delete page is `functions/src/legal/deleteAccountPage.ts` (a test keeps it equal), and `EFFECTIVE_DATE` (Kotlin) must equal `CURRENT_CONSENT_VERSION`
   (`functions/src/roles/assignInitialRole.ts`). The operator's legal name/address go at the `<!--OPERATOR-->` markers. Apple/Play answers: `docs/APPLE_DECLARATIONS.md`, `docs/PLAY_DECLARATIONS.md`.
   Share cards: `scripts/website/build-og-images.js` renders 1200x630 previews in the home-hero look (`public/img/og-hero.jpg` for `/`, `/ar` and policy pages, `public/img/og/<slug>.jpg` per landing page; commit the JPGs after changing a headline). Titles stay <= 60 chars, descriptions <= 160. The sitemap carries the en/ar hreflang pair.

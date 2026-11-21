@@ -12,6 +12,12 @@ interface PlatformActions {
     /** Opens [url] in whatever app handles it (ACTION_VIEW), e.g. a wa.me WhatsApp link. [newTask] starts it in its own task (the consent dialog's privacy link). */
     fun openUrl(url: String, newTask: Boolean = false)
 
+    /**
+     * Opens [url] from the current screen's Activity only (no new-task fallback); false when there is no such screen or no app
+     * handles it, so the caller can fall back (Pro Host renewal: Play's subscription centre, else the Premium page).
+     */
+    fun openUrlFromScreen(url: String): Boolean = false
+
     /** Opens the email app on a `mailto:` URI (ACTION_SENDTO, so only email apps answer). */
     fun sendMail(mailtoUri: String)
 

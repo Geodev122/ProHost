@@ -31,15 +31,12 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `data/billing/PlayPromo.kt` | 92 | B | SubscriptionStore |  |  | ☐ | ☐ | todo |
 | `data/firestore/FirestoreService.kt` | 832 | C | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
 | `data/storage/FirebaseStorageService.kt` | 329 | C | Context removal, Firebase gateways, ImageCodec/Pdf, Logger, MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
-| `legal/LegalContent.kt` | 1163 | A1 | — |  |  | ☐ | ☐ | todo |
+| `legal/AndroidLegalPdfs.kt` | 12 | B | Context removal |  |  | ☐ | ☐ | todo |
 | `legal/LegalPdfGenerator.kt` | 124 | C | Context removal, ImageCodec/Pdf |  |  | ☐ | ☐ | todo |
-| `legal/LegalPdfs.kt` | 30 | B | Context removal, ImageCodec/Pdf |  |  | ☐ | ☐ | todo |
 | `service/ProHostMessagingService.kt` | 200 | C | Context removal, Firebase gateways, Logger, PlatformActions |  |  | ☐ | ☐ | todo |
 | `ui/components/AdminGrantAccessCard.kt` | 237 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/components/FileExportLauncher.kt` | 56 | B | Context removal, MediaPicker(PickedFile), MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
 | `ui/components/InAppUpdateBanner.kt` | 137 | A1 | — |  |  | ☐ | ☐ | todo |
-| `ui/components/LegalDocumentDialog.kt` | 237 | B | HtmlView |  |  | ☐ | ☐ | todo |
-| `ui/components/ListingVerificationDialog.kt` | 310 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/components/PromoCountdownCard.kt` | 169 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/components/dialogs/DrawerDialogsHandler.kt` | 520 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/components/dialogs/SystemDebuggerDialog.kt` | 373 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
@@ -49,7 +46,6 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/screens/AdminAnalyticsScreen.kt` | 520 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/screens/AdminConsoleScreen.kt` | 486 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/screens/LoginAuthScreen.kt` | 651 | B | BackHandler, Context removal, Firebase gateways, GoogleSignIn, MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
-| `ui/screens/OwnerHubScreen.kt` | 1051 | B | Context removal, Haptics, PlatformActions |  |  | ☐ | ☐ | todo |
 | `ui/screens/OwnerSubscriptionsScreen.kt` | 1223 | B | Context removal, Haptics |  |  | ☐ | ☐ | todo |
 | `ui/screens/SpecialistProfileScreen.kt` | 1224 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/screens/SplashScreen.kt` | 30 | A1 | — |  |  | ☐ | ☐ | todo |
@@ -67,7 +63,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/theme/Type.kt` | 20 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/util/AndroidDateLabels.kt` | 24 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/util/AndroidLocaleDates.kt` | 17 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
-| `ui/util/AndroidPlatformActions.kt` | 111 | B | Clipboard, Context removal, MediaPicker(PickedFile), PlatformActions, PlatformActions(calendar) |  |  | ☐ | ☐ | todo |
+| `ui/util/AndroidPlatformActions.kt` | 121 | B | Clipboard, Context removal, MediaPicker(PickedFile), PlatformActions, PlatformActions(calendar) |  |  | ☐ | ☐ | todo |
 | `ui/util/AndroidUiMessages.kt` | 16 | B | Context removal, Messenger |  |  | ☐ | ☐ | todo |
 | `ui/util/ContextUtils.kt` | 15 | C | Context removal |  |  | ☐ | ☐ | todo |
 | `ui/util/PaymentCalendar.kt` | 92 | B | PlatformActions(calendar) |  |  | ☐ | ☐ | todo |
@@ -91,6 +87,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/PlayIntegrityManager.kt` | 51 | C | Context removal, Logger |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 9 / 434, A2 6 / 2755, B 23 / 4015, C 18 / 4140, X 16 / 6992.
 Automatic class totals (files / lines): A1 11 / 1907, A2 6 / 2755, B 25 / 5311, C 18 / 4140, X 16 / 6992.
 Automatic class totals (files / lines): A1 12 / 2860, A2 7 / 3290, B 25 / 5327, C 18 / 4139, X 16 / 6992.
 Automatic class totals (files / lines): A1 14 / 4199, A2 8 / 3948, B 26 / 5544, C 18 / 4139, X 16 / 6992.

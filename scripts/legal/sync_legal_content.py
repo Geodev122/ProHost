@@ -13,7 +13,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-KT = ROOT / "app/src/main/java/com/example/legal/LegalContent.kt"
+KT = ROOT / "shared/src/commonMain/kotlin/com/example/legal/LegalContent.kt"
 DOCS = {"privacyPolicy": ROOT / "public/privacy.html", "termsOfUse": ROOT / "public/terms.html"}
 FIRST_SECTION = {"privacyPolicy": "Summary and What Changed", "termsOfUse": "Summary and What Changed"}
 BEGIN = "// BEGIN GENERATED from {src} (scripts/legal/sync_legal_content.py)"

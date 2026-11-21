@@ -1,7 +1,7 @@
 package com.example.legal
 
-import android.content.Context
 import com.example.util.PickedFile
+import kotlin.concurrent.Volatile
 
 /**
  * Creates the downloadable PDF of a legal document. One implementation per platform: Android draws it with `android.graphics.pdf.PdfDocument`
@@ -19,11 +19,4 @@ interface LegalPdfs {
 
         fun require(): LegalPdfs = current ?: error("LegalPdfs is not initialised (ProHostApplication.onCreate)")
     }
-}
-
-/** Android [LegalPdfs]: the existing generator, saving under the app's external-files "documents/" directory. */
-class AndroidLegalPdfs(context: Context) : LegalPdfs {
-    private val app = context.applicationContext
-
-    override fun generate(document: LegalDocument): PickedFile? = LegalPdfGenerator.generate(app, document)?.let { PickedFile(it.absolutePath) }
 }

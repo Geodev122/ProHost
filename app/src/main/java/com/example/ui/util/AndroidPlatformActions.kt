@@ -51,6 +51,16 @@ object AndroidPlatformActions : PlatformActions {
     override fun openUrl(url: String, newTask: Boolean) =
         start(Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply { if (newTask) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) })
 
+    override fun openUrlFromScreen(url: String): Boolean {
+        val current = activity?.get() ?: return false
+        return try {
+            current.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     override fun openFile(file: com.example.util.PickedFile, mimeType: String) {
         val ctx = context()
         val uri: Uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", File(file.handle))

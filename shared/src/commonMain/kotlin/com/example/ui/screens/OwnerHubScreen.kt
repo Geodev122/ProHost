@@ -6,11 +6,8 @@ import com.example.ui.util.timeRange
 import com.example.ui.util.locationLine
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.UiMessages
-import android.content.Context
-import android.content.ContextWrapper
 import com.example.util.AppSound
 import com.example.util.SoundPlayer
-import com.example.ui.util.findActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.graphics.ColorFilter
@@ -36,7 +33,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,7 +43,6 @@ import com.example.ui.theme.*
 import com.example.ui.viewmodel.ListingCreateResult
 import com.example.ui.viewmodel.ProHostViewModel
 import kotlinx.coroutines.launch
-import java.util.Locale
 import com.example.shared.resources.Res
 import com.example.shared.resources.account_suspended_this_listing_is_hidden_f
 import com.example.shared.resources.add_listing
@@ -92,7 +87,6 @@ fun OwnerHubScreen(
     onManageSpace: (SpaceListing) -> Unit = onSelectSpace,
     onOpenSubscriptions: (() -> Unit)? = null
 ) {
-    val context = LocalContext.current
     val isLoading by viewModel.isRestoringSession.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
     val spaces by viewModel.spaces.collectAsState()
@@ -176,7 +170,7 @@ fun OwnerHubScreen(
         onManageSpace = onManageSpace,
         onOpenRenewal = {
             val expiry = currentUser?.ownerPackageExpiryMillis
-            if (expiry != null && expiry > System.currentTimeMillis()) {
+            if (expiry != null && expiry > com.example.util.nowMillis()) {
                 // Active Play subscription — open Play Store subscription management
                 // Include the specific product ID so Play Store deep-links directly
                 // to this subscription rather than the generic subscriptions list.
@@ -187,15 +181,7 @@ fun OwnerHubScreen(
                     "market://subscriptions?sku=$productId&package=app.geonajjar.prohost"
                 else
                     "market://subscriptions?package=app.geonajjar.prohost"
-                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(uri))
-                val activity = context.findActivity()
-                if (activity != null) {
-                    try {
-                        activity.startActivity(intent)
-                    } catch (_: Exception) {
-                        onOpenSubscriptions?.invoke()
-                    }
-                } else {
+                if (!com.example.ui.util.PlatformActions.require().openUrlFromScreen(uri)) {
                     onOpenSubscriptions?.invoke()
                 }
             } else {
@@ -486,7 +472,7 @@ fun OwnerHubScreenContent(
                             )
                         } else {
                             val daysRemaining = ownerPackageExpiryMillis?.let {
-                                ((it - System.currentTimeMillis()) / (24L * 60 * 60 * 1000)).coerceAtLeast(0)
+                                ((it - com.example.util.nowMillis()) / (24L * 60 * 60 * 1000)).coerceAtLeast(0)
                             }
                             Text(
                                 text = if (currentPlanId == null) {
@@ -518,7 +504,7 @@ fun OwnerHubScreenContent(
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                val isActiveSubscription = ownerPackageExpiryMillis != null && ownerPackageExpiryMillis > System.currentTimeMillis()
+                                val isActiveSubscription = ownerPackageExpiryMillis != null && ownerPackageExpiryMillis > com.example.util.nowMillis()
                                 Button(
                                     onClick = if (currentPlanId == null) onOpenPackageSelection else onOpenRenewal,
                                     modifier = Modifier.weight(1f),

@@ -1,9 +1,6 @@
 package com.example.ui.components
 
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
-import android.webkit.WebView
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -16,16 +13,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.LegalDocumentVersion
 import com.example.legal.LegalDocument
 import com.example.legal.toHtml
 import com.example.ui.theme.Spacing
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.example.shared.resources.Res
+import com.example.shared.resources.close
+import com.example.shared.resources.download_pdf_a5
+import com.example.shared.resources.legal
+import com.example.shared.resources.this_document_hasn_t_been_published_yet_ch
+import com.example.ui.util.appString
 
 /**
  * Full-screen "HTML popup" for a legal document (Privacy Policy / Terms of Use /
@@ -112,7 +113,7 @@ fun LegalDocumentDialog(
                                         } else {
                                             isGeneratingPdf = true
                                             coroutineScope.launch {
-                                                val file = withContext(Dispatchers.IO) {
+                                                val file = withContext(com.example.util.ioDispatcher) {
                                                     com.example.legal.LegalPdfs.require().generate(document)
                                                 }
                                                 isGeneratingPdf = false
@@ -131,11 +132,11 @@ fun LegalDocumentDialog(
                                         Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
                                     }
                                     Spacer(modifier = Modifier.width(Spacing.sm))
-                                    Text(stringResource(R.string.download_pdf_a5), style = MaterialTheme.typography.labelMedium)
+                                    Text(appString(Res.string.download_pdf_a5), style = MaterialTheme.typography.labelMedium)
                                 }
                             }
                             IconButton(onClick = onDismiss) {
-                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
+                                Icon(Icons.Default.Close, contentDescription = appString(Res.string.close))
                             }
                         }
                     }
@@ -143,15 +144,7 @@ fun LegalDocumentDialog(
 
                 when {
                     !isAdminManaged -> {
-                        AndroidView(
-                            modifier = Modifier.fillMaxSize().padding(top = 4.dp),
-                            factory = { ctx ->
-                                WebView(ctx).apply {
-                                    settings.javaScriptEnabled = false
-                                    loadDataWithBaseURL(null, document.toHtml(), "text/html", "utf-8", null)
-                                }
-                            }
-                        )
+                        HtmlDocumentView(html = document.toHtml(), url = null, modifier = Modifier.fillMaxSize().padding(top = 4.dp))
                     }
                     !hasCheckedAdminVersion -> {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -161,7 +154,7 @@ fun LegalDocumentDialog(
                     adminVersion == null -> {
                         Box(modifier = Modifier.fillMaxSize().padding(Spacing.lg), contentAlignment = Alignment.Center) {
                             Text(
-                                stringResource(R.string.this_document_hasn_t_been_published_yet_ch),
+                                appString(Res.string.this_document_hasn_t_been_published_yet_ch),
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -169,15 +162,7 @@ fun LegalDocumentDialog(
                     }
                     else -> {
                         val version = adminVersion!!
-                        AndroidView(
-                            modifier = Modifier.fillMaxSize().padding(top = 4.dp),
-                            factory = { ctx ->
-                                WebView(ctx).apply {
-                                    settings.javaScriptEnabled = false
-                                }
-                            },
-                            update = { webView -> webView.loadUrl(version.url) }
-                        )
+                        HtmlDocumentView(html = null, url = version.url, modifier = Modifier.fillMaxSize().padding(top = 4.dp))
                     }
                 }
             }
@@ -199,7 +184,7 @@ fun LegalDocumentsMenu(onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
             Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                Text(stringResource(R.string.legal), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 8.dp))
+                Text(appString(Res.string.legal), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 8.dp))
                 com.example.legal.LegalContent.all.forEach { doc ->
                     Card(
                         onClick = { openDocument = doc },
@@ -228,7 +213,7 @@ fun LegalDocumentsMenu(onDismiss: () -> Unit) {
                     Spacer(modifier = Modifier.height(Spacing.sm))
                 }
                 TextButton(shape = MaterialTheme.shapes.medium, onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
-                    Text(stringResource(R.string.close))
+                    Text(appString(Res.string.close))
                 }
             }
         }
