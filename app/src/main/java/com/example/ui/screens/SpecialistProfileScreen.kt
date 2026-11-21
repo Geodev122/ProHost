@@ -1,6 +1,5 @@
 package com.example.ui.screens
 
-import com.example.ui.viewmodel.billing
 import com.example.util.toPickedFile
 import com.example.ui.util.timeRange
 import com.example.ui.util.localizedLabel
@@ -999,7 +998,7 @@ fun SpecialistProfileScreen(
             // pause, resubscribe), deep-linked to ProHost Premium in Google Play.
             if (user.role != UserRole.ADMIN) {
                 item {
-                    val settingsActivity = androidx.activity.compose.LocalActivity.current
+                    val settingsActivity = com.example.ui.components.rememberPurchaseHost()
                     ProSurfaceCard {
                         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             ProSectionHeader(
@@ -1011,7 +1010,7 @@ fun SpecialistProfileScreen(
                             TextButton(
                                 onClick = {
                                     settingsActivity?.let {
-                                        viewModel.billing.openManageSubscriptions(it, com.example.data.billing.PlayCatalog.PRODUCT_ID)
+                                        viewModel.platformBilling.openManageSubscriptions(it, com.example.data.billing.PlayCatalog.PRODUCT_ID)
                                     }
                                 },
                                 enabled = settingsActivity != null
@@ -1119,14 +1118,14 @@ fun SpecialistProfileScreen(
                             style = MaterialTheme.typography.bodyMedium
                         )
                         if (user.ownerPackageId != null) {
-                            val activity = androidx.activity.compose.LocalActivity.current
+                            val activity = com.example.ui.components.rememberPurchaseHost()
                             Text(
                                 appString(Res.string.cancel_your_google_play_subscription_first),
                                 color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodySmall
                             )
                             if (activity != null) {
-                                TextButton(onClick = { viewModel.billing.openManageSubscriptions(activity, user.ownerPackageId) }) {
+                                TextButton(onClick = { viewModel.platformBilling.openManageSubscriptions(activity, user.ownerPackageId) }) {
                                     Text(appString(Res.string.manage_subscription))
                                 }
                             }
