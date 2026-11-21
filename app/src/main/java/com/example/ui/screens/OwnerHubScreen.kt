@@ -39,6 +39,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -59,6 +60,7 @@ fun OwnerHubScreen(
     onManageSpace: (SpaceListing) -> Unit = onSelectSpace,
     onOpenSubscriptions: (() -> Unit)? = null
 ) {
+    val context = LocalContext.current
     val isLoading by viewModel.isRestoringSession.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
     val spaces by viewModel.spaces.collectAsState()
