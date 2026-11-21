@@ -280,8 +280,8 @@ internal fun AvailabilitySheet(
                 )
             } else if (canSubmit) {
                 val summary = if (isMonthly) monthlyLine.orEmpty() else appString(Res.string.dates_and_times_summary,
-                    androidx.compose.ui.res.appPlural(Res.plurals.n_dates, pickedDates, pickedDates),
-                    androidx.compose.ui.res.appPlural(Res.plurals.n_times, pickedSlots.size, pickedSlots.size)
+                    appPlural(Res.plurals.n_dates, pickedDates, pickedDates),
+                    appPlural(Res.plurals.n_times, pickedSlots.size, pickedSlots.size)
                 )
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text(summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))

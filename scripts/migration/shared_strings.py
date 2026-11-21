@@ -30,10 +30,10 @@ KEYWORDS = {
 
 PATTERNS = [
     # (regex, replacement builder, kind, helper import)
-    (re.compile(r"\bstringResource\(\s*R\.string\.([A-Za-z0-9_]+)"), lambda k: f"appString(Res.string.{acc(k)}", "string", "com.example.ui.util.appString"),
-    (re.compile(r"\bpluralStringResource\(\s*R\.plurals\.([A-Za-z0-9_]+)"), lambda k: f"appPlural(Res.plurals.{acc(k)}", "plurals", "com.example.ui.util.appPlural"),
-    (re.compile(r"\buiText\(\s*R\.string\.([A-Za-z0-9_]+)"), lambda k: f'sharedText("{k}"', None, "com.example.ui.util.sharedText"),
-    (re.compile(r"\buiPlural\(\s*R\.plurals\.([A-Za-z0-9_]+)"), lambda k: f'sharedPlural("{k}"', None, "com.example.ui.util.sharedPlural"),
+    (re.compile(r"(?:\bandroidx\.compose\.ui\.res\.|(?<![\w.]))stringResource\(\s*R\.string\.([A-Za-z0-9_]+)"), lambda k: f"appString(Res.string.{acc(k)}", "string", "com.example.ui.util.appString"),
+    (re.compile(r"(?:\bandroidx\.compose\.ui\.res\.|(?<![\w.]))pluralStringResource\(\s*R\.plurals\.([A-Za-z0-9_]+)"), lambda k: f"appPlural(Res.plurals.{acc(k)}", "plurals", "com.example.ui.util.appPlural"),
+    (re.compile(r"(?:\bcom\.example\.ui\.util\.|(?<![\w.]))uiText\(\s*R\.string\.([A-Za-z0-9_]+)"), lambda k: f'sharedText("{k}"', None, "com.example.ui.util.sharedText"),
+    (re.compile(r"(?:\bcom\.example\.ui\.util\.|(?<![\w.]))uiPlural\(\s*R\.plurals\.([A-Za-z0-9_]+)"), lambda k: f'sharedPlural("{k}"', None, "com.example.ui.util.sharedPlural"),
 ]
 LEFT = re.compile(r"\bR\.(string|plurals|drawable|raw|font)\.([A-Za-z0-9_]+)")
 
@@ -167,6 +167,9 @@ def self_test():
     assert "import com.example.ui.util.uiText" not in out
     assert "import com.example.R\n" in out  # R.drawable still used
     assert leftovers(out) == ["R.drawable.logo"]
+    out3, _ = rewrite("package p\nval x = androidx.compose.ui.res.pluralStringResource(R.plurals.item_count, 1, 1)\nval y = com.example.ui.util.uiText(R.string.save)\n", keys)
+    assert "val x = appPlural(Res.plurals.item_count, 1, 1)" in out3, out3
+    assert 'val y = sharedText("save")' in out3, out3
     out2, missing2 = rewrite("package p\nfun f() = uiText(R.string.nope)\n", keys)
     assert missing2 == ["nope"] and "uiText(R.string.nope)" in out2
     print("self-test ok")
