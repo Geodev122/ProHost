@@ -470,7 +470,7 @@ private fun BottomNavPillItem(
         if (selected) {
             Text(
                 tab.shortLabel,
-                style = MaterialTheme.typography.labelLarge.copy(fontFamily = com.example.ui.theme.ManropeDisplay),
+                style = MaterialTheme.typography.labelLarge.copy(fontFamily = MaterialTheme.typography.titleLarge.fontFamily) /* Manrope, the theme's display font */,
                 fontWeight = FontWeight.ExtraBold,
                 color = content,
                 maxLines = 1,
@@ -734,18 +734,3 @@ fun ProHostSnackbarHost(modifier: Modifier = Modifier) {
     }
 }
 
-/**
- * True when the person turned animations off (Settings › Accessibility › Remove animations, or developer animator
- * scale 0). Transitions should then snap.
- */
-@Composable
-fun rememberReducedMotion(): Boolean {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    return remember(context) {
-        runCatching {
-            android.provider.Settings.Global.getFloat(
-                context.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f
-            ) == 0f
-        }.getOrDefault(false)
-    }
-}

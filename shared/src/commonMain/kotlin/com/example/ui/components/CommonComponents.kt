@@ -5,7 +5,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.heading
 import com.example.ui.theme.Radius
 import com.example.ui.theme.Elevation
-import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
@@ -50,9 +49,6 @@ import com.example.data.model.UserRole
 import com.example.ui.theme.*
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
-import androidx.compose.ui.platform.LocalContext
-import java.text.NumberFormat
-import java.util.Locale
 import com.example.shared.resources.Res
 import com.example.shared.resources.back
 import com.example.shared.resources.next_photo
@@ -428,7 +424,7 @@ fun ProAvatar(
     Box(modifier = modifier.size(size)) {
         if (!imageUrl.isNullOrBlank() && !photoFailed) {
             AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current).data(imageUrl).size(256).build(),
+                model = ImageRequest.Builder(coil3.compose.LocalPlatformContext.current).data(imageUrl).size(256).build(),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize().clip(CircleShape),
                 contentScale = ContentScale.Crop,
@@ -1050,7 +1046,7 @@ fun WorkspaceCard(
         ) {
             if (imageUrl != null) {
                 AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current).data(imageUrl).size(800).build(),
+                    model = ImageRequest.Builder(coil3.compose.LocalPlatformContext.current).data(imageUrl).size(800).build(),
                     contentDescription = title,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = androidx.compose.ui.layout.ContentScale.Crop
@@ -1332,7 +1328,7 @@ fun ProCard(
 @Composable
 fun ProHostBrandLogo(
     size: Dp = 38.dp,
-    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
+    @Suppress("ModifierParameter") modifier: Modifier = Modifier
 ) {
     Image(
         painter = appPainter(AppImage.BRAND_LOGO),
@@ -1349,7 +1345,7 @@ fun ProHostBrandLogo(
 fun ProHostCedarBadge(
     text: String = "Lebanon Verified",
     isCompact: Boolean = false,
-    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
+    @Suppress("ModifierParameter") modifier: Modifier = Modifier
 ) {
     Surface(
         color = MaterialTheme.proColors.successContainer,

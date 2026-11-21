@@ -20,7 +20,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -49,13 +48,13 @@ fun CountryPickerDialog(
     onDismiss: () -> Unit
 ) {
     var query by remember { mutableStateOf("") }
-    val locale = LocalConfiguration.current.locales[0]
-    val filtered = remember(query, locale) {
+    val countryName = rememberCountryDisplayName()
+    val filtered = remember(query, countryName) {
         if (query.isBlank()) {
             COUNTRIES
         } else {
             COUNTRIES.filter {
-                it.name.contains(query, ignoreCase = true) || it.displayName(locale).contains(query, ignoreCase = true) ||
+                it.name.contains(query, ignoreCase = true) || countryName(it).contains(query, ignoreCase = true) ||
                     it.dialCode.contains(query)
             }
         }
@@ -88,7 +87,7 @@ fun CountryPickerDialog(
                             Text(country.flagEmoji, style = MaterialTheme.typography.bodyLarge)
                             Spacer(modifier = Modifier.width(Spacing.md))
                             Text(
-                                country.displayName(locale),
+                                countryName(country),
                                 modifier = Modifier.weight(1f),
                                 fontWeight = if (country == selected) FontWeight.Bold else FontWeight.Normal
                             )
@@ -170,7 +169,7 @@ fun CountryDropdownField(
     label: String = appString(Res.string.country)
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val locale = LocalConfiguration.current.locales[0]
+    val countryName = rememberCountryDisplayName()
     Box(modifier = modifier) {
         OutlinedCard(
             onClick = { expanded = true },
@@ -187,7 +186,7 @@ fun CountryDropdownField(
                     Column {
                         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
-                            text = "${selectedCountry.flagEmoji} ${selectedCountry.displayName(locale)}",
+                            text = "${selectedCountry.flagEmoji} ${countryName(selectedCountry)}",
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -203,7 +202,7 @@ fun CountryDropdownField(
         ) {
             COUNTRIES.forEach { country ->
                 DropdownMenuItem(
-                    text = { Text("${country.flagEmoji} ${country.displayName(locale)}") },
+                    text = { Text("${country.flagEmoji} ${countryName(country)}") },
                     onClick = {
                         onCountrySelected(country)
                         expanded = false
@@ -214,10 +213,3 @@ fun CountryDropdownField(
     }
 }
 
-/**
- * The country's name in the app language (Arabic users read "لبنان"); English keeps the list's own names. Display only:
- * the profile and listings store [Country.name].
- */
-fun Country.displayName(locale: java.util.Locale): String =
-    if (locale.language == "en") name
-    else java.util.Locale("", isoCode).getDisplayCountry(locale).ifBlank { name }
