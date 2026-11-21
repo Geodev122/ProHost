@@ -326,6 +326,10 @@ if want("betareview"):
 if want("tester"):
     email = os.environ.get("TESTER_EMAIL", "").strip().lower()
     first, last = os.environ.get("REVIEW_FIRST_NAME", "").strip(), os.environ.get("REVIEW_LAST_NAME", "").strip()
+    # A tester other than the review contact: the workflow's review_name input ("First Last") names them.
+    named = os.environ.get("REVIEW_NAME_INPUT", "").strip().split(None, 1)
+    if named:
+        first, last = named[0], (named[1] if len(named) > 1 else "")
     if not email:
         print("SKIP    tester invitation (needs TESTER_EMAIL)")
     else:
