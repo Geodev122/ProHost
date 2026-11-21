@@ -1,9 +1,6 @@
 package com.example.ui.screens
 
 import com.example.ui.util.localizedLabel
-import com.example.ui.util.uiText
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -49,6 +46,19 @@ import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.viewmodel.ProHostViewModel
 import com.example.util.ShareLinks
 import kotlinx.coroutines.launch
+import com.example.shared.resources.Res
+import com.example.shared.resources.availability
+import com.example.shared.resources.check_availability
+import com.example.shared.resources.currently_occupied
+import com.example.shared.resources.custom_hours_2
+import com.example.shared.resources.open_availability
+import com.example.shared.resources.preview_mode
+import com.example.shared.resources.up_to_x
+import com.example.shared.resources.usdx
+import com.example.shared.resources.x_more
+import com.example.shared.resources.x_more_2
+import com.example.ui.util.appString
+import com.example.ui.util.sharedText
 
 data class SubdivisionRentalCardInfo(
     val name: String,
@@ -191,7 +201,7 @@ internal fun SubdivisionRentalCard(
 
                     // Pricing
                     Text(
-                        priceSummary + if (isPerAttendee) uiText(R.string.person_2) else "",
+                        priceSummary + if (isPerAttendee) sharedText("person_2") else "",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.secondary
@@ -212,7 +222,7 @@ internal fun SubdivisionRentalCard(
                                     ) {
                                         Icon(Icons.Default.Groups, contentDescription = null, modifier = Modifier.size(12.dp))
                                         Spacer(modifier = Modifier.width(Spacing.xs))
-                                        Text(stringResource(R.string.up_to_x, capacity), style = MaterialTheme.typography.labelSmall)
+                                        Text(appString(Res.string.up_to_x, capacity), style = MaterialTheme.typography.labelSmall)
                                     }
                                 }
                             }
@@ -222,7 +232,7 @@ internal fun SubdivisionRentalCard(
                                     shape = MaterialTheme.shapes.extraSmall
                                 ) {
                                     Text(
-                                        stringResource(R.string.custom_hours_2),
+                                        appString(Res.string.custom_hours_2),
                                         style = MaterialTheme.typography.labelSmall,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
@@ -258,7 +268,7 @@ internal fun SubdivisionRentalCard(
                                         shape = MaterialTheme.shapes.extraSmall
                                     ) {
                                         Text(
-                                            stringResource(R.string.x_more, overflow),
+                                            appString(Res.string.x_more, overflow),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -294,7 +304,7 @@ internal fun SubdivisionRentalCard(
                                         shape = MaterialTheme.shapes.extraSmall
                                     ) {
                                         Text(
-                                            stringResource(R.string.x_more_2, overflow),
+                                            appString(Res.string.x_more_2, overflow),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.proColors.onInfoContainer,
                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -318,7 +328,7 @@ internal fun SubdivisionRentalCard(
                         ) {
                             Icon(Icons.Default.EventAvailable, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(Spacing.sm))
-                            Text(stringResource(R.string.check_availability), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            Text(appString(Res.string.check_availability), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -339,7 +349,7 @@ internal fun SubdivisionRentalCard(
                     ) {
                         Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
                         Text(
-                            stringResource(R.string.currently_occupied),
+                            appString(Res.string.currently_occupied),
                             color = Color.White,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold
@@ -502,7 +512,7 @@ internal fun DetailsBookingBar(
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
-                                roomName ?: uiText(R.string.whole_space_2),
+                                roomName ?: sharedText("whole_space_2"),
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -512,9 +522,9 @@ internal fun DetailsBookingBar(
                         }
                     }
                     val (dot, label) = when {
-                        !hasSchedule -> MaterialTheme.colorScheme.outline to uiText(R.string.no_schedule_yet)
+                        !hasSchedule -> MaterialTheme.colorScheme.outline to sharedText("no_schedule_yet")
                         openSlotCount > 0 -> pro.success to "$openSlotCount slot${if (openSlotCount == 1) "" else "s"} open"
-                        else -> MaterialTheme.colorScheme.error to uiText(R.string.fully_booked_2)
+                        else -> MaterialTheme.colorScheme.error to sharedText("fully_booked_2")
                     }
                     Row(
                         modifier = Modifier.weight(1f),
@@ -531,7 +541,7 @@ internal fun DetailsBookingBar(
                         if (hasSchedule) {
                             Icon(
                                 Icons.Default.KeyboardArrowUp,
-                                contentDescription = stringResource(R.string.open_availability),
+                                contentDescription = appString(Res.string.open_availability),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -555,7 +565,7 @@ internal fun DetailsBookingBar(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            stringResource(R.string.usdx, priceUnit),
+                            appString(Res.string.usdx, priceUnit),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 3.dp)
@@ -572,7 +582,7 @@ internal fun DetailsBookingBar(
                 if (isPreview) {
                     Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer) {
                         Text(
-                            stringResource(R.string.preview_mode),
+                            appString(Res.string.preview_mode),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -590,7 +600,7 @@ internal fun DetailsBookingBar(
                         ) {
                             Icon(Icons.Default.EventAvailable, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(Spacing.sm))
-                            Text(stringResource(R.string.availability), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                            Text(appString(Res.string.availability), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

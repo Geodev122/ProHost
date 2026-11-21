@@ -2,9 +2,6 @@ package com.example.ui.screens
 
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.timeRange
-import com.example.ui.util.uiText
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -28,6 +25,32 @@ import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ProHostViewModel
+import com.example.shared.resources.Res
+import com.example.shared.resources.active_tenancies_empty_description
+import com.example.shared.resources.active_tenancies_x
+import com.example.shared.resources.agreement_x_usd
+import com.example.shared.resources.alerts
+import com.example.shared.resources.can_t_reach_server
+import com.example.shared.resources.cancel_booking
+import com.example.shared.resources.change_price
+import com.example.shared.resources.check_your_connection_cached_data_may_be_s
+import com.example.shared.resources.contract_timeline_elapsed_days_and_practit
+import com.example.shared.resources.duration_x_months_xd_elapsed
+import com.example.shared.resources.mark_as_paid
+import com.example.shared.resources.no_active_tenancies_yet
+import com.example.shared.resources.not_marked_paid_yet
+import com.example.shared.resources.rate_x_usdx
+import com.example.shared.resources.real_time_alerts_for_contracts_schedules_d
+import com.example.shared.resources.remind_dues
+import com.example.shared.resources.shift_x_x
+import com.example.shared.resources.space_x
+import com.example.shared.resources.view_requests
+import com.example.shared.resources.whatsapp
+import com.example.shared.resources.x_active_leases
+import com.example.shared.resources.x_elapsed
+import com.example.shared.resources.you_marked_this_paid_2
+import com.example.ui.util.appString
+import com.example.ui.util.sharedText
 
 @Composable
 fun OwnerRentingProgressScreen(
@@ -134,21 +157,20 @@ fun OwnerRentingProgressScreenContent(
         val daysLeft = ownerPackageExpiryMillis?.let {
             ((it - System.currentTimeMillis() + 86399999L) / (24 * 60 * 60 * 1000)).coerceAtLeast(1)
         }
-        val daysLabel = if (daysLeft == 1L) uiText(R.string.t_1_day) else "$daysLeft days"
+        val daysLabel = if (daysLeft == 1L) sharedText("t_1_day") else "$daysLeft days"
         val planName = localizedLabel(com.example.data.billing.PlayCatalog.planLabel(currentPlanId))
         if (currentPlanId != null && daysLeft != null &&
             !com.example.data.billing.PlayCatalog.isLifetimeExpiry(ownerPackageExpiryMillis)) {
             if (daysLeft <= 7) {
-                list.add(Pair(true, uiText(R.string.x_renews_in_x_google_play_renews_it_automa, planName, daysLabel)))
+                list.add(Pair(true, sharedText("x_renews_in_x_google_play_renews_it_automa", planName, daysLabel)))
             } else {
-                list.add(Pair(false, uiText(R.string.x_is_active_renews_in_x, planName, daysLabel)))
+                list.add(Pair(false, sharedText("x_is_active_renews_in_x", planName, daysLabel)))
             }
         }
 
         // 2. Outside payment reminders — only for bookings not yet acknowledged as paid
         activeBookings.filter { !it.paymentAcknowledgedByHost }.forEach { booking ->
-            list.add(Pair(true, uiText(
-                R.string.outside_rent_due_x_slot_x_amount_x, booking.practitionerName,
+            list.add(Pair(true, sharedText("outside_rent_due_x_slot_x_amount_x", booking.practitionerName,
                 booking.selectedDateTimeRange.ifBlank { booking.formula.scheduleDescription }, booking.totalAmountUsd.toInt()
             )))
         }
@@ -156,12 +178,12 @@ fun OwnerRentingProgressScreenContent(
         // 3. Scheduling checklist reminder
         activeBookings.forEach { booking ->
             val daysOfWeek = booking.selectedDays.ifEmpty { booking.formula.daysOfWeek }
-            list.add(Pair(false, uiText(R.string.practice_schedule_x_has_an_upcoming_shift, booking.practitionerName, daysOfWeek.joinToString()) +
-                uiText(R.string.at_x, booking.spaceTitle)))
+            list.add(Pair(false, sharedText("practice_schedule_x_has_an_upcoming_shift", booking.practitionerName, daysOfWeek.joinToString()) +
+                sharedText("at_x", booking.spaceTitle)))
         }
 
         if (list.isEmpty()) {
-            list.add(Pair(false, uiText(R.string.all_clear_no_pending_payments_or_active_co)))
+            list.add(Pair(false, sharedText("all_clear_no_pending_payments_or_active_co")))
         }
         list
     }
@@ -202,7 +224,7 @@ fun OwnerRentingProgressScreenContent(
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
-                                text = stringResource(R.string.x_active_leases, activeBookings.size),
+                                text = appString(Res.string.x_active_leases, activeBookings.size),
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -210,7 +232,7 @@ fun OwnerRentingProgressScreenContent(
                         }
 
                         CustomButton(
-                            text = stringResource(R.string.view_requests),
+                            text = appString(Res.string.view_requests),
                             onClick = onOpenRequests,
                             variant = CustomButtonVariant.PRIMARY,
                             icon = Icons.Default.Inbox,
@@ -228,8 +250,8 @@ fun OwnerRentingProgressScreenContent(
                     verticalArrangement = Arrangement.spacedBy(Spacing.md)
                 ) {
                     ProSectionHeader(
-                        title = stringResource(R.string.alerts),
-                        subtitle = stringResource(R.string.real_time_alerts_for_contracts_schedules_d),
+                        title = appString(Res.string.alerts),
+                        subtitle = appString(Res.string.real_time_alerts_for_contracts_schedules_d),
                         icon = Icons.Default.NotificationsActive
                     )
 
@@ -269,8 +291,8 @@ fun OwnerRentingProgressScreenContent(
         // Active Tenancies Section Header
         item {
             ProSectionHeader(
-                title = stringResource(R.string.active_tenancies_x, activeBookings.size),
-                subtitle = stringResource(R.string.contract_timeline_elapsed_days_and_practit),
+                title = appString(Res.string.active_tenancies_x, activeBookings.size),
+                subtitle = appString(Res.string.contract_timeline_elapsed_days_and_practit),
                 icon = Icons.Default.Schedule
             )
         }
@@ -304,12 +326,12 @@ fun OwnerRentingProgressScreenContent(
                             modifier = Modifier.size(40.dp)
                         )
                         Text(
-                            stringResource(R.string.can_t_reach_server),
+                            appString(Res.string.can_t_reach_server),
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            stringResource(R.string.check_your_connection_cached_data_may_be_s),
+                            appString(Res.string.check_your_connection_cached_data_may_be_s),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -320,8 +342,8 @@ fun OwnerRentingProgressScreenContent(
         } else if (activeBookings.isEmpty()) {
             item {
                 ProEmptyState(
-                    title = stringResource(R.string.no_active_tenancies_yet),
-                    description = stringResource(R.string.active_tenancies_empty_description),
+                    title = appString(Res.string.no_active_tenancies_yet),
+                    description = appString(Res.string.active_tenancies_empty_description),
                     icon = Icons.AutoMirrored.Filled.ReceiptLong
                 )
             }
@@ -361,12 +383,12 @@ fun OwnerRentingProgressScreenContent(
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
-                                    text = stringResource(R.string.space_x, booking.spaceTitle),
+                                    text = appString(Res.string.space_x, booking.spaceTitle),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            ProStatusBadge(type = ProBadgeType.CUSTOM_SUCCESS, customText = uiText(R.string.x_days_left, remainingDays))
+                            ProStatusBadge(type = ProBadgeType.CUSTOM_SUCCESS, customText = sharedText("x_days_left", remainingDays))
                         }
 
                         // Shift details badge
@@ -389,15 +411,15 @@ fun OwnerRentingProgressScreenContent(
 
                                 Text(
                                     text = booking.selectedDateTimeRange.takeIf { booking.dateModel == 2 && it.isNotBlank() }
-                                        ?.let { "\u2066$it\u2069" } ?: stringResource(R.string.shift_x_x, chosenDaysStr, chosenHoursStr),
+                                        ?.let { "\u2066$it\u2069" } ?: appString(Res.string.shift_x_x, chosenDaysStr, chosenHoursStr),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = (com.example.ui.util.AttendeePricing.bookingSummary(booking)
-                                        ?: stringResource(R.string.rate_x_usdx, booking.formula.rateUsd.toInt(), com.example.ui.util.SpaceCalculationUtils.rateUnitLabel(booking.formula.type))) +
-                                        stringResource(R.string.agreement_x_usd, formatUsd(booking.totalAmountUsd)),
+                                        ?: appString(Res.string.rate_x_usdx, booking.formula.rateUsd.toInt(), com.example.ui.util.SpaceCalculationUtils.rateUnitLabel(booking.formula.type))) +
+                                        appString(Res.string.agreement_x_usd, formatUsd(booking.totalAmountUsd)),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -412,17 +434,17 @@ fun OwnerRentingProgressScreenContent(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = if (booking.paymentAcknowledgedByHost) stringResource(R.string.you_marked_this_paid_2) else stringResource(R.string.not_marked_paid_yet),
+                                text = if (booking.paymentAcknowledgedByHost) appString(Res.string.you_marked_this_paid_2) else appString(Res.string.not_marked_paid_yet),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (booking.paymentAcknowledgedByHost) MaterialTheme.proColors.success else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 TextButton(onClick = { onChangePrice(booking) }) {
-                                    Text(stringResource(R.string.change_price), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                    Text(appString(Res.string.change_price), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                 }
                                 if (!booking.paymentAcknowledgedByHost) {
                                     TextButton(onClick = { onMarkPaid(booking) }) {
-                                        Text(stringResource(R.string.mark_as_paid), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                        Text(appString(Res.string.mark_as_paid), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -446,7 +468,7 @@ fun OwnerRentingProgressScreenContent(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = stringResource(R.string.duration_x_months_xd_elapsed, booking.durationMonths, elapsedDays),
+                                    text = appString(Res.string.duration_x_months_xd_elapsed, booking.durationMonths, elapsedDays),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier
@@ -454,7 +476,7 @@ fun OwnerRentingProgressScreenContent(
                                         .padding(end = 6.dp)
                                 )
                                 Text(
-                                    text = stringResource(R.string.x_elapsed, (progressFraction * 100).toInt()),
+                                    text = appString(Res.string.x_elapsed, (progressFraction * 100).toInt()),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary,
@@ -470,7 +492,7 @@ fun OwnerRentingProgressScreenContent(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             CustomButton(
-                                text = stringResource(R.string.whatsapp),
+                                text = appString(Res.string.whatsapp),
                                 onClick = { onWhatsAppPractitioner(booking) },
                                 variant = CustomButtonVariant.WHATSAPP,
                                 icon = Icons.AutoMirrored.Filled.Chat,
@@ -479,7 +501,7 @@ fun OwnerRentingProgressScreenContent(
                             )
 
                             CustomButton(
-                                text = stringResource(R.string.remind_dues),
+                                text = appString(Res.string.remind_dues),
                                 onClick = { onSendPaymentReminder(booking) },
                                 variant = CustomButtonVariant.SECONDARY,
                                 icon = Icons.Default.NotificationsActive,
@@ -497,7 +519,7 @@ fun OwnerRentingProgressScreenContent(
                             ) {
                                 Icon(
                                     Icons.Default.EventBusy,
-                                    contentDescription = stringResource(R.string.cancel_booking),
+                                    contentDescription = appString(Res.string.cancel_booking),
                                     tint = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.size(18.dp)
                                 )

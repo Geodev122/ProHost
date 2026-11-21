@@ -2,7 +2,6 @@ package com.example.ui.screens
 
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.locationLine
-import com.example.ui.util.uiText
 import com.example.R
 import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
@@ -51,6 +50,30 @@ import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.viewmodel.ProHostViewModel
 import com.example.util.ShareLinks
 import kotlinx.coroutines.launch
+import com.example.shared.resources.Res
+import com.example.shared.resources.attendee_details
+import com.example.shared.resources.attendees
+import com.example.shared.resources.cancel
+import com.example.shared.resources.check_availability
+import com.example.shared.resources.confirm_your_request
+import com.example.shared.resources.dates_and_times_summary
+import com.example.shared.resources.estimated_total
+import com.example.shared.resources.n_dates
+import com.example.shared.resources.n_times
+import com.example.shared.resources.no_slots_configured_for_this_space
+import com.example.shared.resources.period_x_to_x
+import com.example.shared.resources.pick_dates_then_times
+import com.example.shared.resources.pick_start_date_and_length
+import com.example.shared.resources.price
+import com.example.shared.resources.send
+import com.example.shared.resources.viewing_as_host_only_professionals_can_req
+import com.example.shared.resources.whatsapp
+import com.example.shared.resources.x_more_slots
+import com.example.shared.resources.x_people
+import com.example.shared.resources.x_person
+import com.example.ui.util.appPlural
+import com.example.ui.util.appString
+import com.example.ui.util.sharedText
 
 /**
  * The "Check Availability" sheet of a listing, booking on real dates (owner decision 14 Nov 2026): room folder tabs, the
@@ -142,8 +165,7 @@ internal fun AvailabilitySheet(
     }
     val monthlyTerm = monthlyStart?.let { com.example.ui.util.DateSlots.monthlyTerm(it, monthlyMonths) }
     val monthlyLine = monthlyTerm?.let {
-        stringResource(
-            R.string.period_x_to_x,
+        appString(Res.string.period_x_to_x,
             com.example.ui.components.datedLongLabel(it.first, locale),
             com.example.ui.components.datedLongLabel(com.example.ui.util.IsoDate.addDays(it.second, -1) ?: it.second, locale)
         )
@@ -167,8 +189,8 @@ internal fun AvailabilitySheet(
         // Pinned title; the rest scrolls. The standard sheet handle moves it half ↔ full.
         header = {
             ProSectionHeader(
-                title = stringResource(R.string.check_availability),
-                subtitle = if (isMonthly) stringResource(R.string.pick_start_date_and_length) else stringResource(R.string.pick_dates_then_times),
+                title = appString(Res.string.check_availability),
+                subtitle = if (isMonthly) appString(Res.string.pick_start_date_and_length) else appString(Res.string.pick_dates_then_times),
                 icon = Icons.Default.EventAvailable,
                 modifier = Modifier.padding(horizontal = Spacing.lg).padding(bottom = Spacing.sm)
             )
@@ -202,7 +224,7 @@ internal fun AvailabilitySheet(
                         verticalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
                         Text(
-                            stringResource(R.string.attendee_details),
+                            appString(Res.string.attendee_details),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -221,7 +243,7 @@ internal fun AvailabilitySheet(
 
             if (isMonthly) {
                 if (monthlyRate <= 0.0) {
-                    Text(stringResource(R.string.no_slots_configured_for_this_space), style = MaterialTheme.typography.bodyMedium,
+                    Text(appString(Res.string.no_slots_configured_for_this_space), style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
                     com.example.ui.components.MonthlyPeriodPicker(
@@ -234,7 +256,7 @@ internal fun AvailabilitySheet(
                     )
                 }
             } else if (!pricing.hasRealPrice()) {
-                Text(stringResource(R.string.no_slots_configured_for_this_space), style = MaterialTheme.typography.bodyMedium,
+                Text(appString(Res.string.no_slots_configured_for_this_space), style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
                 com.example.ui.components.DateSlotPicker(
@@ -252,15 +274,14 @@ internal fun AvailabilitySheet(
             // ── Action bar ───────────────────────────────────────────────
             if (!isSpecialistViewer) {
                 Text(
-                    stringResource(R.string.viewing_as_host_only_professionals_can_req),
+                    appString(Res.string.viewing_as_host_only_professionals_can_req),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else if (canSubmit) {
-                val summary = if (isMonthly) monthlyLine.orEmpty() else stringResource(
-                    R.string.dates_and_times_summary,
-                    androidx.compose.ui.res.pluralStringResource(R.plurals.n_dates, pickedDates, pickedDates),
-                    androidx.compose.ui.res.pluralStringResource(R.plurals.n_times, pickedSlots.size, pickedSlots.size)
+                val summary = if (isMonthly) monthlyLine.orEmpty() else appString(Res.string.dates_and_times_summary,
+                    androidx.compose.ui.res.appPlural(Res.plurals.n_dates, pickedDates, pickedDates),
+                    androidx.compose.ui.res.appPlural(Res.plurals.n_times, pickedSlots.size, pickedSlots.size)
                 )
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text(summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
@@ -285,18 +306,18 @@ internal fun AvailabilitySheet(
                                 .mapIndexed { i, line -> "  ${i + 1}. $line" }.joinToString("\n")
                             val attendeeBlock = sheetAttendeeQuote?.let { q ->
                                 "\n\n👥 ${com.example.ui.util.AttendeePricing.describe(q)}" +
-                                    uiText(R.string.total_for_the_booking_x_usd, com.example.ui.util.AttendeePricing.formatUsd(q.totalUsd))
+                                    sharedText("total_for_the_booking_x_usd", com.example.ui.util.AttendeePricing.formatUsd(q.totalUsd))
                             } ?: ""
-                            val message = uiText(R.string.hello_i_m_interested_in_booking_x, liveSpace.title) +
+                            val message = sharedText("hello_i_m_interested_in_booking_x", liveSpace.title) +
                                 " ${liveSpace.locationLine()}" +
-                                uiText(R.string.selected_slots_x_xx, if (isMonthly) 1 else selectionLines.size, lines, attendeeBlock) +
-                                uiText(R.string.are_these_slots_still_available)
+                                sharedText("selected_slots_x_xx", if (isMonthly) 1 else selectionLines.size, lines, attendeeBlock) +
+                                sharedText("are_these_slots_still_available")
                             try {
                                 val whatsappUrl = "https://wa.me/${viewModel.formatWhatsAppNumber(liveSpace.ownerPhone)}" +
                                     "?text=${java.net.URLEncoder.encode(message, "UTF-8")}"
                                 com.example.ui.util.PlatformActions.require().openUrl(whatsappUrl)
                             } catch (e: Exception) {
-                                UiMessages.show(uiText(R.string.whatsapp_not_installed))
+                                UiMessages.show(sharedText("whatsapp_not_installed"))
                             }
                         },
                         modifier = Modifier.weight(1f),
@@ -305,7 +326,7 @@ internal fun AvailabilitySheet(
                     ) {
                         Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(Spacing.sm))
-                        Text(stringResource(R.string.whatsapp), fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(appString(Res.string.whatsapp), fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             }
@@ -321,7 +342,7 @@ internal fun AvailabilitySheet(
         ProHostDialog(
             onDismissRequest = { if (!isSendingSlotRequest) showSendConfirm = false },
             icon = { Icon(Icons.Default.EventAvailable, contentDescription = null) },
-            title = { Text(stringResource(R.string.confirm_your_request)) },
+            title = { Text(appString(Res.string.confirm_your_request)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     // Space / location / room summary
@@ -342,20 +363,20 @@ internal fun AvailabilitySheet(
                         Text("• $line", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
                     }
                     if (dialogLines.size > 6) {
-                        Text(stringResource(R.string.x_more_slots, dialogLines.size - 6), style = MaterialTheme.typography.labelSmall,
+                        Text(appString(Res.string.x_more_slots, dialogLines.size - 6), style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     // Attendee block
                     if (dialogQuote != null) {
                         HorizontalDivider()
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(stringResource(R.string.attendees), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(stringResource(R.string.x_people, dialogQuote.attendees), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                            Text(appString(Res.string.attendees), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(appString(Res.string.x_people, dialogQuote.attendees), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(stringResource(R.string.price), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(appString(Res.string.price), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(
-                                stringResource(R.string.x_person, com.example.ui.util.AttendeePricing.formatUsd(dialogQuote.tier.pricePerAttendeeUsd)) +
+                                appString(Res.string.x_person, com.example.ui.util.AttendeePricing.formatUsd(dialogQuote.tier.pricePerAttendeeUsd)) +
                                     dialogQuote.tier.name.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty(),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold
@@ -364,7 +385,7 @@ internal fun AvailabilitySheet(
                     }
                     HorizontalDivider()
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(stringResource(R.string.estimated_total), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(appString(Res.string.estimated_total), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("$${String.format(java.util.Locale.US, "%.2f", totalUsd)} USD",
                             style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
@@ -379,12 +400,12 @@ internal fun AvailabilitySheet(
                     if (isSendingSlotRequest) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                     } else {
-                        Text(stringResource(R.string.send))
+                        Text(appString(Res.string.send))
                     }
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showSendConfirm = false }, enabled = !isSendingSlotRequest) { Text(stringResource(R.string.cancel)) }
+                TextButton(onClick = { showSendConfirm = false }, enabled = !isSendingSlotRequest) { Text(appString(Res.string.cancel)) }
             }
         )
     }

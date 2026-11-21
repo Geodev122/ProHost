@@ -1,11 +1,7 @@
 package com.example.ui.screens
 
-import androidx.compose.ui.res.pluralStringResource
 import com.example.ui.util.locationLine
 import com.example.ui.util.localizedLabel
-import com.example.ui.util.uiText
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -53,6 +49,41 @@ import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.viewmodel.ProHostViewModel
 import com.example.util.ShareLinks
 import kotlinx.coroutines.launch
+import com.example.shared.resources.Res
+import com.example.shared.resources.access_here_is_unaffected
+import com.example.shared.resources.ask_the_host_on_whatsapp
+import com.example.shared.resources.awaiting_owner_acceptance_space_hours_rema
+import com.example.shared.resources.back
+import com.example.shared.resources.co_working_synergy
+import com.example.shared.resources.confirmed_space_hours_locked_x_x_x
+import com.example.shared.resources.copy_link
+import com.example.shared.resources.description
+import com.example.shared.resources.facilities_utilities
+import com.example.shared.resources.formula_x_start_x_x_mo
+import com.example.shared.resources.message_host_on_whatsapp
+import com.example.shared.resources.more_options_menu
+import com.example.shared.resources.price_from_prefix
+import com.example.shared.resources.private_studio_office
+import com.example.shared.resources.remove_from_saved
+import com.example.shared.resources.rental_options
+import com.example.shared.resources.request_sent
+import com.example.shared.resources.residents
+import com.example.shared.resources.save
+import com.example.shared.resources.share
+import com.example.shared.resources.share_listing
+import com.example.shared.resources.shared_co_working_space
+import com.example.shared.resources.spaces_pick_tab
+import com.example.shared.resources.tap_the_card_to_check_live_availability
+import com.example.shared.resources.target_complementary_disciplines
+import com.example.shared.resources.the_host_has_been_notified_you_ll_get_a_pu
+import com.example.shared.resources.this_host_is_on_verification_process_their
+import com.example.shared.resources.up_to_x
+import com.example.shared.resources.view_request
+import com.example.shared.resources.x_amenities_included
+import com.example.shared.resources.your_in_app_rental_request_x
+import com.example.ui.util.appPlural
+import com.example.ui.util.appString
+import com.example.ui.util.sharedText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -330,13 +361,13 @@ fun SpaceDetailsScreenContent(
                     hasSchedule = availableSlots.any { stripSub == null || it.sourceFormulaId == stripSub.id },
                     openSlotCount = openSlotCount,
                     priceUsd = stripPerPerson ?: selectedFormula?.rateUsd ?: fallbackPrice,
-                    pricePrefix = if (stripAttendeeSub != null) stringResource(R.string.price_from_prefix) else "",
+                    pricePrefix = if (stripAttendeeSub != null) appString(Res.string.price_from_prefix) else "",
                     priceUnit = if (stripAttendeeSub != null) {
                         SpaceCalculationUtils.PER_PERSON_UNIT
                     } else {
                         selectedFormula?.let { SpaceCalculationUtils.rateUnitLabel(it.type) } ?: fallbackUnit
                     },
-                    formulaName = selectedFormula?.type?.displayName?.let { localizedLabel(it) } ?: uiText(R.string.full_month_2),
+                    formulaName = selectedFormula?.type?.displayName?.let { localizedLabel(it) } ?: sharedText("full_month_2"),
                     isPreview = currentUserRole == UserRole.PRO_HOST || currentUserRole == UserRole.ADMIN,
                     onOpenAvailability = { availabilityPanelState = "full" }
                 )
@@ -445,7 +476,7 @@ fun SpaceDetailsScreenContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     HeroGlassButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), modifier = Modifier.size(22.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = appString(Res.string.back), modifier = Modifier.size(22.dp))
                     }
                     Spacer(modifier = Modifier.weight(1f))
                     Box {
@@ -461,7 +492,7 @@ fun SpaceDetailsScreenContent(
                                 IconButton(onClick = onToggleSave, modifier = Modifier.size(42.dp)) {
                                     Icon(
                                         if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                        contentDescription = if (isSaved) stringResource(R.string.remove_from_saved) else stringResource(R.string.save),
+                                        contentDescription = if (isSaved) appString(Res.string.remove_from_saved) else appString(Res.string.save),
                                         tint = if (isSaved) Color(0xFFE5484D) else MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.size(21.dp)
                                     )
@@ -473,7 +504,7 @@ fun SpaceDetailsScreenContent(
                                         .background(MaterialTheme.colorScheme.outlineVariant)
                                 )
                                 IconButton(onClick = { showShareMenu = true }, modifier = Modifier.size(42.dp)) {
-                                    Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.share), modifier = Modifier.size(20.dp))
+                                    Icon(Icons.Outlined.Share, contentDescription = appString(Res.string.share), modifier = Modifier.size(20.dp))
                                 }
                                 // Report / Block: signed-in people looking at someone else's listing.
                                 if (canReportListing) {
@@ -484,7 +515,7 @@ fun SpaceDetailsScreenContent(
                                             .background(MaterialTheme.colorScheme.outlineVariant)
                                     )
                                     IconButton(onClick = { showReportMenu = true }, modifier = Modifier.size(42.dp)) {
-                                        Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more_options_menu), modifier = Modifier.size(20.dp))
+                                        Icon(Icons.Default.MoreVert, contentDescription = appString(Res.string.more_options_menu), modifier = Modifier.size(20.dp))
                                     }
                                 }
                             }
@@ -502,12 +533,12 @@ fun SpaceDetailsScreenContent(
                             onDismissRequest = { showShareMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text(stringResource(R.string.share_listing)) },
+                                text = { Text(appString(Res.string.share_listing)) },
                                 onClick = { showShareMenu = false; onShareClick() },
                                 leadingIcon = { Icon(Icons.Default.Share, null) }
                             )
                             DropdownMenuItem(
-                                text = { Text(stringResource(R.string.copy_link)) },
+                                text = { Text(appString(Res.string.copy_link)) },
                                 onClick = { showShareMenu = false; onCopyLinkClick() },
                                 leadingIcon = { Icon(Icons.Default.ContentCopy, null) }
                             )
@@ -528,7 +559,7 @@ fun SpaceDetailsScreenContent(
                         ) {
                             Text(
                                 text = "${liveSpace.spaceCategoryName ?: localizedLabel(liveSpace.spaceType.displayName)} • " +
-                                    (if (liveSpace.isShared) stringResource(R.string.shared_co_working_space) else stringResource(R.string.private_studio_office)),
+                                    (if (liveSpace.isShared) appString(Res.string.shared_co_working_space) else appString(Res.string.private_studio_office)),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
@@ -538,7 +569,7 @@ fun SpaceDetailsScreenContent(
                             )
                         }
                         if (liveSpace.isVerified) {
-                            ProStatusBadge(type = ProBadgeType.VERIFIED_MEMBER, customText = uiText(R.string.verified))
+                            ProStatusBadge(type = ProBadgeType.VERIFIED_MEMBER, customText = sharedText("verified"))
                         }
                     }
                     Spacer(modifier = Modifier.height(Spacing.sm))
@@ -567,7 +598,7 @@ fun SpaceDetailsScreenContent(
                                 listOf(liveSpace.district.trim().takeIf { it != liveSpace.city.trim() }.orEmpty(), liveSpace.locationLine())
                                     .filter { it.isNotBlank() }.joinToString(", ").takeIf { it.isNotBlank() },
                                 liveSpace.floorInfo.takeIf { it.isNotBlank() },
-                                liveSpace.capacity?.takeIf { liveSpace.subdivisions.isEmpty() }?.let { stringResource(R.string.up_to_x, it) }
+                                liveSpace.capacity?.takeIf { liveSpace.subdivisions.isEmpty() }?.let { appString(Res.string.up_to_x, it) }
                             ).joinToString(" • "),
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xCCFFFFFF),
@@ -586,8 +617,8 @@ fun SpaceDetailsScreenContent(
             // they go looking for it again.
             if (liveSpace.isOwnerPackageLapsed) {
                 ProHostAlertBanner(
-                    message = stringResource(R.string.this_host_is_on_verification_process_their) +
-                        stringResource(R.string.access_here_is_unaffected),
+                    message = appString(Res.string.this_host_is_on_verification_process_their) +
+                        appString(Res.string.access_here_is_unaffected),
                     severity = ProHostAlertSeverity.INFO,
                     modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)
                 )
@@ -607,26 +638,25 @@ fun SpaceDetailsScreenContent(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = stringResource(R.string.your_in_app_rental_request_x, req.publicCode),
+                                    text = appString(Res.string.your_in_app_rental_request_x, req.publicCode),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = stringResource(R.string.formula_x_start_x_x_mo, req.formula.scheduleDescription, req.startDate, req.durationMonths),
+                                    text = appString(Res.string.formula_x_start_x_x_mo, req.formula.scheduleDescription, req.startDate, req.durationMonths),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 if (req.status == BookingRequestStatus.PENDING) {
                                     Text(
-                                        text = stringResource(R.string.awaiting_owner_acceptance_space_hours_rema),
+                                        text = appString(Res.string.awaiting_owner_acceptance_space_hours_rema),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.proColors.warning,
                                         fontWeight = FontWeight.SemiBold
                                     )
                                 } else if (req.status == BookingRequestStatus.ACCEPTED) {
                                     Text(
-                                        text = stringResource(
-                                            R.string.confirmed_space_hours_locked_x_x_x,
+                                        text = appString(Res.string.confirmed_space_hours_locked_x_x_x,
                                             req.formula.daysOfWeek.joinToString { localizedLabel(it) }, req.formula.startHour, req.formula.endHour
                                         ),
                                         style = MaterialTheme.typography.labelSmall,
@@ -638,9 +668,9 @@ fun SpaceDetailsScreenContent(
 
                             when (req.status) {
                                 BookingRequestStatus.ACCEPTED -> ProStatusBadge(ProBadgeType.ACCEPTED_LOCKED)
-                                BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = uiText(R.string.pending))
-                                BookingRequestStatus.REJECTED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = uiText(R.string.declined))
-                                BookingRequestStatus.CANCELLED -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = uiText(R.string.cancelled))
+                                BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = sharedText("pending"))
+                                BookingRequestStatus.REJECTED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = sharedText("declined"))
+                                BookingRequestStatus.CANCELLED -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = sharedText("cancelled"))
                             }
                         }
                     }
@@ -656,8 +686,8 @@ fun SpaceDetailsScreenContent(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             ProMemberAvatar(
-                                name = liveSpace.ownerName.ifBlank { uiText(R.string.space_host) },
-                                specialty = if (liveSpace.isVerified) uiText(R.string.verified_space_host) else uiText(R.string.space_host),
+                                name = liveSpace.ownerName.ifBlank { sharedText("space_host") },
+                                specialty = if (liveSpace.isVerified) sharedText("verified_space_host") else sharedText("space_host"),
                                 isVerified = liveSpace.isVerified,
                                 imageUrl = liveSpace.ownerProfilePictureUrl,
                                 size = 44.dp,
@@ -678,7 +708,7 @@ fun SpaceDetailsScreenContent(
                             ) {
                                 Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(Spacing.sm))
-                                Text(stringResource(R.string.ask_the_host_on_whatsapp), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                                Text(appString(Res.string.ask_the_host_on_whatsapp), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -690,7 +720,7 @@ fun SpaceDetailsScreenContent(
                     ProSurfaceCard {
                         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             ProSectionHeader(
-                                title = stringResource(R.string.description),
+                                title = appString(Res.string.description),
                                 icon = Icons.Default.Description
                             )
                             Text(
@@ -714,11 +744,11 @@ fun SpaceDetailsScreenContent(
                 ProSurfaceCard(modifier = Modifier.bringIntoViewRequester(roomsRequester)) {
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                         ProSectionHeader(
-                            title = stringResource(R.string.rental_options),
+                            title = appString(Res.string.rental_options),
                             subtitle = if (liveSpace.subdivisions.isNotEmpty())
-                                pluralStringResource(R.plurals.spaces_pick_tab, liveSpace.subdivisions.size, liveSpace.subdivisions.size)
+                                appPlural(Res.plurals.spaces_pick_tab, liveSpace.subdivisions.size, liveSpace.subdivisions.size)
                             else
-                                stringResource(R.string.tap_the_card_to_check_live_availability),
+                                appString(Res.string.tap_the_card_to_check_live_availability),
                             icon = Icons.Default.Tune
                         )
 
@@ -731,15 +761,15 @@ fun SpaceDetailsScreenContent(
                                 val st = strategyPreviewGroups.firstOrNull()?.first
                                 when (st) {
                                     RentalStrategyType.MONTHLY -> "$${liveSpace.pricing.monthly?.rateUsd?.toInt() ?: liveSpace.baseMonthlyRateUsd.toInt()}${SpaceCalculationUtils.strategyUnitLabel(RentalStrategyType.MONTHLY)}"
-                                    RentalStrategyType.HOURLY -> uiText(R.string.from_x_hr, liveSpace.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0)
+                                    RentalStrategyType.HOURLY -> sharedText("from_x_hr", liveSpace.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0)
                                     RentalStrategyType.SHIFT_BASED -> {
                                         val minPrice = liveSpace.pricing.shiftBased?.shifts
                                             ?.filter { !it.isUnavailable }?.minOfOrNull { it.price }?.toInt() ?: 0
-                                        uiText(R.string.from_x_shift, minPrice)
+                                        sharedText("from_x_shift", minPrice)
                                     }
                                     RentalStrategyType.DAY_BASED -> {
                                         val minPrice = liveSpace.pricing.dayBased?.distribution?.values?.minOfOrNull { it.price }?.toInt() ?: 0
-                                        uiText(R.string.from_x_day, minPrice)
+                                        sharedText("from_x_day", minPrice)
                                     }
                                     null -> SpaceCalculationUtils.lowestPriceSummary(liveSpace).let { (p, u) -> "$${p.toInt()}$u" }
                                 }
@@ -747,7 +777,7 @@ fun SpaceDetailsScreenContent(
                             SubdivisionRentalCard(
                                 info = SubdivisionRentalCardInfo(
                                     name = liveSpace.title,
-                                    typeBadge = uiText(R.string.whole_space),
+                                    typeBadge = sharedText("whole_space"),
                                     imageUrls = liveSpace.imageUrls,
                                     amenities = liveSpace.essentialFacilities,
                                     hashtags = emptyList(),
@@ -779,17 +809,17 @@ fun SpaceDetailsScreenContent(
                                     com.example.ui.util.AttendeePricing.lowestPricePerPerson(sub, architectureSchema.attendeePackages)
                                 } else null
                                 val priceSummary = if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) {
-                                    uiText(R.string.from_x_person, perAttendeeFrom?.toInt() ?: 0)
+                                    sharedText("from_x_person", perAttendeeFrom?.toInt() ?: 0)
                                 } else when (sub.pricing.strategyType) {
                                     RentalStrategyType.MONTHLY -> "$${sub.pricing.monthly?.rateUsd?.toInt() ?: 0}${SpaceCalculationUtils.strategyUnitLabel(RentalStrategyType.MONTHLY)}"
-                                    RentalStrategyType.HOURLY -> uiText(R.string.from_x_hr, sub.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0)
+                                    RentalStrategyType.HOURLY -> sharedText("from_x_hr", sub.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0)
                                     RentalStrategyType.SHIFT_BASED -> {
                                         val minPrice = sub.pricing.shiftBased?.shifts?.filter { !it.isUnavailable }?.minOfOrNull { it.price }?.toInt() ?: 0
-                                        uiText(R.string.from_x_shift, minPrice)
+                                        sharedText("from_x_shift", minPrice)
                                     }
                                     RentalStrategyType.DAY_BASED -> {
                                         val minPrice = sub.pricing.dayBased?.distribution?.values?.minOfOrNull { it.price }?.toInt() ?: 0
-                                        uiText(R.string.from_x_day, minPrice)
+                                        sharedText("from_x_day", minPrice)
                                     }
                                 }
                                 SubdivisionRentalCard(
@@ -800,7 +830,7 @@ fun SpaceDetailsScreenContent(
                                         amenities = sub.amenities,
                                         hashtags = sub.hashtags,
                                         priceSummary = if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) {
-                                            uiText(R.string.per_attendee_x_slots_x, localizedLabel(sub.pricing.strategyType.displayName), priceSummary)
+                                            sharedText("per_attendee_x_slots_x", localizedLabel(sub.pricing.strategyType.displayName), priceSummary)
                                         } else "${localizedLabel(sub.pricing.strategyType.displayName)} · $priceSummary",
                                         isOccupied = isOccupied,
                                         capacity = sub.capacity,
@@ -819,8 +849,8 @@ fun SpaceDetailsScreenContent(
                 ProSurfaceCard {
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         ProSectionHeader(
-                            title = stringResource(R.string.facilities_utilities),
-                            subtitle = stringResource(R.string.x_amenities_included, liveSpace.essentialFacilities.size),
+                            title = appString(Res.string.facilities_utilities),
+                            subtitle = appString(Res.string.x_amenities_included, liveSpace.essentialFacilities.size),
                             icon = Icons.Default.Business
                         )
 
@@ -857,14 +887,14 @@ fun SpaceDetailsScreenContent(
                     ProSurfaceCard {
                         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             ProSectionHeader(
-                                title = stringResource(R.string.co_working_synergy),
+                                title = appString(Res.string.co_working_synergy),
                                 subtitle = "${residentSpecialties.size} peer${if (residentSpecialties.size == 1) "" else "s"} on premises",
                                 icon = Icons.Default.Groups
                             )
 
                             if (residentSpecialties.isNotEmpty()) {
                                 Text(
-                                    text = stringResource(R.string.residents),
+                                    text = appString(Res.string.residents),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -891,7 +921,7 @@ fun SpaceDetailsScreenContent(
                             }
 
                             Text(
-                                text = stringResource(R.string.target_complementary_disciplines),
+                                text = appString(Res.string.target_complementary_disciplines),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -945,7 +975,7 @@ fun SpaceDetailsScreenContent(
         val isMonthly = pricing.strategyType == RentalStrategyType.MONTHLY
         val isAttendeeMode = com.example.ui.util.AttendeePricing.isPerAttendee(subdivision)
         if (isAttendeeMode && attendeeQuote == null) {
-            coroutineScope.launch { snackbarHostState.showSnackbar(uiText(R.string.choose_a_valid_number_of_attendees_first)) }
+            coroutineScope.launch { snackbarHostState.showSnackbar(sharedText("choose_a_valid_number_of_attendees_first")) }
             return
         }
         val today = com.example.ui.util.IsoDate.todayIso()
@@ -989,7 +1019,7 @@ fun SpaceDetailsScreenContent(
                 shiftName = shiftLabel.ifBlank { "Full Day" }
             )
             val notes = buildString {
-                append(uiText(R.string.requested_via_live_slot_selection))
+                append(sharedText("requested_via_live_slot_selection"))
                 append(" — $summary")
                 if (isAttendeeMode && attendeeQuote != null) append(" | ${com.example.ui.util.AttendeePricing.describe(attendeeQuote)}")
             }
@@ -1024,7 +1054,7 @@ fun SpaceDetailsScreenContent(
                 com.example.analytics.AnalyticsTracker.bookingRequestFailed(com.example.analytics.AnalyticsTracker.errorCode(e))
                 snackbarHostState.showSnackbar(
                     e.message?.takeIf { (e is IllegalStateException || e is IllegalArgumentException) && it.isNotBlank() }
-                        ?: uiText(R.string.couldn_t_send_your_request_check_your_conn)
+                        ?: sharedText("couldn_t_send_your_request_check_your_conn")
                 )
                 return@launch
             }
@@ -1048,7 +1078,7 @@ fun SpaceDetailsScreenContent(
                 sentRequest = request
             } else {
                 com.example.analytics.AnalyticsTracker.bookingRequestFailed("not_synced")
-                snackbarHostState.showSnackbar(uiText(R.string.couldn_t_send_your_request_check_your_conn))
+                snackbarHostState.showSnackbar(sharedText("couldn_t_send_your_request_check_your_conn"))
             }
         }
     }
@@ -1078,7 +1108,7 @@ fun SpaceDetailsScreenContent(
         val strategyType = primarySlot.strategyType ?: return
         val targetSub = liveSpace.subdivisions.find { it.id == primarySlot.sourceFormulaId }
         if (com.example.ui.util.AttendeePricing.isPerAttendee(targetSub) && attendeeQuote == null) {
-            coroutineScope.launch { snackbarHostState.showSnackbar(uiText(R.string.choose_a_valid_number_of_attendees_first)) }
+            coroutineScope.launch { snackbarHostState.showSnackbar(sharedText("choose_a_valid_number_of_attendees_first")) }
             return
         }
         isSendingSlotRequest = true
@@ -1099,7 +1129,7 @@ fun SpaceDetailsScreenContent(
             val shiftLabel = if (strategyType == RentalStrategyType.SHIFT_BASED) primarySlot.groupLabel.substringAfter("• ") else ""
             val slotSummary = allSlots.joinToString("; ") { it.label }
             val notes = buildString {
-                append(uiText(R.string.requested_via_live_slot_selection))
+                append(sharedText("requested_via_live_slot_selection"))
                 if (allSlots.size > 1) append(" — $slotSummary")
                 if (isAttendeeMode) {
                     append(" | ${com.example.ui.util.AttendeePricing.describe(attendeeQuote!!)}")
@@ -1140,7 +1170,7 @@ fun SpaceDetailsScreenContent(
                 com.example.analytics.AnalyticsTracker.bookingRequestFailed(com.example.analytics.AnalyticsTracker.errorCode(e))
                 snackbarHostState.showSnackbar(
                     e.message?.takeIf { (e is IllegalStateException || e is IllegalArgumentException) && it.isNotBlank() }
-                        ?: uiText(R.string.couldn_t_send_your_request_check_your_conn)
+                        ?: sharedText("couldn_t_send_your_request_check_your_conn")
                 )
                 return@launch
             }
@@ -1163,7 +1193,7 @@ fun SpaceDetailsScreenContent(
                 sentRequest = request
             } else {
                 com.example.analytics.AnalyticsTracker.bookingRequestFailed("not_synced")
-                snackbarHostState.showSnackbar(uiText(R.string.couldn_t_send_your_request_check_your_conn))
+                snackbarHostState.showSnackbar(sharedText("couldn_t_send_your_request_check_your_conn"))
             }
         }
     }
@@ -1246,19 +1276,19 @@ internal fun RequestSentSheet(hasWhatsApp: Boolean, onDismiss: () -> Unit, onVie
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             ProSectionHeader(
-                title = stringResource(R.string.request_sent),
-                subtitle = stringResource(R.string.the_host_has_been_notified_you_ll_get_a_pu),
+                title = appString(Res.string.request_sent),
+                subtitle = appString(Res.string.the_host_has_been_notified_you_ll_get_a_pu),
                 icon = Icons.Default.CheckCircle
             )
             ProPrimaryButton(
-                text = stringResource(R.string.view_request),
+                text = appString(Res.string.view_request),
                 onClick = onViewRequest,
                 icon = Icons.AutoMirrored.Filled.ListAlt,
                 modifier = Modifier.fillMaxWidth()
             )
             if (hasWhatsApp) {
                 ProOutlinedButton(
-                    text = stringResource(R.string.message_host_on_whatsapp),
+                    text = appString(Res.string.message_host_on_whatsapp),
                     onClick = onWhatsApp,
                     icon = Icons.AutoMirrored.Filled.Chat,
                     modifier = Modifier.fillMaxWidth()
