@@ -1,8 +1,6 @@
 package com.example.ui.viewmodel
 
 import com.example.ui.util.localizedLabel
-import com.example.R
-import com.example.ui.util.uiText
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.analytics.AnalyticsTracker
@@ -19,12 +17,12 @@ private const val SEARCH_DEBOUNCE_MS = 300L
 
 // While a search or filter is active, Explore keeps loading listing pages until this many
 // match (or the catalog ends), so a match beyond the first page is never missed.
-internal const val AUTO_LOAD_TARGET_MATCHES = 20
+const val AUTO_LOAD_TARGET_MATCHES = 20
 // Upper bound on listings auto-loaded for one search, to keep a phone's memory in check.
-internal const val AUTO_LOAD_MAX_LISTINGS = 1000
+const val AUTO_LOAD_MAX_LISTINGS = 1000
 
 /** True when Explore should load another page for the active search (see auto-load). */
-internal fun shouldSearchMore(searchActive: Boolean, hasMore: Boolean, matches: Int, loaded: Int): Boolean =
+fun shouldSearchMore(searchActive: Boolean, hasMore: Boolean, matches: Int, loaded: Int): Boolean =
     searchActive && hasMore && matches < AUTO_LOAD_TARGET_MATCHES && loaded < AUTO_LOAD_MAX_LISTINGS
 
 /**
@@ -249,7 +247,7 @@ class DiscoveryViewModel(
         space.subdivisions.forEach { sub ->
             add(sub.name); add(localizedLabel(sub.type.displayName)); addAll(sub.hashtags); addAll(sub.amenities)
             add(localizedLabel(sub.pricing.strategyType.displayName))
-            if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) add(uiText(R.string.per_attendee_per_person))
+            if (com.example.ui.util.AttendeePricing.isPerAttendee(sub)) add(com.example.ui.util.sharedText("per_attendee_per_person"))
         }
         add(localizedLabel(space.pricing.strategyType.displayName))
     }.joinToString(" ").lowercase()
@@ -308,7 +306,7 @@ class DiscoveryViewModel(
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("DiscoveryVM", "Operation failed", e)
+                com.example.util.AppLog.e("DiscoveryVM", "Operation failed", e)
             }
         }
     }

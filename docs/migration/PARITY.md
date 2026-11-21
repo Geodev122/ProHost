@@ -124,7 +124,6 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/viewmodel/AdminViewModel.kt` | 1309 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/viewmodel/AuthViewModel.kt` | 323 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `ui/viewmodel/BillingController.kt` | 525 | C | Context removal, Firebase gateways, MediaPicker(PickedFile), Messenger, PlatformActions, SubscriptionStore |  |  | ☐ | ☐ | todo |
-| `ui/viewmodel/DiscoveryViewModel.kt` | 357 | B | — |  |  | ☐ | ☐ | todo |
 | `ui/viewmodel/ProHostViewModel.kt` | 1354 | B | Clipboard, Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `util/AndroidAppLog.kt` | 18 | B | Logger |  |  | ☐ | ☐ | todo |
 | `util/AndroidFiles.kt` | 32 | B | Context removal, MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
@@ -142,6 +141,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 35 / 9389, A2 18 / 9518, B 38 / 11232, C 19 / 4198, X 16 / 6992.
 Automatic class totals (files / lines): A1 36 / 9746, A2 18 / 9518, B 38 / 11232, C 19 / 4198, X 16 / 6992.
 Automatic class totals (files / lines): A1 36 / 9746, A2 18 / 9518, B 37 / 11680, C 20 / 4269, X 16 / 6992.
 Automatic class totals (files / lines): A1 37 / 10086, A2 21 / 11292, B 37 / 11680, C 20 / 4269, X 16 / 6992.
