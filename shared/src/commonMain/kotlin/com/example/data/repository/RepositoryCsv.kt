@@ -1,12 +1,13 @@
 package com.example.data.repository
 
 import com.example.data.model.*
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import com.example.ui.util.IsoDate
+import com.example.util.nowMillis
 
 /** CSV formatting for ProHostRepository's exports (pure: lists in, text out). */
-internal object RepositoryCsv {
+object RepositoryCsv {
+    private fun fmt(epochMillis: Long): String = IsoDate.localDateTimeText(epochMillis)
+
     /**
      * Exports the System Audit Logs panel's content (optionally date-range filtered) —
      * this is the same real, server-populated list the panel now shows live (see
@@ -20,27 +21,25 @@ internal object RepositoryCsv {
             matchesStart && matchesEnd
         }
 
-        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
         val sb = StringBuilder()
         sb.appendLine("=== PROHOST SYSTEM AUDIT LOGS EXPORT (CSV) ===")
-        sb.appendLine("Export Date,${sdf.format(Date())}")
-        sb.appendLine("Range,${startDateMillis?.let { sdf.format(Date(it)) } ?: "Beginning"} to ${endDateMillis?.let { sdf.format(Date(it)) } ?: "Now"}")
+        sb.appendLine("Export Date,${fmt(nowMillis())}")
+        sb.appendLine("Range,${startDateMillis?.let { fmt(it) } ?: "Beginning"} to ${endDateMillis?.let { fmt(it) } ?: "Now"}")
         sb.appendLine("Total Entries,${logs.size}")
         sb.appendLine()
         sb.appendLine("Timestamp,Action Type,Severity,Actor Email,Details")
         logs.forEach { log ->
             val detailsEscaped = log.details.replace("\"", "\"\"")
-            sb.appendLine("\"${sdf.format(Date(log.timestamp))}\",\"${log.actionType}\",\"${log.severity}\",\"${log.actorEmail}\",\"$detailsEscaped\"")
+            sb.appendLine("\"${fmt(log.timestamp)}\",\"${log.actionType}\",\"${log.severity}\",\"${log.actorEmail}\",\"$detailsEscaped\"")
         }
         return sb.toString()
     }
 
     fun ownerRegistrations(users: List<AppUser>, spaces: List<SpaceListing>): String {
-        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
         val owners = users.filter { it.role == UserRole.PRO_HOST }
         val sb = StringBuilder()
         sb.appendLine("=== PROHOST OWNER REGISTRATIONS & WORKSPACES AUDIT ===")
-        sb.appendLine("Export Date,${sdf.format(Date())}")
+        sb.appendLine("Export Date,${fmt(nowMillis())}")
         sb.appendLine("Total Registered Hosts,${owners.size}")
         sb.appendLine()
         sb.appendLine("User ID,Full Name,Email,Phone,Country,Governorate,City,Properties Count,Active Subscribed Count,Is Verified")
@@ -54,10 +53,9 @@ internal object RepositoryCsv {
     }
 
     fun listings(spaces: List<SpaceListing>): String {
-        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
         val sb = StringBuilder()
         sb.appendLine("=== PROHOST WORKSPACE LISTINGS EXPORT (CSV) ===")
-        sb.appendLine("Export Date,${sdf.format(Date())}")
+        sb.appendLine("Export Date,${fmt(nowMillis())}")
         sb.appendLine("Total Listings,${spaces.size}")
         sb.appendLine()
         sb.appendLine("Space ID,Title,Space Type,Governorate,District,Street Address,Monthly Rate USD,Is Shared,Is Verified" +
@@ -72,10 +70,9 @@ internal object RepositoryCsv {
     }
 
     fun bookings(bookings: List<RentalBookingRequest>): String {
-        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
         val sb = StringBuilder()
         sb.appendLine("=== PROHOST BOOKINGS LEDGER (CSV) ===")
-        sb.appendLine("Export Date,${sdf.format(Date())}")
+        sb.appendLine("Export Date,${fmt(nowMillis())}")
         sb.appendLine("Total Bookings,${bookings.size}")
         sb.appendLine()
         sb.appendLine("Booking ID,Space ID,Space Title,Practitioner,Specialty,Duration Months,Total USD,Status,Start Date,End Date")

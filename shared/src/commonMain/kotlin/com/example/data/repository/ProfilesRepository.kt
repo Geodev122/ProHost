@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
  * repository state (`with(repo)`), and ProHostRepository keeps a same-signature delegate
  * for each, so callers and tests are unchanged.
  */
-internal class ProfilesRepository(private val repo: ProHostRepository) {
+class ProfilesRepository(private val repo: ProHostRepository) {
 
     // --- User Authentication & Member Registration ---
     /**

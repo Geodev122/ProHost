@@ -113,5 +113,12 @@ object IsoDate {
     fun localDateOf(epochMillis: Long, zone: TimeZone = TimeZone.currentSystemDefault()): LocalDate =
         Instant.fromEpochMilliseconds(epochMillis).toLocalDateTime(zone).date
 
+    /** "yyyy-MM-dd HH:mm:ss" of [epochMillis] in [zone], exactly like `SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)` (CSV exports). */
+    fun localDateTimeText(epochMillis: Long, zone: TimeZone = TimeZone.currentSystemDefault()): String {
+        val t = Instant.fromEpochMilliseconds(epochMillis).toLocalDateTime(zone)
+        fun two(n: Int) = n.toString().padStart(2, '0')
+        return "${t.year.toString().padStart(4, '0')}-${two(t.monthNumber)}-${two(t.dayOfMonth)} ${two(t.hour)}:${two(t.minute)}:${two(t.second)}"
+    }
+
     fun firstOfMonth(date: LocalDate): LocalDate = LocalDate(date.year, date.monthNumber, 1)
 }

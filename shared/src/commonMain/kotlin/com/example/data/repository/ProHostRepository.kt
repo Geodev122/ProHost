@@ -16,56 +16,45 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 class ProHostRepository(
-    internal val firestoreService: com.example.data.gateway.FirestoreGateway = RepositoryDefaults.firestore(),
-    internal val functionsClient: com.example.data.gateway.FunctionsGateway = RepositoryDefaults.functions()
+    val firestoreService: com.example.data.gateway.FirestoreGateway = RepositoryDefaults.firestore(),
+    val functionsClient: com.example.data.gateway.FunctionsGateway = RepositoryDefaults.functions()
 ) {
 
     companion object {
-        internal const val TAG = "ProHostRepository"
+        const val TAG = "ProHostRepository"
 
         // Must stay in sync with firestore.rules' user_profiles update rule's own
         // protected-fields list — every one of these is exclusively server-maintained
         // (assignInitialRole/grantAdminRole/setAccountSuspended/pinAuth/
         // emailVerification functions). Used by registerMember to filter its
         // write down to a safe subset — see that function's own doc comment.
-        internal val PROTECTED_UPDATE_FIELDS = setOf(
+        val PROTECTED_UPDATE_FIELDS = setOf(
             "role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
             "ownerPackageId", "ownerPackageExpiryMillis", "activeListingCount",
             "tosAcceptedAtMillis", "consentVersion",
             "emailVerified", "emailVerifiedAt", "displayCode"
         )
 
-        @Volatile
-        private var instance: ProHostRepository? = null
+        // One repository per process, created on first use (`lazy` is thread-safe on every platform, like the double-checked lock it replaces).
+        private val instance: ProHostRepository by lazy { ProHostRepository() }
 
-        fun getInstance(): ProHostRepository {
-            return instance ?: synchronized(this) {
-                val existing = instance
-                if (existing != null) {
-                    existing
-                } else {
-                    val newInstance = ProHostRepository()
-                    instance = newInstance
-                    newInstance
-                }
-            }
-        }
+        fun getInstance(): ProHostRepository = instance
     }
 
-    internal val coroutineScope = CoroutineScope(SupervisorJob() + com.example.util.ioDispatcher)
+    val coroutineScope = CoroutineScope(SupervisorJob() + com.example.util.ioDispatcher)
     /** True for the hermetic test repository (no Firestore; see FirestoreService.localOnly). */
     val isLocalOnly: Boolean get() = firestoreService.localOnly
 
-    internal val _isCloudConnected = MutableStateFlow(false)
+    val _isCloudConnected = MutableStateFlow(false)
     val isCloudConnected: StateFlow<Boolean> = _isCloudConnected.asStateFlow()
 
-    internal val _isOfflineMode = MutableStateFlow(false)
+    val _isOfflineMode = MutableStateFlow(false)
     val isOfflineMode: StateFlow<Boolean> = _isOfflineMode.asStateFlow()
 
-    internal val _syncStatusMessage = MutableStateFlow<String?>("Synced with Lebanese Cloud Network")
+    val _syncStatusMessage = MutableStateFlow<String?>("Synced with Lebanese Cloud Network")
     val syncStatusMessage: StateFlow<String?> = _syncStatusMessage.asStateFlow()
 
-    internal val _fcmAlerts = MutableStateFlow<List<FCMAlert>>(emptyList())
+    val _fcmAlerts = MutableStateFlow<List<FCMAlert>>(emptyList())
     val fcmAlerts: StateFlow<List<FCMAlert>> = _fcmAlerts.asStateFlow()
 
     // Ids of alerts that exist in Firestore (only those can be marked read server-side).
@@ -77,9 +66,9 @@ class ProHostRepository(
         _fcmAlerts.value = listOf(alert) + _fcmAlerts.value
     }
 
-    internal fun onNotificationsSynced(stored: List<FCMAlert>) {
+    fun onNotificationsSynced(stored: List<FCMAlert>) {
         storedAlertIds = stored.map { it.id }.toSet()
-        val now = System.currentTimeMillis()
+        val now = com.example.util.nowMillis()
         // Keep a just-received push the snapshot hasn't caught up with yet (a few seconds).
         val pending = _fcmAlerts.value.filter { it.id !in storedAlertIds && now - it.timestamp < 60_000 }
         _fcmAlerts.value = (pending + stored).filter { it.expireAt > now }.sortedByDescending { it.timestamp }
@@ -97,26 +86,26 @@ class ProHostRepository(
         if (stored.isNotEmpty()) coroutineScope.launch { firestoreService.markNotificationsRead(uid, stored) }
     }
 
-    internal val _pricingState = MutableStateFlow(AdminPricingState())
+    val _pricingState = MutableStateFlow(AdminPricingState())
     val pricingState: StateFlow<AdminPricingState> = _pricingState.asStateFlow()
 
-    internal val _spaces = MutableStateFlow<List<SpaceListing>>(emptyList())
+    val _spaces = MutableStateFlow<List<SpaceListing>>(emptyList())
     val spaces: StateFlow<List<SpaceListing>> = _spaces.asStateFlow()
 
-    internal val _users = MutableStateFlow<List<AppUser>>(emptyList())
+    val _users = MutableStateFlow<List<AppUser>>(emptyList())
     val users: StateFlow<List<AppUser>> = _users.asStateFlow()
 
-    internal val _auditLogs = MutableStateFlow<List<AuditSecurityLog>>(emptyList())
+    val _auditLogs = MutableStateFlow<List<AuditSecurityLog>>(emptyList())
     val auditLogs: StateFlow<List<AuditSecurityLog>> = _auditLogs.asStateFlow()
 
     // Starts signed out. This previously defaulted to a fully-populated Super Admin
     // AppUser, meaning every fresh install of the app opened directly into the Admin
     // console with zero authentication — no login screen ever shown, no credential
     // ever checked. That was, by a wide margin, the most severe bug in the app.
-    internal val _currentUser = MutableStateFlow<AppUser?>(null)
+    val _currentUser = MutableStateFlow<AppUser?>(null)
     val currentUser: StateFlow<AppUser?> = _currentUser.asStateFlow()
 
-    internal val _bookingRequests = MutableStateFlow<List<RentalBookingRequest>>(emptyList())
+    val _bookingRequests = MutableStateFlow<List<RentalBookingRequest>>(emptyList())
     val bookingRequests: StateFlow<List<RentalBookingRequest>> = _bookingRequests.asStateFlow()
 
     // Flips true the moment the first real Firestore snapshot for bookings arrives
@@ -126,7 +115,7 @@ class ProHostRepository(
     // OwnerIncomingRequestsView, OwnerRentingProgressScreen) used to render their
     // "No bookings yet" empty state instantly on open, even for an account with real
     // bookings, for however long the first snapshot took to arrive.
-    internal val _hasLoadedBookingsOnce = MutableStateFlow(false)
+    val _hasLoadedBookingsOnce = MutableStateFlow(false)
     val hasLoadedBookingsOnce: StateFlow<Boolean> = _hasLoadedBookingsOnce.asStateFlow()
 
     // Same reasoning as hasLoadedBookingsOnce above, for Discovery: isLoading was
@@ -134,16 +123,16 @@ class ProHostRepository(
     // filters" empty state rendered instantly on open, before the first real
     // workspace_listings snapshot ever arrived — indistinguishable from an
     // account that genuinely has no matches.
-    internal val _hasLoadedSpacesOnce = MutableStateFlow(false)
+    val _hasLoadedSpacesOnce = MutableStateFlow(false)
     val hasLoadedSpacesOnce: StateFlow<Boolean> = _hasLoadedSpacesOnce.asStateFlow()
 
     // Set when the listings listener fails (rules denial, network, missing index);
     // cleared by the next successful snapshot. Lets Explore show an error instead
     // of spinning forever on !hasLoadedSpacesOnce.
-    internal val _spacesLoadError = MutableStateFlow<String?>(null)
+    val _spacesLoadError = MutableStateFlow<String?>(null)
     val spacesLoadError: StateFlow<String?> = _spacesLoadError.asStateFlow()
 
-    internal val _spaceArchitectureSchema = MutableStateFlow<SpaceArchitectureSchema>(createDefaultSchema())
+    val _spaceArchitectureSchema = MutableStateFlow<SpaceArchitectureSchema>(createDefaultSchema())
     val spaceArchitectureSchema: StateFlow<SpaceArchitectureSchema> = _spaceArchitectureSchema.asStateFlow()
 
     init {
@@ -171,14 +160,14 @@ class ProHostRepository(
     }
 
     // Explore's paged live list (see FirestoreService.setPublicListingsLimit).
-    internal var publicListingsLimit = com.example.data.gateway.FirestoreGateway.PUBLIC_LISTINGS_PAGE
+    var publicListingsLimit = com.example.data.gateway.FirestoreGateway.PUBLIC_LISTINGS_PAGE
 
     /** Uploads (photos, agreements, verification documents) through the platform-neutral gateway; created on first use. */
     val storage: com.example.data.gateway.StorageGateway by lazy { RepositoryDefaults.storage() }
-    internal val _hasMoreSpaces = MutableStateFlow(false)
+    val _hasMoreSpaces = MutableStateFlow(false)
     /** True when Explore's loaded page is full, so more active listings may exist. */
     val hasMoreSpaces: StateFlow<Boolean> = _hasMoreSpaces.asStateFlow()
-    internal val _reviewQueue = MutableStateFlow<List<SpaceListing>>(emptyList())
+    val _reviewQueue = MutableStateFlow<List<SpaceListing>>(emptyList())
     /** Admin only: listings waiting for verification review (small live queue). */
     val reviewQueue: StateFlow<List<SpaceListing>> = _reviewQueue.asStateFlow()
 
@@ -276,8 +265,8 @@ class ProHostRepository(
     }
 
     /** Test hook: Robolectric tests have no Firestore, so they inject listings directly. */
-    @androidx.annotation.VisibleForTesting
-    internal fun replaceSpacesForTest(spaces: List<SpaceListing>) {
+    // Visible for tests.
+    fun replaceSpacesForTest(spaces: List<SpaceListing>) {
         _spaces.value = spaces
     }
 
@@ -304,7 +293,7 @@ class ProHostRepository(
      * audit entry (pricing, credential review, listing verification/subscription
      * overrides) — calling [addAuditLog] there too would double-write.
      */
-    internal fun addLocalAuditLogEntry(
+    fun addLocalAuditLogEntry(
         actionType: String,
         details: String,
         severity: String = "INFO",
@@ -312,7 +301,7 @@ class ProHostRepository(
     ) {
         val log = AuditSecurityLog(
             id = "LOG-" + com.example.util.Ids.uuid().take(6).uppercase(),
-            timestamp = System.currentTimeMillis(),
+            timestamp = com.example.util.nowMillis(),
             actionType = actionType,
             details = details,
             actorEmail = actorEmail,
@@ -325,7 +314,7 @@ class ProHostRepository(
     // Firestore rules deny every client write to system_metadata, so this goes
     // through the updatePricing Cloud Function, which also writes the audit entry.
     /** Returns whether the server actually accepted the change. */
-    internal suspend fun persistPricingState(fields: Map<String, Any>): Boolean {
+    suspend fun persistPricingState(fields: Map<String, Any>): Boolean {
         return functionsClient.updatePricing(fields).isSuccess
     }
 
@@ -376,7 +365,7 @@ class ProHostRepository(
      * when a plan lapses or an account is suspended, and a wizard-built listing carries
      * the defaults, so echoing those back used to get the whole save denied.
      */
-    internal fun SpaceListing.keepingServerOwnedFields(current: SpaceListing?): SpaceListing =
+    fun SpaceListing.keepingServerOwnedFields(current: SpaceListing?): SpaceListing =
         if (current == null) this else copy(
             ownerId = current.ownerId,
             isVerified = current.isVerified,
@@ -400,7 +389,7 @@ class ProHostRepository(
         // buildListing), so this write may really be an update of an existing
         // document rather than a brand-new one — same protected-field re-copy as
         // updateSpaceListing, otherwise a freshly-constructed subscriptionExpiryMillis
-        // (computed from System.currentTimeMillis() at build time, not preserved
+        // (computed from com.example.util.nowMillis() at build time, not preserved
         // across the wizard's steps) would diff against the stored value and get
         // the whole write denied by firestore.rules' protected-fields check.
         val current = _spaces.value.find { it.id == listing.id }
@@ -1032,7 +1021,7 @@ class ProHostRepository(
      * get the whole write denied, permanently, for that listing. Schedule, blackout
      * and formula saves all funnel through here and never had this protection.
      */
-    internal suspend fun saveUpdatedSpace(updated: SpaceListing): Boolean {
+    suspend fun saveUpdatedSpace(updated: SpaceListing): Boolean {
         val current = _spaces.value.find { it.id == updated.id }
         val safeUpdate = updated.keepingServerOwnedFields(current)
         val success = firestoreService.saveWorkspace(safeUpdate)

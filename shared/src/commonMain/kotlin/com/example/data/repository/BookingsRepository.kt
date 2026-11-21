@@ -20,7 +20,7 @@ import kotlinx.coroutines.tasks.await
  * repository state (`with(repo)`), and ProHostRepository keeps a same-signature delegate
  * for each, so callers and tests are unchanged.
  */
-internal class BookingsRepository(private val repo: ProHostRepository) {
+class BookingsRepository(private val repo: ProHostRepository) {
 
     // --- Smart Booking & In-App Rental Request Engine ---
     /**
@@ -126,7 +126,7 @@ internal class BookingsRepository(private val repo: ProHostRepository) {
                 totalAmountUsd = totalUsd,
                 clinicalNotes = notes,
                 status = BookingRequestStatus.PENDING,
-                createdAt = System.currentTimeMillis(),
+                createdAt = com.example.util.nowMillis(),
                 subdivisionId = subdivisionId,
                 subdivisionName = subdivisionName,
                 replacesBookingId = replacesBookingId,
@@ -204,7 +204,7 @@ internal class BookingsRepository(private val repo: ProHostRepository) {
             // day and hours (SpaceCalculationUtils.findAcceptConflict — the same rule the
             // specialist-facing screens hide locked slots with).
             if (findAcceptConflict(requestId) != null) return false
-            val now = System.currentTimeMillis()
+            val now = com.example.util.nowMillis()
 
             val extraFields = if (agreementUrl != null) mapOf("agreementUrl" to agreementUrl) else emptyMap()
             val success = firestoreService.updateBookingStatus(
@@ -260,7 +260,7 @@ internal class BookingsRepository(private val repo: ProHostRepository) {
     suspend fun rejectBookingRequest(requestId: String, note: String? = null): Boolean {
         return with(repo) {
             val request = _bookingRequests.value.find { it.id == requestId } ?: return false
-            val now = System.currentTimeMillis()
+            val now = com.example.util.nowMillis()
             val reason = note ?: "Declined by space owner"
 
             val success = firestoreService.updateBookingStatus(requestId, BookingRequestStatus.REJECTED, reason)
