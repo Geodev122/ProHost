@@ -67,6 +67,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.*
 import com.example.shared.resources.Res
+import com.example.shared.resources.x_workspaces_here
 import com.example.shared.resources.high_accuracy_gps_locate
 import com.example.shared.resources.map_center_x
 import com.example.shared.resources.search_this_area

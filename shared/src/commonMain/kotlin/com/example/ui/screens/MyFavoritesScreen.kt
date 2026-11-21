@@ -70,7 +70,8 @@ fun MyFavoritesScreen(
     // newly admin-added category groups correctly too, not just the original 4.
     val groupedSavedSpaces = savedSpaces
         .groupBy { it.spaceCategoryName ?: it.spaceType.displayName }
-        .toSortedMap()
+        // Same order as the old toSortedMap() (natural String order), kept in a LinkedHashMap.
+        .toList().sortedBy { it.first }.toMap()
 
     Scaffold(
         // Nested inside the app-shell Scaffold's already-inset content area — its
@@ -110,7 +111,7 @@ fun MyFavoritesScreen(
                             text = "$category (${spacesInCategory.size})",
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(top = if (category == groupedSavedSpaces.firstKey()) 0.dp else Spacing.sm)
+                            modifier = Modifier.padding(top = if (category == groupedSavedSpaces.keys.first()) 0.dp else Spacing.sm)
                         )
                     }
                     items(spacesInCategory, key = { it.id }) { space ->

@@ -15,14 +15,14 @@ import com.example.util.MapCamera
 // Milestone C3 (iOS): GMSMapView through a Swift bridge, key MAPS_IOS_API_KEY. Until then the camera only moves on request.
 @Stable
 actual class PlatformMapState(initial: MapCamera) {
-    actual var camera: MapCamera by mutableStateOf(initial)
-        private set
+    private var cameraState by mutableStateOf(initial)
+    actual val camera: MapCamera get() = cameraState
     actual val isMoving: Boolean = false
     actual val movedByGesture: Boolean = false
     actual val visibleBounds: GeoBounds? = null
 
     actual suspend fun animateTo(target: GeoPoint, zoom: Float?) {
-        camera = camera.copy(target = target, zoom = zoom ?: camera.zoom)
+        cameraState = cameraState.copy(target = target, zoom = zoom ?: cameraState.zoom)
     }
 }
 
