@@ -34,8 +34,8 @@ class BillingController(
 
     val playBillingProducts = MutableStateFlow<List<com.android.billingclient.api.ProductDetails>>(emptyList())
     /** The same products as the shared [com.example.data.billing.PlayProduct] model the screens and offer texts read. */
-    val playProducts = MutableStateFlow<List<com.example.data.billing.PlayProduct>>(emptyList())
-    val playBillingConnected = MutableStateFlow(false)
+    override val playProducts = MutableStateFlow<List<com.example.data.billing.PlayProduct>>(emptyList())
+    override val playBillingConnected = MutableStateFlow(false)
     val playActivePurchases = MutableStateFlow<List<com.android.billingclient.api.Purchase>>(emptyList())
 
     // Holds a deferred launch when billing was not yet connected at the time the user tapped
@@ -48,6 +48,7 @@ class BillingController(
     private var _pendingRetryAtMillis = 0L
 
     fun initPlayBilling(context: Context) {
+        lastContext = context.applicationContext
         if (playBillingManager == null) {
             val manager = com.example.data.billing.PlayBillingManager(context.applicationContext, scope)
             playBillingManager = manager
@@ -174,13 +175,13 @@ class BillingController(
     }
 
     private val _billingError = MutableStateFlow<String?>(null)
-    val billingError: StateFlow<String?> = _billingError.asStateFlow()
+    override val billingError: StateFlow<String?> = _billingError.asStateFlow()
 
     private val _billingSuccess = MutableStateFlow<String?>(null)
-    val billingSuccess: StateFlow<String?> = _billingSuccess.asStateFlow()
+    override val billingSuccess: StateFlow<String?> = _billingSuccess.asStateFlow()
 
     private val _billingActivationPending = MutableStateFlow(false)
-    val billingActivationPending: StateFlow<Boolean> = _billingActivationPending.asStateFlow()
+    override val billingActivationPending: StateFlow<Boolean> = _billingActivationPending.asStateFlow()
     private var billingActivationTimeoutJob: kotlinx.coroutines.Job? = null
 
     // Tracks the expiry the user had BEFORE launching a Play billing flow so the
@@ -188,12 +189,12 @@ class BillingController(
     // "profile updated for some other reason (existing subscriber)".
     private val _billingPriorExpiryMillis = MutableStateFlow<Long?>(null)
 
-    fun clearBillingMessages() {
+    override fun clearBillingMessages() {
         _billingError.value = null
         _billingSuccess.value = null
     }
 
-    fun dismissBillingActivationPending() {
+    override fun dismissBillingActivationPending() {
         billingActivationTimeoutJob?.cancel()
         _billingActivationPending.value = false
     }
@@ -216,8 +217,8 @@ class BillingController(
 
     private val _kycPromptAfterActivation = MutableStateFlow(false)
     /** True once a plan activates for someone who can't host yet (e.g. a promo redemption). */
-    val kycPromptAfterActivation: StateFlow<Boolean> = _kycPromptAfterActivation.asStateFlow()
-    fun consumeKycPromptAfterActivation() { _kycPromptAfterActivation.value = false }
+    override val kycPromptAfterActivation: StateFlow<Boolean> = _kycPromptAfterActivation.asStateFlow()
+    override fun consumeKycPromptAfterActivation() { _kycPromptAfterActivation.value = false }
 
     private suspend fun onPlanActivated(message: String) {
         awaitingServerActivation = false
@@ -505,6 +506,36 @@ class BillingController(
                 android.util.Log.e("ProHostVM", "Operation failed", e)
             }
         }
+    }
+
+    // ---- AppBilling over a PurchaseHost (the Activity): the same calls the screens made with their Activity/Context.
+    private var lastContext: Context? = null
+
+    override val activePurchases: StateFlow<List<com.example.ui.viewmodel.ActivePurchase>> =
+        playActivePurchases.map { list -> list.map { com.example.ui.viewmodel.ActivePurchase(it.products, it.isAutoRenewing) } }
+            .stateIn(scope, SharingStarted.Eagerly, emptyList())
+
+    private fun PurchaseHost.activity(): android.app.Activity? = platform as? android.app.Activity
+
+    override fun launchSubscription(host: PurchaseHost, basePlanId: String, offerChoice: com.example.data.billing.OfferChoice) {
+        host.activity()?.let { launchGooglePaySubscription(it, basePlanId, offerChoice) }
+    }
+    override fun launchPromoCheckout(host: PurchaseHost, promo: com.example.data.billing.PlayPromo.PromoOffer) {
+        host.activity()?.let { launchPromoCheckout(it, promo) }
+    }
+    override fun openManageSubscriptions(host: PurchaseHost, productId: String?) {
+        host.activity()?.let { openManageSubscriptions(it, productId) }
+    }
+    override fun openPlayOrderHistory(host: PurchaseHost) { host.activity()?.let { openPlayOrderHistory(it) } }
+    override fun openRedeemPromoCode(host: PurchaseHost, code: String?) { host.activity()?.let { openRedeemPromoCode(it, code) } }
+    override fun showBillingInAppMessages(host: PurchaseHost) { host.activity()?.let { showBillingInAppMessages(it) } }
+    override fun refreshPurchases(host: PurchaseHost?, userInitiated: Boolean, forceServerSync: Boolean) {
+        val ctx = (host?.platform as? Context) ?: lastContext ?: return
+        refreshPlayPurchases(ctx, userInitiated, forceServerSync)
+    }
+    override fun retryBillingQuery(host: PurchaseHost?) {
+        val ctx = (host?.platform as? Context) ?: lastContext ?: return
+        retryBillingQuery(ctx)
     }
 
     override fun endConnection() {
