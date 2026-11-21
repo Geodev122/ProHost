@@ -20,26 +20,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-enum class UpdateState {
-    IDLE,
-    CHECKING,
-    UPDATE_AVAILABLE_FLEXIBLE,
-    UPDATE_AVAILABLE_IMMEDIATE,
-    DOWNLOADING,
-    DOWNLOADED,
-    FAILED,
-    UP_TO_DATE
-}
-
-class InAppUpdateManager(private val activity: ComponentActivity) {
+class InAppUpdateManager(private val activity: ComponentActivity) : AppUpdater {
     private val tag = "InAppUpdateManager"
     private var appUpdateManager: AppUpdateManager? = null
 
     private val _updateState = MutableStateFlow(UpdateState.IDLE)
-    val updateState: StateFlow<UpdateState> = _updateState.asStateFlow()
+    override val updateState: StateFlow<UpdateState> = _updateState.asStateFlow()
 
     private val _downloadProgress = MutableStateFlow(0f)
-    val downloadProgress: StateFlow<Float> = _downloadProgress.asStateFlow()
+    override val downloadProgress: StateFlow<Float> = _downloadProgress.asStateFlow()
 
     private var appUpdateInfo: AppUpdateInfo? = null
 
@@ -97,7 +86,7 @@ class InAppUpdateManager(private val activity: ComponentActivity) {
      * Checks for available updates from Google Play Store.
      * @param preferImmediate If true or if updatePriority >= 4, prompts immediate fullscreen update.
      */
-    fun checkForAppUpdate(preferImmediate: Boolean = false) {
+    override fun checkForAppUpdate(preferImmediate: Boolean) {
         val manager = appUpdateManager ?: return
         _updateState.value = UpdateState.CHECKING
 
@@ -171,7 +160,7 @@ class InAppUpdateManager(private val activity: ComponentActivity) {
     /**
      * Trigger completion and restart of the app after flexible download completes
      */
-    fun completeUpdate() {
+    override fun completeUpdate() {
         val manager = appUpdateManager ?: return
         try {
             manager.completeUpdate()

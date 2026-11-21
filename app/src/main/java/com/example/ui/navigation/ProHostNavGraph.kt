@@ -42,7 +42,6 @@ import com.example.ui.components.drawer.SpecialistDrawerContent
 import com.example.ui.screens.*
 import com.example.ui.viewmodel.DiscoveryViewModel
 import com.example.ui.viewmodel.ProHostViewModel
-import com.example.util.InAppUpdateManager
 import com.example.util.UpdateState
 import kotlinx.coroutines.launch
 
@@ -134,7 +133,7 @@ fun ProHostAppRoot(
     deepLinkSpaceId: String? = null,
     deepLinkRoomId: String? = null,
     emailVerifiedDeepLink: Boolean = false,
-    inAppUpdateManager: InAppUpdateManager? = null,
+    inAppUpdateManager: com.example.util.AppUpdater? = null,
     viewModel: ProHostViewModel = viewModel()
 ) {
     val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext

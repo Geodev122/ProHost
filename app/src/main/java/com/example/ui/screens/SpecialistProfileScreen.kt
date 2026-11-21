@@ -46,7 +46,6 @@ import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ProHostViewModel
-import com.example.util.InAppUpdateManager
 import com.example.util.UpdateState
 import kotlinx.coroutines.launch
 import com.example.shared.resources.Res
@@ -139,7 +138,7 @@ import com.example.ui.util.sharedText
 @Composable
 fun SpecialistProfileScreen(
     viewModel: ProHostViewModel,
-    inAppUpdateManager: InAppUpdateManager? = null,
+    inAppUpdateManager: com.example.util.AppUpdater? = null,
     onNavigateToTab: (String) -> Unit = {},
     // Profile › More: what the drawer used to offer specialists (they have no drawer).
     onOpenLegal: (() -> Unit)? = null,
