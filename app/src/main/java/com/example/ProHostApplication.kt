@@ -43,6 +43,7 @@ class ProHostApplication : Application() {
         com.example.data.repository.RepositoryDefaults.firestore = { com.example.data.firestore.FirestoreService.getInstance() }
         com.example.data.repository.RepositoryDefaults.functions = { com.example.data.auth.FirebaseFunctionsClient() }
         com.example.data.repository.RepositoryDefaults.storage = { com.example.data.storage.FirebaseStorageService.getInstance() }
+        com.example.ui.viewmodel.BillingDefaults.create = { scope, repo, user, draft -> com.example.ui.viewmodel.BillingController(scope, repo, user, draft) }
         com.example.data.auth.SessionAuth.currentUser = { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.toSignedInUser() }
         com.example.data.auth.SessionAuth.refreshIdToken = { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.getIdToken(true)?.await() }
         com.example.data.auth.SessionAuth.signOut = { com.google.firebase.auth.FirebaseAuth.getInstance().signOut() }

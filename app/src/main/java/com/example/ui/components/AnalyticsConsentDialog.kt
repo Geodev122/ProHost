@@ -10,7 +10,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.analytics.AnalyticsConsent
 import com.example.shared.resources.Res
@@ -31,15 +30,14 @@ import com.example.ui.util.sharedText
  */
 @Composable
 fun AnalyticsConsentDialog() {
-    val context = LocalContext.current
     SystemStylePermissionDialog(
         icon = Icons.Default.Insights,
         title = permissionTitle(sharedText("share_usage_analytics_2")),
         message = appString(Res.string.google_analytics_shows_us_which_screens_se) +
             appString(Res.string.prohost_better_reports_carry_your_prohost) +
             appString(Res.string.advertising_id_and_no_ads_you_can_change_t),
-        onAllow = { AnalyticsConsent.grant(context) },
-        onDeny = { AnalyticsConsent.deny(context) },
+        onAllow = { AnalyticsConsent.grant() },
+        onDeny = { AnalyticsConsent.deny() },
         dismissible = false,
         extra = {
             TextButton(
@@ -56,7 +54,6 @@ fun AnalyticsConsentDialog() {
 /** Profile › Privacy switch to grant or withdraw analytics consent at any time. */
 @Composable
 fun AnalyticsConsentToggle(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
     val state by AnalyticsConsent.state.collectAsState()
     ListItem(
         modifier = modifier,
@@ -68,7 +65,7 @@ fun AnalyticsConsentToggle(modifier: Modifier = Modifier) {
             Switch(
                 checked = state == com.example.analytics.ConsentState.GRANTED,
                 onCheckedChange = { on ->
-                    if (on) AnalyticsConsent.grant(context) else AnalyticsConsent.deny(context)
+                    if (on) AnalyticsConsent.grant() else AnalyticsConsent.deny()
                 }
             )
         }

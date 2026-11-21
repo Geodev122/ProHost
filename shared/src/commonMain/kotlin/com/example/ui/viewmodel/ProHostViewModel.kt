@@ -257,8 +257,7 @@ class ProHostViewModel(
     val needsEmailVerification: StateFlow<Boolean> = _needsEmailVerification.asStateFlow()
 
     /** Screenshot tests only: show Profile's "Verify your email" reminder. */
-    @androidx.annotation.VisibleForTesting
-    internal fun showEmailVerificationReminderForTest() { _needsEmailVerification.value = true }
+    fun showEmailVerificationReminderForTest() { _needsEmailVerification.value = true }
 
     /**
      * On app resume: reloads the Firebase user; once the person tapped the verification link, the
@@ -319,7 +318,8 @@ class ProHostViewModel(
     }
 
     /** Google Play Billing (Premium screen, Profile link, app-resume hooks). */
-    val billing = BillingController(viewModelScope, repository, currentUser, pendingAutoPublishDraftId)
+    /** Android: BillingController (the app reads it as `viewModel.billing`). */
+    val platformBilling: AppBilling = BillingDefaults.create(viewModelScope, repository, currentUser, pendingAutoPublishDraftId)
 
 
     // payBookingViaWhish (booking rent settlement inside the app) is gone —
@@ -353,7 +353,7 @@ class ProHostViewModel(
         val trimmed = name.trim()
         if (trimmed.isBlank()) return
         val item = SchemaItem(
-            id = "USR-" + category.take(3) + "-" + System.currentTimeMillis().toString().takeLast(6),
+            id = "USR-" + category.take(3) + "-" + com.example.util.nowMillis().toString().takeLast(6),
             name = trimmed,
             category = category,
             isSystemDefault = false,
@@ -409,7 +409,7 @@ class ProHostViewModel(
     private fun hasActivePackage(user: AppUser?): Boolean {
         if (user?.ownerPackageId == null) return false
         val expiry = user.ownerPackageExpiryMillis
-        return expiry == null || expiry > System.currentTimeMillis()
+        return expiry == null || expiry > com.example.util.nowMillis()
     }
 
     // An owner had no in-app way to correct a mistake in, or take down, their own
@@ -509,7 +509,7 @@ class ProHostViewModel(
         occupancyListeners.values.forEach { it.remove() }
         occupancyListeners.clear()
         super.onCleared()
-        billing.endConnection()
+        platformBilling.endConnection()
     }
 
     fun logout() {

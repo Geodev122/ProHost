@@ -26,7 +26,7 @@ class BillingController(
     private val repository: ProHostRepository,
     private val currentUser: StateFlow<AppUser?>,
     private val pendingAutoPublishDraftId: StateFlow<String?>
-) {
+) : AppBilling {
 
     // --- Google Play Billing & Google Pay Integration ---
     private var playBillingManager: com.example.data.billing.PlayBillingManager? = null
@@ -503,7 +503,7 @@ class BillingController(
         }
     }
 
-    fun endConnection() {
+    override fun endConnection() {
         playBillingManager?.endConnection()
     }
 }

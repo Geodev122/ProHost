@@ -1,6 +1,7 @@
 package com.example.analytics
 
-import android.content.Context
+import com.example.util.KeyValueStores
+import com.example.util.nowMillis
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,32 +26,31 @@ object AnalyticsConsent {
     var decidedAtMillis: Long = 0L
         private set
 
-    fun load(context: Context) {
-        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val version = prefs.getString(KEY_VERSION, null)
-        val stored = prefs.getString(KEY_STATE, null)
+    fun load() {
+        val prefs = KeyValueStores.open(PREFS)
+        val version = prefs.getString(KEY_VERSION)
+        val stored = prefs.getString(KEY_STATE)
             ?.let { runCatching { ConsentState.valueOf(it) }.getOrNull() }
         _state.value = if (version == POLICY_VERSION && stored != null) stored else ConsentState.UNKNOWN
         decidedAtMillis = prefs.getLong(KEY_AT, 0L)
         AnalyticsTracker.applyConsent(_state.value == ConsentState.GRANTED, reset = false)
     }
 
-    fun grant(context: Context) {
-        set(context, ConsentState.GRANTED)
+    fun grant() {
+        set(ConsentState.GRANTED)
         // First event after opting in (denials are never sent: nothing is collected then).
         AnalyticsTracker.analyticsConsent(granted = true)
     }
 
-    fun deny(context: Context) = set(context, ConsentState.DENIED)
+    fun deny() = set(ConsentState.DENIED)
 
-    private fun set(context: Context, newState: ConsentState) {
+    private fun set(newState: ConsentState) {
         val wasGranted = _state.value == ConsentState.GRANTED
-        decidedAtMillis = System.currentTimeMillis()
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putString(KEY_STATE, newState.name)
-            .putString(KEY_VERSION, POLICY_VERSION)
-            .putLong(KEY_AT, decidedAtMillis)
-            .apply()
+        decidedAtMillis = nowMillis()
+        KeyValueStores.open(PREFS).put(
+            strings = mapOf(KEY_STATE to newState.name, KEY_VERSION to POLICY_VERSION),
+            longs = mapOf(KEY_AT to decidedAtMillis)
+        )
         _state.value = newState
         AnalyticsTracker.applyConsent(newState == ConsentState.GRANTED, reset = wasGranted && newState == ConsentState.DENIED)
     }

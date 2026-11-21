@@ -15,6 +15,7 @@ object AndroidAnalytics {
             }
         }
         if (AnalyticsTracker.sink == null) AnalyticsTracker.sink = FirebaseAnalyticsSink(context)
-        AnalyticsConsent.load(context)
+        com.example.util.AndroidKeyValueStore.install(context)
+        AnalyticsConsent.load()
     }
 }

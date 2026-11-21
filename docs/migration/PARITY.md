@@ -14,9 +14,8 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | Unit (file) | Lines | Class | Seams / reasons | Goldens | Tests | Android diff = 0 | iOS sheet | Status |
 |---|---|---|---|---|---|---|---|---|
 | `MainActivity.kt` | 169 | C | Context removal, PlatformActions |  |  | ☐ | ☐ | todo |
-| `ProHostApplication.kt` | 120 | C | Firebase gateways, KeyValueStore, Logger |  |  | ☐ | ☐ | todo |
-| `analytics/AnalyticsConsent.kt` | 58 | B | Context removal, KeyValueStore |  |  | ☐ | ☐ | todo |
-| `analytics/AndroidAnalytics.kt` | 21 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
+| `ProHostApplication.kt` | 131 | C | Firebase gateways, KeyValueStore, Logger |  |  | ☐ | ☐ | todo |
+| `analytics/AndroidAnalytics.kt` | 22 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `analytics/FirebaseAnalyticsSink.kt` | 60 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `data/auth/AdminDirectoryModels.kt` | 246 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `data/auth/AndroidCallableFailures.kt` | 19 | A1 | Firebase gateways |  |  | ☐ | ☐ | todo |
@@ -30,14 +29,14 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `data/billing/PlayBillingSecurity.kt` | 98 | C | Logger |  |  | ☐ | ☐ | todo |
 | `data/billing/PlayOfferText.kt` | 289 | B | SubscriptionStore |  |  | ☐ | ☐ | todo |
 | `data/billing/PlayPromo.kt` | 92 | B | SubscriptionStore |  |  | ☐ | ☐ | todo |
-| `data/firestore/FirestoreService.kt` | 821 | C | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
+| `data/firestore/FirestoreService.kt` | 832 | C | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
 | `data/storage/FirebaseStorageService.kt` | 327 | C | Context removal, Firebase gateways, ImageCodec/Pdf, Logger, MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
 | `legal/LegalContent.kt` | 1163 | A1 | — |  |  | ☐ | ☐ | todo |
 | `legal/LegalPdfGenerator.kt` | 124 | C | Context removal, ImageCodec/Pdf |  |  | ☐ | ☐ | todo |
 | `legal/LegalPdfs.kt` | 30 | B | Context removal, ImageCodec/Pdf |  |  | ☐ | ☐ | todo |
 | `service/ProHostMessagingService.kt` | 200 | C | Context removal, Firebase gateways, Logger, PlatformActions |  |  | ☐ | ☐ | todo |
 | `ui/components/AdminGrantAccessCard.kt` | 237 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
-| `ui/components/AnalyticsConsentDialog.kt` | 77 | B | Context removal, MediaPicker(PickedFile), PlatformActions |  |  | ☐ | ☐ | todo |
+| `ui/components/AnalyticsConsentDialog.kt` | 74 | B | MediaPicker(PickedFile), PlatformActions |  |  | ☐ | ☐ | todo |
 | `ui/components/CancelAcceptedBookingDialog.kt` | 126 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/components/ChangePriceSheet.kt` | 473 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/components/CommonComponents.kt` | 1647 | A2 | Context removal, java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
@@ -79,7 +78,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/components/dialogs/SystemDebuggerDialog.kt` | 373 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/components/drawer/AppDrawerContent.kt` | 478 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/components/drawer/DrawerIdentityCard.kt` | 285 | A1 | — |  |  | ☐ | ☐ | todo |
-| `ui/navigation/ProHostNavGraph.kt` | 1021 | B | BackHandler, Context removal |  |  | ☐ | ☐ | todo |
+| `ui/navigation/ProHostNavGraph.kt` | 1022 | B | BackHandler, Context removal |  |  | ☐ | ☐ | todo |
 | `ui/preview/AppScreensPreview.kt` | 492 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/screens/AdminAnalyticsScreen.kt` | 520 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/screens/AdminConsoleScreen.kt` | 486 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
@@ -94,10 +93,10 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/screens/OwnerHubScreen.kt` | 1051 | B | Context removal, Haptics, PlatformActions |  |  | ☐ | ☐ | todo |
 | `ui/screens/OwnerRentalRequestsScreen.kt` | 117 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/screens/OwnerRentingProgressScreen.kt` | 535 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
-| `ui/screens/OwnerSubscriptionsScreen.kt` | 1222 | B | Context removal, Haptics |  |  | ☐ | ☐ | todo |
+| `ui/screens/OwnerSubscriptionsScreen.kt` | 1223 | B | Context removal, Haptics |  |  | ☐ | ☐ | todo |
 | `ui/screens/RoomCards.kt` | 611 | A1 | Context removal |  |  | ☐ | ☐ | todo |
 | `ui/screens/SpaceDetailsScreen.kt` | 1316 | A1 | Context removal |  |  | ☐ | ☐ | todo |
-| `ui/screens/SpecialistProfileScreen.kt` | 1223 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
+| `ui/screens/SpecialistProfileScreen.kt` | 1224 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/screens/SplashScreen.kt` | 30 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/screens/admin/AdminBillingRescue.kt` | 268 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/screens/admin/AdminDemoTab.kt` | 223 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
@@ -121,10 +120,11 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/util/SupportContact.kt` | 26 | B | MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
 | `ui/util/UiText.kt` | 45 | B | — |  |  | ☐ | ☐ | todo |
 | `ui/viewmodel/AdminViewModel.kt` | 1309 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
+| `ui/viewmodel/BillingAccess.kt` | 6 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/viewmodel/BillingController.kt` | 525 | C | Context removal, Firebase gateways, MediaPicker(PickedFile), Messenger, PlatformActions, SubscriptionStore |  |  | ☐ | ☐ | todo |
-| `ui/viewmodel/ProHostViewModel.kt` | 1355 | B | Clipboard, Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `util/AndroidAppLog.kt` | 18 | B | Logger |  |  | ☐ | ☐ | todo |
 | `util/AndroidFiles.kt` | 32 | B | Context removal, MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
+| `util/AndroidKeyValueStore.kt` | 24 | B | Context removal, KeyValueStore |  |  | ☐ | ☐ | todo |
 | `util/AppSystemDebugger.kt` | 387 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `util/FileUtils.kt` | 17 | B | Context removal, MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
 | `util/FriendlyErrorMessage.kt` | 27 | A1 | Firebase gateways |  |  | ☐ | ☐ | todo |
@@ -138,6 +138,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 35 / 9271, A2 18 / 9829, B 35 / 9868, C 19 / 4224, X 16 / 6992.
 Automatic class totals (files / lines): A1 34 / 9265, A2 18 / 9828, B 36 / 11257, C 19 / 4202, X 16 / 6992.
 Automatic class totals (files / lines): A1 35 / 9604, A2 18 / 9828, B 36 / 11257, C 19 / 4198, X 16 / 6992.
 Automatic class totals (files / lines): A1 34 / 9370, A2 18 / 9518, B 38 / 11229, C 19 / 4198, X 16 / 6992.
