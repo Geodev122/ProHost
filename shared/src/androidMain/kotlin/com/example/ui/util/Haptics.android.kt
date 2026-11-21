@@ -9,7 +9,7 @@ import androidx.compose.ui.platform.LocalView
  * (The other haptics in the app use Compose's own `LocalHapticFeedback`, which is already common.)
  */
 @Composable
-fun rememberConfirmHaptic(): () -> Unit {
+actual fun rememberConfirmHaptic(): () -> Unit {
     val view = LocalView.current
     return remember(view) {
         {

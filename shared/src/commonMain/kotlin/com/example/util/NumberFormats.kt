@@ -10,6 +10,9 @@ expect fun formatFixed(value: Double, decimals: Int, grouping: Boolean): String
 /** A translated pattern holding one `%02d` (the hour labels "%02d:00"). Android = String.format with the default locale, as before. */
 expect fun formatTwoDigits(pattern: String, value: Int): String
 
+/** Grouped number in the DEVICE locale (Android `"%,.Nf".format(value)`: Arabic devices get Arabic-Indic digits). */
+expect fun formatGroupedDeviceLocale(value: Double, decimals: Int): String
+
 fun formatTwoDigitsPortable(pattern: String, value: Int): String = pattern.replace("%02d", value.toString().padStart(2, '0'))
 
 /** Pure-Kotlin fixed formatting for platforms without `String.format`: half-up rounding, "," groups, "." decimal point. */

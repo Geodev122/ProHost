@@ -34,7 +34,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -100,7 +99,6 @@ fun SpaceDetailsScreen(
     onViewRequest: (bookingId: String) -> Unit = {},
     onBack: () -> Unit
 ) {
-    val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()
     val allSpaces by viewModel.spaces.collectAsState()
     val liveSpace = allSpaces.find { it.id == space.id } ?: space
@@ -209,7 +207,7 @@ fun SpaceDetailsScreenContent(
     onBack: () -> Unit
 ) {
     val liveSpace = space
-    val context = LocalContext.current
+    val context = coil3.compose.LocalPlatformContext.current
     val coroutineScope = rememberCoroutineScope()
     val currentUser by viewModel.currentUser.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -1265,7 +1263,7 @@ fun SpaceDetailsScreenContent(
 /** "Request sent": the two next steps — see it in My Rentals, or message the host on WhatsApp. */
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-internal fun RequestSentSheet(hasWhatsApp: Boolean, onDismiss: () -> Unit, onViewRequest: () -> Unit, onWhatsApp: () -> Unit) {
+fun RequestSentSheet(hasWhatsApp: Boolean, onDismiss: () -> Unit, onViewRequest: () -> Unit, onWhatsApp: () -> Unit) {
     ProHostBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier

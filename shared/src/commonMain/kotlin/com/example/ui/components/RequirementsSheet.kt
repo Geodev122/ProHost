@@ -1,13 +1,5 @@
 package com.example.ui.components
 
-import com.example.util.toPickedFile
-import com.example.ui.util.uiText
-import com.example.R
-import androidx.compose.ui.res.stringResource
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -45,6 +37,21 @@ import com.example.ui.theme.Spacing
 import com.example.ui.theme.proColors
 import com.example.ui.viewmodel.ProHostViewModel
 import kotlinx.coroutines.launch
+import com.example.shared.resources.Res
+import com.example.shared.resources.add_a_photo
+import com.example.shared.resources.almost_there
+import com.example.shared.resources.city
+import com.example.shared.resources.country_and_city
+import com.example.shared.resources.done
+import com.example.shared.resources.profile_photo
+import com.example.shared.resources.save_address
+import com.example.shared.resources.saving
+import com.example.shared.resources.saving_your_photo
+import com.example.shared.resources.to_do
+import com.example.shared.resources.uploading
+import com.example.shared.resources.whatsapp_number
+import com.example.ui.util.appString
+import com.example.ui.util.sharedText
 
 /**
  * The one verification flow. Booking ([AppUser.canTransact]): a profile photo and a WhatsApp
@@ -111,24 +118,24 @@ fun RequirementsSheet(
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             ProSectionHeader(
-                title = stringResource(R.string.almost_there),
+                title = appString(Res.string.almost_there),
                 subtitle = if (requireAddress) {
-                    uiText(R.string.needed_once_before_you_host_your_chosen_pl)
+                    sharedText("needed_once_before_you_host_your_chosen_pl")
                 } else {
-                    uiText(R.string.hosts_need_these_once_before_your_first_re)
+                    sharedText("hosts_need_these_once_before_your_first_re")
                 },
                 icon = Icons.Default.VerifiedUser
             )
 
             RequirementRow(
                 done = !needsPhoto,
-                title = stringResource(R.string.profile_photo),
-                detail = uiText(R.string.hosts_use_it_to_recognise_who_s_coming)
+                title = appString(Res.string.profile_photo),
+                detail = sharedText("hosts_use_it_to_recognise_who_s_coming")
             )
             if (needsPhoto) {
                 photoError?.let { ProHostAlertBanner(message = it, severity = ProHostAlertSeverity.ERROR) }
                 ProPrimaryButton(
-                    text = if (uploading) stringResource(R.string.uploading) else stringResource(R.string.add_a_photo),
+                    text = if (uploading) appString(Res.string.uploading) else appString(Res.string.add_a_photo),
                     onClick = {
                         pickPhoto()
                     },
@@ -141,8 +148,8 @@ fun RequirementsSheet(
 
             RequirementRow(
                 done = !needsPhone,
-                title = stringResource(R.string.whatsapp_number),
-                detail = uiText(R.string.so_the_host_can_reach_you_about_your_booki)
+                title = appString(Res.string.whatsapp_number),
+                detail = sharedText("so_the_host_can_reach_you_about_your_booki")
             )
             if (needsPhone) {
                 WhatsAppNumberSection(
@@ -155,8 +162,8 @@ fun RequirementsSheet(
             if (requireAddress) {
                 RequirementRow(
                     done = !needsAddress,
-                    title = stringResource(R.string.country_and_city),
-                    detail = uiText(R.string.shown_on_your_listings_so_specialists_know)
+                    title = appString(Res.string.country_and_city),
+                    detail = sharedText("shown_on_your_listings_so_specialists_know")
                 )
                 if (needsAddress) {
                     CountryDropdownField(
@@ -167,13 +174,13 @@ fun RequirementsSheet(
                     InputField(
                         value = addressCity,
                         onValueChange = { addressCity = it },
-                        label = stringResource(R.string.city),
+                        label = appString(Res.string.city),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     addressError?.let { ProHostAlertBanner(message = it, severity = ProHostAlertSeverity.ERROR) }
                     ProPrimaryButton(
-                        text = if (savingAddress) stringResource(R.string.saving) else stringResource(R.string.save_address),
+                        text = if (savingAddress) appString(Res.string.saving) else appString(Res.string.save_address),
                         onClick = {
                             savingAddress = true
                             addressError = null
@@ -192,7 +199,7 @@ fun RequirementsSheet(
             if (uploading) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                    Text(stringResource(R.string.saving_your_photo), style = MaterialTheme.typography.bodySmall)
+                    Text(appString(Res.string.saving_your_photo), style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
@@ -204,7 +211,7 @@ private fun RequirementRow(done: Boolean, title: String, detail: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Icon(
             Icons.Default.CheckCircle,
-            contentDescription = if (done) stringResource(R.string.done) else stringResource(R.string.to_do),
+            contentDescription = if (done) appString(Res.string.done) else appString(Res.string.to_do),
             tint = if (done) MaterialTheme.proColors.success else MaterialTheme.colorScheme.outlineVariant,
             modifier = Modifier.size(20.dp)
         )

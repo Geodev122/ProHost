@@ -266,7 +266,7 @@ private fun DivisionPerformanceCard(
         acceptedBookings.filter { if (isWholeSpace) it.subdivisionId == null else it.subdivisionId == division.id }
     }
     val (thisMonthYield, lastMonthYield) = remember(divisionBookings) {
-        val (startOfThisMonth, startOfLastMonth) = com.example.ui.util.MonthBoundaries.manage(System.currentTimeMillis())
+        val (startOfThisMonth, startOfLastMonth) = com.example.ui.util.MonthBoundaries.manage(com.example.util.nowMillis())
         val thisMonth = divisionBookings.filter { it.createdAt >= startOfThisMonth }.sumOf { it.totalAmountUsd }
         val lastMonth = divisionBookings.filter {
             it.createdAt >= startOfLastMonth && it.createdAt < startOfThisMonth
@@ -340,7 +340,7 @@ private fun DivisionPerformanceCard(
                     Column(modifier = Modifier.padding(Spacing.sm)) {
                         Text(appString(Res.string.yield_this_month), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
-                            "$${"%,.0f".format(thisMonthYield)}",
+                            "$${com.example.util.formatGroupedDeviceLocale(thisMonthYield, 0)}",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold
                         )
