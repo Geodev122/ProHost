@@ -31,11 +31,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.R
 import com.example.ui.theme.Spacing
 import com.example.ui.viewmodel.ProHostViewModel
 import com.example.shared.resources.Res
@@ -53,15 +51,29 @@ import com.example.shared.resources.report_why
 import com.example.shared.resources.send_report
 import com.example.shared.resources.unblock
 import com.example.ui.util.appString
+import com.example.shared.resources.block_this_host
+import com.example.shared.resources.block_this_person
+import com.example.shared.resources.report_also_block_host
+import com.example.shared.resources.report_also_block_person
+import com.example.shared.resources.report_reason_harassment
+import com.example.shared.resources.report_reason_misleading
+import com.example.shared.resources.report_reason_offensive
+import com.example.shared.resources.report_reason_other
+import com.example.shared.resources.report_reason_scam
+import com.example.shared.resources.report_reason_unsafe
+import com.example.shared.resources.report_sent_body_host
+import com.example.shared.resources.report_sent_body_person
+import com.example.shared.resources.report_this_listing
+import com.example.shared.resources.report_this_person
 
 /** Reasons as the server knows them (`functions/src/reports/reportRules.ts` REPORT_REASONS), with their labels. */
 private val REPORT_REASONS = listOf(
-    "MISLEADING" to R.string.report_reason_misleading,
-    "SCAM" to R.string.report_reason_scam,
-    "OFFENSIVE" to R.string.report_reason_offensive,
-    "UNSAFE" to R.string.report_reason_unsafe,
-    "HARASSMENT" to R.string.report_reason_harassment,
-    "OTHER" to R.string.report_reason_other,
+    "MISLEADING" to Res.string.report_reason_misleading,
+    "SCAM" to Res.string.report_reason_scam,
+    "OFFENSIVE" to Res.string.report_reason_offensive,
+    "UNSAFE" to Res.string.report_reason_unsafe,
+    "HARASSMENT" to Res.string.report_reason_harassment,
+    "OTHER" to Res.string.report_reason_other,
 )
 
 /**
@@ -83,12 +95,12 @@ fun ReportBlockMenu(
 
     DropdownMenu(expanded = menuExpanded, onDismissRequest = onMenuDismiss) {
         DropdownMenuItem(
-            text = { Text(stringResource(if (isListing) R.string.report_this_listing else R.string.report_this_person)) },
+            text = { Text(appString(if (isListing) Res.string.report_this_listing else Res.string.report_this_person)) },
             onClick = { onMenuDismiss(); showReport = true },
             leadingIcon = { Icon(Icons.Default.Flag, null) }
         )
         DropdownMenuItem(
-            text = { Text(stringResource(if (isListing) R.string.block_this_host else R.string.block_this_person)) },
+            text = { Text(appString(if (isListing) Res.string.block_this_host else Res.string.block_this_person)) },
             onClick = { onMenuDismiss(); showBlock = true },
             leadingIcon = { Icon(Icons.Default.Block, null) }
         )
@@ -125,7 +137,7 @@ fun ReportBlockFlows(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.lg).padding(bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
-                Text(stringResource(if (isListing) R.string.report_this_listing else R.string.report_this_person), style = MaterialTheme.typography.titleLarge)
+                Text(appString(if (isListing) Res.string.report_this_listing else Res.string.report_this_person), style = MaterialTheme.typography.titleLarge)
                 Text(appString(Res.string.report_why), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Column {
                     REPORT_REASONS.forEach { (key, label) ->
@@ -135,7 +147,7 @@ fun ReportBlockFlows(
                             horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             RadioButton(selected = reason == key, onClick = null)
-                            Text(stringResource(label), style = MaterialTheme.typography.bodyLarge)
+                            Text(appString(label), style = MaterialTheme.typography.bodyLarge)
                         }
                     }
                 }
@@ -153,7 +165,7 @@ fun ReportBlockFlows(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     Checkbox(checked = alsoBlock, onCheckedChange = null)
-                    Text(stringResource(if (isListing) R.string.report_also_block_host else R.string.report_also_block_person), style = MaterialTheme.typography.bodyMedium)
+                    Text(appString(if (isListing) Res.string.report_also_block_host else Res.string.report_also_block_person), style = MaterialTheme.typography.bodyMedium)
                 }
                 ProPrimaryButton(
                     text = appString(Res.string.send_report),
@@ -177,7 +189,7 @@ fun ReportBlockFlows(
         AlertDialog(
             onDismissRequest = { showSent = false },
             title = { Text(appString(Res.string.report_sent)) },
-            text = { Text(stringResource(if (isListing) R.string.report_sent_body_host else R.string.report_sent_body_person)) },
+            text = { Text(appString(if (isListing) Res.string.report_sent_body_host else Res.string.report_sent_body_person)) },
             confirmButton = { TextButton(onClick = { showSent = false }) { Text(appString(Res.string.done)) } }
         )
     }
@@ -187,7 +199,7 @@ fun ReportBlockFlows(
         AlertDialog(
             onDismissRequest = { if (!blocking) onBlockClose() },
             title = {
-                Text(if (target.name.isBlank()) stringResource(if (isListing) R.string.block_this_host else R.string.block_this_person) + "?"
+                Text(if (target.name.isBlank()) appString(if (isListing) Res.string.block_this_host else Res.string.block_this_person) + "?"
                     else appString(Res.string.block_x_question, target.name))
             },
             text = { Text(appString(Res.string.block_explainer)) },

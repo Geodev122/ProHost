@@ -37,11 +37,9 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `service/ProHostMessagingService.kt` | 200 | C | Context removal, Firebase gateways, Logger, PlatformActions |  |  | ☐ | ☐ | todo |
 | `ui/components/AdminGrantAccessCard.kt` | 237 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/components/AnalyticsConsentDialog.kt` | 74 | B | MediaPicker(PickedFile), PlatformActions |  |  | ☐ | ☐ | todo |
-| `ui/components/ChangePriceSheet.kt` | 473 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/components/CreateListingDialog.kt` | 1563 | B | BackHandler, Context removal, Location/Geocoder, MediaPicker(PickedFile), MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
 | `ui/components/DateRangePickerRow.kt` | 115 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/components/DateSlotPicker.kt` | 521 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
-| `ui/components/DivisionCards.kt` | 189 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/components/DocumentPickerField.kt` | 206 | B | Context removal, MediaPicker(PickedFile), MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
 | `ui/components/EditListingDialog.kt` | 63 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/components/FileExportLauncher.kt` | 56 | B | Context removal, MediaPicker(PickedFile), MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
@@ -57,7 +55,6 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/components/PhoneNumberHint.kt` | 93 | C | Context removal, Logger, MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
 | `ui/components/PromoCountdownCard.kt` | 169 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/components/RentalBookingDialog.kt` | 598 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
-| `ui/components/ReportBlock.kt` | 234 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/components/RequirementsSheet.kt` | 217 | B | MediaPicker(PickedFile), MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
 | `ui/components/ResizableBottomSheet.kt` | 64 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/components/SubdivisionForm.kt` | 1015 | B | MediaPicker(PickedFile), MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
@@ -79,7 +76,6 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/screens/OwnerRentalRequestsScreen.kt` | 117 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/screens/OwnerRentingProgressScreen.kt` | 535 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/screens/OwnerSubscriptionsScreen.kt` | 1223 | B | Context removal, Haptics |  |  | ☐ | ☐ | todo |
-| `ui/screens/RoomCards.kt` | 611 | A1 | Context removal |  |  | ☐ | ☐ | todo |
 | `ui/screens/SpaceDetailsScreen.kt` | 1316 | A1 | Context removal |  |  | ☐ | ☐ | todo |
 | `ui/screens/SpecialistProfileScreen.kt` | 1224 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/screens/SplashScreen.kt` | 30 | A1 | — |  |  | ☐ | ☐ | todo |
@@ -91,7 +87,6 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/screens/admin/AdminSchemaTab.kt` | 909 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/screens/admin/AdminSecurityTab.kt` | 376 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/screens/admin/AdminUsersTab.kt` | 647 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
-| `ui/screens/auth/AuthSteps.kt` | 546 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/state/AdminUiState.kt` | 133 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/theme/FontScaleCap.kt` | 20 | C | Context removal |  |  | ☐ | ☐ | todo |
 | `ui/theme/Theme.kt` | 38 | B | — |  |  | ☐ | ☐ | todo |
@@ -122,6 +117,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 19 / 5664, A2 13 / 6197, B 35 / 9868, C 19 / 4227, X 16 / 6992.
 Automatic class totals (files / lines): A1 23 / 7244, A2 14 / 6670, B 35 / 9868, C 19 / 4227, X 16 / 6992.
 Automatic class totals (files / lines): A1 35 / 9271, A2 18 / 9829, B 35 / 9868, C 19 / 4224, X 16 / 6992.
 Automatic class totals (files / lines): A1 34 / 9265, A2 18 / 9828, B 36 / 11257, C 19 / 4202, X 16 / 6992.

@@ -18,7 +18,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -29,7 +28,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.R
 import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.shared.resources.Res
@@ -65,6 +63,22 @@ import com.example.shared.resources.you_example_com
 import com.example.ui.util.appString
 import com.example.ui.util.AppImage
 import com.example.ui.util.appPainter
+import com.example.shared.resources.action_create_account
+import com.example.shared.resources.auth_password_create_title
+import com.example.shared.resources.auth_password_signin_title
+import com.example.shared.resources.auth_providers_create_title
+import com.example.shared.resources.auth_providers_signin_title
+import com.example.shared.resources.creating_account
+import com.example.shared.resources.have_an_account
+import com.example.shared.resources.hide_password
+import com.example.shared.resources.new_password
+import com.example.shared.resources.new_to_prohost
+import com.example.shared.resources.password
+import com.example.shared.resources.send_reset_link
+import com.example.shared.resources.sending
+import com.example.shared.resources.show_password
+import com.example.shared.resources.sign_in
+import com.example.shared.resources.signing_in
 
 /**
  * The staged sign-in path ("intent first", 1.0.45): Welcome → Providers → Email → Password, Forgot → Reset sent, and the
@@ -73,16 +87,16 @@ import com.example.ui.util.appPainter
  */
 
 /** Sign-in providers in display order. Apple is ready but off until its Firebase provider is configured. */
-internal enum class AuthProvider { GOOGLE, APPLE, EMAIL }
+enum class AuthProvider { GOOGLE, APPLE, EMAIL }
 
-internal object AuthProviders {
+object AuthProviders {
     const val APPLE_ENABLED = false
     fun available(): List<AuthProvider> = AuthProvider.entries.filter { it != AuthProvider.APPLE || APPLE_ENABLED }
 }
 
 /** One step: back arrow, title, optional subtitle, error line, content, and the actions pinned at the bottom. */
 @Composable
-internal fun AuthStepScaffold(
+fun AuthStepScaffold(
     title: String,
     subtitle: String? = null,
     onBack: (() -> Unit)? = null,
@@ -181,7 +195,7 @@ private fun AuthBackdrop() {
 
 /** Small "By continuing you agree to the Terms of Use and Privacy Policy." line with tappable documents. */
 @Composable
-internal fun AuthTermsNote(onTerms: () -> Unit, onPrivacy: () -> Unit) {
+fun AuthTermsNote(onTerms: () -> Unit, onPrivacy: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         Text(
             appString(Res.string.auth_terms_note),
@@ -199,7 +213,7 @@ internal fun AuthTermsNote(onTerms: () -> Unit, onPrivacy: () -> Unit) {
 // ---- 1. Welcome --------------------------------------------------------------------------------
 
 @Composable
-internal fun WelcomeStep(onCreate: () -> Unit, onSignIn: () -> Unit, onTerms: () -> Unit, onPrivacy: () -> Unit) {
+fun WelcomeStep(onCreate: () -> Unit, onSignIn: () -> Unit, onTerms: () -> Unit, onPrivacy: () -> Unit) {
     AuthStepScaffold(
         title = appString(Res.string.auth_welcome_title),
         subtitle = appString(Res.string.auth_welcome_subtitle),
@@ -235,7 +249,7 @@ internal fun WelcomeStep(onCreate: () -> Unit, onSignIn: () -> Unit, onTerms: ()
 // ---- 2. Providers ------------------------------------------------------------------------------
 
 @Composable
-internal fun ProvidersStep(
+fun ProvidersStep(
     creating: Boolean,
     isBusy: Boolean,
     error: String?,
@@ -244,19 +258,19 @@ internal fun ProvidersStep(
     onSwitchIntent: () -> Unit
 ) {
     AuthStepScaffold(
-        title = stringResource(if (creating) R.string.auth_providers_create_title else R.string.auth_providers_signin_title),
+        title = appString(if (creating) Res.string.auth_providers_create_title else Res.string.auth_providers_signin_title),
         onBack = onBack,
         isBusy = isBusy,
         error = error,
         actions = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    stringResource(if (creating) R.string.have_an_account else R.string.new_to_prohost),
+                    appString(if (creating) Res.string.have_an_account else Res.string.new_to_prohost),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 TextButton(onClick = onSwitchIntent, modifier = Modifier.testTag("switch_auth_mode_button")) {
-                    Text(stringResource(if (creating) R.string.sign_in else R.string.create_an_account), fontWeight = FontWeight.SemiBold)
+                    Text(appString(if (creating) Res.string.sign_in else Res.string.create_an_account), fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -288,7 +302,7 @@ internal fun ProvidersStep(
 // ---- 3. Email ----------------------------------------------------------------------------------
 
 @Composable
-internal fun EmailStep(
+fun EmailStep(
     email: String,
     onEmailChange: (String) -> Unit,
     error: String?,
@@ -326,7 +340,7 @@ internal fun EmailStep(
 // ---- 4. Password -------------------------------------------------------------------------------
 
 @Composable
-internal fun PasswordStep(
+fun PasswordStep(
     creating: Boolean,
     email: String,
     password: String,
@@ -341,18 +355,18 @@ internal fun PasswordStep(
     onSubmit: () -> Unit
 ) {
     AuthStepScaffold(
-        title = stringResource(if (creating) R.string.auth_password_create_title else R.string.auth_password_signin_title),
+        title = appString(if (creating) Res.string.auth_password_create_title else Res.string.auth_password_signin_title),
         onBack = onBack,
         isBusy = isBusy,
         error = error,
         actions = {
             ProPrimaryButton(
-                text = stringResource(
+                text = appString(
                     when {
-                        isBusy && creating -> R.string.creating_account
-                        isBusy -> R.string.signing_in
-                        creating -> R.string.action_create_account
-                        else -> R.string.sign_in
+                        isBusy && creating -> Res.string.creating_account
+                        isBusy -> Res.string.signing_in
+                        creating -> Res.string.action_create_account
+                        else -> Res.string.sign_in
                     }
                 ),
                 onClick = onSubmit,
@@ -371,13 +385,13 @@ internal fun PasswordStep(
         InputField(
             value = password,
             onValueChange = onPasswordChange,
-            label = stringResource(if (creating) R.string.new_password else R.string.password),
+            label = appString(if (creating) Res.string.new_password else Res.string.password),
             leadingIcon = Icons.Default.Key,
             trailingIcon = {
                 IconButton(onClick = onToggleShow) {
                     Icon(
                         if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = stringResource(if (showPassword) R.string.hide_password else R.string.show_password)
+                        contentDescription = appString(if (showPassword) Res.string.hide_password else Res.string.show_password)
                     )
                 }
             },
@@ -399,7 +413,7 @@ internal fun PasswordStep(
 
 /** Live checklist under the new-password field, mirroring the server's password policy. */
 @Composable
-internal fun PasswordChecklist(password: String) {
+fun PasswordChecklist(password: String) {
     val check = com.example.util.PasswordRules.check(password)
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs), modifier = Modifier.fillMaxWidth().testTag("password_rules")) {
         PasswordRule(check.longEnough, appString(Res.string.password_rule_length))
@@ -420,7 +434,7 @@ private fun PasswordRule(met: Boolean, label: String) {
 // ---- 5. Forgot password / reset sent -----------------------------------------------------------
 
 @Composable
-internal fun ForgotStep(email: String, onEmailChange: (String) -> Unit, isBusy: Boolean, error: String?, onBack: () -> Unit, onSend: () -> Unit) {
+fun ForgotStep(email: String, onEmailChange: (String) -> Unit, isBusy: Boolean, error: String?, onBack: () -> Unit, onSend: () -> Unit) {
     val valid = com.example.ui.viewmodel.AuthViewModel.isPlausibleEmail(email.trim().lowercase())
     AuthStepScaffold(
         title = appString(Res.string.reset_title),
@@ -430,7 +444,7 @@ internal fun ForgotStep(email: String, onEmailChange: (String) -> Unit, isBusy: 
         error = error,
         actions = {
             ProPrimaryButton(
-                text = stringResource(if (isBusy) R.string.sending else R.string.send_reset_link),
+                text = appString(if (isBusy) Res.string.sending else Res.string.send_reset_link),
                 onClick = onSend,
                 enabled = !isBusy && valid,
                 isLoading = isBusy,
@@ -453,7 +467,7 @@ internal fun ForgotStep(email: String, onEmailChange: (String) -> Unit, isBusy: 
 }
 
 @Composable
-internal fun ResetSentStep(email: String, countdownSeconds: Int, isBusy: Boolean, onResend: () -> Unit, onBackToSignIn: () -> Unit) {
+fun ResetSentStep(email: String, countdownSeconds: Int, isBusy: Boolean, onResend: () -> Unit, onBackToSignIn: () -> Unit) {
     AuthStepScaffold(
         title = appString(Res.string.check_your_email),
         subtitle = appString(Res.string.reset_sent_body_x, email),
@@ -483,7 +497,7 @@ internal fun ResetSentStep(email: String, countdownSeconds: Int, isBusy: Boolean
 
 /** "Step 1 of 3" progress for the registration steps. */
 @Composable
-internal fun RegistrationProgress(step: Int, total: Int = 3) {
+fun RegistrationProgress(step: Int, total: Int = 3) {
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
         repeat(total) { i ->
             Surface(
@@ -498,7 +512,7 @@ internal fun RegistrationProgress(step: Int, total: Int = 3) {
 }
 
 @Composable
-internal fun RegistrationStepScaffold(
+fun RegistrationStepScaffold(
     step: Int,
     title: String,
     subtitle: String? = null,
@@ -536,7 +550,7 @@ internal fun RegistrationStepScaffold(
 
 /** Small icon + label pair used for the "signed in as" line on the first registration step. */
 @Composable
-internal fun AuthInfoLine(icon: ImageVector, text: String) {
+fun AuthInfoLine(icon: ImageVector, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(Spacing.sm))

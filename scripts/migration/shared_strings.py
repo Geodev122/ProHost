@@ -12,6 +12,9 @@ Imports are fixed (one `com.example.shared.resources.<key>` per key). Any other 
 use (an id passed as an Int, a drawable) is left alone and listed, so a file is only moved to :shared once none remain.
 
 Usage:  shared_strings.py FILE...          rewrite in place and print what is left
+        shared_strings.py --ids FILE...    also turn string ids passed as values (`if (a) R.string.x else R.string.y`, maps) into
+                                           `Res.string.x` and the remaining `stringResource(` calls into `appString(`; only for files whose
+                                           ids are never typed `Int`/`@StringRes` (the script refuses those)
         shared_strings.py --check FILE...  print the remaining Android resource references only (exit 1 if any)
         shared_strings.py --self-test
 """
@@ -106,6 +109,33 @@ def rewrite(src: str, keys):
     return src, missing
 
 
+def rewrite_ids(src: str, keys):
+    """Second pass for ids used as values. Refuses files that declare Int-typed string ids."""
+    if re.search(r"@StringRes|@PluralsRes", src):
+        return src, ["@StringRes/@PluralsRes declarations: convert those types by hand first"]
+    missing = []
+    used = set()
+
+    def sub(m):
+        k = m.group(1)
+        if k not in keys:
+            missing.append(k)
+            return m.group(0)
+        used.add(k)
+        return f"Res.string.{acc(k)}"
+
+    out = re.sub(r"(?<![\w.])R\.string\.([A-Za-z0-9_]+)", sub, src)
+    if used:
+        out = re.sub(r"(?:\bandroidx\.compose\.ui\.res\.|(?<![\w.]))stringResource\(", "appString(", out)
+        imports = {f"{RES_PKG}.Res", "com.example.ui.util.appString"} | {f"{RES_PKG}.{acc(k)}" for k in used}
+        if package_of(out) == "com.example.ui.util":
+            imports.discard("com.example.ui.util.appString")
+        out = add_imports(out, imports)
+        out = drop_unused_import(out, "androidx.compose.ui.res.stringResource", r"\bstringResource\(")
+        out = drop_unused_import(out, "com.example.R", r"\bR\.")
+    return out, missing
+
+
 def leftovers(src: str):
     code = re.sub(r"^import .*$", "", src, flags=re.M)
     return [f"R.{m.group(1)}.{m.group(2)}" for m in LEFT.finditer(code)]
@@ -115,7 +145,8 @@ def main(argv):
     if argv[:1] == ["--self-test"]:
         return self_test()
     check = argv[:1] == ["--check"]
-    files = argv[1:] if check else argv
+    ids = argv[:1] == ["--ids"]
+    files = argv[1:] if (check or ids) else argv
     keys = compose_keys()
     bad = 0
     for f in files:
@@ -123,6 +154,9 @@ def main(argv):
         src = p.read_text()
         if not check:
             new, missing = rewrite(src, keys)
+            if ids:
+                new, more = rewrite_ids(new, keys)
+                missing += more
             if missing:
                 print(f"{f}: keys missing from Compose resources (left as is): {sorted(set(missing))}")
             if new != src:
@@ -170,6 +204,14 @@ def self_test():
     out3, _ = rewrite("package p\nval x = androidx.compose.ui.res.pluralStringResource(R.plurals.item_count, 1, 1)\nval y = com.example.ui.util.uiText(R.string.save)\n", keys)
     assert "val x = appPlural(Res.plurals.item_count, 1, 1)" in out3, out3
     assert 'val y = sharedText("save")' in out3, out3
+    out4, m4 = rewrite_ids("package p\nimport androidx.compose.ui.res.stringResource\nimport com.example.R\nval m = mapOf(\"A\" to R.string.save)\n@Composable fun T(b: Boolean) = Text(stringResource(if (b) R.string.save else R.string.hello))\n", keys)
+    assert not m4, m4
+    assert 'mapOf("A" to Res.string.save)' in out4, out4
+    assert "Text(appString(if (b) Res.string.save else Res.string.hello))" in out4, out4
+    assert "import com.example.R\n" not in out4 and "import androidx.compose.ui.res.stringResource" not in out4, out4
+    assert "import com.example.shared.resources.hello\n" in out4, out4
+    _, m5 = rewrite_ids("package p\n@StringRes val x: Int = R.string.save\n", keys)
+    assert m5, m5
     out2, missing2 = rewrite("package p\nfun f() = uiText(R.string.nope)\n", keys)
     assert missing2 == ["nope"] and "uiText(R.string.nope)" in out2
     print("self-test ok")

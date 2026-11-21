@@ -30,7 +30,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -75,7 +74,7 @@ data class SubdivisionRentalCardInfo(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun SubdivisionRentalCard(
+fun SubdivisionRentalCard(
     info: SubdivisionRentalCardInfo,
     onClick: () -> Unit,
     onCheckAvailability: () -> Unit
@@ -112,7 +111,7 @@ internal fun SubdivisionRentalCard(
                     ) {
                         HorizontalPager(state = pagerState) { page ->
                             coil3.compose.AsyncImage(
-                                model = coil3.request.ImageRequest.Builder(LocalContext.current).data(imageUrls[page]).size(800).build(),
+                                model = coil3.request.ImageRequest.Builder(coil3.compose.LocalPlatformContext.current).data(imageUrls[page]).size(800).build(),
                                 contentDescription = name,
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = androidx.compose.ui.layout.ContentScale.Crop
@@ -363,7 +362,7 @@ internal fun SubdivisionRentalCard(
 
 /** Fill shared by the selected folder tab and the panel under it, so they read as one piece. */
 @Composable
-internal fun folderColor(): Color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+fun folderColor(): Color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
 
 /**
  * Folder-style tabs, one per room: the room's name with its type underneath. The selected
@@ -371,7 +370,7 @@ internal fun folderColor(): Color = MaterialTheme.colorScheme.primaryContainer.c
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun RoomFolderTabs(
+fun RoomFolderTabs(
     rooms: List<Subdivision>,
     selectedId: String,
     onSelect: (Subdivision) -> Unit
@@ -425,7 +424,7 @@ internal fun RoomFolderTabs(
 }
 
 @Composable
-internal fun RoomFolderPanel(firstTabSelected: Boolean, content: @Composable ColumnScope.() -> Unit) {
+fun RoomFolderPanel(firstTabSelected: Boolean, content: @Composable ColumnScope.() -> Unit) {
     Surface(
         color = folderColor(),
         shape = RoundedCornerShape(
@@ -447,7 +446,7 @@ internal fun RoomFolderPanel(firstTabSelected: Boolean, content: @Composable Col
  * Pro Host / Admin viewers see "Preview mode" instead of the actions.
  */
 @Composable
-internal fun DetailsBookingBar(
+fun DetailsBookingBar(
     roomName: String?,
     showAvailability: Boolean,
     hasSchedule: Boolean,

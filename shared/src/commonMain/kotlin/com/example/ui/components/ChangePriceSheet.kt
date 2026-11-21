@@ -29,7 +29,6 @@ import com.example.ui.theme.Spacing
 import com.example.ui.util.PriceChange
 import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.viewmodel.ProHostViewModel
-import java.util.Locale
 import com.example.shared.resources.Res
 import com.example.shared.resources.action_continue
 import com.example.shared.resources.apply_new_price
@@ -238,7 +237,7 @@ fun ChangePriceSheet(
                         } else {
                             slots.groupBy { it.group }.forEach { (group, groupSlots) ->
                                 Text(
-                                    localizedLabel(group).uppercase(Locale.US),
+                                    localizedLabel(group).uppercase(),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(top = Spacing.xs)
