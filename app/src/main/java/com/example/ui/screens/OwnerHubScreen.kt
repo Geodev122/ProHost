@@ -5,7 +5,6 @@ package com.example.ui.screens
 import com.example.ui.util.timeRange
 import com.example.ui.util.locationLine
 import com.example.ui.util.localizedLabel
-import com.example.R
 import com.example.ui.util.UiMessages
 import android.content.Context
 import android.content.ContextWrapper
@@ -38,7 +37,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -84,6 +82,8 @@ import com.example.shared.resources.you_don_t_have_any_workspace_listings_yet
 import com.example.shared.resources.your_listings_availability
 import com.example.ui.util.appString
 import com.example.ui.util.sharedText
+import com.example.ui.util.AppImage
+import com.example.ui.util.appPainter
 
 @Composable
 fun OwnerHubScreen(
@@ -411,7 +411,7 @@ fun OwnerHubScreenContent(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Image(
-                        painter = painterResource(id = com.example.R.drawable.img_owner_hero),
+                        painter = appPainter(AppImage.OWNER_HERO),
                         contentDescription = appString(Res.string.owner_dashboard_banner),
                         modifier = Modifier.matchParentSize(),
                         contentScale = ContentScale.Crop
@@ -1024,7 +1024,7 @@ fun OwnerHubScreenContent(
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Image(
-                    painter = painterResource(id = com.example.R.drawable.prohost_checkmark_logo),
+                    painter = appPainter(AppImage.CHECKMARK_LOGO),
                     contentDescription = appString(Res.string.add_listing),
                     modifier = Modifier.size(26.dp),
                     colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSecondary)

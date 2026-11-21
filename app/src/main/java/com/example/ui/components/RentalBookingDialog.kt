@@ -26,11 +26,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.R
 import com.example.data.model.*
 import com.example.ui.theme.*
 import com.example.ui.util.BookingDates
@@ -66,6 +64,8 @@ import com.example.shared.resources.x_x_people
 import com.example.ui.util.appPlural
 import com.example.ui.util.appString
 import com.example.ui.util.sharedText
+import com.example.ui.util.AppImage
+import com.example.ui.util.appPainter
 
 /** UTC-based, matching the date picker's own UTC millis — see [rememberDatePickerState]. (Date helpers: ui/util/BookingDates.kt.) */
 private fun weekdayAbbreviation(utcTimeMillis: Long): String = BookingDates.weekdayAbbreviation(utcTimeMillis)
@@ -461,7 +461,7 @@ private fun BookingSlotSelectorDialog(
                     text = copy.secondaryButtonText,
                     onClick = { submit(alsoOpenWhatsApp = true) },
                     variant = CustomButtonVariant.WHATSAPP,
-                    iconPainter = painterResource(id = R.drawable.ic_whatsapp),
+                    iconPainter = appPainter(AppImage.WHATSAPP),
                     compact = true,
                     enabled = canSubmit,
                     modifier = Modifier.fillMaxWidth()

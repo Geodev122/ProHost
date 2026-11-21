@@ -18,7 +18,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -64,6 +63,8 @@ import com.example.shared.resources.terms_of_use
 import com.example.shared.resources.wizard_step_x_of_x
 import com.example.shared.resources.you_example_com
 import com.example.ui.util.appString
+import com.example.ui.util.AppImage
+import com.example.ui.util.appPainter
 
 /**
  * The staged sign-in path ("intent first", 1.0.45): Welcome → Providers → Email → Password, Forgot → Reset sent, and the
@@ -121,7 +122,7 @@ internal fun AuthStepScaffold(
                 header()
             } else if (showLogo) {
                 Image(
-                    painter = painterResource(R.drawable.prohost_login_lockup),
+                    painter = appPainter(AppImage.LOGIN_LOCKUP),
                     contentDescription = appString(Res.string.prohost_login),
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.height(56.dp).align(Alignment.Start)
@@ -160,7 +161,7 @@ internal fun AuthStepScaffold(
 private fun AuthBackdrop() {
     val surface = MaterialTheme.colorScheme.surface
     Image(
-        painter = painterResource(R.drawable.auth_background),
+        painter = appPainter(AppImage.AUTH_BACKGROUND),
         contentDescription = null,
         contentScale = ContentScale.Crop,
         modifier = Modifier.fillMaxSize()
@@ -204,7 +205,7 @@ internal fun WelcomeStep(onCreate: () -> Unit, onSignIn: () -> Unit, onTerms: ()
         subtitle = appString(Res.string.auth_welcome_subtitle),
         header = {
             Image(
-                painter = painterResource(R.drawable.prohost_login_lockup),
+                painter = appPainter(AppImage.LOGIN_LOCKUP),
                 contentDescription = appString(Res.string.prohost_login),
                 contentScale = ContentScale.Fit,
                 modifier = Modifier

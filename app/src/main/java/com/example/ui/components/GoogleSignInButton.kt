@@ -2,7 +2,6 @@ package com.example.ui.components
 
 import com.example.ui.theme.Spacing
 
-import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
 import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
@@ -16,11 +15,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.R
+import com.example.ui.util.AppImage
+import com.example.ui.util.appPainter
+import com.example.shared.resources.Res
+import com.example.shared.resources.continue_with_google
+import com.example.ui.util.appString
 
 /**
  * Google Identity-compliant "Continue with Google" button.
@@ -54,14 +56,14 @@ fun GoogleSignInButton(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                painter = painterResource(R.drawable.ic_google),
+                painter = appPainter(AppImage.GOOGLE),
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
                 tint = Color.Unspecified
             )
             Spacer(Modifier.width(Spacing.md))
             Text(
-                text = stringResource(R.string.continue_with_google),
+                text = appString(Res.string.continue_with_google),
                 color = textColor,
                 fontWeight = FontWeight.Medium,
                 fontSize = 14.sp

@@ -3,7 +3,6 @@ package com.example.ui.components
 import com.example.ui.util.localizedLabel
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.heading
-import com.example.R
 import com.example.ui.theme.Radius
 import com.example.ui.theme.Elevation
 import android.annotation.SuppressLint
@@ -42,7 +41,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -72,6 +70,8 @@ import com.example.shared.resources.whatsapp
 import com.example.shared.resources.x_usdx
 import com.example.ui.util.appString
 import com.example.ui.util.sharedText
+import com.example.ui.util.AppImage
+import com.example.ui.util.appPainter
 
 /**
  * Common ProHost Reusable UI Components
@@ -1335,7 +1335,7 @@ fun ProHostBrandLogo(
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
     Image(
-        painter = painterResource(id = com.example.R.drawable.ic_prohost_logo_brand),
+        painter = appPainter(AppImage.BRAND_LOGO),
         contentDescription = appString(Res.string.prohost_logo),
         contentScale = ContentScale.Fit,
         modifier = modifier.size(size)
