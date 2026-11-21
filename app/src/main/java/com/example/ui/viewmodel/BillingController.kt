@@ -9,6 +9,7 @@ import android.net.Uri
 import android.widget.Toast
 import com.example.data.auth.toUserMessage
 import com.example.data.model.*
+import com.example.data.billing.toPlayProduct
 import com.example.data.repository.ProHostRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.*
@@ -32,6 +33,8 @@ class BillingController(
     private var playBillingManager: com.example.data.billing.PlayBillingManager? = null
 
     val playBillingProducts = MutableStateFlow<List<com.android.billingclient.api.ProductDetails>>(emptyList())
+    /** The same products as the shared [com.example.data.billing.PlayProduct] model the screens and offer texts read. */
+    val playProducts = MutableStateFlow<List<com.example.data.billing.PlayProduct>>(emptyList())
     val playBillingConnected = MutableStateFlow(false)
     val playActivePurchases = MutableStateFlow<List<com.android.billingclient.api.Purchase>>(emptyList())
 
@@ -63,6 +66,7 @@ class BillingController(
                 try {
                     manager.productDetailsList.collect { products ->
                         playBillingProducts.value = products
+                        playProducts.value = products.map { it.toPlayProduct() }
                         // Retry a deferred billing launch once the target product is available
                         val retryPlan = _pendingRetryBasePlanId
                         val retryActivity = _pendingRetryActivity?.get()
@@ -297,7 +301,7 @@ class BillingController(
             // time on it (renews ≈ one year + the remaining days). CHARGE_PRORATED_PRICE would only
             // charge a top-up and keep the MONTHLY renewal date, billing the full year there.
             // Yearly → monthly: DEFERRED — the switch happens at the yearly renewal date.
-            val replacementMode = if (com.example.data.billing.PlayOfferText.kindOf(product, basePlanId) ==
+            val replacementMode = if (com.example.data.billing.PlayOfferText.kindOf(product.toPlayProduct(), basePlanId) ==
                 com.example.data.billing.PlayCatalog.PlanKind.YEARLY) {
                 com.android.billingclient.api.BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_FULL_PRICE
             } else {

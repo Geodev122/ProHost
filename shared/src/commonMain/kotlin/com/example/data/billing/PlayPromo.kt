@@ -1,6 +1,5 @@
 package com.example.data.billing
 
-import com.android.billingclient.api.ProductDetails
 
 /**
  * The promo card is configured only in Google Play: a subscription offer carrying these offer tags
@@ -17,7 +16,6 @@ object PlayPromo {
     private const val CODE_PREFIX = "code-"
     private const val ENDS_PREFIX = "ends-"
     private const val EARLY_LAUNCH = "early-launch"
-    private val BEIRUT: java.util.TimeZone = java.util.TimeZone.getTimeZone("Asia/Beirut")
 
     data class PromoOffer(
         val offerId: String,
@@ -56,10 +54,10 @@ object PlayPromo {
     }
 
     /** The promo offer Play returned for this account (first one tagged `promo`), if any. */
-    fun find(details: ProductDetails?): PromoOffer? =
-        details?.subscriptionOfferDetails.orEmpty().firstNotNullOfOrNull { o ->
+    fun find(details: PlayProduct?): PromoOffer? =
+        details?.offers.orEmpty().firstNotNullOfOrNull { o ->
             val id = o.offerId ?: return@firstNotNullOfOrNull null
-            parse(id, o.basePlanId, o.offerTags, o.pricingPhases.pricingPhaseList.map(PlayOfferText::phaseOf))
+            parse(id, o.basePlanId, o.offerTags, o.phases)
         }
 
     /** Pure: 23:59:59 Beirut time on yyyymmdd; null when malformed. */
@@ -68,11 +66,7 @@ object PlayPromo {
         val (y, mo, d) = m.destructured
         val month = mo.toInt().takeIf { it in 1..12 } ?: return null
         val day = d.toInt().takeIf { it in 1..31 } ?: return null
-        return java.util.Calendar.getInstance(BEIRUT).apply {
-            isLenient = false
-            clear()
-            set(y.toInt(), month - 1, day, 23, 59, 59)
-        }.let { runCatching { it.timeInMillis }.getOrNull() }
+        return endOfDayMillis("Asia/Beirut", y.toInt(), month, day)
     }
 
     /** Pure: the headline for an offer's phases. */

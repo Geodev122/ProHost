@@ -1,7 +1,5 @@
 package com.example.data.billing
 
-import com.android.billingclient.api.ProductDetails
-
 /**
  * Human-readable price terms for the offer PlayBillingManager.launchSubscriptionPurchase
  * uses ([preferredOffer]), e.g. "Free for 7 days, then $4.99 / month".
@@ -15,12 +13,12 @@ object PlayOfferText {
      * eligible for (a "new customers" offer is never returned to someone who already had the
      * subscription), in no guaranteed order; [pickOffer] chooses among them.
      */
-    fun preferredOffer(details: ProductDetails?, basePlanId: String? = null): ProductDetails.SubscriptionOfferDetails? {
+    fun preferredOffer(details: PlayProduct?, basePlanId: String? = null): PlayOffer? {
         // `promo`-tagged offers belong to the promo card only (PlayPromo), never to the plan cards.
-        val offers = details?.subscriptionOfferDetails.orEmpty()
+        val offers = details?.offers.orEmpty()
             .filter { (basePlanId == null || it.basePlanId == basePlanId) && !PlayPromo.isPromoTagged(it.offerTags) }
         if (offers.isEmpty()) return null
-        val index = pickOffer(offers.map { o -> o.offerId to o.pricingPhases.pricingPhaseList.map(::phaseOf) })
+        val index = pickOffer(offers.map { o -> o.offerId to o.phases })
         return offers[index]
     }
 
@@ -43,14 +41,6 @@ object PlayOfferText {
 
     /** One pricing phase, decoupled from ProductDetails so the offer maths is unit-testable. */
     data class Phase(val micros: Long, val currency: String, val formatted: String, val period: String, val cycles: Int)
-
-    internal fun phaseOf(p: ProductDetails.PricingPhase) = Phase(
-        micros = p.priceAmountMicros,
-        currency = p.priceCurrencyCode,
-        formatted = p.formattedPrice,
-        period = p.billingPeriod,
-        cycles = p.billingCycleCount.coerceAtLeast(1)
-    )
 
     /**
      * What a plan card shows for one base plan's offer, all from Google Play:
@@ -94,11 +84,7 @@ object PlayOfferText {
         val headlinePhase = if (discounted != null && discount != null) discounted else if (trial != null) null else recurring
         val headlinePerMonth = headlinePhase?.let { h ->
             val months = monthsIn(h.period)?.takeIf { it > 1.0 } ?: return@let null
-            runCatching {
-                val fmt = java.text.NumberFormat.getCurrencyInstance()
-                fmt.currency = java.util.Currency.getInstance(h.currency)
-                "≈ ${fmt.format(h.micros / 1_000_000.0 / months)} / month"
-            }.getOrNull()
+            formatCurrencyDeviceLocale(h.micros / 1_000_000.0 / months, h.currency)?.let { "≈ $it / month" }
         }
         return OfferSummary(
             headlinePerMonth = headlinePerMonth,
@@ -121,26 +107,23 @@ object PlayOfferText {
     }
 
     /** The summary for the offer the purchase sheet will use for [basePlanId]. */
-    fun summary(details: ProductDetails?, basePlanId: String): OfferSummary? {
+    fun summary(details: PlayProduct?, basePlanId: String): OfferSummary? {
         val offer = preferredOffer(details, basePlanId) ?: return null
-        return summarize(offer.offerId, offer.pricingPhases.pricingPhaseList.map(::phaseOf))
+        return summarize(offer.offerId, offer.phases)
     }
 
     /** Pure: when the regular price starts if the intro phases begin at [startMillis]. */
-    fun regularPriceStartsAt(startMillis: Long, introPeriods: List<Pair<String, Int>>): Long {
-        val cal = java.util.Calendar.getInstance().apply { timeInMillis = startMillis }
-        for ((iso, cycles) in introPeriods) {
-            val (n, unit) = parse(iso) ?: continue
-            val field = when (unit) {
-                "day" -> java.util.Calendar.DAY_OF_YEAR
-                "week" -> java.util.Calendar.WEEK_OF_YEAR
-                "month" -> java.util.Calendar.MONTH
-                else -> java.util.Calendar.YEAR
+    fun regularPriceStartsAt(startMillis: Long, introPeriods: List<Pair<String, Int>>): Long =
+        addLocalPeriods(startMillis, introPeriods.mapNotNull { (iso, cycles) ->
+            val (n, unit) = parse(iso) ?: return@mapNotNull null
+            val step = when (unit) {
+                "day" -> PeriodUnit.DAY
+                "week" -> PeriodUnit.WEEK
+                "month" -> PeriodUnit.MONTH
+                else -> PeriodUnit.YEAR
             }
-            cal.add(field, n * cycles)
-        }
-        return cal.timeInMillis
-    }
+            step to n * cycles
+        })
 
     /** "first month", "first 3 months", "first year", "first 7 days". */
     private fun firstSpan(iso: String, cycles: Int): String {
@@ -149,17 +132,17 @@ object PlayOfferText {
     }
 
     /** Base plan ids Play returned for this product. */
-    fun basePlans(details: ProductDetails?): List<String> =
-        details?.subscriptionOfferDetails.orEmpty().map { it.basePlanId }.distinct()
+    fun basePlans(details: PlayProduct?): List<String> =
+        details?.offers.orEmpty().map { it.basePlanId }.distinct()
 
     /**
      * Monthly or yearly for a base plan, from its recurring billing period in Play (P1M / P1Y),
      * so the screen never depends on how the id is spelled in Play Console. Falls back to the id.
      */
-    fun kindOf(details: ProductDetails?, basePlanId: String): PlayCatalog.PlanKind? {
-        val offers = details?.subscriptionOfferDetails.orEmpty().filter { it.basePlanId == basePlanId }
+    fun kindOf(details: PlayProduct?, basePlanId: String): PlayCatalog.PlanKind? {
+        val offers = details?.offers.orEmpty().filter { it.basePlanId == basePlanId }
         val recurring = (offers.firstOrNull { it.offerId == null } ?: offers.firstOrNull())
-            ?.pricingPhases?.pricingPhaseList?.lastOrNull()?.billingPeriod
+            ?.phases?.lastOrNull()?.period
         return recurring?.let(::kindForPeriod) ?: PlayCatalog.kindOf(basePlanId)
     }
 
@@ -192,8 +175,8 @@ object PlayOfferText {
             }
 
     /** The base plan id Play returned for each kind (at most one monthly and one yearly). */
-    fun plansByKind(details: ProductDetails?): Map<PlayCatalog.PlanKind, String> {
-        val offers = details?.subscriptionOfferDetails.orEmpty()
+    fun plansByKind(details: PlayProduct?): Map<PlayCatalog.PlanKind, String> {
+        val offers = details?.offers.orEmpty()
         val candidates = basePlans(details).mapNotNull { id ->
             val kind = kindOf(details, id) ?: return@mapNotNull null
             PlanCandidate(id, kind, offers.count { it.basePlanId == id && !PlayPromo.isPromoTagged(it.offerTags) })
@@ -202,41 +185,41 @@ object PlayOfferText {
     }
 
     /** The phases checkout will charge: the preferred offer, or the plain base plan for a plan switch. */
-    private fun phases(details: ProductDetails?, basePlanId: String?, basePlanOnly: Boolean = false) =
+    private fun phases(details: PlayProduct?, basePlanId: String?, basePlanOnly: Boolean = false) =
         (if (basePlanOnly) {
-            details?.subscriptionOfferDetails.orEmpty().firstOrNull { it.basePlanId == basePlanId && it.offerId == null }
-        } else preferredOffer(details, basePlanId))?.pricingPhases?.pricingPhaseList
+            details?.offers.orEmpty().firstOrNull { it.basePlanId == basePlanId && it.offerId == null }
+        } else preferredOffer(details, basePlanId))?.phases
 
     /** Terms for the buy button, e.g. "$4.99 / month for 1 month, then $9.99 / month"; [basePlanOnly] for switches. */
-    fun describe(details: ProductDetails?, basePlanId: String? = null, basePlanOnly: Boolean = false): String? {
+    fun describe(details: PlayProduct?, basePlanId: String? = null, basePlanOnly: Boolean = false): String? {
         val phases = phases(details, basePlanId, basePlanOnly)
         if (phases.isNullOrEmpty()) return null
         val recurring = phases.last()
-        val base = "${recurring.formattedPrice} / ${per(recurring.billingPeriod)}"
+        val base = "${recurring.formatted} / ${per(recurring.period)}"
         val intro = phases.dropLast(1).joinToString(", ") { phase ->
-            val span = duration(phase.billingPeriod, phase.billingCycleCount.coerceAtLeast(1))
-            if (phase.priceAmountMicros == 0L) "Free for $span"
-            else "${phase.formattedPrice} / ${per(phase.billingPeriod)} for $span"
+            val span = duration(phase.period, phase.cycles)
+            if (phase.micros == 0L) "Free for $span"
+            else "${phase.formatted} / ${per(phase.period)} for $span"
         }
         return if (intro.isEmpty()) base else "$intro, then $base"
     }
 
     /** Short free-trial label, e.g. "Free for 7 days". Null when no trial phase. */
-    fun trialLabel(details: ProductDetails?, basePlanId: String? = null): String? {
+    fun trialLabel(details: PlayProduct?, basePlanId: String? = null): String? {
         val list = phases(details, basePlanId) ?: return null
-        val trial = list.dropLast(1).firstOrNull { it.priceAmountMicros == 0L } ?: return null
-        return "Free for ${duration(trial.billingPeriod, trial.billingCycleCount.coerceAtLeast(1))}"
+        val trial = list.dropLast(1).firstOrNull { it.micros == 0L } ?: return null
+        return "Free for ${duration(trial.period, trial.cycles)}"
     }
 
     /** Recurring price in micros and its billing period in months (P1M → 1, P1Y → 12). */
-    fun recurringMicrosPerMonth(details: ProductDetails?, basePlanId: String): Double? {
+    fun recurringMicrosPerMonth(details: PlayProduct?, basePlanId: String): Double? {
         val phase = phases(details, basePlanId)?.lastOrNull() ?: return null
-        val months = monthsIn(phase.billingPeriod) ?: return null
-        return phase.priceAmountMicros.toDouble() / months
+        val months = monthsIn(phase.period) ?: return null
+        return phase.micros.toDouble() / months
     }
 
     /** "Save XX%" for the yearly base plan against twelve monthly payments; null below 1%. */
-    fun yearlySavingsPercent(details: ProductDetails?): Int? {
+    fun yearlySavingsPercent(details: PlayProduct?): Int? {
         val plans = plansByKind(details)
         val monthly = plans[PlayCatalog.PlanKind.MONTHLY]?.let { recurringMicrosPerMonth(details, it) } ?: return null
         val yearly = plans[PlayCatalog.PlanKind.YEARLY]?.let { recurringMicrosPerMonth(details, it) } ?: return null

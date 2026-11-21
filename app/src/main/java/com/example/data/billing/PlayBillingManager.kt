@@ -187,7 +187,8 @@ class PlayBillingManager(
         // they are charged regular prices), or one specific offer (the Play-configured promo).
         val planOffers = productDetails.subscriptionOfferDetails.orEmpty().filter { it.basePlanId == basePlanId }
         val chosen = when (offerChoice) {
-            OfferChoice.Preferred -> PlayOfferText.preferredOffer(productDetails, basePlanId)
+            OfferChoice.Preferred -> PlayOfferText.preferredOffer(productDetails.toPlayProduct(), basePlanId)
+                ?.let { preferred -> planOffers.firstOrNull { it.offerToken == preferred.offerToken } }
             OfferChoice.BasePlanOnly -> planOffers.firstOrNull { it.offerId == null }
             is OfferChoice.Specific -> planOffers.firstOrNull { it.offerId == offerChoice.offerId }
         }

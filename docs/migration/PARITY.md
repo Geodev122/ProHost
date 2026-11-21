@@ -25,10 +25,9 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `data/auth/FirebaseSessionFinisher.kt` | 42 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `data/auth/FirebaseSignedInUser.kt` | 8 | A1 | Firebase gateways |  |  | ☐ | ☐ | todo |
 | `data/auth/GoogleCredentialState.kt` | 38 | C | Context removal, GoogleSignIn, Logger |  |  | ☐ | ☐ | todo |
-| `data/billing/PlayBillingManager.kt` | 489 | C | Context removal, Logger, MediaPicker(PickedFile), PlatformActions, SubscriptionStore |  |  | ☐ | ☐ | todo |
+| `data/billing/PlayBillingManager.kt` | 490 | C | Context removal, Logger, MediaPicker(PickedFile), PlatformActions, SubscriptionStore |  |  | ☐ | ☐ | todo |
 | `data/billing/PlayBillingSecurity.kt` | 98 | C | Logger |  |  | ☐ | ☐ | todo |
-| `data/billing/PlayOfferText.kt` | 289 | B | SubscriptionStore |  |  | ☐ | ☐ | todo |
-| `data/billing/PlayPromo.kt` | 92 | B | SubscriptionStore |  |  | ☐ | ☐ | todo |
+| `data/billing/PlayProductMapper.kt` | 28 | B | SubscriptionStore |  |  | ☐ | ☐ | todo |
 | `data/firestore/FirestoreService.kt` | 832 | C | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
 | `data/storage/FirebaseStorageService.kt` | 329 | C | Context removal, Firebase gateways, ImageCodec/Pdf, Logger, MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
 | `legal/AndroidLegalPdfs.kt` | 12 | B | Context removal |  |  | ☐ | ☐ | todo |
@@ -70,7 +69,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/util/UiText.kt` | 45 | B | — |  |  | ☐ | ☐ | todo |
 | `ui/viewmodel/AdminViewModel.kt` | 1309 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/viewmodel/BillingAccess.kt` | 6 | A1 | — |  |  | ☐ | ☐ | todo |
-| `ui/viewmodel/BillingController.kt` | 525 | C | Context removal, Firebase gateways, MediaPicker(PickedFile), Messenger, PlatformActions, SubscriptionStore |  |  | ☐ | ☐ | todo |
+| `ui/viewmodel/BillingController.kt` | 529 | C | Context removal, Firebase gateways, MediaPicker(PickedFile), Messenger, PlatformActions, SubscriptionStore |  |  | ☐ | ☐ | todo |
 | `util/AndroidAppLog.kt` | 18 | B | Logger |  |  | ☐ | ☐ | todo |
 | `util/AndroidFiles.kt` | 32 | B | Context removal, MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
 | `util/AndroidGeocoding.kt` | 38 | B | Context removal, Location/Geocoder |  |  | ☐ | ☐ | todo |
@@ -86,6 +85,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/PlayIntegrityManager.kt` | 51 | C | Context removal, Logger |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 8 / 297, A2 6 / 2754, B 22 / 3661, C 18 / 4134, X 16 / 6992.
 Automatic class totals (files / lines): A1 8 / 297, A2 6 / 2754, B 23 / 4014, C 18 / 4129, X 16 / 6992.
 Automatic class totals (files / lines): A1 9 / 434, A2 6 / 2755, B 23 / 4015, C 18 / 4140, X 16 / 6992.
 Automatic class totals (files / lines): A1 11 / 1907, A2 6 / 2755, B 25 / 5311, C 18 / 4140, X 16 / 6992.

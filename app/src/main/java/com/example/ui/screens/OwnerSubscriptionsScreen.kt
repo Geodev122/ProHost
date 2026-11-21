@@ -148,7 +148,7 @@ fun OwnerSubscriptionsScreen(
     }
     val billingError by viewModel.billing.billingError.collectAsState()
     val billingSuccess by viewModel.billing.billingSuccess.collectAsState()
-    val playBillingProducts by viewModel.billing.playBillingProducts.collectAsState()
+    val playBillingProducts by viewModel.billing.playProducts.collectAsState()
     val billingConnected by viewModel.billing.playBillingConnected.collectAsState()
     val playActivePurchases by viewModel.billing.playActivePurchases.collectAsState()
     // The promo comes only from Play: the offer tagged `promo` that Play returned for this account (PlayPromo).
