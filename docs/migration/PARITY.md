@@ -36,7 +36,6 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `legal/LegalPdfs.kt` | 30 | B | Context removal, ImageCodec/Pdf |  |  | ☐ | ☐ | todo |
 | `service/ProHostMessagingService.kt` | 200 | C | Context removal, Firebase gateways, Logger, PlatformActions |  |  | ☐ | ☐ | todo |
 | `ui/components/AdminGrantAccessCard.kt` | 237 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
-| `ui/components/AnalyticsConsentDialog.kt` | 74 | B | MediaPicker(PickedFile), PlatformActions |  |  | ☐ | ☐ | todo |
 | `ui/components/CreateListingDialog.kt` | 1563 | B | BackHandler, Context removal, Location/Geocoder, MediaPicker(PickedFile), MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
 | `ui/components/DateSlotPicker.kt` | 521 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/components/EditListingDialog.kt` | 63 | A1 | — |  |  | ☐ | ☐ | todo |
@@ -47,7 +46,6 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/components/ListingLocationMapPicker.kt` | 163 | B | Context removal, MapView, MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
 | `ui/components/ListingVerificationDialog.kt` | 310 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/components/MapConversions.kt` | 17 | B | MapView |  |  | ☐ | ☐ | todo |
-| `ui/components/PermissionPrompts.kt` | 225 | B | Context removal, MediaPicker(PickedFile), MediaPicker/Permissions, PlatformActions |  |  | ☐ | ☐ | todo |
 | `ui/components/PromoCountdownCard.kt` | 169 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/components/RentalBookingDialog.kt` | 598 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/components/RequirementsSheet.kt` | 217 | B | MediaPicker(PickedFile), MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
@@ -109,6 +107,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 17 / 5378, A2 10 / 5463, B 31 / 9196, C 18 / 4136, X 16 / 6992.
 Automatic class totals (files / lines): A1 17 / 5378, A2 10 / 5463, B 33 / 9495, C 18 / 4136, X 16 / 6992.
 Automatic class totals (files / lines): A1 17 / 5378, A2 10 / 5463, B 33 / 9560, C 18 / 4135, X 16 / 6992.
 Automatic class totals (files / lines): A1 18 / 5495, A2 11 / 6021, B 35 / 9868, C 18 / 4135, X 16 / 6992.

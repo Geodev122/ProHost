@@ -59,6 +59,7 @@ kotlin {
       implementation(libs.androidx.activity.compose)
       implementation(libs.play.services.auth)
       implementation(libs.androidx.core.ktx) // FileProvider for the camera capture file
+      implementation(libs.play.services.location) // "turn on location" settings dialog (rememberLocationAccess)
     }
     iosMain.dependencies { implementation(libs.ktor.client.darwin) }
     wasmJsMain.dependencies { implementation(libs.ktor.client.js) }

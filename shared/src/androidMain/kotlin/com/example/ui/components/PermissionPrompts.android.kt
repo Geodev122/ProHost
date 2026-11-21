@@ -1,10 +1,6 @@
 package com.example.ui.components
 
 import com.example.ui.theme.Spacing
-
-import com.example.ui.util.uiText
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
 import com.example.ui.theme.Elevation
 import android.Manifest
@@ -42,99 +38,18 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.LocationSettingsRequest
 import com.google.android.gms.location.Priority
-
-/**
- * The one look for every in-app permission or consent prompt, matching Android's own runtime permission
- * dialog (Android 12+): centred icon, centred title with the app name in bold, optional detail, and
- * full-width stacked choices of equal weight. The system dialogs (notifications, location) and these
- * pre-/post-prompts therefore read as one family instead of mixing old AlertDialog styles.
- */
-@Composable
-fun SystemStylePermissionDialog(
-    icon: ImageVector,
-    title: AnnotatedString,
-    onAllow: () -> Unit,
-    onDeny: () -> Unit,
-    message: String? = null,
-    allowLabel: String = "Allow",
-    denyLabel: String = "Don't allow",
-    dismissible: Boolean = true,
-    extra: (@Composable ColumnScope.() -> Unit)? = null
-) {
-    Dialog(
-        onDismissRequest = { if (dismissible) onDeny() },
-        properties = DialogProperties(dismissOnBackPress = dismissible, dismissOnClickOutside = dismissible)
-    ) {
-        Surface(
-            shape = Radius.Lg,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            tonalElevation = Elevation.level3,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(Spacing.lg)
-            ) {
-                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleLarge,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                message?.let {
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                extra?.invoke(this)
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
-                    PermissionChoice(allowLabel, onAllow)
-                    PermissionChoice(denyLabel, onDeny)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PermissionChoice(label: String, onClick: () -> Unit) {
-    FilledTonalButton(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-        shape = Radius.Md,
-        colors = ButtonDefaults.filledTonalButtonColors(
-            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-            contentColor = MaterialTheme.colorScheme.primary
-        )
-    ) { Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold) }
-}
-
-/** "Allow **ProHost** to …?" — the system dialog's title pattern. */
-fun permissionTitle(action: String): AnnotatedString = buildAnnotatedString {
-    append(uiText(R.string.allow))
-    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("ProHost") }
-    append(uiText(R.string.to_x_2, action))
-}
+import com.example.shared.resources.Res
+import com.example.shared.resources.location_is_turned_off_for_prohost_open_se
+import com.example.shared.resources.used_only_to_centre_the_map_on_where_you_a
+import com.example.ui.util.appString
+import com.example.ui.util.sharedText
 
 private fun Activity?.hasLocation(context: android.content.Context): Boolean =
     ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
         ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
-/**
- * Location for the "locate me" buttons, all through native Android UI:
- * 1. permission — the system prompt (after a one-time "why" in [SystemStylePermissionDialog] when Android
- *    says a rationale is due);
- * 2. blocked for good ("Don't allow" twice) — a prompt that opens the app's system settings;
- * 3. device location off — Google Play services' own "turn on location" dialog.
- * [onReady] runs once location can actually be read. Returns the action to call from the button.
- */
 @Composable
-fun rememberLocationAccess(onReady: () -> Unit): () -> Unit {
+actual fun rememberLocationAccess(onReady: () -> Unit): () -> Unit {
     val context = LocalContext.current
     val activity: Activity? = remember(context) {
         var ctx = context
@@ -189,10 +104,10 @@ fun rememberLocationAccess(onReady: () -> Unit): () -> Unit {
     if (showRationale) {
         SystemStylePermissionDialog(
             icon = Icons.Default.LocationOn,
-            title = permissionTitle(uiText(R.string.access_this_device_s_location)),
-            message = stringResource(R.string.used_only_to_centre_the_map_on_where_you_a),
-            allowLabel = uiText(R.string.action_continue),
-            denyLabel = uiText(R.string.not_now),
+            title = permissionTitle(sharedText("access_this_device_s_location")),
+            message = appString(Res.string.used_only_to_centre_the_map_on_where_you_a),
+            allowLabel = sharedText("action_continue"),
+            denyLabel = sharedText("not_now"),
             onAllow = { showRationale = false; permissionLauncher.launch(locationPermissions) },
             onDeny = { showRationale = false }
         )
@@ -200,10 +115,10 @@ fun rememberLocationAccess(onReady: () -> Unit): () -> Unit {
     if (showSettings) {
         SystemStylePermissionDialog(
             icon = Icons.Default.LocationOn,
-            title = permissionTitle(uiText(R.string.access_this_device_s_location)),
-            message = stringResource(R.string.location_is_turned_off_for_prohost_open_se),
-            allowLabel = uiText(R.string.open_settings),
-            denyLabel = uiText(R.string.not_now),
+            title = permissionTitle(sharedText("access_this_device_s_location")),
+            message = appString(Res.string.location_is_turned_off_for_prohost_open_se),
+            allowLabel = sharedText("open_settings"),
+            denyLabel = sharedText("not_now"),
             onAllow = {
                 showSettings = false
                 runCatching {
