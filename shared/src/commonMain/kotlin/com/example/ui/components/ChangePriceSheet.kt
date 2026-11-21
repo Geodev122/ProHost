@@ -284,7 +284,7 @@ fun ChangePriceSheet(
                             onClick = {
                                 if (affected.isEmpty()) submit() else {
                                     affected.forEach { b ->
-                                        decisions.putIfAbsent(b.id, if (b.isPending) PriceChangeMode.NOW else PriceChangeMode.NEXT_TERM)
+                                        if (b.id !in decisions) decisions[b.id] = if (b.isPending) PriceChangeMode.NOW else PriceChangeMode.NEXT_TERM
                                     }
                                     step = PriceStep.IMPACT
                                 }
