@@ -1,6 +1,7 @@
 package com.example.design
 
 import com.example.ui.viewmodel.billing
+import coil3.imageDecoderEnabled
 import coil3.request.crossfade
 import android.content.res.Configuration
 import androidx.compose.runtime.Composable
@@ -85,6 +86,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
                 // Fetch and decode on the main thread, immediately: the photo is on screen before the capture instead of racing it.
                 .coroutineContext(kotlinx.coroutines.Dispatchers.Main.immediate)
                 .crossfade(false)
+                .imageDecoderEnabled(false) // BitmapFactory, as in the app (ProHostApplication) and Coil 2
                 .components {
                 add(coil3.intercept.Interceptor { chain ->
                     val url = chain.request.data as? String

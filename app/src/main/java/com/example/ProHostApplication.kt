@@ -1,5 +1,6 @@
 package com.example
 
+import coil3.imageDecoderEnabled
 import com.example.data.auth.from
 import com.example.data.auth.toSignedInUser
 import android.app.Application
@@ -48,6 +49,8 @@ class ProHostApplication : Application() {
         com.example.data.auth.SessionAuth.refreshIdToken = { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.getIdToken(true)?.await() }
         com.example.data.auth.SessionAuth.signOut = { com.google.firebase.auth.FirebaseAuth.getInstance().signOut() }
         com.example.data.auth.SessionAuth.clearCredentials = { com.example.data.auth.GoogleCredentialState.clearInBackground() }
+        // Coil 3 decodes with ImageDecoder on API 29+; Coil 2 (what every photo looked like) used BitmapFactory. Keep BitmapFactory.
+        coil3.SingletonImageLoader.setSafe { ctx -> coil3.ImageLoader.Builder(ctx).imageDecoderEnabled(false).build() }
         com.example.data.auth.AuthDefaults.gateway = { com.example.data.auth.FirebaseAuthService(this) }
         com.example.data.auth.AuthDefaults.sessionFinisher = { repo, functions -> com.example.data.auth.FirebaseSessionFinisher(this, repo, functions) }
         com.example.data.auth.AuthDefaults.classify = { com.example.data.auth.AuthError.from(it) }
