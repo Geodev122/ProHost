@@ -6,22 +6,6 @@ import android.media.MediaPlayer
 import android.util.Log
 import com.example.R
 
-/** The branded sounds the app plays. Platform code maps each to its own audio file. */
-enum class AppSound { LISTING_PUBLISHED, BOOKING_REQUEST_IN, BOOKING_UPDATE, PURCHASE_SUCCESS }
-
-/** Plays an [AppSound]. Fire-and-forget; never throws (a device that cannot play it simply stays silent). One implementation per platform. */
-interface SoundPlayer {
-    fun play(sound: AppSound)
-
-    companion object {
-        /** Registered once by `ProHostApplication`; tests set their own. */
-        @Volatile
-        var current: SoundPlayer? = null
-
-        fun require(): SoundPlayer = current ?: error("SoundPlayer is not initialised (ProHostApplication.onCreate)")
-    }
-}
-
 /** Android [SoundPlayer]: a one-shot `MediaPlayer` as a notification-usage sonification (what each screen did inline), released when it completes. */
 class AndroidSoundPlayer(context: Context) : SoundPlayer {
     private val app = context.applicationContext

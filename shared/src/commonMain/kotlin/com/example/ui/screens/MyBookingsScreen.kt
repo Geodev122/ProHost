@@ -40,7 +40,6 @@ import com.example.data.model.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ProHostViewModel
-import java.util.*
 import com.example.shared.resources.Res
 import com.example.shared.resources.active_x
 import com.example.shared.resources.add_payment_reminders
@@ -349,7 +348,7 @@ fun MyBookingsScreen(
                             editSourceBooking = booking
                         },
                         onAddPaymentReminders = {
-                            com.example.ui.util.PaymentCalendar.addPaymentReminders(booking, booking.publicCode)
+                            com.example.ui.util.PaymentReminders.add(booking, booking.publicCode)
                             com.example.analytics.AnalyticsTracker.calendarReminderAdd()
                         },
                         onViewAgreement = {

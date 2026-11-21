@@ -155,7 +155,7 @@ fun OwnerRentingProgressScreenContent(
         // used to read is a dead field (set once at creation, never updated by any real
         // renewal since packages replaced the flat per-listing subscription fee).
         val daysLeft = ownerPackageExpiryMillis?.let {
-            ((it - System.currentTimeMillis() + 86399999L) / (24 * 60 * 60 * 1000)).coerceAtLeast(1)
+            ((it - com.example.util.nowMillis() + 86399999L) / (24 * 60 * 60 * 1000)).coerceAtLeast(1)
         }
         val daysLabel = if (daysLeft == 1L) sharedText("t_1_day") else "$daysLeft days"
         val planName = localizedLabel(com.example.data.billing.PlayCatalog.planLabel(currentPlanId))
@@ -349,7 +349,7 @@ fun OwnerRentingProgressScreenContent(
             }
         } else {
             items(activeBookings, key = { it.id }) { booking ->
-                val elapsedDays = ((System.currentTimeMillis() - booking.createdAt) / (24 * 60 * 60 * 1000)).coerceAtLeast(0)
+                val elapsedDays = ((com.example.util.nowMillis() - booking.createdAt) / (24 * 60 * 60 * 1000)).coerceAtLeast(0)
                 val totalContractDays = (booking.durationMonths * 30).coerceAtLeast(1)
                 val progressFraction = (elapsedDays.toFloat() / totalContractDays.toFloat()).coerceIn(0f, 1f)
                 val remainingDays = (totalContractDays - elapsedDays).coerceAtLeast(0)
