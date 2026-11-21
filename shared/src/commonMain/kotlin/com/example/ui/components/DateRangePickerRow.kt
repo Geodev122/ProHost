@@ -27,9 +27,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import com.example.shared.resources.Res
 import com.example.shared.resources.cancel
 import com.example.shared.resources.clear_date_filter
@@ -53,7 +50,6 @@ fun DateRangePickerRow(
     onToChange: (Long?) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val sdfShort = remember { SimpleDateFormat("MMM d, yyyy", Locale.US) }
     var showFromPicker by remember { mutableStateOf(false) }
     var showToPicker by remember { mutableStateOf(false) }
 
@@ -64,12 +60,12 @@ fun DateRangePickerRow(
     ) {
         AssistChip(
             onClick = { showFromPicker = true },
-            label = { Text(fromMillis?.let { sharedText("from_x", sdfShort.format(Date(it))) } ?: sharedText("from_any"), style = MaterialTheme.typography.labelSmall) },
+            label = { Text(fromMillis?.let { sharedText("from_x", com.example.ui.util.IsoDate.usShortDate(it)) } ?: sharedText("from_any"), style = MaterialTheme.typography.labelSmall) },
             leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
         )
         AssistChip(
             onClick = { showToPicker = true },
-            label = { Text(toMillis?.let { sharedText("to_x", sdfShort.format(Date(it))) } ?: sharedText("to_any"), style = MaterialTheme.typography.labelSmall) },
+            label = { Text(toMillis?.let { sharedText("to_x", com.example.ui.util.IsoDate.usShortDate(it)) } ?: sharedText("to_any"), style = MaterialTheme.typography.labelSmall) },
             leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
         )
         if (fromMillis != null || toMillis != null) {

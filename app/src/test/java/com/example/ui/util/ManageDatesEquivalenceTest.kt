@@ -49,7 +49,7 @@ class ManageDatesEquivalenceTest {
             val old = SimpleDateFormat("EEE d MMM", Locale.getDefault())
             for (day in allDays()) {
                 val instant = Calendar.getInstance().apply { clear(); set(day.year, day.monthNumber - 1, day.dayOfMonth, 15, 30, 0) }.time
-                assertEquals("$tag $zone $day", old.format(instant), DateLabels.dayLabel(day))
+                assertEquals("$tag $zone $day", old.format(instant), AndroidDateLabels.dayLabel(day))
             }
         }
     }

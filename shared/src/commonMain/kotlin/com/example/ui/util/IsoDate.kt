@@ -23,6 +23,14 @@ import kotlin.time.Duration.Companion.hours
  * `IsoDateEquivalenceTest` proves equality with the old Calendar code for every day of 2024-2031.
  */
 object IsoDate {
+    private val US_SHORT_MONTHS = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+    /** What SimpleDateFormat("MMM d, yyyy", Locale.US) printed for [millis] in the device time zone ("Nov 21, 2026"). */
+    fun usShortDate(millis: Long): String {
+        val d = Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.currentSystemDefault()).date
+        return "${US_SHORT_MONTHS[d.monthNumber - 1]} ${d.dayOfMonth}, ${d.year}"
+    }
+
     fun parse(iso: String): LocalDate? = try {
         LocalDate.parse(iso)
     } catch (e: IllegalArgumentException) {

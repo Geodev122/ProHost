@@ -10,8 +10,11 @@ import java.util.Locale
  * platform's formatter is still used for dates; it is the seam that becomes an `expect`/`actual` formatter for iOS (P2.5/P3). The label of a
  * [LocalDate] is built from noon of that local date, so a clock change at midnight can never move it to another day.
  */
-object DateLabels {
+/** Android's day labels, installed into the shared [DateLabels] by ProHostApplication. */
+object AndroidDateLabels {
     /** "EEE d MMM" in the app language (falls back to the device locale before [UiText] is initialised). */
+    fun install() { DateLabels.format = ::dayLabel }
+
     fun dayLabel(date: LocalDate): String {
         val locale = UiText.resources?.configuration?.locales?.get(0) ?: Locale.getDefault()
         val noon = Calendar.getInstance().apply { clear(); set(date.year, date.monthNumber - 1, date.dayOfMonth, 12, 0, 0) }
