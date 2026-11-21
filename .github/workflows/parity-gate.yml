@@ -123,7 +123,14 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y -qq libfaketime && ls /usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1 && bash scripts/migration/fetch_design_photos.sh
       - name: Warm up Robolectric at the real time (downloads android-all; the frozen clock rejects newer TLS certificates)
         run: |
-          gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly=splash -PdesignRealTime=1 --no-build-cache --no-daemon -q > gradle-warmup.log 2>&1 || { echo "::error title=warm-up::Robolectric warm-up failed"; tail -40 gradle-warmup.log; exit 1; }
+          # Seven jobs download the same new dependencies at once; Maven Central sometimes answers 429. Retry those, nothing else.
+          for attempt in 1 2 3; do
+            if gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly=splash -PdesignRealTime=1 --no-build-cache --no-daemon -q > gradle-warmup.log 2>&1; then break; fi
+            if [ "$attempt" -lt 3 ] && grep -qE "status code 429|Could not resolve|Could not GET" gradle-warmup.log; then
+              echo "::warning title=warm-up::dependency download refused (attempt $attempt), retrying in $((attempt * 30)) s"; sleep $((attempt * 30)); continue
+            fi
+            echo "::error title=warm-up::Robolectric warm-up failed"; tail -40 gradle-warmup.log; exit 1
+          done
           rm -rf app/build/design-shots
           # The frozen-clock render runs Robolectric offline from these jars, so it never opens a TLS connection.
           mkdir -p app/build/robolectric-deps
@@ -156,7 +163,9 @@ jobs:
   diff:
     name: Diff against golden-v1047
     needs: [render]
-    if: always() && needs.render.result != 'cancelled'
+    # Only when every shard rendered: a failed shard (build or download error) is already the answer; re-rendering
+    # all its missing screens took 20 minutes and held the concurrency group (21 Nov 2026).
+    if: ${{ !cancelled() && needs.render.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 85
     steps:
@@ -209,7 +218,14 @@ jobs:
       - name: Warm up Robolectric at the real time (downloads android-all; the frozen clock rejects newer TLS certificates)
         if: steps.diff.outputs.status != '0'
         run: |
-          gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly=splash -PdesignRealTime=1 --no-build-cache --no-daemon -q > gradle-warmup.log 2>&1 || { echo "::error title=warm-up::Robolectric warm-up failed"; tail -40 gradle-warmup.log; exit 1; }
+          # Seven jobs download the same new dependencies at once; Maven Central sometimes answers 429. Retry those, nothing else.
+          for attempt in 1 2 3; do
+            if gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly=splash -PdesignRealTime=1 --no-build-cache --no-daemon -q > gradle-warmup.log 2>&1; then break; fi
+            if [ "$attempt" -lt 3 ] && grep -qE "status code 429|Could not resolve|Could not GET" gradle-warmup.log; then
+              echo "::warning title=warm-up::dependency download refused (attempt $attempt), retrying in $((attempt * 30)) s"; sleep $((attempt * 30)); continue
+            fi
+            echo "::error title=warm-up::Robolectric warm-up failed"; tail -40 gradle-warmup.log; exit 1
+          done
           rm -rf app/build/design-shots
           # The frozen-clock render runs Robolectric offline from these jars, so it never opens a TLS connection.
           mkdir -p app/build/robolectric-deps
