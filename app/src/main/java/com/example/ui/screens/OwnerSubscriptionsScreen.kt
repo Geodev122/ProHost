@@ -832,7 +832,7 @@ internal fun PlanTile(
             val ribbon: Pair<String, Boolean>? = when {
                 isCurrent -> sharedText("ribbon_your_plan") to false
                 hasOffer && summary?.discountPercent != null -> sharedText("ribbon_x_off", summary.discountPercent) to true
-                hasOffer && summary?.trialSpan != null -> "${summary.trialSpan.uppercase()} FREE" to true
+                hasOffer && summary?.trialSpan != null -> "${summary.trialSpan.orEmpty().uppercase()} FREE" to true
                 kind == PlayCatalog.PlanKind.YEARLY && savingsPercent != null -> sharedText("ribbon_best_value") to true
                 // Both cards always carry a ribbon so they line up and read as a pair.
                 kind == PlayCatalog.PlanKind.MONTHLY -> sharedText("ribbon_flexible") to false
