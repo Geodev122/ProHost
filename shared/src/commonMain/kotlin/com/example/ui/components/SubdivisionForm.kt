@@ -1,6 +1,5 @@
 package com.example.ui.components
 
-import com.example.util.toPickedFile
 import com.example.ui.util.localizedLabel
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
