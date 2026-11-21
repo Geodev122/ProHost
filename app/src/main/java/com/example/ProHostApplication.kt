@@ -1,5 +1,6 @@
 package com.example
 
+import com.example.data.auth.from
 import android.app.Application
 import android.util.Log
 import kotlinx.coroutines.tasks.await
@@ -36,6 +37,9 @@ class ProHostApplication : Application() {
         com.example.data.repository.RepositoryDefaults.firestore = { com.example.data.firestore.FirestoreService.getInstance() }
         com.example.data.repository.RepositoryDefaults.functions = { com.example.data.auth.FirebaseFunctionsClient() }
         com.example.data.repository.RepositoryDefaults.storage = { com.example.data.storage.FirebaseStorageService.getInstance() }
+        com.example.data.auth.AuthDefaults.gateway = { com.example.data.auth.FirebaseAuthService(this) }
+        com.example.data.auth.AuthDefaults.sessionFinisher = { repo, functions -> com.example.data.auth.FirebaseSessionFinisher(this, repo, functions) }
+        com.example.data.auth.AuthDefaults.classify = { com.example.data.auth.AuthError.from(it) }
         com.example.util.PushTokens.fetch = {
             @Suppress("DEPRECATION")
             com.google.firebase.messaging.FirebaseMessaging.getInstance().token.await()

@@ -1,19 +1,16 @@
 package com.example.ui.viewmodel
 
-import com.example.data.auth.from
-import com.example.data.auth.message
-import com.example.R
-import com.example.ui.util.uiText
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.analytics.AnalyticsTracker
 import com.example.data.auth.AccountSuspendedException
+import com.example.data.auth.AuthDefaults
 import com.example.data.auth.AuthError
+import com.example.data.auth.messageKey
+import com.example.data.repository.RepositoryDefaults
+import com.example.util.PushTokens
 import com.example.data.auth.AuthGateway
 import com.example.data.auth.AuthOutcome
-import com.example.data.auth.FirebaseAuthService
-import com.example.data.auth.FirebaseFunctionsClient
-import com.example.data.auth.FirebaseSessionFinisher
 import com.example.data.auth.RegistrationDetails
 import com.example.data.auth.SessionFinisher
 import com.example.data.auth.isCallableUnavailable
@@ -26,7 +23,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
+import com.example.ui.util.sharedText
 
 /**
  * Sign-in and registration for LoginAuthScreen: email + password (sign in, create account,
@@ -40,13 +37,13 @@ import kotlinx.coroutines.tasks.await
 class AuthViewModel(
     private val repository: ProHostRepository = ProHostRepository.getInstance(),
     authGateway: AuthGateway? = null,
-    private val functionsClient: com.example.data.gateway.FunctionsGateway = FirebaseFunctionsClient(),
+    private val functionsClient: com.example.data.gateway.FunctionsGateway = RepositoryDefaults.functions(),
     sessionFinisher: SessionFinisher? = null
 ) : ViewModel() {
 
-    private val auth: AuthGateway by lazy { authGateway ?: FirebaseAuthService(firebaseAppContext()) }
+    private val auth: AuthGateway by lazy { authGateway ?: AuthDefaults.gateway() }
     private val session: SessionFinisher by lazy {
-        sessionFinisher ?: FirebaseSessionFinisher(firebaseAppContext(), repository, functionsClient)
+        sessionFinisher ?: AuthDefaults.sessionFinisher(repository, functionsClient)
     }
 
     // Which sign-in path is in flight, for analytics login/sign_up "method": "password" or "google".
@@ -92,14 +89,11 @@ class AuthViewModel(
         val tosAccepted: Boolean
     )
 
-    private fun firebaseAppContext(): android.content.Context =
-        com.google.firebase.FirebaseApp.getInstance().applicationContext
-
     @Suppress("DEPRECATION")
     private fun registerFcmTokenForCurrentUser(uid: String) {
         viewModelScope.launch {
             runCatching {
-                val token = com.google.firebase.messaging.FirebaseMessaging.getInstance().token.await()
+                val token = PushTokens.current() ?: return@runCatching
                 repository.registerFcmToken(uid, token)
             }
         }
@@ -109,7 +103,7 @@ class AuthViewModel(
         AnalyticsTracker.authError(authMethod, analyticsCode)
         _isAuthenticating.value = false
         _lastAuthError.value = error
-        _authErrorMessage.value = uiText(error.message)
+        _authErrorMessage.value = sharedText(error.messageKey)
     }
 
     /** Runs an auth step; anything thrown (the gateways normally return outcomes) still ends in a message. */
@@ -119,7 +113,7 @@ class AuthViewModel(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            fail(AuthError.from(e), AnalyticsTracker.errorCode(e))
+            fail(AuthDefaults.classify(e), AnalyticsTracker.errorCode(e))
         }
     }
 
@@ -137,7 +131,7 @@ class AuthViewModel(
         val address = email.trim().lowercase()
         if (!isPlausibleEmail(address)) return fail(AuthError.INVALID_EMAIL)
         if (password.isEmpty()) {
-            _authErrorMessage.value = uiText(R.string.enter_your_password)
+            _authErrorMessage.value = sharedText("enter_your_password")
             return
         }
         begin(METHOD_PASSWORD)
@@ -182,7 +176,7 @@ class AuthViewModel(
             if (e != null && !e.isCallableUnavailable()) {
                 AnalyticsTracker.authError("password_reset", AnalyticsTracker.errorCode(e))
                 _isAuthenticating.value = false
-                _authErrorMessage.value = e.toUserMessage(uiText(R.string.couldnt_send_reset_email))
+                _authErrorMessage.value = e.toUserMessage(sharedText("couldnt_send_reset_email"))
                 return@launchAuth
             }
             when (val r = auth.sendPasswordResetEmail(address)) {
@@ -219,7 +213,7 @@ class AuthViewModel(
     private suspend fun finishVerification(isNewUser: Boolean, onVerified: (needsRegistration: Boolean) -> Unit) {
         if (auth.signedInUid == null) {
             _isAuthenticating.value = false
-            _authErrorMessage.value = uiText(R.string.verification_did_not_return_a_valid_sessio)
+            _authErrorMessage.value = sharedText("verification_did_not_return_a_valid_sessio")
             return
         }
         if (isNewUser) return requestRegistration(onVerified)
@@ -232,7 +226,7 @@ class AuthViewModel(
                 registerFcmTokenForCurrentUser(user.id)
                 AnalyticsTracker.login(authMethod)
                 _isAuthenticating.value = false
-                _authSuccessMessage.value = uiText(R.string.welcome_back_x_2, user.fullName)
+                _authSuccessMessage.value = sharedText("welcome_back_x_2", user.fullName)
                 onVerified(false)
             }
         } catch (e: CancellationException) {
@@ -245,7 +239,7 @@ class AuthViewModel(
         } catch (e: Exception) {
             AnalyticsTracker.authError(authMethod, AnalyticsTracker.errorCode(e))
             _isAuthenticating.value = false
-            _authErrorMessage.value = e.toUserMessage(uiText(R.string.sign_in_failed_please_try_again))
+            _authErrorMessage.value = e.toUserMessage(sharedText("sign_in_failed_please_try_again"))
         }
     }
 
@@ -259,7 +253,7 @@ class AuthViewModel(
 
     fun completePendingRegistration(registration: PendingRegistration, onSuccess: () -> Unit) {
         if (auth.signedInUid == null) {
-            _authErrorMessage.value = uiText(R.string.your_verified_session_expired_please_sign)
+            _authErrorMessage.value = sharedText("your_verified_session_expired_please_sign")
             return
         }
         _isAuthenticating.value = true
@@ -291,9 +285,9 @@ class AuthViewModel(
                 AnalyticsTracker.signUp(authMethod, user.role)
                 val photoMissing = registration.profilePicture != null && profilePictureUrl == null
                 _authSuccessMessage.value = if (!photoMissing) {
-                    uiText(R.string.account_created_successfully_for_x, user.fullName)
+                    sharedText("account_created_successfully_for_x", user.fullName)
                 } else {
-                    uiText(R.string.account_created_photo_missing_x, user.fullName)
+                    sharedText("account_created_photo_missing_x", user.fullName)
                 }
                 onSuccess()
             } catch (e: CancellationException) {
@@ -305,7 +299,7 @@ class AuthViewModel(
             } catch (e: Exception) {
                 AnalyticsTracker.authError("registration", AnalyticsTracker.errorCode(e))
                 _isAuthenticating.value = false
-                _authErrorMessage.value = e.toUserMessage(uiText(R.string.registration_failed_please_try_again))
+                _authErrorMessage.value = e.toUserMessage(sharedText("registration_failed_please_try_again"))
             }
         }
     }

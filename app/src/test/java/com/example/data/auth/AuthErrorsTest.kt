@@ -41,8 +41,10 @@ class AuthErrorsTest {
 
     @Test
     fun `every error has its own resource and wrong credentials point at Forgot password`() {
-        assertEquals(R.string.err_invalid_credentials, AuthError.INVALID_CREDENTIALS.message)
-        assertEquals(R.string.password_doesnt_meet_rules, AuthError.WEAK_PASSWORD.message)
-        assertEquals(AuthError.entries.size, AuthError.entries.map { it.message }.toSet().size)
+        assertEquals("err_invalid_credentials", AuthError.INVALID_CREDENTIALS.messageKey)
+        assertEquals("password_doesnt_meet_rules", AuthError.WEAK_PASSWORD.messageKey)
+        assertEquals(AuthError.entries.size, AuthError.entries.map { it.messageKey }.toSet().size)
+        // Every key is a real string resource (the app looks it up by name).
+        AuthError.entries.forEach { e -> R.string::class.java.getField(e.messageKey) }
     }
 }

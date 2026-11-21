@@ -14,13 +14,13 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | Unit (file) | Lines | Class | Seams / reasons | Goldens | Tests | Android diff = 0 | iOS sheet | Status |
 |---|---|---|---|---|---|---|---|---|
 | `MainActivity.kt` | 169 | C | Context removal, PlatformActions |  |  | ☐ | ☐ | todo |
-| `ProHostApplication.kt` | 116 | C | Firebase gateways, KeyValueStore, Logger |  |  | ☐ | ☐ | todo |
+| `ProHostApplication.kt` | 120 | C | Firebase gateways, KeyValueStore, Logger |  |  | ☐ | ☐ | todo |
 | `analytics/AnalyticsConsent.kt` | 58 | B | Context removal, KeyValueStore |  |  | ☐ | ☐ | todo |
 | `analytics/AndroidAnalytics.kt` | 21 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `analytics/FirebaseAnalyticsSink.kt` | 60 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `data/auth/AdminDirectoryModels.kt` | 246 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `data/auth/AndroidCallableFailures.kt` | 19 | A1 | Firebase gateways |  |  | ☐ | ☐ | todo |
-| `data/auth/AuthErrors.kt` | 34 | A1 | Firebase gateways |  |  | ☐ | ☐ | todo |
+| `data/auth/AuthErrors.kt` | 18 | A1 | Firebase gateways |  |  | ☐ | ☐ | todo |
 | `data/auth/FirebaseAuthService.kt` | 121 | C | Context removal, Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
 | `data/auth/FirebaseFunctionsClient.kt` | 638 | C | Firebase gateways, Logger |  |  | ☐ | ☐ | todo |
 | `data/auth/FirebaseSessionFinisher.kt` | 42 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
@@ -121,7 +121,6 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/util/SupportContact.kt` | 26 | B | MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
 | `ui/util/UiText.kt` | 45 | B | — |  |  | ☐ | ☐ | todo |
 | `ui/viewmodel/AdminViewModel.kt` | 1309 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
-| `ui/viewmodel/AuthViewModel.kt` | 323 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `ui/viewmodel/BillingController.kt` | 525 | C | Context removal, Firebase gateways, MediaPicker(PickedFile), Messenger, PlatformActions, SubscriptionStore |  |  | ☐ | ☐ | todo |
 | `ui/viewmodel/ProHostViewModel.kt` | 1355 | B | Clipboard, Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `util/AndroidAppLog.kt` | 18 | B | Logger |  |  | ☐ | ☐ | todo |
@@ -139,6 +138,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 34 / 9265, A2 18 / 9828, B 36 / 11257, C 19 / 4202, X 16 / 6992.
 Automatic class totals (files / lines): A1 35 / 9604, A2 18 / 9828, B 36 / 11257, C 19 / 4198, X 16 / 6992.
 Automatic class totals (files / lines): A1 34 / 9370, A2 18 / 9518, B 38 / 11229, C 19 / 4198, X 16 / 6992.
 Automatic class totals (files / lines): A1 35 / 9389, A2 18 / 9518, B 38 / 11232, C 19 / 4198, X 16 / 6992.
