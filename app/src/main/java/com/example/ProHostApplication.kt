@@ -1,6 +1,7 @@
 package com.example
 
 import com.example.data.auth.from
+import com.example.data.auth.toSignedInUser
 import android.app.Application
 import android.util.Log
 import kotlinx.coroutines.tasks.await
@@ -42,6 +43,10 @@ class ProHostApplication : Application() {
         com.example.data.repository.RepositoryDefaults.firestore = { com.example.data.firestore.FirestoreService.getInstance() }
         com.example.data.repository.RepositoryDefaults.functions = { com.example.data.auth.FirebaseFunctionsClient() }
         com.example.data.repository.RepositoryDefaults.storage = { com.example.data.storage.FirebaseStorageService.getInstance() }
+        com.example.data.auth.SessionAuth.currentUser = { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.toSignedInUser() }
+        com.example.data.auth.SessionAuth.refreshIdToken = { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.getIdToken(true)?.await() }
+        com.example.data.auth.SessionAuth.signOut = { com.google.firebase.auth.FirebaseAuth.getInstance().signOut() }
+        com.example.data.auth.SessionAuth.clearCredentials = { com.example.data.auth.GoogleCredentialState.clearInBackground() }
         com.example.data.auth.AuthDefaults.gateway = { com.example.data.auth.FirebaseAuthService(this) }
         com.example.data.auth.AuthDefaults.sessionFinisher = { repo, functions -> com.example.data.auth.FirebaseSessionFinisher(this, repo, functions) }
         com.example.data.auth.AuthDefaults.classify = { com.example.data.auth.AuthError.from(it) }

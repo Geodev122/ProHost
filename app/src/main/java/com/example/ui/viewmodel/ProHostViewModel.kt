@@ -1,19 +1,15 @@
 package com.example.ui.viewmodel
 
-import com.example.data.auth.toSignedInUser
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.locationLine
 import com.example.ui.util.UiMessages
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.auth.toUserMessage
 import com.example.data.model.*
 import com.example.data.repository.ProHostRepository
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import com.example.ui.util.sharedText
 
 /**
@@ -41,7 +37,7 @@ class ProHostViewModel(
 ) : ViewModel() {
 
     // Cross-cutting callables (e.g. sendPaymentReminder) used from several screens.
-    private val functionsClient: com.example.data.gateway.FunctionsGateway = com.example.data.auth.FirebaseFunctionsClient()
+    private val functionsClient: com.example.data.gateway.FunctionsGateway = com.example.data.repository.RepositoryDefaults.functions()
 
     // Cold-start session restoration — the actual fix for "signed out whenever the app
     // is closed." repository.currentUser previously started (and, on a fresh process,
@@ -53,7 +49,7 @@ class ProHostViewModel(
     // the custom claim, then repository.login) rather than inventing a second way to
     // build an AppUser.
     private val _isRestoringSession = MutableStateFlow(
-        runCatching { FirebaseAuth.getInstance().currentUser != null }.getOrDefault(false)
+        runCatching { com.example.data.auth.SessionAuth.currentUser() != null }.getOrDefault(false)
     )
     val isRestoringSession: StateFlow<Boolean> = _isRestoringSession.asStateFlow()
     private val _sessionRestoreError = MutableStateFlow<String?>(null)
@@ -71,21 +67,21 @@ class ProHostViewModel(
     }
 
     init {
-        val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+        val firebaseUser = com.example.data.auth.SessionAuth.currentUser()
         if (firebaseUser != null) {
             viewModelScope.launch {
                 try {
                     // Force refresh ID token to instantly pick up any server-side custom claim changes (e.g. ADMIN role promotion)
-                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    kotlinx.coroutines.withContext(com.example.util.ioDispatcher) {
                         try {
-                            firebaseUser.getIdToken(true).await()
+                            com.example.data.auth.SessionAuth.refreshIdToken()
                         } catch (e: Exception) {
                             // Non-fatal if offline
                         }
                     }
 
                     val user = kotlinx.coroutines.withTimeout(SESSION_RESTORE_TIMEOUT_MS) {
-                        com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser.toSignedInUser())
+                        com.example.data.auth.completeVerifiedLogin(repository, functionsClient, firebaseUser)
                     }
                     // Same completeness rule every sign-in path uses. Email/Google users have
                     // no phone until KYC, so a phone check here used to sign them out on
@@ -95,16 +91,14 @@ class ProHostViewModel(
                         _pendingRegistrationPhone.value = firebaseUser.phoneNumber.orEmpty()
                     } else {
                         runCatching {
-                            @Suppress("DEPRECATION")
-                            val token = com.google.firebase.messaging.FirebaseMessaging.getInstance().token.await()
-                            repository.registerFcmToken(user.id, token)
+                            com.example.util.PushTokens.current()?.let { token -> repository.registerFcmToken(user.id, token) }
                         }
                     }
                 } catch (e: com.example.data.auth.AccountSuspendedException) {
                     // Same handling the explicit sign-in flow uses for this exception — the
                     // account is server-confirmed suspended, so don't leave a locally-valid
                     // Firebase session around for the next cold start to just retry.
-                    com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+                    com.example.data.auth.SessionAuth.signOut()
                 } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
                     // Session restore took >15s — most likely a slow connection with no
                     // cached claim. currentUser stays null → ProHostNavGraph falls through
@@ -246,7 +240,7 @@ class ProHostViewModel(
                 val role = user?.role
                 if (role != null && lastRole != null && role != lastRole) {
                     try {
-                        com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.getIdToken(true)?.await()
+                        com.example.data.auth.SessionAuth.refreshIdToken()
                     } catch (e: kotlinx.coroutines.CancellationException) {
                         throw e
                     } catch (e: Exception) {
@@ -271,11 +265,10 @@ class ProHostViewModel(
      * refreshed token carries email_verified and assignInitialRole mirrors it onto the profile.
      * Never blocks anything — email is not a requirement.
      */
-    fun refreshEmailVerification(context: android.content.Context) {
-        val appContext = context.applicationContext
+    fun refreshEmailVerification() {
         viewModelScope.launch {
             try {
-                val auth = com.example.data.auth.FirebaseAuthService(appContext)
+                val auth = com.example.data.auth.AuthDefaults.gateway()
                 if (!auth.usesPassword || currentUser.value?.emailVerified == true) {
                     _needsEmailVerification.value = false
                     return@launch
@@ -531,8 +524,8 @@ class ProHostViewModel(
             }.onFailure { e ->
                 com.example.util.AppLog.w("ProHostViewModel", "logout error: ${e.message}")
             }
-            com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
-            com.example.data.auth.GoogleCredentialState.clearInBackground()
+            com.example.data.auth.SessionAuth.signOut()
+            com.example.data.auth.SessionAuth.clearCredentials()
         }
     }
 
@@ -548,8 +541,8 @@ class ProHostViewModel(
         val result = functionsClient.deleteOwnAccount()
         if (result.isSuccess) {
             com.example.analytics.AnalyticsTracker.accountDeleted()
-            com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
-            com.example.data.auth.GoogleCredentialState.clearInBackground()
+            com.example.data.auth.SessionAuth.signOut()
+            com.example.data.auth.SessionAuth.clearCredentials()
             // The profile doc (and its fcmToken field) is already gone server-side —
             // skip the token-clear write here, since it would otherwise just
             // resurrect a stub user_profiles/{uid} doc post-deletion.
