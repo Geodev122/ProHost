@@ -1,8 +1,6 @@
 package com.example.ui.components.drawer
 
 import com.example.ui.util.localizedLabel
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -31,6 +29,13 @@ import com.example.data.model.AppUser
 import com.example.data.model.publicCode
 import com.example.data.model.UserRole
 import com.example.ui.theme.*
+import com.example.shared.resources.Res
+import com.example.shared.resources.collapse_side_drawer
+import com.example.shared.resources.id_x
+import com.example.shared.resources.prohost_member
+import com.example.shared.resources.verified
+import com.example.shared.resources.verified_member
+import com.example.ui.util.appString
 
 /**
  * The compact identity card at the top of the Profile page: a one-word 3D role tag, avatar, name and credentials,
@@ -79,7 +84,7 @@ fun DrawerIdentityCard(
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.collapse_side_drawer),
+                                contentDescription = appString(Res.string.collapse_side_drawer),
                                 tint = pro.onBrandHeader
                             )
                         }
@@ -137,7 +142,7 @@ fun DrawerIdentityCard(
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         Icons.Default.Check,
-                                        contentDescription = stringResource(R.string.verified),
+                                        contentDescription = appString(Res.string.verified),
                                         tint = pro.brandHeaderStart,
                                         modifier = Modifier.size(13.dp)
                                     )
@@ -152,7 +157,7 @@ fun DrawerIdentityCard(
                             horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             Text(
-                                text = user?.fullName ?: stringResource(R.string.prohost_member),
+                                text = user?.fullName ?: appString(Res.string.prohost_member),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = pro.onBrandHeader,
@@ -162,7 +167,7 @@ fun DrawerIdentityCard(
                             if (user?.isVerified == true) {
                                 Icon(
                                     Icons.Default.Verified,
-                                    contentDescription = stringResource(R.string.verified_member),
+                                    contentDescription = appString(Res.string.verified_member),
                                     tint = if (role == UserRole.ADMIN) pro.headerWarning else pro.headerSuccess,
                                     modifier = Modifier.size(18.dp)
                                 )
@@ -220,7 +225,7 @@ fun DrawerIdentityCard(
                     ) {
                         Icon(Icons.Default.Badge, contentDescription = null, tint = pro.onBrandHeader.copy(alpha = 0.8f), modifier = Modifier.size(14.dp))
                         Text(
-                            text = stringResource(R.string.id_x, user?.publicCode ?: "—"),
+                            text = appString(Res.string.id_x, user?.publicCode ?: "—"),
                             style = MaterialTheme.typography.labelSmall,
                             color = pro.onBrandHeader.copy(alpha = 0.9f),
                             fontWeight = FontWeight.Medium,

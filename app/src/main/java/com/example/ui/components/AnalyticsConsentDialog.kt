@@ -1,8 +1,5 @@
 package com.example.ui.components
 
-import com.example.ui.util.uiText
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.*
@@ -16,6 +13,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.analytics.AnalyticsConsent
+import com.example.shared.resources.Res
+import com.example.shared.resources.advertising_id_and_no_ads_you_can_change_t
+import com.example.shared.resources.google_analytics_shows_us_which_screens_se
+import com.example.shared.resources.google_analytics_usage_data_tied_to_your_p
+import com.example.shared.resources.prohost_better_reports_carry_your_prohost
+import com.example.shared.resources.read_the_privacy_policy
+import com.example.shared.resources.share_usage_analytics
+import com.example.ui.util.appString
+import com.example.ui.util.sharedText
 
 /**
  * First-launch analytics opt-in, in the same native permission style as every other prompt
@@ -28,10 +34,10 @@ fun AnalyticsConsentDialog() {
     val context = LocalContext.current
     SystemStylePermissionDialog(
         icon = Icons.Default.Insights,
-        title = permissionTitle(uiText(R.string.share_usage_analytics_2)),
-        message = stringResource(R.string.google_analytics_shows_us_which_screens_se) +
-            stringResource(R.string.prohost_better_reports_carry_your_prohost) +
-            stringResource(R.string.advertising_id_and_no_ads_you_can_change_t),
+        title = permissionTitle(sharedText("share_usage_analytics_2")),
+        message = appString(Res.string.google_analytics_shows_us_which_screens_se) +
+            appString(Res.string.prohost_better_reports_carry_your_prohost) +
+            appString(Res.string.advertising_id_and_no_ads_you_can_change_t),
         onAllow = { AnalyticsConsent.grant(context) },
         onDeny = { AnalyticsConsent.deny(context) },
         dismissible = false,
@@ -42,7 +48,7 @@ fun AnalyticsConsentDialog() {
                         com.example.ui.util.PlatformActions.require().openUrl("https://pro-host.tech/privacy", newTask = true)
                     }
                 }
-            ) { Text(stringResource(R.string.read_the_privacy_policy)) }
+            ) { Text(appString(Res.string.read_the_privacy_policy)) }
         }
     )
 }
@@ -54,9 +60,9 @@ fun AnalyticsConsentToggle(modifier: Modifier = Modifier) {
     val state by AnalyticsConsent.state.collectAsState()
     ListItem(
         modifier = modifier,
-        headlineContent = { Text(stringResource(R.string.share_usage_analytics)) },
+        headlineContent = { Text(appString(Res.string.share_usage_analytics)) },
         supportingContent = {
-            Text(stringResource(R.string.google_analytics_usage_data_tied_to_your_p))
+            Text(appString(Res.string.google_analytics_usage_data_tied_to_your_p))
         },
         trailingContent = {
             Switch(

@@ -2,11 +2,7 @@ package com.example.ui.components
 
 import com.example.ui.util.timeRange
 import com.example.ui.util.locationLine
-import com.example.ui.util.uiPlural
-import androidx.compose.ui.res.pluralStringResource
 import com.example.ui.util.localizedLabel
-import com.example.ui.util.uiText
-import androidx.compose.ui.res.stringResource
 import com.example.ui.util.UiMessages
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -45,6 +41,31 @@ import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.viewmodel.ProHostViewModel
 import java.text.NumberFormat
 import java.util.*
+import com.example.shared.resources.Res
+import com.example.shared.resources.at_least_x
+import com.example.shared.resources.attendees
+import com.example.shared.resources.close
+import com.example.shared.resources.dates_and_times_summary
+import com.example.shared.resources.fewer_attendees
+import com.example.shared.resources.includes_x
+import com.example.shared.resources.intended_use_team_size_special_equipment_n
+import com.example.shared.resources.more_attendees
+import com.example.shared.resources.n_dates
+import com.example.shared.resources.n_times
+import com.example.shared.resources.no_slots_configured_for_this_space
+import com.example.shared.resources.no_tier_covers_x_attendees_adjust_the_numb
+import com.example.shared.resources.one_price_for_the_whole_booking_not_multip
+import com.example.shared.resources.period_x_to_x
+import com.example.shared.resources.pick_dates_then_times
+import com.example.shared.resources.pick_start_date_and_length
+import com.example.shared.resources.requirements_notes
+import com.example.shared.resources.this_room_has_no_attendee_pricing_yet_cont
+import com.example.shared.resources.x_people
+import com.example.shared.resources.x_person
+import com.example.shared.resources.x_x_people
+import com.example.ui.util.appPlural
+import com.example.ui.util.appString
+import com.example.ui.util.sharedText
 
 /** UTC-based, matching the date picker's own UTC millis — see [rememberDatePickerState]. (Date helpers: ui/util/BookingDates.kt.) */
 private fun weekdayAbbreviation(utcTimeMillis: Long): String = BookingDates.weekdayAbbreviation(utcTimeMillis)
@@ -79,10 +100,10 @@ fun RebookDialog(
         target = BookingDialogTarget(space = space, initialFormula = initialFormula, replacesBookingId = null, initialAttendeeCount = initialAttendeeCount),
         viewModel = viewModel,
         copy = BookingDialogCopy(
-            headerTitle = uiText(R.string.re_book_this_space),
-            headerBadgeText = uiText(R.string.real_time_availability),
-            primaryButtonText = uiText(R.string.request),
-            secondaryButtonText = uiText(R.string.request_and_contact)
+            headerTitle = sharedText("re_book_this_space"),
+            headerBadgeText = sharedText("real_time_availability"),
+            primaryButtonText = sharedText("request"),
+            secondaryButtonText = sharedText("request_and_contact")
         ),
         onDismiss = onDismiss,
         onRequestSubmitted = onRequestSubmitted,
@@ -113,10 +134,10 @@ fun EditBookingDialog(
         target = BookingDialogTarget(space = space, initialFormula = initialFormula, replacesBookingId = replacesBookingId, initialAttendeeCount = initialAttendeeCount),
         viewModel = viewModel,
         copy = BookingDialogCopy(
-            headerTitle = uiText(R.string.propose_a_booking_change),
-            headerBadgeText = uiText(R.string.replaces_your_current_booking),
-            primaryButtonText = uiText(R.string.submit_change),
-            secondaryButtonText = uiText(R.string.submit_change_and_contact)
+            headerTitle = sharedText("propose_a_booking_change"),
+            headerBadgeText = sharedText("replaces_your_current_booking"),
+            primaryButtonText = sharedText("submit_change"),
+            secondaryButtonText = sharedText("submit_change_and_contact")
         ),
         onDismiss = onDismiss,
         onRequestSubmitted = onRequestSubmitted,
@@ -310,7 +331,7 @@ private fun BookingSlotSelectorDialog(
                     )
                 }
                 IconButton(onClick = onDismiss, modifier = Modifier.size(40.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
+                    Icon(Icons.Default.Close, contentDescription = appString(Res.string.close))
                 }
             }
 
@@ -346,14 +367,14 @@ private fun BookingSlotSelectorDialog(
                 }
 
                 Text(
-                    text = if (isMonthly) stringResource(R.string.pick_start_date_and_length) else stringResource(R.string.pick_dates_then_times),
+                    text = if (isMonthly) appString(Res.string.pick_start_date_and_length) else appString(Res.string.pick_dates_then_times),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 if (isMonthly) {
                     if (monthlyRate <= 0.0) {
-                        Text(stringResource(R.string.no_slots_configured_for_this_space), style = MaterialTheme.typography.bodyMedium,
+                        Text(appString(Res.string.no_slots_configured_for_this_space), style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else {
                         MonthlyPeriodPicker(
@@ -366,7 +387,7 @@ private fun BookingSlotSelectorDialog(
                         )
                     }
                 } else if (!pricing.hasRealPrice()) {
-                    Text(stringResource(R.string.no_slots_configured_for_this_space), style = MaterialTheme.typography.bodyMedium,
+                    Text(appString(Res.string.no_slots_configured_for_this_space), style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
                     DateSlotPicker(
@@ -383,7 +404,7 @@ private fun BookingSlotSelectorDialog(
 
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Text(
-                        text = stringResource(R.string.requirements_notes),
+                        text = appString(Res.string.requirements_notes),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -392,7 +413,7 @@ private fun BookingSlotSelectorDialog(
                         value = notesText,
                         onValueChange = { notesText = it },
                         label = "",
-                        placeholder = stringResource(R.string.intended_use_team_size_special_equipment_n),
+                        placeholder = appString(Res.string.intended_use_team_size_special_equipment_n),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = false,
                         maxLines = 4
@@ -405,16 +426,14 @@ private fun BookingSlotSelectorDialog(
             if (hasSelection) {
                 val term = monthlyTerm
                 val line = if (isMonthly && term != null) {
-                    stringResource(
-                        R.string.period_x_to_x,
+                    appString(Res.string.period_x_to_x,
                         datedLongLabel(term.first, locale),
                         datedLongLabel(com.example.ui.util.IsoDate.addDays(term.second, -1) ?: term.second, locale)
                     )
                 } else {
-                    stringResource(
-                        R.string.dates_and_times_summary,
-                        pluralStringResource(R.plurals.n_dates, pickedDates, pickedDates),
-                        pluralStringResource(R.plurals.n_times, pickedSlots.size, pickedSlots.size)
+                    appString(Res.string.dates_and_times_summary,
+                        appPlural(Res.plurals.n_dates, pickedDates, pickedDates),
+                        appPlural(Res.plurals.n_times, pickedSlots.size, pickedSlots.size)
                     )
                 }
                 Row(
@@ -473,9 +492,9 @@ fun AttendeeCountAndTiers(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.attendees), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                Text(appString(Res.string.attendees), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                 Text(
-                    if (max != null) stringResource(R.string.x_x_people, min, max) else stringResource(R.string.at_least_x, min),
+                    if (max != null) appString(Res.string.x_x_people, min, max) else appString(Res.string.at_least_x, min),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -485,7 +504,7 @@ fun AttendeeCountAndTiers(
                 enabled = count > min,
                 modifier = Modifier.size(36.dp),
                 colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-            ) { Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.fewer_attendees), modifier = Modifier.size(18.dp)) }
+            ) { Icon(Icons.Default.Remove, contentDescription = appString(Res.string.fewer_attendees), modifier = Modifier.size(18.dp)) }
             Text(
                 text = count.toString(),
                 style = MaterialTheme.typography.titleMedium,
@@ -498,12 +517,12 @@ fun AttendeeCountAndTiers(
                 enabled = max == null || count < max,
                 modifier = Modifier.size(36.dp),
                 colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-            ) { Icon(Icons.Default.Add, contentDescription = stringResource(R.string.more_attendees), modifier = Modifier.size(18.dp)) }
+            ) { Icon(Icons.Default.Add, contentDescription = appString(Res.string.more_attendees), modifier = Modifier.size(18.dp)) }
         }
 
         if (tiers.isEmpty()) {
             Text(
-                stringResource(R.string.this_room_has_no_attendee_pricing_yet_cont),
+                appString(Res.string.this_room_has_no_attendee_pricing_yet_cont),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.error
             )
@@ -520,17 +539,17 @@ fun AttendeeCountAndTiers(
                     Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(tier.name.ifBlank { "$range people" }, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                            Text(stringResource(R.string.x_people, range), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(appString(Res.string.x_people, range), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             if (tier.inclusions.isNotEmpty()) {
                                 Text(
-                                    stringResource(R.string.includes_x, tier.inclusions.joinToString()),
+                                    appString(Res.string.includes_x, tier.inclusions.joinToString()),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
                         Text(
-                            stringResource(R.string.x_person, com.example.ui.util.AttendeePricing.formatUsd(tier.pricePerAttendeeUsd)),
+                            appString(Res.string.x_person, com.example.ui.util.AttendeePricing.formatUsd(tier.pricePerAttendeeUsd)),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.ExtraBold,
                             color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
@@ -540,7 +559,7 @@ fun AttendeeCountAndTiers(
             }
             if (quote == null) {
                 Text(
-                    stringResource(R.string.no_tier_covers_x_attendees_adjust_the_numb, count),
+                    appString(Res.string.no_tier_covers_x_attendees_adjust_the_numb, count),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -569,7 +588,7 @@ fun AttendeeCountAndTiers(
                 }
             }
             Text(
-                stringResource(R.string.one_price_for_the_whole_booking_not_multip),
+                appString(Res.string.one_price_for_the_whole_booking_not_multip),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

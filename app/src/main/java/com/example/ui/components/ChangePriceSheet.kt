@@ -1,10 +1,6 @@
 package com.example.ui.components
 
-import androidx.compose.ui.res.pluralStringResource
 import com.example.ui.util.localizedLabel
-import com.example.ui.util.uiText
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -34,6 +30,31 @@ import com.example.ui.util.PriceChange
 import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.viewmodel.ProHostViewModel
 import java.util.Locale
+import com.example.shared.resources.Res
+import com.example.shared.resources.action_continue
+import com.example.shared.resources.apply_new_price
+import com.example.shared.resources.apply_to_all
+import com.example.shared.resources.back
+import com.example.shared.resources.bookings_use_slot
+import com.example.shared.resources.change
+import com.example.shared.resources.change_price
+import com.example.shared.resources.current_price_xx
+import com.example.shared.resources.current_tenant
+import com.example.shared.resources.divisions_count
+import com.example.shared.resources.each_person_below_is_notified_update_now_r
+import com.example.shared.resources.new_price_usdx
+import com.example.shared.resources.next_term_from_the_next_billing_period_nex
+import com.example.shared.resources.no_priced_slots_are_configured_here_yet_ad
+import com.example.shared.resources.pending_request
+import com.example.shared.resources.save_new_price
+import com.example.shared.resources.this_booking
+import com.example.shared.resources.this_listing_or_division_is_no_longer_avai
+import com.example.shared.resources.whole_space_2
+import com.example.shared.resources.you_have_no_listings_yet
+import com.example.shared.resources.you_ll_choose_how_the_change_applies_to_ea
+import com.example.ui.util.appPlural
+import com.example.ui.util.appString
+import com.example.ui.util.sharedText
 
 private enum class PriceStep { LISTING, DIVISION, SLOTS, EDIT, IMPACT }
 
@@ -136,17 +157,17 @@ fun ChangePriceSheet(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { back() }, enabled = !saving) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = appString(Res.string.back))
                 }
                 Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.change_price), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(appString(Res.string.change_price), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(
                         text = when (step) {
-                            PriceStep.LISTING -> uiText(R.string.step_1_of_3_choose_a_listing)
-                            PriceStep.DIVISION -> uiText(R.string.step_2_of_3_choose_a_division)
-                            PriceStep.SLOTS -> if (fromBooking) uiText(R.string.slots_of_this_booking) else uiText(R.string.step_3_of_3_choose_a_slot)
-                            PriceStep.EDIT -> uiText(R.string.new_price)
-                            PriceStep.IMPACT -> uiText(R.string.tenants_and_requests_on_this_slot)
+                            PriceStep.LISTING -> sharedText("step_1_of_3_choose_a_listing")
+                            PriceStep.DIVISION -> sharedText("step_2_of_3_choose_a_division")
+                            PriceStep.SLOTS -> if (fromBooking) sharedText("slots_of_this_booking") else sharedText("step_3_of_3_choose_a_slot")
+                            PriceStep.EDIT -> sharedText("new_price")
+                            PriceStep.IMPACT -> sharedText("tenants_and_requests_on_this_slot")
                         },
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -177,12 +198,12 @@ fun ChangePriceSheet(
                 when (step) {
                     PriceStep.LISTING -> {
                         if (ownSpaces.isEmpty()) {
-                            Text(stringResource(R.string.you_have_no_listings_yet), style = MaterialTheme.typography.bodyMedium)
+                            Text(appString(Res.string.you_have_no_listings_yet), style = MaterialTheme.typography.bodyMedium)
                         }
                         ownSpaces.forEach { s ->
                             PickRow(
                                 title = s.title,
-                                subtitle = "${s.publicCode} · ${if (s.subdivisions.isEmpty()) stringResource(R.string.whole_space_2) else pluralStringResource(R.plurals.divisions_count, s.subdivisions.size, s.subdivisions.size)}",
+                                subtitle = "${s.publicCode} · ${if (s.subdivisions.isEmpty()) appString(Res.string.whole_space_2) else appPlural(Res.plurals.divisions_count, s.subdivisions.size, s.subdivisions.size)}",
                                 highlighted = s.id == spaceId,
                                 onClick = {
                                     spaceId = s.id
@@ -208,10 +229,10 @@ fun ChangePriceSheet(
                     }
                     PriceStep.SLOTS -> {
                         if (space == null || division == null) {
-                            Text(stringResource(R.string.this_listing_or_division_is_no_longer_avai), style = MaterialTheme.typography.bodyMedium)
+                            Text(appString(Res.string.this_listing_or_division_is_no_longer_avai), style = MaterialTheme.typography.bodyMedium)
                         } else if (slots.isEmpty()) {
                             Text(
-                                stringResource(R.string.no_priced_slots_are_configured_here_yet_ad),
+                                appString(Res.string.no_priced_slots_are_configured_here_yet_ad),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         } else {
@@ -236,14 +257,14 @@ fun ChangePriceSheet(
                     PriceStep.EDIT -> slot?.let { s ->
                         Text(s.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                         Text(
-                            stringResource(R.string.current_price_xx, formatUsd(s.price), s.unit),
+                            appString(Res.string.current_price_xx, formatUsd(s.price), s.unit),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         InputField(
                             value = priceText,
                             onValueChange = { v -> priceText = v.filter { it.isDigit() || it == '.' || it == ',' }.take(10) },
-                            label = stringResource(R.string.new_price_usdx, s.unit),
+                            label = appString(Res.string.new_price_usdx, s.unit),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.fillMaxWidth()
@@ -252,15 +273,15 @@ fun ChangePriceSheet(
                             PriceChange.round2(newPrice) != PriceChange.round2(s.price)
                         if (affected.isNotEmpty()) {
                             Text(
-                                pluralStringResource(R.plurals.bookings_use_slot, affected.size, affected.size) +
-                                    " " + stringResource(R.string.you_ll_choose_how_the_change_applies_to_ea),
+                                appPlural(Res.plurals.bookings_use_slot, affected.size, affected.size) +
+                                    " " + appString(Res.string.you_ll_choose_how_the_change_applies_to_ea),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         Spacer(Modifier.height(Spacing.sm))
                         ProPrimaryButton(
-                            text = if (affected.isEmpty()) stringResource(R.string.save_new_price) else stringResource(R.string.action_continue),
+                            text = if (affected.isEmpty()) appString(Res.string.save_new_price) else appString(Res.string.action_continue),
                             onClick = {
                                 if (affected.isEmpty()) submit() else {
                                     affected.forEach { b ->
@@ -284,8 +305,8 @@ fun ChangePriceSheet(
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                stringResource(R.string.each_person_below_is_notified_update_now_r) +
-                                    stringResource(R.string.next_term_from_the_next_billing_period_nex),
+                                appString(Res.string.each_person_below_is_notified_update_now_r) +
+                                    appString(Res.string.next_term_from_the_next_billing_period_nex),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -293,7 +314,7 @@ fun ChangePriceSheet(
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(stringResource(R.string.apply_to_all), style = MaterialTheme.typography.labelMedium)
+                                Text(appString(Res.string.apply_to_all), style = MaterialTheme.typography.labelMedium)
                                 PriceChangeMode.entries.forEach { mode ->
                                     AssistChip(
                                         onClick = { affected.forEach { decisions[it.id] = mode } },
@@ -317,7 +338,7 @@ fun ChangePriceSheet(
                             }
                             Spacer(Modifier.height(Spacing.sm))
                             ProPrimaryButton(
-                                text = stringResource(R.string.apply_new_price),
+                                text = appString(Res.string.apply_new_price),
                                 icon = Icons.Default.Check,
                                 onClick = { submit() },
                                 enabled = !saving,
@@ -333,9 +354,9 @@ fun ChangePriceSheet(
 }
 
 private fun PriceChangeMode.shortLabel(): String = when (this) {
-    PriceChangeMode.KEEP -> uiText(R.string.keep)
-    PriceChangeMode.NOW -> uiText(R.string.now)
-    PriceChangeMode.NEXT_TERM -> uiText(R.string.next_term)
+    PriceChangeMode.KEEP -> sharedText("keep")
+    PriceChangeMode.NOW -> sharedText("now")
+    PriceChangeMode.NEXT_TERM -> sharedText("next_term")
 }
 
 @Composable
@@ -371,7 +392,7 @@ private fun SlotPriceRow(slot: PriceChange.PriceSlot, onChange: () -> Unit) {
             TextButton(onClick = onChange) {
                 Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(Spacing.xs))
-                Text(stringResource(R.string.change))
+                Text(appString(Res.string.change))
             }
         }
     }
@@ -395,8 +416,8 @@ private fun ImpactRow(
         Text(
             listOfNotNull(
                 booking.publicCode,
-                if (booking.isPending) stringResource(R.string.pending_request) else stringResource(R.string.current_tenant),
-                stringResource(R.string.this_booking).takeIf { isThisBooking }
+                if (booking.isPending) appString(Res.string.pending_request) else appString(Res.string.current_tenant),
+                appString(Res.string.this_booking).takeIf { isThisBooking }
             ).joinToString(" · "),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -416,10 +437,10 @@ private fun ImpactRow(
         Spacer(Modifier.height(Spacing.xs))
         val old = booking.totalAmountUsd
         val summary = when {
-            mode == PriceChangeMode.KEEP -> uiText(R.string.keeps_x_old_price, formatUsd(old))
-            newTotal == old -> uiText(R.string.stays_x_for_now_the_new_price_applies_when, formatUsd(old))
-            else -> uiText(R.string.total_x_x, formatUsd(old), formatUsd(newTotal)) +
-                if (effectiveFrom.isNotBlank() && effectiveFrom > today) " from $effectiveFrom" else uiText(R.string.from_today)
+            mode == PriceChangeMode.KEEP -> sharedText("keeps_x_old_price", formatUsd(old))
+            newTotal == old -> sharedText("stays_x_for_now_the_new_price_applies_when", formatUsd(old))
+            else -> sharedText("total_x_x", formatUsd(old), formatUsd(newTotal)) +
+                if (effectiveFrom.isNotBlank() && effectiveFrom > today) " from $effectiveFrom" else sharedText("from_today")
         }
         Text(summary, style = MaterialTheme.typography.bodySmall)
     }
@@ -430,10 +451,10 @@ private fun ImpactRow(
 fun PriceChangeNote(change: com.example.data.model.BookingPriceChange, modifier: Modifier = Modifier) {
     val text = when {
         change.mode == PriceChangeMode.KEEP ->
-            uiText(R.string.host_changed_x_to_x_this_booking_keeps_x, change.slotLabel, formatUsd(change.newPrice), formatUsd(change.oldTotal))
+            sharedText("host_changed_x_to_x_this_booking_keeps_x", change.slotLabel, formatUsd(change.newPrice), formatUsd(change.oldTotal))
         change.newTotal == change.oldTotal ->
-            uiText(R.string.host_changed_x_to_x_applies_when_this_book, change.slotLabel, formatUsd(change.newPrice))
-        else -> uiText(R.string.price_updated_x_x, formatUsd(change.oldTotal), formatUsd(change.newTotal)) +
+            sharedText("host_changed_x_to_x_applies_when_this_book", change.slotLabel, formatUsd(change.newPrice))
+        else -> sharedText("price_updated_x_x", formatUsd(change.oldTotal), formatUsd(change.newTotal)) +
             (if (change.effectiveFrom.isNotBlank()) " from ${change.effectiveFrom}" else "") +
             " (${change.slotLabel} ${formatUsd(change.oldPrice)} → ${formatUsd(change.newPrice)})"
     }

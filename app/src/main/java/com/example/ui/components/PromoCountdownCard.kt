@@ -2,8 +2,6 @@ package com.example.ui.components
 
 import com.example.ui.theme.Spacing
 
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
 import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
@@ -44,6 +42,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.billing.PlayPromo
 import com.example.ui.theme.proColors
+import com.example.shared.resources.Res
+import com.example.shared.resources.copy_code
+import com.example.shared.resources.for_new_subscribers
+import com.example.shared.resources.google_play_s_checkout_shows_the_offer_bef
+import com.example.shared.resources.offer_ends_in
+import com.example.shared.resources.use_promo_code
+import com.example.shared.resources.x_x_unless_you_cancel_in_google_play_befor
+import com.example.ui.util.appString
 
 /**
  * The promo card in the "Redeem code" sheet, built only from the Play offer tagged `promo` (PlayPromo):
@@ -105,7 +111,7 @@ fun PromoCountdownCard(
                         modifier = Modifier.weight(1f)
                     )
                     IconButton(onClick = onCopy) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = stringResource(R.string.copy_code), tint = on, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.ContentCopy, contentDescription = appString(Res.string.copy_code), tint = on, modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -113,7 +119,7 @@ fun PromoCountdownCard(
             // Live countdown to the offer's `ends-` tag (none when Play's offer has no end date).
             if (left != null) {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Text(stringResource(R.string.offer_ends_in), style = MaterialTheme.typography.labelSmall, color = on.copy(alpha = 0.8f))
+                    Text(appString(Res.string.offer_ends_in), style = MaterialTheme.typography.labelSmall, color = on.copy(alpha = 0.8f))
                     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         CountdownBox(left.days, "DAYS", Modifier.weight(1f))
                         CountdownBox(left.hours, "HRS", Modifier.weight(1f))
@@ -135,11 +141,11 @@ fun PromoCountdownCard(
             ) {
                 Icon(Icons.Default.Redeem, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(Spacing.sm))
-                Text(if (enabled) stringResource(R.string.use_promo_code) else stringResource(R.string.for_new_subscribers), fontWeight = FontWeight.Bold)
+                Text(if (enabled) appString(Res.string.use_promo_code) else appString(Res.string.for_new_subscribers), fontWeight = FontWeight.Bold)
             }
             Text(
-                stringResource(R.string.google_play_s_checkout_shows_the_offer_bef) +
-                    stringResource(R.string.x_x_unless_you_cancel_in_google_play_befor, promo.summary.recurring, promo.summary.recurringPeriod),
+                appString(Res.string.google_play_s_checkout_shows_the_offer_bef) +
+                    appString(Res.string.x_x_unless_you_cancel_in_google_play_befor, promo.summary.recurring, promo.summary.recurringPeriod),
                 style = MaterialTheme.typography.labelSmall,
                 color = on.copy(alpha = 0.75f),
                 textAlign = TextAlign.Center,

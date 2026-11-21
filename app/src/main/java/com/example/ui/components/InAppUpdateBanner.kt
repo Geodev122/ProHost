@@ -1,8 +1,5 @@
 package com.example.ui.components
 
-import com.example.ui.util.uiText
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
@@ -24,6 +21,12 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.theme.proColors
 import com.example.util.UpdateState
 import com.example.ui.theme.Spacing
+import com.example.shared.resources.Res
+import com.example.shared.resources.downloading_prohost_update
+import com.example.shared.resources.prohost_update_ready
+import com.example.shared.resources.restart
+import com.example.ui.util.appString
+import com.example.ui.util.sharedText
 
 @Composable
 fun InAppUpdateBanner(
@@ -81,16 +84,16 @@ fun InAppUpdateBanner(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (updateState == UpdateState.DOWNLOADED) stringResource(R.string.prohost_update_ready) else stringResource(R.string.downloading_prohost_update),
+                            text = if (updateState == UpdateState.DOWNLOADED) appString(Res.string.prohost_update_ready) else appString(Res.string.downloading_prohost_update),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = onBanner
                         )
                         Text(
                             text = if (updateState == UpdateState.DOWNLOADED) {
-                                uiText(R.string.restart_the_app_to_apply_the_latest_featur)
+                                sharedText("restart_the_app_to_apply_the_latest_featur")
                             } else {
-                                uiText(R.string.download_in_progress_x, (downloadProgress * 100).toInt())
+                                sharedText("download_in_progress_x", (downloadProgress * 100).toInt())
                             },
                             style = MaterialTheme.typography.labelMedium,
                             color = onBanner.copy(alpha = 0.85f)
@@ -108,7 +111,7 @@ fun InAppUpdateBanner(
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
-                                text = stringResource(R.string.restart),
+                                text = appString(Res.string.restart),
                                 fontWeight = FontWeight.ExtraBold,
                                 style = MaterialTheme.typography.labelMedium
                             )

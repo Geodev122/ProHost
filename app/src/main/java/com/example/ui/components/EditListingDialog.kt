@@ -1,13 +1,11 @@
 package com.example.ui.components
 
-import com.example.ui.util.uiText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import com.example.R
 import com.example.data.model.BookingRequestStatus
 import com.example.data.model.FacilityCatalog
 import com.example.data.model.SpaceListing
@@ -15,6 +13,7 @@ import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.util.UiMessages
 import com.example.ui.viewmodel.ProHostViewModel
 import kotlinx.coroutines.launch
+import com.example.ui.util.sharedText
 
 /**
  * The one way a host edits a published listing — the Create listing wizard in edit mode, opened from My Listings (Edit)
@@ -48,7 +47,7 @@ fun EditListingDialog(space: SpaceListing, viewModel: ProHostViewModel, onDone: 
             coroutineScope.launch {
                 val success = viewModel.updateOwnerListing(updated)
                 onDone()
-                UiMessages.show(if (success) uiText(R.string.listing_updated_successfully) else uiText(R.string.failed_to_update_listing_please_try_again)
+                UiMessages.show(if (success) sharedText("listing_updated_successfully") else sharedText("failed_to_update_listing_please_try_again")
                 )
             }
         }
