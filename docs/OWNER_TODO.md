@@ -92,7 +92,7 @@ Last updated: 8 Nov 2026
 - Borrowed iPhone (item 43) still needed from the first interactive build.
 
 ### Consolidated guide (7 Nov 2026, night)
-- Everything open is now explained step by step in `docs/OWNER_GUIDE.md` (A iOS, B Google/site, C housekeeping). Blockers first: A1 (Firebase Apple provider, APNs key, App Attest), A2 (Google Maps iOS key), A3 (borrowed iPhone + TestFlight group).
+- Everything open is now explained step by step in `docs/OWNER_GUIDE.md` (A iOS, B Google/site, C housekeeping). Blockers first: A1 (Firebase Apple provider, APNs key, App Attest), A2 (Google Maps iOS key — secret `MAPS_IOS_API_KEY` added 21 Nov 2026, done), A3 (borrowed iPhone + TestFlight group).
 - Decisions 7 Nov: Google Maps SDK for iOS; no Admin Console on iOS. Old item 3 (appspot key) is superseded: the key was disabled on 7 Nov by "GO IMPLEMENT".
 
 ### Audit of 8 Nov 2026 (read from the live systems; owner statements marked "owner")

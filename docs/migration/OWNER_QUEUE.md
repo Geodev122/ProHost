@@ -79,7 +79,7 @@ Play probe (Release bundle, `probe`): the CI account works; Play holds version c
 6. Review the privacy retention sentences when I send them.
 7. Tell me when the Apple Paid Apps Agreement is Active.
 8. Have an iPhone (iOS 17+) with TestFlight and the accepted tester invite.
-9. When asked: enable Maps SDK for iOS, create an iOS-restricted key, save it as GitHub secret `MAPS_IOS_API_KEY`.
+9. ~~Enable Maps SDK for iOS, create an iOS-restricted key, save it as GitHub secret `MAPS_IOS_API_KEY`.~~ **Done 21 Nov 2026** (owner added the secret; wired in at W2 Explore).
 10. When asked: enable Sign in with Apple on the App ID (developer.apple.com) and the Apple provider in Firebase Authentication.
 11. When asked: create the subscription group and the two subscriptions in App Store Connect (I supply ids, prices, texts, notification URL).
 12. Daily Reports check in the web console once report/block ships.
