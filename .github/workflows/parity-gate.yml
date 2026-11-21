@@ -123,8 +123,13 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y -qq libfaketime && ls /usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1 && bash scripts/migration/fetch_design_photos.sh
       - name: Warm up Robolectric at the real time (downloads android-all; the frozen clock rejects newer TLS certificates)
         run: |
-          gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly=splash -PdesignRealTime=1 --no-build-cache --no-daemon -q > gradle-warmup.log 2>&1 || { echo "::warning title=warm-up::Robolectric warm-up failed"; tail -20 gradle-warmup.log; }
+          gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly=splash -PdesignRealTime=1 --no-build-cache --no-daemon -q > gradle-warmup.log 2>&1 || { echo "::error title=warm-up::Robolectric warm-up failed"; tail -40 gradle-warmup.log; exit 1; }
           rm -rf app/build/design-shots
+          # The frozen-clock render runs Robolectric offline from these jars, so it never opens a TLS connection.
+          mkdir -p app/build/robolectric-deps
+          find ~/.m2/repository/org/robolectric -name 'android-all*.jar' -exec cp {} app/build/robolectric-deps/ \;
+          ls app/build/robolectric-deps | grep -q . || { echo "::error title=warm-up::no android-all jar found after the warm-up"; exit 1; }
+          echo "::notice title=robolectric-deps::$(ls app/build/robolectric-deps | tr '\n' ' ')"
       - name: Render this shard of the 280 design screenshots
         run: |
           set +e
@@ -204,8 +209,13 @@ jobs:
       - name: Warm up Robolectric at the real time (downloads android-all; the frozen clock rejects newer TLS certificates)
         if: steps.diff.outputs.status != '0'
         run: |
-          gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly=splash -PdesignRealTime=1 --no-build-cache --no-daemon -q > gradle-warmup.log 2>&1 || { echo "::warning title=warm-up::Robolectric warm-up failed"; tail -20 gradle-warmup.log; }
+          gradle :app:testDebugUnitTest -Proborazzi.test.record=true --tests "com.example.design.*" -PdesignOnly=splash -PdesignRealTime=1 --no-build-cache --no-daemon -q > gradle-warmup.log 2>&1 || { echo "::error title=warm-up::Robolectric warm-up failed"; tail -40 gradle-warmup.log; exit 1; }
           rm -rf app/build/design-shots
+          # The frozen-clock render runs Robolectric offline from these jars, so it never opens a TLS connection.
+          mkdir -p app/build/robolectric-deps
+          find ~/.m2/repository/org/robolectric -name 'android-all*.jar' -exec cp {} app/build/robolectric-deps/ \;
+          ls app/build/robolectric-deps | grep -q . || { echo "::error title=warm-up::no android-all jar found after the warm-up"; exit 1; }
+          echo "::notice title=robolectric-deps::$(ls app/build/robolectric-deps | tr '\n' ' ')"
       - name: Reproduce the differences (re-render only those screens, up to 3 times)
         if: steps.diff.outputs.status != '0'
         id: repro

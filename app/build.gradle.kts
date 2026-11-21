@@ -245,5 +245,11 @@ tasks.withType<Test>().configureEach {
     environment("DONT_FAKE_MONOTONIC", "1") // the JVM's timed waits need the real monotonic clock
     environment("NO_FAKE_STAT", "1")        // file timestamps stay real (Gradle's up-to-date checks)
     environment("TZ", "UTC")
+    // Under the frozen clock any TLS certificate newer than the golden date is "not yet valid", so Robolectric must not download
+    // its runtime here: CI's warm-up (real clock) copies the android-all jars into build/robolectric-deps and the render runs offline.
+    layout.buildDirectory.dir("robolectric-deps").get().asFile.takeIf { it.isDirectory }?.let {
+      systemProperty("robolectric.offline", "true")
+      systemProperty("robolectric.dependency.dir", it.path)
+    }
   }
 }
