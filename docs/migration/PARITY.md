@@ -35,7 +35,6 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `service/ProHostMessagingService.kt` | 200 | C | Context removal, Firebase gateways, Logger, PlatformActions |  |  | ☐ | ☐ | todo |
 | `ui/components/AdminGrantAccessCard.kt` | 237 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/components/FileExportLauncher.kt` | 56 | B | Context removal, MediaPicker(PickedFile), MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
-| `ui/components/PromoCountdownCard.kt` | 169 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/components/dialogs/DrawerDialogsHandler.kt` | 520 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/components/dialogs/SystemDebuggerDialog.kt` | 373 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/components/drawer/AppDrawerContent.kt` | 478 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
@@ -44,8 +43,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/screens/AdminAnalyticsScreen.kt` | 520 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/screens/AdminConsoleScreen.kt` | 486 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/screens/LoginAuthScreen.kt` | 651 | B | BackHandler, Context removal, Firebase gateways, GoogleSignIn, MediaPicker(PickedFile) |  |  | ☐ | ☐ | todo |
-| `ui/screens/OwnerSubscriptionsScreen.kt` | 1223 | B | Context removal, Haptics |  |  | ☐ | ☐ | todo |
-| `ui/screens/SpecialistProfileScreen.kt` | 1223 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
+| `ui/screens/SpecialistProfileScreen.kt` | 1222 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/screens/SplashScreen.kt` | 30 | A1 | — |  |  | ☐ | ☐ | todo |
 | `ui/screens/admin/AdminBillingRescue.kt` | 268 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `ui/screens/admin/AdminDemoTab.kt` | 223 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
@@ -85,6 +83,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/PlayIntegrityManager.kt` | 51 | C | Context removal, Logger |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 7 / 128, A2 6 / 2753, B 21 / 2438, C 18 / 4156, X 16 / 6992.
 Automatic class totals (files / lines): A1 8 / 297, A2 6 / 2754, B 22 / 3661, C 18 / 4156, X 16 / 6992.
 Automatic class totals (files / lines): A1 8 / 297, A2 6 / 2754, B 22 / 3661, C 18 / 4156, X 16 / 6992.
 Automatic class totals (files / lines): A1 8 / 297, A2 6 / 2754, B 22 / 3661, C 18 / 4134, X 16 / 6992.

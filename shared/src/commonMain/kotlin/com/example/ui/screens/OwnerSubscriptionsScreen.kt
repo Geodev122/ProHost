@@ -52,9 +52,6 @@ import com.example.ui.components.ProHostAlertSeverity
 import com.example.ui.components.PromoCountdownCard
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ProHostViewModel
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import com.example.shared.resources.Res
 import com.example.shared.resources.access_until_the_end_of_the_paid_period
 import com.example.shared.resources.activating_your_subscription
@@ -144,13 +141,13 @@ fun OwnerSubscriptionsScreen(
         com.example.data.billing.PlayPromo.find(playBillingProducts.firstOrNull { it.productId == PlayCatalog.PRODUCT_ID })
     }
     // Ticks once a second only while the promo has a live countdown.
-    var promoNow by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var promoNow by remember { mutableLongStateOf(com.example.util.nowMillis()) }
     LaunchedEffect(promoOffer) {
-        while (promoOffer?.endsAtMillis != null && promoOffer.isLive(System.currentTimeMillis())) {
-            promoNow = System.currentTimeMillis()
+        while (promoOffer?.endsAtMillis != null && promoOffer.isLive(com.example.util.nowMillis())) {
+            promoNow = com.example.util.nowMillis()
             kotlinx.coroutines.delay(1_000L)
         }
-        promoNow = System.currentTimeMillis()
+        promoNow = com.example.util.nowMillis()
     }
 
     // Refresh purchases every time the screen resumes (e.g. returning from Play Store).
@@ -219,7 +216,7 @@ fun OwnerSubscriptionsScreen(
     }
 
     val expiryMillis = currentUser?.ownerPackageExpiryMillis
-    val now = System.currentTimeMillis()
+    val now = com.example.util.nowMillis()
     val remainingDays = if (expiryMillis != null && expiryMillis > now) {
         ((expiryMillis - now) / (1000L * 60 * 60 * 24)).toInt()
     } else {
@@ -229,7 +226,7 @@ fun OwnerSubscriptionsScreen(
     val isLifetimeGrant = PlayCatalog.isLifetimeExpiry(expiryMillis)
     val expiryDateString = remember(expiryMillis, isLifetimeGrant) {
         if (expiryMillis != null && !isLifetimeGrant) {
-            SimpleDateFormat("MMM d, yyyy", Locale.US).format(Date(expiryMillis))
+            com.example.ui.util.formatMillisDate(expiryMillis, "MMM d, yyyy", "en-US")
         } else null
     }
     // Find the Play purchase for the current plan so we can read isAutoRenewing.
@@ -562,8 +559,7 @@ fun OwnerSubscriptionsScreen(
         // The offer is applied by Play itself: checkout opens on the promo offer, nothing to type.
         // Play subscriptions policy: the date the paid price starts and how to avoid it, before purchase.
         val promoPaidFrom = remember(livePromo) {
-            java.text.SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
-                .format(Date(PlayOfferText.regularPriceStartsAt(System.currentTimeMillis(), livePromo.summary.introPeriods)))
+            com.example.ui.util.formatMillisDate(PlayOfferText.regularPriceStartsAt(com.example.util.nowMillis(), livePromo.summary.introPeriods), "MMM d, yyyy")
         }
         ProHostDialog(
             onDismissRequest = { showPromoHowTo = false },
@@ -788,7 +784,7 @@ private fun PremiumActionChip(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun PlanTile(
+fun PlanTile(
     kind: PlayCatalog.PlanKind,
     summary: PlayOfferText.OfferSummary?,
     selected: Boolean,
@@ -970,14 +966,13 @@ internal fun PlanTile(
  * offer terms, renewal price and timing visible before purchase.
  */
 @Composable
-internal fun PlanExplainer(summary: PlayOfferText.OfferSummary, hasOffer: Boolean) {
+fun PlanExplainer(summary: PlayOfferText.OfferSummary, hasOffer: Boolean) {
     if (!hasOffer) {
         RenewalExplainer(summary)
         return
     }
     val startsAt = remember(summary) {
-        java.text.SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
-            .format(Date(PlayOfferText.regularPriceStartsAt(System.currentTimeMillis(), summary.introPeriods)))
+        com.example.ui.util.formatMillisDate(PlayOfferText.regularPriceStartsAt(com.example.util.nowMillis(), summary.introPeriods), "MMM d, yyyy")
     }
     val today = when {
         summary.introSpan != null -> buildString {
@@ -1009,8 +1004,7 @@ private fun RenewalExplainer(summary: PlayOfferText.OfferSummary) {
     val renewsAt = remember(summary) {
         // The plain base plan has a single (recurring) phase: the first renewal is one period from today.
         val period = when (summary.recurringPeriod) { "year" -> "P1Y"; "week" -> "P1W"; "day" -> "P1D"; else -> "P1M" }
-        java.text.SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
-            .format(Date(PlayOfferText.regularPriceStartsAt(System.currentTimeMillis(), listOf(period to 1))))
+        com.example.ui.util.formatMillisDate(PlayOfferText.regularPriceStartsAt(com.example.util.nowMillis(), listOf(period to 1)), "MMM d, yyyy")
     }
     ExplainerSteps(sharedText("how_it_works"), listOf(
         Triple(Icons.Default.Payments, "Today", "${summary.recurring} for your first ${summary.recurringPeriod}, paid through Google Play."),
