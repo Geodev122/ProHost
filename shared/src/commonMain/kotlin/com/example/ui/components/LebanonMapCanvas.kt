@@ -1,17 +1,8 @@
 package com.example.ui.components
 
 import com.example.ui.util.localizedLabel
-import com.example.ui.util.uiText
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
 import com.example.ui.util.UiMessages
-import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -38,7 +29,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -49,35 +39,52 @@ import com.example.data.model.SpaceListing
 import com.example.data.model.SpaceType
 import com.example.data.model.Subdivision
 import com.example.ui.theme.*
-import com.google.maps.android.compose.*
-import com.google.android.gms.maps.model.BitmapDescriptor
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.LatLngBounds
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
-import com.google.android.gms.maps.CameraUpdateFactory
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.graphicsLayer
 import com.example.util.LocateResult
+import com.example.util.GeoPoint
+import com.example.util.CountryLookup
+import com.example.ui.map.GeoBounds
+import com.example.ui.map.MapIcon
+import com.example.ui.map.MapMarkerSpec
+import com.example.ui.map.PlatformMap
+import com.example.ui.map.rememberPlatformMapState
+import com.example.ui.map.parseColorOrNull
+import com.example.ui.map.parseHexColorOrNull
+import com.example.ui.map.argb
+import com.example.ui.map.redOf
+import com.example.ui.map.greenOf
+import com.example.ui.map.blueOf
 import com.example.util.MapCamera
 import com.example.util.LocationProvider
-import com.example.util.PhoneCountryDetector
 import com.example.util.locate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.util.Locale
 import kotlin.math.*
+import com.example.shared.resources.Res
+import com.example.shared.resources.high_accuracy_gps_locate
+import com.example.shared.resources.map_center_x
+import com.example.shared.resources.search_this_area
+import com.example.shared.resources.select_choices_and_request
+import com.example.ui.util.appString
+import com.example.ui.util.sharedText
 
 private data class MarkerPalette(val topColor: Int, val baseColor: Int)
+
+/** ARGB of a constant "#RRGGBB" (what Color.parseColor returned for these). */
+private fun hexArgb(hex: String): Int = parseHexColorOrNull(hex) ?: error("bad colour constant $hex")
 
 // Hard cap on pins drawn at once; each marker is a native Maps SDK object.
 private const val MAX_MAP_PINS = 200
 private const val MAX_CLUSTER_LABEL = 99
+
+// Math.toRadians(x) = x * (PI / 180), the same double.
+private const val DEG_TO_RAD = kotlin.math.PI / 180.0
 
 // A fixed rotation of palettes assigned deterministically by spaceCategoryId (via a
 // stable hash) so every admin-defined category — old or new, without the app ever
@@ -85,12 +92,12 @@ private const val MAX_CLUSTER_LABEL = 99
 // color. The legacy SpaceType-keyed palette below is kept only as a fallback for
 // listings saved before spaceCategoryId existed (spaceCategoryId == null).
 private val SCHEMA_MARKER_PALETTES = listOf(
-    MarkerPalette(android.graphics.Color.parseColor("#6E97C4"), android.graphics.Color.parseColor("#2B5A8C")), // Blue
-    MarkerPalette(android.graphics.Color.parseColor("#FF8F73"), android.graphics.Color.parseColor("#F25F4C")), // Orange
-    MarkerPalette(android.graphics.Color.parseColor("#7DD9A0"), android.graphics.Color.parseColor("#4CAF72")), // Green
-    MarkerPalette(android.graphics.Color.parseColor("#B197FC"), android.graphics.Color.parseColor("#8B5CF6")), // Violet
-    MarkerPalette(android.graphics.Color.parseColor("#E8C468"), android.graphics.Color.parseColor("#C99A2E")), // Gold
-    MarkerPalette(android.graphics.Color.parseColor("#6FE3E3"), android.graphics.Color.parseColor("#2FB6B6")), // Teal
+    MarkerPalette(hexArgb("#6E97C4"), hexArgb("#2B5A8C")), // Blue
+    MarkerPalette(hexArgb("#FF8F73"), hexArgb("#F25F4C")), // Orange
+    MarkerPalette(hexArgb("#7DD9A0"), hexArgb("#4CAF72")), // Green
+    MarkerPalette(hexArgb("#B197FC"), hexArgb("#8B5CF6")), // Violet
+    MarkerPalette(hexArgb("#E8C468"), hexArgb("#C99A2E")), // Gold
+    MarkerPalette(hexArgb("#6FE3E3"), hexArgb("#2FB6B6")), // Teal
 )
 
 private fun legacyMarkerPalette(spaceType: SpaceType): MarkerPalette = when (spaceType) {
@@ -111,7 +118,7 @@ private fun getMarkerPaletteFallback(space: SpaceListing): MarkerPalette {
 
 private fun getMarkerPalette(space: SpaceListing, isSelected: Boolean, schema: List<SchemaItem> = emptyList()): MarkerPalette {
     if (isSelected) {
-        return MarkerPalette(android.graphics.Color.parseColor("#FFE082"), android.graphics.Color.parseColor("#FFB300"))
+        return MarkerPalette(hexArgb("#FFE082"), hexArgb("#FFB300"))
     }
     val schemaItem = schema.firstOrNull { item ->
         (!space.spaceCategoryId.isNullOrBlank() && item.id == space.spaceCategoryId) ||
@@ -119,118 +126,16 @@ private fun getMarkerPalette(space: SpaceListing, isSelected: Boolean, schema: L
     }
     val hexColor = schemaItem?.markerColor
     if (!hexColor.isNullOrBlank()) {
-        return try {
-            val color = android.graphics.Color.parseColor(hexColor)
-            val darkened = android.graphics.Color.argb(
-                255,
-                (android.graphics.Color.red(color) * 0.72).toInt(),
-                (android.graphics.Color.green(color) * 0.72).toInt(),
-                (android.graphics.Color.blue(color) * 0.72).toInt()
-            )
-            MarkerPalette(color, darkened)
-        } catch (e: Exception) {
-            getMarkerPaletteFallback(space)
-        }
+        val color = parseColorOrNull(hexColor) ?: return getMarkerPaletteFallback(space)
+        val darkened = argb(
+            255,
+            (redOf(color) * 0.72).toInt(),
+            (greenOf(color) * 0.72).toInt(),
+            (blueOf(color) * 0.72).toInt()
+        )
+        return MarkerPalette(color, darkened)
     }
     return getMarkerPaletteFallback(space)
-}
-
-private fun createCustomMarker(context: Context, palette: MarkerPalette, isSelected: Boolean): BitmapDescriptor {
-    val scale = context.resources.displayMetrics.density
-    val pinScale = if (isSelected) 1.25f else 1.0f
-    val width = (36 * scale * pinScale).toInt()
-    val height = (54 * scale * pinScale).toInt()
-    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-
-    // Scale canvas to match SVG 200x300 viewBox
-    canvas.scale(width / 200f, height / 300f)
-
-    // Ground shadow — drawn first so the pin renders on top
-    val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-        color = android.graphics.Color.argb(55, 0, 0, 0)
-        maskFilter = android.graphics.BlurMaskFilter(10f, android.graphics.BlurMaskFilter.Blur.NORMAL)
-    }
-    canvas.drawOval(android.graphics.RectF(65f, 248f, 135f, 265f), shadowPaint)
-
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-    }
-
-    // Teardrop path: M 30.72,135 A 80,80 0 1 1 169.28,135 L 100,255 Z
-    val path = android.graphics.Path().apply {
-        moveTo(30.72f, 135f)
-        arcTo(android.graphics.RectF(20f, 15f, 180f, 175f), 180f, 180f, false)
-        lineTo(100f, 255f)
-        close()
-    }
-
-    // Top-to-bottom linear gradient
-    paint.shader = android.graphics.LinearGradient(
-        100f, 15f, 100f, 255f,
-        palette.topColor, palette.baseColor,
-        android.graphics.Shader.TileMode.CLAMP
-    )
-    canvas.drawPath(path, paint)
-
-    // Upper-left gloss highlight
-    val glossPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-        shader = android.graphics.RadialGradient(
-            76f, 70f, 45f,
-            android.graphics.Color.WHITE,
-            android.graphics.Color.TRANSPARENT,
-            android.graphics.Shader.TileMode.CLAMP
-        )
-        alpha = 130
-    }
-    canvas.drawPath(path, glossPaint)
-
-    // White center circle (hole-punch accent)
-    paint.shader = null
-    paint.color = android.graphics.Color.WHITE
-    canvas.drawCircle(100f, 95f, 30f, paint)
-
-    return BitmapDescriptorFactory.fromBitmap(bitmap)
-}
-
-private fun createClusterMarker(context: Context, count: Int, hasSelected: Boolean): BitmapDescriptor {
-    val scale = context.resources.displayMetrics.density
-    val size = (52 * scale).toInt()
-    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-    val cx = size / 2f
-    val cy = size / 2f
-    val radius = cx - (4 * scale)
-
-    val bgColor = if (hasSelected)
-        android.graphics.Color.parseColor("#FFB300")
-    else
-        android.graphics.Color.parseColor("#2B5A8C")
-    val borderColor = android.graphics.Color.WHITE
-
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-        color = bgColor
-    }
-    canvas.drawCircle(cx, cy, radius, paint)
-
-    paint.style = Paint.Style.STROKE
-    paint.color = borderColor
-    paint.strokeWidth = 3 * scale
-    canvas.drawCircle(cx, cy, radius, paint)
-
-    val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.WHITE
-        textSize = 15 * scale
-        typeface = android.graphics.Typeface.DEFAULT_BOLD
-        textAlign = Paint.Align.CENTER
-    }
-    val textY = cy - (textPaint.descent() + textPaint.ascent()) / 2
-    canvas.drawText(if (count > MAX_CLUSTER_LABEL) "$MAX_CLUSTER_LABEL+" else count.toString(), cx, textY, textPaint)
-
-    return BitmapDescriptorFactory.fromBitmap(bitmap)
 }
 
 @Composable
@@ -260,21 +165,18 @@ fun LebanonMapCanvas(
     onUserGesture: () -> Unit = {}
 ) {
     val currentOnUserGesture by rememberUpdatedState(onUserGesture)
-    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    var userLocation by remember { mutableStateOf<LatLng?>(null) }
+    var userLocation by remember { mutableStateOf<GeoPoint?>(null) }
     var isLocating by remember { mutableStateOf(false) }
     var activePinSpace by remember { mutableStateOf<SpaceListing?>(null) }
     var isStripCollapsed by remember { mutableStateOf(false) }
     
-    val defaultCenter = LatLng(33.8886, 35.5184) // Beirut
-    val cameraPositionState = rememberCameraPositionState {
-        position = initialCamera?.toCameraPosition() ?: CameraPosition.fromLatLngZoom(defaultCenter, 10f)
-    }
+    val defaultCenter = GeoPoint(33.8886, 35.5184) // Beirut
+    val mapState = rememberPlatformMapState(initialCamera ?: MapCamera(defaultCenter, 10f))
     val latestOnCameraSaved by rememberUpdatedState(onCameraSaved)
-    DisposableEffect(cameraPositionState) {
-        onDispose { latestOnCameraSaved(cameraPositionState.position.toMapCamera()) }
+    DisposableEffect(mapState) {
+        onDispose { latestOnCameraSaved(mapState.camera) }
     }
 
     val listState = rememberLazyListState()
@@ -286,12 +188,12 @@ fun LebanonMapCanvas(
             coroutineScope.launch {
                 when (val result = locate(provider, fallbackToLast = true, onFreshFixDone = { isLocating = false })) {
                     is LocateResult.Found -> {
-                        val latLng = LatLng(result.point.latitude, result.point.longitude)
-                        userLocation = latLng
-                        cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(latLng, 14f))
+                        val point = GeoPoint(result.point.latitude, result.point.longitude)
+                        userLocation = point
+                        mapState.animateTo(point, 14f)
                     }
-                    LocateResult.NoFix -> UiMessages.show(uiText(R.string.cannot_determine_location))
-                    LocateResult.Unavailable -> UiMessages.show(uiText(R.string.gps_signal_unavailable))
+                    LocateResult.NoFix -> UiMessages.show(sharedText("cannot_determine_location"))
+                    LocateResult.Unavailable -> UiMessages.show(sharedText("gps_signal_unavailable"))
                     LocateResult.Silent -> Unit
                 }
             }
@@ -303,10 +205,10 @@ fun LebanonMapCanvas(
 
     fun calculateDistanceKm(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Double {
         val r = 6371.0
-        val dLat = Math.toRadians(lat2 - lat1)
-        val dLng = Math.toRadians(lng2 - lng1)
+        val dLat = (lat2 - lat1) * DEG_TO_RAD
+        val dLng = (lng2 - lng1) * DEG_TO_RAD
         val a = sin(dLat / 2) * sin(dLat / 2) +
-                cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
+                cos(lat1 * DEG_TO_RAD) * cos(lat2 * DEG_TO_RAD) *
                 sin(dLng / 2) * sin(dLng / 2)
         val c = 2 * atan2(sqrt(a), sqrt(1 - a))
         return r * c
@@ -315,27 +217,27 @@ fun LebanonMapCanvas(
     // Recomputed only when the camera settles (and once the map has loaded).
     // Keying this on cameraPositionState.position re-ran filtering, sorting and the
     // carousel list on every animation frame while panning.
-    var visibleBounds by remember { mutableStateOf<LatLngBounds?>(null) }
+    var visibleBounds by remember { mutableStateOf<GeoBounds?>(null) }
     // The area the pins and carousel show. It follows the camera only when the person taps
     // "Search this area" (after panning or zooming by hand), so swiping the carousel or a
     // small nudge never reshuffles the results.
-    var searchedBounds by remember { mutableStateOf<LatLngBounds?>(null) }
+    var searchedBounds by remember { mutableStateOf<GeoBounds?>(null) }
     var movedByGesture by remember { mutableStateOf(false) }
     var detectedCenterCountry by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(cameraPositionState.isMoving) {
-        if (cameraPositionState.isMoving) {
-            if (cameraPositionState.cameraMoveStartedReason == CameraMoveStartedReason.GESTURE) {
+    LaunchedEffect(mapState.isMoving) {
+        if (mapState.isMoving) {
+            if (mapState.movedByGesture) {
                 movedByGesture = true
                 currentOnUserGesture()
             }
         } else {
-            val center = cameraPositionState.position.target
-            cameraPositionState.projection?.visibleRegion?.latLngBounds?.let {
+            val center = mapState.camera.target
+            mapState.visibleBounds?.let {
                 visibleBounds = it
                 if (searchedBounds == null) searchedBounds = it
             }
-            val country = PhoneCountryDetector.detectCountryAtCoordinates(context, center.latitude, center.longitude)
+            val country = CountryLookup.atPoint(center.latitude, center.longitude)
             if (!country.isNullOrBlank() && country != detectedCenterCountry) {
                 detectedCenterCountry = country
                 onCenterCountryDetected(country)
@@ -348,7 +250,7 @@ fun LebanonMapCanvas(
     val visibleSpaces = remember(spaces, searchedBounds) {
         val bounds = searchedBounds
         // contains() handles viewports that cross the antimeridian.
-        val inView = if (bounds != null) spaces.filter { bounds.contains(LatLng(it.lat, it.lng)) } else emptyList()
+        val inView = if (bounds != null) spaces.filter { bounds.contains(GeoPoint(it.lat, it.lng)) } else emptyList()
         inView.ifEmpty { spaces }.take(MAX_MAP_PINS)
     }
 
@@ -385,53 +287,83 @@ fun LebanonMapCanvas(
                     // Separate job: a user gesture cancels animate() with a
                     // CancellationException, which must not end this collector.
                     coroutineScope.launch {
-                        cameraPositionState.animate(
-                            CameraUpdateFactory.newLatLng(LatLng(space.lat - 0.012, space.lng))
-                        )
+                        mapState.animateTo(GeoPoint(space.lat - 0.012, space.lng))
                     }
                 }
             }
     }
 
-    // BitmapDescriptors are registered natively and never freed, so build one per
-    // distinct look (palette + selection) instead of one per marker per recomposition.
-    val markerIconCache = remember { HashMap<Pair<MarkerPalette, Boolean>, BitmapDescriptor>() }
-    val clusterIconCache = remember { HashMap<Pair<Int, Boolean>, BitmapDescriptor>() }
-    fun markerIconFor(space: SpaceListing, isSelected: Boolean): BitmapDescriptor {
-        val palette = getMarkerPalette(space, isSelected, spaceTypeSchema)
-        return markerIconCache.getOrPut(palette to isSelected) { createCustomMarker(context, palette, isSelected) }
+    // Group markers at same ~100m location (3 decimal lat/lng precision).
+    val markerGroups = remember(visibleSpaces) {
+        visibleSpaces.groupBy { space -> (space.lat * 1000).toLong() to (space.lng * 1000).toLong() }
     }
-    fun clusterIconFor(count: Int, hasSelected: Boolean): BitmapDescriptor {
-        val label = count.coerceAtMost(MAX_CLUSTER_LABEL + 1)
-        return clusterIconCache.getOrPut(label to hasSelected) { createClusterMarker(context, label, hasSelected) }
+    val markers = markerGroups.map { (cell, group) ->
+        if (group.size == 1) {
+            val space = group.first()
+            val isSelected = activePinSpace?.id == space.id
+            val palette = getMarkerPalette(space, isSelected, spaceTypeSchema)
+            MapMarkerSpec(
+                key = space.id,
+                position = GeoPoint(space.lat, space.lng),
+                title = space.title,
+                snippet = localizedLabel(space.spaceType.displayName),
+                icon = MapIcon.Pin(palette.topColor, palette.baseColor, isSelected),
+                anchorX = 0.5f,
+                anchorY = 1.0f,
+                zIndex = if (isSelected) 2f else 1f,
+                onClick = {
+                    activePinSpace = space
+                    coroutineScope.launch {
+                        mapState.animateTo(GeoPoint(space.lat - 0.012, space.lng))
+                        val idx = divisionCards.indexOfFirst { it.first.id == space.id }
+                        if (idx >= 0) listState.animateScrollToItem(idx)
+                    }
+                    true
+                }
+            )
+        } else {
+            // Cluster marker for co-located spaces, keyed by its grid cell.
+            val centLat = group.map { it.lat }.average()
+            val centLng = group.map { it.lng }.average()
+            val hasSelected = group.any { it.id == activePinSpace?.id }
+            MapMarkerSpec(
+                key = "cluster_${cell.first}_${cell.second}",
+                position = GeoPoint(centLat, centLng),
+                title = appString(Res.string.x_workspaces_here, group.size),
+                snippet = group.take(3).joinToString(", ") { it.title },
+                icon = MapIcon.Cluster(group.size.coerceAtMost(MAX_CLUSTER_LABEL + 1), hasSelected),
+                anchorX = 0.5f,
+                anchorY = 0.5f,
+                zIndex = if (hasSelected) 3f else 1.5f,
+                onClick = {
+                    val representative = group.firstOrNull { it.id == activePinSpace?.id } ?: group.first()
+                    activePinSpace = representative
+                    coroutineScope.launch {
+                        mapState.animateTo(GeoPoint(centLat - 0.008, centLng), 16f)
+                    }
+                    true
+                }
+            )
+        }
     }
 
     Box(
         modifier = modifier.fillMaxSize().clipToBounds()
     ) {
         val hasLocationPermission = LocationProvider.require().hasPermission()
-                                    
-        GoogleMap(
-            modifier = Modifier.fillMaxSize(),
-            cameraPositionState = cameraPositionState,
+
+        PlatformMap(
+            state = mapState,
+            markers = markers,
             // Keeps the Google logo (attribution) and the compass clear of Explore's floating
             // controls at the top and the listing strip + bottom navigation below.
             contentPadding = PaddingValues(
                 top = if (topControls != null) 112.dp else 0.dp,
                 bottom = (if (!isStripCollapsed) 150.dp else 40.dp) + bottomInset
             ),
-            properties = MapProperties(
-                isMyLocationEnabled = hasLocationPermission,
-                mapType = MapType.NORMAL
-            ),
-            uiSettings = MapUiSettings(
-                myLocationButtonEnabled = false,
-                zoomControlsEnabled = false,
-                compassEnabled = true,
-                mapToolbarEnabled = false
-            ),
+            myLocationEnabled = hasLocationPermission,
             onMapLoaded = {
-                cameraPositionState.projection?.visibleRegion?.latLngBounds?.let {
+                mapState.visibleBounds?.let {
                     visibleBounds = it
                     if (searchedBounds == null) searchedBounds = it
                 }
@@ -439,70 +371,9 @@ fun LebanonMapCanvas(
             onMapClick = {
                 activePinSpace = null
                 onSpaceSelected(null)
-            }
-        ) {
-            // Group markers at same ~100m location (3 decimal lat/lng precision).
-            val markerGroups = remember(visibleSpaces) {
-                visibleSpaces.groupBy { space -> (space.lat * 1000).toLong() to (space.lng * 1000).toLong() }
-            }
-
-            markerGroups.forEach { (cell, group) ->
-                if (group.size == 1) {
-                    val space = group.first()
-                    key(space.id) {
-                        val isSelected = activePinSpace?.id == space.id
-                        val markerState = remember(space.id, space.lat, space.lng) {
-                            MarkerState(position = LatLng(space.lat, space.lng))
-                        }
-                        Marker(
-                            state = markerState,
-                            title = space.title,
-                            snippet = localizedLabel(space.spaceType.displayName),
-                            icon = markerIconFor(space, isSelected),
-                            anchor = androidx.compose.ui.geometry.Offset(0.5f, 1.0f),
-                            zIndex = if (isSelected) 2f else 1f,
-                            onClick = {
-                                activePinSpace = space
-                                coroutineScope.launch {
-                                    cameraPositionState.animate(
-                                        CameraUpdateFactory.newLatLng(LatLng(space.lat - 0.012, space.lng))
-                                    )
-                                    val idx = divisionCards.indexOfFirst { it.first.id == space.id }
-                                    if (idx >= 0) listState.animateScrollToItem(idx)
-                                }
-                                true
-                            }
-                        )
-                    }
-                } else {
-                    // Cluster marker for co-located spaces, keyed by its grid cell.
-                    val centLat = group.map { it.lat }.average()
-                    val centLng = group.map { it.lng }.average()
-                    val hasSelected = group.any { it.id == activePinSpace?.id }
-                    key("cluster_${cell.first}_${cell.second}") {
-                        val markerState = remember(centLat, centLng) { MarkerState(position = LatLng(centLat, centLng)) }
-                        Marker(
-                            state = markerState,
-                            title = stringResource(R.string.x_workspaces_here, group.size),
-                            snippet = group.take(3).joinToString(", ") { it.title },
-                            icon = clusterIconFor(group.size, hasSelected),
-                            anchor = androidx.compose.ui.geometry.Offset(0.5f, 0.5f),
-                            zIndex = if (hasSelected) 3f else 1.5f,
-                            onClick = {
-                                val representative = group.firstOrNull { it.id == activePinSpace?.id } ?: group.first()
-                                activePinSpace = representative
-                                coroutineScope.launch {
-                                    cameraPositionState.animate(
-                                        CameraUpdateFactory.newLatLngZoom(LatLng(centLat - 0.008, centLng), 16f)
-                                    )
-                                }
-                                true
-                            }
-                        )
-                    }
-                }
-            }
-        }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
 
         // FLOATING CENTER COUNTRY BADGE — below Explore's header (which carries the centre
         // logo), never on top of it; hidden while "Search this area" takes that spot.
@@ -527,7 +398,7 @@ fun LebanonMapCanvas(
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = stringResource(R.string.map_center_x, detectedCenterCountry.toString()),
+                        text = appString(Res.string.map_center_x, detectedCenterCountry.toString()),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -550,7 +421,7 @@ fun LebanonMapCanvas(
             if (isLocating) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = SteelBlue)
             } else {
-                Icon(Icons.Default.MyLocation, contentDescription = stringResource(R.string.high_accuracy_gps_locate))
+                Icon(Icons.Default.MyLocation, contentDescription = appString(Res.string.high_accuracy_gps_locate))
             }
         }
 
@@ -585,9 +456,9 @@ fun LebanonMapCanvas(
                         )
                         Text(
                             text = if (isStripCollapsed) {
-                                uiText(R.string.show_workspaces_x, sortedSpaces.sumOf { if (it.subdivisions.isNotEmpty()) it.subdivisions.size else 1 })
+                                sharedText("show_workspaces_x", sortedSpaces.sumOf { if (it.subdivisions.isNotEmpty()) it.subdivisions.size else 1 })
                             } else {
-                                uiText(R.string.collapse_map_list)
+                                sharedText("collapse_map_list")
                             },
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
@@ -635,7 +506,7 @@ fun LebanonMapCanvas(
                                 .clickable {
                                     activePinSpace = space
                                     coroutineScope.launch {
-                                        cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(LatLng(space.lat - 0.012, space.lng), 14f))
+                                        mapState.animateTo(GeoPoint(space.lat - 0.012, space.lng), 14f)
                                     }
                                     if (sub != null) {
                                         onDivisionSelected(space, sub.id)
@@ -669,7 +540,7 @@ fun LebanonMapCanvas(
                                         ?: space.imageUrls.firstOrNull { it.isNotBlank() }
                                     if (thumb != null) {
                                         coil3.compose.AsyncImage(
-                                            model = coil3.request.ImageRequest.Builder(context).data(thumb).size(200).build(),
+                                            model = coil3.request.ImageRequest.Builder(coil3.compose.LocalPlatformContext.current).data(thumb).size(200).build(),
                                             contentDescription = displayName,
                                             modifier = Modifier.fillMaxSize(),
                                             contentScale = androidx.compose.ui.layout.ContentScale.Crop
@@ -738,7 +609,7 @@ fun LebanonMapCanvas(
                                             tint = MaterialTheme.colorScheme.primary
                                         )
                                         Text(
-                                            text = stringResource(R.string.select_choices_and_request),
+                                            text = appString(Res.string.select_choices_and_request),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.primary
                                         )
@@ -769,7 +640,7 @@ fun LebanonMapCanvas(
 }
 
 /** True when the camera moved or zoomed enough that the shown results no longer fit it. */
-private fun boundsDiffer(a: LatLngBounds, b: LatLngBounds): Boolean {
+private fun boundsDiffer(a: GeoBounds, b: GeoBounds): Boolean {
     val latSpan = (a.northeast.latitude - a.southwest.latitude).coerceAtLeast(1e-6)
     val lngSpanA = ((a.northeast.longitude - a.southwest.longitude + 360.0) % 360.0).coerceAtLeast(1e-6)
     val lngSpanB = ((b.northeast.longitude - b.southwest.longitude + 360.0) % 360.0).coerceAtLeast(1e-6)
@@ -801,7 +672,7 @@ private fun SearchThisAreaPill(visible: Boolean, onClick: () -> Unit) {
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp)
             ) {
                 Icon(Icons.Default.TravelExplore, contentDescription = null, modifier = Modifier.size(18.dp))
-                Text(stringResource(R.string.search_this_area), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                Text(appString(Res.string.search_this_area), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
             }
         }
     }
