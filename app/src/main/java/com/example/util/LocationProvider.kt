@@ -12,9 +12,6 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-/** A position on Earth in degrees. Platform-neutral, so shared code never sees `android.location.Location`. */
-data class GeoPoint(val latitude: Double, val longitude: Double)
-
 /**
  * Reading the device position. One implementation per platform (Android below, on Google Play services' fused client; iOS later on Core Location).
  * Asking for permission and turning location on stay in `rememberLocationAccess`; this is only the read.

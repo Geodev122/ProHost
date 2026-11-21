@@ -2,6 +2,9 @@ package com.example.util
 
 import androidx.compose.runtime.saveable.Saver
 
+/** A position on Earth in degrees. Platform-neutral, so shared code never sees `android.location.Location`. */
+data class GeoPoint(val latitude: Double, val longitude: Double)
+
 /**
  * A map camera in platform-neutral terms: where it looks, how far in, and its tilt and bearing in degrees. View models keep this
  * (Explore remembers the camera across a visit to a listing); each platform's map view converts it to its own camera type.

@@ -132,8 +132,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/FriendlyErrorMessage.kt` | 27 | A1 | Firebase gateways |  |  | ☐ | ☐ | todo |
 | `util/Geocoding.kt` | 123 | B | Context removal, Location/Geocoder |  |  | ☐ | ☐ | todo |
 | `util/InAppUpdateManager.kt` | 208 | C | Context removal, Logger, MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
-| `util/LocationProvider.kt` | 109 | B | Context removal, Location/Geocoder |  |  | ☐ | ☐ | todo |
-| `util/MapModels.kt` | 19 | A1 | — |  |  | ☐ | ☐ | todo |
+| `util/LocationProvider.kt` | 106 | B | Context removal, Location/Geocoder |  |  | ☐ | ☐ | todo |
 | `util/NotificationPermissionManager.kt` | 50 | C | Context removal, Logger, MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
 | `util/PhoneCountryDetector.kt` | 95 | C | Context removal, Location/Geocoder |  |  | ☐ | ☐ | todo |
 | `util/PickedFileSaver.kt` | 8 | A1 | — |  |  | ☐ | ☐ | todo |
@@ -141,6 +140,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 34 / 9370, A2 18 / 9518, B 38 / 11229, C 19 / 4198, X 16 / 6992.
 Automatic class totals (files / lines): A1 35 / 9389, A2 18 / 9518, B 38 / 11232, C 19 / 4198, X 16 / 6992.
 Automatic class totals (files / lines): A1 36 / 9746, A2 18 / 9518, B 38 / 11232, C 19 / 4198, X 16 / 6992.
 Automatic class totals (files / lines): A1 36 / 9746, A2 18 / 9518, B 37 / 11680, C 20 / 4269, X 16 / 6992.
