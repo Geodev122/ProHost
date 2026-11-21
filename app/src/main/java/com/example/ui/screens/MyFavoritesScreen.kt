@@ -1,7 +1,5 @@
 package com.example.ui.screens
 
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,6 +20,15 @@ import com.example.ui.components.ProHostAlertBanner
 import com.example.ui.components.ProHostAlertSeverity
 import com.example.ui.theme.Spacing
 import com.example.ui.viewmodel.ProHostViewModel
+import com.example.shared.resources.Res
+import com.example.shared.resources.explore_spaces
+import com.example.shared.resources.no_longer_available
+import com.example.shared.resources.no_longer_available_x
+import com.example.shared.resources.nothing_saved_yet
+import com.example.shared.resources.remove
+import com.example.shared.resources.tap_the_heart_on_any_space_to_keep_it_here
+import com.example.shared.resources.this_saved_listing_was_paused_unpublished
+import com.example.ui.util.appString
 
 /**
  * The saved-spaces list — AppUser.savedSpaceIds already persists correctly
@@ -82,10 +89,10 @@ fun MyFavoritesScreen(
         } else if (savedSpaces.isEmpty() && unavailableIds.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
                 ProEmptyState(
-                    title = stringResource(R.string.nothing_saved_yet),
-                    description = stringResource(R.string.tap_the_heart_on_any_space_to_keep_it_here),
+                    title = appString(Res.string.nothing_saved_yet),
+                    description = appString(Res.string.tap_the_heart_on_any_space_to_keep_it_here),
                     icon = Icons.Filled.FavoriteBorder,
-                    actionButtonText = stringResource(R.string.explore_spaces),
+                    actionButtonText = appString(Res.string.explore_spaces),
                     onActionClick = onNavigateToExplore
                 )
             }
@@ -122,7 +129,7 @@ fun MyFavoritesScreen(
                 if (unavailableIds.isNotEmpty()) {
                     item(key = "header_unavailable") {
                         Text(
-                            text = stringResource(R.string.no_longer_available_x, unavailableIds.size),
+                            text = appString(Res.string.no_longer_available_x, unavailableIds.size),
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = if (groupedSavedSpaces.isEmpty()) 0.dp else Spacing.sm)
@@ -160,19 +167,19 @@ private fun UnavailableFavoriteCard(onRemove: () -> Unit) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = stringResource(R.string.no_longer_available),
+                    text = appString(Res.string.no_longer_available),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = stringResource(R.string.this_saved_listing_was_paused_unpublished),
+                    text = appString(Res.string.this_saved_listing_was_paused_unpublished),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             TextButton(shape = MaterialTheme.shapes.medium, onClick = onRemove) {
-                Text(stringResource(R.string.remove), color = MaterialTheme.colorScheme.error, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                Text(appString(Res.string.remove), color = MaterialTheme.colorScheme.error, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
             }
         }
     }

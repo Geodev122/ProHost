@@ -33,13 +33,10 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.example.R
 import com.example.data.model.Level2Type
 import com.example.data.model.Subdivision
 import com.example.ui.theme.Radius
@@ -48,6 +45,15 @@ import com.example.ui.util.AttendeePricing
 import com.example.ui.util.ListingDivisions
 import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.util.localizedLabel
+import com.example.shared.resources.Res
+import com.example.shared.resources.add_division
+import com.example.shared.resources.delete_division
+import com.example.shared.resources.division_needs_price
+import com.example.shared.resources.divisions_count
+import com.example.shared.resources.divisions_empty_hint
+import com.example.shared.resources.divisions_whole_place
+import com.example.ui.util.appPlural
+import com.example.ui.util.appString
 
 /**
  * Step 3 of Create Listing: one card per configured division (photo or type icon, name, type, lowest price) and a dashed
@@ -65,9 +71,9 @@ fun DivisionCards(
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Text(
             text = when {
-                divisions.isEmpty() -> stringResource(R.string.divisions_empty_hint)
-                ListingDivisions.isWholePlace(divisions) -> stringResource(R.string.divisions_whole_place)
-                else -> pluralStringResource(R.plurals.divisions_count, divisions.size, divisions.size)
+                divisions.isEmpty() -> appString(Res.string.divisions_empty_hint)
+                ListingDivisions.isWholePlace(divisions) -> appString(Res.string.divisions_whole_place)
+                else -> appPlural(Res.plurals.divisions_count, divisions.size, divisions.size)
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -126,7 +132,7 @@ internal fun DivisionCard(division: Subdivision, onClick: (() -> Unit)?, onDelet
                 }
                 if (priceText == null) {
                     Text(
-                        stringResource(R.string.division_needs_price),
+                        appString(Res.string.division_needs_price),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.error
                     )
@@ -134,7 +140,7 @@ internal fun DivisionCard(division: Subdivision, onClick: (() -> Unit)?, onDelet
             }
             if (onDelete != null) {
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_division), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.Default.Delete, contentDescription = appString(Res.string.delete_division), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -164,7 +170,7 @@ private fun AddDivisionTile(onClick: () -> Unit) {
     ) {
         Icon(Icons.Default.Add, contentDescription = null, tint = outline)
         Text(
-            stringResource(R.string.add_division),
+            appString(Res.string.add_division),
             modifier = Modifier.padding(start = Spacing.sm),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,

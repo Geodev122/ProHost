@@ -1,8 +1,6 @@
 package com.example.ui.components
 
 import com.example.ui.util.localizedLabel
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,6 +18,15 @@ import com.example.data.model.CancellationReasonCode
 import com.example.ui.components.CustomButton
 import com.example.ui.components.CustomButtonVariant
 import com.example.ui.theme.Spacing
+import com.example.shared.resources.Res
+import com.example.shared.resources.additional_note_optional
+import com.example.shared.resources.cancel_accepted_booking
+import com.example.shared.resources.cancel_booking
+import com.example.shared.resources.keep_booking
+import com.example.shared.resources.reason
+import com.example.shared.resources.settle_anything_owed_directly_with_x
+import com.example.shared.resources.this_ends_the_active_booking_for_x_immedia
+import com.example.ui.util.appString
 
 /**
  * Early-termination confirmation for an already-ACCEPTED booking — a reason code
@@ -48,16 +55,16 @@ fun CancelAcceptedBookingDialog(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.EventBusy, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                     Spacer(modifier = Modifier.width(Spacing.sm))
-                    Text(stringResource(R.string.cancel_accepted_booking), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                    Text(appString(Res.string.cancel_accepted_booking), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                 }
                 Text(
-                    stringResource(R.string.this_ends_the_active_booking_for_x_immedia, spaceTitle, partyLabel) +
-                    stringResource(R.string.settle_anything_owed_directly_with_x, partyLabel),
+                    appString(Res.string.this_ends_the_active_booking_for_x_immedia, spaceTitle, partyLabel) +
+                    appString(Res.string.settle_anything_owed_directly_with_x, partyLabel),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Text(stringResource(R.string.reason), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                Text(appString(Res.string.reason), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                 LazyColumn(
                     modifier = Modifier.heightIn(max = 220.dp),
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm)
@@ -85,7 +92,7 @@ fun CancelAcceptedBookingDialog(
                 InputField(
                     value = note,
                     onValueChange = { note = it },
-                    label = stringResource(R.string.additional_note_optional),
+                    label = appString(Res.string.additional_note_optional),
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2,
                     maxLines = 4,
@@ -97,14 +104,14 @@ fun CancelAcceptedBookingDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     CustomButton(
-                        text = stringResource(R.string.keep_booking),
+                        text = appString(Res.string.keep_booking),
                         onClick = onDismiss,
                         variant = CustomButtonVariant.OUTLINED,
                         compact = true,
                         modifier = Modifier.weight(1f)
                     )
                     CustomButton(
-                        text = stringResource(R.string.cancel_booking),
+                        text = appString(Res.string.cancel_booking),
                         onClick = { selectedReason?.let { onConfirm(it, note.ifBlank { null }) } },
                         variant = CustomButtonVariant.DANGER,
                         enabled = selectedReason != null,

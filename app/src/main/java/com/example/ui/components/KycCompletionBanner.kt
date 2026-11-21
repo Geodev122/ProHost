@@ -1,8 +1,5 @@
 package com.example.ui.components
 
-import com.example.ui.util.uiText
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Elevation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
@@ -19,6 +16,17 @@ import com.example.data.model.AppUser
 import com.example.data.model.UserRole
 import com.example.ui.theme.Spacing
 import com.example.ui.theme.proColors
+import com.example.shared.resources.Res
+import com.example.shared.resources.complete_now
+import com.example.shared.resources.needed_once_before_you_publish_listings
+import com.example.shared.resources.needed_once_before_your_first_booking_requ
+import com.example.shared.resources.next_x
+import com.example.shared.resources.ready_to_book
+import com.example.shared.resources.ready_to_host
+import com.example.shared.resources.x_done
+import com.example.shared.resources.x_to_do
+import com.example.ui.util.appString
+import com.example.ui.util.sharedText
 
 /**
  * Profile progress card: the same items the app checks in place — photo and WhatsApp number
@@ -38,9 +46,9 @@ fun KycCompletionBanner(
     data class Step(val icon: ImageVector, val label: String, val done: Boolean)
 
     val steps = buildList {
-        add(Step(Icons.Default.Photo, uiText(R.string.profile_photo), !user.profilePictureUrl.isNullOrBlank()))
-        add(Step(Icons.Default.PhoneAndroid, uiText(R.string.whatsapp_number), user.hasWhatsAppNumber()))
-        if (isHost) add(Step(Icons.Default.LocationOn, uiText(R.string.country_city), user.country.isNotBlank() && user.city.isNotBlank()))
+        add(Step(Icons.Default.Photo, sharedText("profile_photo"), !user.profilePictureUrl.isNullOrBlank()))
+        add(Step(Icons.Default.PhoneAndroid, sharedText("whatsapp_number"), user.hasWhatsAppNumber()))
+        if (isHost) add(Step(Icons.Default.LocationOn, sharedText("country_city"), user.country.isNotBlank() && user.city.isNotBlank()))
     }
     val next = steps.first { !it.done }
 
@@ -57,7 +65,7 @@ fun KycCompletionBanner(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Icon(Icons.Default.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                 Text(
-                    if (isHost) stringResource(R.string.ready_to_host) else stringResource(R.string.ready_to_book),
+                    if (isHost) appString(Res.string.ready_to_host) else appString(Res.string.ready_to_book),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -78,7 +86,7 @@ fun KycCompletionBanner(
                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
                         Icon(
                             imageVector = if (step.done) Icons.Default.CheckCircle else step.icon,
-                            contentDescription = if (step.done) stringResource(R.string.x_done, step.label) else stringResource(R.string.x_to_do, step.label),
+                            contentDescription = if (step.done) appString(Res.string.x_done, step.label) else appString(Res.string.x_to_do, step.label),
                             tint = color,
                             modifier = Modifier.size(20.dp)
                         )
@@ -89,13 +97,13 @@ fun KycCompletionBanner(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
             Text(
-                stringResource(R.string.next_x, next.label.lowercase()),
+                appString(Res.string.next_x, next.label.lowercase()),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                if (isHost) stringResource(R.string.needed_once_before_you_publish_listings) else stringResource(R.string.needed_once_before_your_first_booking_requ),
+                if (isHost) appString(Res.string.needed_once_before_you_publish_listings) else appString(Res.string.needed_once_before_your_first_booking_requ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -106,7 +114,7 @@ fun KycCompletionBanner(
                 shape = MaterialTheme.shapes.medium,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text(stringResource(R.string.complete_now), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Text(appString(Res.string.complete_now), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
             }
         }
     }

@@ -1,7 +1,5 @@
 package com.example.ui.screens
 
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -19,6 +17,11 @@ import com.example.ui.components.*
 import com.example.ui.theme.proHostScreenBackground
 import com.example.ui.theme.Spacing
 import com.example.ui.viewmodel.ProHostViewModel
+import com.example.shared.resources.Res
+import com.example.shared.resources.no_rental_requests
+import com.example.shared.resources.x_total_requests
+import com.example.shared.resources.you_have_no_incoming_rental_requests_yet_p
+import com.example.ui.util.appString
 
 @Composable
 fun OwnerRentalRequestsScreen(
@@ -51,8 +54,8 @@ fun OwnerRentalRequestsScreen(
         !isLoading && incomingRequests.isEmpty() -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 ProEmptyState(
-                    title = stringResource(R.string.no_rental_requests),
-                    description = stringResource(R.string.you_have_no_incoming_rental_requests_yet_p),
+                    title = appString(Res.string.no_rental_requests),
+                    description = appString(Res.string.you_have_no_incoming_rental_requests_yet_p),
                     icon = Icons.Default.Inbox
                 )
             }
@@ -93,7 +96,7 @@ fun OwnerRentalRequestsScreenContent(
                 ) {
                     Icon(Icons.Default.Inbox, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                     Text(
-                        text = stringResource(R.string.x_total_requests, incomingRequests.size),
+                        text = appString(Res.string.x_total_requests, incomingRequests.size),
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer

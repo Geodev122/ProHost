@@ -36,6 +36,10 @@ kotlin {
       api(libs.kotlinx.datetime)
       // ViewModel + viewModelScope for the shared view models (Discovery first).
       api(libs.jetbrains.lifecycle.viewmodel)
+      // viewModel(), LocalLifecycleOwner and BackHandler for shared screens (same versions CMP 1.12.2 resolves).
+      api(libs.jetbrains.lifecycle.viewmodel.compose)
+      api(libs.jetbrains.lifecycle.runtime.compose)
+      api(libs.jetbrains.ui.backhandler)
       // Compose Multiplatform: exposed with api because the app's screens (and later the shared ones) use these types directly.
       api(compose.runtime)
       api(compose.foundation)

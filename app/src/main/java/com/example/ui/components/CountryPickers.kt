@@ -2,8 +2,6 @@ package com.example.ui.components
 
 import com.example.ui.theme.Spacing
 
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,6 +27,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.COUNTRIES
 import com.example.data.model.Country
+import com.example.shared.resources.Res
+import com.example.shared.resources.change
+import com.example.shared.resources.choose_your_country
+import com.example.shared.resources.close
+import com.example.shared.resources.country
+import com.example.shared.resources.phone_number_label
+import com.example.shared.resources.search_country_or_code
+import com.example.ui.util.appString
 
 /**
  * Search-and-tap country chooser, used to let the user correct an auto-detected dial
@@ -56,14 +62,14 @@ fun CountryPickerDialog(
     }
     ProHostDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.choose_your_country)) },
+        title = { Text(appString(Res.string.choose_your_country)) },
         text = {
             Column {
                 InputField(
                     value = query,
                     onValueChange = { query = it },
                     label = "",
-                    placeholder = stringResource(R.string.search_country_or_code),
+                    placeholder = appString(Res.string.search_country_or_code),
                     leadingIcon = Icons.Default.Search,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
@@ -93,7 +99,7 @@ fun CountryPickerDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) }
+            TextButton(onClick = onDismiss) { Text(appString(Res.string.close)) }
         }
     )
 }
@@ -113,7 +119,7 @@ fun PhoneNumberField(
     number: String,
     onNumberChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    label: String = stringResource(R.string.phone_number_label),
+    label: String = appString(Res.string.phone_number_label),
     placeholder: String = "3 123 456"
 ) {
     var showPicker by remember { mutableStateOf(false) }
@@ -130,7 +136,7 @@ fun PhoneNumberField(
         leadingIcon = androidx.compose.material.icons.Icons.Default.Phone,
         trailingIcon = {
             TextButton(onClick = { showPicker = true }) {
-                Text(stringResource(R.string.change), style = MaterialTheme.typography.labelSmall)
+                Text(appString(Res.string.change), style = MaterialTheme.typography.labelSmall)
             }
         },
         modifier = modifier,
@@ -161,7 +167,7 @@ fun CountryDropdownField(
     selectedCountry: Country,
     onCountrySelected: (Country) -> Unit,
     modifier: Modifier = Modifier,
-    label: String = stringResource(R.string.country)
+    label: String = appString(Res.string.country)
 ) {
     var expanded by remember { mutableStateOf(false) }
     val locale = LocalConfiguration.current.locales[0]

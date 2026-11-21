@@ -23,6 +23,8 @@ kotlinxCoroutinesCore = "1.10.1"
 kotlinxDatetime = "0.6.2"
 # Multiplatform ViewModel for :shared: the same version Compose Multiplatform 1.12.2 already brings in (no app version change).
 jetbrainsLifecycle = "2.9.6"
+# Back handling for shared screens: the version of Compose Multiplatform itself.
+jetbrainsBackhandler = "1.12.2"
 desugarJdkLibs = "2.1.5"
 playServicesLocation = "21.3.0"
 mapsCompose = "6.1.1"
@@ -69,6 +71,9 @@ kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugarJdkLibs" }
 kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinxDatetime" }
 jetbrains-lifecycle-viewmodel = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "jetbrainsLifecycle" }
+jetbrains-lifecycle-viewmodel-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "jetbrainsLifecycle" }
+jetbrains-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "jetbrainsLifecycle" }
+jetbrains-ui-backhandler = { group = "org.jetbrains.compose.ui", name = "ui-backhandler", version.ref = "jetbrainsBackhandler" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 maps-compose = { group = "com.google.maps.android", name = "maps-compose", version.ref = "mapsCompose" }

@@ -1,8 +1,5 @@
 package com.example.ui.screens
 
-import com.example.ui.util.uiText
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -25,6 +22,15 @@ import com.example.data.model.splitE164
 import com.example.ui.components.*
 import com.example.ui.theme.*
 import kotlinx.coroutines.launch
+import com.example.shared.resources.Res
+import com.example.shared.resources.dismiss
+import com.example.shared.resources.hosts_and_guests_reach_you_on_whatsapp_it
+import com.example.shared.resources.save_number
+import com.example.shared.resources.saving
+import com.example.shared.resources.whatsapp_number
+import com.example.shared.resources.your_whatsapp_number
+import com.example.ui.util.appString
+import com.example.ui.util.sharedText
 
 /**
  * Full-screen gate shown when someone without a WhatsApp number opens a booking or listing
@@ -42,11 +48,11 @@ fun KycScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.whatsapp_number), fontWeight = FontWeight.Bold) },
+                title = { Text(appString(Res.string.whatsapp_number), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     if (onDismiss != null) {
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.dismiss))
+                            Icon(Icons.Default.Close, contentDescription = appString(Res.string.dismiss))
                         }
                     }
                 }
@@ -110,9 +116,9 @@ fun WhatsAppNumberSection(
             }
             Spacer(modifier = Modifier.width(Spacing.md))
             Column {
-                Text(stringResource(R.string.your_whatsapp_number), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(appString(Res.string.your_whatsapp_number), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text(
-                    stringResource(R.string.hosts_and_guests_reach_you_on_whatsapp_it),
+                    appString(Res.string.hosts_and_guests_reach_you_on_whatsapp_it),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -140,10 +146,10 @@ fun WhatsAppNumberSection(
         Spacer(modifier = Modifier.height(Spacing.lg))
 
         ProPrimaryButton(
-            text = if (saving) stringResource(R.string.saving) else stringResource(R.string.save_number),
+            text = if (saving) appString(Res.string.saving) else appString(Res.string.save_number),
             onClick = {
                 if (phoneNumber.filter { it.isDigit() }.length < 6 || !isPlausibleE164(e164Phone)) {
-                    errorMessage = uiText(R.string.please_enter_a_valid_number_with_its_count)
+                    errorMessage = sharedText("please_enter_a_valid_number_with_its_count")
                     return@ProPrimaryButton
                 }
                 saving = true
