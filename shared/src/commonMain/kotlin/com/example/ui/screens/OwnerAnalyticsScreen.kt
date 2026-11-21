@@ -100,11 +100,11 @@ fun OwnerAnalyticsScreen(
     val totalRevenuePotential = activeListings.sumOf { it.baseMonthlyRateUsd }
     val totalInquiries = displayListings.sumOf { it.avatarInquiryClicks }
     val totalFavorites = displayListings.sumOf { it.favoriteCount }
-    val savesThisMonth = remember(displayListings) { SaveStats.savesInMonth(displayListings, System.currentTimeMillis()) }
-    val savesLastMonth = remember(displayListings) { SaveStats.savesInMonth(displayListings, System.currentTimeMillis(), monthsBack = 1) }
+    val savesThisMonth = remember(displayListings) { SaveStats.savesInMonth(displayListings, com.example.util.nowMillis()) }
+    val savesLastMonth = remember(displayListings) { SaveStats.savesInMonth(displayListings, com.example.util.nowMillis(), monthsBack = 1) }
 
     // Date boundaries computed once at composable scope so every section shares them
-    val now = remember { System.currentTimeMillis() }
+    val now = remember { com.example.util.nowMillis() }
     val monthBoundaries = remember(now) { com.example.ui.util.MonthBoundaries.analytics(now) }
     val currentMonthStart = monthBoundaries.currentMonthStart
     val prevMonthSameDay = monthBoundaries.prevMonthSameDay

@@ -324,7 +324,7 @@ fun HourlyStrategyEditor(
                                     )
                                 )
                             },
-                            label = { Text(appString(Res.string.t_02d_00).format(hour), style = MaterialTheme.typography.labelSmall) }
+                            label = { Text(com.example.util.formatTwoDigits(appString(Res.string.t_02d_00), hour), style = MaterialTheme.typography.labelSmall) }
                         )
                     }
                 }
