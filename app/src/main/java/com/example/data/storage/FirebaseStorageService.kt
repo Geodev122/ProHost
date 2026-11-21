@@ -33,6 +33,8 @@ class FirebaseStorageService(
         }
     }
 ) : com.example.data.gateway.StorageGateway {
+    override val lastUploadFailure: String? get() = lastUploadError
+
     companion object {
         private const val TAG = "FirebaseStorageService"
 

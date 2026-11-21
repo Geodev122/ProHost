@@ -1,15 +1,8 @@
 package com.example.ui.components
 
-import com.example.util.toPickedFile
 import com.example.util.PickedFile
 import com.example.util.FileAccess
 import com.example.ui.util.localizedLabel
-import com.example.R
-import androidx.compose.ui.res.stringResource
-import android.net.Uri
-import android.provider.OpenableColumns
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -46,7 +39,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import coil3.compose.AsyncImage
 import com.example.data.model.*
-import com.example.data.storage.FirebaseStorageService
 import com.example.ui.theme.Spacing
 import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.util.ListingDivisions
@@ -133,6 +125,7 @@ import com.example.shared.resources.your_account_couldn_t_be_loaded_please_sig
 import com.example.ui.util.appPlural
 import com.example.ui.util.appString
 import com.example.ui.util.sharedText
+import com.example.shared.resources.done
 
 // Savers for rememberSaveable — process death mid-wizard would otherwise lose all
 // in-progress state. The debounced 3s Draft auto-save already covers a kill that
@@ -269,7 +262,6 @@ fun CreateListingDialog(
     }
     val activeUser = currentUser
 
-    val context = androidx.compose.ui.platform.LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     // "Save draft" sits in the header (the bottom row was too narrow on small phones); its action is built further
     // down, next to buildListing, and read only when tapped.
@@ -277,7 +269,7 @@ fun CreateListingDialog(
     // Divisions someone has booked, and whether the undivided place itself is booked.
     val bookedDivisionIds = remember(activeBookings) { activeBookings.mapNotNull { it.subdivisionId }.toSet() }
     val wholePlaceBooked = existingDraft?.subdivisions?.isEmpty() == true && activeBookings.any { it.subdivisionId.isNullOrBlank() }
-    val storageService = remember { FirebaseStorageService.getInstance() }
+    val storageService = remember { com.example.data.repository.RepositoryDefaults.storage() }
 
     // Generated up front (not just at submit time) so photos can upload to their final
     // listings/{listingId}/ path as soon as they're picked, instead of at the end.
@@ -333,7 +325,7 @@ fun CreateListingDialog(
                 coverUrl = url
                 hasUserTyped = true
             } else {
-                val detail = FirebaseStorageService.lastUploadError ?: sharedText("check_your_connection_and_try_again")
+                val detail = storageService.lastUploadFailure ?: sharedText("check_your_connection_and_try_again")
                 photoUploadError = sharedText("couldnt_upload_that_photo_x", detail)
             }
             isUploadingPhoto = false
@@ -534,22 +526,10 @@ fun CreateListingDialog(
         onDismissRequest = { requestClose() },
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
     ) {
-        androidx.activity.compose.BackHandler { if (currentStep > 0) currentStep-- else requestClose() }
+        PlatformBackHandler { if (currentStep > 0) currentStep-- else requestClose() }
         // The dialog window draws under the system bars, so it sets their icon colour for its own surface.
-        val dialogView = androidx.compose.ui.platform.LocalView.current
         val lightBars = MaterialTheme.colorScheme.surface.luminance() > 0.5f
-        SideEffect {
-            (dialogView.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window?.let { window ->
-                // Fill the screen and resize for the keyboard, so the footer stays visible above it.
-                window.setLayout(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT)
-                @Suppress("DEPRECATION")
-                window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-                androidx.core.view.WindowCompat.getInsetsController(window, dialogView).apply {
-                    isAppearanceLightStatusBars = lightBars
-                    isAppearanceLightNavigationBars = lightBars
-                }
-            }
-        }
+        FullScreenDialogWindowSetup(lightBars)
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.surface
@@ -874,7 +854,7 @@ fun CreateListingDialog(
                                           modifier = Modifier.weight(1f)
                                       )
                                       TextButton(onClick = { showClosedDates = !showClosedDates }) {
-                                          Text(stringResource(if (showClosedDates) R.string.done else R.string.see_more))
+                                          Text(appString(if (showClosedDates) Res.string.done else Res.string.see_more))
                                       }
                                   }
                                   if (showClosedDates) {
@@ -1162,7 +1142,7 @@ fun CreateListingDialog(
                           .collect { draft ->
                               if (hasUserTyped && (draft.title.isNotBlank() || draft.streetAddress.isNotBlank())) {
                                   onAutoSaveDraft(draft)
-                                  lastAutoSavedAtMillis = System.currentTimeMillis()
+                                  lastAutoSavedAtMillis = com.example.util.nowMillis()
                               }
                           }
                   }

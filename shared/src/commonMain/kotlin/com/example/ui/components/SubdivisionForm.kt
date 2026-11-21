@@ -2,11 +2,6 @@ package com.example.ui.components
 
 import com.example.util.toPickedFile
 import com.example.ui.util.localizedLabel
-import com.example.R
-import androidx.compose.ui.res.stringResource
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -30,7 +25,6 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import coil3.compose.AsyncImage
 import com.example.data.model.*
-import com.example.data.storage.FirebaseStorageService
 import com.example.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -102,6 +96,8 @@ import com.example.shared.resources.turn_on
 import com.example.shared.resources.use_templates
 import com.example.ui.util.appString
 import com.example.ui.util.sharedText
+import com.example.shared.resources.division_save_hint
+import com.example.shared.resources.monthly_window_invalid
 
 /**
  * One division of a listing (a room, desk, hall…): name, type, amenities, photos, pricing and optional own hours. The
@@ -133,7 +129,7 @@ fun SubdivisionForm(
     hasBookings: Boolean = false
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val storageService = remember { FirebaseStorageService.getInstance() }
+    val storageService = remember { com.example.data.repository.RepositoryDefaults.storage() }
     val initialOverride = initial?.scheduleOverride
 
     var subName by remember { mutableStateOf(initial?.name ?: "") }
@@ -222,7 +218,7 @@ fun SubdivisionForm(
                 if (url != null) subImageUrls = subImageUrls + url else failureCount++
             }
             if (failureCount > 0) {
-                val detail = FirebaseStorageService.lastUploadError ?: sharedText("check_your_connection_and_try_again")
+                val detail = storageService.lastUploadFailure ?: sharedText("check_your_connection_and_try_again")
                 subImageUploadError = if (failureCount == files.size) {
                     if (files.size == 1) sharedText("couldnt_upload_that_photo_x", detail) else sharedText("couldnt_upload_those_photos_x", detail)
                 } else {
@@ -682,7 +678,7 @@ fun SubdivisionForm(
         // ── Save / cancel ─────────────────────────────────────────────────
         if (!isSubFormValid && attendeeBlocker == null) {
             Text(
-                stringResource(if (monthlyWindowInvalid) R.string.monthly_window_invalid else R.string.division_save_hint),
+                appString(if (monthlyWindowInvalid) Res.string.monthly_window_invalid else Res.string.division_save_hint),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

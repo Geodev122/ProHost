@@ -34,15 +34,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import com.example.R
 import com.example.data.model.BookedSlot
 import com.example.data.model.BookingRequest
 import com.example.data.model.RentalPricingConfig
@@ -56,10 +52,34 @@ import com.example.ui.util.IsoDate
 import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.util.localizedLabel
 import com.example.util.NumberFormats
-import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
-import java.util.Locale
+import com.example.ui.util.LocaleDates
 import kotlinx.datetime.LocalDate
+import com.example.shared.resources.Res
+import com.example.shared.resources.booking_window_label
+import com.example.shared.resources.calendar_legend_closed
+import com.example.shared.resources.calendar_legend_free
+import com.example.shared.resources.calendar_legend_full
+import com.example.shared.resources.closed_dates_count
+import com.example.shared.resources.closed_dates_none
+import com.example.shared.resources.fewer_months
+import com.example.shared.resources.how_long
+import com.example.shared.resources.more_months
+import com.example.shared.resources.n_dates
+import com.example.shared.resources.n_months
+import com.example.shared.resources.next_month
+import com.example.shared.resources.no_free_dates_this_month
+import com.example.shared.resources.period_x_to_x
+import com.example.shared.resources.previous_month
+import com.example.shared.resources.remove_date
+import com.example.shared.resources.slot_taken
+import com.example.shared.resources.tap_a_date_to_see_its_times
+import com.example.shared.resources.this_time_has_passed
+import com.example.shared.resources.when_do_you_start
+import com.example.shared.resources.whole_day_x_to_x
+import com.example.shared.resources.x_per_month_times_x
+import com.example.shared.resources.x_to_x_time
+import com.example.ui.util.appPlural
+import com.example.ui.util.appString
 
 /**
  * Booking on real dates (owner decision 14 Nov 2026, approved mockups docs/migration/mockups/dated-booking.html): the one
@@ -70,17 +90,15 @@ import kotlinx.datetime.LocalDate
 
 /** The app's language for date texts (the per-app language, not the device's). */
 @Composable
-private fun appLocale(): Locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
+private fun appLocale(): String = rememberAppLanguageTag()
 
-private fun LocalDate.toJava(): java.time.LocalDate = java.time.LocalDate.of(year, monthNumber, dayOfMonth)
-
-/** "Tue 17 Nov" in the app's language. */
-fun datedLabel(iso: String, locale: Locale): String =
-    IsoDate.parse(iso)?.toJava()?.format(DateTimeFormatter.ofPattern("EEE d MMM", locale)) ?: iso
+/** "Tue 17 Nov" in the app's language ([languageTag] from [rememberAppLanguageTag]). */
+fun datedLabel(iso: String, languageTag: String): String =
+    IsoDate.parse(iso)?.let { LocaleDates.format(it, "EEE d MMM", languageTag) } ?: iso
 
 /** "14 Dec 2026" in the app's language. */
-fun datedLongLabel(iso: String, locale: Locale): String =
-    IsoDate.parse(iso)?.toJava()?.format(DateTimeFormatter.ofPattern("d MMM yyyy", locale)) ?: iso
+fun datedLongLabel(iso: String, languageTag: String): String =
+    IsoDate.parse(iso)?.let { LocaleDates.format(it, "d MMM yyyy", languageTag) } ?: iso
 
 private fun hourLabel(hour: Int): String = hour.toString().padStart(2, '0') + ":00"
 
@@ -88,7 +106,7 @@ private fun hourLabel(hour: Int): String = hour.toString().padStart(2, '0') + ":
 fun datedSlotsOf(
     selection: Map<String, Set<String>>, today: String, pricing: RentalPricingConfig, schedule: SpaceOperatingSchedule,
     closedDates: Collection<String>, bookings: List<BookingRequest>,
-): List<BookedSlot> = selection.toSortedMap().flatMap { (date, keys) ->
+): List<BookedSlot> = selection.entries.sortedBy { it.key }.flatMap { (date, keys) ->
     DateSlots.dayView(date, today, pricing, schedule, closedDates, bookings).slots
         .filter { it.key in keys && !it.taken }
         .map { BookedSlot(date, it.key, it.startHour, it.endHour, it.shiftName, it.priceUsd) }
@@ -110,29 +128,29 @@ private fun MonthCalendar(
     onTap: (String) -> Unit,
 ) {
     val locale = appLocale()
-    val first = month.toJava()
-    val daysInMonth = first.lengthOfMonth()
-    val leading = first.dayOfWeek.value % 7 // Sunday = 0
+    val first = month
+    val daysInMonth = IsoDate.daysInMonth(first)
+    val leading = IsoDate.weekdaySunday0(first) // Sunday = 0
     Surface(shape = MaterialTheme.shapes.medium, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), color = MaterialTheme.colorScheme.surface) {
         Column(Modifier.padding(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { onMonthChange(IsoDate.plusMonths(month, -1)) }, enabled = canGoBack) {
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = stringResource(R.string.previous_month))
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = appString(Res.string.previous_month))
                 }
                 Text(
-                    first.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale)),
+                    LocaleDates.format(first, "LLLL yyyy", locale),
                     style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center, modifier = Modifier.weight(1f)
                 )
                 IconButton(onClick = { onMonthChange(IsoDate.plusMonths(month, 1)) }) {
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = stringResource(R.string.next_month))
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = appString(Res.string.next_month))
                 }
             }
             Row(Modifier.fillMaxWidth()) {
                 // Sunday first, as in the approved mockup.
                 listOf(7, 1, 2, 3, 4, 5, 6).forEach { dow ->
                     Text(
-                        java.time.DayOfWeek.of(dow).getDisplayName(TextStyle.SHORT, locale),
+                        LocaleDates.weekdayShort(dow, locale),
                         style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.weight(1f)
                     )
@@ -208,10 +226,10 @@ private fun DayCell(day: Int, kind: CellKind, isSelected: Boolean, inRange: Bool
 @Composable
 private fun CalendarLegend() {
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-        LegendDot(MaterialTheme.proColors.success, stringResource(R.string.calendar_legend_free))
-        LegendDot(MaterialTheme.colorScheme.surfaceVariant, stringResource(R.string.calendar_legend_closed))
+        LegendDot(MaterialTheme.proColors.success, appString(Res.string.calendar_legend_free))
+        LegendDot(MaterialTheme.colorScheme.surfaceVariant, appString(Res.string.calendar_legend_closed))
         Text(
-            stringResource(R.string.calendar_legend_full), style = MaterialTheme.typography.labelSmall,
+            appString(Res.string.calendar_legend_full), style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant, textDecoration = TextDecoration.LineThrough
         )
     }
@@ -241,7 +259,7 @@ fun DateSlotPicker(
     onSelectionChange: (Map<String, Set<String>>) -> Unit,
     showPrices: Boolean = true,
     today: String = IsoDate.todayIso(),
-    nowHour: Int = java.time.LocalTime.now().hour,
+    nowHour: Int = IsoDate.nowHour(),
     modifier: Modifier = Modifier,
 ) {
     val locale = appLocale()
@@ -254,7 +272,7 @@ fun DateSlotPicker(
         return if (date == today) v.copy(slots = v.slots.filter { it.startHour > nowHour }) else v
     }
     val views = remember(month, today, nowHour, pricing, schedule, closedDates, bookings) {
-        val days = month.toJava().lengthOfMonth()
+        val days = IsoDate.daysInMonth(month)
         (1..days).associate { d -> LocalDate(month.year, month.monthNumber, d).toString().let { it to view(it) } }
     }
     fun kind(date: String): CellKind {
@@ -288,9 +306,9 @@ fun DateSlotPicker(
         )
         CalendarLegend()
         if (views.values.none { v -> v.state == DateSlots.DayState.OPEN && v.slots.any { !it.taken } }) {
-            Text(stringResource(R.string.no_free_dates_this_month), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(appString(Res.string.no_free_dates_this_month), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else if (selection.isEmpty()) {
-            Text(stringResource(R.string.tap_a_date_to_see_its_times), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(appString(Res.string.tap_a_date_to_see_its_times), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         val unit = SpaceCalculationUtils.strategyUnitLabel(pricing.strategyType)
@@ -302,7 +320,7 @@ fun DateSlotPicker(
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(datedLabel(date, locale), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                         IconButton(onClick = { onSelectionChange(selection - date) }) {
-                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove_date), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Icon(Icons.Default.Close, contentDescription = appString(Res.string.remove_date), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     fun toggle(key: String) = onSelectionChange(selection + (date to (if (key in picked) picked - key else picked + key)))
@@ -326,7 +344,7 @@ fun DateSlotPicker(
                         slots.forEach { slot ->
                             val isPicked = slot.key in picked
                             val name = slot.shiftName?.let { n -> com.example.data.model.ShiftName.entries.firstOrNull { it.name == n }?.displayName?.let { localizedLabel(it) } }
-                            val hours = stringResource(R.string.x_to_x_time, hourLabel(slot.startHour), hourLabel(slot.endHour))
+                            val hours = appString(Res.string.x_to_x_time, hourLabel(slot.startHour), hourLabel(slot.endHour))
                             Surface(
                                 shape = MaterialTheme.shapes.small,
                                 color = if (isPicked) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
@@ -336,14 +354,14 @@ fun DateSlotPicker(
                             ) {
                                 Row(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        if (name != null) "$name · $hours" else stringResource(R.string.whole_day_x_to_x, hourLabel(slot.startHour), hourLabel(slot.endHour)),
+                                        if (name != null) "$name · $hours" else appString(Res.string.whole_day_x_to_x, hourLabel(slot.startHour), hourLabel(slot.endHour)),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = if (slot.taken) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.weight(1f)
                                     )
                                     Text(
                                         when {
-                                            slot.taken -> stringResource(R.string.slot_taken)
+                                            slot.taken -> appString(Res.string.slot_taken)
                                             showPrices -> NumberFormats.usdAuto(slot.priceUsd) + unit
                                             else -> ""
                                         },
@@ -355,7 +373,7 @@ fun DateSlotPicker(
                         }
                     }
                     if (slots.isEmpty() && date == today) {
-                        Text(stringResource(R.string.this_time_has_passed), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(appString(Res.string.this_time_has_passed), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -381,7 +399,7 @@ fun MonthlyPeriodPicker(
     val todayDate = remember(today) { IsoDate.parse(today) ?: IsoDate.todayDate() }
     var month by remember(today) { mutableStateOf(IsoDate.firstOfMonth(todayDate)) }
     val startable = remember(month, today, pricing, bookings) {
-        val days = month.toJava().lengthOfMonth()
+        val days = IsoDate.daysInMonth(month)
         (1..days).map { LocalDate(month.year, month.monthNumber, it).toString() }
             .filter { DateSlots.monthlyProblem(it, 1, today, pricing, bookings) == null }.toSet()
     }
@@ -389,7 +407,7 @@ fun MonthlyPeriodPicker(
     val term = start?.let { DateSlots.monthlyTerm(it, months) }
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        Text(stringResource(R.string.when_do_you_start), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Text(appString(Res.string.when_do_you_start), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         MonthCalendar(
             month = month,
             onMonthChange = { month = it },
@@ -407,13 +425,13 @@ fun MonthlyPeriodPicker(
         if (start != null && term != null) {
             Surface(shape = MaterialTheme.shapes.medium, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), color = MaterialTheme.colorScheme.surface) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.how_long), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    Text(appString(Res.string.how_long), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                     IconButton(onClick = { onChange(start, months - 1) }, enabled = months > 1) {
-                        Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.fewer_months))
+                        Icon(Icons.Default.Remove, contentDescription = appString(Res.string.fewer_months))
                     }
-                    Text(pluralStringResource(R.plurals.n_months, months, months), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(appPlural(Res.plurals.n_months, months, months), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     IconButton(onClick = { onChange(start, months + 1) }, enabled = months < maxMonths) {
-                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.more_months))
+                        Icon(Icons.Default.Add, contentDescription = appString(Res.string.more_months))
                     }
                 }
             }
@@ -421,11 +439,11 @@ fun MonthlyPeriodPicker(
                 Column(Modifier.fillMaxWidth().padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Text(
                         // The last day is the day before the exclusive end.
-                        stringResource(R.string.period_x_to_x, datedLongLabel(term.first, locale), datedLongLabel(IsoDate.addDays(term.second, -1) ?: term.second, locale)),
+                        appString(Res.string.period_x_to_x, datedLongLabel(term.first, locale), datedLongLabel(IsoDate.addDays(term.second, -1) ?: term.second, locale)),
                         style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Text(
-                        stringResource(R.string.x_per_month_times_x, NumberFormats.usdAuto(pricing.monthly?.rateUsd ?: 0.0), months),
+                        appString(Res.string.x_per_month_times_x, NumberFormats.usdAuto(pricing.monthly?.rateUsd ?: 0.0), months),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
@@ -460,8 +478,8 @@ fun ClosedDatesEditor(
             onTap = { date -> onChange(if (date in upcoming) upcoming - date else (upcoming + date).sorted()) }
         )
         if (showCount) Text(
-            if (upcoming.isEmpty()) stringResource(R.string.closed_dates_none)
-            else stringResource(R.string.closed_dates_count, pluralStringResource(R.plurals.n_dates, upcoming.size, upcoming.size)),
+            if (upcoming.isEmpty()) appString(Res.string.closed_dates_none)
+            else appString(Res.string.closed_dates_count, appPlural(Res.plurals.n_dates, upcoming.size, upcoming.size)),
             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
@@ -473,13 +491,13 @@ fun BookingWindowStepper(months: Int?, onChange: (Int) -> Unit, modifier: Modifi
     val value = (months ?: com.example.data.model.DEFAULT_BOOKING_HORIZON_MONTHS).coerceIn(1, 12)
     Surface(modifier = modifier, shape = MaterialTheme.shapes.medium, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), color = MaterialTheme.colorScheme.surface) {
         Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.booking_window_label), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            Text(appString(Res.string.booking_window_label), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
             IconButton(onClick = { onChange(value - 1) }, enabled = value > 1) {
-                Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.fewer_months))
+                Icon(Icons.Default.Remove, contentDescription = appString(Res.string.fewer_months))
             }
-            Text(pluralStringResource(R.plurals.n_months, value, value), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(appPlural(Res.plurals.n_months, value, value), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             IconButton(onClick = { onChange(value + 1) }, enabled = value < 12) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.more_months))
+                Icon(Icons.Default.Add, contentDescription = appString(Res.string.more_months))
             }
         }
     }

@@ -9,6 +9,9 @@ import com.example.util.PickedFile
  * Admin uploads (legal documents) stay out of this interface.
  */
 interface StorageGateway {
+    /** Technical text of the most recent failed upload (shown after "Upload failed"), or null. */
+    val lastUploadFailure: String? get() = null
+
     suspend fun uploadProfilePicture(uid: String, file: PickedFile, onProgress: (Float) -> Unit = {}): String?
     suspend fun uploadListingVerificationDocument(
         spaceId: String,

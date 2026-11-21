@@ -137,4 +137,10 @@ object IsoDate {
     }
 
     fun firstOfMonth(date: LocalDate): LocalDate = LocalDate(date.year, date.monthNumber, 1)
+
+    /** Number of days in [date]'s month (java.time `lengthOfMonth()`). */
+    fun daysInMonth(date: LocalDate): Int = firstOfNextMonth(date).plus(-1, DateTimeUnit.DAY).dayOfMonth
+
+    /** The hour of the local clock now (java.time `LocalTime.now().hour`). */
+    fun nowHour(): Int = Instant.fromEpochMilliseconds(com.example.util.nowMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).hour
 }

@@ -2,8 +2,6 @@ package com.example.ui.screens
 
 import com.example.ui.util.localizedLabel
 import com.example.ui.util.locationLine
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import com.example.ui.theme.Radius
 import com.example.ui.util.UiMessages
 import androidx.compose.foundation.BorderStroke
@@ -35,7 +33,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -74,6 +71,10 @@ import com.example.shared.resources.x_person
 import com.example.ui.util.appPlural
 import com.example.ui.util.appString
 import com.example.ui.util.sharedText
+import com.example.shared.resources.dates
+import com.example.shared.resources.period
+import com.example.shared.resources.request_these_dates
+import com.example.shared.resources.request_this_period
 
 /**
  * The "Check Availability" sheet of a listing, booking on real dates (owner decision 14 Nov 2026): room folder tabs, the
@@ -85,7 +86,7 @@ import com.example.ui.util.sharedText
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun AvailabilitySheet(
+fun AvailabilitySheet(
     liveSpace: SpaceListing,
     viewModel: ProHostViewModel,
     acceptedBookings: List<RentalBookingRequest>,
@@ -114,7 +115,7 @@ internal fun AvailabilitySheet(
     var monthlyStart by monthlyStartState
     var monthlyMonths by monthlyMonthsState
     var showSendConfirm by showSendConfirmState
-    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0] ?: java.util.Locale.getDefault()
+    val locale = com.example.ui.components.rememberAppLanguageTag()
 
     val selectedSubdivision = remember(selectedSubdivisionId, liveSpace) {
         if (selectedSubdivisionId != null) liveSpace.subdivisions.find { it.id == selectedSubdivisionId } else null
@@ -297,7 +298,7 @@ internal fun AvailabilitySheet(
                     ) {
                         Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(Spacing.sm))
-                        Text(stringResource(if (isMonthly) R.string.request_this_period else R.string.request_these_dates), fontWeight = FontWeight.Bold)
+                        Text(appString(if (isMonthly) Res.string.request_this_period else Res.string.request_these_dates), fontWeight = FontWeight.Bold)
                     }
                     // WhatsApp: a structured message listing the chosen dates and times
                     Button(
@@ -314,7 +315,7 @@ internal fun AvailabilitySheet(
                                 sharedText("are_these_slots_still_available")
                             try {
                                 val whatsappUrl = "https://wa.me/${viewModel.formatWhatsAppNumber(liveSpace.ownerPhone)}" +
-                                    "?text=${java.net.URLEncoder.encode(message, "UTF-8")}"
+                                    "?text=${com.example.util.formUrlEncode(message)}"
                                 com.example.ui.util.PlatformActions.require().openUrl(whatsappUrl)
                             } catch (e: Exception) {
                                 UiMessages.show(sharedText("whatsapp_not_installed"))
@@ -357,7 +358,7 @@ internal fun AvailabilitySheet(
                         }
                     }
                     HorizontalDivider()
-                    Text(stringResource(if (isMonthly) R.string.period else R.string.dates),
+                    Text(appString(if (isMonthly) Res.string.period else Res.string.dates),
                         style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     dialogLines.take(6).forEach { line ->
                         Text("• $line", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
@@ -386,7 +387,7 @@ internal fun AvailabilitySheet(
                     HorizontalDivider()
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(appString(Res.string.estimated_total), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("$${String.format(java.util.Locale.US, "%.2f", totalUsd)} USD",
+                        Text("$${com.example.util.formatFixed(totalUsd, 2, false)} USD",
                             style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
                 }

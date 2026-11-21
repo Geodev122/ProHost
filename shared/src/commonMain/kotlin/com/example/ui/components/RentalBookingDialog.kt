@@ -25,7 +25,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,8 +36,6 @@ import com.example.ui.util.IsoDate
 import com.example.ui.util.RentableSlot
 import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.viewmodel.ProHostViewModel
-import java.text.NumberFormat
-import java.util.*
 import com.example.shared.resources.Res
 import com.example.shared.resources.at_least_x
 import com.example.shared.resources.attendees
@@ -183,7 +180,7 @@ private fun BookingSlotSelectorDialog(
 ) {
     val space = target.space
     val replacesBookingId = target.replacesBookingId
-    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0] ?: java.util.Locale.getDefault()
+    val locale = com.example.ui.components.rememberAppLanguageTag()
     val hasSubdivisions = space.subdivisions.isNotEmpty()
     var selectedSubdivision by remember { mutableStateOf(space.subdivisions.firstOrNull()) }
     LaunchedEffect(space.id) {
