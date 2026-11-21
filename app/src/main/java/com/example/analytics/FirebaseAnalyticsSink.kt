@@ -4,17 +4,6 @@ import android.content.Context
 import android.os.Bundle
 import com.google.firebase.analytics.FirebaseAnalytics
 
-/** Where sanitised events go. Plain maps keep [AnalyticsTracker] testable on the JVM. */
-interface AnalyticsSink {
-    fun logEvent(name: String, params: Map<String, Any>)
-    fun setUserId(id: String?)
-    fun setUserProperty(name: String, value: String?)
-    fun setCollectionEnabled(enabled: Boolean)
-    fun setAnalyticsConsent(granted: Boolean)
-    fun resetData()
-    fun appInstanceId(onResult: (String?) -> Unit)
-}
-
 /** The only place in the app that touches the Firebase Analytics SDK. */
 internal class FirebaseAnalyticsSink(context: Context) : AnalyticsSink {
     private val fa = FirebaseAnalytics.getInstance(context.applicationContext)

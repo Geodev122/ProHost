@@ -36,9 +36,9 @@ class ProHostRepository(
         )
 
         // One repository per process, created on first use (`lazy` is thread-safe on every platform, like the double-checked lock it replaces).
-        private val instance: ProHostRepository by lazy { ProHostRepository() }
+        private val sharedInstance: ProHostRepository by lazy { ProHostRepository() }
 
-        fun getInstance(): ProHostRepository = instance
+        fun getInstance(): ProHostRepository = sharedInstance
     }
 
     val coroutineScope = CoroutineScope(SupervisorJob() + com.example.util.ioDispatcher)

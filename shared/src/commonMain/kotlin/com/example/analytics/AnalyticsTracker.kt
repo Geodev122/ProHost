@@ -1,6 +1,10 @@
 package com.example.analytics
 
-import android.content.Context
+import com.example.util.AppLock
+import com.example.util.Sha256
+import com.example.util.nowMillis
+import com.example.util.withLock
+import kotlin.concurrent.Volatile
 import com.example.data.model.AppUser
 import com.example.data.model.SpaceListing
 import com.example.data.model.Subdivision
@@ -13,8 +17,8 @@ import com.example.data.model.UserRole
  * email or phone. Crashlytics stays separate and anonymous.
  */
 object AnalyticsTracker {
-    @Volatile internal var sink: AnalyticsSink? = null
-    @Volatile internal var enabled: Boolean = false
+    @Volatile var sink: AnalyticsSink? = null
+    @Volatile var enabled: Boolean = false
     @Volatile private var lastScreen: String? = null
     @Volatile private var lastUserFingerprint: String? = null
     @Volatile var appInstanceId: String? = null
@@ -29,13 +33,16 @@ object AnalyticsTracker {
 
     private var buildType: String = "release"
 
-    fun init(context: Context, buildType: String) {
+    /** Called by the platform start-up (Android: `AndroidAnalytics.init`, which then installs the Firebase sink and loads the consent). */
+    fun init(buildType: String) {
         this.buildType = buildType
-        if (sink == null) sink = FirebaseAnalyticsSink(context)
-        AnalyticsConsent.load(context)
     }
 
-    internal fun applyConsent(granted: Boolean, reset: Boolean) {
+    /** Platform-specific machine codes for SDK errors (Android: Firebase Firestore/Functions/Auth codes); null = use the class name. */
+    @Volatile
+    var platformErrorCode: (Throwable) -> String? = { null }
+
+    fun applyConsent(granted: Boolean, reset: Boolean) {
         enabled = granted
         val s = sink ?: return
         s.setAnalyticsConsent(granted)
@@ -44,7 +51,7 @@ object AnalyticsTracker {
             s.setUserId(null)
             s.resetData()
             lastScreen = null
-            synchronized(overlays) { overlays.clear(); baseScreen = null }
+            overlaysLock.withLock { overlays.clear(); baseScreen = null }
             lastUserFingerprint = null
             appInstanceId = null
         }
@@ -63,13 +70,13 @@ object AnalyticsTracker {
 
     // ---- core -------------------------------------------------------------------------
 
-    internal fun log(name: String, params: Map<String, Any?> = emptyMap()) {
+    fun log(name: String, params: Map<String, Any?> = emptyMap()) {
         if (!enabled) return
         val s = sink ?: return
         runCatching { s.logEvent(name, sanitize(params)) }
     }
 
-    internal fun sanitize(params: Map<String, Any?>): Map<String, Any> {
+    fun sanitize(params: Map<String, Any?>): Map<String, Any> {
         val out = LinkedHashMap<String, Any>()
         for ((key, raw) in params) {
             if (raw == null || out.size >= 25) continue
@@ -109,7 +116,7 @@ object AnalyticsTracker {
             lastUserFingerprint = null
             return
         }
-        val now = System.currentTimeMillis()
+        val now = nowMillis()
         val planStatus = when {
             user.ownerPackageId == null -> "none"
             (user.ownerPackageExpiryMillis ?: Long.MAX_VALUE) > now -> "active"
@@ -141,14 +148,14 @@ object AnalyticsTracker {
         if (enabled) sink?.setUserProperty(UserProp.SIGNUP_METHOD, method)
     }
 
-    internal fun bucketCount(n: Int): String = when {
+    fun bucketCount(n: Int): String = when {
         n <= 0 -> "0"
         n == 1 -> "1"
         n <= 5 -> "2-5"
         else -> "6+"
     }
 
-    internal fun bucketAge(createdAt: Long?, now: Long): String? {
+    fun bucketAge(createdAt: Long?, now: Long): String? {
         createdAt ?: return null
         val days = (now - createdAt) / 86_400_000L
         return when {
@@ -168,6 +175,7 @@ object AnalyticsTracker {
 
     @Volatile private var baseScreen: ScreenEntry? = null
     private val overlays = ArrayList<ScreenEntry>()
+    private val overlaysLock = AppLock()
 
     /**
      * The page under everything (from the shell's resolver, [ScreenNames]). Logged unless a sheet or dialog
@@ -175,7 +183,7 @@ object AnalyticsTracker {
      */
     fun screen(name: String, screenClass: String = "ProHostAppRoot", params: Map<String, Any?> = emptyMap()) {
         val entry = ScreenEntry(name, screenClass, params)
-        synchronized(overlays) {
+        overlaysLock.withLock {
             baseScreen = entry
             if (overlays.isNotEmpty()) return
         }
@@ -185,13 +193,13 @@ object AnalyticsTracker {
     /** A sheet, dialog or step shown over the page (TrackScreen); logged as its own screen_view. */
     fun pushScreen(name: String, screenClass: String = "Sheet", params: Map<String, Any?> = emptyMap()) {
         val entry = ScreenEntry(name, screenClass, params)
-        synchronized(overlays) { overlays.add(entry) }
+        overlaysLock.withLock { overlays.add(entry) }
         emitScreen(entry)
     }
 
     /** The overlay [name] closed: the screen now visible is logged again, so time isn't credited to the closed one. */
     fun popScreen(name: String) {
-        val visible = synchronized(overlays) {
+        val visible = overlaysLock.withLock {
             val i = overlays.indexOfLast { it.name == name }
             if (i < 0) return
             val wasTop = i == overlays.lastIndex
@@ -494,8 +502,7 @@ object AnalyticsTracker {
 
     /** SHA-256 of the Play order id, first 24 hex chars — mirrored by functions/src/lib/ga4.ts. */
     fun transactionId(orderId: String): String =
-        java.security.MessageDigest.getInstance("SHA-256")
-            .digest(orderId.toByteArray(Charsets.UTF_8))
+        Sha256.digest(orderId.encodeToByteArray())
             .joinToString("") { com.example.util.Hex.of(it) }
             .take(24)
 
@@ -519,10 +526,6 @@ object AnalyticsTracker {
         message.lowercase().replace("'", "").split(Regex("[^a-z0-9]+")).filter { it.isNotBlank() }.take(5).joinToString("_")
             .ifBlank { "unknown" }
 
-    fun errorCode(e: Throwable): String = when (e) {
-        is com.google.firebase.firestore.FirebaseFirestoreException -> e.code.name
-        is com.google.firebase.functions.FirebaseFunctionsException -> e.code.name
-        is com.google.firebase.auth.FirebaseAuthException -> e.errorCode
-        else -> e.javaClass.simpleName.ifBlank { "Exception" }
-    }
+    fun errorCode(e: Throwable): String =
+        platformErrorCode(e) ?: (e::class.simpleName?.ifBlank { null } ?: "Exception")
 }

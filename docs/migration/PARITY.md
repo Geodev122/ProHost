@@ -16,8 +16,8 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `MainActivity.kt` | 169 | C | Context removal, PlatformActions |  |  | ☐ | ☐ | todo |
 | `ProHostApplication.kt` | 116 | C | Firebase gateways, KeyValueStore, Logger |  |  | ☐ | ☐ | todo |
 | `analytics/AnalyticsConsent.kt` | 58 | B | Context removal, KeyValueStore |  |  | ☐ | ☐ | todo |
-| `analytics/AnalyticsSink.kt` | 71 | C | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
-| `analytics/AnalyticsTracker.kt` | 529 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
+| `analytics/AndroidAnalytics.kt` | 21 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
+| `analytics/FirebaseAnalyticsSink.kt` | 60 | B | Context removal, Firebase gateways |  |  | ☐ | ☐ | todo |
 | `data/auth/AdminDirectoryModels.kt` | 246 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
 | `data/auth/AndroidCallableFailures.kt` | 19 | A1 | Firebase gateways |  |  | ☐ | ☐ | todo |
 | `data/auth/AuthErrors.kt` | 34 | A1 | Firebase gateways |  |  | ☐ | ☐ | todo |
@@ -142,6 +142,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/SoundPlayer.kt` | 54 | B | Context removal, Logger, SoundPlayer |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 36 / 9746, A2 18 / 9518, B 38 / 11232, C 19 / 4198, X 16 / 6992.
 Automatic class totals (files / lines): A1 36 / 9746, A2 18 / 9518, B 37 / 11680, C 20 / 4269, X 16 / 6992.
 Automatic class totals (files / lines): A1 37 / 10086, A2 21 / 11292, B 37 / 11680, C 20 / 4269, X 16 / 6992.
 Automatic class totals (files / lines): A1 37 / 10087, A2 21 / 11296, B 37 / 11696, C 20 / 4266, X 17 / 7353.
