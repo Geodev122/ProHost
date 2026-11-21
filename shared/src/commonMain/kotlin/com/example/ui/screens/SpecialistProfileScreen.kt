@@ -947,7 +947,7 @@ fun SpecialistProfileScreen(
                                 tint = MaterialTheme.colorScheme.primary
                             )
                             Text(
-                                text = "v${com.example.BuildConfig.VERSION_NAME} • ${when (updateState) {
+                                text = "v${com.example.util.AppInfo.versionName} • ${when (updateState) {
                                 UpdateState.CHECKING -> appString(Res.string.update_checking)
                                 UpdateState.UPDATE_AVAILABLE_FLEXIBLE, UpdateState.UPDATE_AVAILABLE_IMMEDIATE -> appString(Res.string.update_available_short)
                                 UpdateState.DOWNLOADING -> appString(Res.string.update_downloading)
@@ -974,7 +974,7 @@ fun SpecialistProfileScreen(
                                         inAppUpdateManager.checkForAppUpdate(preferImmediate = false)
                                         UiMessages.show(sharedText("checking_google_play_for_updates"))
                                     } else {
-                                        UiMessages.show(sharedText("prohost_vx_is_up_to_date", com.example.BuildConfig.VERSION_NAME))
+                                        UiMessages.show(sharedText("prohost_vx_is_up_to_date", com.example.util.AppInfo.versionName))
                                     }
                                 },
                                 compact = true
