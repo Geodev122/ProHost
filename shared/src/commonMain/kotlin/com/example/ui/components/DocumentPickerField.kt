@@ -1,15 +1,6 @@
 package com.example.ui.components
 
-import com.example.ui.util.uiText
-import com.example.util.toPickedFile
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import com.example.ui.util.UiMessages
-import android.content.Context
-import android.net.Uri
-import android.provider.OpenableColumns
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -31,13 +22,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
 import coil3.compose.AsyncImage
 import com.example.ui.theme.Spacing
-import java.io.File
+import com.example.shared.resources.Res
+import com.example.shared.resources.add_profile_picture
+import com.example.shared.resources.choose_file
+import com.example.shared.resources.document_selected
+import com.example.shared.resources.profile_picture
+import com.example.shared.resources.remove_file
+import com.example.shared.resources.take_photo
+import com.example.shared.resources.tap_to_take_a_photo_or_upload_a_file
+import com.example.ui.util.appString
 
 /**
  * A required-document picker: tap to pick a file (PDF or image) from the device, shows
@@ -105,7 +102,7 @@ fun DocumentPickerField(
                 ) {
                     Icon(Icons.Default.AttachFile, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
                     Text(
-                        stringResource(R.string.tap_to_take_a_photo_or_upload_a_file),
+                        appString(Res.string.tap_to_take_a_photo_or_upload_a_file),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -120,20 +117,20 @@ fun DocumentPickerField(
                 ) {
                     Icon(Icons.Default.Description, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
                     Text(
-                        text = state.fileName ?: stringResource(R.string.document_selected),
+                        text = state.fileName ?: appString(Res.string.document_selected),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f)
                     )
                     IconButton(onClick = { onStateChanged(DocumentPickerState()) }) {
-                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.remove_file), tint = MaterialTheme.colorScheme.error)
+                        Icon(Icons.Default.Delete, contentDescription = appString(Res.string.remove_file), tint = MaterialTheme.colorScheme.error)
                     }
                 }
             }
         }
         DropdownMenu(expanded = showSourceMenu, onDismissRequest = { showSourceMenu = false }) {
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.take_photo)) },
+                text = { Text(appString(Res.string.take_photo)) },
                 leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null) },
                 onClick = {
                     showSourceMenu = false
@@ -141,7 +138,7 @@ fun DocumentPickerField(
                 }
             )
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.choose_file)) },
+                text = { Text(appString(Res.string.choose_file)) },
                 leadingIcon = { Icon(Icons.Default.AttachFile, contentDescription = null) },
                 onClick = {
                     showSourceMenu = false
@@ -187,7 +184,7 @@ fun ProfilePicturePickerField(
         if (previewModel != null) {
             AsyncImage(
                 model = previewModel,
-                contentDescription = stringResource(R.string.profile_picture),
+                contentDescription = appString(Res.string.profile_picture),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize().clip(CircleShape)
             )
@@ -195,7 +192,7 @@ fun ProfilePicturePickerField(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(
                     Icons.Default.AddAPhoto,
-                    contentDescription = stringResource(R.string.add_profile_picture),
+                    contentDescription = appString(Res.string.add_profile_picture),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(26.dp)
                 )

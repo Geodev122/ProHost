@@ -58,6 +58,7 @@ kotlin {
       // Phone Number Hint (Play services Identity) and its activity-result launcher; same versions the app uses.
       implementation(libs.androidx.activity.compose)
       implementation(libs.play.services.auth)
+      implementation(libs.androidx.core.ktx) // FileProvider for the camera capture file
     }
     iosMain.dependencies { implementation(libs.ktor.client.darwin) }
     wasmJsMain.dependencies { implementation(libs.ktor.client.js) }

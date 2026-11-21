@@ -24,9 +24,6 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.ProHostViewModel
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import com.example.shared.resources.Res
 import com.example.shared.resources.accept
 import com.example.shared.resources.accept_booking
@@ -400,8 +397,7 @@ fun OwnerRequestDetailSheet(
     // Report / Block the person who sent the request (three-dot menu in the header); null hides it.
     viewModel: ProHostViewModel? = null
 ) {
-    val sdf = remember { SimpleDateFormat("MMM d, yyyy · HH:mm", Locale.US) }
-    val formattedTime = remember(request.createdAt) { sdf.format(Date(request.createdAt)) }
+    val formattedTime = remember(request.createdAt) { com.example.ui.util.IsoDate.usShortDateTime(request.createdAt) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val attendeeLine = com.example.ui.util.AttendeePricing.bookingSummary(request)
     val chosenDays = request.selectedDays.takeIf { it.isNotEmpty() } ?: request.formula.daysOfWeek

@@ -31,6 +31,14 @@ object IsoDate {
         return "${US_SHORT_MONTHS[d.monthNumber - 1]} ${d.dayOfMonth}, ${d.year}"
     }
 
+    /** What SimpleDateFormat("MMM d, yyyy · HH:mm", Locale.US) printed for [millis] in the device time zone ("Nov 21, 2026 · 09:05"). */
+    fun usShortDateTime(millis: Long): String {
+        val t = Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.currentSystemDefault())
+        val hh = t.hour.toString().padStart(2, '0')
+        val mm = t.minute.toString().padStart(2, '0')
+        return "${US_SHORT_MONTHS[t.monthNumber - 1]} ${t.dayOfMonth}, ${t.year} · $hh:$mm"
+    }
+
     fun parse(iso: String): LocalDate? = try {
         LocalDate.parse(iso)
     } catch (e: IllegalArgumentException) {

@@ -15,9 +15,11 @@ class UsShortDateTest {
             for (zone in listOf("UTC", "Asia/Beirut", "America/Los_Angeles", "Pacific/Kiritimati")) {
                 TimeZone.setDefault(TimeZone.getTimeZone(zone))
                 val sdf = SimpleDateFormat("MMM d, yyyy", Locale.US)
+                val sdfTime = SimpleDateFormat("MMM d, yyyy · HH:mm", Locale.US)
                 var t = 1_735_689_600_000L // 2025-01-01
                 repeat(400) {
                     assertEquals("$zone $t", sdf.format(Date(t)), IsoDate.usShortDate(t))
+                    assertEquals("$zone $t", sdfTime.format(Date(t)), IsoDate.usShortDateTime(t))
                     t += 86_400_000L * 3 + 3_600_000L * 7
                 }
             }
