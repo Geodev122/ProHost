@@ -22,6 +22,7 @@ final class StoreScreenshotTests: XCTestCase {
         app.launchArguments += ["-AppleLanguages", "(\(lang))", "-AppleLocale", lang == "ar" ? "ar_SA" : "en_US"]
         app.launch()
         settle(app, 8)
+        settle(app, 2)
 
         if lang == "en" {
             if element(app, ["I already have an account"], timeout: 4) != nil {
@@ -89,7 +90,7 @@ final class StoreScreenshotTests: XCTestCase {
             if let b = no.lazy.map({ alert.buttons[$0] }).first(where: { $0.exists }) { b.tap() } else { alert.buttons.element(boundBy: 0).tap() }
             sleep(1)
         }
-        _ = tap(app, ["Not now", "ليس الآن"], timeout: 0.5)
+        _ = tap(app, ["Don't allow", "Don’t allow", "Not now", "ليس الآن", "عدم السماح"], timeout: 0.5)
     }
 
     private func element(_ app: XCUIApplication, _ labels: [String], timeout: TimeInterval = 4) -> XCUIElement? {
