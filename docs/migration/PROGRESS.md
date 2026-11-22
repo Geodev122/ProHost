@@ -423,3 +423,7 @@ C1 step 4 — Storage on iOS: shared `BridgedStorageGateway` (Android paths, con
   on, no my-location button); markers kept by id; pin and count bubble redrawn from the Android bitmaps (`MarkerImages`).
   Key: Info.plist `GMSApiKey = $(MAPS_IOS_API_KEY)`, passed only by the TestFlight archive from the secret; without a key
   no factory is installed and the map stays blank (simulator CI). Android's map toolbar has no iOS counterpart.
+- iOS pickers (C3): `MediaPickers` iOS actuals over `MediaPickerBridge` (Swift `MediaPickerBridgeImpl`): PHPicker for
+  photos (no library permission; results saved as JPEG temp files, `file://` URLs read by `IosFileAccess`),
+  UIDocumentPicker (PDF/image, as copy) and UIImagePickerController for the camera (`NSCameraUsageDescription`, English;
+  Arabic InfoPlist.strings still to add).

@@ -101,6 +101,7 @@ targets:
       properties:
         CFBundleDisplayName: ProHost
         GMSApiKey: $(MAPS_IOS_API_KEY)
+        NSCameraUsageDescription: ProHost uses the camera when you choose to take a photo for your profile, a listing or a document.
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleDevelopmentRegion: en

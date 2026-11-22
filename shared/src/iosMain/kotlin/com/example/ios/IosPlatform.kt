@@ -63,6 +63,13 @@ object IosPlatform {
         RepositoryDefaults.storage = { gateway }
     }
 
+    var mediaPicker: MediaPickerBridge? = null
+        private set
+
+    fun installMediaPicker(bridge: MediaPickerBridge) {
+        mediaPicker = bridge
+    }
+
     var maps: NativeMapFactory? = null
         private set
 
