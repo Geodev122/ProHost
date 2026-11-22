@@ -1358,6 +1358,7 @@ async function singleplan(db, arg) {
   const apply = String(arg || "").startsWith("apply");
   await step("playSinglePlan", async () => {
     const res = await serverTask(db, "playSinglePlan", apply ? String(arg) : null);
+    if (!Array.isArray(res.steps)) throw new Error(`server answered: ${JSON.stringify(res).slice(0, 300)}`);
     res.steps.forEach((s) => notice(`playSinglePlan ${s.step}: ${s.action} → ${s.result}`));
     return `${apply ? "applied" : "dry run (code: apply to create)"}: ${res.steps.length} step(s)`;
   });
