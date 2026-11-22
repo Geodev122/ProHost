@@ -59,15 +59,17 @@ final class StoreScreenshotTests: XCTestCase {
         }
         _ = tap(app, ["I already have an account"])
         settle(app, 3)
-        _ = tap(app, ["Continue with email"])
+        // Provider step (only when Google / Apple are offered first): pick email.
+        if let p = byId(app, "auth_email_provider", timeout: 3) { p.tap(); settle(app, 2) }
+        if let field = byId(app, "auth_email_input", timeout: 8) {
+            field.tap(); sleep(1); app.typeText(email)
+        } else { XCTFail("no email field"); dump(app, "fail_email") }
+        if let c = byId(app, "auth_email_continue", timeout: 3) { c.tap() }
         settle(app, 3)
-        let field = app.textFields.firstMatch
-        if field.waitForExistence(timeout: 8) { field.tap(); field.typeText(email) } else { XCTFail("no email field"); dump(app, "fail_email") }
-        _ = tap(app, ["Continue"])
-        settle(app, 3)
-        let secure = app.secureTextFields.firstMatch
-        if secure.waitForExistence(timeout: 8) { secure.tap(); secure.typeText(password) } else { XCTFail("no password field"); dump(app, "fail_password") }
-        if !tap(app, ["Sign in"]) { _ = tap(app, ["Continue"]) }
+        if let field = byId(app, "auth_password_input", timeout: 8) {
+            field.tap(); sleep(1); app.typeText(password)
+        } else { XCTFail("no password field"); dump(app, "fail_password") }
+        if let b = byId(app, "auth_signin_button", timeout: 3) { b.tap() } else { dump(app, "fail_signin_button") }
         settle(app, 10)
     }
 
@@ -91,6 +93,11 @@ final class StoreScreenshotTests: XCTestCase {
             sleep(1)
         }
         _ = tap(app, ["Don't allow", "Don’t allow", "Not now", "ليس الآن", "عدم السماح"], timeout: 0.5)
+    }
+
+    private func byId(_ app: XCUIApplication, _ id: String, timeout: TimeInterval) -> XCUIElement? {
+        let e = app.descendants(matching: .any).matching(identifier: id).firstMatch
+        return e.waitForExistence(timeout: timeout) ? e : nil
     }
 
     private func element(_ app: XCUIApplication, _ labels: [String], timeout: TimeInterval = 4) -> XCUIElement? {
