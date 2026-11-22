@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
@@ -125,8 +123,9 @@ fun BookingsTab(gateway: AdminGateway) {
       loading -> Text("Loading bookings…", color = MaterialTheme.colorScheme.onSurfaceVariant)
       error != null -> Text(error!!, color = MaterialTheme.colorScheme.error)
       shown.isEmpty() -> Text("No bookings match.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-      else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        items(shown, key = { it.booking.id }) { r -> BookingCard(r, today, onChangePrice = { priceFor = it }, onRemind = { remind(it) }) }
+      // The console page scrolls as a whole, so the list is a plain Column (a LazyColumn inside it would crash).
+      else -> Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        shown.forEach { r -> BookingCard(r, today, onChangePrice = { priceFor = it }, onRemind = { remind(it) }) }
       }
     }
   }

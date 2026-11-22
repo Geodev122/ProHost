@@ -96,17 +96,28 @@ private fun NoAccessPage(email: String, onSignOut: () -> Unit) {
 @Composable
 private fun ConsoleShell(gateway: AdminGateway, email: String, onSignOut: () -> Unit) {
   var tab by remember { mutableStateOf(0) }
+  var counts by remember { mutableStateOf<Json?>(null) }
+  LaunchedEffect(Unit) { counts = try { Json.parse(gateway.call("adminCounts")) } catch (_: Throwable) { null } }
+  // Tab badges (ADMIN_PARITY item 3): people, listings waiting for review, pending booking requests.
+  fun badgeFor(name: String): Int = when (name) {
+    "Users" -> counts?.get("totalUsers")?.int() ?: 0
+    "Listings" -> counts?.get("pendingReview")?.int() ?: 0
+    "Bookings" -> counts?.get("pendingBookings")?.int() ?: 0
+    else -> 0
+  }
   Scaffold { padding ->
     Column(Modifier.fillMaxSize().padding(padding)) {
       Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), Arrangement.SpaceBetween, Alignment.CenterVertically) {
         Text("ProHost Admin", style = MaterialTheme.typography.titleLarge)
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+          OnlinePill()
+          NotificationBell(gateway) { tab = it }
           Text(email, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
           TextButton(onClick = onSignOut) { Text("Sign out") }
         }
       }
       ScrollableTabRow(selectedTabIndex = tab, edgePadding = 8.dp) {
-        ADMIN_TABS.forEachIndexed { i, name -> Tab(selected = tab == i, onClick = { tab = i }, text = { Text(name) }) }
+        ADMIN_TABS.forEachIndexed { i, name -> val n = badgeFor(name); Tab(selected = tab == i, onClick = { tab = i }, text = { Text(if (n > 0) "$name · $n" else name) }) }
       }
       Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), Alignment.TopCenter) {
         Column(Modifier.widthIn(max = 900.dp).fillMaxWidth()) { // 900 dp content width as on the Android console (tablet layout)

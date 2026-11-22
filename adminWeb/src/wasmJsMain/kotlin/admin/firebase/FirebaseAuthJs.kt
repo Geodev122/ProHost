@@ -5,6 +5,7 @@ package admin.firebase
 import kotlin.js.Promise
 
 external interface User : JsAny {
+  val uid: String
   val email: String?
   fun getIdTokenResult(forceRefresh: Boolean): Promise<IdTokenResult>
 }

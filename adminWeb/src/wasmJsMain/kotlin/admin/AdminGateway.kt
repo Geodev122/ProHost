@@ -62,6 +62,10 @@ interface AdminGateway {
   suspend fun hashtagUsage(): String
   /** The newest 500 `audit_security_logs` (timestamp descending) as a JSON array. */
   suspend fun auditLogs(): String
+  /** The signed-in admin's own in-app notifications (newest 50, `user_profiles/{uid}/notifications`), as a JSON array. */
+  suspend fun myNotifications(): String
+  /** Marks one of the admin's own notifications read (rules allow only `read` / `readAt`). */
+  suspend fun markNotificationRead(id: String)
   /** The newest 300 `booking_requests` (createdAt descending) across every host, as a JSON array. */
   suspend fun recentBookings(): String
   /** Report/block review queue, newest first (JSON array; rules: admin read only). */
@@ -141,6 +145,16 @@ class FirebaseWebGateway : AdminGateway {
   override suspend fun hashtagUsage(): String = docsJson(
     getDocs(query2(collection(firestore, "hashtag_usage"), orderBy("count", "desc"), limit(50))).await<JsAny>()
   )
+
+  override suspend fun myNotifications(): String {
+    val uid = auth.currentUser?.uid ?: return "[]"
+    return docsJson(getDocs(query2(collection(firestore, "user_profiles/$uid/notifications"), orderBy("createdAt", "desc"), limit(50))).await<JsAny>())
+  }
+
+  override suspend fun markNotificationRead(id: String) {
+    val uid = auth.currentUser?.uid ?: return
+    setDoc(doc(firestore, "user_profiles/$uid/notifications/$id"), parseObj("{\"read\":true,\"readAt\":${nowMillis().toLong()}}"), mergeOption()).await<JsAny?>()
+  }
 
   override suspend fun recentBookings(): String = docsJson(
     getDocs(query2(collection(firestore, "booking_requests"), orderBy("createdAt", "desc"), limit(300))).await<JsAny>()
