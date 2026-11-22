@@ -1,5 +1,7 @@
 package com.example.ios
 
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import com.example.data.auth.AuthBridge
 import com.example.data.auth.AuthDefaults
 import com.example.data.auth.GatewaySessionFinisher
@@ -98,6 +100,21 @@ object IosPlatform {
 
     fun installMaps(factory: NativeMapFactory) {
         maps = factory
+    }
+
+    /**
+     * Firebase Analytics on iOS (Swift `FirebaseAnalyticsSink`): opt-in like Android. Loads the stored choice (the shared
+     * consent dialog asks on first launch); once the person has chosen, [onConsentDecided] runs once, which is where
+     * the notification prompt is asked, so the two prompts never stack (as Android's MainActivity).
+     */
+    fun installAnalytics(sink: com.example.analytics.AnalyticsSink, onConsentDecided: () -> Unit) {
+        com.example.util.KeyValueStores.open = { name -> IosKeyValueStore(name) }
+        com.example.analytics.AnalyticsTracker.sink = sink
+        com.example.analytics.AnalyticsConsent.load()
+        kotlinx.coroutines.MainScope().launch {
+            com.example.analytics.AnalyticsConsent.state.first { it != com.example.analytics.ConsentState.UNKNOWN }
+            onConsentDecided()
+        }
     }
 
     var appleSignIn: AppleSignInBridge? = null

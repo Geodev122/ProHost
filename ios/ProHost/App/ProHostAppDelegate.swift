@@ -44,8 +44,11 @@ final class ProHostAppDelegate: NSObject, UIApplicationDelegate {
         IosPush.shared.install(bridge: FcmTokenBridge())
         Messaging.messaging().delegate = self
         UNUserNotificationCenter.current().delegate = self
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { _, _ in }
-        application.registerForRemoteNotifications()
+        // Analytics is opt-in (shared consent dialog); the notification prompt waits for that choice, like Android.
+        IosPlatform.shared.installAnalytics(sink: FirebaseAnalyticsSink()) {
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { _, _ in }
+            DispatchQueue.main.async { application.registerForRemoteNotifications() }
+        }
         return true
     }
 

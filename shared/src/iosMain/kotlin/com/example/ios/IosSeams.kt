@@ -91,6 +91,7 @@ internal object IosSeams {
     fun install() {
         IosPlatform.installSeamsOnce {
             PlatformActions.current = IosPlatformActions
+            com.example.util.KeyValueStores.open = { name -> IosKeyValueStore(name) }
             FileAccess.current = IosFileAccess
             AppLanguage.current = { language() }
             LocaleNames.country = { iso ->

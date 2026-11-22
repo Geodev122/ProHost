@@ -117,6 +117,13 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         FIREBASE_ANALYTICS_COLLECTION_ENABLED: false
         FIREBASE_AUTOMATIC_SCREEN_REPORTING_ENABLED: false
+        # Consent Mode denied until the in-app analytics choice (like Android's manifest); no ad identifiers, ever.
+        GOOGLE_ANALYTICS_DEFAULT_ALLOW_ANALYTICS_STORAGE: false
+        GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_STORAGE: false
+        GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_USER_DATA: false
+        GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_PERSONALIZATION_SIGNALS: false
+        GOOGLE_ANALYTICS_ADID_COLLECTION_ENABLED: false
+        GOOGLE_ANALYTICS_IDFV_COLLECTION_ENABLED: false
         CFBundleURLTypes:
           - CFBundleURLName: app.geonajjar.prohost
             CFBundleURLSchemes: [prohost]
