@@ -166,3 +166,5 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   iOS shared shell, iOS auth/repository defaults, Google sign-in on iOS, TestFlight release-build fixes.
 - 22 Nov 06:13 UTC main ← 9014a9d+: iOS map (Google Maps SDK, key at TestFlight build), pickers (PHPicker,
   UIDocumentPicker, camera), location (Core Location). iOS-only changes; iOS CI green on each.
+- 22 Nov 06:15 UTC TestFlight build 19 (5680cd2): shared app + iOS map (Google Maps SDK with the MAPS_IOS_API_KEY secret).
+  Build 20 dispatched at 06:20 on 821cdb2: + photo/document/camera pickers and location.
