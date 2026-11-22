@@ -164,3 +164,5 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   GoogleSignIn 8.x has no nonce call (9.0.0 is the first); job limit raised to 120 min.
 - main ← ee102d2+ (Parity Gate 280/280 on 889eda9, the last app/shared change; later commits ios/, workflows, docs only):
   iOS shared shell, iOS auth/repository defaults, Google sign-in on iOS, TestFlight release-build fixes.
+- 22 Nov 06:13 UTC main ← 9014a9d+: iOS map (Google Maps SDK, key at TestFlight build), pickers (PHPicker,
+  UIDocumentPicker, camera), location (Core Location). iOS-only changes; iOS CI green on each.
