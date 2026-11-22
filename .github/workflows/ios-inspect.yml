@@ -42,6 +42,10 @@ on:
         description: "Review contact e-mail; also the TestFlight tester for section 'tester' (optional)"
         required: false
         default: ""
+      build_number:
+        description: "Section 'build': the TestFlight build number to attach to the App Store version (e.g. 22)"
+        required: false
+        default: ""
   push:
     branches: ["ios-inspect/**"]
 
@@ -75,6 +79,7 @@ jobs:
           TESTER_EMAIL: ${{ inputs.review_email }}
           YEARLY_INTRO_USD: ${{ inputs.yearly_intro_usd }}
           ASC_AGE_OVERRIDE: ${{ inputs.age_override }}
+          BUILD_NUMBER: ${{ inputs.build_number }}
           REVIEW_DEMO_USER: ${{ secrets.APP_REVIEW_DEMO_USER }}
           REVIEW_DEMO_PASSWORD: ${{ secrets.APP_REVIEW_DEMO_PASSWORD }}
           REVIEW_NOTES: ${{ secrets.APP_REVIEW_NOTES }}

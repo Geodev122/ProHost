@@ -1,6 +1,6 @@
 """Fill App Store Connect for ProHost from ios/store/metadata.json. Idempotent; prints a plan and changes nothing unless --apply.
 
-    python3 scripts/ios/asc_prepare.py [--apply] [--only app,categories,info,version,capability,price,availability,age,testflight,subscriptions,review,betareview,tester,offers,screenshots,subreview]
+    python3 scripts/ios/asc_prepare.py [--apply] [--only app,categories,info,version,capability,price,availability,nochina,build,age,testflight,subscriptions,review,betareview,tester,offers,screenshots,subreview]
 
 Environment (optional, never printed): ASC_COPYRIGHT ("2026 Legal Name"), REVIEW_FIRST_NAME, REVIEW_LAST_NAME, REVIEW_PHONE, REVIEW_EMAIL,
 REVIEW_DEMO_USER, REVIEW_DEMO_PASSWORD, REVIEW_NOTES, SUBSCRIPTION_YEARLY_USD. Sections whose inputs are missing are skipped with a note.
@@ -220,9 +220,12 @@ if want("capability"):
 
 # ---- price: free app
 if want("price"):
-    if get(f"/v1/apps/{APP}/appPriceSchedule"):
+    sched = get(f"/v1/apps/{APP}/appPriceSchedule")
+    manual = get(f"/v1/apps/{APP}/appPriceSchedule/manualPrices?limit=5") if sched else None
+    if sched and (manual or {}).get("data"):
         same("app price schedule")
     else:
+        # A schedule without a manual price shows as "choose a price tier" in App Store Connect: (re)create it as free.
         points = get_all(f"/v1/apps/{APP}/appPricePoints?filter[territory]=USA&limit=200")
         free = next((p for p in points if float(p["attributes"].get("customerPrice") or 1) == 0.0), None)
         if not free:
@@ -245,6 +248,37 @@ if want("availability"):
                      "relationships": {"app": rel("apps", APP), "territoryAvailabilities": {"data": [{"type": "territoryAvailabilities", "id": "${%s}" % t} for t in territories]}}},
             "included": [{"type": "territoryAvailabilities", "id": "${%s}" % t, "attributes": {"available": True},
                           "relationships": {"territory": rel("territories", t)}} for t in territories]}, f"availability: all {len(territories)} countries and regions, plus new ones")
+
+# ---- availability without China mainland (it needs an ICP filing, a security assessment and an AI-content filing)
+if want("nochina"):
+    avail = get(f"/v1/apps/{APP}/appAvailabilityV2")
+    if not avail:
+        print("SKIP    no availability yet (run section availability first)")
+    else:
+        aid = avail["data"]["id"]
+        rows = get_all(f"/v2/appAvailabilities/{aid}/territoryAvailabilities?include=territory&limit=200")
+        china = next((r for r in rows if (r.get("relationships", {}).get("territory", {}).get("data") or {}).get("id") == "CHN"), None)
+        if not china:
+            print("FAILED  China mainland row not found"); failures.append("nochina")
+        elif not china["attributes"].get("available"):
+            same("China mainland not available")
+        else:
+            write("PATCH", f'/v1/territoryAvailabilities/{china["id"]}', {"data": {"type": "territoryAvailabilities", "id": china["id"],
+                  "attributes": {"available": False}}}, "availability: remove China mainland")
+
+# ---- attach a build to the editable version (BUILD_NUMBER, e.g. 22)
+if version and want("build"):
+    number = os.environ.get("BUILD_NUMBER", "").strip()
+    if not number:
+        print("SKIP    build (needs BUILD_NUMBER)")
+    else:
+        builds = (get(f"/v1/builds?filter[app]={APP}&filter[version]={number}&limit=5") or {}).get("data", [])
+        valid = [b for b in builds if b["attributes"].get("processingState") == "VALID"]
+        if not valid:
+            print(f"FAILED  build {number} not found or not VALID"); failures.append("build")
+        else:
+            write("PATCH", f'/v1/appStoreVersions/{version["id"]}/relationships/build', {"data": {"type": "builds", "id": valid[0]["id"]}},
+                  f"attach build {number} to version {version['attributes'].get('versionString')}")
 
 # ---- TestFlight test information
 if want("testflight"):
