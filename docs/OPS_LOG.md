@@ -149,3 +149,4 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
 - 21 Nov 2026: `main` fast-forwarded to 6db0c83 (A2.3 step d: Premium/Profile billing calls via platformBilling). Parity Gate 280/280, Migration Checks green (app-only change; iOS/web inputs unchanged).
 - 21 Nov 2026: `main` fast-forwarded to 9987502 (A2.3 step e: formatMillisDate; OwnerSubscriptionsScreen (Premium) + PromoCountdownCard in :shared). Parity Gate 280/280, iOS CI, Admin Web, Migration Checks green.
 - 22 Nov 2026: `main` fast-forwarded to 77c717e (Profile batch: SpecialistProfileScreen, SupportContact, friendlyErrorMessage in :shared; parseMillisDate, uriEncode + UriEncodingTest, isNoHandler, AppInfo.versionName). Parity Gate 280/280, iOS CI, Admin Web green.
+- 22 Nov 2026: `main` fast-forwarded to d2f7ee7 (LoginAuthScreen in :shared over the AuthCredentials seam; CountryLookup.device; SessionAuth email). Parity Gate 280/280, iOS CI, Admin Web green.
