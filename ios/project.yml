@@ -12,6 +12,8 @@ settings:
     DEVELOPMENT_TEAM: 884APQLMP4
     MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "1"
+    # Google Maps SDK for iOS key: empty here, passed by CI from the MAPS_IOS_API_KEY secret (never committed).
+    MAPS_IOS_API_KEY: ""
     CODE_SIGN_STYLE: Automatic
     # NO: the pre-build script runs Gradle to build and copy the shared Kotlin framework and its Compose resources.
     ENABLE_USER_SCRIPT_SANDBOXING: NO
@@ -98,6 +100,7 @@ targets:
       path: ProHost/Info.plist
       properties:
         CFBundleDisplayName: ProHost
+        GMSApiKey: $(MAPS_IOS_API_KEY)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleDevelopmentRegion: en

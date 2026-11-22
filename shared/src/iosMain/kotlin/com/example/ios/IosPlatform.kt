@@ -63,6 +63,13 @@ object IosPlatform {
         RepositoryDefaults.storage = { gateway }
     }
 
+    var maps: NativeMapFactory? = null
+        private set
+
+    fun installMaps(factory: NativeMapFactory) {
+        maps = factory
+    }
+
     var googleSignIn: GoogleSignInBridge? = null
         private set
 

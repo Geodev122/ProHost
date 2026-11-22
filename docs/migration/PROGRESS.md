@@ -418,3 +418,8 @@ C1 step 4 — Storage on iOS: shared `BridgedStorageGateway` (Android paths, con
   `GoogleSignInBridgeImpl.swift`; `AuthCredentials` iOS actual maps it to `GoogleCredentialResult` (the shared nonce
   check is unchanged). Client id from GoogleService-Info.plist; reversed id as URL scheme; `onOpenURL` → `GIDSignIn.handle`.
   Saved credentials on iOS = system AutoFill (offerSaved returns null).
+- iOS map (C3): `PlatformMap` iOS actual = `UIKitView` around a `GMSMapView` (Swift `GoogleMapViewBridge` over the
+  `NativeMapFactory`/`NativeMapView`/`NativeMapEvents` interfaces in iosMain). Same settings as Android (normal map, compass
+  on, no my-location button); markers kept by id; pin and count bubble redrawn from the Android bitmaps (`MarkerImages`).
+  Key: Info.plist `GMSApiKey = $(MAPS_IOS_API_KEY)`, passed only by the TestFlight archive from the secret; without a key
+  no factory is installed and the map stays blank (simulator CI). Android's map toolbar has no iOS counterpart.
