@@ -1,4 +1,5 @@
 {
+ "serverNotificationsUrl": "https://europe-west1-prohost-f766f.cloudfunctions.net/appStoreNotifications",
  "_about": "App Store Connect listing for ProHost (source of truth; applied by scripts/ios/asc_prepare.py). Country-neutral by owner decision 14 Nov 2026. No prices or offers in listing text. Limits: name 30, subtitle 30, keywords 100, promotionalText 170, description 4000.",
  "bundleId": "app.geonajjar.prohost",
  "primaryCategory": "BUSINESS",

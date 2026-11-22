@@ -81,6 +81,19 @@ if want("app"):
     else:
         same("content rights")
 
+# ---- App Store Server Notifications V2 (production + sandbox) -> the appStoreNotifications function
+if want("notifications"):
+    url = META.get("serverNotificationsUrl")
+    want_attrs = {"subscriptionStatusUrl": url, "subscriptionStatusUrlVersion": "V2",
+                  "subscriptionStatusUrlForSandbox": url, "subscriptionStatusUrlVersionForSandbox": "V2"}
+    if not url:
+        print("SKIP    server notifications: no serverNotificationsUrl in metadata.json")
+    elif all(app["attributes"].get(k) == v for k, v in want_attrs.items()):
+        same("server notifications V2 (production + sandbox)")
+    else:
+        write("PATCH", f"/v1/apps/{APP}", {"data": {"type": "apps", "id": APP, "attributes": want_attrs}},
+              f"server notifications V2 (production + sandbox) -> {url}")
+
 # ---- categories + name / subtitle / privacy URL per language
 info_doc = get(f"/v1/apps/{APP}/appInfos?include=primaryCategory,secondaryCategory,ageRatingDeclaration,appInfoLocalizations&limit=5") or {}
 info = next((i for i in info_doc.get("data", []) if (i["attributes"].get("appStoreState") or i["attributes"].get("state")) != "READY_FOR_SALE"), None) or (info_doc.get("data") or [None])[0]
