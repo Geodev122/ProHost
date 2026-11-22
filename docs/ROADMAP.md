@@ -82,8 +82,8 @@ To do (code, Claude):
 - ✅ `pro-host.tech/console` live (email + password, ADMIN claim, own page on the main site)
 - ✅ Tabs: Users (+ dossier), Listings & Bookings, Packages (billing health, rescue, force upgrade), Analytics,
   Security (audit log, legal docs), Schema, Demo; Reports queue
-- ☐ Admin-as-Pro-Host tools on the web (all listings, all requests, renting progress, change price, create/edit listing)
-  — host the shared owner screens in the console
+- ◐ Admin-as-Pro-Host tools on the web: ✅ Bookings tab (all requests, all bookings, renting progress, search, CSV) ·
+  ☐ change price, payment reminder, create/edit listing (host the shared owner screens in the console)
 - ✅ Diagnostics tab (replaces the Android debug dialog: session, callables, Firestore, Play billing + heartbeat, queues; health score)
 - ☐ 👤 Owner walk-through of all 70 items in `docs/migration/ADMIN_PARITY.md` (0 of 70 ticked so far)
 - ☐ Fix whatever the walk-through finds

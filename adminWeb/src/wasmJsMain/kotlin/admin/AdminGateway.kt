@@ -62,6 +62,8 @@ interface AdminGateway {
   suspend fun hashtagUsage(): String
   /** The newest 500 `audit_security_logs` (timestamp descending) as a JSON array. */
   suspend fun auditLogs(): String
+  /** The newest 300 `booking_requests` (createdAt descending) across every host, as a JSON array. */
+  suspend fun recentBookings(): String
   /** Report/block review queue, newest first (JSON array; rules: admin read only). */
   suspend fun reports(): String
   /** Uploads a browser `File` (as a JS value) to a Storage path with the given content type and returns its download URL. */
@@ -138,6 +140,10 @@ class FirebaseWebGateway : AdminGateway {
 
   override suspend fun hashtagUsage(): String = docsJson(
     getDocs(query2(collection(firestore, "hashtag_usage"), orderBy("count", "desc"), limit(50))).await<JsAny>()
+  )
+
+  override suspend fun recentBookings(): String = docsJson(
+    getDocs(query2(collection(firestore, "booking_requests"), orderBy("createdAt", "desc"), limit(300))).await<JsAny>()
   )
 
   override suspend fun reports(): String = docsJson(

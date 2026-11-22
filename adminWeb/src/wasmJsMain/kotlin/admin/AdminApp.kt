@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
 /** The seven tabs of the Android admin console (ADMIN_PARITY.md items 1-7); each is ticked there when its content matches. */
-val ADMIN_TABS = listOf("Users", "Listings", "Packages", "Analytics", "Security", "Schema", "Demo", "Diagnostics")
+val ADMIN_TABS = listOf("Users", "Listings", "Packages", "Analytics", "Security", "Schema", "Demo", "Bookings", "Diagnostics")
 
 @Composable
 fun AdminApp(gateway: AdminGateway) {
@@ -110,7 +110,7 @@ private fun ConsoleShell(gateway: AdminGateway, email: String, onSignOut: () -> 
       }
       Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), Alignment.TopCenter) {
         Column(Modifier.widthIn(max = 900.dp).fillMaxWidth()) { // 900 dp content width as on the Android console (tablet layout)
-          if (tab == 0) UsersTab(gateway) else if (tab == 1) ListingsTab(gateway) else if (tab == 2) PackagesTab(gateway) else if (tab == 3) AnalyticsTab(gateway) else if (tab == 4) SecurityTab(gateway, email) else if (tab == 5) SchemaTab(gateway) else if (tab == 6) DemoTab(gateway) else if (tab == 7) DiagnosticsTab(gateway, email) else Text("${ADMIN_TABS[tab]} — not ported yet (ADMIN_PARITY.md).", color = MaterialTheme.colorScheme.onSurfaceVariant)
+          if (tab == 0) UsersTab(gateway) else if (tab == 1) ListingsTab(gateway) else if (tab == 2) PackagesTab(gateway) else if (tab == 3) AnalyticsTab(gateway) else if (tab == 4) SecurityTab(gateway, email) else if (tab == 5) SchemaTab(gateway) else if (tab == 6) DemoTab(gateway) else if (tab == 7) BookingsTab(gateway) else if (tab == 8) DiagnosticsTab(gateway, email) else Text("${ADMIN_TABS[tab]} — not ported yet (ADMIN_PARITY.md).", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
       }
     }
