@@ -175,3 +175,10 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   iOS app (`AuthProviders.APPLE_ENABLED`).
 - 22 Nov 07:05 UTC TestFlight build 20 (821cdb2): + photo/document/camera pickers and location. Backend deploy on main
   ea96445 succeeded (iOS push: APNs alert in FCM messages is live).
+
+## 22 Nov 2026 — main e5c0729 deployed (build-and-deploy run 366)
+- Live: single-listing tier on the server (tierOf / listingLimitFor, `ownerListingLimit` mirror, publish-limit trigger, rules
+  protect the field), push to every device (`fcmTokens`, 48 h TTL, APNs thread-id/collapse-id), Apple payments server
+  (`verifyAppleTransaction`, `appStoreNotifications`), App Store grants mirrored as app_store/ios.
+- App-only (ships with the next Android/iOS build): Profile rework, booking timing bullets, Premium tier switch, StoreKit 2 client.
+- Next: Maintenance `singleplan` (dry run, then apply) creates Play `package_single_mrr`; `ios-inspect` creates `prohost.single.*`.
