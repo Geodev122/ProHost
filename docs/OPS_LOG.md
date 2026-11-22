@@ -218,3 +218,5 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   errors in 6 h, public pages + SEO + legacy 301s OK, Play base plans/offers as expected, RTDN self-test delivered in ~10 s, no parked purchases.
 - New Maintenance task `reviewaccounts` (App Review demo accounts; passwords only in server-only `app_config/app_review`, masked into the job
   env, then `asc_prepare.py --only review` fills the form). `asc_prepare` no longer clears a stored demo login when its env has none.
+- 22 Nov 20:12: console Edit listing (ADMIN_PARITY 37, `ListingEditor.kt` + web pickers/Storage bridge/shared strings) green on the branch
+  (Parity Gate run 200 after one rerun of an environment-wide test-JVM flake; Admin Web, iOS CI, Migration Checks) → fast-forwarded to `main`.
