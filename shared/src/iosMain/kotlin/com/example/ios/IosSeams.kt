@@ -41,11 +41,15 @@ object IosPlatformActions : PlatformActions {
     /** iOS keeps per-app language in the app's own Settings page. */
     override fun openAppLanguageSettings() = open(UIApplicationOpenSettingsURLString)
 
-    /** Until EventKitUI arrives (P7) this throws like Android does when no calendar app answers, so callers show their fallback. */
+    /** Apple's new-event sheet (EventKitUI); throws when the bridge is missing, like Android without a calendar app. */
     override fun addCalendarEvent(
         chooserTitle: String, title: String, description: String,
         allDayStartUtcMillis: Long, allDayEndUtcMillis: Long, rrule: String?
-    ) = throw UnsupportedOperationException("Calendar handoff is not available on iOS yet")
+    ) {
+        val bridge = IosPlatform.calendar ?: throw UnsupportedOperationException("No calendar on this device")
+        val count = rrule?.substringAfter("COUNT=", "")?.substringBefore(';')?.toIntOrNull() ?: 1
+        bridge.presentAllDayEvent(title, description, allDayStartUtcMillis, if (rrule?.contains("FREQ=MONTHLY") == true) count else 1)
+    }
 
     override fun shareText(chooserTitle: String, subject: String, text: String) =
         present(UIActivityViewController(activityItems = listOf(text), applicationActivities = null))

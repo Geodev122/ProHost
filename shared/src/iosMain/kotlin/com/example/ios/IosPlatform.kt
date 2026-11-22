@@ -63,6 +63,14 @@ object IosPlatform {
         RepositoryDefaults.storage = { gateway }
     }
 
+    var calendar: CalendarBridge? = null
+        private set
+
+    fun installCalendar(bridge: CalendarBridge) {
+        calendar = bridge
+        com.example.ui.util.PaymentReminders.add = { booking, ref -> IosPaymentReminders.add(booking, ref) }
+    }
+
     var location: LocationBridge? = null
         private set
 

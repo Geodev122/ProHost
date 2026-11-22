@@ -449,3 +449,8 @@ C1 step 4 — Storage on iOS: shared `BridgedStorageGateway` (Android paths, con
   and vectors as Android's MainActivity): listing share links `pro-host.tech/listing/{id}?room=` (Universal Links,
   entitlement `applinks:pro-host.tech`, AASA already live), `prohost://<tab>`, `prohost://verify-email/success`,
   `prohost://redeem?code=` → `PendingPromoCode`. The shell gets tab, space, room and email-verified like on Android.
+- iOS payment reminders + Arabic prompts: `PaymentReminders.add` on iOS = `IosPaymentReminders` (copy of Android's
+  `PaymentCalendar`: same schedule and texts, en_US currency) → `PlatformActions.addCalendarEvent` iOS → Swift
+  `CalendarBridgeImpl` (EKEventEditViewController, all-day, monthly recurrence; no calendar permission). To unify later:
+  move `PaymentCalendar`'s schedule/description into commonMain once a shared USD formatter is equivalence-tested.
+  `InfoPlist.strings` (en, ar) for the camera and location prompts.
