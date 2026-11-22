@@ -43,7 +43,7 @@ Detail per unit: `docs/migration/PROGRESS.md`; owner items: `docs/OWNER_TODO.md`
 - ✅ 1.0.49 on the internal track (dated booking, report/block, closed dates)
 - ✅ Backend live (deploys on every `main` push; last deploy 22 Nov 06:50 UTC)
 - ☐ 👤 Owner tests 1.0.49 on a phone (checklist in OWNER_TODO)
-- ☐ Version 1.0.50 from the current shared code → internal track → 👤 owner phone test
+- ✅ Version 1.0.50 (50) from the current shared code on the internal track (22 Nov) · ☐ 👤 owner phone test
 - ☐ Integration audit (callables ↔ rules ↔ app ↔ admin web) before production
 - ☐ NIGHTHAWK + `prodcheck` clean
 - ☐ Staged production rollout 20 % → 100 %, then `docs/release/published.txt`

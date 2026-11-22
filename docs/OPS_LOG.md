@@ -193,4 +193,5 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
 - TestFlight build 21 uploaded (run 45013804079): Sign in with Apple, StoreKit 2 (both tiers), deep links, calendar.
 - Deploy fix: `build-and-deploy.yml` now redeploys functions that hit the Cloud Functions mutation quota (they kept old code
   while `firebase deploy` exited 0).
-
+- 1.0.50 (50) on the Play internal track (release run 45024466296, Parity Gate 45024453594 green): second Premium tier
+  with tier switch, Profile rework, booking timing bullets, push on every device. Production stays 1.0.46.
