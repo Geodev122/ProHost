@@ -60,8 +60,8 @@ Splash "no loading state"). Admin console: 70 parity items, code exists for 8-36
 
 ### D. Admin console on the web (then out of the Android app)
 - ⏳ **D1** Bookings + Diagnostics tabs live on pro-host.tech/console (site deploy of 22 Nov).
-- ☐ **D2** Change price from the console (`changeSlotPrice`, same choices as the app: Keep · Now · Next term per booking).
-- ☐ **D3** Payment reminder from the console (`sendPaymentReminder`).
+- ⏳ **D2** Change price from the console (`changeSlotPrice`, same choices as the app: Keep · Now · Next term per booking).
+- ⏳ **D3** Payment reminder from the console (`sendPaymentReminder`).
 - ☐ **D4** Create / edit listing from the console (item 37): the app's own wizard running in the browser (needs browser versions of
   the Firestore and Storage gateways). Largest console task.
 - ☐ **D5** Shell items 1-7: count badges on tabs, admin notification centre (subscription, lead, verification alerts), online/offline pill.

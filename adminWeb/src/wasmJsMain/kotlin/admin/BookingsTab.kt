@@ -20,6 +20,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,7 +65,20 @@ fun BookingsTab(gateway: AdminGateway) {
   var filter by remember { mutableStateOf("ALL") }
   var query by remember { mutableStateOf("") }
   var reload by remember { mutableStateOf(0) }
+  var priceFor by remember { mutableStateOf<BookingRequest?>(null) }
+  var notice by remember { mutableStateOf<String?>(null) }
+  val scope = rememberCoroutineScope()
   val today = remember { IsoDate.todayIso() }
+
+  fun remind(b: BookingRequest) {
+    notice = null
+    scope.launch {
+      notice = try {
+        gateway.call("sendPaymentReminder", "{\"bookingId\":${jsonQuote(b.id)}}")
+        "Payment reminder sent to ${b.practitionerName}."
+      } catch (e: Throwable) { "Couldn't send the reminder: ${e.message}" }
+    }
+  }
 
   LaunchedEffect(reload) {
     loading = true; error = null
@@ -113,19 +128,26 @@ fun BookingsTab(gateway: AdminGateway) {
         FilterChip(selected = filter == key, onClick = { filter = key }, label = { Text("$label · $n", style = MaterialTheme.typography.labelSmall) })
       }
     }
+    notice?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
     when {
       loading -> Text("Loading bookings…", color = MaterialTheme.colorScheme.onSurfaceVariant)
       error != null -> Text(error!!, color = MaterialTheme.colorScheme.error)
       shown.isEmpty() -> Text("No bookings match.", color = MaterialTheme.colorScheme.onSurfaceVariant)
       else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        items(shown, key = { it.booking.id }) { r -> BookingCard(r, today) }
+        items(shown, key = { it.booking.id }) { r -> BookingCard(r, today, onChangePrice = { priceFor = it }, onRemind = { remind(it) }) }
       }
+    }
+  }
+  priceFor?.let { b ->
+    ChangePriceDialog(gateway, b, rows.map { it.booking }) { message ->
+      priceFor = null
+      if (message != null) { notice = message; reload++ }
     }
   }
 }
 
 @Composable
-private fun BookingCard(r: BookingRow, today: String) {
+private fun BookingCard(r: BookingRow, today: String, onChangePrice: (BookingRequest) -> Unit, onRemind: (BookingRequest) -> Unit) {
   val b = r.booking
   Card(Modifier.fillMaxWidth()) {
     Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -148,6 +170,12 @@ private fun BookingCard(r: BookingRow, today: String) {
         }
       }
       if (!b.rejectionReason.isNullOrBlank()) Text("Reason: ${b.rejectionReason}", style = MaterialTheme.typography.labelSmall)
+      if (b.status == BookingRequestStatus.PENDING || b.status == BookingRequestStatus.ACCEPTED) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+          OutlinedButton(onClick = { onChangePrice(b) }) { Text("Change price") }
+          if (b.status == BookingRequestStatus.ACCEPTED && !r.ended) OutlinedButton(onClick = { onRemind(b) }) { Text("Payment reminder") }
+        }
+      }
     }
   }
 }
