@@ -130,6 +130,21 @@ jobs:
         working-directory: ios
         run: xcodegen generate
 
+      # The Xcode pre-build script then finds this framework up to date; a Kotlin error shows here as an annotation
+      # instead of being buried in xcodebuild's output.
+      - name: Link the release Kotlin framework (ProHostShared, iosArm64)
+        run: |
+          set -o pipefail
+          gradle --no-daemon :shared:linkReleaseFrameworkIosArm64 2>&1 | tee gradle-ios-release.log
+
+      - name: Surface Kotlin framework errors
+        if: failure()
+        run: |
+          [ -f gradle-ios-release.log ] || exit 0
+          grep -E "^e: |What went wrong|OutOfMemory|Exception:|error:" gradle-ios-release.log | head -30 \
+            | while IFS= read -r l; do echo "::error title=kotlin-ios::${l}"; done
+          tail -40 gradle-ios-release.log
+
       - name: Archive (Apple Distribution signing with the temporary certificate)
         working-directory: ios
         env:
