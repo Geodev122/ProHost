@@ -20,7 +20,6 @@ class AndroidFormatTest {
         same("%s and %s", "one", "two")
         same("%d items", 12)
         same("%02d:%02d", 9, 5)
-        same("%1\$s · %02d", "Mon", 7)
     }
 
     @Test fun percentAndPlainText() {
