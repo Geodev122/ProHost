@@ -443,3 +443,5 @@ C1 step 4 — Storage on iOS: shared `BridgedStorageGateway` (Android paths, con
   `AuthViewModel.startAppleSignIn` (same finish path as Google; Apple's first-sign-in name prefills registration).
   The button shows only where `supportsApple` (iOS) AND `AuthProviders.APPLE_ENABLED` — flip that const to true once the
   owner has enabled Apple in Firebase Auth (OWNER_TODO). Android unchanged (no Apple button, gate renders identical).
+- 22 Nov: owner enabled Apple in Firebase Auth → `AuthProviders.APPLE_ENABLED = true` (button on iOS only; Android has no
+  `supportsApple`, so its sign-in screen is unchanged).

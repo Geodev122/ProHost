@@ -86,11 +86,11 @@ import com.example.shared.resources.signing_in
  * text cap); LoginAuthScreen owns the state and the actions. Adding a provider (Apple) = one [AuthProvider] entry.
  */
 
-/** Sign-in providers in display order. Apple is ready but off until its Firebase provider is configured. */
+/** Sign-in providers in display order. Apple: on (owner enabled it in Firebase Auth, 22 Nov 2026); shown only where the platform supports it (iOS). */
 enum class AuthProvider { GOOGLE, APPLE, EMAIL }
 
 object AuthProviders {
-    const val APPLE_ENABLED = false
+    const val APPLE_ENABLED = true
     /** Apple shows only where the platform supports it (iOS) and once [APPLE_ENABLED] is switched on. */
     fun available(appleSupported: Boolean = false): List<AuthProvider> =
         AuthProvider.entries.filter { it != AuthProvider.APPLE || (APPLE_ENABLED && appleSupported) }
