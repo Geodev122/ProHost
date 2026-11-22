@@ -173,3 +173,5 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   functions change deploys with this push.
 - 22 Nov 07:00 UTC: owner enabled the Apple provider in Firebase Authentication; Sign in with Apple switched on in the
   iOS app (`AuthProviders.APPLE_ENABLED`).
+- 22 Nov 07:05 UTC TestFlight build 20 (821cdb2): + photo/document/camera pickers and location. Backend deploy on main
+  ea96445 succeeded (iOS push: APNs alert in FCM messages is live).
