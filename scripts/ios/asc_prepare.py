@@ -182,17 +182,26 @@ elif want("version"):
 # ---- review details (contact + demo account; values come from the environment, never from the repository)
 if version and want("review"):
     env = {k: os.environ.get(k, "").strip() for k in ("REVIEW_FIRST_NAME", "REVIEW_LAST_NAME", "REVIEW_PHONE", "REVIEW_EMAIL", "REVIEW_DEMO_USER", "REVIEW_DEMO_PASSWORD", "REVIEW_NOTES")}
-    if not all(env[k] for k in ("REVIEW_FIRST_NAME", "REVIEW_LAST_NAME", "REVIEW_PHONE", "REVIEW_EMAIL")):
+    # Maintenance reviewaccounts adds the second (Pro Host) login line here; never printed.
+    notes_extra = os.environ.get("REVIEW_NOTES_EXTRA", "").rstrip()
+    detail = next((i for i in versions.get("included", []) if i["type"] == "appStoreReviewDetails"), None)
+    has_contact = all(env[k] for k in ("REVIEW_FIRST_NAME", "REVIEW_LAST_NAME", "REVIEW_PHONE", "REVIEW_EMAIL"))
+    if not has_contact and env["REVIEW_DEMO_USER"] and detail:
+        # Contact already on file: change only the demo login and the notes.
+        attrs = {"demoAccountRequired": True, "demoAccountName": env["REVIEW_DEMO_USER"], "demoAccountPassword": env["REVIEW_DEMO_PASSWORD"],
+                 "notes": (env["REVIEW_NOTES"] or META.get("reviewNotes", "")) + notes_extra}
+        write("PATCH", f'/v1/appStoreReviewDetails/{detail["id"]}', {"data": {"type": "appStoreReviewDetails", "id": detail["id"], "attributes": attrs}}, "review demo accounts and notes")
+    elif not has_contact:
         print("SKIP    review contact (needs REVIEW_FIRST_NAME, REVIEW_LAST_NAME, REVIEW_PHONE, REVIEW_EMAIL)")
     else:
         attrs = {"contactFirstName": env["REVIEW_FIRST_NAME"], "contactLastName": env["REVIEW_LAST_NAME"], "contactPhone": env["REVIEW_PHONE"],
-                 "contactEmail": env["REVIEW_EMAIL"], "demoAccountRequired": bool(env["REVIEW_DEMO_USER"])}
+                 "contactEmail": env["REVIEW_EMAIL"]}
+        # No demo login in the environment: leave the one Maintenance reviewaccounts stored untouched.
         if env["REVIEW_DEMO_USER"]:
-            attrs.update({"demoAccountName": env["REVIEW_DEMO_USER"], "demoAccountPassword": env["REVIEW_DEMO_PASSWORD"]})
-        notes = env["REVIEW_NOTES"] or META.get("reviewNotes", "")
+            attrs.update({"demoAccountRequired": True, "demoAccountName": env["REVIEW_DEMO_USER"], "demoAccountPassword": env["REVIEW_DEMO_PASSWORD"]})
+        notes = (env["REVIEW_NOTES"] or META.get("reviewNotes", "")) + notes_extra
         if notes:
             attrs["notes"] = notes
-        detail = next((i for i in versions.get("included", []) if i["type"] == "appStoreReviewDetails"), None)
         if detail:
             write("PATCH", f'/v1/appStoreReviewDetails/{detail["id"]}', {"data": {"type": "appStoreReviewDetails", "id": detail["id"], "attributes": attrs}}, "review contact and demo account")
         else:

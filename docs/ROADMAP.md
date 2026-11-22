@@ -41,8 +41,9 @@ Splash "no loading state"). Admin console: 70 parity items, code exists for 8-36
 - ☐ **B5** Fixes from B4, each in a new TestFlight build.
 - ☐ **B6** Real iPhone screenshots (6.9", EN + AR): a CI job runs the app in the simulator with demo data, captures the same 8 screens
   as the mock-ups and uploads them with `asc_prepare` section `screenshots` (replaces the mock-ups, which Apple does not accept for review).
-- ☐ **B7** App Review package: two demo accounts (Specialist, Pro Host with a listing) created by a Maintenance task, passwords as
-  GitHub secrets; review notes with sign-in steps, the report/block feature, the plans and how to cancel; sign-in info entered in App Store Connect.
+- ⏳ **B7** App Review package: Maintenance `reviewaccounts` (22 Nov) creates the Specialist (no plan: Premium bought in the sandbox) and the
+  Pro Host (permanent grant) password accounts, keeps the passwords only in server-only `app_config/app_review`, and fills App Store Connect's
+  sign-in fields + notes (second login appended). Run it once from `main`; review notes cover sign-in, report/block, plans and cancelling.
 - ☐ **B8** Attach the final build to version 1.0 and the two subscriptions; readiness report shows every line OK.
 - ☐ 👤 **B9** Approve the screenshots; press **Add for Review**. Claude answers any App Review message the same day.
 - ☐ **B10** After approval: phased release (7 days), Crashlytics and the App Store daily check watched for a week.
@@ -54,7 +55,7 @@ Splash "no loading state"). Admin console: 70 parity items, code exists for 8-36
 - ✅ **C3** Integration audit (22 Nov, `docs/migration/audits/C3-2026-11-22.md`; new e2e flow for the 1-listing limit): every callable the apps and console call ↔ functions exports; every Firestore/Storage path ↔ rules ↔
   rules tests; `docs/DATA_MODEL.md` (new fields: `ownerListingLimit`, `fcmTokens`, `app_config/apple_iap`); Kotlin ↔ TypeScript
   vectors; e2e flows (incl. a 1-listing publish refusal). Findings fixed before C5.
-- ☐ **C4** NIGHTHAWK clean (A1) + Maintenance `prodcheck` clean.
+- ✅ **C4** NIGHTHAWK clean (A1) + Maintenance `prodcheck` clean (22 Nov run 200: 94/94 functions, indexes READY, no errors 6 h, pages/SEO OK, RTDN self-test OK).
 - ☐ 👤 **C5** Approve production: staged rollout 20 % → watch Crashlytics/Play vitals 48 h → 100 %; then bump `docs/release/published.txt`
   (feeds the Instagram agent's release knowledge).
 
@@ -72,7 +73,7 @@ Splash "no loading state"). Admin console: 70 parity items, code exists for 8-36
   Android then see "Admin tools are on the web", like iOS. Ships in the next Android release.
 
 ### E. Backend and operations
-- ⏳ **E1** (22 Nov: no policy existed; re-requested, CREATING) Check the Firestore TTL policy (Maintenance `ttl` dry run); when ACTIVE, retire `pruneExpiredNotifications`.
+- ✅ **E1** TTL policies ACTIVE (22 Nov run 199, declared in `firestore.indexes.json`); `pruneExpiredNotifications` retired.
 - ☐ **E2** App Check: measure verified traffic per service (logs `app_check_unverified`); enforce only at ≥ 99 % (decision recorded).
 - ◐ 👤 **E3** Error alerting (task `alerts` built; CI account needs two Monitoring roles, OWNER_TODO): a log-based alert on function errors and on `appleSync` / `billingSync` failures, emailed to the owner.
 - ☐ **E4** Move function groups to their own service accounts (`run-billing`, `run-auth`, …; prepared 4 Nov), one group per deploy.
@@ -181,7 +182,7 @@ To do (code, Claude):
 
 ### 7. Backend and operations
 - ✅ Report/block, dated-booking checks, TTL, iOS push alert, admin console hosting
-- ☐ Retire `pruneExpiredNotifications` once the TTL policy shows ACTIVE
+- ✅ Retire `pruneExpiredNotifications` once the TTL policy shows ACTIVE (22 Nov)
 - ☐ Apple payments backend (see 5)
 - ☐ App Check enforcement decision (≥ 99 % verified traffic)
 - ☐ 👤 Cost and security items: $50 budget + billing export, API key restrictions, Anthropic cap, key/secret rotation

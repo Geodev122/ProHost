@@ -1390,6 +1390,72 @@ async function applesync(db) {
   });
 }
 
+// App Review demo accounts (roadmap B7). Two password accounts with complete profiles:
+//  - Specialist (no plan): the account in App Store Connect's sign-in fields; the reviewer buys Premium in the sandbox.
+//  - Pro Host (permanent admin grant, entitlementSource admin_forced): host tools without a purchase.
+// Passwords are generated once and kept only in the server-only doc app_config/app_review (code "rotate" makes new
+// ones). Nothing secret is printed: the values go masked into $GITHUB_ENV, where the next workflow step fills the
+// App Review form (asc_prepare.py --only review). Profiles carry isAppReviewAccount: true.
+async function reviewaccounts(db, auth, arg) {
+  const crypto = require("crypto");
+  const fs = require("fs");
+  const { grantProHost } = require(`${LIB}/billing/entitlementManager`);
+  const { ADMIN_FORCED_PLAN_ID, LIFETIME_EXPIRY_MILLIS } = require(`${LIB}/billing/playCatalog`);
+  const consentSrc = fs.readFileSync("functions/src/roles/assignInitialRole.ts", "utf8");
+  const consentVersion = (consentSrc.match(/CURRENT_CONSENT_VERSION = "([^"]+)"/) || [])[1];
+  if (!consentVersion) throw new Error("CURRENT_CONSENT_VERSION not found in assignInitialRole.ts");
+  const ref = db.collection("app_config").doc("app_review");
+  const saved = (await ref.get()).data() || {};
+  const rotate = String(arg || "").trim() === "rotate";
+  // Firebase policy: min 8, a lowercase letter, a number (mirrored by PasswordRules.kt).
+  const newPassword = () => `Ph${crypto.randomBytes(15).toString("base64url")}7a`;
+  const ACCOUNTS = [
+    { key: "specialist", email: "appreview.specialist@pro-host.tech", fullName: "App Review Specialist", host: false },
+    { key: "host", email: "appreview.host@pro-host.tech", fullName: "App Review Host", host: true },
+  ];
+  const out = {};
+  for (const a of ACCOUNTS) {
+    await step(`reviewAccount ${a.key}`, async () => {
+      const password = (!rotate && saved[`${a.key}Password`]) || newPassword();
+      let user = await auth.getUserByEmail(a.email).catch(() => null);
+      if (!user) user = await auth.createUser({ email: a.email, password, emailVerified: true, displayName: a.fullName });
+      else await auth.updateUser(user.uid, { password, emailVerified: true, disabled: false });
+      const now = Date.now();
+      const profRef = db.collection("user_profiles").doc(user.uid);
+      const existing = (await profRef.get()).data();
+      await profRef.set({
+        id: user.uid, email: a.email, fullName: a.fullName, specialty: "",
+        phone: "+15555550100", profilePictureUrl: "https://pro-host.tech/img/og-hero.jpg",
+        country: "United States", city: "New York",
+        isAppReviewAccount: true, isVerified: true, emailVerified: true, updatedAt: now,
+        ...(existing ? {} : { role: "SPECIALIST", createdAtMillis: now, emailVerifiedAt: now, tosAcceptedAtMillis: now, consentVersion }),
+      }, { merge: true });
+      const claims = (await auth.getUser(user.uid)).customClaims || {};
+      if (!claims.role) await auth.setCustomUserClaims(user.uid, { ...claims, role: "SPECIALIST" });
+      if (a.host && (existing || {}).entitlementSource !== "admin_forced") {
+        await grantProHost(user.uid, { source: "admin_forced", planId: ADMIN_FORCED_PLAN_ID, expiryMillis: LIFETIME_EXPIRY_MILLIS, orderId: "admin:app-review" });
+      }
+      const after = (await profRef.get()).data() || {};
+      if (!a.host && after.role !== "SPECIALIST") notice(`${a.key}: role is ${after.role} (a sandbox purchase made it Pro Host; code rotate keeps it)`);
+      out[a.key] = { email: a.email, password };
+      return `${after.displayCode || "code pending"} role=${after.role} source=${after.entitlementSource || "-"} canHost=${Boolean(after.phone && after.profilePictureUrl && after.country && after.city)}`;
+    });
+  }
+  if (!out.specialist || !out.host) throw new Error("reviewaccounts: an account step failed (see above); nothing stored");
+  await ref.set({
+    specialistEmail: out.specialist.email, specialistPassword: out.specialist.password,
+    hostEmail: out.host.email, hostPassword: out.host.password, updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  if (process.env.GITHUB_ENV) {
+    for (const v of [out.specialist.password, out.host.password]) console.log(`::add-mask::${v}`);
+    const extra = `\n\nSECOND DEMO ACCOUNT (Pro Host, Premium already active, to see the host tools without a purchase): ${out.host.email} / ${out.host.password}`;
+    fs.appendFileSync(process.env.GITHUB_ENV,
+      `REVIEW_DEMO_USER=${out.specialist.email}\nREVIEW_DEMO_PASSWORD=${out.specialist.password}\n` +
+      `REVIEW_NOTES_EXTRA<<PHNOTES\n${extra}\nPHNOTES\n`);
+  }
+  notice(`reviewaccounts: ${rotate ? "new passwords" : "passwords kept"}; stored in app_config/app_review (server-only)`);
+}
+
 // Repairs Play Console slips through the Play API (functions' service account): a promo offer stranded on an
 // inactive base plan is copied onto the live monthly plan, and claimed offers limited to "any subscription in this
 // app" are widened to "this subscription". Dry run unless the code is "apply".
@@ -2052,5 +2118,6 @@ async function smsauth(db, arg) {
   else if (task === "applekey") await applekey(db);
   else if (task === "alerts") await alerts(db, arg);
   else if (task === "applesync") await applesync(db);
+  else if (task === "reviewaccounts") await reviewaccounts(db, auth, arg);
   else throw new Error(`unknown task ${task}`);
 })().catch((e) => { fail(`${e && e.message}`); process.exit(1); });

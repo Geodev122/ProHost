@@ -209,3 +209,12 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
 - 18:30 UTC root cause of the missing TTL: each deploy (`firebase deploy --only firestore --force`) resets field settings to
   `firestore.indexes.json`, which had no TTL entries, so the policy requested 17:50 was gone again by 18:18. Fix: TTL declared in
   `fieldOverrides` (`notifications.ttlAt`, `mail.expireAt`); the next main deploy creates them.
+
+## 22 Nov 2026 (evening)
+- build-and-deploy on `main` ea673a3 green: TTL policies now live in `firestore.indexes.json` fieldOverrides.
+- Maintenance `ttl` (run 199): `notifications.ttlAt` and `mail.expireAt` ttlState=ACTIVE, backlog 0 → `pruneExpiredNotifications` retired
+  (export + file removed; deleted from production by the next `main` deploy).
+- Maintenance `prodcheck` (run 200): exported 94 / deployed 95 (the extra one is the Trigger Email extension), 7 indexes READY, no function
+  errors in 6 h, public pages + SEO + legacy 301s OK, Play base plans/offers as expected, RTDN self-test delivered in ~10 s, no parked purchases.
+- New Maintenance task `reviewaccounts` (App Review demo accounts; passwords only in server-only `app_config/app_review`, masked into the job
+  env, then `asc_prepare.py --only review` fills the form). `asc_prepare` no longer clears a stored demo login when its env has none.

@@ -90,8 +90,8 @@ export async function sendPushToUser(
     const profileSnap = await profileRef.get();
     if (!profileSnap.exists) return; // a deleted account: no inbox, no push
 
-    // In-app notification centre: every push is kept for 48 h (pruneExpiredNotifications
-    // deletes it afterwards), whether or not a device can receive it right now.
+    // In-app notification centre: every push is kept for 48 h (the Firestore TTL
+    // policy on ttlAt deletes it afterwards), whether or not a device can receive it right now.
     let notificationId: string | undefined;
     try {
       const ref = profileRef.collection(NOTIFICATIONS).doc();
