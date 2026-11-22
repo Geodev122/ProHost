@@ -58,7 +58,8 @@ price per slot, `PER_ATTENDEE` = price per person from `attendeeTiers`, slots ca
 
 - `user_profiles/{uid}`: profile; billing/entitlement mirror fields are server-only. Push: `fcmToken` = the latest device,
   `fcmTokens` = every signed-in device (owner-written arrayUnion; removed on sign-out and by `sendPushToUser` when FCM
-  reports a token dead); `lib/push.ts` sends to all of them (`deviceTokens`, max 10).
+  reports a token dead); `lib/push.ts` sends to all of them (`deviceTokens`, max 10). `ownerListingLimit` (server-only):
+  1 on the single-listing plan, absent for Unlimited; the publish trigger enforces it.
   `user_profiles/{uid}/notifications/{id}`: in-app notification centre (48 h).
 - `display_codes/{code}`: registry of `U-`/`L-`/`D-`/`B-` codes (server-only).
 - `subscriptions/{sha256(token)}`, `play_purchase_links`, `play_billing_pending`: Play billing (server-only).

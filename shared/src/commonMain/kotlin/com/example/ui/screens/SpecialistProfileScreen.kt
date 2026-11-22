@@ -649,7 +649,7 @@ fun SpecialistProfileScreen(
                             TextButton(
                                 onClick = {
                                     settingsActivity?.let {
-                                        viewModel.platformBilling.openManageSubscriptions(it, com.example.data.billing.PlayCatalog.PRODUCT_ID)
+                                        viewModel.platformBilling.openManageSubscriptions(it, com.example.data.billing.PlayCatalog.productOf(com.example.data.billing.PlayCatalog.tierOf(user.ownerPackageId)))
                                     }
                                 },
                                 enabled = settingsActivity != null

@@ -48,4 +48,24 @@ class AppleCatalogTest {
         assertNull(play.offers.single().offerId)
         assertNull(AppleCatalog.asPlayProduct(listOf(product("other", "P1M", 1))))
     }
+
+    @Test
+    fun singleListingTierIsItsOwnProduct() {
+        for (id in listOf(PlayCatalog.SINGLE_PRODUCT_ID, "single-monthly", "single-yearly", AppleCatalog.SINGLE_MONTHLY)) {
+            assertEquals(id, PlayCatalog.PlanTier.SINGLE, PlayCatalog.tierOf(id))
+        }
+        for (id in listOf(PlayCatalog.PRODUCT_ID, "pro-month1", "pro-yearly", AppleCatalog.PRODUCT_YEARLY, PlayCatalog.ADMIN_FORCED_PLAN_ID, null)) {
+            assertEquals(id.toString(), PlayCatalog.PlanTier.UNLIMITED, PlayCatalog.tierOf(id))
+        }
+        assertEquals(true, PlayCatalog.isSupportedProduct(PlayCatalog.SINGLE_PRODUCT_ID))
+        val products = AppleCatalog.asPlayProducts(
+            listOf(
+                product(AppleCatalog.PRODUCT_MONTHLY, "P1M", 8_990_000),
+                product(AppleCatalog.SINGLE_MONTHLY, "P1M", 4_490_000),
+                product(AppleCatalog.SINGLE_YEARLY, "P1Y", 44_990_000),
+            )
+        )
+        assertEquals(listOf(PlayCatalog.PRODUCT_ID, PlayCatalog.SINGLE_PRODUCT_ID), products.map { it.productId })
+        assertEquals(AppleCatalog.SINGLE_YEARLY, PlayOfferText.plansByKind(products[1])[PlayCatalog.PlanKind.YEARLY])
+    }
 }

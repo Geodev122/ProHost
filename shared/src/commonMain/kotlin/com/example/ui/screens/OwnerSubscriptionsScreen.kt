@@ -184,8 +184,13 @@ fun OwnerSubscriptionsScreen(
 
     // Google Play is the only catalog: ProHost Premium (package_pro_mrr) and the base plans
     // Play returns for it (monthly / yearly). Nothing here comes from Firestore or an admin.
-    val premiumProduct = remember(playBillingProducts) {
-        playBillingProducts.firstOrNull { it.productId == PlayCatalog.PRODUCT_ID }
+    // Two tiers (owner, 22 Nov 2026): Unlimited and ProHost Premium · 1 listing, each its own store product. The switch
+    // above the tiles picks the product; it starts on the member's own tier and shows only once the store returns both.
+    val singleTierOffered = remember(playBillingProducts) { playBillingProducts.any { it.productId == PlayCatalog.SINGLE_PRODUCT_ID } }
+    var selectedTierName by rememberSaveable { mutableStateOf(PlayCatalog.tierOf(currentUser?.ownerPackageId).name) }
+    val selectedTier = if (singleTierOffered) PlayCatalog.PlanTier.valueOf(selectedTierName) else PlayCatalog.PlanTier.UNLIMITED
+    val premiumProduct = remember(playBillingProducts, selectedTier) {
+        playBillingProducts.firstOrNull { it.productId == PlayCatalog.productOf(selectedTier) }
     }
     val enabledPlans = remember(premiumProduct) { PlayOfferText.basePlans(premiumProduct) }
     // Monthly / yearly by billing period, whatever the ids are called in Play Console.
@@ -231,7 +236,7 @@ fun OwnerSubscriptionsScreen(
     }
     // Find the Play purchase for the current plan so we can read isAutoRenewing.
     val currentPlayPurchase = remember(playActivePurchases) {
-        playActivePurchases.firstOrNull { p -> p.products.contains(PlayCatalog.PRODUCT_ID) }
+        playActivePurchases.firstOrNull { p -> p.products.any(PlayCatalog::isSupportedProduct) }
     }
     val isAutoRenewing = currentPlayPurchase?.isAutoRenewing ?: true
     // Promo codes are for new subscribers: members with a live Play subscription see the card disabled.
@@ -273,7 +278,7 @@ fun OwnerSubscriptionsScreen(
                 SubscriptionStatusBanner(
                     billingStatus = currentUser?.billingStatus,
                     expiryDate = expiryDateString,
-                    onOpenPlay = purchaseHost?.let { act -> { viewModel.platformBilling.openManageSubscriptions(act, PlayCatalog.PRODUCT_ID) } }
+                    onOpenPlay = purchaseHost?.let { act -> { viewModel.platformBilling.openManageSubscriptions(act, PlayCatalog.productOf(PlayCatalog.tierOf(currentUser?.ownerPackageId))) } }
                 )
 
             }
@@ -335,7 +340,7 @@ fun OwnerSubscriptionsScreen(
             ) {
                 if (act != null) {
                     PremiumActionChip(Icons.Default.Settings, sharedText("manage")) {
-                        viewModel.platformBilling.openManageSubscriptions(act, PlayCatalog.PRODUCT_ID)
+                        viewModel.platformBilling.openManageSubscriptions(act, PlayCatalog.productOf(PlayCatalog.tierOf(currentUser?.ownerPackageId)))
                     }
                     PremiumActionChip(Icons.Default.CardGiftcard, sharedText("redeem_code"), dot = livePromo != null) { showRedeemDialog = true }
                     PremiumActionChip(Icons.Default.Receipt, sharedText("orders")) { viewModel.platformBilling.openPlayOrderHistory(act) }
@@ -361,6 +366,18 @@ fun OwnerSubscriptionsScreen(
                 if (pricesLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.secondary)
                 }
+            }
+        }
+        if (singleTierOffered) {
+            item {
+                PlanTierSwitch(
+                    selected = selectedTier,
+                    currentTier = currentPlanId?.takeIf { !isSubscriptionExpired && !isForcedUpgrade }?.let(PlayCatalog::tierOf),
+                    onSelect = {
+                        selectedTierName = it.name
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    }
+                )
             }
         }
         // Billing connected but Play returned no product: Play Console / install problem, not loading.
@@ -391,11 +408,13 @@ fun OwnerSubscriptionsScreen(
                     modifier = Modifier.padding(start = 4.dp)
                 )
             } else {
-                val hasLivePlaySubscription = currentUser?.entitlementSource == "google_play" &&
+                // A live store subscription (Google Play or, on iPhone, the App Store).
+                val hasLivePlaySubscription = currentUser?.entitlementSource in setOf("google_play", "app_store") &&
                     !isForcedUpgrade && !isSubscriptionExpired
                 val currentKind = currentPlanId?.let { PlayOfferText.kindOf(premiumProduct, it) }
                 fun isCurrentPlan(id: String) = hasLivePlaySubscription &&
-                    (id == currentPlanId || PlayOfferText.kindOf(premiumProduct, id) == currentKind)
+                    (id == currentPlanId || (PlayOfferText.kindOf(premiumProduct, id) == currentKind &&
+                        PlayCatalog.tierOf(id) == PlayCatalog.tierOf(currentPlanId)))
                 // Selected tile: the yearly plan by default (best value) unless it is the current one.
                 var selectedPlan by rememberSaveable(plansByKind) {
                     mutableStateOf(
@@ -1200,5 +1219,46 @@ private fun SubscriptionTermsFooter(
 private fun BannerDismiss(onClick: () -> Unit) {
     IconButton(onClick = onClick, modifier = Modifier.size(40.dp)) {
         Icon(Icons.Default.Close, contentDescription = appString(Res.string.dismiss), modifier = Modifier.size(16.dp))
+    }
+}
+
+/**
+ * Unlimited · 1 listing: which ProHost Premium tier the plan tiles below show (owner, 22 Nov 2026). The member's current
+ * tier carries a "Current" mark.
+ */
+@Composable
+private fun PlanTierSwitch(
+    selected: PlayCatalog.PlanTier,
+    currentTier: PlayCatalog.PlanTier?,
+    onSelect: (PlayCatalog.PlanTier) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            PlayCatalog.PlanTier.entries.forEach { tier ->
+                val label = if (tier == PlayCatalog.PlanTier.UNLIMITED) sharedText("tier_unlimited_listings") else sharedText("tier_one_listing")
+                com.example.ui.components.FilterChip(
+                    selected = tier == selected,
+                    onClick = { onSelect(tier) },
+                    label = {
+                        Text(
+                            if (tier == currentTier) "$label · ${sharedText("tier_current")}" else label,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = if (tier == selected) FontWeight.Bold else FontWeight.Medium,
+                            maxLines = 1
+                        )
+                    },
+                    leadingIcon = if (tier == selected) {
+                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                    } else null,
+                    modifier = Modifier.weight(1f).heightIn(min = 44.dp)
+                )
+            }
+        }
+        Text(
+            if (selected == PlayCatalog.PlanTier.SINGLE) sharedText("tier_one_listing_hint") else sharedText("tier_unlimited_hint"),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 4.dp)
+        )
     }
 }

@@ -76,7 +76,7 @@ class BillingController(
                             _pendingRetryBasePlanId = null
                             _pendingRetryActivity = null
                         } else if (retryPlan != null && retryActivity != null &&
-                            products.any { it.productId == com.example.data.billing.PlayCatalog.PRODUCT_ID }) {
+                            products.any { it.productId == com.example.data.billing.PlayCatalog.productOf(com.example.data.billing.PlayCatalog.tierOf(retryPlan)) }) {
                             _pendingRetryBasePlanId = null
                             _pendingRetryActivity = null
                             launchGooglePaySubscription(retryActivity, retryPlan)
@@ -273,7 +273,9 @@ class BillingController(
             initPlayBilling(activity)
             playBillingManager
         }
-        val productId = com.example.data.billing.PlayCatalog.PRODUCT_ID
+        // Base plan ids are unique across the two products; the tier tells which product sells this one.
+        val targetTier = com.example.data.billing.PlayCatalog.tierOf(basePlanId)
+        val productId = com.example.data.billing.PlayCatalog.productOf(targetTier)
         val product = manager?.productDetailsList?.value?.find { it.productId == productId }
         if (product != null) {
             // Monthly ↔ yearly is a replacement of the same subscription: pass the current
@@ -283,7 +285,8 @@ class BillingController(
             val switching = currentPlan != null && currentPlan != basePlanId &&
                 currentUser.value?.entitlementSource == "google_play"
             val oldPurchaseToken = if (switching) {
-                manager.activePurchases.value.firstOrNull { productId in it.products }?.purchaseToken
+                // The live subscription of either tier: Play replaces it (no second subscription).
+                manager.activePurchases.value.firstOrNull { p -> p.products.any(com.example.data.billing.PlayCatalog::isSupportedProduct) }?.purchaseToken
             } else null
             // Switching plans without the current purchase token would sell a SECOND
             // subscription (double charge). That happens when this device's Play account
@@ -302,11 +305,19 @@ class BillingController(
             // time on it (renews ≈ one year + the remaining days). CHARGE_PRORATED_PRICE would only
             // charge a top-up and keep the MONTHLY renewal date, billing the full year there.
             // Yearly → monthly: DEFERRED — the switch happens at the yearly renewal date.
-            val replacementMode = if (com.example.data.billing.PlayOfferText.kindOf(product.toPlayProduct(), basePlanId) ==
-                com.example.data.billing.PlayCatalog.PlanKind.YEARLY) {
-                com.android.billingclient.api.BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_FULL_PRICE
-            } else {
-                com.android.billingclient.api.BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.DEFERRED
+            // Between tiers: Unlimited → 1 listing waits for the renewal date (DEFERRED, nothing is lost mid-term);
+            // 1 listing → Unlimited of the same period starts now with the unused time credited (WITH_TIME_PRORATION).
+            val currentTier = com.example.data.billing.PlayCatalog.tierOf(currentPlan)
+            val modes = com.android.billingclient.api.BillingFlowParams.SubscriptionUpdateParams.ReplacementMode
+            val targetYearly = com.example.data.billing.PlayOfferText.kindOf(product.toPlayProduct(), basePlanId) ==
+                com.example.data.billing.PlayCatalog.PlanKind.YEARLY
+            val replacementMode = when {
+                switching && targetTier == com.example.data.billing.PlayCatalog.PlanTier.SINGLE &&
+                    currentTier == com.example.data.billing.PlayCatalog.PlanTier.UNLIMITED -> modes.DEFERRED
+                targetYearly -> modes.CHARGE_FULL_PRICE
+                switching && targetTier == com.example.data.billing.PlayCatalog.PlanTier.UNLIMITED &&
+                    currentTier == com.example.data.billing.PlayCatalog.PlanTier.SINGLE -> modes.WITH_TIME_PRORATION
+                else -> modes.DEFERRED
             }
             manager.launchSubscriptionPurchase(
                 activity, product, userId = uid, basePlanId = basePlanId,

@@ -1309,6 +1309,11 @@
     <string name="push_action_admin_console">Open admin console</string>
     <string name="push_action_my_listings">My listings</string>
     <string name="push_action_open">Open</string>
+    <string name="tier_unlimited_listings">Unlimited listings</string>
+    <string name="tier_one_listing">1 listing</string>
+    <string name="tier_current">current</string>
+    <string name="tier_unlimited_hint">Publish as many spaces as you like.</string>
+    <string name="tier_one_listing_hint">Publish one space at a time. Upgrade to Unlimited whenever you add more.</string>
     <plurals name="x_dates">
         <item quantity="one">%1$s • 1 date</item>
         <item quantity="other">%1$s • %2$d dates</item>

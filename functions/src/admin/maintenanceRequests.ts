@@ -20,6 +20,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import "../lib/admin";
 import { lintOffers, readPlayCatalog } from "../billing/playCatalogLive";
 import { playOfferFix } from "../billing/playOfferFix";
+import { playSinglePlan } from "../billing/playSinglePlan";
 import { PACKAGE_NAME, getPlayPublisher } from "../billing/billingHelpers";
 import { classifyPlayError } from "../billing/playSubscription";
 import { callDecodeIntegrityToken } from "../lib/playIntegrity";
@@ -78,6 +79,10 @@ export const onMaintenanceRequest = onDocumentCreated(
         : task === "playSubscriptions" ? await playSubscriptions()
         : task === "integrityProbe" ? await callDecodeIntegrityToken("maintenance-probe-not-a-real-token").then((r) => ({ status: r.status, body: r.body }))
         : task === "playOfferFix" ? await playOfferFix(event.data?.get("arg") === "apply")
+        : task === "playSinglePlan" ? await playSinglePlan(
+          String(event.data?.get("arg") ?? "").startsWith("apply"),
+          String(event.data?.get("arg") ?? "").split(":")[1] || undefined
+        )
         : { error: `unknown task ${String(task)}` };
       await ref.update({ status: "done", result: JSON.stringify(result), finishedAt: Date.now() });
     } catch (e) {

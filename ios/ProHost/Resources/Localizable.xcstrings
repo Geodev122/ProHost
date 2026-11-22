@@ -20036,6 +20036,23 @@
         }
       }
     },
+    "tier_current": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "current"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الحالية"
+          }
+        }
+      }
+    },
     "tier_name": {
       "extractionState": "manual",
       "localizations": {
@@ -20049,6 +20066,74 @@
           "stringUnit": {
             "state": "translated",
             "value": "اسم الفئة"
+          }
+        }
+      }
+    },
+    "tier_one_listing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 listing"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إعلان واحد"
+          }
+        }
+      }
+    },
+    "tier_one_listing_hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publish one space at a time. Upgrade to Unlimited whenever you add more."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انشر مساحة واحدة في كل مرة. رقِّ إلى غير المحدود متى أضفت المزيد."
+          }
+        }
+      }
+    },
+    "tier_unlimited_hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publish as many spaces as you like."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انشر ما تشاء من المساحات."
+          }
+        }
+      }
+    },
+    "tier_unlimited_listings": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlimited listings"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إعلانات غير محدودة"
           }
         }
       }

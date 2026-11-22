@@ -13,12 +13,13 @@
  *   entitlementSource, billingStatus, subscriptionExpiry, subscriptionPlatform,
  *   subscriptionId (subscriptions doc id), lastPurchaseToken.
  */
-import { getFirestore } from "firebase-admin/firestore";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import { logger } from "firebase-functions/v2";
 import { recordAuditLog } from "../lib/auditLog";
 import { setClaimsThenFirestore } from "../lib/roles";
-import { validateListingForPublish, WorkspaceListingDoc } from "../listings/publishValidation";
+import { PLAN_LIMIT_REASON, validateListingForPublish, WorkspaceListingDoc } from "../listings/publishValidation";
+import { listingLimitFor, listingsOverLimit } from "./playCatalog";
 import {
   ADMIN_FORCED_PLAN_ID,
   BillingStatus,
@@ -74,19 +75,22 @@ export async function grantProHost(uid: string, p: GrantParams): Promise<void> {
   }
   const userData = userSnap.data();
 
+  // Listings the plan may publish at once: 1 for the single-listing tier, unlimited (field removed) otherwise.
+  const listingLimit = p.source === "admin_forced" ? null : listingLimitFor(p.planId);
   const billingMirror = p.source === "admin_forced"
     ? { entitlementSource: "admin_forced", billingStatus: "ACTIVE", subscriptionPlatform: "admin", subscriptionExpiry: LIFETIME_EXPIRY_MILLIS }
     : {
-      entitlementSource: "google_play",
+      // App Store grants were mirrored as Google Play / android before 22 Nov 2026.
+      entitlementSource: p.source,
       billingStatus: p.status ?? "ACTIVE",
-      subscriptionPlatform: "android",
+      subscriptionPlatform: p.source === "app_store" ? "ios" : "android",
       subscriptionExpiry: p.expiryMillis,
       subscriptionId: p.subscriptionId ?? null,
       ...(p.purchaseToken ? { lastPurchaseToken: p.purchaseToken } : {}),
     };
 
-  // A forced upgrade outranks a Play purchase: never shorten it to an expiring plan.
-  if (p.source === "google_play" && isForced(userData)) {
+  // A forced upgrade outranks a store purchase: never shorten it to an expiring plan.
+  if (p.source !== "admin_forced" && isForced(userData)) {
     logger.info(`grantProHost: uid=${uid} holds a forced upgrade; recording Play state only`);
     await userRef.update({ lastPurchaseToken: p.purchaseToken ?? null, updatedAt: now });
     return;
@@ -99,9 +103,11 @@ export async function grantProHost(uid: string, p: GrantParams): Promise<void> {
     userData?.role === "PRO_HOST" &&
     userData?.ownerPackageId === p.planId &&
     userData?.ownerPackageExpiryMillis === p.expiryMillis &&
-    userData?.entitlementSource === p.source;
+    userData?.entitlementSource === p.source &&
+    (userData?.ownerListingLimit ?? null) === listingLimit;
   await userRef.update(
     { ownerPackageId: p.planId, ownerPackageExpiryMillis: p.expiryMillis, ...billingMirror, updatedAt: now,
+      ownerListingLimit: listingLimit ?? FieldValue.delete(),
       ...(unchanged ? {} : { expiryWarningSent: false }) }
   );
   if (unchanged) {
@@ -141,6 +147,16 @@ export async function grantProHost(uid: string, p: GrantParams): Promise<void> {
     });
     await bw.close();
     if (restoredCount > 0) logger.info(`grantProHost: restored ${restoredCount} listing(s) for uid=${uid}`);
+    // Moving to the single-listing plan: keep the most recently updated published listing, the rest go back to Draft.
+    if (listingLimit !== null) {
+      const extra = listingsOverLimit(allListings.docs.map((d) => ({ id: d.id, ...d.data() })), listingLimit);
+      for (const id of extra) {
+        await db.collection("workspace_listings").doc(id)
+          .update({ status: "DRAFT", publishBlockedReasons: [PLAN_LIMIT_REASON], updatedAt: now })
+          .catch(() => undefined);
+      }
+      if (extra.length > 0) logger.info(`grantProHost: ${extra.length} listing(s) moved to Draft (plan allows ${listingLimit}) for uid=${uid}`);
+    }
   }
 
   // The client parks pendingPlayPublishDraftId before the Play sheet opens.
@@ -222,6 +238,7 @@ export async function removeProHost(uid: string, p: RemoveParams): Promise<boole
   const cleared = {
     ownerPackageId: null,
     ownerPackageExpiryMillis: null,
+    ownerListingLimit: FieldValue.delete(),
     billingStatus: p.status,
     updatedAt: now,
   };

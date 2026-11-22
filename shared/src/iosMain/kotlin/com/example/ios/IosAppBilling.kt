@@ -63,10 +63,11 @@ class IosAppBilling(
     private fun loadProducts() {
         store.loadStoreProducts(AppleCatalog.PRODUCT_IDS) { products, error ->
             scope.launch {
-                val mapped = AppleCatalog.asPlayProduct(products.map { it.toStoreProduct() })
-                _products.value = listOfNotNull(mapped)
-                _connected.value = mapped != null
-                if (mapped == null) {
+                // Unlimited and the single-listing tier, each as its own product, like the two Play products.
+                val mapped = AppleCatalog.asPlayProducts(products.map { it.toStoreProduct() })
+                _products.value = mapped
+                _connected.value = mapped.isNotEmpty()
+                if (mapped.isEmpty()) {
                     AppLog.w(TAG, "StoreKit returned no ProHost products ($error)")
                     _error.value = sharedText("app_store_plans_unavailable")
                 }
@@ -100,7 +101,7 @@ class IosAppBilling(
             return
         }
         val plan = PlayCatalog.planInterval(basePlanId) ?: basePlanId
-        val regular = _products.value.firstOrNull()?.offers?.firstOrNull { it.basePlanId == basePlanId && it.offerId == null }
+        val regular = _products.value.flatMap { it.offers }.firstOrNull { it.basePlanId == basePlanId && it.offerId == null }
             ?.phases?.lastOrNull()
         AnalyticsTracker.premiumCheckoutStarted(plan, regular?.micros, regular?.currency)
         store.purchaseStoreProduct(basePlanId, AppleCatalog.appAccountTokenFor(uid)) { reply ->
@@ -156,7 +157,9 @@ class IosAppBilling(
 
     private suspend fun applyEntitlements(transactions: List<StoreTransactionReply>, userInitiated: Boolean, force: Boolean) {
         val ours = transactions.filter { AppleCatalog.isAppleProduct(it.productId) }
-        _purchases.value = ours.map { ActivePurchase(listOf(PlayCatalog.PRODUCT_ID, it.productId), it.autoRenews) }
+        _purchases.value = ours.map {
+            ActivePurchase(listOf(PlayCatalog.productOf(PlayCatalog.tierOf(it.productId)), it.productId), it.autoRenews)
+        }
         if (userInitiated && ours.isEmpty()) {
             _error.value = sharedText("app_store_nothing_to_restore")
             AnalyticsTracker.premiumRestoreResult("none")

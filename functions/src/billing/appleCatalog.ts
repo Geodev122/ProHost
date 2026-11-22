@@ -6,8 +6,13 @@
 import { createHash } from "crypto";
 import { BillingStatus } from "./playCatalog";
 
-/** The two auto-renewable subscriptions of the "ProHost Premium" group in App Store Connect. */
-export const APPLE_PRODUCT_IDS = ["prohost.premium.monthly", "prohost.premium.yearly"] as const;
+/**
+ * The auto-renewable subscriptions of the "ProHost Premium" group in App Store Connect: Unlimited (ranked first) and the
+ * single-listing tier (ranked below it, so moving between them is an Apple upgrade / downgrade).
+ */
+export const APPLE_PRODUCT_IDS = [
+  "prohost.premium.monthly", "prohost.premium.yearly", "prohost.single.monthly", "prohost.single.yearly",
+] as const;
 export const APPLE_BUNDLE_ID = "app.geonajjar.prohost";
 /** App Store Connect app id (needed by Apple's verifier in production). */
 export const APPLE_APP_ID = 6831983164;

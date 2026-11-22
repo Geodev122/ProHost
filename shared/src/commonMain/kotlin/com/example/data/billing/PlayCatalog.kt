@@ -13,8 +13,26 @@ package com.example.data.billing
 object PlayCatalog {
     const val PRODUCT_ID = "package_pro_mrr"
 
-    /** Only this product ever grants or is sent to the server. Retired plans (growth, enterprise) are ignored. */
-    fun isSupportedProduct(productId: String?): Boolean = productId == PRODUCT_ID
+    /**
+     * ProHost Premium · 1 listing (owner, 22 Nov 2026): the same Pro Host tools for one published listing. Its own Play
+     * product with base plans "single-monthly" / "single-yearly" (prices only from Play, like Unlimited).
+     */
+    const val SINGLE_PRODUCT_ID = "package_single_mrr"
+    val PRODUCT_IDS = listOf(PRODUCT_ID, SINGLE_PRODUCT_ID)
+
+    /** Only these products ever grant or are sent to the server. Retired plans (growth, enterprise) are ignored. */
+    fun isSupportedProduct(productId: String?): Boolean = productId == PRODUCT_ID || productId == SINGLE_PRODUCT_ID
+
+    enum class PlanTier { UNLIMITED, SINGLE }
+
+    /** The tier of a product id, base plan id or App Store product id (a stored ownerPackageId); grants are unlimited. */
+    fun tierOf(id: String?): PlanTier {
+        val v = id?.trim()?.lowercase().orEmpty()
+        return if (v == SINGLE_PRODUCT_ID || v.startsWith("single-") || v.startsWith("prohost.single.")) PlanTier.SINGLE else PlanTier.UNLIMITED
+    }
+
+    /** The Play product of [tier]. */
+    fun productOf(tier: PlanTier): String = if (tier == PlanTier.SINGLE) SINGLE_PRODUCT_ID else PRODUCT_ID
 
     enum class PlanKind { MONTHLY, YEARLY }
 

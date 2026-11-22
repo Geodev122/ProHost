@@ -128,8 +128,8 @@ class PlayBillingManager(
         })
     }
 
-    /** Google Play is the only catalog: one subscription, [PlayCatalog.PRODUCT_ID], and its base plans. */
-    fun querySubscriptionProducts(productIds: List<String> = listOf(PlayCatalog.PRODUCT_ID)) {
+    /** Google Play is the only catalog: Unlimited and the single-listing subscription ([PlayCatalog.PRODUCT_IDS]). */
+    fun querySubscriptionProducts(productIds: List<String> = PlayCatalog.PRODUCT_IDS) {
         if (!billingClient.isReady || productIds.isEmpty()) return
 
         val productList = productIds.map { id ->

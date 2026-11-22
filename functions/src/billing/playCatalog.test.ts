@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import * as assert from "node:assert/strict";
 import {
+  exceedsListingLimit, listingLimitFor, listingsOverLimit, tierOf, PLAY_SINGLE_PRODUCT_ID, SINGLE_BASE_PLAN_MONTHLY, SINGLE_BASE_PLAN_YEARLY,
   ADMIN_FORCED_PLAN_ID, BASE_PLAN_MONTHLY, BASE_PLAN_YEARLY, grantsAccess, isSupportedProduct, planInterval, planLabel, statusFor,
 } from "./playCatalog";
 import { PlaySubscription, fromV2 } from "./playSubscription";
@@ -86,4 +87,35 @@ test("only package_pro_mrr grants Pro Host on its own", () => {
   assert.equal(isSupportedProduct("package_enterprise_mrr"), false);
   assert.equal(isSupportedProduct(""), false);
   assert.equal(isSupportedProduct(undefined), false);
+});
+
+test("the single-listing plan is supported, tiered and limited to one listing", () => {
+  assert.equal(isSupportedProduct(PLAY_SINGLE_PRODUCT_ID), true);
+  assert.equal(isSupportedProduct("package_growth_mrr"), false);
+  for (const id of [PLAY_SINGLE_PRODUCT_ID, SINGLE_BASE_PLAN_MONTHLY, SINGLE_BASE_PLAN_YEARLY, "prohost.single.monthly"]) {
+    assert.equal(tierOf(id), "SINGLE", id);
+    assert.equal(listingLimitFor(id), 1, id);
+  }
+  for (const id of [BASE_PLAN_MONTHLY, BASE_PLAN_YEARLY, "prohost.premium.yearly", ADMIN_FORCED_PLAN_ID, null]) {
+    assert.equal(tierOf(id), "UNLIMITED", String(id));
+    assert.equal(listingLimitFor(id), null, String(id));
+  }
+  assert.equal(planInterval(SINGLE_BASE_PLAN_MONTHLY), "monthly");
+  assert.equal(planInterval(SINGLE_BASE_PLAN_YEARLY), "yearly");
+  assert.equal(planLabel(SINGLE_BASE_PLAN_YEARLY), "Pro Host Yearly (1 listing)");
+});
+
+test("the listing limit keeps the newest published listing", () => {
+  assert.equal(exceedsListingLimit(1, 0), false);
+  assert.equal(exceedsListingLimit(1, 1), true);
+  assert.equal(exceedsListingLimit(undefined, 5), false);
+  assert.deepEqual(
+    listingsOverLimit([
+      { id: "old", status: "ACTIVE", updatedAt: 1 },
+      { id: "draft", status: "DRAFT", updatedAt: 9 },
+      { id: "new", status: "ACTIVE", updatedAt: 5 },
+      { id: "legacy", updatedAt: 3 },
+    ], 1),
+    ["legacy", "old"]
+  );
 });

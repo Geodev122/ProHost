@@ -10,7 +10,10 @@ import com.example.util.Sha256
 object AppleCatalog {
     const val PRODUCT_MONTHLY = "prohost.premium.monthly"
     const val PRODUCT_YEARLY = "prohost.premium.yearly"
-    val PRODUCT_IDS = listOf(PRODUCT_MONTHLY, PRODUCT_YEARLY)
+    /** The single-listing tier (same subscription group, ranked below Unlimited). */
+    const val SINGLE_MONTHLY = "prohost.single.monthly"
+    const val SINGLE_YEARLY = "prohost.single.yearly"
+    val PRODUCT_IDS = listOf(PRODUCT_MONTHLY, PRODUCT_YEARLY, SINGLE_MONTHLY, SINGLE_YEARLY)
 
     /** Offer id the iOS mapping gives an App Store introductory offer (trial or discounted first period). */
     const val INTRO_OFFER_ID = "app-store-intro"
@@ -45,7 +48,12 @@ object AppleCatalog {
      * App Store product is a "base plan" (its id classifies monthly / yearly like a Play base plan id), its introductory
      * offer an offer with the intro phase first and the regular price last, as Play orders phases.
      */
-    fun asPlayProduct(products: List<StoreProduct>): PlayProduct? {
+    fun asPlayProducts(products: List<StoreProduct>): List<PlayProduct> = listOfNotNull(
+        asPlayProduct(products.filter { PlayCatalog.tierOf(it.productId) == PlayCatalog.PlanTier.UNLIMITED }, PlayCatalog.PRODUCT_ID),
+        asPlayProduct(products.filter { PlayCatalog.tierOf(it.productId) == PlayCatalog.PlanTier.SINGLE }, PlayCatalog.SINGLE_PRODUCT_ID),
+    )
+
+    fun asPlayProduct(products: List<StoreProduct>, playProductId: String = PlayCatalog.PRODUCT_ID): PlayProduct? {
         val ours = products.filter { isAppleProduct(it.productId) }
         if (ours.isEmpty()) return null
         val offers = ours.flatMap { p ->
@@ -60,6 +68,6 @@ object AppleCatalog {
                 listOf(base, PlayOffer(p.productId, INTRO_OFFER_ID, emptyList(), p.productId, listOf(intro, regular)))
             }
         }
-        return PlayProduct(PlayCatalog.PRODUCT_ID, ours.first().description, offers)
+        return PlayProduct(playProductId, ours.first().description, offers)
     }
 }

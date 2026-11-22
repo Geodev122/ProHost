@@ -1419,6 +1419,9 @@ data class AppUser(
     // firestore.rules' withinListingLimit() also treats an expired-but-not-yet-swept
     // package as "no package" directly, closing the gap between lapse and the next sweep).
     val ownerPackageExpiryMillis: Long? = null,
+    // Server-only (grantProHost): how many listings the plan may publish at once — 1 for ProHost Premium · 1 listing,
+    // null for Unlimited and admin grants. The publish trigger enforces it; never included in toFirestoreMap.
+    val ownerListingLimit: Int? = null,
     // Server-only billing mirror of Google Play's lifecycle: "google_play" / "admin_forced",
     // and ACTIVE, GRACE_PERIOD, ON_HOLD, PAUSED, CANCELED, EXPIRED, REVOKED, REFUNDED, PENDING.
     // Read-only here; never included in toFirestoreMap.
@@ -1534,6 +1537,7 @@ data class AppUser(
                 isVerified = data["isVerified"] as? Boolean ?: false,
                 ownerPackageId = data["ownerPackageId"] as? String,
                 ownerPackageExpiryMillis = (data["ownerPackageExpiryMillis"] as? Number)?.toLong(),
+                ownerListingLimit = (data["ownerListingLimit"] as? Number)?.toInt(),
                 entitlementSource = data["entitlementSource"] as? String,
                 billingStatus = data["billingStatus"] as? String,
                 createdAtMillis = (data["createdAtMillis"] as? Number)?.toLong(),

@@ -1,8 +1,10 @@
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
+import { getFirestore } from "firebase-admin/firestore";
 import { recordAuditLog } from "../lib/auditLog";
 import { isPerAttendee, tiersFor, AttendeeTierDoc } from "../lib/attendeePricing";
 import { pricingFromLegacyFormula } from "./legacyPricing";
 import { runAs } from "../lib/runtimeIdentity";
+import { exceedsListingLimit } from "../billing/playCatalog";
 
 /** Minimal shape of the parts of a workspace_listings document this validates —
  * mirrors SpaceListing.toFirestoreMap()'s key names (DataModels.kt), not the
@@ -40,6 +42,7 @@ interface SubdivisionDoc {
 }
 
 export interface WorkspaceListingDoc {
+  ownerId?: string;
   status?: string;
   ownershipProofUrl?: string | null;
   lat?: number;
@@ -133,6 +136,9 @@ function subdivisionHasRealPrice(sub: SubdivisionDoc): boolean {
  * the instant a payment settles, whatever incomplete state that Draft was
  * saved in. Returns human-readable problems; empty means valid.
  */
+/** The reason shown on a listing the single-listing plan can't keep published (owner, 22 Nov 2026). */
+export const PLAN_LIMIT_REASON = "Your plan publishes 1 listing. Upgrade to ProHost Premium (unlimited) to publish more.";
+
 export function validateListingForPublish(listing: WorkspaceListingDoc): string[] {
   const problems: string[] = [];
 
@@ -187,6 +193,19 @@ export const onWorkspaceListingPublishValidation = onDocumentWritten(
     if (data.status !== undefined && data.status !== "ACTIVE") return;
 
     const problems = validateListingForPublish(data);
+    // The single-listing plan (ownerListingLimit on the owner's profile) publishes one listing at a time.
+    const beforeData = event.data?.before?.exists ? (event.data.before.data() as WorkspaceListingDoc) : null;
+    const justPublished = !beforeData || (beforeData.status !== undefined && beforeData.status !== "ACTIVE");
+    if (problems.length === 0 && justPublished && typeof data.ownerId === "string" && data.ownerId) {
+      const db = getFirestore();
+      const owner = await db.collection("user_profiles").doc(data.ownerId).get();
+      const limit = owner.data()?.ownerListingLimit;
+      if (typeof limit === "number") {
+        const live = await db.collection("workspace_listings").where("ownerId", "==", data.ownerId).where("status", "==", "ACTIVE").get();
+        const others = live.docs.filter((d) => d.id !== event.params.spaceId).length;
+        if (exceedsListingLimit(limit, others)) problems.push(PLAN_LIMIT_REASON);
+      }
+    }
     if (problems.length === 0) return;
 
     await after.ref.set(

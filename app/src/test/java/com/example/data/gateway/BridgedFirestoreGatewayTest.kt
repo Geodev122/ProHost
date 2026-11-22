@@ -103,7 +103,7 @@ class BridgedFirestoreGatewayTest {
         assertEquals(listOf("user_profiles/u1/notifications/n1", "user_profiles/u1/notifications/n2"), w.subList(5, 7).map { it.second })
         assertEquals(setOf("read", "readAt"), w[5].third.keys)
         assertEquals(Triple("delete", "workspace_listings/s1", emptyMap<String, Any?>()), w[7])
-        assertEquals("merge" to "user_profiles/u1", w[8].first to w[8].second); assertEquals(setOf("fcmToken", "updatedAt"), w[8].third.keys)
+        assertEquals("merge" to "user_profiles/u1", w[8].first to w[8].second); assertEquals(setOf("fcmToken", "fcmTokens", "updatedAt"), w[8].third.keys)
     }
 
     @Test fun readsAndFailuresMatchAndroid() = runBlocking {

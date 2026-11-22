@@ -176,7 +176,7 @@ fun OwnerHubScreen(
                 // to this subscription rather than the generic subscriptions list.
                 val productId = currentUser?.ownerPackageId
                     ?.takeIf { currentUser?.entitlementSource == "google_play" || com.example.data.billing.PlayCatalog.kindOf(it) != null }
-                    ?.let { com.example.data.billing.PlayCatalog.PRODUCT_ID }
+                    ?.let { com.example.data.billing.PlayCatalog.productOf(com.example.data.billing.PlayCatalog.tierOf(it)) }
                 val uri = if (productId != null)
                     "market://subscriptions?sku=$productId&package=app.geonajjar.prohost"
                 else

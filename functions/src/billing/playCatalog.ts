@@ -15,12 +15,57 @@ const MONTHLY_IDS = new Set([BASE_PLAN_MONTHLY, "pro-monthly", "pro-month1"]);
 const YEARLY_IDS = new Set([BASE_PLAN_YEARLY]);
 
 /**
- * Only [PLAY_PRODUCT_ID] exists. Plans sold by older app versions (package_growth_mrr,
+ * ProHost Premium · 1 listing (owner, 22 Nov 2026): the same Pro Host role, limited to one published listing
+ * ($4.49 / month, $44.99 / year, prices set in Play Console / App Store Connect only). Its base plans name their
+ * period like the unlimited ones, so kind detection is unchanged.
+ */
+export const PLAY_SINGLE_PRODUCT_ID = "package_single_mrr";
+export const SINGLE_BASE_PLAN_MONTHLY = "single-monthly";
+export const SINGLE_BASE_PLAN_YEARLY = "single-yearly";
+/** App Store products of the single-listing tier (same subscription group as Unlimited, ranked below it). */
+export const APPLE_SINGLE_PRODUCT_IDS = ["prohost.single.monthly", "prohost.single.yearly"] as const;
+/** Every product ProHost sells on Google Play. */
+export const PLAY_PRODUCT_IDS = [PLAY_PRODUCT_ID, PLAY_SINGLE_PRODUCT_ID] as const;
+
+/**
+ * [PLAY_PRODUCT_IDS] only. Plans sold by older app versions (package_growth_mrr,
  * package_enterprise_mrr) are retired: every path ignores them before any ownership check,
  * record, grant, acknowledgement, parking or admin alert.
  */
 export function isSupportedProduct(productId: string | null | undefined): boolean {
-  return productId === PLAY_PRODUCT_ID;
+  return productId === PLAY_PRODUCT_ID || productId === PLAY_SINGLE_PRODUCT_ID;
+}
+
+export type PlanTier = "UNLIMITED" | "SINGLE";
+
+/** The tier of a product id, base plan id or App Store product id (stored ownerPackageId). Grants are unlimited. */
+export function tierOf(id: string | null | undefined): PlanTier {
+  const v = id?.trim().toLowerCase() ?? "";
+  if (v === PLAY_SINGLE_PRODUCT_ID || v.startsWith("single-") || (APPLE_SINGLE_PRODUCT_IDS as readonly string[]).includes(v)) {
+    return "SINGLE";
+  }
+  return "UNLIMITED";
+}
+
+/** How many listings the tier may publish at once: 1 for the single-listing plan, null = unlimited. */
+export function listingLimitFor(id: string | null | undefined): number | null {
+  return tierOf(id) === "SINGLE" ? 1 : null;
+}
+
+/** Whether publishing one more listing would exceed [limit] when [othersPublished] are already live. */
+export function exceedsListingLimit(limit: unknown, othersPublished: number): boolean {
+  return typeof limit === "number" && limit >= 0 && othersPublished >= limit;
+}
+
+/** Published listings beyond [limit], the most recently updated kept: the ids to move back to Draft. */
+export function listingsOverLimit(
+  listings: Array<{ id: string; status?: unknown; updatedAt?: unknown }>,
+  limit: number
+): string[] {
+  const active = listings
+    .filter((l) => l.status === undefined || l.status === "ACTIVE")
+    .sort((a, b) => Number(b.updatedAt ?? 0) - Number(a.updatedAt ?? 0));
+  return active.slice(Math.max(0, limit)).map((l) => l.id);
 }
 
 /** ownerPackageId for an admin "Force Upgrade → ProHost": permanent until revoked. */
@@ -81,9 +126,10 @@ export function grantsAccess(status: BillingStatus, expiryMillis: number, now = 
 export function planLabel(planId: string | null | undefined): string {
   if (planId === ADMIN_FORCED_PLAN_ID || planId === LEGACY_UNLIMITED_GRANT_PLAN_ID) return "Pro Host (granted)";
   const interval = planInterval(planId);
-  if (interval === "monthly") return "Pro Host Monthly";
-  if (interval === "yearly") return "Pro Host Yearly";
-  return "Pro Host";
+  const tier = tierOf(planId) === "SINGLE" ? " (1 listing)" : "";
+  if (interval === "monthly") return `Pro Host Monthly${tier}`;
+  if (interval === "yearly") return `Pro Host Yearly${tier}`;
+  return `Pro Host${tier}`;
 }
 
 /**

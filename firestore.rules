@@ -239,6 +239,7 @@ service cloud.firestore {
         // actually happened through assignInitialRole.ts, none of which the
         // update rule below would ever let a client set afterward.
         request.resource.data.get('ownerPackageExpiryMillis', null) == null &&
+        !('ownerListingLimit' in request.resource.data) &&
         request.resource.data.get('entitlementSource', null) == null &&
         request.resource.data.get('billingStatus', null) == null &&
         request.resource.data.get('subscriptionId', null) == null &&
@@ -284,6 +285,8 @@ service cloud.firestore {
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(
           ["role", "isVerified", "createdAtMillis", "lastSignInAtMillis", "isSuspended",
            "ownerPackageId", "ownerPackageExpiryMillis", "activeListingCount", "proHostUpgradedAtMillis",
+           // single-listing plan: how many listings the plan may publish (set by grantProHost)
+           "ownerListingLimit",
            "tosAcceptedAtMillis", "consentVersion",
            "emailVerified", "emailVerifiedAt", "displayCode", "searchName",
            "entitlementSource", "billingStatus", "subscriptionExpiry", "subscriptionPlatform",

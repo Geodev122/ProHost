@@ -1351,6 +1351,18 @@ async function serverTask(db, task, arg = null) {
   throw new Error(`${task}: no answer from onMaintenanceRequest in 120 s (is it deployed?)`);
 }
 
+// Creates the single-listing subscription "ProHost Premium · 1 listing" (package_single_mrr: $4.49 / month, $44.99 /
+// year, Play's own price conversion for every country Unlimited is sold in). Dry run unless the code is "apply"
+// (or "apply:<regions version>"); an existing product is never overwritten, only its inactive base plans activated.
+async function singleplan(db, arg) {
+  const apply = String(arg || "").startsWith("apply");
+  await step("playSinglePlan", async () => {
+    const res = await serverTask(db, "playSinglePlan", apply ? String(arg) : null);
+    res.steps.forEach((s) => notice(`playSinglePlan ${s.step}: ${s.action} → ${s.result}`));
+    return `${apply ? "applied" : "dry run (code: apply to create)"}: ${res.steps.length} step(s)`;
+  });
+}
+
 // Repairs Play Console slips through the Play API (functions' service account): a promo offer stranded on an
 // inactive base plan is copied onto the live monthly plan, and claimed offers limited to "any subscription in this
 // app" are widened to "this subscription". Dry run unless the code is "apply".
@@ -1967,6 +1979,7 @@ async function smsauth(db, arg) {
   else if (task === "aitest") await aitest(arg, db);
   else if (task === "apis") await apis(arg);
   else if (task === "playcatalog") await playcatalog(db);
+  else if (task === "singleplan") await singleplan(db, arg);
   else if (task === "smsauth") await smsauth(db, arg);
   else if (task === "playofferfix") await playofferfix(db, arg);
   else throw new Error(`unknown task ${task}`);

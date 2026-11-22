@@ -330,6 +330,11 @@ describe("report / block (server-written)", () => {
     await assertFails(deleteDoc(doc(specCtx(), "user_profiles", SPEC, "blocks", HOST)));
     await assertFails(getDoc(doc(hostCtx(), "user_profiles", SPEC, "blocks", HOST)));
   });
+  test("the plan's listing limit is server-only; device push tokens are the owner's to write", async () => {
+    await assertFails(updateDoc(doc(hostCtx(), "user_profiles", HOST), { ownerListingLimit: 99 }));
+    await assertFails(updateDoc(doc(adminCtx(), "user_profiles", HOST), { ownerListingLimit: null }));
+    await assertSucceeds(updateDoc(doc(hostCtx(), "user_profiles", HOST), { fcmToken: "t1", fcmTokens: ["t1"] }));
+  });
   test("blockedUserIds on the profile is server-only", async () => {
     await assertFails(updateDoc(doc(specCtx(), "user_profiles", SPEC), { blockedUserIds: [] }));
     await assertFails(updateDoc(doc(adminCtx(), "user_profiles", SPEC), { blockedUserIds: [] }));

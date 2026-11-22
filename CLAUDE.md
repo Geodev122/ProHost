@@ -16,6 +16,18 @@ RTDN, retry, sync, rescue). Their one holder was converted to a permanent admin 
 catalog, no stored price and no admin package management: `package_plans` is retired (read-only for old
 app versions), `grantPackageToUser` is gone. Never reintroduce local plans, prices or durations.
 
+**Second tier (owner, 22 Nov 2026): ProHost Premium · 1 listing** — Play product `package_single_mrr` (base plans
+`single-monthly` $4.49, `single-yearly` $44.99; created by Maintenance `singleplan`, dry run · `apply`, prices = Play's
+conversion of USD for Unlimited's countries), App Store `prohost.single.monthly|yearly` in the same group (levels 4/3, below
+Unlimited; `asc_prepare` section `subscriptions`). `PlayCatalog.tierOf` / `productOf` (app) and `tierOf` / `listingLimitFor`
+(server) tell the tiers apart; `isSupportedProduct` accepts both products. `grantProHost` mirrors `ownerListingLimit` (1, or
+removed for Unlimited / grants; server-only, rules + test) and moves extra published listings to Draft (newest kept,
+`listingsOverLimit`); `onWorkspaceListingPublishValidation` refuses a second publish (`PLAN_LIMIT_REASON`). Premium shows a
+tier switch (`PlanTierSwitch`, only when the store returns both products) above the same two Monthly · Yearly tiles; switching
+tiers replaces the subscription (Unlimited → 1 listing `DEFERRED`, 1 listing → Unlimited `WITH_TIME_PRORATION`, to yearly
+`CHARGE_FULL_PRICE`). App Store grants are mirrored as `entitlementSource: app_store`, platform `ios` (were mislabelled
+google_play before).
+
 App uses **Billing Client v9.1.0** (`gradle/libs.versions.toml` → `billing`; Play requires v8+).
 
 - Prices, periods, trials and "Save XX%" come only from the Billing SDK (`PlayOfferText`, per base plan:
