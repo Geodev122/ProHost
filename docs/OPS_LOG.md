@@ -162,3 +162,5 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   with Apple, map, photo picker, push.
 - Fixes on the way: release Kotlin/Native link needs a 6 GB heap (4 GB ran out of memory), own workflow step (~24 min);
   GoogleSignIn 8.x has no nonce call (9.0.0 is the first); job limit raised to 120 min.
+- main ← ee102d2+ (Parity Gate 280/280 on 889eda9, the last app/shared change; later commits ios/, workflows, docs only):
+  iOS shared shell, iOS auth/repository defaults, Google sign-in on iOS, TestFlight release-build fixes.
