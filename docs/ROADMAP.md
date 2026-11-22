@@ -31,7 +31,7 @@ Splash "no loading state"). Admin console: 70 parity items, code exists for 8-36
 - ✅ **A4** Console builds repair a broken Gradle cache; quota-redeploy step no longer fails when no function changed (22 Nov).
 
 ### B. iOS to the App Store
-- ⏳ **B1** TestFlight build 22 (Apple revoke, admin notice, analytics consent, sounds/geocoding/PDF crash fixes). *Claude reports when it is in TestFlight.*
+- ✅ **B1** TestFlight build 22 (uploaded 17:42) (Apple revoke, admin notice, analytics consent, sounds/geocoding/PDF crash fixes). *Claude reports when it is in TestFlight.*
 - ☐ 👤 **B2** Install build 22; buy each plan once with a sandbox account (1 listing monthly, Unlimited yearly); restore; cancel in Settings.
 - ☐ **B3** After B2: run Maintenance `applesync` (proves the In-App Purchase key against Apple), check the grant, the listing limit
   (second publish refused on 1 listing) and the App Store notification log. *Done when applesync shows synced ≥ 1, failed 0.*

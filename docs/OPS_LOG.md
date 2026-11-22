@@ -205,3 +205,4 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
 - 17:49 UTC Maintenance `ttl` dry run: **no TTL policy exists** on `notifications.ttlAt` or `mail.expireAt` (ttlState none; the 9 Nov
   "CREATING" request never completed). Owner-approved 9 Nov → `ttl apply` dispatched again 17:51; `pruneExpiredNotifications` stays.
 - Launch tracker page (owner's phone): https://claude.ai/artifact/EKxcJsvvHzHkxZLV4hQyx3 (source `docs/progress/prohost-progress.html`).
+- 17:42 UTC TestFlight build 22 uploaded (run 45045601019, main f75758a).
