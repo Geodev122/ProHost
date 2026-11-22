@@ -47,14 +47,6 @@ private val FILTERS = listOf(
 
 private class BookingRow(val booking: BookingRequest, val term: Pair<String, String>?, val ended: Boolean)
 
-private fun progressOf(term: Pair<String, String>, today: String): Float {
-  val start = IsoDate.parse(term.first) ?: return 0f
-  val end = IsoDate.parse(term.second) ?: return 0f
-  val now = IsoDate.parse(today) ?: return 0f
-  val total = (end.toEpochDays() - start.toEpochDays()).toFloat()
-  if (total <= 0f) return 1f
-  return ((now.toEpochDays() - start.toEpochDays()) / total).coerceIn(0f, 1f)
-}
 
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
@@ -166,7 +158,7 @@ private fun BookingCard(r: BookingRow, today: String, onChangePrice: (BookingReq
         Text("Term ${term.first} → ${term.second}${if (r.ended) " · ended" else ""} · requested ${dateLabel(b.createdAt.toDouble())}",
           style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (b.status == BookingRequestStatus.ACCEPTED && !r.ended) {
-          LinearProgressIndicator(progress = { progressOf(term, today) }, modifier = Modifier.fillMaxWidth())
+          LinearProgressIndicator(progress = { com.example.ui.util.BookingTiming.progress(b).fraction }, modifier = Modifier.fillMaxWidth())
         }
       }
       if (!b.rejectionReason.isNullOrBlank()) Text("Reason: ${b.rejectionReason}", style = MaterialTheme.typography.labelSmall)

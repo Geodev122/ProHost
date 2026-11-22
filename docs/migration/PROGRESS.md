@@ -464,3 +464,7 @@ C1 step 4 — Storage on iOS: shared `BridgedStorageGateway` (Android paths, con
   (ASSN V2; URL https://europe-west1-prohost-f766f.cloudfunctions.net/appStoreNotifications, to set in App Store Connect).
   Expiry sweep: App Store subscribers wait 2 days past expiry for Apple's notification (`store_wait`), no "ends soon" push
   while auto-renewing. Not yet: daily re-sync through the App Store Server API (needs an In-App Purchase key, owner).
+
+- 22 Nov 2026 — Lesson (admin web): calling `kotlinx.datetime.LocalDate.toEpochDays()` directly from `:adminWeb` made Binaryen's
+  `wasm-opt` reject the production build (`ref.cast ref must have ref type` on the returned Int). Keep date maths in `:shared`
+  (e.g. `BookingTiming.progress`) and call that from the console.
