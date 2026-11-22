@@ -618,6 +618,11 @@ plan** (`docs/IOS_PLAN.md` / `IOS_READINESS.md`: their Apple account, backend M1
 - CI (`.github/workflows/*.yml`) installs Gradle itself: keep `gradle-version` equal to
   `gradle/wrapper/gradle-wrapper.properties` (wrapper and CI are on 9.7.1 since Nov 2026; AGP 9.4 needs at least 9.6.0). A mismatch broke every
   CI build from 2026-10-01; earlier pushes also failed. Functions run on Node 22.
+- Deploy quota (22 Nov 2026): with ~90 functions, Cloud Functions' "mutation requests per minute per region" quota made 14 updates fail
+  ("Quota exceeded") while `firebase deploy` still exited 0, so those functions kept running OLD code (incl. `onMaintenanceRequest`:
+  Maintenance said "unknown task"). `build-and-deploy.yml` step "Redeploy functions that did not update (quota)" compares
+  updating/created lines with "Successful" lines in the deploy log and redeploys the rest in batches of 6 with pauses; it fails the
+  job if any stay on old code. A new server task answering "unknown task" = check that step first.
 - A function whose Cloud Run service still binds a secret the code no longer declares (the retired
   `HOSTINGER_SMTP_API_KEY`) fails every deploy with "Permission denied on secret" and keeps running old code — this
   froze the email callables on Hostinger SMTP until Oct 2026. Maintenance task `clearstalesecrets` removes such bindings.
