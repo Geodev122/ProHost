@@ -87,7 +87,7 @@ own config documents (`app_config/instagram`, `instagram_knowledge`, `instagram_
 
 - Server-only (rules deny clients): `mail`, `mailing_*`, `mail_campaigns`, `email_otps`, `email_send_limits`,
   `auth_password_invites`, `audit_security_logs`, `inquiry_rate_limits`, `maintenance_requests`, all of `app_config/*`
-  (`ga4`, `auth`, `billing_health`, `apple_iap` = App Store In-App Purchase key for `appleSyncJob`, `mailing_admin`, `whatsapp`, `instagram*`).
+  (`ga4`, `auth`, `billing_health`, `apple_iap` = App Store In-App Purchase key for `appleSyncJob`, `app_review` = App Review demo-account passwords (Maintenance `reviewaccounts`; the two profiles carry `isAppReviewAccount: true`), `mailing_admin`, `whatsapp`, `instagram*`).
 - Public read, admin write: `schema_architecture` (categories, division types, amenities), `legal_documents` (+ immutable
   `versions`). Public read, server write: `system_metadata`. Signed-in read, server write: `hashtag_usage`.
 - Retired (read-only for old apps or denied): `package_plans`, `promo_campaigns`, `subscription_formulas`,

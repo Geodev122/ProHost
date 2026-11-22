@@ -41,9 +41,10 @@ Splash "no loading state"). Admin console: 70 parity items, code exists for 8-36
 - ☐ **B5** Fixes from B4, each in a new TestFlight build.
 - ☐ **B6** Real iPhone screenshots (6.9", EN + AR): a CI job runs the app in the simulator with demo data, captures the same 8 screens
   as the mock-ups and uploads them with `asc_prepare` section `screenshots` (replaces the mock-ups, which Apple does not accept for review).
-- ⏳ **B7** App Review package: Maintenance `reviewaccounts` (22 Nov) creates the Specialist (no plan: Premium bought in the sandbox) and the
+- ✅ **B7** App Review package: Maintenance `reviewaccounts` (22 Nov) creates the Specialist (no plan: Premium bought in the sandbox) and the
   Pro Host (permanent grant) password accounts, keeps the passwords only in server-only `app_config/app_review`, and fills App Store Connect's
-  sign-in fields + notes (second login appended). Run it once from `main`; review notes cover sign-in, report/block, plans and cancelling.
+  sign-in fields + notes (second login appended). Done 22 Nov (run 201): readiness report OK for contact, demo account, notes;
+  left for B8: attach the build.
 - ☐ **B8** Attach the final build to version 1.0 and the two subscriptions; readiness report shows every line OK.
 - ☐ 👤 **B9** Approve the screenshots; press **Add for Review**. Claude answers any App Review message the same day.
 - ☐ **B10** After approval: phased release (7 days), Crashlytics and the App Store daily check watched for a week.
@@ -82,7 +83,8 @@ Splash "no loading state"). Admin console: 70 parity items, code exists for 8-36
 
 ### F. Legal and store compliance
 - ☐ 👤 **F1** Approve the privacy sentence on retention (notifications 48 h, mail log 30 days, documents 1 year); Claude regenerates the in-app text.
-- ☐ **F2** Re-check Play Data safety and Apple App Privacy against the current app (iOS analytics now opt-in; no tracking).
+- ⏳ **F2** Re-checked 22 Nov: Apple App Privacy + iOS privacy manifest + purpose strings match the app. Play Data safety needs one row added by the
+  owner (App activity → Other user-generated content: reports/blocks), see `docs/PLAY_DECLARATIONS.md`; retention sentences await approval (OWNER_QUEUE 6).
 
 ### G. AI agent (independent)
 - ☐ 👤 **G1** Decide D8 (new Google project + a quiet window for the Meta webhook switch); then Claude moves it (steps 3-6 of P9).

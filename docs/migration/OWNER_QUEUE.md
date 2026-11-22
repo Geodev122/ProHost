@@ -76,7 +76,14 @@ Play probe (Release bundle, `probe`): the CI account works; Play holds version c
 3. Cloud console → Billing → Budgets & alerts → $50/month budget; Billing export → BigQuery standard usage cost → dataset `billing_export` (EU).
 4. Cloud console → APIs & Services → Credentials: restrict the browser key (3 website patterns), the Android key (package + SHA-1s), the Maps key (Android apps + Maps SDK for Android); Anthropic console → Limits → monthly cap. Then test Google sign-in and the map.
 5. Send the operator legal name + postal address (same as Apple trader details).
-6. Review the privacy retention sentences when I send them.
+6. Review the privacy retention sentences (drafted 22 Nov; they describe what is already switched on). Proposed additions to
+   `public/privacy.html` section 6 "Data Retention" (then `scripts/legal/sync_legal_content.py` updates the app text):
+   - "In-app notifications are deleted automatically 48 hours after they are sent."
+   - "Copies of the emails we send you (for example password-reset and booking emails) are deleted after 30 days."
+   - "Listing verification documents and booking agreements are deleted one year after they are uploaded."
+   Reply "ok" (or your edits) and I publish them.
+6b. Play Console → Policy → App content → Data safety → Manage: tick **App activity → Other user-generated content** (optional; purposes
+   App functionality + Fraud prevention, security), for reports and blocks. Save and submit.
 7. Tell me when the Apple Paid Apps Agreement is Active.
 8. Have an iPhone (iOS 17+) with TestFlight and the accepted tester invite.
 9. ~~Enable Maps SDK for iOS, create an iOS-restricted key, save it as GitHub secret `MAPS_IOS_API_KEY`.~~ **Done 21 Nov 2026** (owner added the secret; wired in at W2 Explore).
