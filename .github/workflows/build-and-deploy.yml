@@ -209,9 +209,10 @@ jobs:
         run: |
           set -o pipefail
           sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/deploy.log" > "$RUNNER_TEMP/deploy.clean.log"
-          started=$(grep -oE '(updating|creating) Node\.js [0-9]+ \(2nd Gen\) function [A-Za-z0-9_]+\(' "$RUNNER_TEMP/deploy.clean.log" | sed -E 's/.* function ([A-Za-z0-9_]+)\(/\1/' | sort -u)
-          ok=$(grep -oE 'functions\[[A-Za-z0-9_]+\(' "$RUNNER_TEMP/deploy.clean.log" | sed -E 's/functions\[([A-Za-z0-9_]+)\(/\1/' | sort -u)
+          started=$(grep -oE '(updating|creating) Node\.js [0-9]+ \(2nd Gen\) function [A-Za-z0-9_]+\(' "$RUNNER_TEMP/deploy.clean.log" | sed -E 's/.* function ([A-Za-z0-9_]+)\(/\1/' | sort -u || true)
+          ok=$(grep -oE 'functions\[[A-Za-z0-9_]+\(' "$RUNNER_TEMP/deploy.clean.log" | sed -E 's/functions\[([A-Za-z0-9_]+)\(/\1/' | sort -u || true)
           missing=$(comm -23 <(echo "$started") <(echo "$ok") | grep -v '^$' || true)
+          # No function changed (e.g. a docs or hosting-only push): grep finds nothing, which is fine.
           if [ -z "$missing" ]; then echo "every function updated"; exit 0; fi
           echo "::warning title=functions to redeploy::$(echo $missing | tr ' ' ',')"
           for attempt in 1 2 3; do
@@ -224,7 +225,7 @@ jobs:
               sleep 30
             done
             sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/redeploy.log" > "$RUNNER_TEMP/redeploy.clean.log"
-            done_now=$(grep -oE 'functions\[[A-Za-z0-9_]+\(' "$RUNNER_TEMP/redeploy.clean.log" | sed -E 's/functions\[([A-Za-z0-9_]+)\(/\1/' | sort -u)
+            done_now=$(grep -oE 'functions\[[A-Za-z0-9_]+\(' "$RUNNER_TEMP/redeploy.clean.log" | sed -E 's/functions\[([A-Za-z0-9_]+)\(/\1/' | sort -u || true)
             missing=$(comm -23 <(echo "$missing" | tr ' ' '\n' | sort -u) <(echo "$done_now") | grep -v '^$' || true)
           done
           if [ -n "$missing" ]; then
