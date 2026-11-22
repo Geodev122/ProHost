@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face { font-family: "Inter"; font-weight: 800; src: url("../../../marketing/social/assets/fonts/inter-latin-800-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 600; src: url("../../../marketing/social/assets/fonts/inter-latin-600-normal.woff2") format("woff2"); }
+html,body { margin:0; width:1024px; height:1024px; background:#001f4e; color:#fff; font-family:"Inter",Arial,sans-serif; overflow:hidden; }
+.wrap { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.logo { width:300px; height:300px; object-fit:contain; }
+.name { margin-top:56px; font-weight:800; font-size:92px; letter-spacing:-2.5px; }
+.rule { width:140px; height:12px; background:#fd631d; margin-top:36px; }
+.tier { margin-top:36px; font-weight:600; font-size:56px; color:#d7e2f2; }
+</style></head><body><div class="wrap">
+<img class="logo" src="../../../app/src/main/res/drawable/prohost_checkmark_logo.png">
+<div class="name">ProHost Premium</div><div class="rule"></div><div class="tier" id="tier"></div>
+</div><script>document.getElementById('tier').textContent = decodeURIComponent(location.hash.slice(1));</script></body></html>

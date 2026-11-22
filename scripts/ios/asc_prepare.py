@@ -552,4 +552,60 @@ if want("subreview"):
                 api.request("DELETE", f'/v1/subscriptionAppStoreReviewScreenshots/{current["id"]}')
             _upload("subscriptionAppStoreReviewScreenshots", {"subscription": rel("subscriptions", s_["id"])}, shot, f"{product} review screenshot")
 
+# ---- phased release (7 days), like Play's staged production rollout
+if version and want("phased"):
+    ph = get(f'/v1/appStoreVersions/{version["id"]}/appStoreVersionPhasedRelease')
+    if ph and ph.get("data"):
+        same("phased release")
+    else:
+        write("POST", "/v1/appStoreVersionPhasedReleases", {"data": {"type": "appStoreVersionPhasedReleases",
+              "attributes": {"phasedReleaseState": "INACTIVE"}, "relationships": {"appStoreVersion": rel("appStoreVersions", version["id"])}}},
+              "phased release over 7 days (starts when the version is released)")
+
+# ---- offer code PROHOST2026 (= Play's promo offer: Unlimited monthly, 1 month free, new customers, until 31 Dec 2026)
+if want("offercode"):
+    group = next((g for g in get_all(f"/v1/apps/{APP}/subscriptionGroups?limit=20") if g["attributes"].get("referenceName") == META["subscriptions"]["groupReferenceName"]), None)
+    subs = {x["attributes"]["productId"]: x for x in (get_all(f'/v1/subscriptionGroups/{group["id"]}/subscriptions?limit=50') if group else [])}
+    monthly = subs.get("prohost.premium.monthly")
+    if not monthly:
+        print("SKIP    offer code (prohost.premium.monthly missing)")
+    else:
+        codes = get_all(f'/v1/subscriptions/{monthly["id"]}/offerCodes?limit=50')
+        existing = next((c for c in codes if c["attributes"].get("name") == "PROHOST2026"), None)
+        if existing:
+            same("offer code PROHOST2026")
+        elif not args.apply:
+            print("PLAN    offer code PROHOST2026 (1 month free, new customers, all countries) + custom code valid until 2026-12-31")
+        else:
+            terrs = [t["id"] for t in get_all("/v1/territories?limit=200")]
+            body = {"data": {"type": "subscriptionOfferCodes",
+                             "attributes": {"name": "PROHOST2026", "customerEligibilities": ["NEW"], "offerEligibility": "REPLACE_INTRO_OFFERS",
+                                            "offerMode": "FREE_TRIAL", "duration": "ONE_MONTH", "numberOfPeriods": 1},
+                             "relationships": {"subscription": rel("subscriptions", monthly["id"]),
+                                               "prices": {"data": [{"type": "subscriptionOfferCodePrices", "id": "${p%s}" % t} for t in terrs]}}},
+                    "included": [{"type": "subscriptionOfferCodePrices", "id": "${p%s}" % t,
+                                  "relationships": {"territory": rel("territories", t)}} for t in terrs]}
+            created = write("POST", "/v1/subscriptionOfferCodes", body, f"offer code PROHOST2026 ({len(terrs)} countries)")
+            if created:
+                write("POST", "/v1/subscriptionOfferCodeCustomCodes", {"data": {"type": "subscriptionOfferCodeCustomCodes",
+                      "attributes": {"customCode": "PROHOST2026", "numberOfCodes": 10000, "expirationDate": "2026-12-31"},
+                      "relationships": {"offerCode": rel("subscriptionOfferCodes", created["data"]["id"])}}},
+                      "custom code PROHOST2026 (10,000 redemptions, valid until 2026-12-31)")
+
+# ---- promotional images (1024x1024) for the subscriptions, ios/store/promo/<product>.png
+if want("promoimages"):
+    group = next((g for g in get_all(f"/v1/apps/{APP}/subscriptionGroups?limit=20") if g["attributes"].get("referenceName") == META["subscriptions"]["groupReferenceName"]), None)
+    subs = {x["attributes"]["productId"]: x for x in (get_all(f'/v1/subscriptionGroups/{group["id"]}/subscriptions?limit=50') if group else [])}
+    for product, s in sorted(subs.items()):
+        f = os.path.join(ROOT, "ios/store/promo", product.replace("prohost.", "").replace(".", "-") + ".png")
+        if not os.path.exists(f):
+            print(f"SKIP    {product} promotional image (no file)")
+            continue
+        if get_all(f'/v1/subscriptions/{s["id"]}/images?limit=5'):
+            same(f"{product} promotional image")
+        elif not args.apply:
+            print(f"PLAN    {product} promotional image")
+        else:
+            _upload("subscriptionImages", {"subscription": rel("subscriptions", s["id"])}, f, f"{product} promotional image")
+
 print("\nRESULT ", "plan only (nothing changed)" if not args.apply else ("applied with %d failure(s): %s" % (len(failures), ", ".join(failures)) if failures else "applied"))
