@@ -201,3 +201,34 @@ jobs:
             echo "::error title=firebase deploy failed::$(grep -v '^\s*$' "$RUNNER_TEMP/deploy.log" | tail -n 30 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')"
             exit 1
           }
+
+      # Cloud Functions allows only so many updates per minute per region: with ~90 functions some updates fail with
+      # "Quota exceeded" and keep running OLD code while the deploy still exits 0 (22 Nov 2026: 14 functions, incl.
+      # onMaintenanceRequest). Redeploy exactly the functions that didn't report success, in small batches with pauses.
+      - name: Redeploy functions that did not update (quota)
+        run: |
+          set -o pipefail
+          sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/deploy.log" > "$RUNNER_TEMP/deploy.clean.log"
+          started=$(grep -oE '(updating|creating) Node\.js [0-9]+ \(2nd Gen\) function [A-Za-z0-9_]+\(' "$RUNNER_TEMP/deploy.clean.log" | sed -E 's/.* function ([A-Za-z0-9_]+)\(/\1/' | sort -u)
+          ok=$(grep -oE 'functions\[[A-Za-z0-9_]+\(' "$RUNNER_TEMP/deploy.clean.log" | sed -E 's/functions\[([A-Za-z0-9_]+)\(/\1/' | sort -u)
+          missing=$(comm -23 <(echo "$started") <(echo "$ok") | grep -v '^$' || true)
+          if [ -z "$missing" ]; then echo "every function updated"; exit 0; fi
+          echo "::warning title=functions to redeploy::$(echo $missing | tr ' ' ',')"
+          for attempt in 1 2 3; do
+            [ -z "$missing" ] && break
+            sleep 75
+            still=""
+            for batch in $(echo "$missing" | xargs -n 6 | tr ' ' ',' ); do
+              only=$(echo "$batch" | tr ',' '\n' | sed 's/^/functions:/' | paste -sd, -)
+              if npx --yes firebase-tools@14 deploy --project prohost-f766f --only "$only" --non-interactive --force 2>&1 | tee -a "$RUNNER_TEMP/redeploy.log"; then :; else still="$still $(echo "$batch" | tr ',' ' ')"; fi
+              sleep 30
+            done
+            sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/redeploy.log" > "$RUNNER_TEMP/redeploy.clean.log"
+            done_now=$(grep -oE 'functions\[[A-Za-z0-9_]+\(' "$RUNNER_TEMP/redeploy.clean.log" | sed -E 's/functions\[([A-Za-z0-9_]+)\(/\1/' | sort -u)
+            missing=$(comm -23 <(echo "$missing" | tr ' ' '\n' | sort -u) <(echo "$done_now") | grep -v '^$' || true)
+          done
+          if [ -n "$missing" ]; then
+            echo "::error title=functions still on old code::$(echo $missing | tr ' ' ',')"
+            exit 1
+          fi
+          echo "all redeployed"
