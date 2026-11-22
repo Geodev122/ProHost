@@ -870,6 +870,8 @@
     <string name="no_shift_selected_yet">لم تُختر مناوبة بعد</string>
     <string name="no_updates_right_now_explore_available_wor">لا تحديثات حاليًا — استكشف المساحات المتاحة.</string>
     <string name="not_now">ليس الآن</string>
+    <string name="permission_allow">السماح</string>
+    <string name="permission_dont_allow">عدم السماح</string>
     <string name="not_subscribed">غير مشترك</string>
     <string name="notes">ملاحظات</string>
     <string name="notes_x">• ملاحظات: %1$s</string>

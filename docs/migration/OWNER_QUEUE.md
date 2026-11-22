@@ -112,4 +112,4 @@ Claude filled the listing through Apple's API (texts EN + AR, categories, age ra
 
 - **Q-AR1 (22 Nov, decision):** the "Allow" / "Don't allow" buttons of the system-style permission dialog (`SystemStylePermissionDialog`,
   used by the first-launch analytics consent) are hard-coded English, so Arabic users see them in English (found by the iOS screenshot
-  run). Fix = translated strings (both platforms; the Arabic consent render changes). Reply "fix" to approve.
+  run). Fix = translated strings (both platforms; the Arabic consent render changes). Reply "fix" to approve. **Approved 22 Nov (owner): fixed** (`permission_allow` / `permission_dont_allow`, EN + AR).

@@ -37,8 +37,8 @@ fun SystemStylePermissionDialog(
     onAllow: () -> Unit,
     onDeny: () -> Unit,
     message: String? = null,
-    allowLabel: String = "Allow",
-    denyLabel: String = "Don't allow",
+    allowLabel: String = sharedText("permission_allow"),
+    denyLabel: String = sharedText("permission_dont_allow"),
     dismissible: Boolean = true,
     extra: (@Composable ColumnScope.() -> Unit)? = null
 ) {

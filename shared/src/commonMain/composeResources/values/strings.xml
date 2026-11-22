@@ -870,6 +870,8 @@
     <string name="no_shift_selected_yet">No shift selected yet</string>
     <string name="no_updates_right_now_explore_available_wor">No updates right now — explore available workspaces.</string>
     <string name="not_now">Not now</string>
+    <string name="permission_allow">Allow</string>
+    <string name="permission_dont_allow">Don't allow</string>
     <string name="not_subscribed">Not subscribed</string>
     <string name="notes">Notes</string>
     <string name="notes_x">• Notes: %1$s</string>
