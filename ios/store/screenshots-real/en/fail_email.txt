@@ -1,0 +1,39 @@
+Attributes: Application, 0x11392e940, pid: 67321, label: 'ProHost'
+Element subtree:
+ →Application, 0x11392e940, pid: 67321, label: 'ProHost'
+    Window (Main), 0x11392ea80, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x11392ebc0, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x11392ed00, {{0.0, 0.0}, {440.0, 956.0}}
+          Other, 0x11392ee40, {{0.0, 0.0}, {440.0, 956.0}}
+            Other, 0x11392f200, {{0.0, 0.0}, {440.0, 956.0}}
+              Other, 0x11392fc00, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x11392fe80, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x11392fd40, {{0.0, 0.0}, {440.0, 956.0}}
+                ScrollView, 0x11392f0c0, {{0.0, 0.0}, {440.0, 956.0}}
+                  Other, 0x11392cb40, {{0.0, 0.0}, {440.0, 956.0}}
+                    Other, 0x11392cc80, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x11392d180, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x11392ef80, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x11392f700, {{16.0, 62.0}, {408.0, 860.0}}, identifier: 'login_auth_screen'
+                      Button, 0x11392f5c0, {{16.0, 66.0}, {48.0, 48.0}}, identifier: 'auth_back', label: 'Back'
+                        Image, 0x11392f840, {{28.0, 78.0}, {24.0, 24.0}}, label: 'Back'
+                      Other, 0x11392fac0, {{16.0, 118.0}, {408.0, 728.0}}
+                        Image, 0x11392f980, {{16.0, 118.0}, {119.0, 56.0}}, label: 'ProHost sign-in'
+                        Other, 0x11392f480, {{16.0, 186.0}, {182.3, 27.3}}, label: 'What's your email?'
+                        Other, 0x11392f340, {{16.0, 225.3}, {408.0, 64.0}}, identifier: 'auth_email_input'
+                        TextView, 0x11392ca00, {{16.0, 224.3}, {408.0, 65.0}}, label: 'Email address'
+                          Other, 0x11392c500, {{16.0, 233.3}, {408.0, 56.0}}
+                          Other, 0x11392c3c0, {{68.0, 237.3}, {340.0, 48.0}}
+                          StaticText, 0x102e1fac0, {{68.0, 253.3}, {90.0, 16.3}}, label: 'Email address'
+                      Button, 0x102e1f480, {{16.0, 858.0}, {408.0, 48.0}}, identifier: 'auth_email_continue', label: 'Continue', Disabled
+                        StaticText, 0x102e1f840, {{191.3, 874.0}, {57.7, 16.3}}, label: 'Continue'
+    Window, 0x102e1f200, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x102e1f340, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x102e1f5c0, {{0.0, 0.0}, {440.0, 956.0}}
+Path to element:
+ →Application, 0x11392e940, pid: 67321, label: 'ProHost'
+Query chain:
+ →Find: Target Application 'app.geonajjar.prohost'
+  Output: {
+    Application, 0x102e1f700, pid: 67321, label: 'ProHost'
+  }
