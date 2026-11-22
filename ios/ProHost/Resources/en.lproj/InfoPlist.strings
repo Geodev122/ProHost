@@ -1,0 +1,3 @@
+/* Permission prompts (English; same text as Info.plist and the Android rationale). */
+"NSCameraUsageDescription" = "ProHost uses the camera when you choose to take a photo for your profile, a listing or a document.";
+"NSLocationWhenInUseUsageDescription" = "Used only to centre the map on where you are. ProHost never tracks your location.";
