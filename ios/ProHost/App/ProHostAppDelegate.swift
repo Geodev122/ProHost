@@ -1,5 +1,6 @@
 import FirebaseAppCheck
 import FirebaseCore
+import GoogleSignIn
 import ProHostShared
 import UIKit
 
@@ -21,6 +22,11 @@ final class ProHostAppDelegate: NSObject, UIApplicationDelegate {
         IosPlatform.shared.installAuth(bridge: FirebaseAuthBridge())
         IosPlatform.shared.installFirestore(bridge: FirebaseFirestoreBridge())
         IosPlatform.shared.installStorage(native: FirebaseStorageBridge())
+        // Google Sign-In uses the iOS OAuth client of GoogleService-Info.plist (its reversed id is the URL scheme in project.yml).
+        if let clientID = FirebaseApp.app()?.options.clientID {
+            GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
+            IosPlatform.shared.installGoogleSignIn(bridge: GoogleSignInBridgeImpl())
+        }
         return true
     }
 }

@@ -1,3 +1,4 @@
+import GoogleSignIn
 import SwiftUI
 
 @main
@@ -11,6 +12,8 @@ struct ProHostApp: App {
                     Color.clear
                 } else {
                     RootView()
+                        // Google Sign-In returns to the app through its reversed-client-id URL scheme.
+                        .onOpenURL { url in _ = GIDSignIn.sharedInstance.handle(url) }
                 }
             }
         }

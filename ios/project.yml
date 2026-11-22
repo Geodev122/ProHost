@@ -22,6 +22,9 @@ packages:
   GoogleMaps:
     url: https://github.com/googlemaps/ios-maps-sdk
     from: "9.0.0"
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: "8.0.0"
 targets:
   ProHost:
     type: application
@@ -62,6 +65,8 @@ targets:
         product: FirebaseAnalytics
       - package: GoogleMaps
         product: GoogleMaps
+      - package: GoogleSignIn
+        product: GoogleSignIn
     preBuildScripts:
       - name: Build the shared Kotlin framework (ProHostShared)
         basedOnDependencyAnalysis: false
@@ -106,6 +111,9 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: app.geonajjar.prohost
             CFBundleURLSchemes: [prohost]
+          # Google Sign-In redirect: REVERSED_CLIENT_ID of GoogleService-Info.plist.
+          - CFBundleURLName: google-signin
+            CFBundleURLSchemes: [com.googleusercontent.apps.646730915838-7gkhelto1gkuh5equtr8tj9lh6u4p4us]
   ProHostTests:
     type: bundle.unit-test
     platform: iOS

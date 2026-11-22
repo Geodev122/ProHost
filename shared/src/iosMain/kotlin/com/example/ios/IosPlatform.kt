@@ -63,6 +63,13 @@ object IosPlatform {
         RepositoryDefaults.storage = { gateway }
     }
 
+    var googleSignIn: GoogleSignInBridge? = null
+        private set
+
+    fun installGoogleSignIn(bridge: GoogleSignInBridge) {
+        googleSignIn = bridge
+    }
+
     private var seamsInstalled = false
 
     /** Runs [install] once (the Compose root can be recreated). */
