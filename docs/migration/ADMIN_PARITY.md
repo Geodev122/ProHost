@@ -58,7 +58,7 @@ Columns: **Web** = built in adminWeb · **Proof** = emulator test + screenshot v
 | 34 | View verification document (short-lived signed URL) | same | C `adminVerificationDocUrl` | ☑ | ☐ | ☐ |
 | 35 | Activate / Deactivate listing | same | C `setListingSubscriptionActive` | ☑ | ☐ | ☐ |
 | 36 | Verify / Unverify (pushes the owner, clears the request) | same | C `setListingVerification` | ☑ | ☐ | ☐ |
-| 37 | Edit listing: the full 3-step wizard (space, details, availability/divisions, per-attendee tiers, photos, map picker); Save as Draft hidden; status preserved | `CreateListingDialog.kt`, `SubdivisionForm.kt`, `ListingLocationMapPicker.kt` | FS `workspace_listings` (`keepingServerOwnedFields`), ST `listings/**`, audit `LISTING_UPDATED` — **needs shared owner screens (P6-W5)** | ☐ | ☐ | ☐ |
+| 37 | Edit listing: the full 3-step wizard (space, details, availability/divisions, per-attendee tiers, photos, map picker); Save as Draft hidden; status preserved | `CreateListingDialog.kt`, `SubdivisionForm.kt`, `ListingLocationMapPicker.kt` | FS `workspace_listings` (`keepingServerOwnedFields`), ST `listings/**`, audit `LISTING_UPDATED` | ☑ | ☐ | ☐ |
 | 38 | Delete listing (cancels active bookings; Storage purge; cleanup trigger) | `AdminListingsTab.kt` | FS delete, ST purge, trigger `onWorkspaceListingDeletedCleanup`, audit `LISTING_DELETED` | ☑ | ☐ | ☐ |
 | 39 | Host profile shortcut | same | C `adminUserDossier` | ☑ | ☐ | ☐ |
 
@@ -129,7 +129,7 @@ Written in `adminWeb/src/wasmJsMain/kotlin/admin/` and compiled in CI (`admin-we
 |---|---|---|---|
 | 8-17 | Packages | `PackagesTab.kt` | none known; plan label text derived from the base-plan id |
 | 18-28 | Users (+ dossier 22) | `UsersTab.kt`, `Dossier.kt` | avatar not drawn; "Payments not active yet" inside the dossier is not shown (Packages tab lists them) |
-| 29-36, 38, 39 | Listings & Bookings | `ListingsTab.kt` | **item 37 (Edit wizard) not built** (needs shared owner screens, P6-W5); price on the listing card missing (needs the shared pricing port, P5); photos not shown |
+| 29-39 | Listings & Bookings | `ListingsTab.kt` | item 37 = the app's own wizard (`ListingEditor.kt`: shared `CreateListingDialog`, photos re-encoded by the browser with Android's 1600 px / JPEG 82 rule, uploads through the shared `BridgedStorageGateway`); on the web the map in step 1 is blank (pin and "Locate me" not available, the stored location is kept) and the wizard acts as the listing's owner (the Android admin edit wrote the admin's name over the host's); price on the listing card missing (needs the shared pricing port, P5); photos not shown |
 | 40-44 | Analytics | `AnalyticsTab.kt` | from/to are `yyyy-MM-dd` text fields (no calendar popup); weeks start Sunday (en-US) |
 | 45-52 | Schema | `SchemaTab.kt` | models and default catalogue are the app's own code (`:shared`); package inclusions one per line |
 | 53-55 | Security | `SecurityTab.kt` | audit log loaded on visit + Refresh (no live listener); CSV still only the loaded rows (quirk kept) |

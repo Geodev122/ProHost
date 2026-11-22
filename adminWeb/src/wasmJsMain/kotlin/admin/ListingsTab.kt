@@ -44,8 +44,7 @@ import kotlinx.coroutines.launch
 /**
  * ADMIN_PARITY items 29-36, 38, 39 (Listings & Bookings): totals, search (listings + bookings), category and status chips,
  * the "Awaiting verification review" queue, listing cards with verification document / Activate / Verify / Delete / Host profile,
- * booking cards with renter and host profiles. Not yet: Edit (the full listing wizard, item 37, waits for the shared owner screens, P6-W5)
- * and the price on the card (needs the shared pricing port, P5); both are tracked in ADMIN_PARITY.md.
+ * booking cards with renter and host profiles, and Edit (item 37: the app's own wizard, `ListingEditDialog`). Not yet: the price on the card (needs the shared pricing port, P5); both are tracked in ADMIN_PARITY.md.
  */
 private val LEGACY_CATEGORIES = listOf("PRIVATE_OFFICE" to "Private Office", "CENTER" to "Center", "POLYCLINIC" to "Polyclinic", "COWORKING_SPACE" to "Co-working Space")
 private val STATUS_FILTERS = listOf("ALL" to "All", "ACTIVE_30D" to "Active", "EXPIRED" to "Expired", "VERIFIED" to "Verified", "PENDING_VERIFICATION" to "Pending review")
@@ -91,6 +90,7 @@ fun ListingsTab(gateway: AdminGateway) {
   var refresh by remember { mutableStateOf(0) }
   var deleting by remember { mutableStateOf<Json?>(null) }
   var profileUid by remember { mutableStateOf<String?>(null) }
+  var editingId by remember { mutableStateOf<String?>(null) }
   val scope = rememberCoroutineScope()
 
   LaunchedEffect(refresh) {
@@ -160,10 +160,13 @@ fun ListingsTab(gateway: AdminGateway) {
         onToggleActive = { scope.launch { notice = try { gateway.call("setListingSubscriptionActive", """{"spaceId":${jsonQuote(space["id"].str())},"active":${!space["isActiveSubscription"].bool()}}"""); refresh++; "Listing subscription active status toggled" } catch (e: Throwable) { "Failed to toggle subscription status: ${e.message}" } } },
         onToggleVerified = { scope.launch { notice = try { gateway.call("setListingVerification", """{"spaceId":${jsonQuote(space["id"].str())},"verified":${!space["isVerified"].bool()}}"""); refresh++; "Verification status toggled for space" } catch (e: Throwable) { "Failed to toggle verification status: ${e.message}" } } },
         onHost = { profileUid = space["ownerId"].str() },
+        onEdit = { editingId = space["id"].str() },
         onDelete = { deleting = space },
       )
     }
   }
+
+  editingId?.let { id -> ListingEditDialog(gateway, id) { message -> editingId = null; if (message != null) { notice = message; refresh++ } } }
 
   deleting?.let { space ->
     AlertDialog(
@@ -211,7 +214,7 @@ private fun Chip(text: String, container: Color, content: Color) {
 private fun typeName(raw: String): String = LEGACY_CATEGORIES.firstOrNull { it.first == raw }?.second ?: raw.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }
 
 @Composable
-private fun ListingCard(space: Json, onDocument: () -> Unit, onToggleActive: () -> Unit, onToggleVerified: () -> Unit, onHost: () -> Unit, onDelete: () -> Unit) {
+private fun ListingCard(space: Json, onDocument: () -> Unit, onToggleActive: () -> Unit, onToggleVerified: () -> Unit, onHost: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
   val verified = space["isVerified"].bool()
   val active = space["isActiveSubscription"].bool()
   val hasDoc = space["verificationDocUrl"].str().isNotBlank()
@@ -237,6 +240,7 @@ private fun ListingCard(space: Json, onDocument: () -> Unit, onToggleActive: () 
         OutlinedButton(onClick = onToggleActive) { Text(if (active) "Deactivate" else "Activate") }
         OutlinedButton(onClick = onToggleVerified) { Text(if (verified) "Unverify" else "Verify") }
         if (space["ownerId"].str().isNotBlank()) TextButton(onClick = onHost) { Text("Host profile") }
+        TextButton(onClick = onEdit) { Text("Edit") }
         TextButton(onClick = onDelete) { Text("Delete", color = StatusError) }
       }
     }

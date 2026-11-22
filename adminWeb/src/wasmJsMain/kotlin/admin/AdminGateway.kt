@@ -74,6 +74,8 @@ interface AdminGateway {
   suspend fun uploadFile(path: String, file: JsAny, contentType: String): String
   /** Deletes every object under a Storage path (walks prefixes, like the Android purge). */
   suspend fun purgeStorage(path: String)
+  /** Storage for shared screens (the listing wizard): the app's own upload paths over Firebase Storage JS. */
+  fun storageBridge(): com.example.data.gateway.StorageBridge
 }
 
 class AdminAuthException(message: String) : Exception(message)
@@ -175,6 +177,8 @@ class FirebaseWebGateway : AdminGateway {
   }
 
   override suspend fun purgeStorage(path: String) = purge(ref(storage, path))
+
+  override fun storageBridge(): com.example.data.gateway.StorageBridge = WebStorageBridge(storage)
 
   private suspend fun purge(r: StorageRef) {
     val res = listAll(r).await<ListResult>()
