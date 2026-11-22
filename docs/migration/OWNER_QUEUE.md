@@ -82,7 +82,7 @@ Play probe (Release bundle, `probe`): the CI account works; Play holds version c
    - "Copies of the emails we send you (for example password-reset and booking emails) are deleted after 30 days."
    - "Listing verification documents and booking agreements are deleted one year after they are uploaded."
    Reply "ok" (or your edits) and I publish them.
-6b. Play Console → Policy → App content → Data safety → Manage: tick **App activity → Other user-generated content** (optional; purposes
+6b. **Done 22 Nov (owner).** Play Console → Policy → App content → Data safety → Manage: tick **App activity → Other user-generated content** (optional; purposes
    App functionality + Fraud prevention, security), for reports and blocks. Save and submit.
 7. Tell me when the Apple Paid Apps Agreement is Active.
 8. Have an iPhone (iOS 17+) with TestFlight and the accepted tester invite.

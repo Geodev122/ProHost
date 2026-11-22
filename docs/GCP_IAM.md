@@ -51,6 +51,10 @@ Done by Claude with a temporary admin account (`claude-remediation`, to be delet
 - **Update 5 Nov 2026:** Google confirmed an active policy restriction on the project (quota increases refused; Hosting serving off: "Site Not Found" even on prohost-f766f.web.app). Owner decisions: keep the appspot key, leave the firebase-adminsdk keys, keep the meta-ads-play key.
   Claude enabled `billingbudgets.googleapis.com` (budget still to be created by the owner or with a billing role). Second-owner invitation for psy.geo.elnajjar@gmail.com must be sent from the console. Full history: `docs/OPS_LOG.md`.
 
+- **22 Nov 2026 (owner):** CI account `firebase-adminsdk-fbsvc` gained **Monitoring AlertPolicy Editor** and **Monitoring NotificationChannel
+  Viewer** (for Maintenance `alerts`). Log-based alert policies also need **Logs Configuration Writer** (`logging.notificationRules.create`;
+  requested from the owner, run 202).
+
 ## Project IAM (Include Google-provided role grants was off) — snapshot of 1 Nov, partly superseded above
 
 | Principal | Purpose | Roles |

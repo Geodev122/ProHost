@@ -220,3 +220,6 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   env, then `asc_prepare.py --only review` fills the form). `asc_prepare` no longer clears a stored demo login when its env has none.
 - 22 Nov 20:12: console Edit listing (ADMIN_PARITY 37, `ListingEditor.kt` + web pickers/Storage bridge/shared strings) green on the branch
   (Parity Gate run 200 after one rerun of an environment-wide test-JVM flake; Admin Web, iOS CI, Migration Checks) → fast-forwarded to `main`.
+- 22 Nov 20:35: owner granted the CI account Monitoring AlertPolicy Editor + NotificationChannel Viewer and ticked Play Data safety
+  "Other user-generated content". Maintenance `alerts apply` (run 202) read the 7 existing policies, then failed with 403
+  `logging.notificationRules.create` (log-based alerts) → owner to add Logs Configuration Writer.

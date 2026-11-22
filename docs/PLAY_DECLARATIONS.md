@@ -32,7 +32,7 @@ Collected data (all encrypted in transit):
 | App info and performance | Crash logs, diagnostics | Required (anonymised, not linked to the account) | Analytics |
 | Device or other IDs | Firebase installation id, push token | Required for push; analytics id optional | App functionality, analytics |
 - **Shared with third parties:** No. Google (Firebase, Play) acts as processor; the booking contact exchange between a Specialist and a Pro Host is started by the user.
-- **Re-check 22 Nov 2026:** add **App activity → Other user-generated content** (optional; App functionality, fraud prevention and security)
+- **Re-check 22 Nov 2026 (owner ticked it in Play Console the same day):** add **App activity → Other user-generated content** (optional; App functionality, fraud prevention and security)
   for reports and blocks (`reportContent` / `blockUser`, added with 1.0.49), and in Financial info mention App Store purchases for accounts
   that also use iOS. Everything else in the table still matches the app.
 - **Not collected:** payment card or bank details, contacts, calendar, SMS, messages (chat happens on WhatsApp), advertising ID (`AD_ID` removed), camera or photo-library access.

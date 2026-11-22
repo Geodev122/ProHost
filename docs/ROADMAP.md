@@ -76,7 +76,7 @@ Splash "no loading state"). Admin console: 70 parity items, code exists for 8-36
 ### E. Backend and operations
 - ✅ **E1** TTL policies ACTIVE (22 Nov run 199, declared in `firestore.indexes.json`); `pruneExpiredNotifications` retired.
 - ☐ **E2** App Check: measure verified traffic per service (logs `app_check_unverified`); enforce only at ≥ 99 % (decision recorded).
-- ◐ 👤 **E3** Error alerting (task `alerts` built; CI account needs two Monitoring roles, OWNER_TODO): a log-based alert on function errors and on `appleSync` / `billingSync` failures, emailed to the owner.
+- ◐ 👤 **E3** Error alerting (task `alerts` built; Monitoring roles granted 22 Nov; still needs **Logs Configuration Writer** for log-based alerts, OWNER_TODO): a log-based alert on function errors and on `appleSync` / `billingSync` failures, emailed to the owner.
 - ☐ **E4** Move function groups to their own service accounts (`run-billing`, `run-auth`, …; prepared 4 Nov), one group per deploy.
 - ☐ 👤 **E5** Cost and security: $50 budget + BigQuery billing export; API key restrictions (web, Android, Maps); Anthropic spending cap;
   disable the old appspot key `e5b6952d…`; rotate the firebase-adminsdk key.
