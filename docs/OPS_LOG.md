@@ -150,3 +150,8 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
 - 21 Nov 2026: `main` fast-forwarded to 9987502 (A2.3 step e: formatMillisDate; OwnerSubscriptionsScreen (Premium) + PromoCountdownCard in :shared). Parity Gate 280/280, iOS CI, Admin Web, Migration Checks green.
 - 22 Nov 2026: `main` fast-forwarded to 77c717e (Profile batch: SpecialistProfileScreen, SupportContact, friendlyErrorMessage in :shared; parseMillisDate, uriEncode + UriEncodingTest, isNoHandler, AppInfo.versionName). Parity Gate 280/280, iOS CI, Admin Web green.
 - 22 Nov 2026: `main` fast-forwarded to d2f7ee7 (LoginAuthScreen in :shared over the AuthCredentials seam; CountryLookup.device; SessionAuth email). Parity Gate 280/280, iOS CI, Admin Web green.
+
+### 22 Nov 2026 01:55 UTC — main ← nav graph in :shared, iOS shows the shared shell (a3f4222)
+- Parity Gate (280/280, after one rerun of a render-shard warm-up flake), Migration Checks, Admin Web, iOS CI (incl. launch smoke) green.
+- `ProHostAppRoot` lives in `:shared`; the Android app passes its splash and admin screens as `AndroidAppRootSlots`.
+- iOS `MainViewController` renders `ProHostAppRoot`; iOS installs repository/auth defaults over the Swift bridges.
