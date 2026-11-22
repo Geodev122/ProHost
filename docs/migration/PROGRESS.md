@@ -414,7 +414,7 @@ C1 step 4 — Storage on iOS: shared `BridgedStorageGateway` (Android paths, con
 - iOS: `MainViewController` now renders `ProHostAppRoot`; `IosPlatform.install*` also install `RepositoryDefaults`,
   `AuthDefaults` (gateway + shared `GatewaySessionFinisher`, no integrity token yet) and `SessionAuth` (user snapshot,
   role claim, token refresh through the extended `AuthBridge` + `TokenReply`; Swift `FirebaseAuthBridge`).
-- iOS Google sign-in (C2): GoogleSignIn SDK (SPM `GoogleSignIn-iOS` 8.x) behind `GoogleSignInBridge` (iosMain) /
+- iOS Google sign-in (C2): GoogleSignIn SDK (SPM `GoogleSignIn-iOS` 9.x; 8.x has no nonce parameter) behind `GoogleSignInBridge` (iosMain) /
   `GoogleSignInBridgeImpl.swift`; `AuthCredentials` iOS actual maps it to `GoogleCredentialResult` (the shared nonce
   check is unchanged). Client id from GoogleService-Info.plist; reversed id as URL scheme; `onOpenURL` → `GIDSignIn.handle`.
   Saved credentials on iOS = system AutoFill (offerSaved returns null).
