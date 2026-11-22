@@ -1,6 +1,6 @@
 # ProHost roadmap: to 100 % (Android + iOS in production, admin console on the web)
 
-Updated 22 Nov 2026, 07:20 UTC. ✅ done · ⏳ running now · ☐ to do · 👤 needs the owner.
+Updated 22 Nov 2026, 08:30 UTC. ✅ done · ⏳ running now · ☐ to do · 👤 needs the owner.
 Detail per unit: `docs/migration/PROGRESS.md`; owner items: `docs/OWNER_TODO.md`; history: `docs/OPS_LOG.md`.
 
 ## Where we are
@@ -55,18 +55,20 @@ Done:
   review contact, copyright, privacy answers published, mock-up screenshots uploaded
 
 To do (code, Claude):
-- ⏳ CI for Sign in with Apple → TestFlight build 21
-- ☐ Deep links: Universal Links (pro-host.tech/listing/…, the AASA file is live) + `prohost://`, push-tap → listing
-- ☐ Legal viewer in a WKWebView (today blank on iOS) and legal PDFs
-- ☐ Payment reminder to the calendar (EventKit), haptics, sounds
+- ⏳ CI for Sign in with Apple + StoreKit → `main` → TestFlight build 21
+- ✅ Deep links: Universal Links + `prohost://`, push-tap → listing (code; CI running)
+- ✅ Legal viewer in a WKWebView · ☐ legal PDFs
+- ✅ Payment reminder to the calendar (EventKit) · ☐ haptics, sounds
 - ☐ Analytics consent + Crashlytics on iOS (opt-in like Android)
-- ☐ Arabic purpose strings (camera, location) — `InfoPlist.strings`
+- ✅ Arabic purpose strings (camera, location) — `InfoPlist.strings`
 - ☐ Notification permission at the same moment as Android (after the analytics choice)
 - ☐ Admin accounts on iPhone: "use the web console" screen (decision D1 default)
 - ☐ Sign in with Apple token revocation on account deletion (Apple rule 5.1.1(v)), server side
-- ☐ **Payments: StoreKit 2** in the app (prices/offers from StoreKit, buy, restore, manage, offer codes)
-- ☐ **Server: `verifyAppleTransaction` + App Store Server Notifications V2 + daily re-sync** into the same subscription
-  records; the two notification URLs set in App Store Connect; admin console shows the platform per subscription
+- ⏳ **Payments: StoreKit 2** in the app (prices/offers from StoreKit, buy, restore, manage, offer codes) — code done, CI running;
+  needs a sandbox purchase on TestFlight
+- ✅ **Server: `verifyAppleTransaction` + App Store Server Notifications V2** (code; live after the next `main` deploy)
+  · ⏳ the two notification URLs (tool ready, applied after the deploy) · ☐ daily Apple re-sync (needs an In-App Purchase key
+  from the owner) · ☐ admin console shows the platform per subscription
 - ☐ Integration audit + iOS-on-device pass (Arabic, dark mode, small phone, VoiceOver basics)
 - ☐ Real iOS screenshots (EN + AR) replace the mock-ups; review notes + demo accounts; build attached
 - ☐ 👤 Testers on TestFlight (owner, Rewa, Rony) report what differs from Android
@@ -108,9 +110,10 @@ To do (code, Claude):
 9. At the end: approve iOS screenshots, press Add for Review; approve the Android production rollout.
 
 ## Order from here
-1. Sign in with Apple CI → `main` → TestFlight 21.
-2. iOS native gaps (deep links, legal viewer, calendar, analytics consent, Arabic purpose strings, admin screen).
-3. StoreKit 2 + Apple server verification (biggest remaining block for iOS).
+1. CI green → `main` (Apple server live) → notification URLs → TestFlight 21 (Apple sign-in, links, calendar, StoreKit).
+2. iOS gaps left: analytics consent + Crashlytics, notification permission timing, admin "use the web console" screen,
+   Apple token revocation on delete, haptics/sounds.
+3. Sandbox purchase test on TestFlight; daily Apple re-sync.
 4. Android 1.0.50 → owner test → staged production.
 5. Admin web: Pro Host tools + Diagnostics → owner walk-through → Android admin removal.
 6. App Review package → submission → iOS phased release.
