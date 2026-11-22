@@ -109,3 +109,7 @@ Claude filled the listing through Apple's API (texts EN + AR, categories, age ra
 - **K (15 Nov):** owner: no more Before | After work (too costly). The dated-booking screens stand as built; an overview exists at https://claude.ai/artifact/8VkV8q8LnA5DfyXUFPn45K for reference only, no approval step. Branch merged to `main` again (2b1d587).
 - **L (15 Nov):** owner confirmed: App Information shows 18+; Rewa accepted Apple's team invitation (Claude ran `ios-inspect` `only=tester` to add her to the internal TestFlight group); the other SwiftUI session is stopped.
 - **M (15 Nov, 12:15 UTC) — DONE 21 Nov (new token + site id saved; site deploy run 44888702006 green):** website deploys stopped publishing: GitHub secret `NETLIFY_AUTH_TOKEN` is missing or invalid (details and steps: `docs/OWNER_TODO.md` item 54). Backend deploys are unaffected.
+
+- **Q-AR1 (22 Nov, decision):** the "Allow" / "Don't allow" buttons of the system-style permission dialog (`SystemStylePermissionDialog`,
+  used by the first-launch analytics consent) are hard-coded English, so Arabic users see them in English (found by the iOS screenshot
+  run). Fix = translated strings (both platforms; the Arabic consent render changes). Reply "fix" to approve.
