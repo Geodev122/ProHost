@@ -74,7 +74,8 @@ targets:
           cd "$SRCROOT/.."
           # Gradle comes from the CI setup (gradle/actions/setup-gradle) or a local install; the repo has no wrapper script.
           GRADLE="$(command -v gradle || echo /opt/homebrew/bin/gradle)"
-          "$GRADLE" --no-daemon :shared:embedAndSignAppleFrameworkForXcode
+          # 6 GB: the release Kotlin/Native link of the whole app does not fit in the 4 GB of gradle.properties.
+          "$GRADLE" --no-daemon -Dorg.gradle.jvmargs=-Xmx6g :shared:embedAndSignAppleFrameworkForXcode
     postBuildScripts:
       - name: Upload dSYMs to Crashlytics
         basedOnDependencyAnalysis: false

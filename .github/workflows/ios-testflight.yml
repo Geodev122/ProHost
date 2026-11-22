@@ -135,7 +135,9 @@ jobs:
       - name: Link the release Kotlin framework (ProHostShared, iosArm64)
         run: |
           set -o pipefail
-          gradle --no-daemon :shared:linkReleaseFrameworkIosArm64 2>&1 | tee gradle-ios-release.log
+          # The release (optimised) Kotlin/Native link of the whole app needs more than the 4 GB of gradle.properties
+          # (build #15/#16: OutOfMemoryError: Java heap space); the macOS runner has 7 GB.
+          gradle --no-daemon -Dorg.gradle.jvmargs=-Xmx6g :shared:linkReleaseFrameworkIosArm64 2>&1 | tee gradle-ios-release.log
 
       - name: Surface Kotlin framework errors
         if: failure()
