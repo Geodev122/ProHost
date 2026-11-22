@@ -71,8 +71,8 @@ To do (code, Claude):
 - ✅ **Payments: StoreKit 2** in the app (prices/offers from StoreKit, buy, restore, manage, offer codes, both tiers)
   · ☐ 👤 sandbox purchase on TestFlight 21
 - ✅ **Server: `verifyAppleTransaction` + App Store Server Notifications V2** (live)
-  · ✅ the two notification URLs (production + sandbox) · ☐ daily Apple re-sync (needs the In-App Purchase key:
-  👤 GitHub secrets `APPLE_IAP_KEY_ID` + `APPLE_IAP_KEY_P8`) · ☐ admin console shows the platform per subscription
+  · ✅ the two notification URLs (production + sandbox) · ✅ daily Apple re-sync (`appleSyncJob`, In-App Purchase key in
+  `app_config/apple_iap` via Maintenance `applekey`) · ☐ admin console shows the platform per subscription
 - ☐ Integration audit + iOS-on-device pass (Arabic, dark mode, small phone, VoiceOver basics)
 - ☐ Real iOS screenshots (EN + AR) replace the mock-ups; review notes + demo accounts; build attached
 - ☐ 👤 Testers on TestFlight (owner, Rewa, Rony) report what differs from Android

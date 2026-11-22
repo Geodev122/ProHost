@@ -80,6 +80,7 @@ export { sendSignInEmailLink, sendVerificationEmailLink } from "./auth/emailLink
 export { playBillingRtdn } from "./billing/playBillingRtdn";
 export { verifyAndRestorePurchase } from "./billing/verifyAndRestorePurchase";
 export { verifyAppleTransaction, appStoreNotifications } from "./billing/appleEndpoints";
+export { appleSyncJob } from "./billing/appleServerApi";
 export { retryPendingPlayActivations } from "./billing/retryPendingPlayActivations";
 export { billingSyncJob, runBillingSync } from "./billing/billingSyncJob";
 export {

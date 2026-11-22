@@ -107,6 +107,9 @@ plan + recurring price + date;
   verified with Apple's library against Apple Root CA G3 (downloaded, SHA-256 pinned, fails closed). Records go to
   `subscriptions/apple_{originalTransactionId}` (platform `ios`) and through the same EntitlementManager (source
   `app_store`); every purchase carries `appAccountToken = appAccountTokenFor(uid)` (app and server compute the same UUID).
+  Daily re-sync: `appleSyncJob` (`billing/appleServerApi.ts`, App Store Server API `getAllSubscriptionStatuses`, sandbox for
+  TestFlight purchases) with the In-App Purchase key in server-only `app_config/apple_iap`, written by Maintenance `applekey`
+  from GitHub secrets `APPLE_IAP_KEY_ID` / `APPLE_IAP_KEY_P8` / `ASC_ISSUER_ID` (then one `applesync`); never log the key.
 - Debug/App Distribution APKs are not Play-installed: billing returns DEVELOPER_ERROR there.
   Test purchases with an internal-testing track install.
 

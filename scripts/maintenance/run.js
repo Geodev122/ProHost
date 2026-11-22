@@ -1364,6 +1364,32 @@ async function singleplan(db, arg) {
   });
 }
 
+// Stores the App Store In-App Purchase key (GitHub secrets APPLE_IAP_KEY_ID / APPLE_IAP_KEY_P8 / ASC_ISSUER_ID) in the
+// server-only doc app_config/apple_iap, which appleSyncJob reads. Prints only the key id's last 4 characters. Then runs
+// one App Store re-sync through the server so the key is proven against Apple.
+async function applekey(db) {
+  await step("appleKey", async () => {
+    const keyId = (process.env.APPLE_IAP_KEY_ID || "").trim();
+    const issuerId = (process.env.ASC_ISSUER_ID || "").trim();
+    const privateKey = (process.env.APPLE_IAP_KEY_P8 || "").trim();
+    if (!keyId || !issuerId || !privateKey) throw new Error("APPLE_IAP_KEY_ID, APPLE_IAP_KEY_P8 and ASC_ISSUER_ID must all be set as GitHub secrets");
+    if (!privateKey.includes("BEGIN PRIVATE KEY")) throw new Error("APPLE_IAP_KEY_P8 is not a .p8 file (no BEGIN PRIVATE KEY line)");
+    await db.collection("app_config").doc("apple_iap").set({ keyId, issuerId, privateKey, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    return `stored key …${keyId.slice(-4)} in app_config/apple_iap`;
+  });
+  await applesync(db);
+}
+
+// One App Store re-sync now (the same as the daily appleSyncJob).
+async function applesync(db) {
+  await step("appleSync", async () => {
+    const res = await serverTask(db, "appleSync", null);
+    if (typeof res.configured !== "boolean") throw new Error(`server answered: ${JSON.stringify(res).slice(0, 300)}`);
+    if (!res.configured) throw new Error("app_config/apple_iap is not set: run Maintenance applekey");
+    return `checked ${res.checked} · synced ${res.synced} · skipped ${res.skipped} · failed ${res.failed} · ${JSON.stringify(res.statuses)}`;
+  });
+}
+
 // Repairs Play Console slips through the Play API (functions' service account): a promo offer stranded on an
 // inactive base plan is copied onto the live monthly plan, and claimed offers limited to "any subscription in this
 // app" are widened to "this subscription". Dry run unless the code is "apply".
@@ -1983,5 +2009,7 @@ async function smsauth(db, arg) {
   else if (task === "singleplan") await singleplan(db, arg);
   else if (task === "smsauth") await smsauth(db, arg);
   else if (task === "playofferfix") await playofferfix(db, arg);
+  else if (task === "applekey") await applekey(db);
+  else if (task === "applesync") await applesync(db);
   else throw new Error(`unknown task ${task}`);
 })().catch((e) => { fail(`${e && e.message}`); process.exit(1); });

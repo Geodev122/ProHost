@@ -137,8 +137,8 @@ Last updated: 8 Nov 2026
 - (21 Nov) iPhone testers Rewa and Rony: each must accept Apple's e-mail "You have been invited to join a development team" (sent to rewarammal@gmail.com and ronybraidi@gmail.com; instructions e-mailed to both). Tell Claude when they reply "accepted"; Claude then adds them to TestFlight with the iOS Apple inspect workflow (`only=tester`).
 
 ## 22 Nov 2026
-- ✅ pro-host.tech verified in Search Console (owner). Unblocks item 30/37: Auth Platform › Branding › Verify branding.
-- ☐ **In-App Purchase key** (for the daily App Store subscription re-sync): App Store Connect › Users and Access ›
+- ✅ pro-host.tech verified in Search Console (owner). ✅ Auth Platform branding verified (owner, 22 Nov) — items 30/37 done.
+- ✅ **In-App Purchase key** saved as GitHub secrets (owner, 22 Nov); stored server-side by Maintenance `applekey`. Was: (for the daily App Store subscription re-sync): App Store Connect › Users and Access ›
   Integrations › In-App Purchase › "+" (name "ProHost server") › Generate › Download the `.p8` (only once) and note the Key ID.
   GitHub › Settings › Secrets and variables › Actions: `APPLE_IAP_KEY_ID` = the Key ID, `APPLE_IAP_KEY_P8` = the whole file
   text (BEGIN/END lines included). The Issuer ID is the one already in `ASC_ISSUER_ID`. Never paste the key in chat.
