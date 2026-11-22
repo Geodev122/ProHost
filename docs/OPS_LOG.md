@@ -230,3 +230,9 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   no build). ios-inspect run 17 (sections price, nochina, build=22): app price recreated as Free (base USA; the old schedule
   had no manual price), China mainland removed from availability (174 countries + new ones), build 22 attached to version 1.0.
   Left for the owner: tick the 4 subscriptions on the 1.0 page; real iOS screenshots; test TestFlight 22 before submitting.
+- 22 Nov 23:48-23:50: store parity. Play: Maintenance `singleplan apply` (run 206) created `package_single_mrr` base plans single-monthly
+  ($4.49) and single-yearly ($44.99), ACTIVE in 174 regions (the 1-listing tier had existed only on the App Store). App Store
+  (ios-inspect run 19): phased release on (7 days), offer code PROHOST2026 created on prohost.premium.monthly (1 month free, new
+  customers, replaces the intro offer, 175 countries), promotional images 1024x1024 on all 4 subscriptions. The custom code text
+  "PROHOST2026" was refused (409: app not yet approved) → re-run `ios-inspect prepare=apply only=offercode` after approval.
+  New read-only audit `scripts/ios/asc_audit.py` (runs in every ios-inspect).

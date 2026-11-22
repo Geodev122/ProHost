@@ -45,7 +45,7 @@ Splash "no loading state"). Admin console: 70 parity items, code exists for 8-36
   Pro Host (permanent grant) password accounts, keeps the passwords only in server-only `app_config/app_review`, and fills App Store Connect's
   sign-in fields + notes (second login appended). Done 22 Nov (run 201): readiness report OK for contact, demo account, notes;
   left for B8: attach the build.
-- ☐ **B8** Attach the final build to version 1.0 and the two subscriptions; readiness report shows every line OK.
+- ✅ **B8** (22 Nov: build 22 attached, Free price, China mainland removed, phased release on, promo images, PROHOST2026 offer; custom code after approval) ~~ Attach the final build to version 1.0 and the two subscriptions; readiness report shows every line OK.
 - ☐ 👤 **B9** Approve the screenshots; press **Add for Review**. Claude answers any App Review message the same day.
 - ☐ **B10** After approval: phased release (7 days), Crashlytics and the App Store daily check watched for a week.
 

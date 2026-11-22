@@ -573,7 +573,14 @@ if want("offercode"):
         codes = get_all(f'/v1/subscriptions/{monthly["id"]}/offerCodes?limit=50')
         existing = next((c for c in codes if c["attributes"].get("name") == "PROHOST2026"), None)
         if existing:
-            same("offer code PROHOST2026")
+            if get_all(f'/v1/subscriptionOfferCodes/{existing["id"]}/customCodes?limit=5'):
+                same("offer code PROHOST2026 and its custom code")
+            else:
+                # Apple accepts custom codes only once the app and the subscription are approved (409 OFFER_CODE_APP_STATE_INVALID).
+                write("POST", "/v1/subscriptionOfferCodeCustomCodes", {"data": {"type": "subscriptionOfferCodeCustomCodes",
+                      "attributes": {"customCode": "PROHOST2026", "numberOfCodes": 10000, "expirationDate": "2026-12-31"},
+                      "relationships": {"offerCode": rel("subscriptionOfferCodes", existing["id"])}}},
+                      "custom code PROHOST2026 (needs the app approved; re-run after approval)")
         elif not args.apply:
             print("PLAN    offer code PROHOST2026 (1 month free, new customers, all countries) + custom code valid until 2026-12-31")
         else:
