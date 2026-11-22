@@ -308,16 +308,15 @@ class BillingController(
             // Between tiers: Unlimited → 1 listing waits for the renewal date (DEFERRED, nothing is lost mid-term);
             // 1 listing → Unlimited of the same period starts now with the unused time credited (WITH_TIME_PRORATION).
             val currentTier = com.example.data.billing.PlayCatalog.tierOf(currentPlan)
-            val modes = com.android.billingclient.api.BillingFlowParams.SubscriptionUpdateParams.ReplacementMode
             val targetYearly = com.example.data.billing.PlayOfferText.kindOf(product.toPlayProduct(), basePlanId) ==
                 com.example.data.billing.PlayCatalog.PlanKind.YEARLY
             val replacementMode = when {
                 switching && targetTier == com.example.data.billing.PlayCatalog.PlanTier.SINGLE &&
-                    currentTier == com.example.data.billing.PlayCatalog.PlanTier.UNLIMITED -> modes.DEFERRED
-                targetYearly -> modes.CHARGE_FULL_PRICE
+                    currentTier == com.example.data.billing.PlayCatalog.PlanTier.UNLIMITED -> com.android.billingclient.api.BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.DEFERRED
+                targetYearly -> com.android.billingclient.api.BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_FULL_PRICE
                 switching && targetTier == com.example.data.billing.PlayCatalog.PlanTier.UNLIMITED &&
-                    currentTier == com.example.data.billing.PlayCatalog.PlanTier.SINGLE -> modes.WITH_TIME_PRORATION
-                else -> modes.DEFERRED
+                    currentTier == com.example.data.billing.PlayCatalog.PlanTier.SINGLE -> com.android.billingclient.api.BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.WITH_TIME_PRORATION
+                else -> com.android.billingclient.api.BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.DEFERRED
             }
             manager.launchSubscriptionPurchase(
                 activity, product, userId = uid, basePlanId = basePlanId,
