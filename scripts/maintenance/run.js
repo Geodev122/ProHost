@@ -1504,6 +1504,46 @@ async function hostingcheck(arg) {
   }
 }
 
+// Error alerts by email (roadmap E3): log-match alert policies sent to the existing "ProHost owner email" channel, at most one
+// email per hour each. Dry run lists what exists; code "apply" creates the missing ones (by display name). Read-only otherwise.
+const ERROR_ALERTS = [
+  ["Function-errors", 'resource.type="cloud_run_revision" AND severity>=ERROR', "A Cloud Function logged an error. Logs Explorer: severity>=ERROR on cloud_run_revision (docs/LOG_QUERIES.md)."],
+  ["AppStore-sync-failed", 'jsonPayload.message="appleSync: subscription failed" OR textPayload:"appleSync: subscription failed"', "The daily App Store re-sync could not refresh a subscription (401 = In-App Purchase key or issuer wrong; Maintenance applekey)."],
+  ["Play-sync-failed", 'textPayload:"billingSync:" AND severity>=ERROR', "The daily Google Play sync failed for a subscription (config = Play Console access, transient = retried tomorrow)."],
+];
+async function alerts(db, arg) {
+  const { google } = require(path.join(__dirname, "../../functions/node_modules/googleapis"));
+  const auth = new google.auth.GoogleAuth({ scopes: ["https://www.googleapis.com/auth/cloud-platform"] });
+  const call = async (method, url, body) => {
+    const token = await auth.getAccessToken();
+    const r = await fetch(url, { method, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(`HTTP ${r.status} ${String((j.error && j.error.message) || "").slice(0, 200)}`);
+    return j;
+  };
+  const P = "prohost-f766f";
+  await step("errorAlerts", async () => {
+    const channels = (await call("GET", `https://monitoring.googleapis.com/v3/projects/${P}/notificationChannels?pageSize=50`)).notificationChannels || [];
+    const ch = channels.find((c) => c.displayName === "ProHost owner email");
+    if (!ch) throw new Error('email channel "ProHost owner email" not found');
+    const policies = (await call("GET", `https://monitoring.googleapis.com/v3/projects/${P}/alertPolicies?pageSize=200`)).alertPolicies || [];
+    const have = new Set(policies.map((p) => p.displayName));
+    notice(`alert policies now: ${policies.map((p) => p.displayName).join(", ") || "none"}`);
+    const missing = ERROR_ALERTS.filter(([name]) => !have.has(name));
+    if (arg !== "apply") return `dry run: ${missing.length} to create (${missing.map((m) => m[0]).join(", ") || "none"}); code apply creates them`;
+    for (const [name, filter, doc] of missing) {
+      await call("POST", `https://monitoring.googleapis.com/v3/projects/${P}/alertPolicies`, {
+        displayName: name, combiner: "OR", enabled: true, notificationChannels: [ch.name],
+        conditions: [{ displayName: name, conditionMatchedLog: { filter } }],
+        alertStrategy: { notificationRateLimit: { period: "3600s" }, autoClose: "604800s" },
+        documentation: { content: doc, mimeType: "text/markdown" },
+      });
+      notice(`created alert ${name}`);
+    }
+    return `created ${missing.length} alert(s)`;
+  });
+}
+
 // Read-only review of who and what can use Google's generative AI in prohost-f766f: project IAM bindings (roles/aiplatform.*, owner/editor,
 // service accounts), user-managed service-account keys, API keys and their restrictions, and which AI APIs are enabled.
 async function iamaudit() {
@@ -2010,6 +2050,7 @@ async function smsauth(db, arg) {
   else if (task === "smsauth") await smsauth(db, arg);
   else if (task === "playofferfix") await playofferfix(db, arg);
   else if (task === "applekey") await applekey(db);
+  else if (task === "alerts") await alerts(db, arg);
   else if (task === "applesync") await applesync(db);
   else throw new Error(`unknown task ${task}`);
 })().catch((e) => { fail(`${e && e.message}`); process.exit(1); });
