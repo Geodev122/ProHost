@@ -1,0 +1,3 @@
+<en-US>
+Internal test build. New: a second Premium plan, "ProHost Premium · 1 listing" (monthly or yearly), with a switch between it and Unlimited on the Premium page; a cleaner Profile (only your live requests, WhatsApp host / View request, profile details on their own page under More); bookings show each booked time as a bullet with the real duration and start; notifications reach every device you are signed in on. Please report anything that looks or behaves wrong.
+</en-US>
