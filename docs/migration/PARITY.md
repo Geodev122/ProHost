@@ -37,7 +37,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `ui/components/FileExportLauncher.kt` | 56 | B | Context removal, MediaPicker(PickedFile), MediaPicker/Permissions |  |  | ☐ | ☐ | todo |
 | `ui/components/dialogs/DrawerDialogsHandler.kt` | 520 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/components/dialogs/SystemDebuggerDialog.kt` | 373 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
-| `ui/components/drawer/AppDrawerContent.kt` | 478 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
+| `ui/components/drawer/AppDrawerContent.kt` | 226 | A2 | — |  |  | ☐ | ☐ | todo |
 | `ui/navigation/ProHostNavGraph.kt` | 1021 | B | BackHandler, Context removal |  |  | ☐ | ☐ | todo |
 | `ui/preview/AppScreensPreview.kt` | 492 | A2 | java.* → kotlinx-datetime/expect |  |  | ☐ | ☐ | todo |
 | `ui/screens/AdminAnalyticsScreen.kt` | 520 | X | admin → adminWeb |  |  | ☐ | ☐ | adminWeb |
@@ -79,6 +79,7 @@ prefixes in `refs/design-shots/golden-v1047` that must stay pixel-identical (`di
 | `util/PlayIntegrityManager.kt` | 51 | C | Context removal, Logger |  |  | ☐ | ☐ | todo |
 <!-- PARITY-TABLE:END -->
 
+Automatic class totals (files / lines): A1 7 / 327, A2 4 / 1053, B 19 / 1763, C 18 / 4162, X 16 / 6992.
 Automatic class totals (files / lines): A1 6 / 101, A2 5 / 1531, B 19 / 1763, C 18 / 4162, X 16 / 6992.
 Automatic class totals (files / lines): A1 6 / 101, A2 5 / 1531, B 20 / 2414, C 18 / 4160, X 16 / 6992.
 Automatic class totals (files / lines): A1 6 / 101, A2 5 / 1531, B 20 / 2414, C 18 / 4160, X 16 / 6992.
