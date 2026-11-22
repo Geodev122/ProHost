@@ -50,10 +50,17 @@ jobs:
       - name: Build the admin console into public/console
         run: |
           set +e
+          extra=""
           for i in 1 2 3; do
-            gradle :adminWeb:wasmJsBrowserDistribution --no-daemon --stacktrace
-            code=$?
+            gradle :adminWeb:wasmJsBrowserDistribution --no-daemon --stacktrace $extra 2>&1 | tee gradle-web.log
+            code=${PIPESTATUS[0]}
             [ "$code" = 0 ] && break
+            # Same cache repair as admin-web.yml: drop modules a restored cache lists without their files.
+            for m in $(grep -oE "Could not find [A-Za-z0-9._-]+ \(([A-Za-z0-9._-]+):([A-Za-z0-9._-]+):" gradle-web.log | sed -E 's/.*\(([^:]+):([^:]+):/\1\/\2/' | sort -u); do
+              echo "clearing cached module $m"
+              rm -rf "$HOME/.gradle/caches/modules-2/files-2.1/${m%%/*}/${m#*/}" "$HOME/.gradle/caches/modules-2/metadata-2."*/descriptors/"${m%%/*}"/"${m#*/}"
+            done
+            extra="--refresh-dependencies --no-configuration-cache"
             echo "::warning::admin console build attempt $i failed (exit $code); retrying in 20 s"
             sleep 20
           done

@@ -41,10 +41,18 @@ jobs:
       - name: Build the web distribution
         run: |
           set +e
+          extra=""
           for i in 1 2 3; do
-            gradle :adminWeb:wasmJsBrowserDistribution --no-daemon --stacktrace 2>&1 | tee gradle-web.log
+            gradle :adminWeb:wasmJsBrowserDistribution --no-daemon --stacktrace $extra 2>&1 | tee gradle-web.log
             code=${PIPESTATUS[0]}
             [ "$code" = 0 ] && break
+            # A restored Gradle cache can list an artifact whose file the cache cleanup deleted ("Could not find
+            # kotlin-stdlib-wasm-js-2.3.20.klib", 22 Nov 2026): drop that module from the cache and resolve again.
+            for m in $(grep -oE "Could not find [A-Za-z0-9._-]+ \(([A-Za-z0-9._-]+):([A-Za-z0-9._-]+):" gradle-web.log | sed -E 's/.*\(([^:]+):([^:]+):/\1\/\2/' | sort -u); do
+              echo "clearing cached module $m"
+              rm -rf "$HOME/.gradle/caches/modules-2/files-2.1/${m%%/*}/${m#*/}" "$HOME/.gradle/caches/modules-2/metadata-2."*/descriptors/"${m%%/*}"/"${m#*/}"
+            done
+            extra="--refresh-dependencies --no-configuration-cache"
             echo "attempt $i failed (exit $code); retrying in 20 s in case of a transient dependency download error"
             sleep 20
           done
