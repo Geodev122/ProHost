@@ -52,9 +52,12 @@ export function singleBasePlan(
   };
 }
 
+/** Used when Play's conversion doesn't name its version (the typings lag: they still say 2022/02, which prices AR in USD). */
+const LATEST_REGIONS_VERSION = "2025/03";
+
 export interface SinglePlanStep { step: string; action: string; result: string }
 
-export async function playSinglePlan(apply: boolean, regionsVersion = "2022/02"): Promise<{ apply: boolean; steps: SinglePlanStep[] }> {
+export async function playSinglePlan(apply: boolean, regionsVersionOverride?: string): Promise<{ apply: boolean; steps: SinglePlanStep[] }> {
   const publisher = await getPlayPublisher();
   const steps: SinglePlanStep[] = [];
 
@@ -91,8 +94,11 @@ export async function playSinglePlan(apply: boolean, regionsVersion = "2022/02")
   }
 
   const basePlans: BasePlan[] = [];
+  // The converted prices follow Play's newest region list (e.g. Argentina in ARS); create must name that same version.
+  let regionsVersion = regionsVersionOverride;
   for (const p of SINGLE_PLAN_PRICES) {
     const conv = (await publisher.monetization.convertRegionPrices({ packageName: PACKAGE_NAME, requestBody: { price: p.usd } })).data;
+    regionsVersion = regionsVersion ?? (conv as { regionVersion?: { version?: string | null } }).regionVersion?.version ?? undefined;
     const plan = singleBasePlan(
       template, p.basePlanId, p.period,
       (conv.convertedRegionPrices ?? {}) as Record<string, { price?: Money | null }>,
@@ -108,6 +114,7 @@ export async function playSinglePlan(apply: boolean, regionsVersion = "2022/02")
 
   const languages = (pro.listings ?? []).map((l) => l.languageCode).filter((l): l is string => !!l);
   const listings = (languages.length ? languages : ["en-US"]).map((languageCode) => ({ languageCode, ...SINGLE_PLAN_LISTING }));
+  steps.push({ step: "regions", action: "plan", result: `regions version ${regionsVersion ?? LATEST_REGIONS_VERSION}` });
   steps.push({ step: "listing", action: apply ? "create" : "plan", result: `${listings.map((l) => l.languageCode).join(", ")}: "${SINGLE_PLAN_LISTING.title}"` });
 
   if (!apply) return { apply, steps };
@@ -115,7 +122,7 @@ export async function playSinglePlan(apply: boolean, regionsVersion = "2022/02")
   await publisher.monetization.subscriptions.create({
     packageName: PACKAGE_NAME,
     productId: PLAY_SINGLE_PRODUCT_ID,
-    "regionsVersion.version": regionsVersion,
+    "regionsVersion.version": regionsVersion ?? LATEST_REGIONS_VERSION,
     requestBody: { packageName: PACKAGE_NAME, productId: PLAY_SINGLE_PRODUCT_ID, listings, basePlans },
   });
   for (const p of SINGLE_PLAN_PRICES) {
