@@ -168,3 +168,6 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   UIDocumentPicker, camera), location (Core Location). iOS-only changes; iOS CI green on each.
 - 22 Nov 06:15 UTC TestFlight build 19 (5680cd2): shared app + iOS map (Google Maps SDK with the MAPS_IOS_API_KEY secret).
   Build 20 dispatched at 06:20 on 821cdb2: + photo/document/camera pickers and location.
+- 22 Nov 06:45 UTC main ← 0d0913c+: iOS push (FirebaseMessaging, APNs alert added to every FCM message by
+  `fcmMessage` in functions/src/lib/push.ts; Android's data-only payload unchanged). All 4 branch checks green; the
+  functions change deploys with this push.
