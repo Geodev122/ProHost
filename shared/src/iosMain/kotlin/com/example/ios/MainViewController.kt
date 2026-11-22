@@ -39,6 +39,8 @@ fun ProHostIosApp() {
             deepLinkTab = target?.tab,
             deepLinkBookingId = target?.bookingId,
             deepLinkSpaceId = target?.spaceId,
+            deepLinkRoomId = target?.roomId,
+            emailVerifiedDeepLink = target?.emailVerified == true,
             slots = IosAppRootSlots
         )
     }

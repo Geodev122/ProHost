@@ -445,3 +445,7 @@ C1 step 4 — Storage on iOS: shared `BridgedStorageGateway` (Android paths, con
   owner has enabled Apple in Firebase Auth (OWNER_TODO). Android unchanged (no Apple button, gate renders identical).
 - 22 Nov: owner enabled Apple in Firebase Auth → `AuthProviders.APPLE_ENABLED = true` (button on iOS only; Android has no
   `supportsApple`, so its sign-in screen is unchanged).
+- iOS links (C3): `.onOpenURL` → (Google Sign-In redirect, else) `IosPush.openUrl` → shared `DeepLinkRouter` (same rules
+  and vectors as Android's MainActivity): listing share links `pro-host.tech/listing/{id}?room=` (Universal Links,
+  entitlement `applinks:pro-host.tech`, AASA already live), `prohost://<tab>`, `prohost://verify-email/success`,
+  `prohost://redeem?code=` → `PendingPromoCode`. The shell gets tab, space, room and email-verified like on Android.

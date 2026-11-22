@@ -16,8 +16,14 @@ interface PushTokenBridge {
     fun fcmToken(completion: (String?) -> Unit)
 }
 
-/** Where a notification tap should land; the shell reads it like Android's intent extras. */
-data class PushTarget(val tab: String?, val bookingId: String?, val spaceId: String?)
+/** Where a notification tap or a link should land; the shell reads it like Android's intent extras. */
+data class PushTarget(
+    val tab: String?,
+    val bookingId: String?,
+    val spaceId: String?,
+    val roomId: String? = null,
+    val emailVerified: Boolean = false
+)
 
 /** Push on iOS: the token hook for the shared session code, token refreshes, and notification taps. */
 object IosPush {
@@ -35,6 +41,36 @@ object IosPush {
     fun tokenRefreshed(token: String) {
         val uid = runCatching { SessionAuth.currentUser()?.uid }.getOrNull() ?: return
         scope.launch { runCatching { ProHostRepository.getInstance().registerFcmToken(uid, token) } }
+    }
+
+    /**
+     * A link the app was opened with (Universal Link `pro-host.tech/listing/…` or `prohost://…`), routed by the shared
+     * [com.example.util.DeepLinkRouter] exactly like Android's `MainActivity`.
+     */
+    fun openUrl(url: String) {
+        val components = platform.Foundation.NSURLComponents.componentsWithString(url) ?: return
+        fun query(name: String): String? = components.queryItems
+            ?.filterIsInstance<platform.Foundation.NSURLQueryItem>()
+            ?.firstOrNull { it.name == name }?.value
+        val route = com.example.util.DeepLinkRouter.route(
+            com.example.util.DeepLinkRouter.Link(
+                scheme = components.scheme,
+                host = components.host,
+                path = components.path,
+                room = query("room"),
+                code = query("code")
+            )
+        )
+        if (route.isRedeem) com.example.data.billing.PendingPromoCode.offer(route.promoCode)
+        if (route.listing == null && route.tab == null && !route.emailVerified) return
+        val previous = pendingTarget
+        pendingTarget = PushTarget(
+            tab = route.tab ?: previous?.tab,
+            bookingId = previous?.bookingId,
+            spaceId = route.listing?.spaceId ?: previous?.spaceId,
+            roomId = route.listing?.roomId ?: previous?.roomId,
+            emailVerified = route.emailVerified || previous?.emailVerified == true
+        )
     }
 
     /** A tapped notification's data keys (the server's `targetTab`, `bookingId`, `spaceId`). */

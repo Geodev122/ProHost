@@ -13,7 +13,10 @@ struct ProHostApp: App {
                 } else {
                     RootView()
                         // Google Sign-In returns to the app through its reversed-client-id URL scheme.
-                        .onOpenURL { url in _ = GIDSignIn.sharedInstance.handle(url) }
+                        // Google Sign-In's redirect first; every other URL (Universal Links, prohost://) goes to the shared router.
+                        .onOpenURL { url in
+                            if !GIDSignIn.sharedInstance.handle(url) { IosPush.shared.openUrl(url: url.absoluteString) }
+                        }
                 }
             }
         }

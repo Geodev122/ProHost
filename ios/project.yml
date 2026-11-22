@@ -94,6 +94,8 @@ targets:
       path: ProHost/ProHost.entitlements
       properties:
         com.apple.developer.applesignin: [Default]
+        # Universal Links: pro-host.tech/listing/* (apple-app-site-association is served by the site).
+        com.apple.developer.associated-domains: [applinks:pro-host.tech]
         aps-environment: production
         com.apple.developer.devicecheck.appattest-environment: production
     info:
