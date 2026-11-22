@@ -16,3 +16,7 @@ test("Play's answer decides for Play subscribers", () => {
 test("non-Play entitlements lapse on their stored expiry", () => {
   assert.equal(expiryDecision({ kind: "not_play" }), "demote");
 });
+
+test("an App Store subscriber inside the grace window waits for Apple's notification", () => {
+  assert.equal(expiryDecision({ kind: "store_wait" }), "skip");
+});

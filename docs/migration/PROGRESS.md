@@ -454,3 +454,13 @@ C1 step 4 — Storage on iOS: shared `BridgedStorageGateway` (Android paths, con
   `CalendarBridgeImpl` (EKEventEditViewController, all-day, monthly recurrence; no calendar permission). To unify later:
   move `PaymentCalendar`'s schedule/description into commonMain once a shared USD formatter is equivalence-tested.
   `InfoPlist.strings` (en, ar) for the camera and location prompts.
+- Apple payments, server side (D): `billing/appleCatalog.ts` (pure, tested: products `prohost.premium.monthly|yearly`,
+  `appleStatusFor` → Play's BillingStatus, `appAccountTokenFor(uid)` = UUID from SHA-256("prohost-account:"+uid)),
+  `billing/appleSubscription.ts` (Apple's `@apple/app-store-server-library` SignedDataVerifier; Apple Root CA G3 fetched
+  from apple.com and pinned by SHA-256, fails closed; production then sandbox; `syncAppleSubscription` →
+  subscriptions/apple_{originalTransactionId}, platform "ios", grant/remove through the EntitlementManager with source
+  `app_store`), `billing/appleEndpoints.ts`: callable `verifyAppleTransaction` (ownership: appAccountToken must match the
+  caller; untagged offer-code purchases go to the first verifying account) and HTTPS `appStoreNotifications`
+  (ASSN V2; URL https://europe-west1-prohost-f766f.cloudfunctions.net/appStoreNotifications, to set in App Store Connect).
+  Expiry sweep: App Store subscribers wait 2 days past expiry for Apple's notification (`store_wait`), no "ends soon" push
+  while auto-renewing. Not yet: daily re-sync through the App Store Server API (needs an In-App Purchase key, owner).

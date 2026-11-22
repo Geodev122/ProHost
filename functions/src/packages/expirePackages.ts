@@ -12,6 +12,8 @@ import { queryPlaySubscription } from "../billing/billingHelpers";
 import { syncSubscription } from "../billing/subscriptionService";
 import { classifyPlayError } from "../billing/playSubscription";
 import { PlayRecheck, expiryDecision } from "./expiryLogic";
+
+const APP_STORE_EXPIRY_GRACE_MS = 2 * 24 * 60 * 60 * 1000;
 import { notifyAdminsOfSubscriptionChange } from "../billing/adminBillingAlerts";
 import "../lib/admin";
 import { sendGa4Event } from "../lib/ga4";
@@ -58,7 +60,8 @@ export const expirePackages = onSchedule({ ...runAs("billing"), schedule: "0 * *
       if (data.expiryWarningSent === true) continue;
       // An auto-renewing Play subscription isn't "expiring" — Google renews it and emails
       // about payment problems itself. Warn only when it won't renew (canceled) or isn't Play.
-      if (data.entitlementSource === "google_play" && data.billingStatus !== "CANCELED") continue;
+      if ((data.entitlementSource === "google_play" || data.entitlementSource === "app_store") &&
+        data.billingStatus !== "CANCELED") continue;
       const userId = doc.id;
       const expiry = data.ownerPackageExpiryMillis as number;
       const daysLeft = Math.max(1, Math.ceil((expiry - now) / (24 * 60 * 60 * 1000)));
@@ -121,7 +124,12 @@ export const expirePackages = onSchedule({ ...runAs("billing"), schedule: "0 * *
         let recheck: PlayRecheck = { kind: "not_play" };
         // Pre-refactor Play subscribers have a token but no entitlementSource yet: ask Play too.
         const source = doc.data()?.entitlementSource as string | undefined;
-        if (token && (source === "google_play" || !source)) {
+        // App Store subscribers: Apple's notifications (renewal, expiry, refund) decide; the sweep waits two days past
+        // the stored expiry for a late renewal notification before demoting.
+        const storedExpiry = (doc.data()?.ownerPackageExpiryMillis as number | undefined) ?? 0;
+        if (source === "app_store" && Date.now() < storedExpiry + APP_STORE_EXPIRY_GRACE_MS) {
+          recheck = { kind: "store_wait" };
+        } else if (token && (source === "google_play" || !source)) {
           try {
             const sub = await queryPlaySubscription(token);
             const result = await syncSubscription(uid, token, sub, { source: "expire_sweep" });

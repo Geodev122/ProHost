@@ -89,6 +89,11 @@ plan + recurring price + date;
   `subscription_restored`, `subscription_expired`, … (server). There is no GA4 `purchase` event any more.
 - Verify `queryProductDetailsAsync` / `queryPurchasesAsync` signatures before any Billing bump — check
   NIGHTHAWK's "Billing Acknowledgement" check after upgrading.
+- App Store (iOS, StoreKit 2): `billing/appleCatalog.ts` (pure, tested) + `appleSubscription.ts` + `appleEndpoints.ts`
+  (`verifyAppleTransaction` callable, `appStoreNotifications` HTTPS for App Store Server Notifications V2). Signed data is
+  verified with Apple's library against Apple Root CA G3 (downloaded, SHA-256 pinned, fails closed). Records go to
+  `subscriptions/apple_{originalTransactionId}` (platform `ios`) and through the same EntitlementManager (source
+  `app_store`); every purchase carries `appAccountToken = appAccountTokenFor(uid)` (app and server compute the same UUID).
 - Debug/App Distribution APKs are not Play-installed: billing returns DEVELOPER_ERROR there.
   Test purchases with an internal-testing track install.
 

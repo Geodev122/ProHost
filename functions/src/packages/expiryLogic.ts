@@ -9,6 +9,7 @@
  */
 export type PlayRecheck =
   | { kind: "not_play" }          // admin grant, legacy plan, or no purchase token on file
+  | { kind: "store_wait" }        // App Store subscriber within the grace window: its notification decides
   | { kind: "has_access" }        // Play says active / grace / canceled-but-paid
   | { kind: "no_access" }         // Play says expired / on hold / paused / revoked
   | { kind: "error"; errorKind: "config" | "transient" | "invalid" };
@@ -20,6 +21,7 @@ export function expiryDecision(recheck: PlayRecheck): ExpiryDecision {
     case "has_access": return "keep";
     case "no_access": return "demote";
     case "not_play": return "demote";
+    case "store_wait": return "skip";
     case "error":
       // Play doesn't know the token any more (400/404/410): nothing left to wait for.
       // Access denied or Play unreachable: try again next hour, never demote blindly.

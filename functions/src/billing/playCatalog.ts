@@ -35,7 +35,7 @@ export const LEGACY_UNLIMITED_GRANT_PLAN_ID = "admin_unlimited_grant";
  */
 export const LIFETIME_EXPIRY_MILLIS = Date.UTC(2100, 0, 1);
 
-export type EntitlementSource = "google_play" | "admin_forced";
+export type EntitlementSource = "google_play" | "app_store" | "admin_forced";
 
 /** Mirrors Google Play's subscription lifecycle (subscriptions.status, user billingStatus). */
 export type BillingStatus =
