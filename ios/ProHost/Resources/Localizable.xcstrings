@@ -1089,6 +1089,108 @@
         }
       }
     },
+    "app_store_activation_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your payment went through, but Premium isn't active yet. Reopen this page in a moment or tap Restore."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تمّ الدفع، لكن Premium لم يُفعَّل بعد. أعد فتح هذه الصفحة بعد قليل أو اضغط استعادة."
+          }
+        }
+      }
+    },
+    "app_store_nothing_to_restore": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No active App Store subscription was found for this Apple Account."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يُعثر على اشتراك فعّال في App Store لحساب Apple هذا."
+          }
+        }
+      }
+    },
+    "app_store_plans_unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't load ProHost Premium from the App Store. Check your connection and try again."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر تحميل ProHost Premium من App Store. تحقّق من اتصالك وحاول مجددًا."
+          }
+        }
+      }
+    },
+    "app_store_purchase_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The App Store couldn't complete the purchase. Please try again."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر على App Store إتمام عملية الشراء. حاول مجددًا."
+          }
+        }
+      }
+    },
+    "app_store_purchase_pending": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your purchase is waiting for approval. Premium starts as soon as the App Store confirms it."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عملية الشراء بانتظار الموافقة. يبدأ Premium فور تأكيد App Store."
+          }
+        }
+      }
+    },
+    "app_store_restore_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't check the App Store for purchases. Please try again."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر التحقّق من مشتريات App Store. حاول مجددًا."
+          }
+        }
+      }
+    },
     "applications_received": {
       "extractionState": "manual",
       "localizations": {
