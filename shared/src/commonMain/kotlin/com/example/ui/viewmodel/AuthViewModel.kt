@@ -205,6 +205,24 @@ class AuthViewModel(
         }
     }
 
+    // --- Apple (iOS) ---
+
+    fun startAppleSignIn(
+        idToken: String,
+        rawNonce: String,
+        givenName: String?,
+        familyName: String?,
+        onVerified: (needsRegistration: Boolean) -> Unit
+    ) {
+        begin(METHOD_APPLE)
+        launchAuth {
+            when (val r = auth.signInWithApple(idToken, rawNonce, givenName, familyName)) {
+                is AuthOutcome.Success -> finishVerification(r.isNewUser, onVerified)
+                is AuthOutcome.Failure -> fail(r.error, r.code)
+            }
+        }
+    }
+
     /**
      * After Firebase accepted the credential: a brand-new account goes to the registration
      * form; otherwise the server resolves the role and the stored profile decides (an account
@@ -310,6 +328,7 @@ class AuthViewModel(
     companion object {
         const val METHOD_PASSWORD: String = "password"
         const val METHOD_GOOGLE = "google"
+        const val METHOD_APPLE = "apple"
         private val EMAIL = Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$")
         fun isPlausibleEmail(email: String): Boolean = email.length <= 254 && EMAIL.matches(email)
     }

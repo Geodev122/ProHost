@@ -24,6 +24,15 @@ final class FirebaseAuthBridge: NSObject, AuthBridge {
         Auth.auth().signIn(with: credential) { result, error in completion(Self.reply(result, error)) }
     }
 
+    func signInWithApple(idToken: String, rawNonce: String, givenName: String?, familyName: String?,
+                         completion: @escaping (AuthReply) -> Void) {
+        var name = PersonNameComponents()
+        name.givenName = givenName
+        name.familyName = familyName
+        let credential = OAuthProvider.appleCredential(withIDToken: idToken, rawNonce: rawNonce, fullName: name)
+        Auth.auth().signIn(with: credential) { result, error in completion(Self.reply(result, error)) }
+    }
+
     func sendPasswordResetEmail(email: String, completion: @escaping (AuthReply) -> Void) {
         Auth.auth().sendPasswordReset(withEmail: email) { error in completion(Self.reply(nil, error)) }
     }

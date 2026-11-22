@@ -437,3 +437,9 @@ C1 step 4 — Storage on iOS: shared `BridgedStorageGateway` (Android paths, con
   foreground banners, taps → `IosPush.pendingTarget` → `ProHostAppRoot(deepLinkTab/BookingId/SpaceId)`.
   Known difference (listed, not asked yet): iOS asks for notification permission at launch; Android asks after the
   analytics-consent choice. To align later: trigger the iOS request from the same shared point.
+- Sign in with Apple (C2), code complete but hidden: `AuthCredentials.requestApple` (iOS `AppleSignInBridgeImpl`,
+  AuthenticationServices; request nonce = SHA-256 of the shared raw nonce), `AuthGateway.signInWithApple` (iOS
+  `OAuthProvider.appleCredential(withIDToken:rawNonce:fullName:)`; Android default = unavailable),
+  `AuthViewModel.startAppleSignIn` (same finish path as Google; Apple's first-sign-in name prefills registration).
+  The button shows only where `supportsApple` (iOS) AND `AuthProviders.APPLE_ENABLED` — flip that const to true once the
+  owner has enabled Apple in Firebase Auth (OWNER_TODO). Android unchanged (no Apple button, gate renders identical).

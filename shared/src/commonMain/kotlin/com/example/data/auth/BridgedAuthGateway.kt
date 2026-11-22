@@ -29,6 +29,10 @@ interface AuthBridge {
     fun reloadEmailVerified(completion: BoolCallback)
     fun signOut()
     /** Email and phone number of the signed-in user (null when signed out or not set). */
+    /** Firebase sign-in with an Apple credential (`OAuthProvider.appleCredential`). */
+    fun signInWithApple(idToken: String, rawNonce: String, givenName: String?, familyName: String?, completion: (AuthReply) -> Unit) {
+        completion(AuthReply("ERROR_OPERATION_NOT_ALLOWED", null, false))
+    }
     fun currentEmail(): String? = null
     fun currentPhoneNumber(): String? = null
     /** The ID token's `role` claim, fetching a fresh token first when [forceRefresh] (Android `getIdToken(force)`). */
@@ -81,6 +85,9 @@ class BridgedAuthGateway(private val bridge: AuthBridge) : AuthGateway {
         run(isNewUserOnSuccess = true) { bridge.createAccount(email, password, it) }
 
     override suspend fun signInWithGoogle(idToken: String): AuthOutcome = run { bridge.signInWithGoogle(idToken, it) }
+
+    override suspend fun signInWithApple(idToken: String, rawNonce: String, givenName: String?, familyName: String?): AuthOutcome =
+        run { bridge.signInWithApple(idToken, rawNonce, givenName, familyName, it) }
 
     override suspend fun sendPasswordResetEmail(email: String): AuthOutcome =
         run(isNewUserOnSuccess = false) { bridge.sendPasswordResetEmail(email, it) }

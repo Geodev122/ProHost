@@ -143,6 +143,32 @@ fun LoginAuthScreen(
     // previously dismissed One Tap too many times), falls back to the standard
     // Sign In With Google bottom-sheet (GetSignInWithGoogleOption), which is always
     // available when Play Services is present.
+    fun launchAppleSignIn() {
+        coroutineScope.launch {
+            val creds = authCredentials ?: return@launch
+            val rawNonce = com.example.data.auth.GoogleNonce.newNonce()
+            when (val result = creds.requestApple(rawNonce)) {
+                is com.example.ui.components.AppleCredentialResult.Token -> {
+                    val appleName = "${result.givenName.orEmpty()} ${result.familyName.orEmpty()}".trim()
+                    authViewModel.startAppleSignIn(result.idToken, rawNonce, result.givenName, result.familyName) { needsRegistration ->
+                        if (needsRegistration) {
+                            if (appleName.isNotEmpty()) prefillGoogleName = appleName
+                            step = AuthStep.REG_PROFILE
+                        } else {
+                            onLoginSuccess()
+                        }
+                    }
+                }
+                com.example.ui.components.AppleCredentialResult.Cancelled ->
+                    com.example.analytics.AnalyticsTracker.authError("apple", "cancelled")
+                com.example.ui.components.AppleCredentialResult.Error -> {
+                    com.example.analytics.AnalyticsTracker.authError("apple", "credential_error")
+                    UiMessages.show(sharedText("an_error_occurred_please_try_again"), long = true)
+                }
+            }
+        }
+    }
+
     fun launchGoogleSignIn() {
         coroutineScope.launch {
             val creds = authCredentials ?: return@launch
@@ -386,11 +412,12 @@ fun LoginAuthScreen(
             onProvider = { provider ->
                 when (provider) {
                     AuthProvider.GOOGLE -> launchGoogleSignIn()
-                    AuthProvider.APPLE -> Unit // enabled together with its Firebase provider (AuthProviders.APPLE_ENABLED)
+                    AuthProvider.APPLE -> launchAppleSignIn()
                     AuthProvider.EMAIL -> goTo(AuthStep.EMAIL)
                 }
             },
-            onSwitchIntent = { intent = if (creating) AuthIntent.SIGN_IN else AuthIntent.CREATE; goTo(AuthStep.PROVIDERS) }
+            onSwitchIntent = { intent = if (creating) AuthIntent.SIGN_IN else AuthIntent.CREATE; goTo(AuthStep.PROVIDERS) },
+            appleSupported = authCredentials?.supportsApple == true
         )
 
         AuthStep.EMAIL -> EmailStep(

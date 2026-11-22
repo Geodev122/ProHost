@@ -91,7 +91,9 @@ enum class AuthProvider { GOOGLE, APPLE, EMAIL }
 
 object AuthProviders {
     const val APPLE_ENABLED = false
-    fun available(): List<AuthProvider> = AuthProvider.entries.filter { it != AuthProvider.APPLE || APPLE_ENABLED }
+    /** Apple shows only where the platform supports it (iOS) and once [APPLE_ENABLED] is switched on. */
+    fun available(appleSupported: Boolean = false): List<AuthProvider> =
+        AuthProvider.entries.filter { it != AuthProvider.APPLE || (APPLE_ENABLED && appleSupported) }
 }
 
 /** One step: back arrow, title, optional subtitle, error line, content, and the actions pinned at the bottom. */
@@ -255,7 +257,8 @@ fun ProvidersStep(
     error: String?,
     onBack: () -> Unit,
     onProvider: (AuthProvider) -> Unit,
-    onSwitchIntent: () -> Unit
+    onSwitchIntent: () -> Unit,
+    appleSupported: Boolean = false
 ) {
     AuthStepScaffold(
         title = appString(if (creating) Res.string.auth_providers_create_title else Res.string.auth_providers_signin_title),
@@ -276,7 +279,7 @@ fun ProvidersStep(
         }
     ) {
         Spacer(Modifier.height(Spacing.sm))
-        AuthProviders.available().forEach { provider ->
+        AuthProviders.available(appleSupported).forEach { provider ->
             when (provider) {
                 AuthProvider.GOOGLE -> GoogleSignInButton(onClick = { onProvider(provider) }, enabled = !isBusy)
                 AuthProvider.APPLE -> CustomButton(

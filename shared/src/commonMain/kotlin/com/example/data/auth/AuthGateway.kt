@@ -9,6 +9,9 @@ interface AuthGateway {
     suspend fun signInWithPassword(email: String, password: String): AuthOutcome
     suspend fun createAccount(email: String, password: String): AuthOutcome
     suspend fun signInWithGoogle(idToken: String): AuthOutcome
+    /** Sign in with Apple (iOS): Apple's ID token and the raw nonce whose SHA-256 the request carried. Android: not offered. */
+    suspend fun signInWithApple(idToken: String, rawNonce: String, givenName: String?, familyName: String?): AuthOutcome =
+        AuthOutcome.Failure(AuthError.UNAVAILABLE, "ERROR_OPERATION_NOT_ALLOWED")
     /** Firebase's own reset mailer: the fallback when our branded callable is unavailable. */
     suspend fun sendPasswordResetEmail(email: String): AuthOutcome
     /** Reloads the signed-in user; true when their email is verified now. */

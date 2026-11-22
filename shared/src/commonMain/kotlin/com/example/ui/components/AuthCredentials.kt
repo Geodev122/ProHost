@@ -22,6 +22,13 @@ sealed interface GoogleCredentialResult {
     data object NotGoogle : GoogleCredentialResult
 }
 
+/** What Sign in with Apple returned (iOS). Apple sends the name only the first time a person signs in to the app. */
+sealed interface AppleCredentialResult {
+    data class Token(val idToken: String, val givenName: String?, val familyName: String?) : AppleCredentialResult
+    data object Cancelled : AppleCredentialResult
+    data object Error : AppleCredentialResult
+}
+
 /** A credential the device's password manager offered to a returning person. */
 sealed interface SavedCredential {
     data class Password(val id: String, val password: String) : SavedCredential
@@ -38,6 +45,10 @@ interface AuthCredentials {
     suspend fun offerSaved(nonce: String): SavedCredential?
     /** Offers to save [email]/[password] in the password manager; returns when the offer is done (dismissed is fine). */
     suspend fun savePassword(email: String, password: String)
+    /** Whether this platform offers Sign in with Apple (iOS). */
+    val supportsApple: Boolean get() = false
+    /** Apple's sheet; the request carries SHA-256([rawNonce]). */
+    suspend fun requestApple(rawNonce: String): AppleCredentialResult = AppleCredentialResult.Error
 }
 
 /** The screen's [AuthCredentials], or null in previews and on platforms without one yet. */

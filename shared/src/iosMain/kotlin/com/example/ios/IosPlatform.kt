@@ -85,6 +85,13 @@ object IosPlatform {
         maps = factory
     }
 
+    var appleSignIn: AppleSignInBridge? = null
+        private set
+
+    fun installAppleSignIn(bridge: AppleSignInBridge) {
+        appleSignIn = bridge
+    }
+
     var googleSignIn: GoogleSignInBridge? = null
         private set
 

@@ -37,6 +37,7 @@ final class ProHostAppDelegate: NSObject, UIApplicationDelegate {
             GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
             IosPlatform.shared.installGoogleSignIn(bridge: GoogleSignInBridgeImpl())
         }
+        IosPlatform.shared.installAppleSignIn(bridge: AppleSignInBridgeImpl())
         // Push: FCM over APNs (the APNs key is uploaded in Firebase). Taps route like Android's notification extras.
         IosPush.shared.install(bridge: FcmTokenBridge())
         Messaging.messaging().delegate = self
