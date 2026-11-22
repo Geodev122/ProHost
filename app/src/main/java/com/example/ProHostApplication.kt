@@ -55,6 +55,7 @@ class ProHostApplication : Application() {
         com.example.ui.util.AndroidDateLabels.install()
         com.example.ui.util.AndroidLocaleDates.install()
         com.example.util.CountryLookup.atPoint = { lat, lng -> com.example.util.PhoneCountryDetector.detectCountryAtCoordinates(this, lat, lng) }
+        com.example.util.CountryLookup.device = { com.example.util.PhoneCountryDetector.detectCountry(this) }
         com.example.data.auth.AuthDefaults.gateway = { com.example.data.auth.FirebaseAuthService(this) }
         com.example.data.auth.AuthDefaults.sessionFinisher = { repo, functions -> com.example.data.auth.FirebaseSessionFinisher(this, repo, functions) }
         com.example.data.auth.AuthDefaults.classify = { com.example.data.auth.AuthError.from(it) }

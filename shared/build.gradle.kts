@@ -62,6 +62,8 @@ kotlin {
       implementation(libs.play.services.location) // "turn on location" settings dialog (rememberLocationAccess)
       implementation(libs.maps.compose) // PlatformMap (Google Maps Compose), same versions as the app
       implementation(libs.play.services.maps)
+      implementation(libs.androidx.credentials) // AuthCredentials (Google sign-in, saved passwords), same versions as the app
+      implementation(libs.google.identity)
     }
     iosMain.dependencies { implementation(libs.ktor.client.darwin) }
     wasmJsMain.dependencies { implementation(libs.ktor.client.js) }

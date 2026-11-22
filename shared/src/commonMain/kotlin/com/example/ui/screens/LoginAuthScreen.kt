@@ -1,12 +1,7 @@
 package com.example.ui.screens
 
-import com.example.util.toPickedFile
 import com.example.ui.util.localizedLabel
-import com.example.ui.util.uiText
-import androidx.compose.ui.res.stringResource
 import com.example.ui.util.UiMessages
-import android.app.Activity
-import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,33 +18,21 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.credentials.CredentialManager
-import androidx.credentials.CustomCredential
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.exceptions.GetCredentialException
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.R
 import com.example.data.model.findCountryByName
 import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.AuthViewModel
-import com.example.util.PhoneCountryDetector
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
 
-import androidx.activity.compose.BackHandler
 import com.example.shared.resources.Res
 import com.example.shared.resources.city
 import com.example.shared.resources.e_g_beirut
@@ -76,6 +59,8 @@ import com.example.shared.resources.use_this_phone_s_number
 import com.example.shared.resources.whatsapp_number_2
 import com.example.ui.util.appString
 import com.example.ui.util.sharedText
+import com.example.shared.resources.creating_account
+import com.example.shared.resources.finish
 /**
  * Sign in or create an account (1.0.45: staged, "intent first"):
  *  WELCOME (Create an account · I already have one) → PROVIDERS (Google · [Apple] · Email) → EMAIL → PASSWORD,
@@ -84,10 +69,10 @@ import com.example.ui.util.sharedText
  * Email enumeration protection: Forgot password never says whether the address has an account.
  * There is no emailed code, magic link or SMS sign-in.
  */
-internal enum class AuthStep { WELCOME, PROVIDERS, EMAIL, PASSWORD, FORGOT_PASSWORD, RESET_SENT, REG_PROFILE, REG_PLACE, REG_WHATSAPP }
+enum class AuthStep { WELCOME, PROVIDERS, EMAIL, PASSWORD, FORGOT_PASSWORD, RESET_SENT, REG_PROFILE, REG_PLACE, REG_WHATSAPP }
 
 /** What the person chose on the welcome screen. */
-internal enum class AuthIntent { SIGN_IN, CREATE }
+enum class AuthIntent { SIGN_IN, CREATE }
 
 /** "Send again" cooldown for the reset email (the server also limits 5 per hour per address). */
 private const val EMAIL_RESEND_COOLDOWN_SECONDS = 60
@@ -103,15 +88,6 @@ private val CountrySaver = Saver<com.example.data.model.Country, String>(
     restore = { findCountryByName(it) }
 )
 
-private fun android.content.Context.findActivity(): Activity? {
-    var ctx = this
-    while (ctx is android.content.ContextWrapper) {
-        if (ctx is Activity) return ctx
-        ctx = ctx.baseContext
-    }
-    return null
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginAuthScreen(
@@ -119,14 +95,12 @@ fun LoginAuthScreen(
     resumeAtRegistration: Boolean = false,
     resumePhoneE164: String? = null,
     onCancelResume: (() -> Unit)? = null,
-    authViewModel: AuthViewModel = viewModel(),
+    authViewModel: AuthViewModel = viewModel { AuthViewModel() },
     /** Screenshot tests only: open on a given step (AuthStep name) and intent (AuthIntent name) with an email filled in. */
     initialStepName: String? = null,
     initialEmail: String? = null,
     initialIntentName: String? = null
 ) {
-    val context = LocalContext.current
-    val activity = remember(context) { context.findActivity() }
     val coroutineScope = rememberCoroutineScope()
     var step by rememberSaveable(stateSaver = AuthStepSaver) {
         mutableStateOf(
@@ -156,13 +130,13 @@ fun LoginAuthScreen(
 
     val isPreview = LocalInspectionMode.current
 
-    // Credential Manager for Google One Tap
-    val credentialManager = remember(context, isPreview) { if (!isPreview) CredentialManager.create(context) else null }
+    // Credential Manager (Android) / platform sign-in for Google One Tap and saved passwords
+    val authCredentials = rememberAuthCredentials()
 
     // Pre-fill values extracted from Google credential — applied to the registration form
     // via LaunchedEffect(step) below, after regFullName/regProfilePic are initialized.
     var prefillGoogleName by rememberSaveable { mutableStateOf("") }
-    var prefillGooglePictureUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+    var prefillGooglePictureUri by rememberSaveable { mutableStateOf<String?>(null) }
 
     // Launches Google sign-in. Tries One Tap (GetGoogleIdOption) first; if that
     // produces NoCredentialException (can happen on fresh devices or after the user
@@ -171,27 +145,21 @@ fun LoginAuthScreen(
     // available when Play Services is present.
     fun launchGoogleSignIn() {
         coroutineScope.launch {
-            val cm = credentialManager ?: return@launch
-            val webClientId = uiText(R.string.default_web_client_id)
+            val creds = authCredentials ?: return@launch
             // One nonce per attempt, in every request below; the ID token must carry it back (see GoogleNonce).
             val nonce = com.example.data.auth.GoogleNonce.newNonce()
-
-            fun handleCredentialResult(result: androidx.credentials.GetCredentialResponse) {
-                val credential = result.credential
-                if (credential is CustomCredential &&
-                    credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-                ) {
-                    val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
-                    if (!com.example.data.auth.GoogleNonce.idTokenMatchesNonce(googleIdTokenCredential.idToken, nonce)) {
+            when (val result = creds.requestGoogle(nonce)) {
+                is GoogleCredentialResult.Token -> {
+                    if (!com.example.data.auth.GoogleNonce.idTokenMatchesNonce(result.idToken, nonce)) {
                         com.example.analytics.AnalyticsTracker.authError("google", "nonce_mismatch")
                         UiMessages.show(sharedText("google_sign_in_isn_t_available_right_now_p"),
                             long = true)
-                        return
+                        return@launch
                     }
-                    val googleName = googleIdTokenCredential.displayName
-                        ?: "${googleIdTokenCredential.givenName.orEmpty()} ${googleIdTokenCredential.familyName.orEmpty()}".trim()
-                    val googlePictureUri = googleIdTokenCredential.profilePictureUri
-                    authViewModel.startGoogleSignIn(googleIdToken = googleIdTokenCredential.idToken) { needsRegistration ->
+                    val googleName = result.displayName
+                        ?: "${result.givenName.orEmpty()} ${result.familyName.orEmpty()}".trim()
+                    val googlePictureUri = result.pictureUri
+                    authViewModel.startGoogleSignIn(googleIdToken = result.idToken) { needsRegistration ->
                         if (needsRegistration) {
                             prefillGoogleName = googleName
                             prefillGooglePictureUri = googlePictureUri
@@ -201,47 +169,18 @@ fun LoginAuthScreen(
                         }
                     }
                 }
-            }
-
-            try {
-                val oneTapOption = GetGoogleIdOption.Builder()
-                    .setFilterByAuthorizedAccounts(false)
-                    .setServerClientId(webClientId)
-                    .setNonce(nonce)
-                    .build()
-                val result = cm.getCredential(
-                    context,
-                    GetCredentialRequest.Builder().addCredentialOption(oneTapOption).build()
-                )
-                handleCredentialResult(result)
-            } catch (e: androidx.credentials.exceptions.GetCredentialCancellationException) {
-                // User dismissed the account picker — no action needed.
-                com.example.analytics.AnalyticsTracker.authError("google", "cancelled")
-            } catch (e: androidx.credentials.exceptions.NoCredentialException) {
-                // One Tap could not find a matching credential (no accounts, or the flow
-                // was suppressed). Fall back to the standard Sign In With Google sheet,
-                // which works whenever Google Play Services is present.
-                try {
-                    val signInOption = GetSignInWithGoogleOption.Builder(webClientId).setNonce(nonce).build()
-                    val result = cm.getCredential(
-                        context,
-                        GetCredentialRequest.Builder().addCredentialOption(signInOption).build()
-                    )
-                    handleCredentialResult(result)
-                } catch (e2: androidx.credentials.exceptions.GetCredentialCancellationException) {
-                    // Dismissed
-                    com.example.analytics.AnalyticsTracker.authError("google", "cancelled")
-                } catch (e2: GetCredentialException) {
-                    android.util.Log.w("LoginAuthScreen", "Google sign-in unavailable: ${e2.type}")
+                GoogleCredentialResult.Cancelled -> com.example.analytics.AnalyticsTracker.authError("google", "cancelled")
+                GoogleCredentialResult.Unavailable -> {
                     com.example.analytics.AnalyticsTracker.authError("google", "unavailable")
                     UiMessages.show(sharedText("google_sign_in_isn_t_available_on_this_dev"),
                         long = true)
                 }
-            } catch (e: GetCredentialException) {
-                android.util.Log.w("LoginAuthScreen", "Google sign-in error: ${e.type}")
-                com.example.analytics.AnalyticsTracker.authError("google", "credential_error")
-                UiMessages.show(sharedText("google_sign_in_isn_t_available_right_now_p"),
-                    long = true)
+                GoogleCredentialResult.Error -> {
+                    com.example.analytics.AnalyticsTracker.authError("google", "credential_error")
+                    UiMessages.show(sharedText("google_sign_in_isn_t_available_right_now_p"),
+                        long = true)
+                }
+                GoogleCredentialResult.NotGoogle -> Unit
             }
         }
     }
@@ -253,7 +192,7 @@ fun LoginAuthScreen(
         authViewModel.clearStaleAuthMessages()
         // MainActivity already requests all permissions; detect country using available signals
         // (SIM/locale — no duplicate permission request here).
-        regWhatsAppCountry = PhoneCountryDetector.detectCountry(context)
+        com.example.util.CountryLookup.device()?.let { regWhatsAppCountry = it }
     }
 
     // --- Registration form state ---
@@ -288,7 +227,7 @@ fun LoginAuthScreen(
     LaunchedEffect(step) {
         if (step == AuthStep.REG_PROFILE) {
             if (prefillGoogleName.isNotBlank() && regFullName.isBlank()) regFullName = prefillGoogleName
-            if (prefillGooglePictureUri != null && regProfilePic == null) regProfilePic = prefillGooglePictureUri?.toPickedFile()
+            if (prefillGooglePictureUri != null && regProfilePic == null) regProfilePic = prefillGooglePictureUri?.let { com.example.util.PickedFile(it) }
         }
         if (step == AuthStep.REG_WHATSAPP) {
             if (!isPreview && !phoneHintOffered && regPhoneNumber.isBlank() && resumePhoneE164.isNullOrBlank()) {
@@ -312,17 +251,7 @@ fun LoginAuthScreen(
     fun afterPasswordAuth(email: String, password: String): (Boolean) -> Unit = { needsRegistration ->
         passwordInput = ""
         coroutineScope.launch {
-            val cm = credentialManager
-            val act = activity
-            if (cm != null && act != null) {
-                try {
-                    cm.createCredential(act, androidx.credentials.CreatePasswordRequest(email, password))
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    // Dismissed, or no password manager on this device: nothing to save.
-                }
-            }
+            authCredentials?.savePassword(email, password)
             if (needsRegistration) goToRegistrationForm() else onLoginSuccess()
         }
     }
@@ -333,47 +262,28 @@ fun LoginAuthScreen(
     LaunchedEffect(step, intent) {
         if (isPreview || savedCredentialOffered || step != AuthStep.PROVIDERS || creating) return@LaunchedEffect
         savedCredentialOffered = true
-        val cm = credentialManager ?: return@LaunchedEffect
+        val creds = authCredentials ?: return@LaunchedEffect
         val returningNonce = com.example.data.auth.GoogleNonce.newNonce()
-        val request = GetCredentialRequest.Builder()
-            .addCredentialOption(androidx.credentials.GetPasswordOption())
-            .addCredentialOption(
-                GetGoogleIdOption.Builder()
-                    .setFilterByAuthorizedAccounts(true)
-                    .setServerClientId(uiText(R.string.default_web_client_id))
-                    .setNonce(returningNonce)
-                    .build()
-            )
-            .build()
-        val response = try {
-            cm.getCredential(context, request)
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            null // nothing saved, dismissed, or no credential provider on this device
-        } ?: return@LaunchedEffect
-        when (val credential = response.credential) {
-            is androidx.credentials.PasswordCredential -> {
+        when (val credential = creds.offerSaved(returningNonce) ?: return@LaunchedEffect) {
+            is SavedCredential.Password -> {
                 emailInput = credential.id
                 authViewModel.signIn(credential.id, credential.password) { needsRegistration ->
                     if (needsRegistration) goToRegistrationForm() else onLoginSuccess()
                 }
             }
-            is CustomCredential -> if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                val google = GoogleIdTokenCredential.createFrom(credential.data)
-                if (!com.example.data.auth.GoogleNonce.idTokenMatchesNonce(google.idToken, returningNonce)) {
+            is SavedCredential.Google -> {
+                if (!com.example.data.auth.GoogleNonce.idTokenMatchesNonce(credential.idToken, returningNonce)) {
                     com.example.analytics.AnalyticsTracker.authError("google", "nonce_mismatch")
                     return@LaunchedEffect
                 }
-                authViewModel.startGoogleSignIn(google.idToken) { needsRegistration ->
+                authViewModel.startGoogleSignIn(credential.idToken) { needsRegistration ->
                     if (needsRegistration) {
-                        prefillGoogleName = google.displayName.orEmpty()
-                        prefillGooglePictureUri = google.profilePictureUri
+                        prefillGoogleName = credential.displayName.orEmpty()
+                        prefillGooglePictureUri = credential.pictureUri
                         step = AuthStep.REG_PROFILE
                     } else onLoginSuccess()
                 }
             }
-            else -> Unit
         }
     }
 
@@ -405,7 +315,7 @@ fun LoginAuthScreen(
         AuthStep.REG_PLACE -> AuthStep.REG_PROFILE
         AuthStep.REG_WHATSAPP -> AuthStep.REG_PLACE
     }
-    BackHandler(enabled = previous != null && !isAuthenticating) { previous?.let { goTo(it) } }
+    PlatformBackHandler(enabled = previous != null && !isAuthenticating) { previous?.let { goTo(it) } }
 
     val error = localErrorMessage ?: authErrorMessage
     val showTerms = { showLegalDocument = com.example.legal.LegalContent.termsOfUse }
@@ -605,7 +515,7 @@ fun LoginAuthScreen(
             subtitle = appString(Res.string.hosts_and_guests_reach_you_here_never_show),
             isBusy = isAuthenticating,
             error = error,
-            primaryText = stringResource(if (isAuthenticating) R.string.creating_account else R.string.finish),
+            primaryText = appString(if (isAuthenticating) Res.string.creating_account else Res.string.finish),
             primaryEnabled = tosAccepted && (regPhoneNumber.isNotBlank() || !resumePhoneE164.isNullOrBlank()),
             onPrimary = { finishRegistration() },
             onBack = { goTo(AuthStep.REG_PLACE) }
