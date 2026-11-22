@@ -62,7 +62,7 @@ To do (code, Claude):
 - ✅ CI for Sign in with Apple + StoreKit → `main` → TestFlight build 21
 - ✅ Deep links: Universal Links + `prohost://`, push-tap → listing (code; CI running)
 - ✅ Legal viewer in a WKWebView · ☐ legal PDFs
-- ✅ Payment reminder to the calendar (EventKit) · ☐ haptics, sounds
+- ✅ Payment reminder to the calendar (EventKit) · ✅ haptics (success feedback), sounds (same WAVs, ambient session)
 - ✅ Analytics consent + Crashlytics on iOS (opt-in like Android: Consent Mode denied in Info.plist, choice kept in NSUserDefaults)
 - ✅ Arabic purpose strings (camera, location) — `InfoPlist.strings`
 - ✅ Notification permission at the same moment as Android (after the analytics choice)
