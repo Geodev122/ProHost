@@ -142,4 +142,8 @@ Last updated: 8 Nov 2026
   Integrations › In-App Purchase › "+" (name "ProHost server") › Generate › Download the `.p8` (only once) and note the Key ID.
   GitHub › Settings › Secrets and variables › Actions: `APPLE_IAP_KEY_ID` = the Key ID, `APPLE_IAP_KEY_P8` = the whole file
   text (BEGIN/END lines included). The Issuer ID is the one already in `ASC_ISSUER_ID`. Never paste the key in chat.
+- ☐ **E3 error alerts (2 min):** console.cloud.google.com › IAM & Admin › IAM (project prohost-f766f) › find
+  `firebase-adminsdk-fbsvc@prohost-f766f.iam.gserviceaccount.com` › Edit › Add role **Monitoring AlertPolicy Editor** and
+  **Monitoring NotificationChannel Viewer** › Save. Then Claude runs Maintenance `alerts apply` (function errors, App Store and
+  Play sync failures emailed to you, max one per hour each). Record the IAM change in `docs/GCP_IAM.md`.
 

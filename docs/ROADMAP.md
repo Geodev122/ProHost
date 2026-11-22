@@ -72,9 +72,9 @@ Splash "no loading state"). Admin console: 70 parity items, code exists for 8-36
   Android then see "Admin tools are on the web", like iOS. Ships in the next Android release.
 
 ### E. Backend and operations
-- ☐ **E1** Check the Firestore TTL policy (Maintenance `ttl` dry run); when ACTIVE, retire `pruneExpiredNotifications`.
+- ⏳ **E1** (22 Nov: no policy existed; re-requested, CREATING) Check the Firestore TTL policy (Maintenance `ttl` dry run); when ACTIVE, retire `pruneExpiredNotifications`.
 - ☐ **E2** App Check: measure verified traffic per service (logs `app_check_unverified`); enforce only at ≥ 99 % (decision recorded).
-- ☐ **E3** Error alerting: a log-based alert on function errors and on `appleSync` / `billingSync` failures, emailed to the owner.
+- ◐ 👤 **E3** Error alerting (task `alerts` built; CI account needs two Monitoring roles, OWNER_TODO): a log-based alert on function errors and on `appleSync` / `billingSync` failures, emailed to the owner.
 - ☐ **E4** Move function groups to their own service accounts (`run-billing`, `run-auth`, …; prepared 4 Nov), one group per deploy.
 - ☐ 👤 **E5** Cost and security: $50 budget + BigQuery billing export; API key restrictions (web, Android, Maps); Anthropic spending cap;
   disable the old appspot key `e5b6952d…`; rotate the firebase-adminsdk key.
