@@ -32,37 +32,19 @@
 <body>
 <header>
   <h1>🦅 NIGHTHAWK — ProHost Enhanced Debug Report</h1>
-  <p>84 issues found · 29 checks passed</p>
+  <p>81 issues found · 32 checks passed</p>
 </header>
 <div class="stats">
   <div class="stat crit"><div class="num">0</div><div class="lbl">Critical</div></div>
-  <div class="stat high"><div class="num">1</div><div class="lbl">High</div></div>
-  <div class="stat med"><div class="num">66</div><div class="lbl">Medium</div></div>
+  <div class="stat high"><div class="num">0</div><div class="lbl">High</div></div>
+  <div class="stat med"><div class="num">64</div><div class="lbl">Medium</div></div>
   <div class="stat low"><div class="num">17</div><div class="lbl">Low</div></div>
-  <div class="stat pass"><div class="num">29</div><div class="lbl">Passing</div></div>
+  <div class="stat pass"><div class="num">32</div><div class="lbl">Passing</div></div>
 </div>
 <h2>Findings</h2>
 <table>
   <thead><tr><th>Severity</th><th>Category</th><th>Check</th><th>Location</th><th>Issue</th><th>Suggestion</th></tr></thead>
   <tbody>
-  <tr style="background:#FBE9E7">
-    <td><span class="badge" style="background:#E64A19">HIGH</span></td>
-    <td><code class="tag">reliability</code></td>
-    <td><strong>ID Token Refresh Missing</strong></td>
-    <td><code>app/src/main/java/com/example/data/auth/AuthFlow.kt</code></td>
-    <td>AuthFlow does not call forceRefresh on ID token after login.</td>
-    <td class="suggestion">Call getIdToken(true).</td>
-  </tr>
-
-  <tr style="background:#FFF3E0">
-    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
-    <td><code class="tag">ux</code></td>
-    <td><strong>Screen Loading State</strong></td>
-    <td><code>app/src/main/java/com/example/ui/screens/SplashScreen.kt</code></td>
-    <td>Screen has no loading indicator.</td>
-    <td class="suggestion">Add an isLoading state and CircularProgressIndicator overlay.</td>
-  </tr>
-
   <tr style="background:#FFF3E0">
     <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
     <td><code class="tag">consistency</code></td>
@@ -639,15 +621,6 @@
     <td class="suggestion">Export or remove.</td>
   </tr>
 
-  <tr style="background:#FFF3E0">
-    <td><span class="badge" style="background:#F57C00">MEDIUM</span></td>
-    <td><code class="tag">gradle</code></td>
-    <td><strong>Target SDK Compliance</strong></td>
-    <td><code>app/build.gradle.kts</code></td>
-    <td>compileSdk is below Google Play requirements (must be 34+).</td>
-    <td class="suggestion">Update compileSdk and targetSdk to 35 or 36.</td>
-  </tr>
-
   <tr style="background:#E3F2FD">
     <td><span class="badge" style="background:#1976D2">LOW</span></td>
     <td><code class="tag">detekt</code></td>
@@ -832,7 +805,7 @@
 
   <tr>
     <td><span class="badge" style="background:#388E3C">PASS</span></td>
-    <td colspan="4">2/3 screens have a loading indicator.</td>
+    <td colspan="4">3/3 screens have a loading indicator.</td>
     <td>—</td>
   </tr>
 
@@ -868,6 +841,12 @@
 
   <tr>
     <td><span class="badge" style="background:#388E3C">PASS</span></td>
+    <td colspan="4">All AuthStep values are referenced in UI.</td>
+    <td>—</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge" style="background:#388E3C">PASS</span></td>
     <td colspan="4">No unsafe as any or unguarded snap.data()! found.</td>
     <td>—</td>
   </tr>
@@ -893,6 +872,12 @@
   <tr>
     <td><span class="badge" style="background:#388E3C">PASS</span></td>
     <td colspan="4">Backend verifies, grants, then acknowledges; app routes every purchase to it.</td>
+    <td>—</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge" style="background:#388E3C">PASS</span></td>
+    <td colspan="4">ID token refresh present.</td>
     <td>—</td>
   </tr>
 
@@ -953,6 +938,12 @@
   <tr>
     <td><span class="badge" style="background:#388E3C">PASS</span></td>
     <td colspan="4">All components with intent filters have explicit exported attributes; permissions validated.</td>
+    <td>—</td>
+  </tr>
+
+  <tr>
+    <td><span class="badge" style="background:#388E3C">PASS</span></td>
+    <td colspan="4">SDK targets compliant, release signing configured, R8 and shrinking enabled.</td>
     <td>—</td>
   </tr>
 

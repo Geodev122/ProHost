@@ -31,6 +31,13 @@ const KT_VM         = path.join(ROOT, 'app/src/main/java/com/example/ui/viewmode
 const KT_DATA       = path.join(ROOT, 'app/src/main/java/com/example/data');
 const KT_UI         = path.join(ROOT, 'app/src/main/java/com/example/ui');
 const KT_ROOT       = path.join(ROOT, 'app/src/main/java/com/example');
+// KMP (Nov 2026): most app code moved to :shared. A Kotlin file is looked up in :app first, then in shared/commonMain.
+const KT_SHARED     = path.join(ROOT, 'shared/src/commonMain/kotlin/com/example');
+function ktFile(appPath) {
+  if (fs.existsSync(appPath)) return appPath;
+  const shared = path.join(KT_SHARED, path.relative(KT_ROOT, appPath));
+  return fs.existsSync(shared) ? shared : appPath;
+}
 const FN_SRC        = path.join(ROOT, 'functions/src');
 const FIRESTORE_RULES = path.join(ROOT, 'firestore.rules');
 const MANIFEST      = path.join(ROOT, 'app/src/main/AndroidManifest.xml');
@@ -235,7 +242,7 @@ function checkScreenLoading() {
   let missing = 0;
   for (const f of files) {
     const c = readSafe(f) || '';
-    if (!/isLoading|Loading|CircularProgress/.test(c)) {
+    if (!/isLoading|Loading|CircularProgress|SplashContent/.test(c)) { // SplashContent (shared) draws the spinner
       missing++;
       bug('MEDIUM','ux','Screen Loading State', relPath(f), null,
         `Screen has no loading indicator.`,
@@ -378,7 +385,7 @@ function checkDeepLinks() {
 // ─── CHECK 11: AuthStep enum completeness ─────────────────────────────────────
 
 function checkAuthStep() {
-  const loginFile = path.join(KT_SCREENS, 'LoginAuthScreen.kt');
+  const loginFile = ktFile(path.join(KT_SCREENS, 'LoginAuthScreen.kt'));
   const content   = readSafe(loginFile);
   if (!content) return;
   const enumMatch = content.match(/enum class AuthStep\s*\{([^}]+)\}/);
@@ -464,7 +471,7 @@ function checkRoleGuards() {
 // ─── CHECK 16: Payment flow plumbing ─────────────────────────────────────────
 
 function checkPaymentFlow() {
-  const billingManagerFile = path.join(KT_DATA, 'billing/PlayBillingManager.kt');
+  const billingManagerFile = ktFile(path.join(KT_DATA, 'billing/PlayBillingManager.kt'));
   if (!fs.existsSync(billingManagerFile)) {
     bug('CRITICAL','consistency','Google Play Billing Manager Missing', 'PlayBillingManager.kt', null,
       'PlayBillingManager.kt not found.', 'Implement PlayBillingManager.');
@@ -479,7 +486,7 @@ function checkBillingFlow() {
   // Play's order is verify → grant → acknowledge, on the backend when one exists. Either the
   // backend acknowledges (functions/src/billing) and the app routes purchases to it, or the
   // app acknowledges itself. Unacknowledged purchases are auto-refunded after 3 days.
-  const billingFile = path.join(KT_DATA, 'billing/PlayBillingManager.kt');
+  const billingFile = ktFile(path.join(KT_DATA, 'billing/PlayBillingManager.kt'));
   const client = readSafe(billingFile) || '';
   const fnDir = path.join(ROOT, 'functions/src/billing');
   const rtdn = readSafe(path.join(fnDir, 'playBillingRtdn.ts')) || '';
@@ -505,9 +512,10 @@ function checkBillingFlow() {
 // ─── CHECK 18: Auth token refresh ────────────────────────────────────────────
 
 function checkAuthTokenRefresh() {
-  const authFlow = path.join(KT_DATA, 'auth/AuthFlow.kt');
+  const authFlow = ktFile(path.join(KT_DATA, 'auth/AuthFlow.kt'));
   const content = readSafe(authFlow) || '';
-  if (!content.includes('forceRefresh') && !content.includes('getIdToken')) {
+  // Shared AuthFlow refreshes through the gateway: readRoleClaim(true) = getIdToken(forceRefresh = true).
+  if (!content.includes('forceRefresh') && !content.includes('getIdToken') && !content.includes('readRoleClaim(true)')) {
     bug('HIGH','reliability','ID Token Refresh Missing', relPath(authFlow), null,
       'AuthFlow does not call forceRefresh on ID token after login.', 'Call getIdToken(true).');
   } else {
@@ -518,7 +526,7 @@ function checkAuthTokenRefresh() {
 // ─── CHECK 19: KYC screen state ───────────────────────────────────────────────
 
 function checkKycScreen() {
-  const kycFile = path.join(KT_SCREENS, 'KycScreen.kt');
+  const kycFile = ktFile(path.join(KT_SCREENS, 'KycScreen.kt'));
   const content = readSafe(kycFile) || '';
   if (content && !content.includes('isLoading')) {
     bug('MEDIUM','ux','KYC Screen Completeness', relPath(kycFile), null,
@@ -725,7 +733,8 @@ function checkGradleConfigAudit() {
   let issues = 0;
 
   // 1. Verify compileSdk and targetSdk >= 34
-  if (!buildContent.includes('compileSdk = 36') && !buildContent.includes('compileSdk = 35') && !buildContent.includes('compileSdk = 34')) {
+  const compileSdk = Number((buildContent.match(/compileSdk\s*=\s*(\d+)/) || [])[1] || 0);
+  if (compileSdk < 34) {
     bug('MEDIUM','gradle','Target SDK Compliance', 'app/build.gradle.kts', null,
       'compileSdk is below Google Play requirements (must be 34+).',
       'Update compileSdk and targetSdk to 35 or 36.');
@@ -813,7 +822,7 @@ function checkAnalyticsHygiene() {
     }
   }
 
-  const tracker = readSafe(path.join(KT_ROOT, 'analytics/AnalyticsTracker.kt')) || '';
+  const tracker = readSafe(ktFile(path.join(KT_ROOT, 'analytics/AnalyticsTracker.kt'))) || '';
   if (/setUserId\((user\.)?id\)|setUserId\(uid\)/.test(tracker)) {
     issues++;
     bug('HIGH','analytics','GA4 User ID Is The Firebase UID', 'app/src/main/java/com/example/analytics/AnalyticsTracker.kt', null,

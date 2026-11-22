@@ -1,34 +1,16 @@
 {
-  "generatedAt": "2026-11-22T17:37:26.698Z",
+  "generatedAt": "2026-11-22T17:45:08.534Z",
   "trigger": "NIGHTHAWK",
   "summary": {
-    "total": 84,
+    "total": 81,
     "critical": 0,
-    "high": 1,
-    "medium": 66,
+    "high": 0,
+    "medium": 64,
     "low": 17,
     "info": 0,
-    "passes": 29
+    "passes": 32
   },
   "findings": [
-    {
-      "severity": "HIGH",
-      "category": "reliability",
-      "check": "ID Token Refresh Missing",
-      "file": "app/src/main/java/com/example/data/auth/AuthFlow.kt",
-      "line": null,
-      "message": "AuthFlow does not call forceRefresh on ID token after login.",
-      "suggestion": "Call getIdToken(true)."
-    },
-    {
-      "severity": "MEDIUM",
-      "category": "ux",
-      "check": "Screen Loading State",
-      "file": "app/src/main/java/com/example/ui/screens/SplashScreen.kt",
-      "line": null,
-      "message": "Screen has no loading indicator.",
-      "suggestion": "Add an isLoading state and CircularProgressIndicator overlay."
-    },
     {
       "severity": "MEDIUM",
       "category": "consistency",
@@ -606,15 +588,6 @@
       "suggestion": "Export or remove."
     },
     {
-      "severity": "MEDIUM",
-      "category": "gradle",
-      "check": "Target SDK Compliance",
-      "file": "app/build.gradle.kts",
-      "line": null,
-      "message": "compileSdk is below Google Play requirements (must be 34+).",
-      "suggestion": "Update compileSdk and targetSdk to 35 or 36."
-    },
-    {
       "severity": "LOW",
       "category": "detekt",
       "check": "Long Parameter List",
@@ -787,7 +760,7 @@
     },
     {
       "check": "Screen Loading State",
-      "message": "2/3 screens have a loading indicator."
+      "message": "3/3 screens have a loading indicator."
     },
     {
       "check": "Screen Error State",
@@ -810,6 +783,10 @@
       "message": "All prohost:// deep link hosts are registered in AndroidManifest.xml."
     },
     {
+      "check": "AuthStep Completeness",
+      "message": "All AuthStep values are referenced in UI."
+    },
+    {
       "check": "TypeScript Safety",
       "message": "No unsafe as any or unguarded snap.data()! found."
     },
@@ -828,6 +805,10 @@
     {
       "check": "Purchase Acknowledgement",
       "message": "Backend verifies, grants, then acknowledges; app routes every purchase to it."
+    },
+    {
+      "check": "ID Token Refresh",
+      "message": "ID token refresh present."
     },
     {
       "check": "KYC Screen Completeness",
@@ -868,6 +849,10 @@
     {
       "check": "Manifest Validation",
       "message": "All components with intent filters have explicit exported attributes; permissions validated."
+    },
+    {
+      "check": "Gradle Build Config Audit",
+      "message": "SDK targets compliant, release signing configured, R8 and shrinking enabled."
     },
     {
       "check": "Code Style Enforcement",

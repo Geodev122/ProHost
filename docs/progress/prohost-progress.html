@@ -1,0 +1,258 @@
+<title>ProHost Launch Tracker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: one phone-width column — headline progress, the "now" line, area bars, filter chips, then tasks grouped by area. */
+:root {
+  --bg: #F6F8FB;
+  --surface: #FFFFFF;
+  --ink: #14202E;
+  --muted: #5B6878;
+  --line: #DCE3EC;
+  --steel: #2B5A8C;
+  --steel-soft: #E3ECF6;
+  --orange: #E2533F;
+  --orange-soft: #FCE7E3;
+  --done: #2E7D4F;
+  --done-soft: #E2F2E8;
+  --run: #B06A00;
+  --run-soft: #FBEFD9;
+  --track: #E6EBF2;
+  --display: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --body: "Inter", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0E1520; --surface: #172131; --ink: #E7EDF5; --muted: #9AA8BA; --line: #26344A;
+  --steel: #93B8E0; --steel-soft: #1D2F45; --orange: #FF8575; --orange-soft: #3A2220;
+  --done: #74C997; --done-soft: #173225; --run: #F2B65A; --run-soft: #3A2C14; --track: #223047; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0E1520; --surface: #172131; --ink: #E7EDF5; --muted: #9AA8BA; --line: #26344A;
+  --steel: #93B8E0; --steel-soft: #1D2F45; --orange: #FF8575; --orange-soft: #3A2220;
+  --done: #74C997; --done-soft: #173225; --run: #F2B65A; --run-soft: #3A2C14; --track: #223047; color-scheme: dark }
+
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 720px; margin: 0 auto; padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 18px; }
+h1 { font-family: var(--display); font-weight: 800; font-size: 1.55rem; letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-weight: 700; font-size: 1.02rem; margin: 0; }
+.eyebrow { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.muted { color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+
+.hero { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: grid;
+  grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
+.ring { width: 92px; height: 92px; }
+.ring circle { fill: none; stroke-width: 10; }
+.ring .bgc { stroke: var(--track); }
+.ring .fgc { stroke: var(--steel); stroke-linecap: round; transition: stroke-dashoffset .6s ease; }
+.ring text { fill: var(--ink); font-family: var(--display); font-weight: 800; font-size: 22px; }
+.hero-stats { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 6px; font-size: .86rem; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+
+.now { background: var(--steel-soft); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.now p { margin: 0; }
+.you { background: var(--orange-soft); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.you ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+
+.areas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 460px) { .areas { grid-template-columns: 1fr; } }
+.area { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.area:focus-visible, .chip:focus-visible { outline: 2px solid var(--steel); outline-offset: 2px; }
+.area-top { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; font-size: .9rem; }
+.bar { height: 6px; background: var(--track); border-radius: 99px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--steel); border-radius: 99px; transition: width .5s ease; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 99px; padding: 6px 12px; font: 600 .82rem var(--body); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--steel); border-color: var(--steel); color: var(--surface); }
+
+.group { display: flex; flex-direction: column; gap: 8px; }
+.group-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding-top: 6px; }
+.task { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; }
+.task.you-task { border-color: color-mix(in srgb, var(--orange) 45%, var(--line)); }
+.tid { font-family: var(--display); font-weight: 800; font-size: .82rem; color: var(--steel); padding-top: 1px; min-width: 2.2em; }
+.task-body { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.task-title { font-weight: 600; }
+.task-note { font-size: .84rem; color: var(--muted); overflow-wrap: anywhere; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: .74rem; }
+.pill { border-radius: 99px; padding: 2px 9px; font-weight: 600; font-size: .74rem; }
+.s-done { background: var(--done-soft); color: var(--done); }
+.s-running { background: var(--run-soft); color: var(--run); }
+.s-partial { background: var(--steel-soft); color: var(--steel); }
+.s-todo { background: var(--track); color: var(--muted); }
+.s-blocked { background: var(--orange-soft); color: var(--orange); }
+.who { border: 1px solid var(--line); border-radius: 99px; padding: 1px 8px; color: var(--muted); }
+.who.you { border-color: var(--orange); color: var(--orange); background: transparent; }
+
+.empty { background: var(--surface); border: 1px dashed var(--line); border-radius: 12px; padding: 18px; color: var(--muted); }
+footer { font-size: .78rem; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .ring .fgc, .bar > i { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">ProHost · Android, iOS and the web console</div>
+    <h1>Launch tracker</h1>
+  </header>
+
+  <section class="hero" aria-label="Overall progress">
+    <svg class="ring" viewBox="0 0 100 100" role="img" aria-label="Overall progress">
+      <circle class="bgc" cx="50" cy="50" r="40"></circle>
+      <circle class="fgc" id="ringFg" cx="50" cy="50" r="40" stroke-dasharray="251.3" stroke-dashoffset="251.3" transform="rotate(-90 50 50)"></circle>
+      <text id="ringText" x="50" y="58" text-anchor="middle">–</text>
+    </svg>
+    <div>
+      <h2 id="heroLine">Loading the plan…</h2>
+      <div class="hero-stats num" id="heroStats"></div>
+      <div class="muted" style="font-size:.78rem;margin-top:6px" id="updated"></div>
+    </div>
+  </section>
+
+  <section class="now" id="nowBox" hidden>
+    <div class="eyebrow">Working on now</div>
+    <p id="nowText"></p>
+  </section>
+
+  <section class="you" id="youBox" hidden>
+    <div class="eyebrow">Waiting for you</div>
+    <ul id="youList"></ul>
+  </section>
+
+  <section class="areas" id="areas" aria-label="Progress by area"></section>
+
+  <div class="chips" role="toolbar" aria-label="Filter tasks" id="chips"></div>
+
+  <main id="list">
+    <div class="empty" id="emptyState">The task list appears here once it loads. Each task has an ID (A1, B2…) that matches the
+      roadmap in the ProHost repository and Claude's progress reports.</div>
+  </main>
+
+  <footer>Statuses are updated by Claude as work lands; the source plan is <code>docs/ROADMAP.md</code>.</footer>
+</div>
+
+<script>
+(function () {
+  const STATUS = {
+    done: { label: "Done", cls: "s-done", color: "var(--done)" },
+    running: { label: "In progress", cls: "s-running", color: "var(--run)" },
+    partial: { label: "Partly done", cls: "s-partial", color: "var(--steel)" },
+    todo: { label: "To do", cls: "s-todo", color: "var(--muted)" },
+    blocked: { label: "Blocked", cls: "s-blocked", color: "var(--orange)" },
+  };
+  const FILTERS = [["all", "All"], ["you", "Needs you"], ["open", "Open"], ["running", "In progress"], ["done", "Done"]];
+  let filter = "all", areaFilter = null, tasks = [], meta = null;
+  try { filter = localStorage.getItem("ph-filter") || "all"; } catch (e) {}
+
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+
+  function weight(t) { return t.status === "done" ? 1 : t.status === "partial" || t.status === "running" ? 0.5 : 0; }
+  function ago(ms) {
+    if (!ms) return "";
+    const m = Math.round((Date.now() - ms) / 60000);
+    if (m < 1) return "just now"; if (m < 60) return m + " min ago";
+    const h = Math.round(m / 60); if (h < 24) return h + " h ago";
+    return new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  }
+
+  function renderChips() {
+    const box = $("chips"); box.textContent = "";
+    FILTERS.forEach(([key, label]) => {
+      const b = el("button", "chip", label);
+      b.type = "button"; b.id = "chip-" + key;
+      b.setAttribute("aria-pressed", String(filter === key && !areaFilter));
+      b.onclick = () => { filter = key; areaFilter = null; try { localStorage.setItem("ph-filter", key); } catch (e) {} render(); };
+      box.appendChild(b);
+    });
+  }
+
+  function render() {
+    renderChips();
+    const total = tasks.length;
+    const score = tasks.reduce((s, t) => s + weight(t), 0);
+    const pct = total ? Math.round((score / total) * 100) : 0;
+    $("ringFg").setAttribute("stroke-dashoffset", String(251.3 * (1 - pct / 100)));
+    $("ringText").textContent = total ? pct + "%" : "–";
+    const count = (s) => tasks.filter((t) => t.status === s).length;
+    const youOpen = tasks.filter((t) => t.owner === "you" && t.status !== "done");
+    $("heroLine").textContent = total ? `${count("done")} of ${total} tasks done` : "Loading the plan…";
+    const stats = $("heroStats"); stats.textContent = "";
+    if (total) [["running", "In progress"], ["partial", "Partly done"], ["todo", "To do"]].forEach(([s, l]) => {
+      const span = el("span"); const d = el("span", "dot"); d.style.background = STATUS[s].color;
+      span.append(d, `${l} ${count(s)}`); stats.appendChild(span);
+    });
+    const latest = Math.max(0, ...tasks.map((t) => Number(t.updatedAt) || 0), Number(meta?.updatedAt) || 0);
+    $("updated").textContent = latest ? "Updated " + ago(latest) : "";
+
+    $("nowBox").hidden = !meta?.now; $("nowText").textContent = meta?.now || "";
+    const yl = $("youList"); yl.textContent = "";
+    youOpen.slice(0, 6).forEach((t) => yl.appendChild(el("li", null, `${t.id} · ${t.title}`)));
+    $("youBox").hidden = youOpen.length === 0;
+
+    const areas = []; tasks.forEach((t) => { if (!areas.find((a) => a.key === t.area)) areas.push({ key: t.area, name: t.areaName || t.area }); });
+    const ab = $("areas"); ab.textContent = "";
+    areas.forEach((a) => {
+      const list = tasks.filter((t) => t.area === a.key);
+      const p = Math.round((list.reduce((s, t) => s + weight(t), 0) / list.length) * 100);
+      const b = el("button", "area"); b.type = "button"; b.id = "area-" + a.key;
+      b.setAttribute("aria-pressed", String(areaFilter === a.key));
+      const top = el("div", "area-top"); top.append(el("span", null, `${a.key} · ${a.name}`), el("span", "num muted", p + "%"));
+      const bar = el("div", "bar"); const fill = el("i"); fill.style.width = p + "%"; bar.appendChild(fill);
+      b.append(top, bar);
+      b.onclick = () => { areaFilter = areaFilter === a.key ? null : a.key; render(); };
+      ab.appendChild(b);
+    });
+
+    const main = $("list"); main.textContent = "";
+    const shown = tasks.filter((t) => (areaFilter ? t.area === areaFilter : true) && (
+      areaFilter ? true :
+      filter === "you" ? t.owner === "you" && t.status !== "done" :
+      filter === "open" ? t.status !== "done" :
+      filter === "running" ? t.status === "running" || t.status === "partial" :
+      filter === "done" ? t.status === "done" : true));
+    if (!total) { main.appendChild($("emptyState") || el("div", "empty", "No tasks yet.")); return; }
+    if (!shown.length) { main.appendChild(el("div", "empty", "Nothing matches this filter.")); return; }
+    areas.forEach((a) => {
+      const list = shown.filter((t) => t.area === a.key);
+      if (!list.length) return;
+      const g = el("section", "group");
+      const head = el("div", "group-head"); head.append(el("h2", null, `${a.key} · ${a.name}`), el("span", "muted num", `${list.filter((t) => t.status === "done").length}/${list.length}`));
+      g.appendChild(head);
+      list.forEach((t) => {
+        const card = el("article", "task" + (t.owner === "you" && t.status !== "done" ? " you-task" : ""));
+        const body = el("div", "task-body");
+        body.appendChild(el("div", "task-title", t.title));
+        if (t.note) body.appendChild(el("div", "task-note", t.note));
+        const meta2 = el("div", "meta");
+        const st = STATUS[t.status] || STATUS.todo;
+        meta2.appendChild(el("span", "pill " + st.cls, st.label));
+        meta2.appendChild(el("span", "who" + (t.owner === "you" ? " you" : ""), t.owner === "you" ? "You" : "Claude"));
+        if (t.updatedAt) meta2.appendChild(el("span", "muted", ago(Number(t.updatedAt))));
+        body.appendChild(meta2);
+        card.append(el("div", "tid", t.id), body);
+        g.appendChild(card);
+      });
+      main.appendChild(g);
+    });
+  }
+
+  render();
+
+  (async function connect() {
+    let db = null;
+    try { db = await window.claude?.use?.("db"); } catch (e) { db = null; }
+    const timer = setTimeout(() => {
+      if (!tasks.length) $("emptyState").textContent = "The task list didn't load. Open this page while signed in to claude.ai to see live progress.";
+    }, 10000);
+    if (!db) { clearTimeout(timer); $("emptyState").textContent = "Live progress needs you to be signed in to claude.ai. Open this page from the Claude app or claude.ai."; return; }
+    db.collection("tasks").orderBy("order", "asc").onSnapshot((snap) => {
+      clearTimeout(timer);
+      tasks = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      render();
+    }, () => { clearTimeout(timer); $("emptyState").textContent = "The task list couldn't be read right now. Reopen the page in a minute."; });
+    db.doc("meta/state").onSnapshot((d) => { meta = d.exists ? d.data() : null; render(); }, () => {});
+  })();
+})();
+</script>

@@ -3,6 +3,8 @@
 Updated 22 Nov 2026, 17:45 UTC. Status keys: ✅ done · ⏳ running · ◐ partly done · ☐ to do · 👤 needs the owner.
 Each task has an ID (e.g. **B5**) so progress can be reported against it. Detail per unit: `docs/migration/PROGRESS.md`;
 owner items: `docs/OWNER_TODO.md`; history: `docs/OPS_LOG.md`.
+**Live progress page (phone):** https://claude.ai/artifact/EKxcJsvvHzHkxZLV4hQyx3 — source `docs/progress/prohost-progress.html`,
+task rows in its database (collection `tasks`, doc id = task ID; Claude updates `status` with ArtifactData as work lands).
 
 ## Where we are
 
@@ -13,7 +15,7 @@ owner items: `docs/OWNER_TODO.md`; history: `docs/OPS_LOG.md`.
 | Admin console (web) | live at pro-host.tech/console: 7 tabs + Reports + Diagnostics + Bookings | Pro Host tools, shell items, owner walk-through, Android admin removal |
 | Backend | live; daily Play and App Store syncs; quota-safe deploys | retire the old notification pruner, App Check decision, monitoring |
 
-Audit of 22 Nov: NIGHTHAWK 0 critical, 1 high (stale path: `AuthFlow.kt` moved to `:shared`, the check still looks in `:app`;
+Audit of 22 Nov: NIGHTHAWK 0 critical, 0 high after A1 (was 1 high (stale path: `AuthFlow.kt` moved to `:shared`, the check still looks in `:app`;
 the shared code does refresh the token), 66 medium (64 known "Orphaned Module" false positives, compileSdk 37 read as < 34,
 Splash "no loading state"). Admin console: 70 parity items, code exists for 8-36, 38-57, 59-65; 0 walked through by the owner.
 
@@ -22,10 +24,10 @@ Splash "no loading state"). Admin console: 70 parity items, code exists for 8-36
 ## The finish line: every remaining task
 
 ### A. Build, CI and checks (Claude)
-- ☐ **A1** NIGHTHAWK paths for the KMP layout (`shared/src/commonMain/...` as well as `app/`): the token-refresh, screen-state and
+- ✅ **A1** NIGHTHAWK paths for the KMP layout (`shared/src/commonMain/...` as well as `app/`): the token-refresh, screen-state and
   orphan checks read the moved files; mark the known false positives; target: 0 high. *Done when NIGHTHAWK prints 0 critical / 0 high.*
-- ☐ **A2** Parity Gate warm-up: retry the Robolectric download up to 3 times (2 shards failed on 22 Nov), like the console's cache repair.
-- ☐ **A3** `ADMIN_PARITY.md`: tick the **Web** column for every item already built (its legend: Web = built), so the walk-through list is honest.
+- ✅ **A2** Parity Gate warm-up: retry the Robolectric download up to 3 times (2 shards failed on 22 Nov), like the console's cache repair.
+- ✅ **A3** `ADMIN_PARITY.md`: tick the **Web** column for every item already built (its legend: Web = built), so the walk-through list is honest.
 - ✅ **A4** Console builds repair a broken Gradle cache; quota-redeploy step no longer fails when no function changed (22 Nov).
 
 ### B. iOS to the App Store
