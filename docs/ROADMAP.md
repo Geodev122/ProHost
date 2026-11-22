@@ -66,8 +66,8 @@ To do (code, Claude):
 - ☐ Analytics consent + Crashlytics on iOS (opt-in like Android)
 - ✅ Arabic purpose strings (camera, location) — `InfoPlist.strings`
 - ☐ Notification permission at the same moment as Android (after the analytics choice)
-- ☐ Admin accounts on iPhone: "use the web console" screen (decision D1 default)
-- ☐ Sign in with Apple token revocation on account deletion (Apple rule 5.1.1(v)), server side
+- ✅ Admin accounts on iPhone: "use the web console" screen (decision D1 default)
+- ✅ Sign in with Apple token revocation on account deletion (Apple rule 5.1.1(v)): Firebase `revokeToken` before delete
 - ✅ **Payments: StoreKit 2** in the app (prices/offers from StoreKit, buy, restore, manage, offer codes, both tiers)
   · ☐ 👤 sandbox purchase on TestFlight 21
 - ✅ **Server: `verifyAppleTransaction` + App Store Server Notifications V2** (live)

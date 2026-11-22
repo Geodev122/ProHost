@@ -1316,6 +1316,9 @@
     <string name="tier_one_listing_hint">Publish one space at a time. Upgrade to Unlimited whenever you add more.</string>
     <string name="tier_recommended">Recommended</string>
     <string name="tier_from_x_month">From %1$s / month</string>
+    <string name="admin_web_console_title">Admin tools are on the web</string>
+    <string name="admin_web_console_body">Open the ProHost console in your browser and sign in with this admin account to manage users, listings, payments and reports.</string>
+    <string name="admin_web_console_open">Open the web console</string>
     <plurals name="x_dates">
         <item quantity="one">%1$s • 1 date</item>
         <item quantity="other">%1$s • %2$d dates</item>

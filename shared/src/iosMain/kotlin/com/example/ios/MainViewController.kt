@@ -46,8 +46,13 @@ fun ProHostIosApp() {
     }
 }
 
-/** iOS has no admin screens (admins use the web console); only the splash is platform-drawn. */
+/** iOS has no admin screens: admins see where the web console is (decision D1); only the splash is platform-drawn. */
 private object IosAppRootSlots : AppRootSlots {
+    @Composable
+    override fun AdminConsole(viewModel: com.example.ui.viewmodel.ProHostViewModel) {
+        com.example.ui.screens.AdminWebConsoleNotice(onSignOut = { viewModel.logout() })
+    }
+
     @Composable
     override fun Splash(onSplashCompleted: () -> Unit) {
         SplashContent(

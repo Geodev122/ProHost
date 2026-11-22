@@ -834,6 +834,57 @@
         }
       }
     },
+    "admin_web_console_body": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open the ProHost console in your browser and sign in with this admin account to manage users, listings, payments and reports."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "افتح لوحة ProHost في المتصفح وسجّل الدخول بحساب المشرف هذا لإدارة المستخدمين والإعلانات والمدفوعات والبلاغات."
+          }
+        }
+      }
+    },
+    "admin_web_console_open": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open the web console"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "افتح لوحة الويب"
+          }
+        }
+      }
+    },
+    "admin_web_console_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Admin tools are on the web"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أدوات المشرف متاحة على الويب"
+          }
+        }
+      }
+    },
     "advertising_id_and_no_ads_you_can_change_t": {
       "extractionState": "manual",
       "localizations": {

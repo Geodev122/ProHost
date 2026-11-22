@@ -1316,4 +1316,7 @@
     <string name="tier_one_listing_hint">انشر مساحة واحدة في كل مرة. رقِّ إلى غير المحدود متى أضفت المزيد.</string>
     <string name="tier_recommended">موصى به</string>
     <string name="tier_from_x_month">من %1$s شهريًا</string>
+    <string name="admin_web_console_title">أدوات المشرف متاحة على الويب</string>
+    <string name="admin_web_console_body">افتح لوحة ProHost في المتصفح وسجّل الدخول بحساب المشرف هذا لإدارة المستخدمين والإعلانات والمدفوعات والبلاغات.</string>
+    <string name="admin_web_console_open">افتح لوحة الويب</string>
 </resources>
