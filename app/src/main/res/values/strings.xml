@@ -1288,4 +1288,10 @@
     <string name="couldn_t_unblock">Couldn\'t unblock this person. Try again.</string>
     <string name="couldn_t_load_blocked">Couldn\'t load your blocked list.</string>
     <string name="more_options_menu">More options</string>
+    <string name="app_store_plans_unavailable">Couldn\'t load ProHost Premium from the App Store. Check your connection and try again.</string>
+    <string name="app_store_purchase_pending">Your purchase is waiting for approval. Premium starts as soon as the App Store confirms it.</string>
+    <string name="app_store_activation_failed">Your payment went through, but Premium isn\'t active yet. Reopen this page in a moment or tap Restore.</string>
+    <string name="app_store_nothing_to_restore">No active App Store subscription was found for this Apple Account.</string>
+    <string name="app_store_restore_failed">Couldn\'t check the App Store for purchases. Please try again.</string>
+    <string name="app_store_purchase_failed">The App Store couldn\'t complete the purchase. Please try again.</string>
 </resources>

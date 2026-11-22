@@ -12,6 +12,12 @@ interface FunctionsGateway {
     /** Google Play purchase → server verification; returns the plan expiry (millis). */
     suspend fun verifyAndRestorePurchase(purchaseToken: String, productId: String, fromCheckout: Boolean = false): Result<Long>
     suspend fun sendPaymentReminder(bookingId: String): Result<Unit>
+    /**
+     * App Store (iOS): sends StoreKit 2's signed transaction (+ renewal info) for server verification; true when the
+     * account now has Premium access. Only the iOS gateway implements it.
+     */
+    suspend fun verifyAppleTransaction(signedTransaction: String, signedRenewalInfo: String?): Result<Boolean> =
+        Result.failure(UnsupportedOperationException("verifyAppleTransaction is iOS only"))
     suspend fun changeSlotPrice(
         spaceId: String, scopeId: String, kind: String, key: String, newPrice: Double, decisions: Map<String, String>
     ): Result<SlotPriceChangeResult>

@@ -54,6 +54,14 @@ class CallableFunctionsGateway(private val transport: CallableTransport) : Funct
         (data["expiryMillis"] as? Number)?.toLong() ?: throw IllegalStateException("verifyAndRestorePurchase returned no expiryMillis.")
     }
 
+    override suspend fun verifyAppleTransaction(signedTransaction: String, signedRenewalInfo: String?): Result<Boolean> = runCatching {
+        val payload = buildMap<String, Any?> {
+            put("signedTransaction", signedTransaction)
+            if (!signedRenewalInfo.isNullOrBlank()) put("signedRenewalInfo", signedRenewalInfo)
+        }
+        call("verifyAppleTransaction", payload)["hasAccess"] == true
+    }
+
     override suspend fun sendPaymentReminder(bookingId: String): Result<Unit> = unit("sendPaymentReminder", mapOf("bookingId" to bookingId))
 
     override suspend fun changeSlotPrice(

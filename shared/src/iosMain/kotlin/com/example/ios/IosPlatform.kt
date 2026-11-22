@@ -29,6 +29,13 @@ object IosPlatform {
     var auth: AuthGateway? = null
         private set
 
+    /** StoreKit 2 for the Premium page: every ProHostViewModel gets an [IosAppBilling] over [bridge]. */
+    fun installStoreKit(bridge: StoreKitBridge) {
+        com.example.ui.viewmodel.BillingDefaults.create = { scope, repository, currentUser, _ ->
+            IosAppBilling(bridge, scope, repository, currentUser)
+        }
+    }
+
     fun installFunctions(transport: CallableTransport) {
         val gateway = CallableFunctionsGateway(transport)
         functions = gateway

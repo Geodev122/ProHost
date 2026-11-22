@@ -1289,4 +1289,10 @@
     <string name="couldn_t_unblock">تعذّر إلغاء حظر هذا الشخص. حاول مجددًا.</string>
     <string name="couldn_t_load_blocked">تعذّر تحميل قائمة المحظورين.</string>
     <string name="more_options_menu">خيارات إضافية</string>
+    <string name="app_store_plans_unavailable">تعذّر تحميل ProHost Premium من App Store. تحقّق من اتصالك وحاول مجددًا.</string>
+    <string name="app_store_purchase_pending">عملية الشراء بانتظار الموافقة. يبدأ Premium فور تأكيد App Store.</string>
+    <string name="app_store_activation_failed">تمّ الدفع، لكن Premium لم يُفعَّل بعد. أعد فتح هذه الصفحة بعد قليل أو اضغط استعادة.</string>
+    <string name="app_store_nothing_to_restore">لم يُعثر على اشتراك فعّال في App Store لحساب Apple هذا.</string>
+    <string name="app_store_restore_failed">تعذّر التحقّق من مشتريات App Store. حاول مجددًا.</string>
+    <string name="app_store_purchase_failed">تعذّر على App Store إتمام عملية الشراء. حاول مجددًا.</string>
 </resources>

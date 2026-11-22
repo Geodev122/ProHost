@@ -28,6 +28,7 @@ final class ProHostAppDelegate: NSObject, UIApplicationDelegate {
         IosPlatform.shared.installMediaPicker(bridge: MediaPickerBridgeImpl())
         IosPlatform.shared.installLocation(bridge: LocationBridgeImpl())
         IosPlatform.shared.installCalendar(bridge: CalendarBridgeImpl())
+        IosPlatform.shared.installStoreKit(bridge: StoreKitBridgeImpl())
         // Google Maps: only when CI passed a key (GMSApiKey in Info.plist from MAPS_IOS_API_KEY); otherwise the map stays blank.
         if let key = Bundle.main.object(forInfoDictionaryKey: "GMSApiKey") as? String, !key.isEmpty, !key.hasPrefix("$(") {
             GMSServices.provideAPIKey(key)
