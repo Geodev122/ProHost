@@ -1,0 +1,41 @@
+Attributes: Application, 0x11747de00, pid: 3688, label: 'ProHost'
+Element subtree:
+ →Application, 0x11747de00, pid: 3688, label: 'ProHost'
+    Window (Main), 0x11747c8c0, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x11747ca00, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x11747cb40, {{0.0, 0.0}, {440.0, 956.0}}
+          Other, 0x11747cc80, {{0.0, 0.0}, {440.0, 956.0}}
+            Other, 0x11747cdc0, {{0.0, 0.0}, {440.0, 956.0}}
+              Other, 0x11747cf00, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x11747dcc0, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x11747db80, {{0.0, 0.0}, {440.0, 956.0}}
+                ScrollView, 0x11747da40, {{0.0, 0.0}, {440.0, 956.0}}
+                  Other, 0x11747d540, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x11747c640, {{0.0, 0.0}, {440.0, 956.0}}
+          Other, 0x11747c780, {{0.0, 0.0}, {440.0, 956.0}}
+            Other, 0x11747d400, {{0.0, 0.0}, {440.0, 956.0}}
+              Other, 0x11747d2c0, {{0.0, 0.0}, {440.0, 956.0}}
+            Other, 0x11747ea80, {{0.0, 0.0}, {440.0, 956.0}}
+            ScrollView, 0x11747ebc0, {{0.0, 0.0}, {440.0, 956.0}}
+              Other, 0x11747e580, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x11747e1c0, {{0.0, 0.0}, {440.0, 956.0}}
+                  Other, 0x11747e300, {{0.0, 0.0}, {440.0, 956.0}}
+                  Other, 0x11747ed00, {{60.0, 253.7}, {320.0, 477.0}}
+                  StaticText, 0x11747f840, {{84.0, 321.7}, {272.0, 48.3}}, label: 'Allow ProHost to share usage analytics?'
+                  StaticText, 0x11747f200, {{84.0, 386.0}, {272.0, 136.7}}, label: 'Google Analytics shows us which screens, searches and listings people use, so we can make ProHost better. Reports carry your ProHost code (U-…), never your name, email or phone. No advertising ID and no ads. You can change this any time in Profile › Privacy.'
+                  Button, 0x11747f5c0, {{134.0, 538.7}, {172.0, 48.0}}, label: 'Read the privacy policy'
+                    StaticText, 0x11747c000, {{146.0, 552.7}, {148.0, 20.0}}, label: 'Read the privacy policy'
+                  Button, 0x11747c280, {{84.0, 602.7}, {272.0, 48.0}}, label: 'Allow'
+                    StaticText, 0x11747e6c0, {{202.3, 618.7}, {35.7, 16.3}}, label: 'Allow'
+                  Button, 0x11747d900, {{84.0, 658.7}, {272.0, 48.0}}, label: 'Don't allow'
+                    StaticText, 0x11747e440, {{185.7, 674.7}, {69.0, 16.3}}, label: 'Don't allow'
+    Window, 0x11747d680, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x11747d7c0, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x11747d040, {{0.0, 0.0}, {440.0, 956.0}}
+Path to element:
+ →Application, 0x11747de00, pid: 3688, label: 'ProHost'
+Query chain:
+ →Find: Target Application 'app.geonajjar.prohost'
+  Output: {
+    Application, 0x11747df40, pid: 3688, label: 'ProHost'
+  }
