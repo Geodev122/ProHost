@@ -21,7 +21,7 @@ permissions:
 jobs:
   upload:
     runs-on: macos-latest
-    timeout-minutes: 60
+    timeout-minutes: 120  # the release Kotlin/Native link alone takes ~25 min
     env:
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
