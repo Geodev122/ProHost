@@ -195,3 +195,10 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   while `firebase deploy` exited 0).
 - 1.0.50 (50) on the Play internal track (release run 45024466296, Parity Gate 45024453594 green): second Premium tier
   with tier switch, Profile rework, booking timing bullets, push on every device. Production stays 1.0.46.
+
+### 22 Nov 2026, 17:28 UTC — App Store daily re-sync live
+- main 1665ba0 deployed (`appleSyncJob`, Maintenance tasks `applekey` / `applesync`). Maintenance `applekey` (run 45049541076) stored
+  the In-App Purchase key (…L86D) in server-only `app_config/apple_iap`; the first `applesync` found 0 App Store subscriptions,
+  so the key is not yet proven against Apple — it will be on the first TestFlight sandbox purchase (re-run `applesync`).
+- main f75758a deploy published functions/rules/hosting but its quota-redeploy step failed on "no function changed"
+  (empty grep under pipefail); fixed in 4a13fc4.
