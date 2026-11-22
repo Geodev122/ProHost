@@ -223,3 +223,6 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
 - 22 Nov 20:35: owner granted the CI account Monitoring AlertPolicy Editor + NotificationChannel Viewer and ticked Play Data safety
   "Other user-generated content". Maintenance `alerts apply` (run 202) read the 7 existing policies, then failed with 403
   `logging.notificationRules.create` (log-based alerts) → owner to add Logs Configuration Writer.
+- 22 Nov 20:43: owner added Logs Configuration Writer; Maintenance `alerts apply` (run 203) created alert policies Function-errors,
+  AppStore-sync-failed, Play-sync-failed (email channel "ProHost owner email", max one per hour each).
+- 22 Nov: owner approved the three retention sentences; added to `public/privacy.html` §6 and the in-app legal text (af7a28a).

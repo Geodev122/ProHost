@@ -53,7 +53,7 @@ Done by Claude with a temporary admin account (`claude-remediation`, to be delet
 
 - **22 Nov 2026 (owner):** CI account `firebase-adminsdk-fbsvc` gained **Monitoring AlertPolicy Editor** and **Monitoring NotificationChannel
   Viewer** (for Maintenance `alerts`). Log-based alert policies also need **Logs Configuration Writer** (`logging.notificationRules.create`;
-  requested from the owner, run 202).
+  granted by the owner the same day; `alerts apply` run 203 created the 3 policies).
 
 ## Project IAM (Include Google-provided role grants was off) — snapshot of 1 Nov, partly superseded above
 

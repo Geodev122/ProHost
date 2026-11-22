@@ -142,7 +142,7 @@ Last updated: 8 Nov 2026
   Integrations › In-App Purchase › "+" (name "ProHost server") › Generate › Download the `.p8` (only once) and note the Key ID.
   GitHub › Settings › Secrets and variables › Actions: `APPLE_IAP_KEY_ID` = the Key ID, `APPLE_IAP_KEY_P8` = the whole file
   text (BEGIN/END lines included). The Issuer ID is the one already in `ASC_ISSUER_ID`. Never paste the key in chat.
-- ◐ **E3 error alerts:** Monitoring AlertPolicy Editor + NotificationChannel Viewer granted (owner, 22 Nov). `alerts apply` (run 202)
+- ☑ **E3 error alerts (done 22 Nov, run 203: Function-errors, AppStore-sync-failed, Play-sync-failed):** Monitoring AlertPolicy Editor + NotificationChannel Viewer granted (owner, 22 Nov). `alerts apply` (run 202)
   then needed one more permission (`logging.notificationRules.create`, log-based alerts): same IAM page › same account › Edit ›
   Add role **Logs Configuration Writer** › Save. Then Claude re-runs `alerts apply` (function errors, App Store and Play sync
   failures emailed to you, max one per hour each).
