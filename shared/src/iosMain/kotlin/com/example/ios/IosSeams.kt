@@ -92,6 +92,8 @@ internal object IosSeams {
         IosPlatform.installSeamsOnce {
             PlatformActions.current = IosPlatformActions
             com.example.util.SoundPlayer.current = IosSoundPlayer
+            com.example.util.Geocoding.current = IosGeocoding
+            com.example.legal.LegalPdfs.current = IosLegalPdfs
             com.example.util.KeyValueStores.open = { name -> IosKeyValueStore(name) }
             FileAccess.current = IosFileAccess
             AppLanguage.current = { language() }
