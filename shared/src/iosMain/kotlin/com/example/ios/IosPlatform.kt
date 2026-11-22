@@ -63,6 +63,14 @@ object IosPlatform {
         RepositoryDefaults.storage = { gateway }
     }
 
+    var location: LocationBridge? = null
+        private set
+
+    fun installLocation(bridge: LocationBridge) {
+        location = bridge
+        com.example.util.LocationProvider.current = IosLocationProvider(bridge)
+    }
+
     var mediaPicker: MediaPickerBridge? = null
         private set
 

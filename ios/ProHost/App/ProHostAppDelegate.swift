@@ -24,6 +24,7 @@ final class ProHostAppDelegate: NSObject, UIApplicationDelegate {
         IosPlatform.shared.installFirestore(bridge: FirebaseFirestoreBridge())
         IosPlatform.shared.installStorage(native: FirebaseStorageBridge())
         IosPlatform.shared.installMediaPicker(bridge: MediaPickerBridgeImpl())
+        IosPlatform.shared.installLocation(bridge: LocationBridgeImpl())
         // Google Maps: only when CI passed a key (GMSApiKey in Info.plist from MAPS_IOS_API_KEY); otherwise the map stays blank.
         if let key = Bundle.main.object(forInfoDictionaryKey: "GMSApiKey") as? String, !key.isEmpty, !key.hasPrefix("$(") {
             GMSServices.provideAPIKey(key)

@@ -427,3 +427,7 @@ C1 step 4 — Storage on iOS: shared `BridgedStorageGateway` (Android paths, con
   photos (no library permission; results saved as JPEG temp files, `file://` URLs read by `IosFileAccess`),
   UIDocumentPicker (PDF/image, as copy) and UIImagePickerController for the camera (`NSCameraUsageDescription`, English;
   Arabic InfoPlist.strings still to add).
+- iOS location (C3): `LocationProvider` = `IosLocationProvider` over `LocationBridge` (Swift `LocationBridgeImpl`,
+  CLLocationManager: one `requestLocation` fix, `location` as last known; "location unknown" = no fix like Android's null,
+  other errors throw). `rememberLocationAccess` iOS: system prompt when not asked yet, onReady when allowed, the shared
+  "open settings" dialog when denied or Location Services is off. Purpose string = the Android rationale text (English).
