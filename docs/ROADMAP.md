@@ -83,8 +83,8 @@ Splash "no loading state"). Admin console: 70 parity items, code exists for 8-36
 
 ### F. Legal and store compliance
 - ☐ 👤 **F1** Approve the privacy sentence on retention (notifications 48 h, mail log 30 days, documents 1 year); Claude regenerates the in-app text.
-- ⏳ **F2** Re-checked 22 Nov: Apple App Privacy + iOS privacy manifest + purpose strings match the app. Play Data safety needs one row added by the
-  owner (App activity → Other user-generated content: reports/blocks), see `docs/PLAY_DECLARATIONS.md`; retention sentences await approval (OWNER_QUEUE 6).
+- ✅ **F2** Re-checked 22 Nov: Apple App Privacy + iOS privacy manifest + purpose strings match the app. Play Data safety needs one row added by the
+  owner (App activity → Other user-generated content: reports/blocks), see `docs/PLAY_DECLARATIONS.md`; retention sentences approved and published (22 Nov). Play row added by the owner.
 
 ### G. AI agent (independent)
 - ☐ 👤 **G1** Decide D8 (new Google project + a quiet window for the Meta webhook switch); then Claude moves it (steps 3-6 of P9).

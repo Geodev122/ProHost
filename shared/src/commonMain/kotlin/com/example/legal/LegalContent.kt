@@ -265,6 +265,11 @@ object LegalContent {
                     "(daily backups kept 7 days, weekly backups kept 8 weeks) roll off automatically, so " +
                     "deleted data can remain in backups for up to 8 weeks and is not restored except for " +
                     "disaster recovery.",
+                    "• In-app notifications are deleted automatically 48 hours after they are sent.",
+                    "• Copies of the emails we send you (for example password-reset and booking emails) are " +
+                    "deleted after 30 days.",
+                    "• Listing verification documents and booking agreements are deleted one year after they " +
+                    "are uploaded.",
                     "• Reports and moderation records are kept for as long as needed to handle the report and " +
                     "protect users, and longer only where a dispute or legal claim requires it.",
                     "• Assistant conversations and leads are kept until you ask us to delete them or, for " +
