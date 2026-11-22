@@ -84,7 +84,7 @@ To do (code, Claude):
   Security (audit log, legal docs), Schema, Demo; Reports queue
 - ☐ Admin-as-Pro-Host tools on the web (all listings, all requests, renting progress, change price, create/edit listing)
   — host the shared owner screens in the console
-- ☐ Diagnostics page (replaces the Android debug dialog)
+- ✅ Diagnostics tab (replaces the Android debug dialog: session, callables, Firestore, Play billing + heartbeat, queues; health score)
 - ☐ 👤 Owner walk-through of all 70 items in `docs/migration/ADMIN_PARITY.md` (0 of 70 ticked so far)
 - ☐ Fix whatever the walk-through finds
 - ☐ Cutover: remove the admin from the Android app in one reviewed change (mobile admins see "use the web console")

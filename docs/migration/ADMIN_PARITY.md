@@ -105,7 +105,7 @@ Columns: **Web** = built in adminWeb · **Proof** = emulator test + screenshot v
 ## Outside the seven tabs
 | # | Feature | Android source | Backend | Web | Proof | Owner |
 |---|---|---|---|---|---|---|
-| 64 | System & Firebase debugger (debug builds only): health score, categories, Re-Run Audit | `SystemDebuggerDialog.kt`, `AppSystemDebugger.kt` | local checks; role claim vs session (web: Diagnostics page — decision 4) | ☐ | ☐ | ☐ |
+| 64 | System & Firebase debugger (debug builds only): health score, categories, Re-Run Audit | `SystemDebuggerDialog.kt`, `AppSystemDebugger.kt` | local checks; role claim vs session (web: Diagnostics tab `DiagnosticsTab.kt`, 22 Nov — server-side checks, same score formula) | ☑ | ☐ | ☐ |
 | 65 | Admin-as-Pro-Host tools: all listings, all requests, renting progress, all bookings, change price, payment reminder, create listing | `OwnerHubScreen.kt`, `OwnerRentalRequestsScreen.kt`, `OwnerRentingProgressScreen.kt`, `MyBookingsScreen.kt`, `ChangePriceSheet.kt` | FS, C `changeSlotPrice`, C `sendPaymentReminder` — **needs shared owner screens (P6-W5)** | ☐ | ☐ | ☐ |
 | 66 | GA4 API secret configuration (callable exists, no UI today) | `functions/src/admin/ga4Config.ts` | C `configureGa4ApiSecret` | ☐ | ☐ | ☐ |
 | 67 | Mailing console: address book, messages, write email, sent emails + retry | `public/admin.html` | C `mailingAdmin*` (code-locked session; stays live as is) | ☐ | ☐ | ☐ |
