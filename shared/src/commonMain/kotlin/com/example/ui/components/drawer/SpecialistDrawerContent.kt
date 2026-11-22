@@ -1,7 +1,7 @@
 package com.example.ui.components.drawer
 
 import com.example.ui.util.localizedLabel
-import com.example.ui.components.displayName
+import com.example.ui.components.rememberCountryDisplayName
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -346,8 +346,8 @@ fun DrawerSignOutButton(userEmail: String?, onSignOut: () -> Unit) {
 @Composable
 fun marketLabel(country: String?): String {
     val name = country?.takeIf { it.isNotBlank() } ?: "Lebanon"
-    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+    val countryName = rememberCountryDisplayName()
     val display = com.example.data.model.COUNTRIES.firstOrNull { it.name == name }
-        ?.displayName(locale) ?: name
+        ?.let(countryName) ?: name
     return appString(Res.string.x_market, display)
 }
