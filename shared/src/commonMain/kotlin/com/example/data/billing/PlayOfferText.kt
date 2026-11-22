@@ -190,6 +190,10 @@ object PlayOfferText {
             details?.offers.orEmpty().firstOrNull { it.basePlanId == basePlanId && it.offerId == null }
         } else preferredOffer(details, basePlanId))?.phases
 
+    /** The base plan's regular recurring price as Play formats it (e.g. "$4.49"), ignoring any offer. */
+    fun regularPrice(details: PlayProduct?, basePlanId: String): String? =
+        phases(details, basePlanId, basePlanOnly = true)?.lastOrNull()?.formatted
+
     /** Terms for the buy button, e.g. "$4.99 / month for 1 month, then $9.99 / month"; [basePlanOnly] for switches. */
     fun describe(details: PlayProduct?, basePlanId: String? = null, basePlanOnly: Boolean = false): String? {
         val phases = phases(details, basePlanId, basePlanOnly)

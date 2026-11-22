@@ -67,5 +67,9 @@ class AppleCatalogTest {
         )
         assertEquals(listOf(PlayCatalog.PRODUCT_ID, PlayCatalog.SINGLE_PRODUCT_ID), products.map { it.productId })
         assertEquals(AppleCatalog.SINGLE_YEARLY, PlayOfferText.plansByKind(products[1])[PlayCatalog.PlanKind.YEARLY])
+        // The tier switch shows the regular monthly price, never the intro price.
+        val withIntro = AppleCatalog.asPlayProduct(listOf(product(AppleCatalog.SINGLE_MONTHLY, "P1M", 4_490_000, Triple(0, "P1M", 1))), PlayCatalog.SINGLE_PRODUCT_ID)
+        assertEquals("$4.49", PlayOfferText.regularPrice(withIntro, AppleCatalog.SINGLE_MONTHLY))
+        assertNull(PlayOfferText.regularPrice(withIntro, "missing"))
     }
 }

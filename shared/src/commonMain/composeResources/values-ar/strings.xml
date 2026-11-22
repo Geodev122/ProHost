@@ -1313,6 +1313,8 @@
     <string name="tier_current">الحالية</string>
     <string name="tier_unlimited_hint">انشر ما تشاء من المساحات.</string>
     <string name="tier_one_listing_hint">انشر مساحة واحدة في كل مرة. رقِّ إلى غير المحدود متى أضفت المزيد.</string>
+    <string name="tier_recommended">موصى به</string>
+    <string name="tier_from_x_month">من %1$s شهريًا</string>
     <plurals name="x_dates">
         <item quantity="zero">%1$s • لا تواريخ</item>
         <item quantity="one">%1$s • تاريخ واحد</item>

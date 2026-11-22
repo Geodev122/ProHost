@@ -71,8 +71,8 @@ To do (code, Claude):
 - ✅ **Payments: StoreKit 2** in the app (prices/offers from StoreKit, buy, restore, manage, offer codes, both tiers)
   · ☐ 👤 sandbox purchase on TestFlight 21
 - ✅ **Server: `verifyAppleTransaction` + App Store Server Notifications V2** (live)
-  · ✅ the two notification URLs (production + sandbox) · ☐ daily Apple re-sync (needs an In-App Purchase key
-  from the owner) · ☐ admin console shows the platform per subscription
+  · ✅ the two notification URLs (production + sandbox) · ☐ daily Apple re-sync (needs the In-App Purchase key:
+  👤 GitHub secrets `APPLE_IAP_KEY_ID` + `APPLE_IAP_KEY_P8`) · ☐ admin console shows the platform per subscription
 - ☐ Integration audit + iOS-on-device pass (Arabic, dark mode, small phone, VoiceOver basics)
 - ☐ Real iOS screenshots (EN + AR) replace the mock-ups; review notes + demo accounts; build attached
 - ☐ 👤 Testers on TestFlight (owner, Rewa, Rony) report what differs from Android
@@ -107,7 +107,7 @@ To do (code, Claude):
 2. Test Android 1.0.49 (internal track) on your phone.
 3. Rewa and Rony accept Apple's invitation (then I add them to TestFlight).
 4. Walk the admin console at pro-host.tech/console with `docs/migration/ADMIN_PARITY.md`.
-5. Verify pro-host.tech in Search Console.
+5. ✅ pro-host.tech verified in Search Console (22 Nov) → next: Auth Platform › Branding › Verify branding (OWNER_TODO 30/37).
 6. $50 budget + BigQuery billing export; API key restrictions; Anthropic spend cap.
 7. Review the privacy retention sentence.
 8. Decide D8 (agent move).

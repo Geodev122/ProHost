@@ -187,7 +187,13 @@ fun OwnerSubscriptionsScreen(
     // Two tiers (owner, 22 Nov 2026): Unlimited and ProHost Premium · 1 listing, each its own store product. The switch
     // above the tiles picks the product; it starts on the member's own tier and shows only once the store returns both.
     val singleTierOffered = remember(playBillingProducts) { playBillingProducts.any { it.productId == PlayCatalog.SINGLE_PRODUCT_ID } }
-    var selectedTierName by rememberSaveable { mutableStateOf(PlayCatalog.tierOf(currentUser?.ownerPackageId).name) }
+    // Members start on their own tier; everyone else on 1 listing, the tier the page puts first (owner, 22 Nov 2026).
+    var selectedTierName by rememberSaveable {
+        mutableStateOf(
+            (if (currentUser?.ownerPackageId.isNullOrBlank()) PlayCatalog.PlanTier.SINGLE
+            else PlayCatalog.tierOf(currentUser?.ownerPackageId)).name
+        )
+    }
     val selectedTier = if (singleTierOffered) PlayCatalog.PlanTier.valueOf(selectedTierName) else PlayCatalog.PlanTier.UNLIMITED
     val premiumProduct = remember(playBillingProducts, selectedTier) {
         playBillingProducts.firstOrNull { it.productId == PlayCatalog.productOf(selectedTier) }
@@ -372,6 +378,11 @@ fun OwnerSubscriptionsScreen(
             item {
                 PlanTierSwitch(
                     selected = selectedTier,
+                    monthlyPrice = { tier ->
+                        val product = playBillingProducts.firstOrNull { it.productId == PlayCatalog.productOf(tier) }
+                        PlayOfferText.plansByKind(product)[PlayCatalog.PlanKind.MONTHLY]
+                            ?.let { PlayOfferText.regularPrice(product, it) }
+                    },
                     currentTier = currentPlanId?.takeIf { !isSubscriptionExpired && !isForcedUpgrade }?.let(PlayCatalog::tierOf),
                     onSelect = {
                         selectedTierName = it.name
@@ -1223,41 +1234,80 @@ private fun BannerDismiss(onClick: () -> Unit) {
 }
 
 /**
- * Unlimited · 1 listing: which ProHost Premium tier the plan tiles below show (owner, 22 Nov 2026). The member's current
- * tier carries a "Current" mark.
+ * 1 listing · Unlimited: which ProHost Premium tier the plan tiles below show (owner, 22 Nov 2026). A segmented card with
+ * 1 listing first and marked "Recommended"; each half shows the tier's regular monthly price as Play returns it. The
+ * member's current tier carries a "current" mark.
  */
 @Composable
 private fun PlanTierSwitch(
     selected: PlayCatalog.PlanTier,
+    monthlyPrice: (PlayCatalog.PlanTier) -> String?,
     currentTier: PlayCatalog.PlanTier?,
     onSelect: (PlayCatalog.PlanTier) -> Unit,
 ) {
+    val scheme = MaterialTheme.colorScheme
+    val accent = scheme.secondary
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            PlayCatalog.PlanTier.entries.forEach { tier ->
-                val label = if (tier == PlayCatalog.PlanTier.UNLIMITED) sharedText("tier_unlimited_listings") else sharedText("tier_one_listing")
-                com.example.ui.components.FilterChip(
-                    selected = tier == selected,
-                    onClick = { onSelect(tier) },
-                    label = {
-                        Text(
-                            if (tier == currentTier) "$label · ${sharedText("tier_current")}" else label,
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = if (tier == selected) FontWeight.Bold else FontWeight.Medium,
-                            maxLines = 1
-                        )
-                    },
-                    leadingIcon = if (tier == selected) {
-                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                    } else null,
-                    modifier = Modifier.weight(1f).heightIn(min = 44.dp)
-                )
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = Radius.Lg,
+            color = scheme.surfaceContainerHigh,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                listOf(PlayCatalog.PlanTier.SINGLE, PlayCatalog.PlanTier.UNLIMITED).forEach { tier ->
+                    val isSelected = tier == selected
+                    val single = tier == PlayCatalog.PlanTier.SINGLE
+                    val label = if (single) sharedText("tier_one_listing") else sharedText("tier_unlimited_listings")
+                    Surface(
+                        onClick = { onSelect(tier) },
+                        modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 64.dp)
+                            .semantics { this.selected = isSelected; role = androidx.compose.ui.semantics.Role.Tab },
+                        shape = Radius.Md,
+                        color = if (isSelected) scheme.surface else Color.Transparent,
+                        border = if (isSelected) BorderStroke(2.dp, accent) else null,
+                        shadowElevation = if (isSelected) Elevation.level1 else Elevation.level0,
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.sm),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)
+                        ) {
+                            if (single) {
+                                PlanChip(
+                                    sharedText("tier_recommended").uppercase(),
+                                    container = if (isSelected) accent else accent.copy(alpha = 0.16f),
+                                    content = if (isSelected) scheme.onSecondary else accent
+                                )
+                            }
+                            Text(
+                                if (tier == currentTier) "$label · ${sharedText("tier_current")}" else label,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                                color = if (isSelected) scheme.onSurface else scheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                            monthlyPrice(tier)?.let { price ->
+                                Text(
+                                    sharedText("tier_from_x_month", price),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (isSelected && single) accent else scheme.onSurfaceVariant,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
         Text(
             if (selected == PlayCatalog.PlanTier.SINGLE) sharedText("tier_one_listing_hint") else sharedText("tier_unlimited_hint"),
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = scheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 4.dp)
         )
     }

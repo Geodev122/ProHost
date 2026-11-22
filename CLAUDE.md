@@ -23,7 +23,8 @@ Unlimited; `asc_prepare` section `subscriptions`). `PlayCatalog.tierOf` / `produ
 (server) tell the tiers apart; `isSupportedProduct` accepts both products. `grantProHost` mirrors `ownerListingLimit` (1, or
 removed for Unlimited / grants; server-only, rules + test) and moves extra published listings to Draft (newest kept,
 `listingsOverLimit`); `onWorkspaceListingPublishValidation` refuses a second publish (`PLAN_LIMIT_REASON`). Premium shows a
-tier switch (`PlanTierSwitch`, only when the store returns both products) above the same two Monthly · Yearly tiles; switching
+tier switch (`PlanTierSwitch`, only when the store returns both products: a segmented card, 1 listing first with a "Recommended" tag and
+each tier's regular monthly price from the store; non-members start on 1 listing, members on their own tier) above the same two Monthly · Yearly tiles; switching
 tiers replaces the subscription (Unlimited → 1 listing `DEFERRED`, 1 listing → Unlimited `WITH_TIME_PRORATION`, to yearly
 `CHARGE_FULL_PRICE`). App Store grants are mirrored as `entitlementSource: app_store`, platform `ios` (were mislabelled
 google_play before).

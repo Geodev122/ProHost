@@ -20053,6 +20053,23 @@
         }
       }
     },
+    "tier_from_x_month": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From %1$@ / month"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "من %1$@ شهريًا"
+          }
+        }
+      }
+    },
     "tier_name": {
       "extractionState": "manual",
       "localizations": {
@@ -20100,6 +20117,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "انشر مساحة واحدة في كل مرة. رقِّ إلى غير المحدود متى أضفت المزيد."
+          }
+        }
+      }
+    },
+    "tier_recommended": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recommended"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "موصى به"
           }
         }
       }

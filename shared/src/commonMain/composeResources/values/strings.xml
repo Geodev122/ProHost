@@ -1314,6 +1314,8 @@
     <string name="tier_current">current</string>
     <string name="tier_unlimited_hint">Publish as many spaces as you like.</string>
     <string name="tier_one_listing_hint">Publish one space at a time. Upgrade to Unlimited whenever you add more.</string>
+    <string name="tier_recommended">Recommended</string>
+    <string name="tier_from_x_month">From %1$s / month</string>
     <plurals name="x_dates">
         <item quantity="one">%1$s • 1 date</item>
         <item quantity="other">%1$s • %2$d dates</item>
