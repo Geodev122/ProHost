@@ -61,8 +61,8 @@ fun DossierDialog(dossier: Json, onDismiss: () -> Unit, onEdit: (Json) -> Unit, 
         if (role == "PRO_HOST" || !profile["ownerPackageId"].isNull) {
           HorizontalDivider()
           Section("Package")
-          Field("Plan", profile["ownerPackageId"].str().ifBlank { "—" })
-          Field("Source", profile["entitlementSource"].str().ifBlank { "—" })
+          Field("Plan", profile["ownerPackageId"].str().ifBlank { null }?.let { planLabel(it) + " (" + it + ")" } ?: "—")
+          Field("Store", storeLabel(profile["entitlementSource"].str()))
           Field("Billing status", profile["billingStatus"].str().ifBlank { "—" })
           Field("Access until", day(profile["ownerPackageExpiryMillis"]))
         }
@@ -81,10 +81,10 @@ fun DossierDialog(dossier: Json, onDismiss: () -> Unit, onEdit: (Json) -> Unit, 
         }
         HorizontalDivider()
         Section("Subscription history (${subs.size})")
-        if (subs.isEmpty()) Text("No Google Play subscriptions.", style = MaterialTheme.typography.bodySmall)
+        if (subs.isEmpty()) Text("No store subscriptions.", style = MaterialTheme.typography.bodySmall)
         subs.forEach { s ->
           Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Text("${s["basePlanId"].str().ifBlank { "Premium" }} · ${s["status"].str()}" + if (s["autoRenewing"].bool()) " · auto-renews" else "", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+            Text("${storeLabel(s["platform"].str())} · ${planLabel(s["basePlanId"].str())} · ${s["status"].str()}" + if (s["autoRenewing"].bool()) " · auto-renews" else "", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
             Text("${day(s["startDate"])} → ${day(s["expiryDate"])} · order ${s["orderId"].str().ifBlank { "—" }}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
           }
         }

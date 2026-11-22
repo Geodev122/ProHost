@@ -39,15 +39,6 @@ import kotlinx.coroutines.launch
 private const val PRODUCT_ID = "package_pro_mrr"
 private const val LIFETIME_EXPIRY_MILLIS = 4_102_444_800_000.0
 
-private fun planLabel(id: String?): String {
-  val v = id?.trim()?.lowercase().orEmpty()
-  return when {
-    v == "admin_forced" || v == "admin_unlimited_grant" -> "Pro Host (granted)"
-    v.contains("year") -> "ProHost Premium · Yearly"
-    v.contains("mon") -> "ProHost Premium · Monthly"
-    else -> "ProHost Premium"
-  }
-}
 
 private fun roleLabel(role: String) = when (role) { "PRO_HOST" -> "Pro Host"; "ADMIN" -> "Admin"; "SPECIALIST" -> "Specialist"; else -> role }
 

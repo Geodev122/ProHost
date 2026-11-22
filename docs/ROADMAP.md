@@ -65,7 +65,7 @@ Splash "no loading state"). Admin console: 70 parity items, code exists for 8-36
 - ☐ **D4** Create / edit listing from the console (item 37): the app's own wizard running in the browser (needs browser versions of
   the Firestore and Storage gateways). Largest console task.
 - ☐ **D5** Shell items 1-7: count badges on tabs, admin notification centre (subscription, lead, verification alerts), online/offline pill.
-- ☐ **D6** Show the store (Google Play / App Store) per subscription in Packages and the user dossier.
+- ⏳ **D6** Show the store (Google Play / App Store) per subscription in Packages and the user dossier.
 - ☐ 👤 **D7** Walk the 70 items in `docs/migration/ADMIN_PARITY.md` at pro-host.tech/console; tell me what is missing or wrong.
 - ☐ **D8** Fix D7 findings.
 - ☐ **D9** Cutover: remove the admin screens from the Android app in one reviewed change (17 files + admin slots); admin accounts on
