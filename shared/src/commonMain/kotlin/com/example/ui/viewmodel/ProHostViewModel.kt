@@ -538,6 +538,9 @@ class ProHostViewModel(
      * show an error and let the user retry.
      */
     suspend fun deleteAccount(): Result<Unit> {
+        if (com.example.data.auth.AccountDeletion.prepare?.invoke() == false) {
+            return Result.failure(com.example.data.auth.AccountDeletionCancelled())
+        }
         val result = functionsClient.deleteOwnAccount()
         if (result.isSuccess) {
             com.example.analytics.AnalyticsTracker.accountDeleted()

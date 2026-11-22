@@ -28,4 +28,22 @@ class AppleSignInReply(
 /** Sign in with Apple (Swift `AppleSignInBridgeImpl`, AuthenticationServices). The request carries SHA-256 of [rawNonce]. */
 interface AppleSignInBridge {
     fun signInWithAppleSheet(rawNonce: String, completion: (AppleSignInReply) -> Unit)
+
+    /**
+     * Before account deletion (App Review 5.1.1(v)): when the signed-in user has the apple.com provider, asks Apple for a fresh
+     * authorization code and revokes the user's Apple tokens through Firebase (`Auth.revokeToken`). [done] gets
+     * [RevokeCallback.DONE] (revoked, or not an Apple account), [RevokeCallback.CANCELLED] or [RevokeCallback.FAILED].
+     */
+    fun revokeAppleTokenIfNeeded(done: RevokeCallback)
+}
+
+/** Outcome of [AppleSignInBridge.revokeAppleTokenIfNeeded] (a named interface: Swift sees a plain Int32). */
+fun interface RevokeCallback {
+    fun finished(outcome: Int)
+
+    companion object {
+        const val DONE = 0
+        const val CANCELLED = 1
+        const val FAILED = 2
+    }
 }

@@ -787,7 +787,7 @@ fun SpecialistProfileScreen(
                                 val result = viewModel.deleteAccount()
                                 isDeletingAccount = false
                                 showDeleteConfirmation = false
-                                result.exceptionOrNull()?.let { error ->
+                                result.exceptionOrNull()?.takeIf { it !is com.example.data.auth.AccountDeletionCancelled }?.let { error ->
                                     UiMessages.show(com.example.util.friendlyErrorMessage(
                                             error,
                                             sharedText("couldn_t_delete_your_account_please_try_ag")

@@ -105,6 +105,16 @@ object IosPlatform {
 
     fun installAppleSignIn(bridge: AppleSignInBridge) {
         appleSignIn = bridge
+        // Apple accounts revoke their Sign in with Apple tokens before the account is deleted; cancelling the Apple sheet
+        // stops the deletion, an Apple error does not (the account is still deleted, and the error is logged).
+        com.example.data.auth.AccountDeletion.prepare = {
+            kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+                bridge.revokeAppleTokenIfNeeded(RevokeCallback { outcome ->
+                    if (outcome == RevokeCallback.FAILED) com.example.util.AppLog.w("IosPlatform", "Apple token revocation failed")
+                    if (cont.isActive) cont.resumeWith(Result.success(outcome != RevokeCallback.CANCELLED))
+                })
+            }
+        }
     }
 
     var googleSignIn: GoogleSignInBridge? = null
