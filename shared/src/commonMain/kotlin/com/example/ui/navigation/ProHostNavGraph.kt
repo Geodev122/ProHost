@@ -1,11 +1,7 @@
 package com.example.ui.navigation
 
-import com.example.ui.viewmodel.billing
 import com.example.ui.theme.Spacing
 
-import com.example.ui.util.uiText
-import com.example.R
-import androidx.compose.ui.res.stringResource
 import com.example.ui.util.UiMessages
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -24,26 +20,36 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import com.example.ui.theme.proHostScreenBackground
 import androidx.compose.ui.platform.testTag
-import androidx.activity.compose.BackHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.data.model.AppUser
+import com.example.data.model.FCMAlert
 import com.example.data.model.BookingRequestStatus
 import com.example.data.model.ListingStatus
 import com.example.data.model.SpaceListing
 import com.example.data.model.UserRole
 import com.example.ui.components.*
 import com.example.ui.components.Button
-import com.example.ui.components.dialogs.DrawerDialogsHandler
-import com.example.ui.components.drawer.AdminDrawerContent
 import com.example.ui.components.drawer.SpecialistDrawerContent
 import com.example.ui.screens.*
 import com.example.ui.viewmodel.DiscoveryViewModel
 import com.example.ui.viewmodel.ProHostViewModel
 import com.example.util.UpdateState
 import kotlinx.coroutines.launch
+import com.example.shared.resources.Res
+import com.example.shared.resources.account_suspended
+import com.example.shared.resources.let_s_go
+import com.example.shared.resources.or_manage_listings_while_suspended_contact
+import com.example.shared.resources.requests_and_track_your_rentals_all_from_t
+import com.example.shared.resources.sign_out
+import com.example.shared.resources.you_re_now_a_pro_host
+import com.example.shared.resources.your_account_has_been_suspended_by_prohost
+import com.example.shared.resources.your_package_is_active_publish_a_workspace
+import com.example.ui.util.appString
+import com.example.ui.util.sharedText
 
 /**
  * The bottom-nav tabs for SPECIALIST.
@@ -134,9 +140,9 @@ fun ProHostAppRoot(
     deepLinkRoomId: String? = null,
     emailVerifiedDeepLink: Boolean = false,
     inAppUpdateManager: com.example.util.AppUpdater? = null,
-    viewModel: ProHostViewModel = viewModel()
+    slots: AppRootSlots,
+    viewModel: ProHostViewModel = viewModel { ProHostViewModel() }
 ) {
-    val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
     val currentUser by viewModel.currentUser.collectAsState()
     val deepLinkSpaces by viewModel.spaces.collectAsState()
     // Drives the red dot on the drawer's "Renting Requests" item (PRO_HOST/ADMIN)
@@ -284,7 +290,7 @@ fun ProHostAppRoot(
     LaunchedEffect(emailVerifiedDeepLink, currentUser?.id) {
         if (emailVerifiedDeepLink && !emailVerifiedConsumed.value && currentUser != null) {
             emailVerifiedConsumed.value = true
-            UiMessages.show(appContext.getString(R.string.email_verified_your_account_is_now_level_2),
+            UiMessages.show(com.example.ui.util.sharedText("email_verified_your_account_is_now_level_2"),
                 long = true)
         }
     }
@@ -321,7 +327,7 @@ fun ProHostAppRoot(
             openDeepLinked(fetched)
         } else {
             consumedDeepLinkSpaceId = id
-            UiMessages.show(uiText(R.string.listing_link_unavailable))
+            UiMessages.show(sharedText("listing_link_unavailable"))
             navigateTo("search_map")
         }
     }
@@ -359,11 +365,9 @@ fun ProHostAppRoot(
     val showSplash = !splashTimerDone || isRestoringSession
 
     if (showSplash) {
-        SplashScreen(
-            onSplashCompleted = {
-                splashTimerDone = true
-            }
-        )
+        slots.Splash {
+            splashTimerDone = true
+        }
     } else if (currentUser == null) {
         // Non-null only for a stranded mid-registration account found during
         // cold-start restoration (see ProHostViewModel's init block) — routes
@@ -417,7 +421,7 @@ fun ProHostAppRoot(
             }
         )
     } else {
-        val discoveryViewModel: DiscoveryViewModel = viewModel()
+        val discoveryViewModel: DiscoveryViewModel = viewModel { DiscoveryViewModel() }
         val isMapViewActive by discoveryViewModel.isMapViewActive.collectAsState()
         val currentRole = currentUser?.role ?: UserRole.SPECIALIST
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -469,7 +473,7 @@ fun ProHostAppRoot(
                             )
                         }
                         UserRole.ADMIN -> {
-                            AdminDrawerContent(
+                            slots.AdminDrawer(
                                 currentUser = currentUser,
                                 pendingRequestsCount = pendingIncomingRequestsCount,
                                 activeTabId = fullScreenDrawerTab,
@@ -511,7 +515,7 @@ fun ProHostAppRoot(
                         if (safeFullScreenDrawerTab != null) {
                             val title = (PRO_HOST_FULLSCREEN_TABS + ADMIN_FULLSCREEN_TABS + SHARED_FULLSCREEN_TABS)
                                 .firstOrNull { it.id == safeFullScreenDrawerTab }?.title
-                                ?: uiText(R.string.pro_host_2)
+                                ?: sharedText("pro_host_2")
                             ProHostFullScreenTopAppBar(
                                 title = title,
                                 // Specialists have no drawer: back to the screen they came from.
@@ -568,7 +572,7 @@ fun ProHostAppRoot(
                 // centre of their one-screen shell) instead of leaving the app.
                 val isSpecialistOffExplore = isSpecialistShell && safeFullScreenDrawerTab == null &&
                     activeTabId != AppNavTab.SearchMap.id
-                BackHandler(enabled = managingSpace != null || detailedSpace != null || isAdminOnMainTab ||
+                com.example.ui.components.PlatformBackHandler(enabled = managingSpace != null || detailedSpace != null || isAdminOnMainTab ||
                     (safeFullScreenDrawerTab != null && !isAdminAtRoot) || isSpecialistOffExplore) {
                     if (managingSpace != null) {
                         managingSpace = null
@@ -695,16 +699,14 @@ fun ProHostAppRoot(
                                         onOpenRequests = { navigateTo(AppNavTab.OwnerRentalRequests.id) }
                                     )
                                     AppNavTab.Stats.id -> if (currentUser?.role == UserRole.ADMIN) {
-                                        AdminAnalyticsScreen()
+                                        slots.AdminAnalytics()
                                     } else {
                                         OwnerAnalyticsScreen(viewModel = viewModel)
                                     }
                                     AppNavTab.OwnerSubscriptions.id -> OwnerSubscriptionsScreen(
                                         viewModel = viewModel
                                     )
-                                    AppNavTab.AdminConsole.id -> AdminConsoleScreen(
-                                        viewModel = viewModel
-                                    )
+                                    AppNavTab.AdminConsole.id -> slots.AdminConsole(viewModel)
                                     AppNavTab.AdminProfile.id -> SpecialistProfileScreen(
                                         viewModel = viewModel,
                                         inAppUpdateManager = inAppUpdateManager,
@@ -842,7 +844,7 @@ fun ProHostAppRoot(
         // without one tries to access booking/listing features.
         // BackHandler here must fire BEFORE the outer NavGraph handler so pressing
         // back dismisses the KYC overlay rather than clearing detailedSpace.
-        BackHandler(enabled = showKycGate) {
+        com.example.ui.components.PlatformBackHandler(enabled = showKycGate) {
             showKycGate = false
             kycReturnTab = null
         }
@@ -865,7 +867,7 @@ fun ProHostAppRoot(
         }
 
         // Handler for role-based custom dialog sheets
-        DrawerDialogsHandler(
+        slots.DrawerDialogs(
             dialogId = activeDrawerTabDialog,
             viewModel = viewModel,
             onNavigateToTab = { targetTab ->
@@ -887,16 +889,16 @@ fun ProHostAppRoot(
             ProHostDialog(
                 onDismissRequest = { showProHostWelcome = false },
                 icon = { Icon(Icons.Default.Celebration, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                title = { Text(stringResource(R.string.you_re_now_a_pro_host)) },
+                title = { Text(appString(Res.string.you_re_now_a_pro_host)) },
                 text = {
                     Text(
-                        stringResource(R.string.your_package_is_active_publish_a_workspace) +
-                            stringResource(R.string.requests_and_track_your_rentals_all_from_t)
+                        appString(Res.string.your_package_is_active_publish_a_workspace) +
+                            appString(Res.string.requests_and_track_your_rentals_all_from_t)
                     )
                 },
                 confirmButton = {
                     Button(onClick = { showProHostWelcome = false }, colors = proPrimaryButtonColors()) {
-                        Text(stringResource(R.string.let_s_go))
+                        Text(appString(Res.string.let_s_go))
                     }
                 }
             )
@@ -913,14 +915,15 @@ fun ProHostAppRoot(
     val hasPlaySubscription = currentUser?.entitlementSource == "google_play" ||
         com.example.data.billing.PlayCatalog.kindOf(currentUser?.ownerPackageId) != null ||
         currentUser?.billingStatus in setOf("GRACE_PERIOD", "ON_HOLD", "PAUSED")
-    val rootActivity = androidx.activity.compose.LocalActivity.current
+    val rootHost = com.example.ui.components.rememberPurchaseHost()
+    val appHost = com.example.ui.components.rememberApplicationHost()
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     androidx.compose.runtime.DisposableEffect(lifecycleOwner, autoLinkUser?.id, hasPlaySubscription) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME && autoLinkUser != null) {
                 viewModel.refreshEmailVerification()
-                viewModel.billing.refreshPlayPurchases(appContext)
-                if (hasPlaySubscription && rootActivity != null) viewModel.billing.showBillingInAppMessages(rootActivity)
+                viewModel.platformBilling.refreshPurchases(appHost)
+                if (hasPlaySubscription && rootHost != null) viewModel.platformBilling.showBillingInAppMessages(rootHost)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -933,7 +936,7 @@ fun ProHostAppRoot(
     // Login steps, sheets and dialogs report themselves (TrackScreen); "auth" is only the gap before them.
     val analyticsRole = currentUser?.role
     // Same activity-scoped instance the shell uses below.
-    val analyticsExploreMap by viewModel<DiscoveryViewModel>().isMapViewActive.collectAsState()
+    val analyticsExploreMap by viewModel { DiscoveryViewModel() }.isMapViewActive.collectAsState()
     val analyticsTab = fullScreenDrawerTab?.takeIf { analyticsRole != null && it in allowedTabIdsForRole(analyticsRole) }
         ?: activeTabId.takeIf { analyticsRole != null && it in allowedTabIdsForRole(analyticsRole) }
     val analyticsScreen = when {
@@ -998,22 +1001,22 @@ private fun SuspendedAccountScreen(onSignOut: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(20.dp))
             Text(
-                text = stringResource(R.string.account_suspended),
+                text = appString(Res.string.account_suspended),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(Spacing.sm))
             Text(
-                text = stringResource(R.string.your_account_has_been_suspended_by_prohost) +
-                    stringResource(R.string.or_manage_listings_while_suspended_contact),
+                text = appString(Res.string.your_account_has_been_suspended_by_prohost) +
+                    appString(Res.string.or_manage_listings_while_suspended_contact),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(28.dp))
             Button(colors = proPrimaryButtonColors(), onClick = onSignOut) {
-                Text(stringResource(R.string.sign_out))
+                Text(appString(Res.string.sign_out))
             }
         }
     }

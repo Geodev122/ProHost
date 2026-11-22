@@ -434,7 +434,7 @@ function checkOrphanedModules() {
 // ─── CHECK 14: Navigation graph completeness ──────────────────────────────────
 
 function checkNavGraph() {
-  const navFile = path.join(KT_UI, 'navigation/ProHostNavGraph.kt');
+  const navFile = path.join(ROOT, 'shared/src/commonMain/kotlin/com/example/ui/navigation/ProHostNavGraph.kt');
   const navContent = readSafe(navFile);
   if (!navContent) return;
   const missing = screenFiles().filter(f => {

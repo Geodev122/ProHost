@@ -77,7 +77,8 @@ class MainActivity : ComponentActivity() {
                     deepLinkSpaceId = targetSpaceId,
                     deepLinkRoomId = targetRoomId,
                     emailVerifiedDeepLink = emailVerifiedDeepLink,
-                    inAppUpdateManager = inAppUpdateManager
+                    inAppUpdateManager = inAppUpdateManager,
+                    slots = com.example.ui.navigation.AndroidAppRootSlots
                 )
             }
         }

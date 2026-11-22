@@ -21,3 +21,9 @@ actual fun rememberPurchaseHost(): PurchaseHost? {
     }
     return remember(activity) { activity?.let { PurchaseHost(it) } }
 }
+
+@Composable
+actual fun rememberApplicationHost(): PurchaseHost? {
+    val appContext = LocalContext.current.applicationContext
+    return remember(appContext) { PurchaseHost(appContext) }
+}
