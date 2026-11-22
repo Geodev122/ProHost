@@ -1,0 +1,117 @@
+name: iOS store screenshots
+
+# Real App Store screenshots of the iOS app: builds it for an iPhone 6.9" simulator (1320 x 2868), signs in with the App Review
+# Specialist demo account (server-only app_config/app_review) and runs StoreScreenshotTests in English, then Arabic. The PNGs
+# and an accessibility-tree text file per step are committed to ios/store/screenshots-real/<locale>/ on the dispatching branch
+# (and uploaded as an artifact). Uploading them to App Store Connect is a separate step (ios-inspect, section screenshots).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-screenshots-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shots:
+    runs-on: macos-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.7.1"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Demo account and a public listing (masked)
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          mkdir -p "$RUNNER_TEMP/fa" && (cd "$RUNNER_TEMP/fa" && npm install --silent --no-save firebase-admin@13 >/dev/null)
+          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json" NODE_PATH="$RUNNER_TEMP/fa/node_modules" node scripts/ios/screenshot_env.js
+          rm -f "$RUNNER_TEMP/sa.json"
+
+      - name: Select newest Xcode
+        run: |
+          latest=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          sudo xcode-select -s "$latest/Contents/Developer"
+          xcodebuild -version
+
+      - name: Generate project
+        working-directory: ios
+        run: brew install xcodegen && xcodegen generate
+
+      - name: Boot an iPhone 6.9" simulator with a clean status bar
+        run: |
+          SIM=$(xcrun simctl list devices available -j | python3 -c '
+          import json,sys
+          d=json.load(sys.stdin)["devices"]
+          for rt,devs in sorted(d.items(), reverse=True):
+              if "iOS" not in rt: continue
+              for x in devs:
+                  if "Pro Max" in x["name"]: print(x["udid"]); sys.exit(0)
+          sys.exit("no Pro Max simulator")')
+          echo "SIM=$SIM" >> "$GITHUB_ENV"
+          xcrun simctl boot "$SIM" || true
+          xcrun simctl bootstatus "$SIM" -b
+          xcrun simctl status_bar "$SIM" override --time "9:41" --dataNetwork wifi --wifiMode active --wifiBars 3 \
+            --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
+          xcrun simctl list devices | grep "$SIM"
+
+      - name: Build for testing
+        working-directory: ios
+        env:
+          MAPS_IOS_API_KEY: ${{ secrets.MAPS_IOS_API_KEY }}
+        run: |
+          xcodebuild build-for-testing -project ProHost.xcodeproj -scheme ProHost -destination "id=$SIM" \
+            -derivedDataPath build/dd CODE_SIGNING_ALLOWED=NO MAPS_IOS_API_KEY="$MAPS_IOS_API_KEY" | tail -20
+
+      - name: Screenshots (English, then Arabic)
+        working-directory: ios
+        run: |
+          for L in en ar; do
+            OUT="$GITHUB_WORKSPACE/ios/store/screenshots-real/$L"
+            mkdir -p "$OUT"
+            TEST_RUNNER_SHOT_LANG="$L" TEST_RUNNER_SCREENSHOT_DIR="$OUT" \
+            TEST_RUNNER_DEMO_EMAIL="$DEMO_EMAIL" TEST_RUNNER_DEMO_PASSWORD="$DEMO_PASSWORD" TEST_RUNNER_LISTING_ID="$LISTING_ID" \
+            xcodebuild test-without-building -project ProHost.xcodeproj -scheme ProHost -destination "id=$SIM" \
+              -derivedDataPath build/dd -only-testing:ProHostUITests/StoreScreenshotTests \
+              -resultBundlePath "build/shots-$L.xcresult" CODE_SIGNING_ALLOWED=NO | tail -25 || echo "::warning::$L pass reported failures"
+            # Fallback when the simulator could not write to the host folder: the attachments in the result bundle.
+            if ! ls "$OUT"/*.png >/dev/null 2>&1; then
+              xcrun xcresulttool export attachments --path "build/shots-$L.xcresult" --output-path "$OUT" || true
+            fi
+            echo "== $L"; ls -la "$OUT" | head -40
+          done
+
+      - name: Image sizes
+        run: |
+          for f in ios/store/screenshots-real/*/*.png; do echo "$f $(sips -g pixelWidth -g pixelHeight "$f" | awk '/pixel/{printf "%s ", $2}')"; done
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-store-screenshots
+          path: |
+            ios/store/screenshots-real
+            ios/build/shots-*.xcresult
+          retention-days: 14
+
+      - name: Commit the screenshots to this branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ios/store/screenshots-real
+          git diff --cached --quiet && { echo "nothing captured"; exit 0; }
+          git commit -m "iOS store screenshots from the simulator (ios-screenshots.yml)"
+          git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME"
