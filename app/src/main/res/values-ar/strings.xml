@@ -203,7 +203,6 @@
     <string name="draft_auto_saved">حُفظت المسودة تلقائيًا</string>
     <string name="draft_saved_continue_it_anytime_from_my_li">حُفظت المسودة — يمكنك متابعتها في أي وقت من إعلاناتي.</string>
     <string name="duration_lease">المدة والعقد</string>
-    <string name="duration_x_months_xd_elapsed">المدة: %1$s أشهر (انقضى %2$s يوم)</string>
     <string name="e_g_1_20_people_at_8_per_person_21_60_at_6">مثلًا 1–20 شخصًا بـ 8$ للشخص، و21–60 بـ 6$. اترك الحد الأقصى للفئة الأخيرة فارغًا لعدم وجود حد.</string>
     <string name="e_g_beirut">مثلًا بيروت</string>
     <string name="e_g_dentalclinic">مثلًا DentalClinic</string>
@@ -254,7 +253,6 @@
     <string name="for_new_subscribers">للمشتركين الجدد</string>
     <string name="for_space_owners">لأصحاب المساحات</string>
     <string name="formula_timing">الصيغة والتوقيت</string>
-    <string name="formula_x_start_x_x_mo">الصيغة: %1$s • البداية: %2$s (%3$s شهر)</string>
     <string name="formula_x_x_xx">الصيغة: %1$s • %2$s @ %3$s%4$s</string>
     <string name="from">من</string>
     <string name="from_accepted_bookings">من الحجوزات المقبولة</string>
@@ -1295,4 +1293,20 @@
     <string name="app_store_nothing_to_restore">لم يُعثر على اشتراك فعّال في App Store لحساب Apple هذا.</string>
     <string name="app_store_restore_failed">تعذّر التحقّق من مشتريات App Store. حاول مجددًا.</string>
     <string name="app_store_purchase_failed">تعذّر على App Store إتمام عملية الشراء. حاول مجددًا.</string>
+    <string name="formula_x_start_x_x">الصيغة: %1$s • البداية: %2$s (%3$s)</string>
+    <string name="duration_x_xd_elapsed">المدة: %1$s (انقضى %2$s يوم)</string>
+    <string name="your_live_requests">طلباتك</string>
+    <string name="no_live_requests">لا توجد حجوزات معلّقة أو قادمة. تظهر هنا الطلبات التي ترسلها.</string>
+    <string name="active_status">نشط</string>
+    <string name="approved_status">مقبول</string>
+    <string name="profile_details">بيانات الملف الشخصي</string>
+    <string name="profile_details_subtitle">اسمك وصورتك ورقم واتساب وموقعك. يراها المضيفون عند إرسال طلب.</string>
+    <string name="profile_details_row_hint">الاسم والصورة وواتساب والموقع</string>
+    <string name="push_action_view_requests">عرض الطلبات</string>
+    <string name="push_action_view_progress">عرض التقدّم</string>
+    <string name="push_action_my_rentals">إيجاراتي</string>
+    <string name="push_action_manage_subscription">إدارة الاشتراك</string>
+    <string name="push_action_admin_console">فتح لوحة الإدارة</string>
+    <string name="push_action_my_listings">إعلاناتي</string>
+    <string name="push_action_open">فتح</string>
 </resources>

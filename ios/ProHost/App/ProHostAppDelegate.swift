@@ -74,7 +74,8 @@ extension ProHostAppDelegate: UNUserNotificationCenterDelegate {
         IosPush.shared.openNotification(
             targetTab: info["targetTab"] as? String,
             bookingId: info["bookingId"] as? String,
-            spaceId: info["spaceId"] as? String)
+            spaceId: info["spaceId"] as? String,
+            notificationId: info["notificationId"] as? String)
         completionHandler()
     }
 }

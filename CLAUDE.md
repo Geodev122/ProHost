@@ -304,6 +304,16 @@ plan + recurring price + date;
   reaches users as a generic internal error). Throwing inside a Firestore transaction rolls its
   writes back — return an outcome and throw after commit. Server-only collections
   (`email_otps`, `email_send_limits`, `auth_password_invites`) need explicit deny rules.
+- Booking timing on screen (owner, 22 Nov 2026): `ui/util/BookingTiming.kt` (`lines`/`duration`/`start`/`progress`). Hour, shift
+  and day bookings ARE their booked times (one bullet each, `BookingTimeBullets` in `MyBookingsScreen.kt`), their duration is the
+  hours/shifts/days and they start at the first time; only monthly bookings show months. `durationMonths` defaults to 1 on every
+  booking: never print it for non-monthly ones. Profile: no Welcome box and no role tag (the update line and Find space / View
+  rentals sit on `DrawerIdentityCard`), only pending/approved/active requests (`ProfileRequestRow`: WhatsApp host · View request →
+  My Rentals highlighted), the form is `ProfileDetailsPage` opened from Profile › More.
+- Push on every device: `fcmTokens` list + `fcmToken` (see `docs/DATA_MODEL.md`); Android notifications are grouped per category,
+  keep one id per `notificationId` (no duplicates), localized action labels; a tray tap marks the inbox copy read
+  (`ProHostRepository.markAlertOpenedFromTray`, Android `notification_id` extra, iOS `notificationId`). APNs: `thread-id` =
+  category, `apns-collapse-id`, 48 h expiry like FCM `ttl`.
 - In-app notification centre: `sendPushToUser` (`functions/src/lib/push.ts`) stores every push in
   `user_profiles/{uid}/notifications/{id}` (48 h `expireAt`, `read`) before sending FCM (with `notificationId`), even
   without a device token; `pruneExpiredNotifications` deletes expired ones hourly (collection-group index on

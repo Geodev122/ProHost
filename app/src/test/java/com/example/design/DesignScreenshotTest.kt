@@ -307,6 +307,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
                 LaunchedEffect(Unit) { vm.showEmailVerificationReminderForTest() }
                 SpecialistProfileScreen(viewModel = vm)
             }
+            "profile_details" -> user?.let { ProfileDetailsPage(viewModel = vm, user = it, onClose = {}) }
             "registration" -> LoginAuthScreen(onLoginSuccess = {}, resumeAtRegistration = true, authViewModel = AuthViewModel(vm.repository))
             "filters" -> ExploreWithFilters()
             "availability_sheet" -> SpaceDetailsScreenContent(
@@ -428,7 +429,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
         val OVERLAYS = listOf(
             "splash", "auth_welcome", "auth_providers_signin", "auth_providers_create", "auth_email", "auth_password_signin",
             "auth_password_create", "auth_forgot", "auth_reset_sent", "registration", "registration_2", "registration_3",
-            "profile_verify_email", "filters", "availability_sheet", "request_sent", "requirements",
+            "profile_verify_email", "profile_details", "filters", "availability_sheet", "request_sent", "requirements",
             "requirements_host", "rebook", "edit_booking", "cancel_booking", "country_picker", "legal_documents", "notifications",
             "analytics_consent", "delete_account", "redeem_code", "reject_request", "request_detail", "change_price",
             "listing_wizard_1", "listing_wizard_2", "listing_wizard_3", "listing_wizard_3_empty", "listing_division_sheet",

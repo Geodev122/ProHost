@@ -50,16 +50,33 @@ export function fcmMessage(
   data: Record<string, string>,
   notificationId?: string
 ) {
+  const category = data.category || "GENERAL";
+  // A push older than the in-app copy (48 h) is no longer worth showing; FCM and APNs drop it instead of delivering late.
+  const ttlSeconds = Math.floor(NOTIFICATION_TTL_MS / 1000);
   return {
     token,
     data: { title, body, ...data, ...(notificationId ? { notificationId } : {}) },
-    android: { priority: "high" as const },
+    android: { priority: "high" as const, ttl: NOTIFICATION_TTL_MS },
     apns: {
-      headers: { "apns-priority": "10" },
-      payload: { aps: { alert: { title, body }, sound: "default" } },
+      headers: {
+        "apns-priority": "10",
+        "apns-expiration": String(Math.floor(Date.now() / 1000) + ttlSeconds),
+        ...(notificationId ? { "apns-collapse-id": notificationId.slice(0, 64) } : {}),
+      },
+      // thread-id groups alerts of one kind (bookings, billing…) in Notification Centre, like Android's channels.
+      payload: { aps: { alert: { title, body }, sound: "default", "thread-id": category } },
     },
   };
 }
+
+/** Every device token on a profile: the per-device list plus the legacy single field, de-duplicated, newest last, at most 10. */
+export function deviceTokens(profile: { fcmToken?: unknown; fcmTokens?: unknown } | undefined): string[] {
+  const list = Array.isArray(profile?.fcmTokens) ? (profile!.fcmTokens as unknown[]) : [];
+  const all = [...list, profile?.fcmToken].filter((t): t is string => typeof t === "string" && t.length > 0);
+  return [...new Set(all)].slice(-10);
+}
+
+const STALE_TOKEN_CODES = new Set(["messaging/registration-token-not-registered", "messaging/invalid-registration-token"]);
 
 export async function sendPushToUser(
   uid: string,
@@ -84,28 +101,31 @@ export async function sendPushToUser(
       logger.warn(`sendPushToUser: couldn't store the notification for ${uid}: ${(e as Error).message}`);
     }
 
-    const token = profileSnap.data()?.fcmToken as string | undefined;
-    if (!token) {
-      logger.info(`sendPushToUser: no fcmToken on file for ${uid}, stored in-app only`);
+    // Every signed-in device (a member with an Android phone and an iPhone gets the push on both).
+    const tokens = deviceTokens(profileSnap.data());
+    if (tokens.length === 0) {
+      logger.info(`sendPushToUser: no device token on file for ${uid}, stored in-app only`);
       return;
     }
 
-    try {
-      await getMessaging().send(fcmMessage(token, title, body, data, notificationId));
-    } catch (sendError) {
-      const code = (sendError as { code?: string }).code;
-      // An uninstalled app or a rotated token: forget it so future pushes don't keep
-      // failing, but only if the profile still holds that same token.
-      if (code === "messaging/registration-token-not-registered" || code === "messaging/invalid-registration-token") {
-        await db.runTransaction(async (tx) => {
-          const ref = db.collection("user_profiles").doc(uid);
-          const current = (await tx.get(ref)).data()?.fcmToken;
-          if (current === token) tx.update(ref, { fcmToken: FieldValue.delete() });
-        });
-        logger.info(`sendPushToUser: removed stale fcmToken for ${uid}`);
-        return;
-      }
-      throw sendError;
+    const results = await Promise.allSettled(tokens.map((t) => getMessaging().send(fcmMessage(t, title, body, data, notificationId))));
+    const stale = tokens.filter((_, i) => {
+      const r = results[i];
+      return r.status === "rejected" && STALE_TOKEN_CODES.has(String((r.reason as { code?: string })?.code));
+    });
+    if (stale.length > 0) {
+      // An uninstalled app or a rotated token: forget it so future pushes don't keep failing.
+      await db.runTransaction(async (tx) => {
+        const current = (await tx.get(profileRef)).data();
+        const update: Record<string, unknown> = { fcmTokens: FieldValue.arrayRemove(...stale) };
+        if (typeof current?.fcmToken === "string" && stale.includes(current.fcmToken)) update.fcmToken = FieldValue.delete();
+        tx.update(profileRef, update);
+      });
+      logger.info(`sendPushToUser: removed ${stale.length} stale device token(s) for ${uid}`);
+    }
+    const failed = results.filter((r, i) => r.status === "rejected" && !stale.includes(tokens[i]));
+    if (failed.length > 0 && failed.length + stale.length === tokens.length) {
+      throw (failed[0] as PromiseRejectedResult).reason;
     }
   } catch (e) {
     logger.error(`sendPushToUser failed for ${uid}: ${(e as Error).message}`);

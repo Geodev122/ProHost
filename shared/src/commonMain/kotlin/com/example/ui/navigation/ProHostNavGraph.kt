@@ -780,6 +780,10 @@ fun ProHostAppRoot(
                                         viewModel = viewModel,
                                         inAppUpdateManager = inAppUpdateManager,
                                         onNavigateToTab = { tabId -> navigateTo(tabId) },
+                                        onViewRequest = { bookingId ->
+                                            rentalsHighlightBookingId = bookingId
+                                            navigateTo(AppNavTab.ProfessionalRentals.id)
+                                        },
                                         onOpenLegal = { activeDrawerTabDialog = "legal_documents" },
                                         onSignOut = {
                                             viewModel.logout()

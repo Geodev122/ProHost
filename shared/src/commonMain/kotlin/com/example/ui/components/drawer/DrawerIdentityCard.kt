@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.EventNote
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -31,6 +32,8 @@ import com.example.data.model.UserRole
 import com.example.ui.theme.*
 import com.example.shared.resources.Res
 import com.example.shared.resources.collapse_side_drawer
+import com.example.shared.resources.find_space
+import com.example.shared.resources.view_rentals
 import com.example.shared.resources.id_x
 import com.example.shared.resources.prohost_member
 import com.example.shared.resources.verified
@@ -45,7 +48,11 @@ import com.example.ui.util.appString
 fun DrawerIdentityCard(
     user: AppUser?,
     onCloseDrawer: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    // Specialist Profile (owner, 22 Nov 2026): the latest update and the two main actions live on this card.
+    activityLine: String? = null,
+    onFindSpace: (() -> Unit)? = null,
+    onViewRentals: (() -> Unit)? = null
 ) {
     val role = user?.role ?: UserRole.SPECIALIST
     val pro = MaterialTheme.proColors
@@ -69,15 +76,13 @@ fun DrawerIdentityCard(
                 .padding(horizontal = Spacing.lg, vertical = Spacing.md)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                // Top row: Active Plan Tag + Close Drawer Arrow
-                Row(
+                // No role tag (owner, 22 Nov 2026); the close arrow only where the card sits in a drawer.
+                if (onCloseDrawer != null) Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RoleTag3D(role)
-
-                    if (onCloseDrawer != null) {
+                    run {
                         IconButton(
                             onClick = onCloseDrawer,
                             modifier = Modifier.size(40.dp)
@@ -234,51 +239,60 @@ fun DrawerIdentityCard(
                         )
                     }
                 }
+
+                if (activityLine != null) {
+                    Surface(
+                        color = pro.onBrandHeader.copy(alpha = 0.12f),
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                        ) {
+                            Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = pro.onBrandHeader, modifier = Modifier.size(16.dp))
+                            Text(
+                                text = activityLine,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = pro.onBrandHeader,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+
+                if (onFindSpace != null || onViewRentals != null) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        if (onFindSpace != null) {
+                            com.example.ui.components.Button(
+                                onClick = onFindSpace,
+                                colors = com.example.ui.components.proPrimaryButtonColors(),
+                                shape = MaterialTheme.shapes.medium,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(Spacing.sm))
+                                Text(appString(Res.string.find_space), style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
+                        if (onViewRentals != null) {
+                            com.example.ui.components.OutlinedButton(
+                                onClick = onViewRentals,
+                                shape = MaterialTheme.shapes.medium,
+                                border = BorderStroke(1.dp, pro.onBrandHeader.copy(alpha = 0.7f)),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = pro.onBrandHeader),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.EventNote, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(Spacing.sm))
+                                Text(appString(Res.string.view_rentals), style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
+                    }
+                }
             }
-        }
-    }
-}
-
-private data class RoleLook(val label: String, val top: Color, val bottom: Color, val edge: Color, val text: Color, val icon: androidx.compose.ui.graphics.vector.ImageVector)
-
-/**
- * One-word role tag with a raised, 3D look: a vertical gradient face with a light top rim, sitting on a darker
- * "edge" that shows below it, plus a soft shadow. Steel Blue for Specialist, orange for Host, gold for Admin.
- */
-@Composable
-private fun RoleTag3D(role: UserRole) {
-    val look = when (role) {
-        UserRole.ADMIN -> RoleLook("ADMIN", Color(0xFFFFDC7A), Color(0xFFE2A82A), Color(0xFF8A6410), Color(0xFF2A1E04), Icons.Default.Shield)
-        UserRole.PRO_HOST -> RoleLook("HOST", Color(0xFFFF8F63), Color(0xFFD2432F), Color(0xFF8C2819), Color.White, Icons.Default.WorkspacePremium)
-        else -> RoleLook("SPECIALIST", Color(0xFF6C9FD6), Color(0xFF3A72AE), Color(0xFF1F4268), Color.White, Icons.Default.VerifiedUser)
-    }
-    val shape = Radius.Sm
-    Box(modifier = Modifier.padding(bottom = 3.dp)) {
-        // Edge: the darker slab under the face.
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .offset(y = 3.dp)
-                .background(look.edge, shape)
-        )
-        Row(
-            modifier = Modifier
-                .shadow(4.dp, shape, ambientColor = look.edge, spotColor = look.edge)
-                .background(Brush.verticalGradient(listOf(look.top, look.bottom)), shape)
-                .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.75f), Color.White.copy(alpha = 0.1f))), shape)
-                .padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-        ) {
-            Icon(look.icon, contentDescription = null, tint = look.text, modifier = Modifier.size(14.dp))
-            Text(
-                text = localizedLabel(look.label),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 1.sp,
-                color = look.text,
-                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-            )
         }
     }
 }

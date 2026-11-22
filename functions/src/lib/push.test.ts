@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NOTIFICATION_TTL_MS, fcmMessage, notificationDoc } from "./push";
+import { NOTIFICATION_TTL_MS, deviceTokens, fcmMessage, notificationDoc } from "./push";
 
 test("in-app notifications keep the push routing and expire after 48 h", () => {
   const doc = notificationDoc("Booking accepted", "See you there", { category: "BOOKING_UPDATE", targetTab: "pro_rentals", bookingId: "b1" }, 1000);
@@ -22,8 +22,23 @@ test("fcmMessage keeps the Android data-only payload and adds the iOS alert", ()
   const m = fcmMessage("tok", "Title", "Body", { targetTab: "pro_rentals", bookingId: "b1" }, "n1");
   assert.equal(m.token, "tok");
   assert.deepEqual(m.data, { title: "Title", body: "Body", targetTab: "pro_rentals", bookingId: "b1", notificationId: "n1" });
-  assert.deepEqual(m.android, { priority: "high" });
+  assert.deepEqual(m.android, { priority: "high", ttl: NOTIFICATION_TTL_MS });
+  assert.equal(m.apns.payload.aps["thread-id"], "GENERAL");
+  assert.equal(m.apns.headers["apns-collapse-id"], "n1");
+  assert.ok(Number(m.apns.headers["apns-expiration"]) > Date.now() / 1000);
   assert.deepEqual(m.apns.payload.aps.alert, { title: "Title", body: "Body" });
   assert.equal(m.apns.headers["apns-priority"], "10");
   assert.equal(fcmMessage("t", "a", "b", {}).data.notificationId, undefined);
+});
+
+test("deviceTokens merges the device list with the legacy field, without duplicates", () => {
+  assert.deepEqual(deviceTokens({ fcmTokens: ["a", "b"], fcmToken: "b" }), ["a", "b"]);
+  assert.deepEqual(deviceTokens({ fcmToken: "x" }), ["x"]);
+  assert.deepEqual(deviceTokens({ fcmTokens: ["a", 3, "", null] }), ["a"]);
+  assert.deepEqual(deviceTokens(undefined), []);
+  assert.equal(deviceTokens({ fcmTokens: Array.from({ length: 15 }, (_, i) => `t${i}`) }).length, 10);
+});
+
+test("a categorised push is threaded by its category on iOS", () => {
+  assert.equal(fcmMessage("t", "a", "b", { category: "BOOKING_UPDATE" }).apns.payload.aps["thread-id"], "BOOKING_UPDATE");
 });

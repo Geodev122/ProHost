@@ -663,8 +663,6 @@ class ProHostViewModel(
                 "${request.selectedStartHour}–${request.selectedEndHour}"
             else "${request.formula.startHour}–${request.formula.endHour}"
             val shiftStr = request.selectedShift.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""
-            val durationStr = if (request.formula.type == RentalFormulaType.FULL_MONTH)
-                " · ${request.durationMonths} month${if (request.durationMonths > 1) "s" else ""}" else ""
             buildString {
                 appendLine()
                 appendLine()
@@ -672,9 +670,12 @@ class ProHostViewModel(
                 if (request.displayCode.isNotBlank()) appendLine(sharedText("request_x_2", request.displayCode))
                 // Dated requests carry their real dates and times; older ones weekdays and hours.
                 val dated = request.selectedDateTimeRange.takeIf { request.dateModel == 2 && it.isNotBlank() }
-                if (dated != null) appendLine(sharedText("schedule") + ": " + dated)
-                else appendLine(sharedText("schedule_x_xx", daysStr, timesStr, shiftStr))
-                appendLine(sharedText("start_xx", request.startDate, durationStr))
+                if (dated != null) {
+                    appendLine(sharedText("schedule") + ":")
+                    com.example.ui.util.BookingTiming.lines(request).forEach { appendLine("• $it") }
+                } else appendLine(sharedText("schedule_x_xx", daysStr, timesStr, shiftStr))
+                // Duration in the booking's own unit (hours / shifts / days, months only for monthly).
+                appendLine(sharedText("start_xx", com.example.ui.util.BookingTiming.start(request), " · " + com.example.ui.util.BookingTiming.duration(request)))
                 if (attendeeLine != null) appendLine(sharedText("attendees_x", attendeeLine))
                 appendLine(sharedText("total_x_usd_2", request.totalAmountUsd.toInt()))
                 if (request.clinicalNotes.isNotBlank()) appendLine(sharedText("notes_x", request.clinicalNotes))
@@ -726,7 +727,7 @@ class ProHostViewModel(
         val rawMessage = sharedText("hello_x", request.practitionerName) +
                 sharedText("i_am_x_regarding_your_booking_request_x_fo", ownerName, request.publicCode, request.spaceTitle) +
                 (request.selectedDateTimeRange.takeIf { request.dateModel == 2 && it.isNotBlank() }
-                    ?.let { sharedText("schedule") + ": " + it + "\n" }
+                    ?.let { sharedText("schedule") + ":\n" + com.example.ui.util.BookingTiming.lines(request).joinToString("") { line -> "• $line\n" } }
                     ?: sharedText("requested_schedule_x_x_x", daysStr, timesStr, localizedLabel(request.formula.type.displayName))) +
                 sharedText("status_x", localizedLabel(request.status.displayName)) +
                 sharedText("let_s_discuss_onboarding_and_walk_through")

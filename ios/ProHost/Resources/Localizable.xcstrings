@@ -392,6 +392,23 @@
         }
       }
     },
+    "active_status": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Active"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نشط"
+          }
+        }
+      }
+    },
     "active_tenancies_empty_description": {
       "extractionState": "manual",
       "localizations": {
@@ -1238,6 +1255,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "تطبيق على الكل:"
+          }
+        }
+      }
+    },
+    "approved_status": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approved"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مقبول"
           }
         }
       }
@@ -6231,19 +6265,19 @@
         }
       }
     },
-    "duration_x_months_xd_elapsed": {
+    "duration_x_xd_elapsed": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Duration: %1$@ Months (%2$@d elapsed)"
+            "value": "Duration: %1$@ (%2$@d elapsed)"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "المدة: %1$@ أشهر (انقضى %2$@ يوم)"
+            "value": "المدة: %1$@ (انقضى %2$@ يوم)"
           }
         }
       }
@@ -7438,19 +7472,19 @@
         }
       }
     },
-    "formula_x_start_x_x_mo": {
+    "formula_x_start_x_x": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Formula: %1$@ • Start: %2$@ (%3$@ mo)"
+            "value": "Formula: %1$@ • Start: %2$@ (%3$@)"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "الصيغة: %1$@ • البداية: %2$@ (%3$@ شهر)"
+            "value": "الصيغة: %1$@ • البداية: %2$@ (%3$@)"
           }
         }
       }
@@ -9985,6 +10019,136 @@
         }
       }
     },
+    "n_days": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld day"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld days"
+                }
+              }
+            }
+          }
+        },
+        "ar": {
+          "variations": {
+            "plural": {
+              "zero": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "لا أيام"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "يوم واحد"
+                }
+              },
+              "two": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "يومان"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld أيام"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld يوماً"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld يوم"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "n_hours": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld hour"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld hours"
+                }
+              }
+            }
+          }
+        },
+        "ar": {
+          "variations": {
+            "plural": {
+              "zero": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "لا ساعات"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "ساعة واحدة"
+                }
+              },
+              "two": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "ساعتان"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld ساعات"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld ساعة"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld ساعة"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "n_months": {
       "extractionState": "manual",
       "localizations": {
@@ -10043,6 +10207,71 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld شهر"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "n_shifts": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld shift"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld shifts"
+                }
+              }
+            }
+          }
+        },
+        "ar": {
+          "variations": {
+            "plural": {
+              "zero": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "لا مناوبات"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "مناوبة واحدة"
+                }
+              },
+              "two": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "مناوبتان"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld مناوبات"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld مناوبة"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld مناوبة"
                 }
               }
             }
@@ -10825,6 +11054,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "لا إعلانات بعد"
+          }
+        }
+      }
+    },
+    "no_live_requests": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pending or upcoming bookings. Requests you send appear here."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا توجد حجوزات معلّقة أو قادمة. تظهر هنا الطلبات التي ترسلها."
           }
         }
       }
@@ -13447,6 +13693,57 @@
         }
       }
     },
+    "profile_details": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profile details"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "بيانات الملف الشخصي"
+          }
+        }
+      }
+    },
+    "profile_details_row_hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name, photo, WhatsApp and location"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الاسم والصورة وواتساب والموقع"
+          }
+        }
+      }
+    },
+    "profile_details_subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your name, photo, WhatsApp number and location. Hosts see these when you send a request."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اسمك وصورتك ورقم واتساب وموقعك. يراها المضيفون عند إرسال طلب."
+          }
+        }
+      }
+    },
     "profile_photo": {
       "extractionState": "manual",
       "localizations": {
@@ -14021,6 +14318,125 @@
           "stringUnit": {
             "state": "translated",
             "value": "تمت استعادة الشراء — خطة المضيف المحترف فعّالة."
+          }
+        }
+      }
+    },
+    "push_action_admin_console": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open admin console"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فتح لوحة الإدارة"
+          }
+        }
+      }
+    },
+    "push_action_manage_subscription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manage subscription"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إدارة الاشتراك"
+          }
+        }
+      }
+    },
+    "push_action_my_listings": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "My listings"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إعلاناتي"
+          }
+        }
+      }
+    },
+    "push_action_my_rentals": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "My Rentals"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إيجاراتي"
+          }
+        }
+      }
+    },
+    "push_action_open": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فتح"
+          }
+        }
+      }
+    },
+    "push_action_view_progress": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View progress"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عرض التقدّم"
+          }
+        }
+      }
+    },
+    "push_action_view_requests": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View requests"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عرض الطلبات"
           }
         }
       }
@@ -22602,6 +23018,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "إعلاناتك وتوفّرها"
+          }
+        }
+      }
+    },
+    "your_live_requests": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your requests"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "طلباتك"
           }
         }
       }

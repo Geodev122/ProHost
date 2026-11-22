@@ -83,7 +83,8 @@ class ProHostMessagingService : FirebaseMessagingService() {
             targetTab = targetTab,
             bookingId = bookingId,
             spaceId = spaceId,
-            notificationType = categoryType
+            notificationType = categoryType,
+            notificationId = alert.id
         )
     }
 
@@ -135,7 +136,8 @@ class ProHostMessagingService : FirebaseMessagingService() {
             targetTab: String? = null,
             bookingId: String? = null,
             spaceId: String? = null,
-            notificationType: String? = null
+            notificationType: String? = null,
+            notificationId: String? = null
         ) {
             // Without POST_NOTIFICATIONS (Android 13+) notify() is silently dropped; the
             // alert is still in the in-app alerts list either way.
@@ -156,6 +158,7 @@ class ProHostMessagingService : FirebaseMessagingService() {
                     putExtra("space_id", spaceId)
                 }
                 putExtra("notification_type", notificationType ?: "GENERAL")
+                if (notificationId != null) putExtra("notification_id", notificationId)
             }
             val pendingIntent = PendingIntent.getActivity(
                 context,
@@ -174,18 +177,25 @@ class ProHostMessagingService : FirebaseMessagingService() {
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+                .setColor(androidx.core.content.ContextCompat.getColor(context, R.color.prohost_notification_accent))
+                // Alerts of one kind stack together in the shade (bookings, billing, admin…).
+                .setGroup("prohost_${notificationType ?: "GENERAL"}")
+                .setCategory(if (notificationType in BILLING_CATEGORIES) NotificationCompat.CATEGORY_STATUS else NotificationCompat.CATEGORY_EVENT)
 
             // Action 1: Deep Link to Tab Action
             if (targetTab != null) {
-                val actionTitle = when (targetTab) {
-                    "owner_requests" -> "View Requests"
-                    "owner_progress" -> "View Progress"
-                    "pro_rentals" -> "My Rentals"
-                    "owner_subscriptions" -> "Manage subscription"
-                    "admin_console" -> "Open Admin Console"
-                    "manage_listings" -> "My Listings"
-                    else -> "Open Screen"
-                }
+                // In the app's language (these were English-only).
+                val actionTitle = context.getString(
+                    when (targetTab) {
+                        "owner_requests" -> R.string.push_action_view_requests
+                        "owner_progress" -> R.string.push_action_view_progress
+                        "pro_rentals" -> R.string.push_action_my_rentals
+                        "owner_subscriptions" -> R.string.push_action_manage_subscription
+                        "admin_console" -> R.string.push_action_admin_console
+                        "manage_listings" -> R.string.push_action_my_listings
+                        else -> R.string.push_action_open
+                    }
+                )
                 notificationBuilder.addAction(
                     android.R.drawable.ic_menu_view,
                     actionTitle,
@@ -193,7 +203,7 @@ class ProHostMessagingService : FirebaseMessagingService() {
                 )
             }
 
-            notificationManager.notify(System.currentTimeMillis().toInt(), notificationBuilder.build())
+            notificationManager.notify(notificationId?.hashCode() ?: System.currentTimeMillis().toInt(), notificationBuilder.build())
         }
     }
 }

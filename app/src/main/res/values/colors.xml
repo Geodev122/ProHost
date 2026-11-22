@@ -13,4 +13,6 @@
          closest a solid color can get to matching the image SplashScreen.kt shows
          immediately after, keeping the handoff seamless instead of flashing white. -->
     <color name="splash_background">#ECEDF0</color>
+    <!-- Push notification accent (small icon tint): brand Steel Blue. -->
+    <color name="prohost_notification_accent">#FF2B5A8C</color>
 </resources>

@@ -159,9 +159,8 @@ class ProfilesRepository(private val repo: ProHostRepository) {
                     // out here would silence push on the user's other, still-signed-in phone.
                     val deviceToken = runCatching { com.example.util.PushTokens.current() }.getOrNull()
                     val storedToken = firestoreService.getUserProfile(loggedOutUser.id)?.get("fcmToken") as? String
-                    if (storedToken != null && (deviceToken == null || storedToken == deviceToken)) {
-                        firestoreService.updateUserProfileFields(loggedOutUser.id, mapOf("fcmToken" to null))
-                    }
+                    val clearLatest = storedToken != null && (deviceToken == null || storedToken == deviceToken)
+                    firestoreService.removeFcmToken(loggedOutUser.id, deviceToken, clearLatest)
                 } catch (e: Exception) {
                     com.example.util.AppLog.w(ProHostRepository.TAG, "FCM token clear on logout failed: ${e.message}")
                 }

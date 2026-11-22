@@ -140,7 +140,9 @@ fun SpecialistProfileScreen(
     onNavigateToTab: (String) -> Unit = {},
     // Profile › More: what the drawer used to offer specialists (they have no drawer).
     onOpenLegal: (() -> Unit)? = null,
-    onSignOut: (() -> Unit)? = null
+    onSignOut: (() -> Unit)? = null,
+    // "View request" on a profile request card: opens My Rentals on that booking.
+    onViewRequest: (String) -> Unit = { onNavigateToTab("pro_rentals") }
 ) {
     val needsEmailVerification by viewModel.needsEmailVerification.collectAsState()
     val coroutineScope = rememberCoroutineScope()
@@ -162,32 +164,8 @@ fun SpecialistProfileScreen(
         return
     }
 
-    var name by remember(user) { mutableStateOf(user.fullName) }
-    var specialty by remember(user) { mutableStateOf(user.specialty) }
-    var phone by remember(user) { mutableStateOf(user.phone) }
-    // Split into a real country-code picker + local digits, matching the same
-    // pattern CreateListingDialog's owner-phone field and registration's phone
-    // step already use — this used to be a bare text field with just a
-    // "(+961 ...)" hint, so nothing ever enforced a country code, and a saved
-    // number with none broke wa.me links downstream. Best-effort split of
-    // whatever the profile already has: match its longest known dial-code
-    // prefix, defaulting to Lebanon.
-    var phoneCountry by remember(user) {
-        mutableStateOf(
-            COUNTRIES.filter { user.phone.trim().startsWith(it.dialCode) }
-                .maxByOrNull { it.dialCode.length }
-                ?: COUNTRIES.first { it.isoCode == "LB" }
-        )
-    }
-    var phoneLocal by remember(user) {
-        mutableStateOf(user.phone.trim().removePrefix(phoneCountry.dialCode).trim())
-    }
-    var selectedCountry by remember(user) { mutableStateOf(findCountryByName(user.country)) }
-    var governorateArea by remember(user) { mutableStateOf(user.governorate) }
-    var city by remember(user) { mutableStateOf(user.city) }
-    var pendingCancelRequest by remember { mutableStateOf<RentalBookingRequest?>(null) }
-    var isSavingProfile by remember { mutableStateOf(false) }
-    var profilePicUploadError by remember { mutableStateOf<String?>(null) }
+    // Profile › More › Profile details: the form is its own page now (owner, 22 Nov 2026).
+    var showProfileDetails by remember { mutableStateOf(false) }
     var showRequirementsSheet by remember { mutableStateOf(false) }
 
     Box(
@@ -236,10 +214,55 @@ fun SpecialistProfileScreen(
         ) {
             item {
                 // =========================================================================
-                // 0. IDENTITY CARD  (formerly in side drawer — single source of truth)
+                // 0. IDENTITY CARD: who you are, your latest update and the two main actions
+                //    (the separate "Welcome back" box was folded into it, owner 22 Nov 2026).
                 // =========================================================================
-                DrawerIdentityCard(user = user)
+                if (user.role == UserRole.SPECIALIST) {
+                    val fcmAlertsForWelcome by viewModel.fcmAlerts.collectAsState()
+                    val bookingsForWelcome by viewModel.practitionerBookings.collectAsState()
 
+                    fun daysUntil(dateStr: String): Long? {
+                        if (dateStr.isBlank()) return null
+                        val target = com.example.ui.util.parseMillisDate(dateStr, "yyyy-MM-dd", "en-US") ?: return null
+                        val diffMs = target - com.example.util.nowMillis()
+                        return diffMs / (24 * 60 * 60 * 1000)
+                    }
+
+                    val latestRelevantAlert = fcmAlertsForWelcome
+                        .filter { !it.isRead && (it.category == "BOOKING_UPDATE" || it.category == "PAYMENT_REMINDER") }
+                        .maxByOrNull { it.timestamp }
+
+                    val nearestUpcomingBooking = bookingsForWelcome
+                        .filter { it.status == BookingRequestStatus.ACCEPTED }
+                        .mapNotNull { booking -> daysUntil(booking.startDate)?.let { booking to it } }
+                        .filter { it.second >= 0 }
+                        .minByOrNull { it.second }
+
+                    val pendingCount = bookingsForWelcome.count { it.status == BookingRequestStatus.PENDING }
+
+                    val updateLine: String = when {
+                        latestRelevantAlert != null -> latestRelevantAlert.body.ifBlank { latestRelevantAlert.title }
+                        nearestUpcomingBooking != null -> {
+                            val (booking, days) = nearestUpcomingBooking
+                            when {
+                                days == 0L -> sharedText("your_booking_at_x_starts_today", booking.spaceTitle)
+                                days == 1L -> sharedText("your_booking_at_x_starts_tomorrow", booking.spaceTitle)
+                                else -> sharedText("your_booking_at_x_starts_in_x_days", booking.spaceTitle, days)
+                            }
+                        }
+                        pendingCount > 0 -> sharedPlural("requests_awaiting_host", pendingCount, pendingCount)
+                        else -> sharedText("no_updates_right_now_explore_available_wor")
+                    }
+
+                    DrawerIdentityCard(
+                        user = user,
+                        activityLine = updateLine,
+                        onFindSpace = { onNavigateToTab("search_map") },
+                        onViewRentals = { onNavigateToTab("pro_rentals") }
+                    )
+                } else {
+                    DrawerIdentityCard(user = user)
+                }
             }
             // Readiness banner: the same checks as booking / hosting, completed in the shared sheet.
             if (user.role != UserRole.ADMIN) {
@@ -321,105 +344,6 @@ fun SpecialistProfileScreen(
                                     fontWeight = FontWeight.ExtraBold,
                                     letterSpacing = 0.8.sp
                                 )
-                            }
-                        }
-                    }
-                }
-            }
-            // =========================================================================
-            // 1. WELCOME BOX WITH REAL, LATEST-UPDATE-DRIVEN STATUS (SPECIALIST)
-            // =========================================================================
-            if (user.role == UserRole.SPECIALIST) {
-                item {
-                    val fcmAlertsForWelcome by viewModel.fcmAlerts.collectAsState()
-                    val bookingsForWelcome by viewModel.practitionerBookings.collectAsState()
-
-                    fun daysUntil(dateStr: String): Long? {
-                        if (dateStr.isBlank()) return null
-                        val target = com.example.ui.util.parseMillisDate(dateStr, "yyyy-MM-dd", "en-US") ?: return null
-                        val diffMs = target - com.example.util.nowMillis()
-                        return diffMs / (24 * 60 * 60 * 1000)
-                    }
-
-                    val latestRelevantAlert = fcmAlertsForWelcome
-                        .filter { !it.isRead && (it.category == "BOOKING_UPDATE" || it.category == "PAYMENT_REMINDER") }
-                        .maxByOrNull { it.timestamp }
-
-                    val nearestUpcomingBooking = bookingsForWelcome
-                        .filter { it.status == BookingRequestStatus.ACCEPTED }
-                        .mapNotNull { booking -> daysUntil(booking.startDate)?.let { booking to it } }
-                        .filter { it.second >= 0 }
-                        .minByOrNull { it.second }
-
-                    val pendingCount = bookingsForWelcome.count { it.status == BookingRequestStatus.PENDING }
-
-                    val updateLine: String = when {
-                        latestRelevantAlert != null -> latestRelevantAlert.body.ifBlank { latestRelevantAlert.title }
-                        nearestUpcomingBooking != null -> {
-                            val (booking, days) = nearestUpcomingBooking
-                            when {
-                                days == 0L -> sharedText("your_booking_at_x_starts_today", booking.spaceTitle)
-                                days == 1L -> sharedText("your_booking_at_x_starts_tomorrow", booking.spaceTitle)
-                                else -> sharedText("your_booking_at_x_starts_in_x_days", booking.spaceTitle, days)
-                            }
-                        }
-                        pendingCount > 0 -> sharedPlural("requests_awaiting_host", pendingCount, pendingCount)
-                        else -> sharedText("no_updates_right_now_explore_available_wor")
-                    }
-
-                    ProSurfaceCard(
-                        modifier = Modifier.shadow(4.dp, MaterialTheme.shapes.extraLarge),
-                        shape = MaterialTheme.shapes.extraLarge,
-                        contentPadding = PaddingValues(Spacing.lg)
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-                            ) {
-                                Icon(
-                                    Icons.Default.WavingHand,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                Text(
-                                    text = appString(Res.string.welcome_back_x, user.fullName),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-
-                            Text(
-                                text = updateLine,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                            ) {
-                                Button(
-                                    colors = proPrimaryButtonColors(),
-                                    onClick = { onNavigateToTab("search_map") },
-                                    modifier = Modifier.weight(1f),
-                                    shape = MaterialTheme.shapes.medium
-                                ) {
-                                    Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(Spacing.sm))
-                                    Text(appString(Res.string.find_space), style = MaterialTheme.typography.labelMedium)
-                                }
-
-                                OutlinedButton(
-                                    onClick = { onNavigateToTab("pro_rentals") },
-                                    modifier = Modifier.weight(1f),
-                                    shape = MaterialTheme.shapes.medium
-                                ) {
-                                    Icon(Icons.AutoMirrored.Filled.EventNote, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(Spacing.sm))
-                                    Text(appString(Res.string.view_rentals), style = MaterialTheme.typography.labelMedium)
-                                }
                             }
                         }
                     }
@@ -594,334 +518,55 @@ fun SpecialistProfileScreen(
                 }
             }
             // =========================================================================
-            // 5. ROLE-SPECIFIC ACTIVITY CARDS (BOOKINGS / LEASES)
+            // 5. YOUR REQUESTS: only live ones (pending, approved, active), compact (owner, 22 Nov 2026).
+            //    Full details and every other action stay in My Rentals ("View request").
             // =========================================================================
             if (user.role == UserRole.SPECIALIST) {
                 item {
                     val practitionerBookings by viewModel.practitionerBookings.collectAsState()
                     val spaces by viewModel.spaces.collectAsState()
-
-                    ProSurfaceCard(
-                        modifier = Modifier.shadow(2.dp, MaterialTheme.shapes.large)
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                            // Title/subtitle dropped here on purpose — this same summary
-                            // (count + status) already lives on the My Rentals screen, so
-                            // this card keeps just the count badge and the list itself.
-                            if (practitionerBookings.isNotEmpty()) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        Icons.Default.EventAvailable,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(Spacing.sm))
-                                    ProStatusBadge(type = ProBadgeType.CUSTOM_INFO, customText = "${practitionerBookings.size} total")
-                                }
+                    val liveRequests = remember(practitionerBookings) {
+                        practitionerBookings
+                            .filter {
+                                it.status == BookingRequestStatus.PENDING ||
+                                    (it.status == BookingRequestStatus.ACCEPTED && !com.example.ui.util.BookingTerms.hasEnded(it))
                             }
-
-                            if (practitionerBookings.isEmpty()) {
-                                ProEmptyState(
-                                    title = appString(Res.string.no_active_workspace_leases),
-                                    description = appString(Res.string.explore_available_clinics_studios_and_exec),
-                                    icon = Icons.Default.EventAvailable,
-                                    modifier = Modifier.padding(vertical = Spacing.sm)
-                                )
-                            } else {
-                                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                                    practitionerBookings.forEach { req ->
-                                        val targetSpace = spaces.find { it.id == req.spaceId }
-                                        Card(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            shape = MaterialTheme.shapes.large,
-                                            colors = CardDefaults.cardColors(
-                                                containerColor = when (req.status) {
-                                                    BookingRequestStatus.ACCEPTED -> MaterialTheme.proColors.infoContainer
-                                                    BookingRequestStatus.PENDING -> MaterialTheme.proColors.warningContainer
-                                                    BookingRequestStatus.REJECTED -> MaterialTheme.colorScheme.errorContainer
-                                                    BookingRequestStatus.CANCELLED -> MaterialTheme.colorScheme.surfaceVariant
-                                                }
-                                            ),
-                                            border = BorderStroke(
-                                                1.dp,
-                                                when (req.status) {
-                                                    BookingRequestStatus.ACCEPTED -> MaterialTheme.proColors.info
-                                                    BookingRequestStatus.PENDING -> MaterialTheme.proColors.warning
-                                                    BookingRequestStatus.REJECTED -> MaterialTheme.colorScheme.error
-                                                    BookingRequestStatus.CANCELLED -> MaterialTheme.colorScheme.outlineVariant
-                                                }
-                                            )
-                                        ) {
-                                            Column(
-                                                modifier = Modifier.padding(14.dp),
-                                                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Text(
-                                                        text = req.spaceTitle,
-                                                        style = MaterialTheme.typography.titleSmall,
-                                                        fontWeight = FontWeight.Bold,
-                                                        modifier = Modifier.weight(1f)
-                                                    )
-
-                                                    when (req.status) {
-                                                        BookingRequestStatus.ACCEPTED -> ProStatusBadge(ProBadgeType.ACCEPTED_LOCKED)
-                                                        BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = sharedText("pending_host"))
-                                                        BookingRequestStatus.REJECTED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = sharedText("declined"))
-                                                        BookingRequestStatus.CANCELLED -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = sharedText("cancelled"))
-                                                    }
-                                                }
-
-                                                val chosenDaysStr = if (req.selectedDays.isNotEmpty()) {
-                                                    req.selectedDays.joinToString(", ")
-                                                } else {
-                                                    req.formula.daysOfWeek.joinToString(", ")
-                                                }
-                                                val chosenHoursStr = if (req.selectedStartHour.isNotBlank() && req.selectedEndHour.isNotBlank()) {
-                                                    timeRange(req.selectedStartHour, req.selectedEndHour)
-                                                } else {
-                                                    timeRange(req.formula.startHour, req.formula.endHour)
-                                                }
-                                                val shiftDetail = if (req.selectedShift.isNotBlank()) " (${req.selectedShift})" else ""
-
-                                                Row(verticalAlignment = Alignment.Top) {
-                                                    Icon(
-                                                        Icons.AutoMirrored.Filled.Assignment,
-                                                        contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(14.dp)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(Spacing.sm))
-                                                    Text(
-                                                        text = req.selectedDateTimeRange.takeIf { req.dateModel == 2 && it.isNotBlank() }
-                                                            ?.let { "${localizedLabel(req.formula.type.displayName)} · \u2066$it\u2069" }
-                                                            ?: appString(Res.string.formula_x_x_xx, localizedLabel(req.formula.type.displayName), chosenDaysStr, chosenHoursStr, shiftDetail),
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        color = MaterialTheme.colorScheme.primary,
-                                                        fontWeight = FontWeight.SemiBold
-                                                    )
-                                                }
-                                                Row(verticalAlignment = Alignment.Top) {
-                                                    Icon(
-                                                        Icons.Default.CalendarMonth,
-                                                        contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                        modifier = Modifier.size(14.dp)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(Spacing.sm))
-                                                    Text(
-                                                        text = appString(Res.string.starting_x_x_mo_term, req.startDate, req.durationMonths) +
-                                                            appString(Res.string.total_x_usd, req.totalAmountUsd.toInt()),
-                                                        style = MaterialTheme.typography.bodySmall
-                                                    )
-                                                }
-
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                                                ) {
-                                                    if (targetSpace != null) {
-                                                        Button(
-                                                            onClick = {
-                                                                viewModel.launchWhatsAppInquiry(targetSpace, req.formula, req)
-                                                            },
-                                                            modifier = Modifier.weight(1f),
-                                                            shape = MaterialTheme.shapes.small,
-                                                            colors = ProHostButtonDefaults.buttonColors(containerColor = WhatsAppDarkGreen),
-                                                            contentPadding = PaddingValues(vertical = 6.dp)
-                                                        ) {
-                                                            Icon(
-                                                                Icons.AutoMirrored.Filled.Chat,
-                                                                contentDescription = null,
-                                                                tint = Color.White,
-                                                                modifier = Modifier.size(14.dp)
-                                                            )
-                                                            Spacer(modifier = Modifier.width(Spacing.xs))
-                                                            Text(
-                                                                appString(Res.string.whatsapp_host),
-                                                                style = MaterialTheme.typography.labelSmall,
-                                                                color = Color.White,
-                                                                fontWeight = FontWeight.Bold
-                                                            )
-                                                        }
-                                                    }
-
-                                                    if (req.status == BookingRequestStatus.PENDING) {
-                                                        OutlinedButton(
-                                                            onClick = { pendingCancelRequest = req },
-                                                            modifier = Modifier.weight(0.6f),
-                                                            shape = MaterialTheme.shapes.small,
-                                                            contentPadding = PaddingValues(vertical = 6.dp)
-                                                        ) {
-                                                            Text(appString(Res.string.cancel), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                            .sortedWith(compareBy({ it.status != BookingRequestStatus.ACCEPTED }, { -it.createdAt }))
                     }
-                }
-            }
-            item {
-                // =========================================================================
-                // 6. EDIT PROFILE & MEMBER DETAILS FORM
-                // =========================================================================
-                ProSurfaceCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-                        ProSectionHeader(
-                            title = when (user.role) {
-                                UserRole.SPECIALIST -> sharedText("practitioner_details")
-                                UserRole.PRO_HOST -> sharedText("host_business_details")
-                                UserRole.ADMIN -> sharedText("super_administrator_identity")
-                            },
-                            subtitle = appString(Res.string.contact_verification_info),
-                            icon = Icons.Default.Badge
-                        )
-
-                        var pendingProfilePic by remember { mutableStateOf<com.example.util.PickedFile?>(null) }
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                            ProfilePicturePickerField(
-                                pictureFile = pendingProfilePic,
-                                existingUrl = user.profilePictureUrl,
-                                onPictureSelected = { pendingProfilePic = it }
-                            )
-                            Column {
-                                Text(appString(Res.string.profile_picture_2), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    ProSurfaceCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.EventAvailable, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(Spacing.sm))
                                 Text(
-                                    if (user.profilePictureUrl != null || pendingProfilePic != null) appString(Res.string.tap_to_replace) else appString(Res.string.tap_to_add_a_photo),
-                                    style = MaterialTheme.typography.labelSmall,
+                                    sharedText("your_live_requests"),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                if (liveRequests.isNotEmpty()) ProStatusBadge(type = ProBadgeType.CUSTOM_INFO, customText = "${liveRequests.size}")
+                            }
+                            if (liveRequests.isEmpty()) {
+                                Text(
+                                    sharedText("no_live_requests"),
+                                    style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                            } else {
+                                liveRequests.forEachIndexed { index, req ->
+                                    if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                    ProfileRequestRow(
+                                        request = req,
+                                        onWhatsApp = spaces.find { it.id == req.spaceId }?.let { space ->
+                                            { viewModel.launchWhatsAppInquiry(space, req.formula, req) }
+                                        },
+                                        onView = { onViewRequest(req.id) }
+                                    )
+                                }
                             }
                         }
-                        profilePicUploadError?.let { err ->
-                            Text(
-                                err,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-
-                        InputField(
-                            value = name,
-                            onValueChange = { name = it },
-                            label = appString(Res.string.full_name),
-                            leadingIcon = Icons.Default.Person,
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-
-                        InputField(
-                            value = specialty,
-                            onValueChange = { specialty = it },
-                            label = when (user.role) {
-                                UserRole.SPECIALIST -> sharedText("profession_job_title_optional")
-                                UserRole.PRO_HOST -> sharedText("host_category_commercial_real_estate_cowor")
-                                UserRole.ADMIN -> sharedText("super_administrator_role_clearance")
-                            },
-                            leadingIcon = Icons.Default.Work,
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-
-                        PhoneNumberField(
-                            country = phoneCountry,
-                            onCountryChange = {
-                                phoneCountry = it
-                                phone = formatToE164(it, phoneLocal)
-                            },
-                            number = phoneLocal,
-                            onNumberChange = {
-                                phoneLocal = it
-                                phone = formatToE164(phoneCountry, it)
-                            },
-                            label = appString(Res.string.whatsapp_contact_number),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        CountryDropdownField(
-                            selectedCountry = selectedCountry,
-                            onCountrySelected = { selectedCountry = it },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        InputField(
-                            value = governorateArea,
-                            onValueChange = { governorateArea = it },
-                            label = appString(Res.string.governorate_area),
-                            leadingIcon = Icons.Default.LocationOn,
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-
-                        InputField(
-                            value = city,
-                            onValueChange = { city = it },
-                            label = appString(Res.string.city),
-                            leadingIcon = Icons.Default.LocationCity,
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-
-                        Spacer(modifier = Modifier.height(Spacing.xs))
-
-                        ProPrimaryButton(
-                            text = if (isSavingProfile) appString(Res.string.saving_2) else appString(Res.string.save_profile_changes),
-                            enabled = !isSavingProfile,
-                            isLoading = isSavingProfile,
-                            onClick = {
-                                isSavingProfile = true
-                                profilePicUploadError = null
-                                coroutineScope.launch {
-                                    try {
-                                        var profilePictureUrl: String? = null
-                                        val localPic = pendingProfilePic
-                                        var pictureUploadFailed = false
-                                        if (localPic != null) {
-                                            val storageService = com.example.data.repository.RepositoryDefaults.storage()
-                                            profilePictureUrl = storageService.uploadProfilePicture(user.id, localPic)
-                                            pictureUploadFailed = profilePictureUrl == null
-                                        }
-                                        val success = viewModel.updateProfile(
-                                            name, specialty, phone,
-                                            selectedCountry.name, governorateArea, city,
-                                            profilePictureUrl
-                                        )
-                                        isSavingProfile = false
-                                        // A failed picture upload must never read as a full success —
-                                        // updateCurrentUserProfile falls back to the existing picture
-                                        // when profilePictureUrl is null, so the rest of the edit still
-                                        // saved; only the new picture didn't, and that needs its own
-                                        // message rather than a blanket "Updated Successfully!".
-                                        when {
-                                            !success -> UiMessages.show(sharedText("failed_to_update_profile_please_try_again"))
-                                            pictureUploadFailed -> {
-                                                profilePicUploadError = sharedText("profile_saved_but_the_new_photo_couldn_t_b")
-                                                UiMessages.show(sharedText("profile_saved_photo_upload_failed_please_r"), long = true)
-                                            }
-                                            else -> UiMessages.show(sharedText("profile_updated_successfully"))
-                                        }
-                                    } catch (e: Exception) {
-                                        isSavingProfile = false
-                                        UiMessages.show(sharedText("an_error_occurred_please_try_again"))
-                                    }
-                                }
-                            },
-                            icon = Icons.Default.Save,
-                            modifier = Modifier.fillMaxWidth()
-                        )
                     }
                 }
-
             }
             item {
                 Surface(
@@ -1028,15 +673,22 @@ fun SpecialistProfileScreen(
                 }
 
             }
-            if (onOpenLegal != null || onSignOut != null) {
-                item {
-                    ProSurfaceCard {
-                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                            ProSectionHeader(
-                                title = appString(Res.string.more),
-                                subtitle = appString(Res.string.help_legal_and_your_session),
-                                icon = Icons.Default.MoreHoriz
-                            )
+            item {
+                ProSurfaceCard {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                        ProSectionHeader(
+                            title = appString(Res.string.more),
+                            subtitle = appString(Res.string.help_legal_and_your_session),
+                            icon = Icons.Default.MoreHoriz
+                        )
+                        // Profile details: its own page (owner, 22 Nov 2026), for every role.
+                        ProfileMoreRow(
+                            icon = Icons.Default.Badge,
+                            label = sharedText("profile_details"),
+                            supporting = sharedText("profile_details_row_hint"),
+                            onClick = { showProfileDetails = true }
+                        )
+                        if (onOpenLegal != null || onSignOut != null) {
                             if (onOpenLegal != null) {
                                 ProfileMoreRow(
                                     icon = Icons.Default.Gavel,
@@ -1160,26 +812,8 @@ fun SpecialistProfileScreen(
             )
         }
 
-        pendingCancelRequest?.let { target ->
-            ProHostDialog(
-                onDismissRequest = { pendingCancelRequest = null },
-                icon = { Icon(Icons.Default.Cancel, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-                title = { Text(appString(Res.string.cancel_this_request)) },
-                text = { Text(appString(Res.string.your_rental_request_for_x_will_be_withdraw, target.spaceTitle)) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        viewModel.cancelBookingRequest(target.id)
-                        pendingCancelRequest = null
-                    }) {
-                        Text(appString(Res.string.cancel_request), color = MaterialTheme.colorScheme.error)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { pendingCancelRequest = null }) {
-                        Text(appString(Res.string.keep_request))
-                    }
-                }
-            )
+        if (showProfileDetails) {
+            ProfileDetailsPage(viewModel = viewModel, user = user, onClose = { showProfileDetails = false })
         }
     
     }
@@ -1211,5 +845,63 @@ private fun ProfileMoreRow(
             }
         }
         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** One live request on the Profile page: space, status, its first booked time, total, WhatsApp host and View request. */
+@Composable
+private fun ProfileRequestRow(request: RentalBookingRequest, onWhatsApp: (() -> Unit)?, onView: () -> Unit) {
+    val started = request.status == BookingRequestStatus.ACCEPTED && com.example.ui.util.BookingDates.hasStarted(request.startDate)
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.xs), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                request.spaceTitle,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(Spacing.sm))
+            when {
+                request.status == BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = sharedText("pending_host"))
+                started -> ProStatusBadge(ProBadgeType.CUSTOM_SUCCESS, customText = sharedText("active_status"))
+                else -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = sharedText("approved_status"))
+            }
+        }
+        BookingTimeBullets(request, maxLines = 2)
+        Text(
+            "${com.example.ui.util.BookingTiming.duration(request)} · \u2066${formatUsd(request.totalAmountUsd)} USD\u2069",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            if (onWhatsApp != null) {
+                OutlinedButton(
+                    onClick = onWhatsApp,
+                    modifier = Modifier.weight(1f).heightIn(min = 40.dp),
+                    shape = MaterialTheme.shapes.small,
+                    contentPadding = PaddingValues(horizontal = Spacing.sm, vertical = 4.dp)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = WhatsAppDarkGreen, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(sharedText("whatsapp_host"), style = MaterialTheme.typography.labelMedium, color = WhatsAppDarkGreen, fontWeight = FontWeight.Bold)
+                }
+            }
+            Button(
+                onClick = onView,
+                modifier = Modifier.weight(1f).heightIn(min = 40.dp),
+                shape = MaterialTheme.shapes.small,
+                colors = ProHostButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.primary
+                ),
+                contentPadding = PaddingValues(horizontal = Spacing.sm, vertical = 4.dp)
+            ) {
+                Text(sharedText("view_request"), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.width(Spacing.xs))
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(14.dp))
+            }
+        }
     }
 }

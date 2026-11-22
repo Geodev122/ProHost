@@ -631,11 +631,30 @@ class FirestoreService(
             val db = firestore ?: return localOnly
             db.collection(FirestoreSchema.Collections.USER_PROFILES)
                 .document(uid)
-                .set(mapOf("fcmToken" to token, "updatedAt" to System.currentTimeMillis()), SetOptions.merge())
+                // fcmToken = the latest device; fcmTokens = every signed-in device (push.ts sends to all of them).
+                .set(
+                    mapOf("fcmToken" to token, "fcmTokens" to FieldValue.arrayUnion(token), "updatedAt" to System.currentTimeMillis()),
+                    SetOptions.merge()
+                )
                 .await()
             true
         } catch (e: Exception) {
             Log.e(TAG, "Error saving FCM token: ${e.message}", e)
+            false
+        }
+    }
+
+    override suspend fun removeFcmToken(uid: String, token: String?, clearLatest: Boolean): Boolean {
+        return try {
+            val db = firestore ?: return localOnly
+            val fields = buildMap<String, Any?> {
+                if (token != null) put("fcmTokens", FieldValue.arrayRemove(token))
+                if (clearLatest) put("fcmToken", FieldValue.delete())
+            }
+            if (fields.isNotEmpty()) db.collection(FirestoreSchema.Collections.USER_PROFILES).document(uid).update(fields).await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error removing FCM token: ${e.message}", e)
             false
         }
     }

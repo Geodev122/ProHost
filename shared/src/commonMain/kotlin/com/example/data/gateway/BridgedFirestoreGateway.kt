@@ -323,7 +323,22 @@ class BridgedFirestoreGateway(private val bridge: FirestoreBridge) : FirestoreGa
     }
 
     override suspend fun saveFcmToken(uid: String, token: String): Boolean = ok {
-        write { bridge.setDocument("${c.USER_PROFILES}/$uid", mapOf("fcmToken" to token, "updatedAt" to nowMillis()), true, it) }
+        // fcmToken = the latest device; fcmTokens = every signed-in device (push.ts sends to all of them).
+        write {
+            bridge.setDocument(
+                "${c.USER_PROFILES}/$uid",
+                mapOf("fcmToken" to token, "fcmTokens" to FieldOp.ArrayUnion(listOf(token)), "updatedAt" to nowMillis()),
+                true, it
+            )
+        }
+    }
+
+    override suspend fun removeFcmToken(uid: String, token: String?, clearLatest: Boolean): Boolean = ok {
+        val fields = buildMap<String, Any?> {
+            if (token != null) put("fcmTokens", FieldOp.ArrayRemove(listOf(token)))
+            if (clearLatest) put("fcmToken", null)
+        }
+        if (fields.isNotEmpty()) write { bridge.updateDocument("${c.USER_PROFILES}/$uid", fields, it) }
     }
 
     override suspend fun deleteUserProfile(userId: String): Boolean = ok {

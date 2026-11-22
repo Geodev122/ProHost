@@ -139,6 +139,8 @@ class MainActivity : ComponentActivity() {
             targetBookingId = bookingId
         }
         intent.getStringExtra("space_id")?.takeIf { it.isNotBlank() }?.let { targetSpaceId = it }
+        // A tapped push marks its inbox copy read, as tapping it in the in-app notification centre does.
+        intent.getStringExtra("notification_id")?.let { com.example.data.repository.ProHostRepository.getInstance().markAlertOpenedFromTray(it) }
 
         // Link routing is pure and shared with iOS (com.example.util.DeepLinkRouter, cases in tests/vectors/deep-links.json):
         // listing share links (pro-host.tech/listing/{spaceId}?room=, reached only through a verified App Link),

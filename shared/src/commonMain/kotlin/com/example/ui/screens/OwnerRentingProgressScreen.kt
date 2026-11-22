@@ -35,7 +35,7 @@ import com.example.shared.resources.cancel_booking
 import com.example.shared.resources.change_price
 import com.example.shared.resources.check_your_connection_cached_data_may_be_s
 import com.example.shared.resources.contract_timeline_elapsed_days_and_practit
-import com.example.shared.resources.duration_x_months_xd_elapsed
+import com.example.shared.resources.duration_x_xd_elapsed
 import com.example.shared.resources.mark_as_paid
 import com.example.shared.resources.no_active_tenancies_yet
 import com.example.shared.resources.not_marked_paid_yet
@@ -349,10 +349,11 @@ fun OwnerRentingProgressScreenContent(
             }
         } else {
             items(activeBookings, key = { it.id }) { booking ->
-                val elapsedDays = ((com.example.util.nowMillis() - booking.createdAt) / (24 * 60 * 60 * 1000)).coerceAtLeast(0)
-                val totalContractDays = (booking.durationMonths * 30).coerceAtLeast(1)
-                val progressFraction = (elapsedDays.toFloat() / totalContractDays.toFloat()).coerceIn(0f, 1f)
-                val remainingDays = (totalContractDays - elapsedDays).coerceAtLeast(0)
+                // Progress through the booking's real term (its booked dates, or its months), not createdAt + 30 days a month.
+                val progress = com.example.ui.util.BookingTiming.progress(booking)
+                val elapsedDays = progress.elapsedDays
+                val progressFraction = progress.fraction
+                val remainingDays = progress.remainingDays
 
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -468,7 +469,7 @@ fun OwnerRentingProgressScreenContent(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = appString(Res.string.duration_x_months_xd_elapsed, booking.durationMonths, elapsedDays),
+                                    text = appString(Res.string.duration_x_xd_elapsed, com.example.ui.util.BookingTiming.duration(booking), elapsedDays),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier

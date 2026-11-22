@@ -74,7 +74,11 @@ object IosPush {
     }
 
     /** A tapped notification's data keys (the server's `targetTab`, `bookingId`, `spaceId`). */
-    fun openNotification(targetTab: String?, bookingId: String?, spaceId: String?) {
+    fun openNotification(targetTab: String?, bookingId: String?, spaceId: String?, notificationId: String?) {
+        // Tapping a push marks its inbox copy read, as on Android.
+        notificationId?.takeIf { it.isNotBlank() }?.let {
+            com.example.data.repository.ProHostRepository.getInstance().markAlertOpenedFromTray(it)
+        }
         pendingTarget = PushTarget(
             tab = targetTab?.takeIf { it.isNotBlank() },
             bookingId = bookingId?.takeIf { it.isNotBlank() },

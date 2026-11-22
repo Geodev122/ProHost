@@ -66,12 +66,27 @@ class ProHostRepository(
         _fcmAlerts.value = listOf(alert) + _fcmAlerts.value
     }
 
+    /** Notifications opened from the system tray before the inbox had loaded: marked read once it does. */
+    private val openedFromTrayIds = mutableSetOf<String>()
+
+    /** A push tapped in the system tray (Android or iOS): its inbox copy is read now, or as soon as the inbox syncs. */
+    fun markAlertOpenedFromTray(notificationId: String) {
+        if (notificationId.isBlank()) return
+        if (notificationId in storedAlertIds && _currentUser.value != null) markAlertsRead(listOf(notificationId))
+        else openedFromTrayIds.add(notificationId)
+    }
+
     fun onNotificationsSynced(stored: List<FCMAlert>) {
         storedAlertIds = stored.map { it.id }.toSet()
         val now = com.example.util.nowMillis()
         // Keep a just-received push the snapshot hasn't caught up with yet (a few seconds).
         val pending = _fcmAlerts.value.filter { it.id !in storedAlertIds && now - it.timestamp < 60_000 }
         _fcmAlerts.value = (pending + stored).filter { it.expireAt > now }.sortedByDescending { it.timestamp }
+        val opened = openedFromTrayIds.filter { id -> stored.any { it.id == id && !it.isRead } }
+        if (opened.isNotEmpty() && _currentUser.value != null) {
+            openedFromTrayIds.removeAll(opened.toSet())
+            markAlertsRead(opened)
+        }
     }
 
     fun markAlertAsRead(alertId: String) = markAlertsRead(listOf(alertId))

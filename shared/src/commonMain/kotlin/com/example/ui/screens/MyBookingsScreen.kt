@@ -1,6 +1,5 @@
 package com.example.ui.screens
 
-import com.example.ui.util.timeRange
 import com.example.ui.util.locationLine
 import com.example.ui.util.localizedLabel
 import com.example.ui.theme.Elevation
@@ -71,7 +70,6 @@ import com.example.shared.resources.total_commitment
 import com.example.shared.resources.verified_space
 import com.example.shared.resources.view_space_rules_access
 import com.example.shared.resources.whatsapp_host
-import com.example.shared.resources.x_month_s
 import com.example.shared.resources.x_ref_x
 import com.example.shared.resources.x_usd_2
 import com.example.shared.resources.you_marked_this_paid
@@ -636,40 +634,27 @@ fun BookingReservationCard(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            val daysStr = if (booking.selectedDays.isNotEmpty()) {
-                                booking.selectedDays.joinToString(", ")
-                            } else {
-                                booking.formula.daysOfWeek.joinToString(", ")
-                            }
-                            val timeStr = if (booking.selectedStartHour.isNotBlank()) {
-                                timeRange(booking.selectedStartHour, booking.selectedEndHour)
-                            } else {
-                                timeRange(booking.formula.startHour, booking.formula.endHour)
-                            }
-                            Text(
-                                // Dated requests print their real dates and times; older ones their weekdays.
-                                text = booking.selectedDateTimeRange.takeIf { booking.dateModel == 2 && it.isNotBlank() }
-                                    ?.let { "\u2066$it\u2069" } ?: "$daysStr @ $timeStr",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
                         }
 
+                        // Duration and start follow the booking's own formula: hours / shifts / days for those rooms,
+                        // months only for monthly ones (com.example.ui.util.BookingTiming).
                         Column(horizontalAlignment = Alignment.End) {
                             Text(appString(Res.string.duration_lease), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(
-                                text = appString(Res.string.x_month_s, booking.durationMonths),
+                                text = com.example.ui.util.BookingTiming.duration(booking),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = appString(Res.string.start_x, booking.startDate.ifEmpty { appString(Res.string.start_immediate) }),
+                                text = appString(Res.string.start_x, com.example.ui.util.BookingTiming.start(booking).ifEmpty { appString(Res.string.start_immediate) }),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
+                    // One bullet per booked time (a multi-time request used to print as one run-on line).
+                    BookingTimeBullets(booking)
                 }
             }
 
@@ -946,6 +931,33 @@ fun BookingStatusProgressStepper(
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
             }
+        }
+    }
+}
+
+/** Each booked time of [booking] as a bullet row (dates and times, or the monthly term). */
+@Composable
+fun BookingTimeBullets(
+    booking: BookingRequest,
+    modifier: Modifier = Modifier,
+    maxLines: Int = Int.MAX_VALUE,
+) {
+    val lines = remember(booking) { com.example.ui.util.BookingTiming.lines(booking) }
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        lines.take(maxLines).forEach { line ->
+            Row(verticalAlignment = Alignment.Top) {
+                Text("•", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.width(Spacing.sm))
+                Text(line, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            }
+        }
+        if (lines.size > maxLines) {
+            Text(
+                "+${lines.size - maxLines}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = Spacing.lg)
+            )
         }
     }
 }

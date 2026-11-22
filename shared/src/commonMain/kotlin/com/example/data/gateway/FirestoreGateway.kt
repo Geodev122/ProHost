@@ -58,6 +58,9 @@ interface FirestoreGateway {
     suspend fun listBlockedPeople(uid: String): List<Pair<String, String>>
     suspend fun setSavedSpace(uid: String, spaceId: String, saved: Boolean): Boolean
     suspend fun saveFcmToken(uid: String, token: String): Boolean
+
+    /** Signs this device out of push: removes [token] from `fcmTokens` and clears `fcmToken` when it is this device's. */
+    suspend fun removeFcmToken(uid: String, token: String?, clearLatest: Boolean): Boolean
     suspend fun deleteUserProfile(userId: String): Boolean
     suspend fun getUserProfile(userId: String): Map<String, Any>?
     suspend fun getPricingState(): AdminPricingState?

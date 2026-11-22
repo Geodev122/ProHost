@@ -477,8 +477,11 @@ fun OwnerRequestDetailSheet(
 
             DetailRow(Icons.Default.Apartment, sharedText("space"), request.spaceTitle)
             request.subdivisionName?.takeIf { it.isNotBlank() }?.let { DetailRow(Icons.Default.MeetingRoom, sharedText("room_area"), it) }
-            DetailRow(Icons.Default.AccessTime, sharedText("schedule"), request.selectedDateTimeRange.takeIf { request.dateModel == 2 && it.isNotBlank() }?.let { "\u2066$it\u2069" } ?: "${chosenDays.joinToString(", ") { localizedLabel(it) }} · \u2066$chosenHours\u2069${if (request.selectedShift.isNotBlank()) " · ${localizedLabel(request.selectedShift)}" else ""}")
-            DetailRow(Icons.Default.CalendarToday, sharedText("start_date"), "\u2066${request.startDate}\u2069${if (request.durationMonths > 0) " · " + sharedPlural("x_month_term", request.durationMonths, request.durationMonths) else ""}")
+            DetailRow(Icons.Default.AccessTime, sharedText("schedule"), request.selectedDateTimeRange.takeIf { request.dateModel == 2 && it.isNotBlank() }
+                ?.let { com.example.ui.util.BookingTiming.lines(request).joinToString("\n") { line -> "• $line" } }
+                ?: "${chosenDays.joinToString(", ") { localizedLabel(it) }} · \u2066$chosenHours\u2069${if (request.selectedShift.isNotBlank()) " · ${localizedLabel(request.selectedShift)}" else ""}")
+            // Start and duration in the request's own unit (hours / shifts / days; months only for monthly rooms).
+            DetailRow(Icons.Default.CalendarToday, sharedText("start_date"), "${com.example.ui.util.BookingTiming.start(request)} · ${com.example.ui.util.BookingTiming.duration(request)}")
             DetailRow(Icons.Default.AttachMoney, sharedText("total"), "\u2066${formatUsd(request.totalAmountUsd)} USD\u2069${if (attendeeLine != null) " · $attendeeLine" else ""}")
             request.lastPriceChange?.let { PriceChangeNote(it, Modifier.fillMaxWidth()) }
             DetailRow(Icons.Default.Schedule, sharedText("submitted"), formattedTime)

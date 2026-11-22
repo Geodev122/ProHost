@@ -203,7 +203,6 @@
     <string name="draft_auto_saved">Draft auto-saved</string>
     <string name="draft_saved_continue_it_anytime_from_my_li">Draft saved — continue it anytime from My Listings.</string>
     <string name="duration_lease">DURATION &amp; LEASE</string>
-    <string name="duration_x_months_xd_elapsed">Duration: %1$s Months (%2$sd elapsed)</string>
     <string name="e_g_1_20_people_at_8_per_person_21_60_at_6">e.g. 1–20 people at $8 per person, 21–60 at $6. Leave the last tier's max empty for no upper limit.</string>
     <string name="e_g_beirut">e.g. Beirut</string>
     <string name="e_g_dentalclinic">e.g. DentalClinic</string>
@@ -254,7 +253,6 @@
     <string name="for_new_subscribers">For new subscribers</string>
     <string name="for_space_owners">FOR SPACE OWNERS</string>
     <string name="formula_timing">FORMULA &amp; TIMING</string>
-    <string name="formula_x_start_x_x_mo">Formula: %1$s • Start: %2$s (%3$s mo)</string>
     <string name="formula_x_x_xx">Formula: %1$s • %2$s @ %3$s%4$s</string>
     <string name="from">From</string>
     <string name="from_accepted_bookings">From accepted bookings</string>
@@ -1295,6 +1293,22 @@
     <string name="app_store_nothing_to_restore">No active App Store subscription was found for this Apple Account.</string>
     <string name="app_store_restore_failed">Couldn't check the App Store for purchases. Please try again.</string>
     <string name="app_store_purchase_failed">The App Store couldn't complete the purchase. Please try again.</string>
+    <string name="formula_x_start_x_x">Formula: %1$s • Start: %2$s (%3$s)</string>
+    <string name="duration_x_xd_elapsed">Duration: %1$s (%2$sd elapsed)</string>
+    <string name="your_live_requests">Your requests</string>
+    <string name="no_live_requests">No pending or upcoming bookings. Requests you send appear here.</string>
+    <string name="active_status">Active</string>
+    <string name="approved_status">Approved</string>
+    <string name="profile_details">Profile details</string>
+    <string name="profile_details_subtitle">Your name, photo, WhatsApp number and location. Hosts see these when you send a request.</string>
+    <string name="profile_details_row_hint">Name, photo, WhatsApp and location</string>
+    <string name="push_action_view_requests">View requests</string>
+    <string name="push_action_view_progress">View progress</string>
+    <string name="push_action_my_rentals">My Rentals</string>
+    <string name="push_action_manage_subscription">Manage subscription</string>
+    <string name="push_action_admin_console">Open admin console</string>
+    <string name="push_action_my_listings">My listings</string>
+    <string name="push_action_open">Open</string>
     <plurals name="x_dates">
         <item quantity="one">%1$s • 1 date</item>
         <item quantity="other">%1$s • %2$d dates</item>
@@ -1346,5 +1360,17 @@
     <plurals name="n_months">
         <item quantity="one">%d month</item>
         <item quantity="other">%d months</item>
+    </plurals>
+    <plurals name="n_hours">
+        <item quantity="one">%d hour</item>
+        <item quantity="other">%d hours</item>
+    </plurals>
+    <plurals name="n_shifts">
+        <item quantity="one">%d shift</item>
+        <item quantity="other">%d shifts</item>
+    </plurals>
+    <plurals name="n_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
     </plurals>
 </resources>

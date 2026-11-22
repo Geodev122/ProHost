@@ -58,7 +58,7 @@ import com.example.shared.resources.confirmed_space_hours_locked_x_x_x
 import com.example.shared.resources.copy_link
 import com.example.shared.resources.description
 import com.example.shared.resources.facilities_utilities
-import com.example.shared.resources.formula_x_start_x_x_mo
+import com.example.shared.resources.formula_x_start_x_x
 import com.example.shared.resources.message_host_on_whatsapp
 import com.example.shared.resources.more_options_menu
 import com.example.shared.resources.price_from_prefix
@@ -641,7 +641,7 @@ fun SpaceDetailsScreenContent(
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = appString(Res.string.formula_x_start_x_x_mo, req.formula.scheduleDescription, req.startDate, req.durationMonths),
+                                    text = appString(Res.string.formula_x_start_x_x, req.formula.scheduleDescription, com.example.ui.util.BookingTiming.start(req), com.example.ui.util.BookingTiming.duration(req)),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
