@@ -28,6 +28,35 @@ interface AuthBridge {
     /** Reloads the user; true when the email is verified (and the ID token was then refreshed). */
     fun reloadEmailVerified(completion: BoolCallback)
     fun signOut()
+    /** Email and phone number of the signed-in user (null when signed out or not set). */
+    fun currentEmail(): String? = null
+    fun currentPhoneNumber(): String? = null
+    /** The ID token's `role` claim, fetching a fresh token first when [forceRefresh] (Android `getIdToken(force)`). */
+    fun readRoleClaim(forceRefresh: Boolean, completion: (TokenReply) -> Unit) { completion(TokenReply(null, null)) }
+    /** Forces a fresh ID token for the signed-in user (no-op when signed out). */
+    fun refreshIdToken(completion: (TokenReply) -> Unit) { completion(TokenReply(null, null)) }
+}
+
+/** An ID-token answer from the platform: [value] (e.g. the role claim) or the [error] message of a failure. */
+class TokenReply(val value: String?, val error: String?)
+
+/** The signed-in account behind [bridge] as [SignedInUser]; token failures throw, as Firebase's `getIdToken` does on Android. */
+fun signedInUserOf(bridge: AuthBridge): SignedInUser? {
+    val uid = bridge.currentUid() ?: return null
+    return SignedInUser(uid = uid, email = bridge.currentEmail(), phoneNumber = bridge.currentPhoneNumber()) { force ->
+        awaitToken { done -> bridge.readRoleClaim(force, done) }
+    }
+}
+
+/** Forces a fresh ID token through [bridge]; throws on failure. */
+suspend fun refreshIdTokenOf(bridge: AuthBridge) {
+    awaitToken { done -> bridge.refreshIdToken(done) }
+}
+
+private suspend fun awaitToken(call: ((TokenReply) -> Unit) -> Unit): String? {
+    val reply = suspendCancellableCoroutine<TokenReply> { cont -> call { cont.resume(it) } }
+    reply.error?.let { throw IllegalStateException(it) }
+    return reply.value
 }
 
 /** [AuthGateway] over an [AuthBridge], with the outcomes of the Android `FirebaseAuthService` (`BridgedAuthGatewayTest`). Used by iOS. */

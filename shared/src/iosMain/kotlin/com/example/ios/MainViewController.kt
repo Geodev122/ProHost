@@ -14,6 +14,8 @@ import com.example.shared.resources.roboto_bold
 import com.example.shared.resources.roboto_medium
 import com.example.shared.resources.roboto_regular
 import com.example.shared.resources.splash
+import com.example.ui.navigation.AppRootSlots
+import com.example.ui.navigation.ProHostAppRoot
 import com.example.ui.screens.SplashContent
 import com.example.ui.theme.ProHostThemeBase
 import com.example.ui.theme.proHostTypography
@@ -22,7 +24,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import platform.UIKit.UIViewController
 
-/** The iOS app's Compose root, hosted by the Swift app (`ios/ProHost/App/RootView.swift`). Screens join here as they move to `:shared`. */
+/** The iOS app's Compose root, hosted by the Swift app (`ios/ProHost/App/RootView.swift`): the shared shell, as on Android. */
 fun MainViewController(): UIViewController {
     IosSeams.install()
     return ComposeUIViewController { ProHostIosApp() }
@@ -32,10 +34,18 @@ fun MainViewController(): UIViewController {
 fun ProHostIosApp() {
     val typography = proHostTypography(display = manropeFamily(), body = robotoFamily())
     ProHostThemeBase(darkTheme = isSystemInDarkTheme(), typography = typography) {
+        ProHostAppRoot(slots = IosAppRootSlots)
+    }
+}
+
+/** iOS has no admin screens (admins use the web console); only the splash is platform-drawn. */
+private object IosAppRootSlots : AppRootSlots {
+    @Composable
+    override fun Splash(onSplashCompleted: () -> Unit) {
         SplashContent(
             painter = painterResource(Res.drawable.splash),
             contentDescription = stringResource(Res.string.prohost),
-            onSplashCompleted = {}
+            onSplashCompleted = onSplashCompleted
         )
     }
 }

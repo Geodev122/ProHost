@@ -1,6 +1,12 @@
 package com.example.ios
 
 import com.example.data.auth.AuthBridge
+import com.example.data.auth.AuthDefaults
+import com.example.data.auth.GatewaySessionFinisher
+import com.example.data.auth.SessionAuth
+import com.example.data.auth.refreshIdTokenOf
+import com.example.data.auth.signedInUserOf
+import com.example.data.repository.RepositoryDefaults
 import com.example.data.auth.AuthGateway
 import com.example.data.auth.BridgedAuthGateway
 import com.example.data.gateway.CallableFunctionsGateway
@@ -24,25 +30,37 @@ object IosPlatform {
         private set
 
     fun installFunctions(transport: CallableTransport) {
-        functions = CallableFunctionsGateway(transport)
+        val gateway = CallableFunctionsGateway(transport)
+        functions = gateway
+        RepositoryDefaults.functions = { gateway }
     }
 
     var firestore: FirestoreGateway? = null
         private set
 
     fun installAuth(bridge: AuthBridge) {
-        auth = BridgedAuthGateway(bridge)
+        val gateway = BridgedAuthGateway(bridge)
+        auth = gateway
+        AuthDefaults.gateway = { gateway }
+        AuthDefaults.sessionFinisher = { repository, functions -> GatewaySessionFinisher(repository, functions) }
+        SessionAuth.currentUser = { signedInUserOf(bridge) }
+        SessionAuth.refreshIdToken = { refreshIdTokenOf(bridge) }
+        SessionAuth.signOut = { bridge.signOut() }
     }
 
     var storage: StorageGateway? = null
         private set
 
     fun installFirestore(bridge: FirestoreBridge) {
-        firestore = BridgedFirestoreGateway(bridge)
+        val gateway = BridgedFirestoreGateway(bridge)
+        firestore = gateway
+        RepositoryDefaults.firestore = { gateway }
     }
 
     fun installStorage(native: IosStorageNative) {
-        storage = BridgedStorageGateway(IosStorageBridge(native))
+        val gateway = BridgedStorageGateway(IosStorageBridge(native))
+        storage = gateway
+        RepositoryDefaults.storage = { gateway }
     }
 
     private var seamsInstalled = false

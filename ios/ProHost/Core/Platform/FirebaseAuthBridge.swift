@@ -42,6 +42,27 @@ final class FirebaseAuthBridge: NSObject, AuthBridge {
         try? Auth.auth().signOut()
     }
 
+    func currentEmail() -> String? { Auth.auth().currentUser?.email }
+
+    func currentPhoneNumber() -> String? { Auth.auth().currentUser?.phoneNumber }
+
+    func readRoleClaim(forceRefresh: Bool, completion: @escaping (TokenReply) -> Void) {
+        guard let user = Auth.auth().currentUser else {
+            return completion(TokenReply(value: nil, error: "No signed-in Firebase user"))
+        }
+        user.getIDTokenResult(forcingRefresh: forceRefresh) { result, error in
+            if let error { return completion(TokenReply(value: nil, error: error.localizedDescription)) }
+            completion(TokenReply(value: result?.claims["role"] as? String, error: nil))
+        }
+    }
+
+    func refreshIdToken(completion: @escaping (TokenReply) -> Void) {
+        guard let user = Auth.auth().currentUser else { return completion(TokenReply(value: nil, error: nil)) }
+        user.getIDTokenForcingRefresh(true) { _, error in
+            completion(TokenReply(value: nil, error: error?.localizedDescription))
+        }
+    }
+
     private static func reply(_ result: AuthDataResult?, _ error: Error?) -> AuthReply {
         guard let error = error as NSError? else {
             return AuthReply(errorCode: nil, message: nil, isNewUser: result?.additionalUserInfo?.isNewUser ?? false)

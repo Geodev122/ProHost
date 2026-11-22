@@ -53,4 +53,20 @@ class BridgedAuthGatewayTest {
         val b = FakeBridge(AuthReply(null, null, false), uid = null)
         assertFalse(BridgedAuthGateway(b).refreshEmailVerified())
     }
+
+    @Test fun signedInUserReadsTheRoleClaimAndThrowsOnTokenFailure() = runBlocking {
+        var tokenReply = com.example.data.auth.TokenReply("PRO_HOST", null)
+        val b = object : AuthBridge by FakeBridge(AuthReply(null, null, false)) {
+            override fun currentEmail() = "a@b.c"
+            override fun readRoleClaim(forceRefresh: Boolean, completion: (com.example.data.auth.TokenReply) -> Unit) = completion(tokenReply)
+        }
+        val user = com.example.data.auth.signedInUserOf(b)!!
+        org.junit.Assert.assertEquals("u1", user.uid)
+        org.junit.Assert.assertEquals("a@b.c", user.email)
+        org.junit.Assert.assertEquals("PRO_HOST", user.readRoleClaim(true))
+        tokenReply = com.example.data.auth.TokenReply(null, "network")
+        val failed = runCatching { user.readRoleClaim(false) }
+        org.junit.Assert.assertTrue(failed.isFailure)
+        org.junit.Assert.assertNull(com.example.data.auth.signedInUserOf(FakeBridge(AuthReply(null, null, false), uid = null)))
+    }
 }
