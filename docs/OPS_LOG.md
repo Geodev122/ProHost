@@ -182,3 +182,15 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   (`verifyAppleTransaction`, `appStoreNotifications`), App Store grants mirrored as app_store/ios.
 - App-only (ships with the next Android/iOS build): Profile rework, booking timing bullets, Premium tier switch, StoreKit 2 client.
 - Next: Maintenance `singleplan` (dry run, then apply) creates Play `package_single_mrr`; `ios-inspect` creates `prohost.single.*`.
+
+### 22 Nov 2026, 12:46 UTC — single-listing tier live in the stores
+- Google Play: Maintenance `singleplan apply` (run 45023959428) created `package_single_mrr` ("ProHost Premium · 1 listing",
+  en-GB) with base plans `single-monthly` (P1M, US $4.49) and `single-yearly` (P1Y, US $44.99), 174 regions each, prices =
+  Play's conversion (regions version 2026/01), both ACTIVE. The first attempt failed on regions version 2022/02 (Argentina
+  priced in ARS); the tool now uses the version Play's conversion reports (main 2957e69).
+- App Store: `prohost.single.monthly` / `.yearly` in the "ProHost Premium" group (levels 4/3), $4.49 / $44.99 in 175 of 175
+  countries, review note + screenshot, READY_TO_SUBMIT; App Store Server Notifications V2 URLs set (production + sandbox).
+- TestFlight build 21 uploaded (run 45013804079): Sign in with Apple, StoreKit 2 (both tiers), deep links, calendar.
+- Deploy fix: `build-and-deploy.yml` now redeploys functions that hit the Cloud Functions mutation quota (they kept old code
+  while `firebase deploy` exited 0).
+

@@ -1,6 +1,6 @@
 # ProHost roadmap: to 100 % (Android + iOS in production, admin console on the web)
 
-Updated 22 Nov 2026, 08:30 UTC. ✅ done · ⏳ running now · ☐ to do · 👤 needs the owner.
+Updated 22 Nov 2026, 13:00 UTC. ✅ done · ⏳ running now · ☐ to do · 👤 needs the owner.
 Detail per unit: `docs/migration/PROGRESS.md`; owner items: `docs/OWNER_TODO.md`; history: `docs/OPS_LOG.md`.
 
 ## Where we are
@@ -9,7 +9,7 @@ Detail per unit: `docs/migration/PROGRESS.md`; owner items: `docs/OWNER_TODO.md`
 |---|---|---|
 | Shared app (one codebase for Android + iOS) | all user screens, view models, repositories, models, logic, strings, theme | admin screens stay in Android until the web console replaces them (by design) |
 | Android | live on Play: 1.0.46 · internal track: 1.0.49 | owner phone test, release from the shared code, staged rollout |
-| iOS | TestFlight builds 18-20: full app, email/Google sign-in, map, pickers, location, push | a few native pieces, payments (StoreKit), App Review package, submission |
+| iOS | TestFlight builds 18-21: full app, email/Google/Apple sign-in, map, pickers, location, push, StoreKit | a few native pieces, payments (StoreKit), App Review package, submission |
 | Admin console (web) | live at pro-host.tech/console, all 7 tabs + reports queue in code | owner walk-through of 70 items, 2 missing areas, then remove admin from Android |
 
 ---
@@ -34,6 +34,10 @@ Detail per unit: `docs/migration/PROGRESS.md`; owner items: `docs/OWNER_TODO.md`
 - ✅ Dated booking (calendar picker, closed dates, booking window, Manage calendar, server checks)
 - ✅ Report / block (app, server, admin Reports queue)
 - ✅ Retention (Firestore TTL, Storage lifecycle), operator legal block, App Store listing
+- ✅ Second tier "ProHost Premium · 1 listing" ($4.49 / $44.99): server (listing limit, publish check, rules), Play product
+  `package_single_mrr` live (both base plans ACTIVE, 174 regions), App Store `prohost.single.*` ready to submit,
+  app tier switch on Premium (ships with 1.0.50 / next TestFlight)
+- ✅ Profile rework (compact live requests, profile details page), booking timing bullets, push on every device
 
 ## 4. Android to production
 - ✅ 1.0.49 on the internal track (dated booking, report/block, closed dates)
@@ -49,13 +53,13 @@ Detail per unit: `docs/migration/PROGRESS.md`; owner items: `docs/OWNER_TODO.md`
 Done:
 - ✅ Swift host + shared framework, TestFlight pipeline (temporary signing certificate, 6 GB release build, 120-min job)
 - ✅ Firebase on iOS: Auth, Functions, Firestore, Storage, App Check (App Attest)
-- ✅ Sign-in: email + password, Google (nonce-checked) · Sign in with Apple ⏳ (code done, owner enabled Firebase; CI running)
+- ✅ Sign-in: email + password, Google (nonce-checked), Sign in with Apple
 - ✅ Map (Google Maps SDK), photo / document / camera pickers, location, push notifications (server sends the iOS alert)
 - ✅ App Store Connect: listing EN + AR, categories, age 18+, 175 countries, prices, subscriptions + launch offers,
   review contact, copyright, privacy answers published, mock-up screenshots uploaded
 
 To do (code, Claude):
-- ⏳ CI for Sign in with Apple + StoreKit → `main` → TestFlight build 21
+- ✅ CI for Sign in with Apple + StoreKit → `main` → TestFlight build 21
 - ✅ Deep links: Universal Links + `prohost://`, push-tap → listing (code; CI running)
 - ✅ Legal viewer in a WKWebView · ☐ legal PDFs
 - ✅ Payment reminder to the calendar (EventKit) · ☐ haptics, sounds
@@ -64,10 +68,10 @@ To do (code, Claude):
 - ☐ Notification permission at the same moment as Android (after the analytics choice)
 - ☐ Admin accounts on iPhone: "use the web console" screen (decision D1 default)
 - ☐ Sign in with Apple token revocation on account deletion (Apple rule 5.1.1(v)), server side
-- ⏳ **Payments: StoreKit 2** in the app (prices/offers from StoreKit, buy, restore, manage, offer codes) — code done, CI running;
-  needs a sandbox purchase on TestFlight
-- ✅ **Server: `verifyAppleTransaction` + App Store Server Notifications V2** (code; live after the next `main` deploy)
-  · ⏳ the two notification URLs (tool ready, applied after the deploy) · ☐ daily Apple re-sync (needs an In-App Purchase key
+- ✅ **Payments: StoreKit 2** in the app (prices/offers from StoreKit, buy, restore, manage, offer codes, both tiers)
+  · ☐ 👤 sandbox purchase on TestFlight 21
+- ✅ **Server: `verifyAppleTransaction` + App Store Server Notifications V2** (live)
+  · ✅ the two notification URLs (production + sandbox) · ☐ daily Apple re-sync (needs an In-App Purchase key
   from the owner) · ☐ admin console shows the platform per subscription
 - ☐ Integration audit + iOS-on-device pass (Arabic, dark mode, small phone, VoiceOver basics)
 - ☐ Real iOS screenshots (EN + AR) replace the mock-ups; review notes + demo accounts; build attached
@@ -99,7 +103,7 @@ To do (code, Claude):
 ---
 
 ## Owner items (👤), in order of impact
-1. Install TestFlight build 20 on an iPhone; tell me what differs from Android.
+1. Install TestFlight build 21 on an iPhone (try a sandbox purchase of either tier); tell me what differs from Android.
 2. Test Android 1.0.49 (internal track) on your phone.
 3. Rewa and Rony accept Apple's invitation (then I add them to TestFlight).
 4. Walk the admin console at pro-host.tech/console with `docs/migration/ADMIN_PARITY.md`.
@@ -110,7 +114,7 @@ To do (code, Claude):
 9. At the end: approve iOS screenshots, press Add for Review; approve the Android production rollout.
 
 ## Order from here
-1. CI green → `main` (Apple server live) → notification URLs → TestFlight 21 (Apple sign-in, links, calendar, StoreKit).
+1. ✅ `main` (Apple server live) → notification URLs → TestFlight 21; Play + App Store single-listing products created.
 2. iOS gaps left: analytics consent + Crashlytics, notification permission timing, admin "use the web console" screen,
    Apple token revocation on delete, haptics/sounds.
 3. Sandbox purchase test on TestFlight; daily Apple re-sync.
