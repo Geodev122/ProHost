@@ -155,3 +155,10 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
 - Parity Gate (280/280, after one rerun of a render-shard warm-up flake), Migration Checks, Admin Web, iOS CI (incl. launch smoke) green.
 - `ProHostAppRoot` lives in `:shared`; the Android app passes its splash and admin screens as `AndroidAppRootSlots`.
 - iOS `MainViewController` renders `ProHostAppRoot`; iOS installs repository/auth defaults over the Swift bridges.
+
+### 22 Nov 2026 04:25 UTC — TestFlight build 18: first iPhone build with the real shared app
+- ios-testflight.yml run #18 (branch, ec62494) uploaded build 18: the shared `ProHostAppRoot` shell (same Compose UI as
+  Android), email + password and Google sign-in (GoogleSignIn 9.x, nonce checked by shared code). Not yet on iOS: Sign in
+  with Apple, map, photo picker, push.
+- Fixes on the way: release Kotlin/Native link needs a 6 GB heap (4 GB ran out of memory), own workflow step (~24 min);
+  GoogleSignIn 8.x has no nonce call (9.0.0 is the first); job limit raised to 120 min.
