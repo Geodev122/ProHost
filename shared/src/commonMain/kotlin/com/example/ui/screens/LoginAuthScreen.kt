@@ -338,7 +338,7 @@ fun LoginAuthScreen(
     }
 
     // Email comes from Firebase Auth (email or Google sign-in); a legacy phone-auth account may have none.
-    val firebaseUser = if (isPreview) null else runCatching { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser }.getOrNull()
+    val firebaseUser = if (isPreview) null else runCatching { com.example.data.auth.SessionAuth.currentUser() }.getOrNull()
     val firebaseEmail = firebaseUser?.email ?: ""
 
     fun finishRegistration() {
