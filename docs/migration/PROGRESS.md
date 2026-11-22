@@ -431,3 +431,9 @@ C1 step 4 — Storage on iOS: shared `BridgedStorageGateway` (Android paths, con
   CLLocationManager: one `requestLocation` fix, `location` as last known; "location unknown" = no fix like Android's null,
   other errors throw). `rememberLocationAccess` iOS: system prompt when not asked yet, onReady when allowed, the shared
   "open settings" dialog when denied or Location Services is off. Purpose string = the Android rationale text (English).
+- iOS push (C3): server `fcmMessage` (functions/src/lib/push.ts, unit-tested) keeps Android's data-only payload and adds an
+  `apns` alert (title, body, sound) so iOS shows pushes; same data keys for the tap. iOS: FirebaseMessaging with the APNs
+  token, `PushTokens.fetch` = `Messaging.token`, token refresh saved on the signed-in profile (Android `onNewToken`),
+  foreground banners, taps → `IosPush.pendingTarget` → `ProHostAppRoot(deepLinkTab/BookingId/SpaceId)`.
+  Known difference (listed, not asked yet): iOS asks for notification permission at launch; Android asks after the
+  analytics-consent choice. To align later: trigger the iOS request from the same shared point.

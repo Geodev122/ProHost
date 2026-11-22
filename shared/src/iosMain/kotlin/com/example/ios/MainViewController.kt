@@ -34,7 +34,13 @@ fun MainViewController(): UIViewController {
 fun ProHostIosApp() {
     val typography = proHostTypography(display = manropeFamily(), body = robotoFamily())
     ProHostThemeBase(darkTheme = isSystemInDarkTheme(), typography = typography) {
-        ProHostAppRoot(slots = IosAppRootSlots)
+        val target = IosPush.pendingTarget
+        ProHostAppRoot(
+            deepLinkTab = target?.tab,
+            deepLinkBookingId = target?.bookingId,
+            deepLinkSpaceId = target?.spaceId,
+            slots = IosAppRootSlots
+        )
     }
 }
 

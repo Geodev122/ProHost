@@ -39,6 +39,28 @@ export function notificationDoc(title: string, body: string, data: Record<string
  * the app is foregrounded — and decides how to render it (matches the existing
  * category/title/body/targetTab/bookingId contract that service already parses).
  */
+/**
+ * The FCM message for one device. Android reads the data-only payload in ProHostMessagingService (unchanged); iOS needs
+ * an APNs alert to show anything, and gets the same data keys (targetTab, bookingId, spaceId, notificationId) for the tap.
+ */
+export function fcmMessage(
+  token: string,
+  title: string,
+  body: string,
+  data: Record<string, string>,
+  notificationId?: string
+) {
+  return {
+    token,
+    data: { title, body, ...data, ...(notificationId ? { notificationId } : {}) },
+    android: { priority: "high" as const },
+    apns: {
+      headers: { "apns-priority": "10" },
+      payload: { aps: { alert: { title, body }, sound: "default" } },
+    },
+  };
+}
+
 export async function sendPushToUser(
   uid: string,
   title: string,
@@ -69,11 +91,7 @@ export async function sendPushToUser(
     }
 
     try {
-      await getMessaging().send({
-        token,
-        data: { title, body, ...data, ...(notificationId ? { notificationId } : {}) },
-        android: { priority: "high" },
-      });
+      await getMessaging().send(fcmMessage(token, title, body, data, notificationId));
     } catch (sendError) {
       const code = (sendError as { code?: string }).code;
       // An uninstalled app or a rotated token: forget it so future pushes don't keep

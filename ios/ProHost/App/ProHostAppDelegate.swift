@@ -1,9 +1,11 @@
 import FirebaseAppCheck
 import FirebaseCore
+import FirebaseMessaging
 import GoogleMaps
 import GoogleSignIn
 import ProHostShared
 import UIKit
+import UserNotifications
 
 /// Firebase start-up. Analytics stays off until the person accepts (Info.plist keys + consent dialog later); unit tests never touch Firebase.
 final class ProHostAppDelegate: NSObject, UIApplicationDelegate {
@@ -35,7 +37,49 @@ final class ProHostAppDelegate: NSObject, UIApplicationDelegate {
             GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
             IosPlatform.shared.installGoogleSignIn(bridge: GoogleSignInBridgeImpl())
         }
+        // Push: FCM over APNs (the APNs key is uploaded in Firebase). Taps route like Android's notification extras.
+        IosPush.shared.install(bridge: FcmTokenBridge())
+        Messaging.messaging().delegate = self
+        UNUserNotificationCenter.current().delegate = self
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { _, _ in }
+        application.registerForRemoteNotifications()
         return true
+    }
+
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        Messaging.messaging().apnsToken = deviceToken
+    }
+}
+
+extension ProHostAppDelegate: MessagingDelegate {
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        guard let token = fcmToken, !token.isEmpty else { return }
+        IosPush.shared.tokenRefreshed(token: token)
+    }
+}
+
+extension ProHostAppDelegate: UNUserNotificationCenterDelegate {
+    /// Android shows the notification while the app is open too.
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .list, .sound])
+    }
+
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
+                                withCompletionHandler completionHandler: @escaping () -> Void) {
+        let info = response.notification.request.content.userInfo
+        IosPush.shared.openNotification(
+            targetTab: info["targetTab"] as? String,
+            bookingId: info["bookingId"] as? String,
+            spaceId: info["spaceId"] as? String)
+        completionHandler()
+    }
+}
+
+/// The FCM token for the shared session code (`PushTokens`); nil until APNs has registered this device.
+final class FcmTokenBridge: NSObject, PushTokenBridge {
+    func fcmToken(completion: @escaping (String?) -> Void) {
+        Messaging.messaging().token { token, _ in completion(token) }
     }
 }
 
