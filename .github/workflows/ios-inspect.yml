@@ -88,3 +88,5 @@ jobs:
           python3 scripts/ios/asc_prepare.py ${{ inputs.prepare == 'apply' && '--apply' || '' }} --only "${{ inputs.only }}"
       - name: App Store readiness (what is filled in, what is missing)
         run: python3 scripts/ios/asc_store_status.py
+      - name: Detailed audit (product page, media, subscriptions, offers, legal links)
+        run: python3 scripts/ios/asc_audit.py
