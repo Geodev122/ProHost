@@ -51,7 +51,7 @@ Splash "no loading state"). Admin console: 70 parity items, code exists for 8-36
 - ☐ 👤 **C1** Test 1.0.50 (internal track): Premium plan switch (1 listing first), Profile (live requests, profile details page),
   My Rentals time bullets, a notification on two devices, a dated booking, report/block.
 - ☐ **C2** Fixes from C1 → 1.0.51 on internal (if needed).
-- ☐ **C3** Integration audit: every callable the apps and console call ↔ functions exports; every Firestore/Storage path ↔ rules ↔
+- ✅ **C3** Integration audit (22 Nov, `docs/migration/audits/C3-2026-11-22.md`; new e2e flow for the 1-listing limit): every callable the apps and console call ↔ functions exports; every Firestore/Storage path ↔ rules ↔
   rules tests; `docs/DATA_MODEL.md` (new fields: `ownerListingLimit`, `fcmTokens`, `app_config/apple_iap`); Kotlin ↔ TypeScript
   vectors; e2e flows (incl. a 1-listing publish refusal). Findings fixed before C5.
 - ☐ **C4** NIGHTHAWK clean (A1) + Maintenance `prodcheck` clean.

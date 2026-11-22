@@ -267,3 +267,24 @@ test("dated requests: a valid date + slot stays pending, a wrong price or a day 
   assert.equal(d3.rejectedBySystem, true);
   assert.equal((await notifications(HOST)).filter((n) => n.bookingId === "D2" || n.bookingId === "D3").length, 0, "host never sees them");
 });
+
+test("1-listing plan: a second publish is moved back to Draft with the plan reason", async () => {
+  const OWNER = "e2e-single-host";
+  await db.collection("user_profiles").doc(OWNER).set({ role: "PRO_HOST", fullName: "single", email: "single@e2e.test", phone: "", ownerListingLimit: 1 });
+  const listing = (title) => ({
+    ownerId: OWNER, title, status: "ACTIVE", lat: 33.9, lng: 35.5, imageUrls: ["https://example.com/a.jpg"],
+    pricing: { strategyType: "MONTHLY", monthly: { rateUsd: 300 } }, subdivisions: [],
+  });
+  await db.collection("workspace_listings").doc("E2E-SINGLE-1").set(listing("First"));
+  // Give the publish trigger time to accept the first one (it must stay ACTIVE).
+  await new Promise((r) => setTimeout(r, 4000));
+  assert.equal((await db.collection("workspace_listings").doc("E2E-SINGLE-1").get()).data().status, "ACTIVE");
+
+  await db.collection("workspace_listings").doc("E2E-SINGLE-2").set(listing("Second"));
+  const second = await waitFor("second listing demoted", async () => {
+    const d = (await db.collection("workspace_listings").doc("E2E-SINGLE-2").get()).data();
+    return d.status === "DRAFT" && d;
+  });
+  assert.ok((second.publishBlockedReasons || []).some((r) => /1 listing/.test(r)), `reasons: ${JSON.stringify(second.publishBlockedReasons)}`);
+  assert.equal((await db.collection("workspace_listings").doc("E2E-SINGLE-1").get()).data().status, "ACTIVE", "the first stays live");
+});

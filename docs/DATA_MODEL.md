@@ -60,9 +60,11 @@ price per slot, `PER_ATTENDEE` = price per person from `attendeeTiers`, slots ca
   `fcmTokens` = every signed-in device (owner-written arrayUnion; removed on sign-out and by `sendPushToUser` when FCM
   reports a token dead); `lib/push.ts` sends to all of them (`deviceTokens`, max 10). `ownerListingLimit` (server-only):
   1 on the single-listing plan, absent for Unlimited; the publish trigger enforces it.
-  `user_profiles/{uid}/notifications/{id}`: in-app notification centre (48 h).
+  `user_profiles/{uid}/notifications/{id}`: in-app notification centre (48 h: `expireAt` millis for the app, `ttlAt` Timestamp for the
+  Firestore TTL policy; the owner may change only `read`/`readAt`; the web console's bell reads an admin's own).
 - `display_codes/{code}`: registry of `U-`/`L-`/`D-`/`B-` codes (server-only).
-- `subscriptions/{sha256(token)}`, `play_purchase_links`, `play_billing_pending`: Play billing (server-only).
+- `subscriptions/{sha256(token)}` (Play) and `subscriptions/apple_{originalTransactionId}` (App Store, `platform: ios`),
+  `play_purchase_links`, `play_billing_pending`: billing (server-only).
 
 ## Instagram agent (`ig_*`, server-only)
 
@@ -84,7 +86,8 @@ own config documents (`app_config/instagram`, `instagram_knowledge`, `instagram_
 ## Other collections
 
 - Server-only (rules deny clients): `mail`, `mailing_*`, `mail_campaigns`, `email_otps`, `email_send_limits`,
-  `auth_password_invites`, `audit_security_logs`, `inquiry_rate_limits`, `maintenance_requests`, most of `app_config/*`.
+  `auth_password_invites`, `audit_security_logs`, `inquiry_rate_limits`, `maintenance_requests`, all of `app_config/*`
+  (`ga4`, `auth`, `billing_health`, `apple_iap` = App Store In-App Purchase key for `appleSyncJob`, `mailing_admin`, `whatsapp`, `instagram*`).
 - Public read, admin write: `schema_architecture` (categories, division types, amenities), `legal_documents` (+ immutable
   `versions`). Public read, server write: `system_metadata`. Signed-in read, server write: `hashtag_usage`.
 - Retired (read-only for old apps or denied): `package_plans`, `promo_campaigns`, `subscription_formulas`,
