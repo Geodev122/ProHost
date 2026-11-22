@@ -226,3 +226,7 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
 - 22 Nov 20:43: owner added Logs Configuration Writer; Maintenance `alerts apply` (run 203) created alert policies Function-errors,
   AppStore-sync-failed, Play-sync-failed (email channel "ProHost owner email", max one per hour each).
 - 22 Nov: owner approved the three retention sentences; added to `public/privacy.html` §6 and the in-app legal text (af7a28a).
+- 22 Nov 20:57: owner's "Add for Review" was refused (China mainland security assessment + AI-content filing, no price tier,
+  no build). ios-inspect run 17 (sections price, nochina, build=22): app price recreated as Free (base USA; the old schedule
+  had no manual price), China mainland removed from availability (174 countries + new ones), build 22 attached to version 1.0.
+  Left for the owner: tick the 4 subscriptions on the 1.0 page; real iOS screenshots; test TestFlight 22 before submitting.
