@@ -206,3 +206,6 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   "CREATING" request never completed). Owner-approved 9 Nov → `ttl apply` dispatched again 17:51; `pruneExpiredNotifications` stays.
 - Launch tracker page (owner's phone): https://claude.ai/artifact/EKxcJsvvHzHkxZLV4hQyx3 (source `docs/progress/prohost-progress.html`).
 - 17:42 UTC TestFlight build 22 uploaded (run 45045601019, main f75758a).
+- 18:30 UTC root cause of the missing TTL: each deploy (`firebase deploy --only firestore --force`) resets field settings to
+  `firestore.indexes.json`, which had no TTL entries, so the policy requested 17:50 was gone again by 18:18. Fix: TTL declared in
+  `fieldOverrides` (`notifications.ttlAt`, `mail.expireAt`); the next main deploy creates them.
