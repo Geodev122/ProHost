@@ -30,6 +30,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -186,7 +187,7 @@ fun SpaceDetailsScreen(
 /**
  * Dumb Presentation Screen for Space Details.
  */
-@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun SpaceDetailsScreenContent(
     space: SpaceListing,
@@ -383,85 +384,39 @@ fun SpaceDetailsScreenContent(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(280.dp)
+                    .height(230.dp)
                     .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
             ) {
-                if (liveSpace.imageUrls.isNotEmpty()) {
-                    val pagerState = rememberPagerState(pageCount = { liveSpace.imageUrls.size })
-                    val heroScope = rememberCoroutineScope()
-                    HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
-                        coil3.compose.AsyncImage(
-                            model = coil3.request.ImageRequest.Builder(context).data(liveSpace.imageUrls[page]).size(800).build(),
-                            contentDescription = liveSpace.title,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        Color.Transparent,
-                                        Color.Black.copy(alpha = 0.65f)
-                                    ),
-                                    startY = 0f
-                                )
-                            )
+                // Owner, 23 Nov 2026: the header is the host's own account photo (who lists this space); room photos stay on
+                // each room's card. No photo: the brand gradient with the host's initials.
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Brush.linearGradient(colors = listOf(MaterialTheme.proColors.brandHeaderStart, MaterialTheme.proColors.brandHeaderEnd)))
+                )
+                val hostPhoto = liveSpace.ownerProfilePictureUrl?.takeIf { it.isNotBlank() }
+                if (hostPhoto != null) {
+                    coil3.compose.AsyncImage(
+                        model = coil3.request.ImageRequest.Builder(context).data(hostPhoto).size(800).build(),
+                        contentDescription = sharedText("host_photo_header"),
+                        modifier = Modifier.fillMaxSize().testTag("listing_host_header"),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
                     )
-                    if (liveSpace.imageUrls.size > 1) {
-                        if (pagerState.currentPage > 0) {
-                            PhotoCarouselArrow(
-                                forward = false,
-                                onClick = { heroScope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } },
-                                visualSize = 36.dp,
-                                modifier = Modifier.align(Alignment.CenterStart)
-                            )
-                        }
-                        if (pagerState.currentPage < liveSpace.imageUrls.size - 1) {
-                            PhotoCarouselArrow(
-                                forward = true,
-                                onClick = { heroScope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
-                                visualSize = 36.dp,
-                                modifier = Modifier.align(Alignment.CenterEnd)
-                            )
-                        }
-                        // Photo dots sit at the bottom (clear of the back / save / share row).
-                        if (liveSpace.imageUrls.size > 1) Row(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(bottom = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                        ) {
-                            repeat(liveSpace.imageUrls.size) { index ->
-                                Box(
-                                    modifier = Modifier
-                                        .size(if (index == pagerState.currentPage) 8.dp else 6.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (index == pagerState.currentPage) Color.White
-                                            else Color.White.copy(alpha = 0.5f)
-                                        )
-                                )
-                            }
-                        }
-                    }
                 } else {
+                    val initials = liveSpace.ownerName.split(' ').filter { it.isNotBlank() }.take(2).joinToString("") { it.take(1).uppercase() }
+                        .ifBlank { liveSpace.title.take(1).uppercase() }
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(
-                                        MaterialTheme.proColors.brandHeaderStart,
-                                        MaterialTheme.proColors.brandHeaderEnd
-                                    )
-                                )
-                            )
-                    )
+                        modifier = Modifier.align(Alignment.Center).size(88.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.18f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(initials, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.proColors.onBrandHeader)
+                    }
                 }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Transparent, Color.Black.copy(alpha = 0.65f)), startY = 0f))
+                )
                 // Overlay nav strip — back (start) and save/share (end), always on top.
                 // statusBarsPadding ensures buttons sit below system status bar while the
                 // hero image bleeds behind it (full bleed behind the status bar).
@@ -626,115 +581,37 @@ fun SpaceDetailsScreenContent(
                 modifier = Modifier.padding(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xl)
             ) {
-                // Active In-App Booking Request Status (if any)
-                myRequestsForThisSpace.forEach { req ->
-                    ProSurfaceCard {
+                // Owner, 23 Nov 2026: the viewer's earlier requests here are one line of counts that opens My Rentals.
+                if (myRequestsForThisSpace.isNotEmpty()) {
+                    val active = myRequestsForThisSpace.count { it.status == BookingRequestStatus.ACCEPTED }
+                    val pending = myRequestsForThisSpace.count { it.status == BookingRequestStatus.PENDING }
+                    val closed = myRequestsForThisSpace.count { it.status == BookingRequestStatus.CANCELLED || it.status == BookingRequestStatus.REJECTED }
+                    val newest = myRequestsForThisSpace.maxByOrNull { it.createdAt }
+                    Surface(
+                        onClick = { newest?.let { onViewRequest(it.id) } },
+                        shape = com.example.ui.theme.Radius.Sm,
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier.fillMaxWidth().testTag("listing_requests_summary")
+                    ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.padding(horizontal = Spacing.md, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = appString(Res.string.your_in_app_rental_request_x, req.publicCode),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = appString(Res.string.formula_x_start_x_x, req.formula.scheduleDescription, com.example.ui.util.BookingTiming.start(req), com.example.ui.util.BookingTiming.duration(req)),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                if (req.status == BookingRequestStatus.PENDING) {
-                                    Text(
-                                        text = appString(Res.string.awaiting_owner_acceptance_space_hours_rema),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.proColors.warning,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                } else if (req.status == BookingRequestStatus.ACCEPTED) {
-                                    Text(
-                                        text = appString(Res.string.confirmed_space_hours_locked_x_x_x,
-                                            req.formula.daysOfWeek.joinToString { localizedLabel(it) }, req.formula.startHour, req.formula.endHour
-                                        ),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.proColors.info,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-
-                            when (req.status) {
-                                BookingRequestStatus.ACCEPTED -> ProStatusBadge(ProBadgeType.ACCEPTED_LOCKED)
-                                BookingRequestStatus.PENDING -> ProStatusBadge(ProBadgeType.CUSTOM_WARNING, customText = sharedText("pending"))
-                                BookingRequestStatus.REJECTED -> ProStatusBadge(ProBadgeType.CUSTOM_ERROR, customText = sharedText("declined"))
-                                BookingRequestStatus.CANCELLED -> ProStatusBadge(ProBadgeType.CUSTOM_INFO, customText = sharedText("cancelled"))
-                            }
-                        }
-                    }
-                }
-
-                // Host card: who runs this space, and a WhatsApp button for general questions
-                // (the number itself is never printed; the button opens a ready-made inquiry).
-                ProSurfaceCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            ProMemberAvatar(
-                                name = liveSpace.ownerName.ifBlank { sharedText("space_host") },
-                                specialty = if (liveSpace.isVerified) sharedText("verified_space_host") else sharedText("space_host"),
-                                isVerified = liveSpace.isVerified,
-                                imageUrl = liveSpace.ownerProfilePictureUrl,
-                                size = 44.dp,
+                            Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                            Text(
+                                sharedText("listing_requests_summary", active, pending, closed),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(1f)
                             )
-                            ProStatusBadge(ProBadgeType.ACTIVE_30D)
-                        }
-                        val isHostView = currentUserRole == UserRole.PRO_HOST || currentUserRole == UserRole.ADMIN
-                        if (!isHostView && liveSpace.ownerPhone.isNotBlank()) {
-                            Button(
-                                onClick = onWhatsAppClick,
-                                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                                shape = MaterialTheme.shapes.medium,
-                                colors = ProHostButtonDefaults.buttonColors(
-                                    containerColor = WhatsAppDarkGreen,
-                                    contentColor = androidx.compose.ui.graphics.Color.White
-                                )
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(Spacing.sm))
-                                Text(appString(Res.string.ask_the_host_on_whatsapp), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                            }
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = sharedText("listing_requests_open"), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
-
-                // Description — exists on SpaceListing since Phase 2 but was never
-                // rendered anywhere on this screen.
-                if (liveSpace.description.isNotBlank()) {
-                    ProSurfaceCard {
-                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                            ProSectionHeader(
-                                title = appString(Res.string.description),
-                                icon = Icons.Default.Description
-                            )
-                            Text(
-                                text = liveSpace.description,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                // Smart Availability & Operating Schedule Calendar View
-                SpaceAvailabilityCalendarView(
-                    space = liveSpace,
-                    acceptedBookings = acceptedBookings
-                )
 
                 // Rental Options — one card per configured subdivision (or a single
                 // "Whole Space" card when no subdivisions are set up). Tapping an
@@ -742,12 +619,10 @@ fun SpaceDetailsScreenContent(
                 ProSurfaceCard(modifier = Modifier.bringIntoViewRequester(roomsRequester)) {
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                         ProSectionHeader(
-                            title = appString(Res.string.rental_options),
-                            subtitle = if (liveSpace.subdivisions.isNotEmpty())
-                                appPlural(Res.plurals.spaces_pick_tab, liveSpace.subdivisions.size, liveSpace.subdivisions.size)
-                            else
-                                appString(Res.string.tap_the_card_to_check_live_availability),
-                            icon = Icons.Default.Tune
+                            title = if (liveSpace.subdivisions.size > 1) sharedText("rooms_title", liveSpace.subdivisions.size) else appString(Res.string.rental_options),
+                            subtitle = if (liveSpace.subdivisions.size > 1) sharedText("rooms_pick_hint")
+                                else appString(Res.string.tap_the_card_to_check_live_availability),
+                            icon = Icons.Default.MeetingRoom
                         )
 
                         if (liveSpace.subdivisions.isEmpty()) {
@@ -794,12 +669,31 @@ fun SpaceDetailsScreenContent(
                         } else {
                             val rooms = liveSpace.subdivisions
                             val sub = rooms.firstOrNull { it.id == selectedSubdivisionId } ?: rooms.first()
-                            RoomFolderTabs(
-                                rooms = rooms,
-                                selectedId = sub.id,
-                                onSelect = { selectRoom(it) }
-                            )
-                            RoomFolderPanel(firstTabSelected = sub.id == rooms.first().id) {
+                            val roomFull: (Subdivision) -> Boolean = { s ->
+                                val sl = availableSlots.filter { it.sourceFormulaId == s.id }
+                                sl.isNotEmpty() && sl.all { SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
+                            }
+                            val roomPrice: (Subdivision) -> String = { s ->
+                                if (com.example.ui.util.AttendeePricing.isPerAttendee(s)) {
+                                    sharedText("from_x_person", com.example.ui.util.AttendeePricing.lowestPricePerPerson(s, architectureSchema.attendeePackages)?.toInt() ?: 0)
+                                } else when (s.pricing.strategyType) {
+                                    RentalStrategyType.MONTHLY -> "$${s.pricing.monthly?.rateUsd?.toInt() ?: 0}${SpaceCalculationUtils.strategyUnitLabel(RentalStrategyType.MONTHLY)}"
+                                    RentalStrategyType.HOURLY -> sharedText("from_x_hr", s.pricing.hourly?.cellPrices?.values?.minOrNull()?.toInt() ?: 0)
+                                    RentalStrategyType.SHIFT_BASED -> sharedText("from_x_shift", s.pricing.shiftBased?.shifts?.filter { !it.isUnavailable }?.minOfOrNull { it.price }?.toInt() ?: 0)
+                                    RentalStrategyType.DAY_BASED -> sharedText("from_x_day", s.pricing.dayBased?.distribution?.values?.minOfOrNull { it.price }?.toInt() ?: 0)
+                                }
+                            }
+                            // Many rooms stay readable: a two-column grid of compact tiles, the chosen room's full card below.
+                            if (rooms.size > 1) {
+                                RoomPickerGrid(
+                                    rooms = rooms,
+                                    selectedId = sub.id,
+                                    priceOf = roomPrice,
+                                    isFull = roomFull,
+                                    onSelect = { selectRoom(it) }
+                                )
+                            }
+                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                 val subSlots = availableSlots.filter { it.sourceFormulaId == sub.id }
                                 val isOccupied = subSlots.isNotEmpty() &&
                                     subSlots.all { SpaceCalculationUtils.isSlotLocked(it, liveSpace.id, acceptedBookings) }
@@ -843,8 +737,46 @@ fun SpaceDetailsScreenContent(
                     }
                 }
 
-                // Facilities & Utilities
+                // Host card: who runs this space, and a WhatsApp button for general questions
+                // (the number itself is never printed; the button opens a ready-made inquiry).
                 ProSurfaceCard {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            ProMemberAvatar(
+                                name = liveSpace.ownerName.ifBlank { sharedText("space_host") },
+                                specialty = if (liveSpace.isVerified) sharedText("verified_space_host") else sharedText("space_host"),
+                                isVerified = liveSpace.isVerified,
+                                imageUrl = liveSpace.ownerProfilePictureUrl,
+                                size = 44.dp,
+                                modifier = Modifier.weight(1f)
+                            )
+                            ProStatusBadge(ProBadgeType.ACTIVE_30D)
+                        }
+                        val isHostView = currentUserRole == UserRole.PRO_HOST || currentUserRole == UserRole.ADMIN
+                        if (!isHostView && liveSpace.ownerPhone.isNotBlank()) {
+                            Button(
+                                onClick = onWhatsAppClick,
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                                shape = MaterialTheme.shapes.medium,
+                                colors = ProHostButtonDefaults.buttonColors(
+                                    containerColor = WhatsAppDarkGreen,
+                                    contentColor = androidx.compose.ui.graphics.Color.White
+                                )
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(Spacing.sm))
+                                Text(appString(Res.string.ask_the_host_on_whatsapp), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+
+                // Facilities & Utilities (chips, shown only when the host picked some)
+                if (liveSpace.essentialFacilities.isNotEmpty()) ProSurfaceCard {
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         ProSectionHeader(
                             title = appString(Res.string.facilities_utilities),
@@ -852,25 +784,42 @@ fun SpaceDetailsScreenContent(
                             icon = Icons.Default.Business
                         )
 
+                        com.example.ui.components.FacilityChipRow(liveSpace.essentialFacilities)
+                    }
+                }
+
+                // Description — exists on SpaceListing since Phase 2 but was never
+                // rendered anywhere on this screen.
+                if (liveSpace.description.isNotBlank()) {
+                    ProSurfaceCard {
                         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                            liveSpace.essentialFacilities.forEach { facility ->
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Icon(
-                                        Icons.Default.CheckCircle,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.proColors.success,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(Spacing.sm))
-                                    Text(facility, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                            ProSectionHeader(
+                                title = appString(Res.string.description),
+                                icon = Icons.Default.Description
+                            )
+                            // Compact: four lines, the rest one tap away.
+                            var descriptionExpanded by remember { mutableStateOf(false) }
+                            Text(
+                                text = liveSpace.description,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = if (descriptionExpanded) Int.MAX_VALUE else 4,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (liveSpace.description.length > 180) {
+                                TextButton(onClick = { descriptionExpanded = !descriptionExpanded }, contentPadding = PaddingValues(0.dp)) {
+                                    Text(sharedText(if (descriptionExpanded) "desc_less" else "desc_more"), style = MaterialTheme.typography.labelLarge)
                                 }
                             }
                         }
                     }
                 }
+
+                // Smart Availability & Operating Schedule Calendar View
+                SpaceAvailabilityCalendarView(
+                    space = liveSpace,
+                    acceptedBookings = acceptedBookings
+                )
 
                 // Co-Working Synergy
                 // Residents are computed from real confirmed bookings' specialties

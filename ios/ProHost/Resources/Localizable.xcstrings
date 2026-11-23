@@ -5588,6 +5588,40 @@
         }
       }
     },
+    "desc_less": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show less"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عرض أقل"
+          }
+        }
+      }
+    },
+    "desc_more": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read more"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اقرأ المزيد"
+          }
+        }
+      }
+    },
     "description": {
       "extractionState": "manual",
       "localizations": {
@@ -8492,6 +8526,23 @@
         }
       }
     },
+    "host_photo_header": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photo of the host"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "صورة المضيف"
+          }
+        }
+      }
+    },
     "hosts_and_guests_reach_you_here_never_show": {
       "extractionState": "manual",
       "localizations": {
@@ -9270,6 +9321,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "تم حذف الإعلان"
+          }
+        }
+      }
+    },
+    "listing_requests_open": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open My Rentals"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "افتح إيجاراتي"
+          }
+        }
+      }
+    },
+    "listing_requests_summary": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your requests here: %1$lld active · %2$lld pending · %3$lld closed"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "طلباتك هنا: %1$lld نشط · %2$lld قيد الانتظار · %3$lld مغلق"
           }
         }
       }
@@ -16726,6 +16811,74 @@
           "stringUnit": {
             "state": "translated",
             "value": "الصور"
+          }
+        }
+      }
+    },
+    "room_tile_full": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ممتلئة"
+          }
+        }
+      }
+    },
+    "room_tile_open": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "متاحة"
+          }
+        }
+      }
+    },
+    "rooms_pick_hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap a space to see its details and availability"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضغط على مساحة لرؤية تفاصيلها وتوفرها"
+          }
+        }
+      }
+    },
+    "rooms_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spaces to rent (%1$lld)"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مساحات للإيجار (%1$lld)"
           }
         }
       }

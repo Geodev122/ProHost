@@ -716,27 +716,22 @@ fun SpecialistProfileScreen(
                                 label = appString(Res.string.contact_support),
                                 onClick = { com.example.ui.util.launchSupportEmail(user, user.role.name) }
                             )
-                            if (onSignOut != null) {
-                                ProfileMoreRow(
-                                    icon = Icons.AutoMirrored.Filled.Logout,
-                                    label = appString(Res.string.sign_out),
-                                    supporting = user.email.takeIf { it.isNotBlank() },
-                                    onClick = onSignOut
-                                )
-                            }
                         }
-                    }
-                }
-            }
-            item {
-                // Deliberately small: one quiet text action at the very end of the profile.
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    TextButton(
-                        onClick = { showDeleteConfirmation = true },
-                        enabled = !isDeletingAccount,
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                    ) {
-                        Text(if (isDeletingAccount) appString(Res.string.deleting) else appString(Res.string.delete_account), style = MaterialTheme.typography.labelLarge)
+                        // Owner, 23 Nov 2026: Delete account is a row of More; Sign out is the last row, in red.
+                        ProfileMoreRow(
+                            icon = Icons.Default.PersonRemove,
+                            label = if (isDeletingAccount) appString(Res.string.deleting) else appString(Res.string.delete_account),
+                            onClick = { if (!isDeletingAccount) showDeleteConfirmation = true }
+                        )
+                        if (onSignOut != null) {
+                            ProfileMoreRow(
+                                icon = Icons.AutoMirrored.Filled.Logout,
+                                label = appString(Res.string.sign_out),
+                                supporting = user.email.takeIf { it.isNotBlank() },
+                                onClick = onSignOut,
+                                destructive = true
+                            )
+                        }
                     }
                 }
             }
@@ -825,8 +820,11 @@ private fun ProfileMoreRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     onClick: () -> Unit,
-    supporting: String? = null
+    supporting: String? = null,
+    /** Red row (Sign out): icon and label in the error colour. */
+    destructive: Boolean = false
 ) {
+    val tint = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -837,9 +835,10 @@ private fun ProfileMoreRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+            Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+                color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
             if (supporting != null) {
                 Text(supporting, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

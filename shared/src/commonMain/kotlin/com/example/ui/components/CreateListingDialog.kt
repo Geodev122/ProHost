@@ -40,6 +40,7 @@ import androidx.compose.ui.semantics.stateDescription
 import coil3.compose.AsyncImage
 import com.example.data.model.*
 import com.example.ui.theme.Spacing
+import com.example.ui.theme.proColors
 import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.util.ListingDivisions
 import com.example.ui.util.UiMessages
@@ -868,6 +869,8 @@ fun CreateListingDialog(
                                   HorizontalDivider()
 
                                   Text(appString(Res.string.shared_essential_facilities), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                                  // Owner, 23 Nov 2026: the chosen utilities and benefits are visible, as guests see them on the listing.
+                                  if (selectedFacilities.isNotEmpty()) FacilityChipRow(selectedFacilities.toList())
                                   val firstFacility = selectedFacilities.firstOrNull()
                                   val facilitySummary = when {
                                       firstFacility == null -> sharedText("no_facilities_selected")
@@ -1540,3 +1543,24 @@ private fun CoverPhotoTile(url: String?, isUploading: Boolean, onPick: () -> Uni
 /** The Lebanese governorate whose centre is closest to a pin (legacy governorate-keyed fields). */
 private fun nearestGovernorate(lat: Double, lng: Double): Governorate =
     Governorate.values().minBy { (it.centerLat - lat) * (it.centerLat - lat) + (it.centerLng - lng) * (it.centerLng - lng) }
+
+
+/** The listing's facilities as small chips (wizard step 2 and the listing page use the same look). */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+fun FacilityChipRow(facilities: List<String>) {
+    androidx.compose.foundation.layout.FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(com.example.ui.theme.Spacing.xs),
+        verticalArrangement = Arrangement.spacedBy(com.example.ui.theme.Spacing.xs)
+    ) {
+        facilities.forEach { facility ->
+            Surface(shape = com.example.ui.theme.Radius.Full, color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)) {
+                Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.proColors.success, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(com.example.ui.util.localizedLabel(facility), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface)
+                }
+            }
+        }
+    }
+}

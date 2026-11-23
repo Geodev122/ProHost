@@ -655,6 +655,15 @@
     <string name="reg_location_failed">تعذّر تحديد موقعك. اختر بلدك ومنطقتك أدناه.</string>
     <string name="reg_area">المنطقة</string>
     <string name="reg_area_choose">اختر منطقتك</string>
+    <string name="listing_requests_summary">طلباتك هنا: %1$d نشط · %2$d قيد الانتظار · %3$d مغلق</string>
+    <string name="listing_requests_open">افتح إيجاراتي</string>
+    <string name="rooms_title">مساحات للإيجار (%1$d)</string>
+    <string name="rooms_pick_hint">اضغط على مساحة لرؤية تفاصيلها وتوفرها</string>
+    <string name="room_tile_full">ممتلئة</string>
+    <string name="room_tile_open">متاحة</string>
+    <string name="host_photo_header">صورة المضيف</string>
+    <string name="desc_more">اقرأ المزيد</string>
+    <string name="desc_less">عرض أقل</string>
     <string name="use_this_phone_s_number">استخدم رقم هذا الهاتف</string>
     <string name="use_x">استخدم %1$s</string>
     <string name="used_only_to_centre_the_map_on_where_you_a">يُستخدم فقط لتوسيط الخريطة على موقعك. لا يتتبّع ProHost موقعك أبدًا.</string>

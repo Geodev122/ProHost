@@ -32,5 +32,9 @@
     "my_rentals_": "Report / Block: every booking card has the three-dot menu now (it used to show only on pending and accepted bookings).",
     "profile_ / delete_account_": "Owner request 22 Nov 2026: Profile drops the Welcome box and the role tag (its update line and Find space / View rentals move onto the identity card), lists only pending/approved/active requests in a compact layout (WhatsApp host · View request), and the details form moves to its own page from More.",
     "renting_progress_ / renting_requests_ / reject_request_": "Owner request 22 Nov 2026: hour/shift/day bookings show their real duration and start (no '1 month'); multi-time requests list each time as a bullet; progress follows the booking's own dates."
-  }
+  },
+  "suffixes": [
+    "_dark.png"
+  ],
+  "_comment_suffixes": "23 Nov 2026 (owner): dark mode text contrast raised for readability; every _dark render changes."
 }

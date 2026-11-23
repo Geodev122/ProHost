@@ -51,7 +51,7 @@ val ProHostSecondaryText = OxfordBlue.copy(alpha = 0.70f)
 
 /** Opaque secondary text for `onSurfaceVariant`: alpha text stacked with more alpha fell under 4.5:1. */
 val SecondaryTextLight = Color(0xFF5A6372)
-val SecondaryTextDark = Color(0xFFB4BDCC)
+val SecondaryTextDark = Color(0xFFCDD5E2)  // owner 23 Nov 2026: was B4BDCC, raised for dark-mode readability
 
 // Light page background: white, shading to a whisper of Steel Blue at the bottom. The fine
 // texture on top comes from Modifier.proHostScreenBackground() (Theme.kt).
@@ -121,9 +121,9 @@ val CardShadowLight = Color(0x14283544)
 val DarkBackground = Color(0xFF121824)        // Rich deep navy dark background (#121824)
 val DarkSurface = Color(0xFF1E2638)           // Elevated dark card surface (#1E2638)
 val DarkSurfaceVariant = Color(0xFF28344A)    // Secondary elevated dark container (#28344A)
-val DarkOnSurface = Color(0xFFF0F4FC)         // Primary text in dark mode (#F0F4FC)
-val DarkOnSurfaceVariant = Color(0xFFA0ACBE)  // Secondary text in dark mode (#A0ACBE)
-val DarkOutline = Color(0xFF3B485E)           // Card borders & dividers in dark mode (#3B485E)
+val DarkOnSurface = Color(0xFFF7F9FD)         // Primary text in dark mode (#F0F4FC)
+val DarkOnSurfaceVariant = Color(0xFFC2CBD9)  // Secondary text in dark mode (#A0ACBE)
+val DarkOutline = Color(0xFF52617B)           // Card borders & dividers in dark mode (#3B485E)
 val DarkPrimary = Color(0xFF93B8E0)          // Steel Blue for dark mode
 val DarkPrimaryContainer = Color(0xFF223048)  // Primary container in dark mode
 val DarkSecondary = CarnationOrangeLight     // Warm accent orange in dark mode

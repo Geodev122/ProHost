@@ -83,8 +83,10 @@ def apply_approved(summary: dict, approved: dict) -> None:
     """Marks changed (never missing or resized) renders that are on the approved list; the gate then fails only on the rest."""
     prefixes = tuple(approved.get("prefixes", []))
     files = set(approved.get("files", []))
+    # "suffixes": a whole variant changed on purpose (e.g. "_dark.png" after a dark-theme contrast change).
+    suffixes = tuple(approved.get("suffixes", []))
     for r in summary["results"]:
-        if r["status"] == "changed" and (r["name"] in files or (prefixes and r["name"].startswith(prefixes))):
+        if r["status"] == "changed" and (r["name"] in files or (prefixes and r["name"].startswith(prefixes)) or (suffixes and r["name"].endswith(suffixes))):
             r["status"] = "approved"
     summary["approved"] = sum(1 for r in summary["results"] if r["status"] == "approved")
     summary["failed"] = sum(1 for r in summary["results"] if r["status"] not in ("same", "approved"))

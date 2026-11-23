@@ -26,6 +26,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -603,6 +604,92 @@ fun DetailsBookingBar(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * The rooms of a divided listing as a compact grid (owner, 23 Nov 2026: rooms are what is rented, so they come first and must
+ * scale to many): two tiles per row with photo, name, type and capacity, the lowest price and whether anything is still
+ * free. The selected tile is outlined in the brand colour; its full card shows under the grid.
+ */
+@Composable
+fun RoomPickerGrid(
+    rooms: List<Subdivision>,
+    selectedId: String,
+    priceOf: (Subdivision) -> String,
+    isFull: (Subdivision) -> Boolean,
+    onSelect: (Subdivision) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        rooms.chunked(2).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
+                row.forEach { room ->
+                    RoomTile(
+                        room = room,
+                        selected = room.id == selectedId,
+                        price = priceOf(room),
+                        full = isFull(room),
+                        onClick = { onSelect(room) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun RoomTile(room: Subdivision, selected: Boolean, price: String, full: Boolean, onClick: () -> Unit, modifier: Modifier) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        onClick = onClick,
+        shape = Radius.Sm,
+        color = if (selected) scheme.primaryContainer.copy(alpha = 0.55f) else scheme.surfaceContainerLow,
+        border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) scheme.primary else scheme.outlineVariant),
+        modifier = modifier.testTag("room_tile_${room.id}")
+    ) {
+        Column {
+            Box(modifier = Modifier.fillMaxWidth().height(84.dp).background(scheme.surfaceVariant)) {
+                val photo = room.imageUrls.firstOrNull()
+                if (photo != null) {
+                    coil3.compose.AsyncImage(
+                        model = photo,
+                        contentDescription = room.name,
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Icon(Icons.Default.MeetingRoom, contentDescription = null, tint = scheme.onSurfaceVariant, modifier = Modifier.align(Alignment.Center).size(28.dp))
+                }
+                Surface(
+                    color = if (full) scheme.errorContainer else MaterialTheme.proColors.success.copy(alpha = 0.92f),
+                    shape = Radius.Full,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(6.dp)
+                ) {
+                    Text(
+                        sharedText(if (full) "room_tile_full" else "room_tile_open"),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (full) scheme.onErrorContainer else Color.White,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
+            }
+            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(room.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    buildString {
+                        append(localizedLabel(room.type.displayName))
+                        room.capacity?.takeIf { it > 0 }?.let { append(" · ").append(sharedText("up_to_x", it)) }
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    color = scheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(price, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = scheme.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
