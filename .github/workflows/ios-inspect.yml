@@ -55,7 +55,7 @@ permissions:
 jobs:
   inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 45
     env:
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -85,7 +85,7 @@ jobs:
           REVIEW_NOTES: ${{ secrets.APP_REVIEW_NOTES }}
         run: |
           if [ -n "$REVIEW_NAME_INPUT" ]; then export REVIEW_FIRST_NAME="${REVIEW_NAME_INPUT%% *}" REVIEW_LAST_NAME="${REVIEW_NAME_INPUT#* }"; fi
-          python3 scripts/ios/asc_prepare.py ${{ inputs.prepare == 'apply' && '--apply' || '' }} --only "${{ inputs.only }}"
+          python3 -u scripts/ios/asc_prepare.py ${{ inputs.prepare == 'apply' && '--apply' || '' }} --only "${{ inputs.only }}"
       - name: App Store readiness (what is filled in, what is missing)
         run: python3 scripts/ios/asc_store_status.py
       - name: Detailed audit (product page, media, subscriptions, offers, legal links)
