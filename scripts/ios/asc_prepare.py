@@ -470,6 +470,21 @@ import hashlib  # noqa: E402
 import urllib.request  # noqa: E402
 
 SHOTS_DIR = os.path.join(ROOT, "ios/store/screenshots")
+# Real captures of the iOS app (ios-screenshots.yml, folders en/ ar/) replace the mock-ups when present;
+# SCREENSHOT_SRC=mockups forces the old set. Empty-state screens (rentals, saved) are left out on purpose.
+REAL_DIR = os.path.join(ROOT, "ios/store/screenshots-real")
+REAL_PICK = ["01_explore", "03_listing", "04_availability", "05_premium", "07_profile", "00_welcome"]
+
+
+def _shot_files(locale):
+    """(folder, ordered file names) for one App Store locale: real captures first, else the mock-ups."""
+    real = os.path.join(REAL_DIR, locale.split("-")[0])
+    if os.environ.get("SCREENSHOT_SRC", "real") != "mockups" and os.path.isdir(real):
+        files = [f"{n}.png" for n in REAL_PICK if os.path.isfile(os.path.join(real, f"{n}.png"))]
+        if len(files) >= 3:
+            return real, files
+    folder = os.path.join(SHOTS_DIR, locale)
+    return folder, (sorted(f for f in os.listdir(folder) if f.lower().endswith((".jpg", ".png"))) if os.path.isdir(folder) else [])
 
 
 def _upload(kind, relationship, file_path, label):
@@ -507,8 +522,7 @@ def _md5(path):
 if want("screenshots") and version:
     for loc in get_all(f'/v1/appStoreVersions/{version["id"]}/appStoreVersionLocalizations?limit=50'):
         locale = loc["attributes"]["locale"]
-        folder = os.path.join(SHOTS_DIR, locale)
-        files = sorted(f for f in os.listdir(folder) if f.lower().endswith((".jpg", ".png"))) if os.path.isdir(folder) else []
+        folder, files = _shot_files(locale)
         if not files:
             print(f"SKIP    screenshots {locale}: no files in ios/store/screenshots/{locale}")
             continue
@@ -521,7 +535,7 @@ if want("screenshots") and version:
             same(f"screenshots {locale}: {len(files)} files")
             continue
         if not args.apply:
-            print(f"PLAN    screenshots {locale}: upload {len(files)} files (6.9-inch iPhone), replacing {len(existing)}")
+            print(f"PLAN    screenshots {locale}: upload {len(files)} files from {os.path.relpath(folder, ROOT)} (6.9-inch iPhone), replacing {len(existing)}")
             continue
         if not cur:
             created = write("POST", "/v1/appScreenshotSets", {"data": {"type": "appScreenshotSets", "attributes": {"screenshotDisplayType": "APP_IPHONE_67"},
