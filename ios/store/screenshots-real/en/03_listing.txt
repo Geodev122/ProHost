@@ -1,40 +1,113 @@
-Attributes: Application, 0x117c59e00, pid: 69849, label: 'ProHost'
+Attributes: Application, 0x10a285e00, pid: 94460, label: 'ProHost'
 Element subtree:
- →Application, 0x117c59e00, pid: 69849, label: 'ProHost'
-    Window (Main), 0x117c5a440, {{0.0, 0.0}, {440.0, 956.0}}
-      Other, 0x117c5b700, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x117c5a300, {{0.0, 0.0}, {440.0, 956.0}}
-          Other, 0x117c5a940, {{0.0, 0.0}, {440.0, 956.0}}
-            Other, 0x117c588c0, {{0.0, 0.0}, {440.0, 956.0}}
-              Other, 0x117c59cc0, {{0.0, 0.0}, {440.0, 956.0}}
-                Other, 0x117c59180, {{0.0, 0.0}, {440.0, 956.0}}
-                Other, 0x117c59400, {{0.0, 0.0}, {440.0, 956.0}}
-                ScrollView, 0x117c58000, {{0.0, 0.0}, {440.0, 956.0}}
-                  Other, 0x117c58f00, {{0.0, 0.0}, {440.0, 956.0}}
-                    Other, 0x117c5a1c0, {{0.0, 0.0}, {440.0, 956.0}}
-                      Other, 0x117c597c0, {{0.0, 0.0}, {440.0, 956.0}}
-                      Other, 0x117c5ae40, {{0.0, 0.0}, {440.0, 956.0}}
-                      Other, 0x117c5be80, {{16.0, 62.0}, {408.0, 860.0}}, identifier: 'login_auth_screen'
-                      Other, 0x117c58a00, {{16.0, 118.0}, {408.0, 602.0}}
-                        Image, 0x117c58dc0, {{110.0, 150.0}, {220.0, 144.0}}, label: 'ProHost sign-in'
-                        Other, 0x117c5b480, {{16.0, 322.0}, {283.3, 27.3}}, label: 'Find or list a room by the hour'
-                        StaticText, 0x117d3ee40, {{16.0, 353.3}, {401.7, 16.3}}, label: 'Clinics, offices, studios and meeting rooms, booked in minutes.'
-                      Button, 0x117d3d2c0, {{16.0, 732.0}, {408.0, 48.0}}, identifier: 'auth_create_button', label: 'Create an account'
-                        StaticText, 0x117d3df40, {{175.0, 748.0}, {116.0, 16.3}}, label: 'Create an account'
-                      Button, 0x117d3c000, {{16.0, 788.0}, {408.0, 48.0}}, identifier: 'auth_signin_button', label: 'I already have an account'
-                        StaticText, 0x117d3e940, {{139.0, 804.0}, {162.3, 16.3}}, label: 'I already have an account'
-                      StaticText, 0x117d3fe80, {{132.7, 844.0}, {175.0, 14.0}}, label: 'By continuing you agree to our'
-                      Button, 0x117d3cc80, {{117.7, 858.0}, {100.3, 48.0}}, label: 'Terms of Use'
-                        StaticText, 0x117d3e440, {{129.7, 875.0}, {76.3, 14.0}}, label: 'Terms of Use'
-                      Button, 0x117d3e300, {{218.0, 858.0}, {104.7, 48.0}}, label: 'Privacy Policy'
-                        StaticText, 0x117d3d040, {{230.0, 875.0}, {80.7, 14.0}}, label: 'Privacy Policy'
-    Window, 0x117d3fac0, {{0.0, 0.0}, {440.0, 956.0}}
-      Other, 0x117d3f480, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x117d3d680, {{0.0, 0.0}, {440.0, 956.0}}
+ →Application, 0x10a285e00, pid: 94460, label: 'ProHost'
+    Window (Main), 0x10a285040, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x10a284000, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x10a1d9a40, {{0.0, 0.0}, {440.0, 956.0}}
+          Other, 0x10a1d8c80, {{0.0, 0.0}, {440.0, 956.0}}
+            Other, 0x10a1da080, {{0.0, 0.0}, {440.0, 956.0}}
+              Other, 0x10a1daa80, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x10a1db200, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x10a1db840, {{0.0, 0.0}, {440.0, 956.0}}
+                ScrollView, 0x10a1d9540, {{0.0, 0.0}, {440.0, 956.0}}
+                  Other, 0x10a1d9900, {{0.0, 0.0}, {440.0, 956.0}}
+                    Other, 0x10a1db480, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x10a1da300, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x10a1db980, {{0.0, 62.0}, {440.0, 860.0}}
+                      Other, 0x10a1d9040, {{0.0, 62.0}, {440.0, 860.0}}
+                      Other, 0x10a1d9cc0, {{0.0, 62.0}, {440.0, 726.7}}
+                        Button, 0x10a1d9b80, {{5.0, 63.0}, {48.0, 48.0}}, label: 'Back'
+                          Image, 0x10a1da940, {{18.0, 76.0}, {22.0, 22.0}}, label: 'Back'
+                        Other, 0x10a1d88c0, {{304.0, 66.0}, {128.0, 42.0}}
+                        Button, 0x10a1d8b40, {{301.0, 63.0}, {43.0, 48.0}}, label: 'Save'
+                          Image, 0x10a1dabc0, {{314.7, 76.7}, {21.0, 21.0}}, label: 'Save'
+                        Other, 0x10a1da1c0, {{322.7, 63.0}, {21.3, 48.0}}
+                        Button, 0x10a1d9180, {{344.0, 63.0}, {43.0, 48.0}}, label: 'Share'
+                          Image, 0x10a1d97c0, {{358.0, 77.0}, {20.0, 20.0}}, label: 'Share'
+                        Other, 0x10a1d8a00, {{365.7, 63.0}, {21.3, 48.0}}
+                        Other, 0x10a1dad00, {{0.0, 62.0}, {440.0, 280.0}}
+                        Button, 0x10a1dbd40, {{387.0, 63.0}, {48.0, 48.0}}, label: 'More options'
+                          Image, 0x10a1d92c0, {{401.0, 77.0}, {20.0, 20.0}}, label: 'More options'
+                        Other, 0x10a1daf80, {{0.0, 62.0}, {440.0, 280.0}}
+                          Image, 0x10a1da580, {{0.0, 62.0}, {440.0, 280.0}}, label: 'Life Clinic'
+                        Other, 0x10a1dae40, {{0.0, 62.0}, {440.0, 280.0}}
+                        Button, 0x10a1db0c0, {{392.0, 178.0}, {48.0, 48.0}}, label: 'Next photo'
+                          Other, 0x10a1db340, {{392.0, 178.0}, {48.0, 48.0}}
+                            Image, 0x10a1da6c0, {{407.0, 193.0}, {18.0, 18.0}}, label: 'Next photo'
+                        Other, 0x10a1dbe80, {{14.0, 255.3}, {257.3, 22.0}}
+                        StaticText, 0x10a1d83c0, {{22.0, 259.3}, {241.3, 14.0}}, label: 'Private Office • Shared co-working space'
+                        StaticText, 0x10a3fc000, {{14.0, 285.3}, {97.3, 27.3}}, label: 'Life Clinic'
+                        StaticText, 0x10a3fc140, {{32.0, 312.7}, {214.3, 15.3}}, label: 'Dekouaneh, Matn, Lebanon • Floor 4'
+                        Other, 0x10a3fc280, {{191.0, 306.0}, {48.0, 48.0}}
+                        Other, 0x10a3fc3c0, {{202.0, 305.0}, {48.0, 48.0}}
+                        Other, 0x10a3fc500, {{16.0, 358.0}, {408.0, 136.0}}
+                        Other, 0x10a3fc640, {{32.0, 374.0}, {44.0, 44.0}}
+                        StaticText, 0x10a3fc780, {{46.7, 384.0}, {15.0, 24.0}}, label: 'M'
+                        StaticText, 0x10a3fc8c0, {{88.0, 379.0}, {60.7, 18.7}}, label: 'Member'
+                        Other, 0x10a3fca00, {{321.0, 385.0}, {87.0, 22.0}}
+                        StaticText, 0x10a3fcb40, {{346.0, 389.0}, {54.0, 14.0}}, label: 'Available'
+                        StaticText, 0x10a3fcc80, {{88.0, 397.7}, {66.7, 15.3}}, label: 'Space host'
+                        Button, 0x10a3fcdc0, {{32.0, 430.0}, {376.0, 48.0}}, label: 'Ask the host on WhatsApp'
+                          StaticText, 0x10a3fcf00, {{148.7, 446.0}, {168.7, 16.3}}, label: 'Ask the host on WhatsApp'
+                        Other, 0x10a3fd040, {{16.0, 518.0}, {408.0, 88.3}}
+                        Other, 0x10a3fd180, {{32.0, 534.0}, {376.0, 32.0}}, label: 'Description'
+                          Other, 0x10a3fd2c0, {{9.7, 526.0}, {48.0, 48.0}}
+                          Other, 0x10a3fd400, {{43.0, 534.0}, {32.0, 32.0}}
+                          StaticText, 0x10a3fd540, {{87.0, 537.7}, {102.3, 24.7}}, label: 'Description'
+                        StaticText, 0x10a3fda40, {{32.0, 574.0}, {166.0, 16.3}}, label: 'One place for holistic care'
+                        Other, 0x10a3fd680, {{16.0, 630.3}, {408.0, 158.3}}
+                        StaticText, 0x10a3fd7c0, {{60.0, 649.3}, {113.0, 16.3}}, label: 'Smart Availability'
+                        Other, 0x10a3fd900, {{300.0, 646.3}, {108.0, 22.0}}
+                        StaticText, 0x10a3fdb80, {{308.0, 650.3}, {92.0, 14.0}}, label: '72 hrs/wk Open'
+                        StaticText, 0x10a3fde00, {{48.0, 684.3}, {139.3, 14.0}}, label: 'Operating: 08:00 - 20:00'
+                        StaticText, 0x10a3fdcc0, {{249.3, 684.3}, {158.7, 14.0}}, label: 'Mon, Tue, Wed, Thu, Fri, Sat'
+                        StaticText, 0x10a3fdf40, {{32.0, 714.3}, {114.3, 14.0}}, label: 'Capacity Allocation'
+                        StaticText, 0x10a3fe080, {{337.0, 714.3}, {71.0, 14.0}}, label: '0%% Rented'
+                        Other, 0x10a3fe1c0, {{32.0, 713.3}, {376.0, 48.0}}
+                        Other, 0x10a3fe300, {{32.0, 713.3}, {376.0, 48.0}}
+                        Other, 0x10a3fe440, {{12.0, 729.3}, {48.0, 48.0}}
+                        StaticText, 0x10a3fe580, {{44.0, 746.3}, {70.7, 14.0}}, label: 'Rented (0 h)'
+                        Other, 0x10a3fe6c0, {{106.7, 729.3}, {48.0, 47.0}}
+                        StaticText, 0x10a3fe800, {{138.7, 746.3}, {125.3, 14.0}}, label: 'Blackout/Closed (0 h)'
+                        Other, 0x10a3fe940, {{256.0, 729.3}, {48.0, 47.0}}
+                        StaticText, 0x10a3fea80, {{288.0, 746.3}, {90.0, 14.0}}, label: 'Available (72 h)'
+                        Other, 0x10a3fee40, {{32.0, 776.3}, {184.0, 12.3}}
+                        StaticText, 0x10a3fed00, {{44.0, 786.3}, {12.3, 2.3}}, label: '0'
+                        Other, 0x10a3fef80, {{224.0, 776.3}, {184.0, 12.3}}
+                        StaticText, 0x10a3febc0, {{236.0, 786.3}, {22.0, 2.3}}, label: '69'
+                        StaticText, 0x10a3ff200, {{44.0, 811.0}, {72.3, 14.0}}, label: 'Rented slots'
+                        StaticText, 0x10a3ff0c0, {{236.0, 811.0}, {93.0, 14.0}}, label: 'Remaining slots'
+                        StaticText, 0x10a3ff340, {{32.0, 851.0}, {220.7, 14.0}}, label: 'Slots over the next 7 days · 69 in total'
+                        Other, 0x10a3ff700, {{32.0, 921.0}, {376.0, 57.7}}
+                        Button, 0x10a3ff480, {{352.0, 1102.0}, {48.0, 48.0}}
+                        Button, 0x10a3ff840, {{40.0, 1061.0}, {360.0, 268.0}}
+                        Button, 0x10a3ff5c0, {{52.0, 1277.0}, {336.0, 40.0}}
+                        Other, 0x10a3ffc00, {{32.0, 1393.0}, {376.0, 40.0}}
+                        StaticText, 0x10a3ffac0, {{56.0, 1441.0}, {196.3, 16.3}}, label: '24/7 Solar & Generator Backup'
+                        StaticText, 0x10a3ffd40, {{56.0, 1465.3}, {229.3, 16.3}}, label: 'High-Speed Fiber Wi-Fi (100+ Mbps)'
+                        StaticText, 0x10a3ff980, {{56.0, 1489.7}, {218.0, 16.3}}, label: 'Receptionist & Front Desk Support'
+                        Other, 0x1172ed400, {{32.0, 1562.0}, {376.0, 40.0}}
+                        StaticText, 0x1172ed540, {{32.0, 1610.0}, {211.7, 15.3}}, label: 'Target Complementary Disciplines:'
+                      Other, 0x1172ed680, {{0.0, 788.7}, {440.0, 133.3}}
+                      Other, 0x1172ed2c0, {{196.0, 774.7}, {48.0, 28.3}}
+                      Button, 0x1172ed040, {{16.0, 803.0}, {408.0, 48.0}}, label: 'Consultation Room, 9 slots open, Open availability'
+                        Other, 0x1172ecdc0, {{16.0, 812.7}, {166.3, 28.3}}
+                          StaticText, 0x1172ec640, {{50.0, 818.7}, {122.3, 16.3}}, label: 'Consultation Room'
+                        Other, 0x1172ec140, {{259.7, 803.0}, {48.0, 48.0}}
+                        StaticText, 0x1172ec000, {{293.7, 820.0}, {70.7, 14.0}}, label: '9 slots open'
+                        Image, 0x1172ec280, {{370.3, 817.0}, {20.0, 20.0}}, label: 'Open availability'
+                      StaticText, 0x1172eca00, {{16.0, 866.0}, {35.0, 24.7}}, label: '$40'
+                      StaticText, 0x1172ee300, {{51.0, 873.7}, {59.0, 14.0}}, label: ' USD/shift'
+                      Button, 0x1172ee1c0, {{295.3, 862.0}, {128.7, 48.0}}, label: 'Availability'
+                        StaticText, 0x1172ed180, {{337.3, 878.0}, {70.7, 16.3}}, label: 'Availability'
+                      StaticText, 0x1172ecb40, {{16.0, 890.7}, {133.3, 15.3}}, label: 'Shift / Time-Slot Basis'
+    Window, 0x1172ecf00, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x1172ec780, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x1172ec3c0, {{0.0, 0.0}, {440.0, 956.0}}
 Path to element:
- →Application, 0x117c59e00, pid: 69849, label: 'ProHost'
+ →Application, 0x10a285e00, pid: 94460, label: 'ProHost'
 Query chain:
  →Find: Target Application 'app.geonajjar.prohost'
   Output: {
-    Application, 0x117d3c3c0, pid: 69849, label: 'ProHost'
+    Application, 0x1172ed7c0, pid: 94460, label: 'ProHost'
   }

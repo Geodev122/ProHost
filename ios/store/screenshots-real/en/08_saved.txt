@@ -1,0 +1,51 @@
+Attributes: Application, 0x1170152c0, pid: 87791, label: 'ProHost'
+Element subtree:
+ →Application, 0x1170152c0, pid: 87791, label: 'ProHost'
+    Window (Main), 0x117014140, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x117015400, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x117015540, {{0.0, 0.0}, {440.0, 956.0}}
+          Other, 0x117015680, {{0.0, 0.0}, {440.0, 956.0}}
+            Other, 0x1170157c0, {{0.0, 0.0}, {440.0, 956.0}}
+              Other, 0x117015900, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x117015cc0, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x117017d40, {{0.0, 0.0}, {440.0, 956.0}}
+                ScrollView, 0x117017e80, {{0.0, 0.0}, {440.0, 956.0}}
+                  Other, 0x117017ac0, {{0.0, 0.0}, {440.0, 956.0}}
+                    Other, 0x1170143c0, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x117014000, {{0.0, 0.0}, {440.0, 126.0}}
+                      Image, 0x117015a40, {{20.0, 77.0}, {34.0, 34.0}}, label: 'ProHost Logo'
+                      StaticText, 0x117014280, {{62.0, 77.7}, {59.7, 18.7}}, label: 'ProHost'
+                      Button, 0x117016080, {{384.0, 70.0}, {48.0, 48.0}}, identifier: 'top_bar_notifications_button', label: 'Notifications'
+                        Image, 0x117015b80, {{396.0, 82.0}, {24.0, 24.0}}, label: 'Notifications'
+                      Other, 0x117016300, {{0.0, 0.0}, {440.0, 956.0}}
+                      StaticText, 0x1170161c0, {{62.0, 96.3}, {35.7, 14.0}}, label: 'Saved'
+                      Other, 0x117016440, {{0.0, 126.0}, {440.0, 708.0}}
+                      Other, 0x117016580, {{0.0, 126.0}, {440.0, 796.0}}
+                      Other, 0x1170166c0, {{0.0, 126.0}, {440.0, 708.0}}
+                      Other, 0x117016800, {{188.0, 158.0}, {64.0, 64.0}}
+                      StaticText, 0x117016a80, {{154.3, 238.0}, {131.3, 18.7}}, label: 'Nothing saved yet'
+                      StaticText, 0x117016940, {{69.0, 264.7}, {302.3, 15.3}}, label: 'Tap the heart on any space to keep it here for later.'
+                      Button, 0x117016bc0, {{152.7, 296.0}, {135.0, 48.0}}, label: 'Explore spaces'
+                        StaticText, 0x117016d00, {{176.7, 313.0}, {87.0, 14.0}}, label: 'Explore spaces'
+                      Other, 0x117016e40, {{16.0, 846.0}, {408.0, 64.0}}
+                      Other, 0x117016f80, {{16.0, 846.0}, {408.0, 64.0}}, identifier: 'bottom_navigation_bar'
+                      Button, 0x117017200, {{41.3, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_search_map', label: 'Explore'
+                        Image, 0x1170170c0, {{54.3, 867.0}, {22.0, 22.0}}, label: 'Explore'
+                      Button, 0x117017340, {{106.3, 854.0}, {105.0, 48.0}}, identifier: 'nav_item_my_favorites', label: 'Saved', Selected
+                        StaticText, 0x117017480, {{152.3, 868.7}, {43.0, 19.0}}, label: 'Saved'
+                      Button, 0x1170175c0, {{228.7, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_rentals', label: 'My Rentals'
+                        Image, 0x117017700, {{241.7, 867.0}, {22.0, 22.0}}, label: 'My Rentals'
+                      Button, 0x117017980, {{292.7, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_profile', label: 'Profile'
+                        Image, 0x117017840, {{305.7, 867.0}, {22.0, 22.0}}, label: 'Profile'
+                      Button, 0x117017c00, {{354.0, 854.0}, {48.0, 48.0}}, label: 'Hide navigation'
+                        Image, 0x117015f40, {{366.0, 866.0}, {24.0, 24.0}}, label: 'Hide navigation'
+    Window, 0x117015e00, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x117014a00, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x117014c80, {{0.0, 0.0}, {440.0, 956.0}}
+Path to element:
+ →Application, 0x1170152c0, pid: 87791, label: 'ProHost'
+Query chain:
+ →Find: Target Application 'app.geonajjar.prohost'
+  Output: {
+    Application, 0x117014b40, pid: 87791, label: 'ProHost'
+  }

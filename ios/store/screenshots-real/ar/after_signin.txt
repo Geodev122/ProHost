@@ -1,111 +1,97 @@
-Attributes: Application, 0x112de3840, pid: 73545, label: 'ProHost'
+Attributes: Application, 0x10acccdc0, pid: 775, label: 'ProHost'
 Element subtree:
- →Application, 0x112de3840, pid: 73545, label: 'ProHost'
-    Window (Main), 0x112de3700, {{0.0, 0.0}, {440.0, 956.0}}
-      Other, 0x112de3e80, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x112de3d40, {{0.0, 0.0}, {440.0, 956.0}}
-          Other, 0x112de3c00, {{0.0, 0.0}, {440.0, 956.0}}
-            Other, 0x112de3ac0, {{0.0, 0.0}, {440.0, 956.0}}
-              Other, 0x112de3980, {{0.0, 0.0}, {440.0, 956.0}}
-                Other, 0x112de2300, {{0.0, 0.0}, {440.0, 956.0}}
-                Other, 0x112de26c0, {{0.0, 0.0}, {440.0, 956.0}}
-                ScrollView, 0x112de2800, {{0.0, 0.0}, {440.0, 956.0}}
-                  Other, 0x112de2940, {{0.0, 0.0}, {440.0, 956.0}}
-                    Other, 0x112de2a80, {{0.0, 0.0}, {440.0, 956.0}}
-                      Other, 0x112de2bc0, {{0.0, 0.0}, {440.0, 956.0}}
-                      Other, 0x112de30c0, {{0.0, 0.0}, {440.0, 956.0}}
-                      Other, 0x112de0140, {{16.0, 62.0}, {408.0, 549.0}}, identifier: 'login_auth_screen'
-                      Button, 0x112cf52c0, {{376.0, 66.0}, {48.0, 48.0}}, identifier: 'auth_back', label: 'رجوع'
-                        Image, 0x112cf6300, {{388.0, 78.0}, {24.0, 24.0}}, label: 'رجوع'
-                      Other, 0x112cf6440, {{16.0, 118.0}, {408.0, 417.0}}
-                        Image, 0x112cf4c80, {{305.0, 118.0}, {119.0, 56.0}}, label: 'تسجيل الدخول إلى ProHost'
-                        Other, 0x112cf7e80, {{328.7, 186.0}, {95.3, 28.0}}, label: 'أهلاً بعودتك'
-                        Other, 0x112cf7d40, {{16.0, 226.0}, {408.0, 44.0}}
-                        StaticText, 0x112cf5e00, {{170.0, 240.0}, {206.0, 16.3}}, label: 'فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.'
-                        StaticText, 0x112cf4280, {{172.0, 298.0}, {226.0, 16.3}}, label: 'appreview.specialist@pro-host.tech'
-                        Button, 0x112cf48c0, {{114.0, 282.0}, {58.0, 48.0}}, label: 'تغيير'
-                          StaticText, 0x112cf4a00, {{127.7, 295.7}, {31.0, 21.0}}, label: 'تغيير'
-                        Other, 0x112cf5b80, {{16.0, 342.0}, {408.0, 64.0}}, identifier: 'auth_password_input'
-                        TextView, 0x112cf6a80, {{16.0, 341.0}, {408.0, 65.0}}, label: 'كلمة المرور', value: ••••••••••••••••••..., Keyboard Focused
-                          Other, 0x112cf5cc0, {{16.0, 350.0}, {408.0, 56.0}}
-                          StaticText, 0x112cf5f40, {{358.7, 341.3}, {49.3, 17.7}}, label: 'كلمة المرور'
-                          Other, 0x112cf5a40, {{68.0, 368.7}, {304.0, 18.7}}
-                        Button, 0x112cf5900, {{16.0, 354.0}, {48.0, 48.0}}, label: 'إظهار كلمة المرور'
-                          Image, 0x112cf57c0, {{28.0, 366.0}, {24.0, 24.0}}, label: 'إظهار كلمة المرور'
-                        Button, 0x112cf5400, {{16.0, 418.0}, {123.3, 48.0}}, identifier: 'forgot_password_button', label: 'نسيت كلمة المرور؟'
-                          StaticText, 0x112cf5680, {{28.0, 431.7}, {99.3, 21.0}}, label: 'نسيت كلمة المرور؟'
-                      Button, 0x112cf5540, {{16.0, 547.0}, {408.0, 48.0}}, identifier: 'submit_email_button', label: 'تسجيل الدخول'
-                        StaticText, 0x112cf4000, {{177.3, 562.3}, {85.3, 17.7}}, label: 'تسجيل الدخول'
-    Window, 0x112cf7340, {{0.0, 0.0}, {440.0, 956.0}}
-      Other, 0x112cf6080, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x112cf70c0, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x112cf75c0, {{0.0, 611.0}, {440.0, 345.0}}
-          Other, 0x112cf7700, {{0.0, 611.0}, {440.0, 345.0}}, identifier: 'inputView'
-    Window, 0x112cf7840, {{0.0, 0.0}, {440.0, 956.0}}
-      Other, 0x112cf7980, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x112cf7ac0, {{0.0, 611.0}, {440.0, 345.0}}
-          Other, 0x112cf7c00, {{0.0, 611.0}, {440.0, 44.0}}, identifier: 'SystemInputAssistantView'
-            Other, 0x112cf4500, {{0.0, 611.0}, {440.0, 44.0}}
-              Other, 0x112cf6f80, {{0.0, 611.0}, {440.0, 44.0}}, identifier: 'CenterPageView'
-                Other, 0x112cf4640, {{0.0, 11.0}, {440.0, 1244.0}}
-                  ScrollView, 0x112cf4140, {{0.0, 611.0}, {440.0, 44.0}}
-                Other, 0x112cf43c0, {{0.0, 611.0}, {440.0, 44.0}}
-                  Other, 0x112cf4780, {{0.0, 611.0}, {440.0, 44.0}}, label: 'تنبؤات الكتابة'
-                    Other, 0x112cf4b40, {{0.0, 611.0}, {440.0, 44.0}}
-                      Other, 0x112cf4dc0, {{30.0, 611.0}, {380.0, 44.0}}
-                        Button, 0x112cf6580, {{30.0, 611.0}, {380.0, 44.0}}, label: 'Passwords'
-                          Image, 0x112cf66c0, {{257.3, 625.0}, {13.0, 23.0}}, identifier: 'kb-autofill-key'
-          Other, 0x112cf6940, {{0.0, 611.0}, {440.0, 345.0}}
-            Other, 0x112cf6800, {{0.0, 611.0}, {440.0, 345.0}}
-              Other, 0x112cf6bc0, {{0.0, 611.0}, {440.0, 345.0}}
-          Other, 0x112ddf700, {{0.0, 655.0}, {440.0, 243.0}}
-            Keyboard, 0x112ddf840, {{0.0, 655.0}, {440.0, 243.0}}
-              Other, 0x112ddf980, {{0.0, 655.0}, {440.0, 243.0}}
-                Other, 0x112ddfac0, {{0.0, 655.0}, {440.0, 243.0}}, identifier: 'UIKeyboardLayoutStar Preview'
-                  Key, 0x112ddfc00, {{0.0, 655.0}, {0.0, 0.0}}, label: 'Padding-Left'
-                  Key, 0x112ddfd40, {{0.0, 655.0}, {0.0, 0.0}}, label: 'Padding-Right'
-                  Key, 0x112ddfe80, {{0.0, 655.0}, {0.0, 0.0}}, label: 'Padding-Left'
-                  Key, 0x112c3ae40, {{0.0, 655.0}, {0.0, 0.0}}, label: 'Padding-Right'
-                  Key, 0x112c39900, {{0.0, 655.0}, {0.0, 0.0}}, label: 'Padding-Left'
-                  Key, 0x112c38c80, {{0.0, 655.0}, {0.0, 0.0}}, label: 'Padding-Right'
-                  Key, 0x112c38640, {{394.3, 662.0}, {43.3, 56.0}}, label: 'p'
-                  Key, 0x112c39f40, {{351.0, 662.0}, {43.3, 56.0}}, label: 'o'
-                  Key, 0x112c3a800, {{307.7, 662.0}, {43.3, 56.0}}, label: 'i'
-                  Key, 0x112c3af80, {{264.3, 662.0}, {43.3, 56.0}}, label: 'u'
-                  Key, 0x112c397c0, {{221.0, 662.0}, {43.3, 56.0}}, label: 'y'
-                  Key, 0x112c38780, {{177.7, 662.0}, {43.3, 56.0}}, label: 't'
-                  Key, 0x112c3a580, {{134.3, 662.0}, {43.3, 56.0}}, label: 'r'
-                  Key, 0x112c3b0c0, {{91.0, 662.0}, {43.3, 56.0}}, label: 'e'
-                  Key, 0x112c3b340, {{47.7, 662.0}, {43.3, 56.0}}, label: 'w'
-                  Key, 0x112c38b40, {{4.7, 662.0}, {43.0, 56.0}}, label: 'q'
-                  Key, 0x112c39040, {{372.7, 718.0}, {43.3, 56.0}}, label: 'l'
-                  Key, 0x112c39a40, {{329.3, 718.0}, {43.3, 56.0}}, label: 'k'
-                  Key, 0x112c3aa80, {{286.0, 718.0}, {43.3, 56.0}}, label: 'j'
-                  Key, 0x112c3a080, {{242.7, 718.0}, {43.3, 56.0}}, label: 'h'
-                  Key, 0x112c3b480, {{199.3, 718.0}, {43.3, 56.0}}, label: 'g'
-                  Key, 0x112c3a6c0, {{156.0, 718.0}, {43.3, 56.0}}, label: 'f'
-                  Key, 0x112c3b980, {{112.7, 718.0}, {43.3, 56.0}}, label: 'd'
-                  Key, 0x112c38500, {{69.3, 718.0}, {43.3, 56.0}}, label: 's'
-                  Key, 0x112c3a940, {{26.0, 718.0}, {43.3, 56.0}}, label: 'a'
-                  Key, 0x112c3abc0, {{381.3, 774.0}, {56.3, 56.0}}, identifier: 'delete', label: 'delete'
-                  Key, 0x112c3b5c0, {{329.3, 774.0}, {43.3, 56.0}}, label: 'm'
-                  Key, 0x112c388c0, {{286.0, 774.0}, {43.3, 56.0}}, label: 'n'
-                  Key, 0x112c3a1c0, {{242.7, 774.0}, {43.3, 56.0}}, label: 'b'
-                  Key, 0x112c3b700, {{199.3, 774.0}, {43.3, 56.0}}, label: 'v'
-                  Key, 0x112c3b840, {{156.0, 774.0}, {43.3, 56.0}}, label: 'c'
-                  Key, 0x112c3bc00, {{112.7, 774.0}, {43.3, 56.0}}, label: 'x'
-                  Key, 0x112c39cc0, {{69.3, 774.0}, {43.3, 56.0}}, label: 'z'
-                  Button, 0x112c38a00, {{4.7, 774.0}, {56.0, 56.0}}, identifier: 'shift', label: '⇧'
-                  Button, 0x112c39680, {{329.3, 830.0}, {108.3, 56.0}}, identifier: 'Done', label: 'done'
-                  Key, 0x112c392c0, {{112.7, 830.0}, {216.7, 56.0}}, identifier: 'space', label: ' '
-                  Key, 0x112c3a300, {{4.7, 830.0}, {108.0, 56.0}}, identifier: 'more', label: 'أعداد'
-          Other, 0x112c39b80, {{0.0, 655.0}, {440.0, 301.0}}
-            Button, 0x102e330c0, {{357.4, 887.4}, {80.1, 68.7}}, identifier: 'dictation', label: 'الإملاء', Disabled
-              StaticText, 0x102e33840, {{357.4, 887.4}, {0.0, 0.0}}
+ →Application, 0x10acccdc0, pid: 775, label: 'ProHost'
+    Window (Main), 0x10acccf00, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x10accd040, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x10accd180, {{0.0, 0.0}, {440.0, 956.0}}
+          Other, 0x10accd2c0, {{0.0, 0.0}, {440.0, 956.0}}
+            Other, 0x10accd400, {{0.0, 0.0}, {440.0, 956.0}}
+              Other, 0x10accd540, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x10accd680, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x10accd7c0, {{0.0, 0.0}, {440.0, 956.0}}
+                ScrollView, 0x10accd900, {{0.0, 0.0}, {440.0, 956.0}}
+                  Other, 0x10accda40, {{0.0, 0.0}, {440.0, 956.0}}
+                    Other, 0x10accdb80, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x10accdcc0, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x10accde00, {{0.0, 62.0}, {440.0, 860.0}}
+                      Other, 0x10accdf40, {{0.0, 62.0}, {440.0, 860.0}}
+                      Other, 0x10acce080, {{384.0, 70.0}, {44.0, 44.0}}
+                      Other, 0x10acce1c0, {{12.0, 70.0}, {416.0, 52.0}}
+                      Button, 0x10acce300, {{382.0, 68.0}, {48.0, 48.0}}, label: 'ابحث في المساحات'
+                        Image, 0x10acce440, {{394.0, 80.0}, {24.0, 24.0}}, label: 'ابحث في المساحات'
+                      Other, 0x10acce580, {{153.0, 70.0}, {134.0, 44.0}}
+                      Image, 0x10acce6c0, {{253.0, 79.0}, {26.0, 26.0}}, label: 'شعار ProHost'
+                      Button, 0x10acce800, {{201.0, 68.0}, {44.0, 48.0}}, label: 'خريطة مشاهدة'
+                        Image, 0x10acce940, {{211.0, 82.0}, {20.0, 20.0}}, label: 'خريطة مشاهدة'
+                      Button, 0x10accea80, {{153.0, 68.0}, {48.0, 48.0}}, label: 'قائمة مشاهدة', Selected
+                        Image, 0x10accebc0, {{167.0, 82.0}, {20.0, 20.0}}, label: 'قائمة مشاهدة'
+                      Other, 0x10acced00, {{12.0, 70.0}, {44.0, 44.0}}
+                      Button, 0x10accee40, {{10.0, 68.0}, {48.0, 48.0}}, label: 'الفلاتر'
+                        Image, 0x10accef80, {{22.0, 80.0}, {24.0, 24.0}}, label: 'الفلاتر'
+                      Other, 0x10accf0c0, {{0.0, 130.0}, {440.0, 792.0}}
+                        Button, 0x10accf200, {{224.0, 921.3}, {184.0, 0.7}}
+                        Button, 0x10accf340, {{32.0, 921.3}, {184.0, 0.7}}
+                        Button, 0x10accf480, {{16.0, 134.0}, {408.0, 417.7}}, label: 'Consultation Room · Life Clinic, مكتب, Consultation Room · Life Clinic, $40, /مناوبة'
+                          Other, 0x10accf5c0, {{32.0, 150.0}, {376.0, 211.7}}
+                            Image, 0x10accf700, {{32.0, 150.0}, {376.0, 211.7}}, label: 'Consultation Room · Life Clinic'
+                            Other, 0x10accf840, {{362.0, 334.7}, {38.0, 19.0}}
+                              StaticText, 0x10accf980, {{368.0, 336.7}, {26.0, 15.0}}, label: 'مكتب'
+                          StaticText, 0x10accfac0, {{104.3, 373.7}, {303.7, 18.7}}, label: 'Consultation Room · Life Clinic'
+                          StaticText, 0x10accfc00, {{68.3, 373.7}, {28.0, 18.7}}, label: '$40'
+                          StaticText, 0x10accfd40, {{32.0, 377.3}, {36.3, 15.0}}, label: '/مناوبة'
+                          StaticText, 0x10accfe80, {{257.7, 396.3}, {132.3, 16.3}}, label: 'Dekouaneh, Matn، لبنان'
+                          Other, 0x10ac3af80, {{303.3, 421.3}, {104.7, 18.0}}
+                            StaticText, 0x10ac38280, {{309.3, 423.3}, {78.7, 14.0}}, label: '⁦08:00 - 20:00⁩'
+                          Other, 0x10ac38500, {{204.7, 420.7}, {90.7, 19.0}}
+                            StaticText, 0x10ac38780, {{210.7, 422.7}, {64.7, 15.0}}, label: '6 أيام/أسبوع'
+                          Other, 0x10ac38000, {{358.3, 447.7}, {49.7, 19.0}}
+                            StaticText, 0x10ac38a00, {{363.3, 449.7}, {39.7, 15.0}}, label: 'بالمناوبة'
+                        Button, 0x10ac38140, {{32.0, 150.0}, {48.0, 48.0}}, label: 'حفظ المساحة'
+                          Image, 0x10ac38b40, {{47.0, 165.0}, {18.0, 18.0}}, label: 'حفظ المساحة'
+                        Button, 0x10ac383c0, {{224.0, 487.7}, {184.0, 48.0}}, label: 'التوفّر'
+                          StaticText, 0x10ac38c80, {{292.3, 504.3}, {29.3, 15.0}}, label: 'التوفّر'
+                        Button, 0x10ac38640, {{32.0, 487.7}, {184.0, 48.0}}, label: 'واتساب'
+                          StaticText, 0x10ac388c0, {{96.7, 504.3}, {37.0, 15.0}}, label: 'واتساب'
+                        Button, 0x10766fe80, {{16.0, 567.7}, {408.0, 354.3}}, label: 'Therapy Room · Life Clinic, غرفة, Therapy Room · Life Clinic, $15, /ساعة'
+                          Other, 0x10766fc00, {{32.0, 583.7}, {376.0, 211.7}}
+                            Image, 0x10766f5c0, {{32.0, 583.7}, {376.0, 211.7}}, label: 'Therapy Room · Life Clinic'
+                            Other, 0x10766f840, {{367.0, 768.3}, {33.0, 19.0}}
+                              StaticText, 0x10766f700, {{373.0, 770.3}, {21.0, 15.0}}, label: 'غرفة'
+                          StaticText, 0x10766f340, {{98.3, 807.3}, {309.7, 18.7}}, label: 'Therapy Room · Life Clinic'
+                          StaticText, 0x10766f200, {{62.3, 807.3}, {28.0, 18.7}}, label: '$15'
+                          StaticText, 0x10766f0c0, {{32.0, 811.0}, {30.3, 15.0}}, label: '/ساعة'
+                          StaticText, 0x10766f980, {{257.7, 830.0}, {132.3, 16.3}}, label: 'Dekouaneh, Matn، لبنان'
+                          Other, 0x10766f480, {{303.3, 855.0}, {104.7, 18.0}}
+                            StaticText, 0x10766fd40, {{309.3, 857.0}, {78.7, 14.0}}, label: '⁦08:00 - 20:00⁩'
+                          Other, 0x10766fac0, {{204.7, 854.3}, {90.7, 19.0}}
+                            StaticText, 0x10ac3d7c0, {{210.7, 856.3}, {64.7, 15.0}}, label: '6 أيام/أسبوع'
+                          Other, 0x10ac3d540, {{359.7, 881.3}, {48.3, 19.0}}
+                            StaticText, 0x10ac3d2c0, {{364.7, 883.3}, {38.3, 15.0}}, label: 'بالساعة'
+                        Button, 0x10ac3d040, {{32.0, 583.7}, {48.0, 48.0}}, label: 'حفظ المساحة'
+                          Image, 0x10ac3c000, {{47.0, 598.7}, {18.0, 18.0}}, label: 'حفظ المساحة'
+                        Button, 0x10ac3c640, {{36.0, 1021.3}, {40.0, 40.0}}
+                        Button, 0x10ac3c140, {{16.0, 1001.3}, {408.0, 417.7}}
+                        Button, 0x10ac3c280, {{224.0, 1359.0}, {184.0, 40.0}}
+                        Button, 0x10ac3c3c0, {{32.0, 1359.0}, {184.0, 40.0}}
+                      Other, 0x10ac3c780, {{16.0, 846.0}, {408.0, 64.0}}
+                      Other, 0x10ac3c8c0, {{16.0, 846.0}, {408.0, 64.0}}, identifier: 'bottom_navigation_bar'
+                      Button, 0x10ac3c500, {{284.7, 854.0}, {114.7, 48.0}}, identifier: 'nav_item_search_map', label: 'Explore', Selected
+                        StaticText, 0x10ac3ca00, {{300.7, 868.7}, {52.7, 19.0}}, label: 'Explore'
+                      Button, 0x10ac3da40, {{221.3, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_my_favorites', label: 'Saved'
+                        Image, 0x10ac3cdc0, {{234.3, 867.0}, {22.0, 22.0}}, label: 'Saved'
+                      Button, 0x10ac3de00, {{158.7, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_rentals', label: 'My Rentals'
+                        Image, 0x10ac3cb40, {{171.7, 867.0}, {22.0, 22.0}}, label: 'My Rentals'
+                      Button, 0x10ac3dcc0, {{96.0, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_profile', label: 'Profile'
+                        Image, 0x10ac3cc80, {{109.0, 867.0}, {22.0, 22.0}}, label: 'Profile'
+                      Button, 0x10ac3db80, {{36.7, 854.0}, {48.0, 48.0}}, label: 'إخفاء شريط التنقّل'
+                        Image, 0x10ac3cf00, {{48.7, 866.0}, {24.0, 24.0}}, label: 'إخفاء شريط التنقّل'
+    Window, 0x10ac3d900, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x10ac3d180, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x10ac3d400, {{0.0, 0.0}, {440.0, 956.0}}
 Path to element:
- →Application, 0x112de3840, pid: 73545, label: 'ProHost'
+ →Application, 0x10acccdc0, pid: 775, label: 'ProHost'
 Query chain:
  →Find: Target Application 'app.geonajjar.prohost'
   Output: {
-    Application, 0x102e33200, pid: 73545, label: 'ProHost'
+    Application, 0x10ac3e080, pid: 775, label: 'ProHost'
   }

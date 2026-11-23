@@ -1,0 +1,51 @@
+Attributes: Application, 0x1178e5a40, pid: 775, label: 'ProHost'
+Element subtree:
+ →Application, 0x1178e5a40, pid: 775, label: 'ProHost'
+    Window (Main), 0x1178e5b80, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x1178e5cc0, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x1178e5e00, {{0.0, 0.0}, {440.0, 956.0}}
+          Other, 0x1178e5f40, {{0.0, 0.0}, {440.0, 956.0}}
+            Other, 0x1178e6080, {{0.0, 0.0}, {440.0, 956.0}}
+              Other, 0x1178e6440, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x1178e7d40, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x1178e7e80, {{0.0, 0.0}, {440.0, 956.0}}
+                ScrollView, 0x1178e7c00, {{0.0, 0.0}, {440.0, 956.0}}
+                  Other, 0x1178e4000, {{0.0, 0.0}, {440.0, 956.0}}
+                    Other, 0x1178e43c0, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x1178e4140, {{0.0, 0.0}, {440.0, 126.0}}
+                      Image, 0x1178e61c0, {{386.0, 77.0}, {34.0, 34.0}}, label: 'شعار ProHost'
+                      StaticText, 0x1178e4280, {{318.3, 77.7}, {59.7, 18.7}}, label: 'ProHost'
+                      Button, 0x1178e6300, {{8.0, 70.0}, {48.0, 48.0}}, identifier: 'top_bar_notifications_button', label: 'الإشعارات'
+                        Image, 0x1178e6800, {{20.0, 82.0}, {24.0, 24.0}}, label: 'الإشعارات'
+                      Other, 0x1178e6a80, {{0.0, 0.0}, {440.0, 956.0}}
+                      StaticText, 0x1178e6940, {{342.3, 96.3}, {35.7, 14.0}}, label: 'Saved'
+                      Other, 0x1178e6d00, {{0.0, 126.0}, {440.0, 708.0}}
+                      Other, 0x1178e6bc0, {{0.0, 126.0}, {440.0, 796.0}}
+                      Other, 0x1178e6e40, {{0.0, 126.0}, {440.0, 708.0}}
+                      Other, 0x1178e6f80, {{188.0, 158.0}, {64.0, 64.0}}
+                      StaticText, 0x1178e70c0, {{158.7, 238.0}, {122.7, 20.0}}, label: 'لا شيء محفوظ بعد'
+                      StaticText, 0x1178e7200, {{95.7, 266.0}, {249.0, 16.3}}, label: 'اضغط على القلب في أي مساحة لحفظها هنا لوقت لاحق.'
+                      Button, 0x1178e7340, {{150.0, 298.3}, {140.0, 48.0}}, label: 'استكشف المساحات'
+                        StaticText, 0x1178e7480, {{174.0, 315.0}, {92.0, 15.0}}, label: 'استكشف المساحات'
+                      Other, 0x1178e7700, {{16.0, 846.0}, {408.0, 64.0}}
+                      Other, 0x1178e75c0, {{16.0, 846.0}, {408.0, 64.0}}, identifier: 'bottom_navigation_bar'
+                      Button, 0x1178e7980, {{351.0, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_search_map', label: 'Explore'
+                        Image, 0x1178e7840, {{364.0, 867.0}, {22.0, 22.0}}, label: 'Explore'
+                      Button, 0x1178e7ac0, {{228.7, 854.0}, {105.0, 48.0}}, identifier: 'nav_item_my_favorites', label: 'Saved', Selected
+                        StaticText, 0x1178e66c0, {{244.7, 868.7}, {43.0, 19.0}}, label: 'Saved'
+                      Button, 0x1178e6580, {{163.7, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_rentals', label: 'My Rentals'
+                        Image, 0x1178e5180, {{176.7, 867.0}, {22.0, 22.0}}, label: 'My Rentals'
+                      Button, 0x1178e5540, {{99.3, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_profile', label: 'Profile'
+                        Image, 0x1178e5400, {{112.3, 867.0}, {22.0, 22.0}}, label: 'Profile'
+                      Button, 0x1178e57c0, {{38.3, 854.0}, {48.0, 48.0}}, label: 'إخفاء شريط التنقّل'
+                        Image, 0x10acd2a80, {{50.3, 866.0}, {24.0, 24.0}}, label: 'إخفاء شريط التنقّل'
+    Window, 0x10acd2f80, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x10acd30c0, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x10acd3340, {{0.0, 0.0}, {440.0, 956.0}}
+Path to element:
+ →Application, 0x1178e5a40, pid: 775, label: 'ProHost'
+Query chain:
+ →Find: Target Application 'app.geonajjar.prohost'
+  Output: {
+    Application, 0x10acd2080, pid: 775, label: 'ProHost'
+  }
