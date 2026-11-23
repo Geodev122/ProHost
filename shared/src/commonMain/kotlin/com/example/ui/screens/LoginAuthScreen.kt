@@ -57,6 +57,10 @@ import com.example.shared.resources.reg_whatsapp_title
 import com.example.shared.resources.start_over_with_a_different_account
 import com.example.shared.resources.terms_of_use
 import com.example.shared.resources.use_this_phone_s_number
+import com.example.shared.resources.reg_locating
+import com.example.shared.resources.reg_use_my_location
+import com.example.shared.resources.reg_area
+import com.example.shared.resources.reg_area_choose
 import com.example.shared.resources.whatsapp_number_2
 import com.example.ui.util.appString
 import com.example.ui.util.sharedText
