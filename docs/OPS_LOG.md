@@ -264,3 +264,5 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   174 regions; offers free-4-months, prohost2026, launch-50-first-year are free/relative (follow the base price). Applied with code `apply`.
 - 23 Nov 2026: Maintenance `clearsaves` dry run (run 45162409505): 3 profiles with 3 old listing-level saves; applied with code `apply`
   (saves are per room since 1.0.51).
+- 23 Nov 2026 11:17 UTC: `unlimitedprice apply` (run 45163840570): Play patched (regions version 2026/01), pro-monthly1 $17.99 and
+  pro-yearly $159.99 for new subscribers in 174 regions; offers unchanged (relative). `clearsaves apply` (run 45163845586): 3 old saves cleared.
