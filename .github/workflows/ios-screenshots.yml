@@ -73,8 +73,12 @@ jobs:
         env:
           MAPS_IOS_API_KEY: ${{ secrets.MAPS_IOS_API_KEY }}
         run: |
+          # Ad-hoc ("-") signing on the simulator: an unsigned app has no keychain entitlement, and Firebase Auth then
+          # fails every sign-in ("Sign-in failed"). No certificate or profile is needed for the simulator SDK.
+          set -o pipefail
           xcodebuild build-for-testing -project ProHost.xcodeproj -scheme ProHost -destination "id=$SIM" \
-            -derivedDataPath build/dd CODE_SIGNING_ALLOWED=NO MAPS_IOS_API_KEY="$MAPS_IOS_API_KEY" | tail -20
+            -derivedDataPath build/dd CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= \
+            MAPS_IOS_API_KEY="$MAPS_IOS_API_KEY" | tail -20
 
       - name: Screenshots (English, then Arabic)
         working-directory: ios
@@ -86,7 +90,7 @@ jobs:
             TEST_RUNNER_DEMO_EMAIL="$DEMO_EMAIL" TEST_RUNNER_DEMO_PASSWORD="$DEMO_PASSWORD" TEST_RUNNER_LISTING_ID="$LISTING_ID" \
             xcodebuild test-without-building -project ProHost.xcodeproj -scheme ProHost -destination "id=$SIM" \
               -derivedDataPath build/dd -only-testing:ProHostUITests/StoreScreenshotTests \
-              -resultBundlePath "build/shots-$L.xcresult" CODE_SIGNING_ALLOWED=NO | tail -25 || echo "::warning::$L pass reported failures"
+              -resultBundlePath "build/shots-$L.xcresult" | tail -25 || echo "::warning::$L pass reported failures"
             # Fallback when the simulator could not write to the host folder: the attachments in the result bundle.
             if ! ls "$OUT"/*.png >/dev/null 2>&1; then
               xcrun xcresulttool export attachments --path "build/shots-$L.xcresult" --output-path "$OUT" || true
