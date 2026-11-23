@@ -350,7 +350,8 @@ if want("subscriptions"):
                 status_, raw = api.request("GET", f'/v1/subscriptions/{s["id"]}/prices?filter[territory]=USA&include=subscriptionPricePoint&limit=5')
                 points_ = {x["id"]: x["attributes"].get("customerPrice") for x in (raw or {}).get("included", []) if x.get("type") == "subscriptionPricePoints"}
                 now_usd = next((points_.get(((c.get("relationships", {}).get("subscriptionPricePoint", {}).get("data")) or {}).get("id")) for c in cur), None)
-                if now_usd is not None and abs(float(now_usd) - float(usd)) < 0.001:
+                # ASC_REPRICE_ALL=1 re-sends every country (a run cut off half way left some on the old price).
+                if now_usd is not None and abs(float(now_usd) - float(usd)) < 0.001 and os.environ.get("ASC_REPRICE_ALL") != "1":
                     same(f'{p["productId"]} prices (USA {now_usd})')
                     continue
                 print(f'INFO    {p["productId"]}: USA price {now_usd} -> {usd} (existing subscribers keep their price)')
@@ -368,14 +369,20 @@ if want("subscriptions"):
             if not args.apply:
                 print(f'PLAN    {p["productId"]} price ${usd} in the USA and Apple\'s equivalent in {len(targets) - 1} other countries')
                 continue
-            ok = 0
+            ok, bad, first_err = 0, 0, ""
             for terr, point in targets:
                 status, data = api.request("POST", "/v1/subscriptionPrices", {"data": {"type": "subscriptionPrices", "attributes": {"preserveCurrentPrice": preserve},
                     "relationships": {"subscription": rel("subscriptions", s["id"]), "subscriptionPricePoint": rel("subscriptionPricePoints", point), "territory": rel("territories", terr)}}})
-                ok += status in (200, 201)
-                if status not in (200, 201) and ok == 0:
-                    print("FAILED ", p["productId"], "price", terr, status, "; ".join(str(e.get("detail")) for e in (data or {}).get("errors", []))[:400]); failures.append(p["productId"] + " price"); break
-            print(f'DONE    {p["productId"]} price ${usd}: {ok} of {len(targets)} countries')
+                if status in (200, 201):
+                    ok += 1
+                else:
+                    bad += 1
+                    first_err = first_err or f"{terr} HTTP {status}: " + "; ".join(str(e.get("detail")) for e in (data or {}).get("errors", []))[:300]
+                    if ok == 0 and bad >= 3:
+                        break  # nothing is being accepted: stop instead of 175 identical errors
+            print(f'DONE    {p["productId"]} price ${usd}: {ok} of {len(targets)} countries' + (f", {bad} refused (first: {first_err})" if bad else ""))
+            if ok == 0:
+                failures.append(p["productId"] + " price")
 
 
 # ---- TestFlight beta-review contact (same person as the App Review contact)

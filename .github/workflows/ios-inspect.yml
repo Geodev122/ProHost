@@ -78,6 +78,7 @@ jobs:
           REVIEW_EMAIL: ${{ inputs.review_email || secrets.APP_REVIEW_EMAIL }}
           TESTER_EMAIL: ${{ inputs.review_email }}
           YEARLY_INTRO_USD: ${{ inputs.yearly_intro_usd }}
+          ASC_REPRICE_ALL: ${{ contains(inputs.only, 'reprice') && '1' || '' }}
           ASC_AGE_OVERRIDE: ${{ inputs.age_override }}
           BUILD_NUMBER: ${{ inputs.build_number }}
           REVIEW_DEMO_USER: ${{ secrets.APP_REVIEW_DEMO_USER }}
