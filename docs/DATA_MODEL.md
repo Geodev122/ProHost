@@ -24,7 +24,7 @@ Written by the host's app (Create listing wizard, Manage page) through
 | `rules` | House rules. `visitorPolicy` is no longer asked; old values are kept |
 | `schedule` | Opening hours and days of the space |
 | `status` | `DRAFT` / `ACTIVE` / `PAUSED`; the server demotes an ACTIVE listing that fails `validateListingForPublish` |
-| `favoriteCount`, `favoritesByMonth`, `unsavesByMonth`, `lastFavoriteEvents` | Saves (1.0.46, `users/favoritesSync.ts`): people who have it saved now (owner excluded), saves / un-saves per UTC month `yyyymm` (13 kept), and the last 50 trigger event ids so a retried event never counts twice. Maintenance `favrecount` rebuilds `favoriteCount` from `user_profiles.savedSpaceIds` |
+| `favoriteCount`, `favoritesByMonth`, `unsavesByMonth`, `lastFavoriteEvents` | Saves (1.0.46, `users/favoritesSync.ts`): people who have it saved now (owner excluded), saves / un-saves per UTC month `yyyymm` (13 kept), and the last 50 trigger event ids so a retried event never counts twice. Maintenance `favrecount` rebuilds `favoriteCount` from `user_profiles.savedSpaceIds`. Since 23 Nov 2026 a saved entry is a room (`"<listingId>#<roomId>"`) or a whole place (`"<listingId>"`); both count for the listing |
 | Server-owned | `isVerified`, `displayCode`, `isOwnerSuspended`, `isOwnerPackageLapsed`, counters, save fields, `searchName`, `ownerEmail` |
 
 ### Whole place or divisions

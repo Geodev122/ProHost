@@ -362,11 +362,11 @@ fun DiscoveryScreenContent(
                             SubdivisionDiscoveryCard(
                                 space = space,
                                 subdivision = sub,
-                                isSaved = savedSpaceIds.contains(space.id),
+                                isSaved = savedSpaceIds.contains(com.example.data.model.SavedKeys.key(space.id, sub.id)),
                                 onClick = { onSelectSpace(space, sub.id) },
                                 onAvailability = onOpenAvailability?.let { open -> { open(space, sub.id) } },
                                 onQuickWhatsApp = { onQuickWhatsApp(space, sub) },
-                                onToggleSave = { onToggleSavedSpace(space.id) }
+                                onToggleSave = { onToggleSavedSpace(com.example.data.model.SavedKeys.key(space.id, sub.id)) }
                             )
                         } else {
                             SpaceListingCard(

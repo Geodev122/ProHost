@@ -175,8 +175,8 @@ fun SpaceDetailsScreen(
         onCopyLinkClick = {
             viewModel.copyListingLink(ShareLinks.forListing(liveSpace.id), liveSpace)
         },
-        isSaved = currentUser?.savedSpaceIds?.contains(liveSpace.id) == true,
-        onToggleSave = { viewModel.toggleSavedSpace(liveSpace.id) },
+        savedKeys = currentUser?.savedSpaceIds.orEmpty().toSet(),
+        onToggleSave = { key -> viewModel.toggleSavedSpace(key) },
         intendedSubdivisionId = intendedSubdivisionId,
         openAvailability = openAvailability,
         onViewRequest = onViewRequest,
@@ -200,8 +200,9 @@ fun SpaceDetailsScreenContent(
     onWhatsAppClick: () -> Unit,
     onShareClick: () -> Unit,
     onCopyLinkClick: () -> Unit = {},
-    isSaved: Boolean = false,
-    onToggleSave: () -> Unit = {},
+    /** The viewer's saved keys (per room, `SavedKeys`): the heart saves the selected room, or the whole place. */
+    savedKeys: Set<String> = emptySet(),
+    onToggleSave: (String) -> Unit = {},
     intendedSubdivisionId: String? = null,
     openAvailability: Boolean = false,
     onViewRequest: (bookingId: String) -> Unit = {},
@@ -442,7 +443,9 @@ fun SpaceDetailsScreenContent(
                             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                IconButton(onClick = onToggleSave, modifier = Modifier.size(42.dp)) {
+                                val saveKey = com.example.data.model.SavedKeys.forListing(liveSpace, selectedSubdivisionId)
+                                val isSaved = saveKey in savedKeys
+                                IconButton(onClick = { onToggleSave(saveKey) }, modifier = Modifier.size(42.dp)) {
                                     Icon(
                                         if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                         contentDescription = if (isSaved) appString(Res.string.remove_from_saved) else appString(Res.string.save),

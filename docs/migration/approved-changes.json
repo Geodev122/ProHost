@@ -15,7 +15,10 @@
     "renting_progress_",
     "renting_requests_",
     "reject_request_",
-    "registration_"
+    "registration_",
+    "saved_",
+    "explore_",
+    "listing_wizard_"
   ],
   "files": [
     "listing_edit_small.png",

@@ -301,7 +301,7 @@ class DiscoveryViewModel(
         viewModelScope.launch {
             try {
                 if (!repository.toggleSavedSpace(spaceId)) return@launch // heart reverted; nothing to log
-                repository.spaces.value.firstOrNull { it.id == spaceId }
+                repository.spaces.value.firstOrNull { it.id == com.example.data.model.SavedKeys.listingOf(spaceId) }
                     ?.let { com.example.analytics.AnalyticsTracker.wishlist(it, added = !wasSaved) }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e

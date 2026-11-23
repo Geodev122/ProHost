@@ -42,7 +42,8 @@ import com.example.ui.util.appString
 @Composable
 fun MyFavoritesScreen(
     viewModel: ProHostViewModel,
-    onSelectSpace: (SpaceListing) -> Unit,
+    /** Opens the listing; for a saved room, on that room's card. */
+    onSelectSpace: (SpaceListing, String?) -> Unit,
     onNavigateToExplore: () -> Unit = {}
 ) {
     val isRestoringSession by viewModel.isRestoringSession.collectAsState()
@@ -54,22 +55,30 @@ fun MyFavoritesScreen(
     val isLoading = isRestoringSession && allSpaces.isEmpty() && currentUser == null
     val errorMessage = if (!isLoading) sessionError else null
 
+    // Saves are per room (SavedKeys): each key resolves to its listing and, for a divided listing, the room.
     val savedIds = currentUser?.savedSpaceIds.orEmpty().toSet()
-    val savedSpaces = allSpaces.filter { it.id in savedIds }
+    val byId = allSpaces.associateBy { it.id }
+    val savedEntries = savedIds.mapNotNull { key ->
+        val space = byId[com.example.data.model.SavedKeys.listingOf(key)] ?: return@mapNotNull null
+        val roomId = com.example.data.model.SavedKeys.roomOf(key)
+        val room = roomId?.let { id -> space.subdivisions.firstOrNull { it.id == id } }
+        if (roomId != null && room == null) null else Triple(key, space, room)
+    }
+    val savedSpaces = savedEntries.map { it.second }.distinctBy { it.id }
     // A saved listing that's since gone Paused/Draft, or been deleted, simply
     // has no matching entry in allSpaces — this used to silently drop it from
     // the list with no explanation, and the stale id stayed in savedSpaceIds
     // forever with no way to clean it up. Surfaced explicitly below instead,
     // with a Remove action that actually clears the stale id.
-    val unavailableIds = savedIds - savedSpaces.map { it.id }.toSet()
+    val unavailableIds = savedIds - savedEntries.map { it.first }.toSet()
 
     // Grouped by category (Private Office/Center/Polyclinic/Co-working, or any
     // admin-added category) rather than one flat list — the same
     // spaceCategoryName-with-legacy-fallback every other category-aware screen
     // in the app already reads (see OwnerAnalyticsScreen), so a listing under a
     // newly admin-added category groups correctly too, not just the original 4.
-    val groupedSavedSpaces = savedSpaces
-        .groupBy { it.spaceCategoryName ?: it.spaceType.displayName }
+    val groupedSavedSpaces = savedEntries
+        .groupBy { it.second.spaceCategoryName ?: it.second.spaceType.displayName }
         // Same order as the old toSortedMap() (natural String order), kept in a LinkedHashMap.
         .toList().sortedBy { it.first }.toMap()
 
@@ -114,16 +123,27 @@ fun MyFavoritesScreen(
                             modifier = Modifier.padding(top = if (category == groupedSavedSpaces.keys.first()) 0.dp else Spacing.sm)
                         )
                     }
-                    items(spacesInCategory, key = { it.id }) { space ->
+                    items(spacesInCategory, key = { it.first }) { (key, space, room) ->
                         // Inserted/removed rows slide and fade instead of jumping.
                         Box(Modifier.animateItem()) {
-                        SpaceListingCard(
-                            space = space,
-                            onClick = { onSelectSpace(space) },
-                            onQuickWhatsApp = { viewModel.launchWhatsAppInquiry(space, null) },
-                            isSaved = true,
-                            onToggleSave = { viewModel.toggleSavedSpace(space.id, announce = true) }
-                        )
+                        if (room != null) {
+                            SubdivisionDiscoveryCard(
+                                space = space,
+                                subdivision = room,
+                                isSaved = true,
+                                onClick = { onSelectSpace(space, room.id) },
+                                onQuickWhatsApp = { viewModel.launchWhatsAppInquiry(space, subdivision = room) },
+                                onToggleSave = { viewModel.toggleSavedSpace(key, announce = true) }
+                            )
+                        } else {
+                            SpaceListingCard(
+                                space = space,
+                                onClick = { onSelectSpace(space, null) },
+                                onQuickWhatsApp = { viewModel.launchWhatsAppInquiry(space, null) },
+                                isSaved = true,
+                                onToggleSave = { viewModel.toggleSavedSpace(key, announce = true) }
+                            )
+                        }
                     }
 }
                 }

@@ -688,7 +688,7 @@ fun ProHostAppRoot(
                                 when (safeFullScreenDrawerTab) {
                                     AppNavTab.MyFavorites.id -> MyFavoritesScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { scope.launch { drawerState.close() }; openSpaceFrom("saved", it) },
+                                        onSelectSpace = { space, roomId -> scope.launch { drawerState.close() }; openSpaceFrom("saved", space); detailedSpaceSubdivisionId = roomId },
                                         onNavigateToExplore = { navigateTo(AppNavTab.SearchMap.id) }
                                     )
                                     AppNavTab.OwnerRentalRequests.id -> OwnerRentalRequestsScreen(
@@ -766,7 +766,7 @@ fun ProHostAppRoot(
                                     )
                                     AppNavTab.MyFavorites.id -> MyFavoritesScreen(
                                         viewModel = viewModel,
-                                        onSelectSpace = { openSpaceFrom("saved", it) },
+                                        onSelectSpace = { space, roomId -> openSpaceFrom("saved", space); detailedSpaceSubdivisionId = roomId },
                                         onNavigateToExplore = { navigateTo(AppNavTab.SearchMap.id) }
                                     )
                                     AppNavTab.ProfessionalRentals.id -> MyBookingsScreen(

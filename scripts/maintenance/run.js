@@ -296,6 +296,25 @@ async function retiregrowth(db) {
   }).then(() => "recorded"));
 }
 
+// Owner, 23 Nov 2026: saves moved from listings to rooms and the old listing saves are cleared (not converted). Removes every
+// savedSpaceIds entry without a room ("#"); favoritesSync lowers the counters. Counts only. Dry run unless code "apply".
+async function clearsaves(db, arg) {
+  await step(arg === "apply" ? "clearsaves apply" : "clearsaves (dry run)", async () => {
+    const w = arg === "apply" ? db.bulkWriter() : null;
+    let people = 0, removed = 0;
+    for (const d of (await db.collection("user_profiles").select("savedSpaceIds").get()).docs) {
+      const ids = d.get("savedSpaceIds");
+      if (!Array.isArray(ids) || ids.length === 0) continue;
+      const keep = ids.filter((x) => typeof x === "string" && x.includes("#"));
+      if (keep.length === ids.length) continue;
+      people++; removed += ids.length - keep.length;
+      if (w) w.update(d.ref, { savedSpaceIds: keep });
+    }
+    if (w) await w.close();
+    return `profiles=${people} oldSaves=${removed}${w ? " cleared" : " — run with code apply to clear"}`;
+  });
+}
+
 async function favrecount(db, arg) {
   // Counts only (no ids, no people). The trigger keeps favoriteCount current; this fixes drift and
   // the self-saves the old trigger counted.
@@ -304,7 +323,9 @@ async function favrecount(db, arg) {
     const savedBy = new Map();
     for (const d of (await db.collection("user_profiles").select("savedSpaceIds").get()).docs) {
       const ids = d.get("savedSpaceIds");
-      for (const id of new Set(Array.isArray(ids) ? ids.filter((x) => typeof x === "string" && x) : [])) {
+      // Saves are per room since 23 Nov 2026 ("<listingId>#<roomId>"); each counts for its listing.
+      for (const key of new Set(Array.isArray(ids) ? ids.filter((x) => typeof x === "string" && x) : [])) {
+        const id = key.split("#")[0];
         if (!savedBy.has(id)) savedBy.set(id, []);
         savedBy.get(id).push(d.id);
       }
@@ -2160,6 +2181,7 @@ async function smsauth(db, arg) {
   else if (task === "playcatalog") await playcatalog(db);
   else if (task === "singleplan") await singleplan(db, arg);
   else if (task === "unlimitedprice") await unlimitedprice(db, arg);
+  else if (task === "clearsaves") await clearsaves(db, arg);
   else if (task === "smsauth") await smsauth(db, arg);
   else if (task === "playofferfix") await playofferfix(db, arg);
   else if (task === "applekey") await applekey(db);

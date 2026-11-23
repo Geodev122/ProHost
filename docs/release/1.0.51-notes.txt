@@ -1,0 +1,3 @@
+<en-US>
+Rooms come first: each listing shows its spaces as cards with price and availability, and you can save the exact room you like. Sign-up finds your country and area for you, offers your SIM number on the WhatsApp step, and works on every device. New: "ProHost Premium · 1 listing" for hosts with one space. Clearer dark mode, a tidier Profile, and many fixes.
+</en-US>

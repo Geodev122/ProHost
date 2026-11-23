@@ -442,6 +442,10 @@ plan + recurring price + date;
 - Listing location (1.0.46): cards and texts print `SpaceListing.locationLine()` (`ui/util/ListingLocation.kt`, unit-tested) =
   the listing's own city, country in the app language. The `governorate` enum defaults to BEIRUT, so it is only a fallback
   for legacy Lebanese listings; never print `district, governorate` again.
+- Saves are per room since 23 Nov 2026 (owner): `savedSpaceIds` entries are `"<listingId>#<roomId>"` (`SavedKeys` ↔ `users/savedKeys.ts`),
+  a whole place keeps `"<listingId>"`; the listing page heart saves the selected room, Saved lists rooms; old listing saves were
+  cleared (Maintenance `clearsaves`), not converted. Listing page (same day): rooms first (`RoomPickerGrid`), host account photo as the
+  header, one-line requests summary → My Rentals, facility chips (`FacilityChipRow`, also in the wizard).
 - Saves (1.0.46): the heart is `FirestoreService.setSavedSpace` (arrayUnion/arrayRemove; rules cap `savedSpaceIds` at 300);
   `users/favoritesSync.ts` (`retry: true`, unit-tested) applies each difference in a transaction: owner's own save ignored,
   missing listing skipped, `lastFavoriteEvents` de-duplicates retries, `favoritesByMonth` / `unsavesByMonth` per UTC month

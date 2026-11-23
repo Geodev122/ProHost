@@ -285,7 +285,7 @@ fun Preview02_SpaceDetailsScreen() {
             onSelectFormula = {},
             onWhatsAppClick = {},
             onShareClick = {},
-            isSaved = true,
+            savedKeys = setOf(mockSpace1.id),
             onToggleSave = {},
             onBack = {}
         )
@@ -345,7 +345,7 @@ fun Preview05_MyFavoritesScreen() {
         val vm = remember { ProHostViewModel() }
         MyFavoritesScreen(
             viewModel = vm,
-            onSelectSpace = {}
+            onSelectSpace = { _, _ -> }
         )
     }
 }

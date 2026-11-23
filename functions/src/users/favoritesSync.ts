@@ -1,4 +1,5 @@
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { savedListingOf } from "./savedKeys";
 import { getFirestore } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import { runAs } from "../lib/runtimeIdentity";
@@ -84,11 +85,12 @@ export const onUserFavoritesChanged = onDocumentUpdated(
     const db = getFirestore();
     const uid = event.params.uid;
     const now = Date.parse(event.time) || Date.now();
-    const apply = (spaceId: string, by: 1 | -1) =>
+    // A saved key is a room ("<listingId>#<roomId>") or a whole place; the listing's counter counts both.
+    const apply = (savedKey: string, by: 1 | -1) =>
       db.runTransaction(async (tx) => {
-        const ref = db.collection("workspace_listings").doc(spaceId);
+        const ref = db.collection("workspace_listings").doc(savedListingOf(savedKey));
         const snap = await tx.get(ref);
-        const fields = applyFavorite(snap.exists ? snap.data() : undefined, uid, by, now, `${event.id}:${by}`);
+        const fields = applyFavorite(snap.exists ? snap.data() : undefined, uid, by, now, `${event.id}:${by}:${savedKey}`);
         if (fields) tx.update(ref, fields);
       });
     try {

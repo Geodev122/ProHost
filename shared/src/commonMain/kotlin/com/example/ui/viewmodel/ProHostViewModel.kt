@@ -1120,7 +1120,7 @@ class ProHostViewModel(
                     if (announce) UiMessages.show(sharedText("saved_update_failed"))
                     return@launch
                 }
-                spaces.value.firstOrNull { it.id == spaceId }?.let { com.example.analytics.AnalyticsTracker.wishlist(it, added = !wasSaved) }
+                spaces.value.firstOrNull { it.id == com.example.data.model.SavedKeys.listingOf(spaceId) }?.let { com.example.analytics.AnalyticsTracker.wishlist(it, added = !wasSaved) }
                 if (wasSaved && announce) {
                     UiMessages.show(sharedText("removed_from_saved"), actionLabel = sharedText("undo"), onAction = { toggleSavedSpace(spaceId) })
                 }

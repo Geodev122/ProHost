@@ -274,7 +274,7 @@ class DesignScreenshotTest(private val screen: String, private val variant: Stri
                         viewModel = vm
                     )
                     "my_rentals" -> MyBookingsScreen(viewModel = vm, onNavigateToDiscovery = {}, onSelectSpace = {})
-                    "saved" -> MyFavoritesScreen(viewModel = vm, onSelectSpace = {})
+                    "saved" -> MyFavoritesScreen(viewModel = vm, onSelectSpace = { _, _ -> })
                     "premium" -> OwnerSubscriptionsScreen(viewModel = vm)
                     "profile" -> SpecialistProfileScreen(viewModel = vm)
                     "owner_analytics" -> OwnerAnalyticsScreen(viewModel = vm)
