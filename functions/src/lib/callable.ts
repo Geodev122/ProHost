@@ -22,11 +22,12 @@ type Result<Return> = Return extends Promise<unknown> ? Return : Promise<Return>
 
 function withAppCheckAudit<T, Return, Stream>(handler: Handler<T, Return, Stream>): Handler<T, Return, Stream> {
   return (request, response) => {
+    const fn = process.env.FUNCTION_TARGET ?? process.env.K_SERVICE ?? "unknown";
     if (!request.app) {
-      logger.warn("app_check_unverified", {
-        fn: process.env.FUNCTION_TARGET ?? process.env.K_SERVICE ?? "unknown",
-        uid: request.auth?.uid ?? null,
-      });
+      logger.warn("app_check_unverified", { fn, uid: request.auth?.uid ?? null });
+    } else {
+      // Counterpart of app_check_unverified, so Maintenance `appcheck` can compute the verified share per function.
+      logger.info("app_check_verified", { fn });
     }
     return handler(request, response);
   };

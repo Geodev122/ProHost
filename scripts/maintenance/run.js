@@ -715,6 +715,41 @@ async function authuser(db, auth, uid) {
 
 // Function logs over the last N hours (default 48), grouped. GitHub shows at most 10 notices per step, so this
 // is its own task: one notice per severity, the top groups in each.
+// App Check readiness (roadmap E2): verified vs unverified callable traffic per function over N days (code = days, default 7),
+// from the app_check_verified / app_check_unverified log lines written by lib/callable.ts. Enforce only at >= 99 % verified.
+async function appcheck(arg) {
+  const days = Math.max(1, Math.min(30, parseInt(arg, 10) || 7));
+  await step(`appCheck${days}d`, async () => {
+    const project = process.env.GCLOUD_PROJECT;
+    const since = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
+    const filter = `timestamp>="${since}" AND jsonPayload.message=("app_check_verified" OR "app_check_unverified")`;
+    const per = {};
+    let token = "";
+    let total = 0;
+    for (let page = 0; page < 20; page++) {
+      const res = await googleApi("https://logging.googleapis.com/v2/entries:list", {
+        method: "POST",
+        body: JSON.stringify({ resourceNames: [`projects/${project}`], filter, pageSize: 1000, ...(token ? { pageToken: token } : {}) }),
+      });
+      if (!res.ok) return `HTTP ${res.status} (CI account can't read logs)`;
+      const j = await res.json();
+      for (const e of j.entries || []) {
+        const fnName = e.jsonPayload?.fn || "unknown";
+        per[fnName] = per[fnName] || { ok: 0, no: 0 };
+        if (e.jsonPayload?.message === "app_check_verified") per[fnName].ok++; else per[fnName].no++;
+        total++;
+      }
+      token = j.nextPageToken || "";
+      if (!token) break;
+    }
+    const ok = Object.values(per).reduce((a, x) => a + x.ok, 0);
+    const worst = Object.entries(per).sort((a, b) => (a[1].ok / (a[1].ok + a[1].no)) - (b[1].ok / (b[1].ok + b[1].no))).slice(0, 8)
+      .map(([k, v]) => `${k} ${Math.round(100 * v.ok / (v.ok + v.no))}% of ${v.ok + v.no}`).join(" · ");
+    const share = total ? (100 * ok / total).toFixed(1) : "n/a";
+    return `calls=${total} verified=${share}% (enforce only at >= 99%) · lowest: ${worst || "-"}`;
+  });
+}
+
 async function logerrors(arg) {
   const [h, needle] = String(arg || "").split(/:(.*)/s);
   const hours = Math.min(Math.max(parseInt(h, 10) || 48, 1), 720);
@@ -2118,6 +2153,7 @@ async function smsauth(db, arg) {
   else if (task === "applekey") await applekey(db);
   else if (task === "alerts") await alerts(db, arg);
   else if (task === "applesync") await applesync(db);
+  else if (task === "appcheck") await appcheck(arg);
   else if (task === "reviewaccounts") await reviewaccounts(db, auth, arg);
   else throw new Error(`unknown task ${task}`);
 })().catch((e) => { fail(`${e && e.message}`); process.exit(1); });

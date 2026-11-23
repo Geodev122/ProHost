@@ -75,14 +75,14 @@ Splash "no loading state"). Admin console: 70 parity items, code exists for 8-36
 
 ### E. Backend and operations
 - ✅ **E1** TTL policies ACTIVE (22 Nov run 199, declared in `firestore.indexes.json`); `pruneExpiredNotifications` retired.
-- ☐ **E2** App Check: measure verified traffic per service (logs `app_check_unverified`); enforce only at ≥ 99 % (decision recorded).
+- ⏳ **E2** (23 Nov: `app_check_verified` log + Maintenance `appcheck [days]` added; read after 7 days of traffic) App Check: measure verified traffic per service (logs `app_check_unverified`); enforce only at ≥ 99 % (decision recorded).
 - ✅ **E3** Error alerting (22 Nov: 3 alerts created, run 203) (task `alerts` built; Monitoring roles granted 22 Nov; still needs **Logs Configuration Writer** for log-based alerts, OWNER_TODO): a log-based alert on function errors and on `appleSync` / `billingSync` failures, emailed to the owner.
 - ☐ **E4** Move function groups to their own service accounts (`run-billing`, `run-auth`, …; prepared 4 Nov), one group per deploy.
 - ☐ 👤 **E5** Cost and security: $50 budget + BigQuery billing export; API key restrictions (web, Android, Maps); Anthropic spending cap;
   disable the old appspot key `e5b6952d…`; rotate the firebase-adminsdk key.
 
 ### F. Legal and store compliance
-- ☐ 👤 **F1** Approve the privacy sentence on retention (notifications 48 h, mail log 30 days, documents 1 year); Claude regenerates the in-app text.
+- ✅ **F1** (approved + published 22 Nov) Approve the privacy sentence on retention (notifications 48 h, mail log 30 days, documents 1 year); Claude regenerates the in-app text.
 - ✅ **F2** Re-checked 22 Nov: Apple App Privacy + iOS privacy manifest + purpose strings match the app. Play Data safety needs one row added by the
   owner (App activity → Other user-generated content: reports/blocks), see `docs/PLAY_DECLARATIONS.md`; retention sentences approved and published (22 Nov). Play row added by the owner.
 
@@ -91,7 +91,7 @@ Splash "no loading state"). Admin console: 70 parity items, code exists for 8-36
 
 ### H. Hand-over hygiene (Claude, alongside)
 - ☐ **H1** CLAUDE.md slimmed to rules + pointers (topic files under `docs/`), no rule lost.
-- ☐ **H2** `docs/migration/HANDOVER.md` refreshed with this plan's state.
+- ✅ **H2** (22 Nov) `docs/migration/HANDOVER.md` refreshed with this plan's state.
 
 ## Critical path
 1. **Now:** B1 → 👤 B2 → B3 · 👤 C1 · A1-A3 · D1.
