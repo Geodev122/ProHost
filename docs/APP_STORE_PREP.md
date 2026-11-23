@@ -16,7 +16,7 @@ both languages, launch offers for new subscribers (monthly: 1 month free; yearly
 ## Still open — Claude
 | Item | Needs |
 |---|---|
-| Screenshots, iPhone 6.9" (English, Arabic) and the subscription review screenshot | being rendered and uploaded; replaced by real iOS captures before submission |
+| Screenshots, iPhone 6.9" (English, Arabic) and the subscription review screenshot | version 1.0 submitted 23 Nov with the mock-ups; real iOS captures (`ios/store/screenshots-real`) go up with the next version (`--only screenshots`) |
 | Review notes + two demo accounts (Specialist, Pro Host) | notes now; accounts when the iOS build exists |
 | App Store Server Notifications URLs | the Apple billing backend (milestone D) |
 | Build attached to the version | the Compose iOS app (milestone C) |
@@ -70,4 +70,5 @@ nothing to do; the uploaded build stays valid. First Compose build: run 43838863
 ## Media (14 Nov 2026)
 - **Screenshots, iPhone 6.9" (1320 × 2868), English and Arabic:** `ios/store/screenshots/<locale>/01…08.jpg`, rendered by `node scripts/ios/render_store_screenshots.js` from the store-screenshot source (`play/screenshots/source/shots.html?f=ios&lang=`). Captions name no country. Uploaded with `asc_prepare.py --only screenshots`.
 - **Subscription review screenshot:** `ios/store/screenshots/review/premium-plans.png` (the Premium screen), uploaded for both products with their review note (`--only subreview`).
-- **Before "Add for Review":** these are captioned mock-ups of the app's screens, and screen 4 still shows the weekday slot picker. Apple expects the app as it runs on iPhone, so replace all of them (and the Premium screenshot, which must show App Store prices) with captures of the iOS build (milestone C). App preview videos are optional and need that build.
+- **State 23 Nov:** 1.0 is WAITING_FOR_REVIEW with the mock-ups. If App Review objects to them (guideline 2.3.3), create 1.0.1 (or reject the binary) and run `--only screenshots`: it now uploads the real captures from `ios/store/screenshots-real/{en,ar}`.
+- **Before "Add for Review" (history):** these are captioned mock-ups of the app's screens, and screen 4 still shows the weekday slot picker. Apple expects the app as it runs on iPhone, so replace all of them (and the Premium screenshot, which must show App Store prices) with captures of the iOS build (milestone C). App preview videos are optional and need that build.

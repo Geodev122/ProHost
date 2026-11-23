@@ -240,3 +240,13 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   function from both log lines (roadmap E2: enforce only at >= 99 %). Read it after a week of traffic on the new deploy.
 - 23 Nov: E4 batch 4 — six admin callables moved to `run-admin` (Firestore/Auth/Storage only; Play-bound functions stay on the default
   account). Check after the main deploy with Maintenance `logerrors 6` (PERMISSION_DENIED would show there).
+
+## 23 Nov 2026 — iOS submitted; real screenshots ready for the next version
+- App Store Connect (ios-inspect run 20): version 1.0 and app info are **WAITING_FOR_REVIEW** (submitted by the owner), build attached,
+  both App Store Server Notification URLs set, all 4 subscriptions READY_TO_SUBMIT. The version is no longer editable, so the
+  submitted listing keeps the 8 mock-up screenshots per language.
+- Real iOS screenshots now work (ios-screenshots.yml): the earlier runs failed because the unsigned simulator build had no
+  keychain, so Firebase Auth refused every sign-in ("Sign-in failed"); the build is now ad-hoc signed (`CODE_SIGN_IDENTITY=-`).
+  Captured in ios/store/screenshots-real: en 8 screens, ar 6. `asc_prepare` section `screenshots` now prefers them
+  (explore, listing, availability, premium, profile, welcome; empty Rentals/Saved left out) — run it for the next version (1.0.1).
+- Prodcheck after E4 batch 4 (run 45092680761): 93/93 functions active, no function errors in 6 h, RTDN self-test ok.
