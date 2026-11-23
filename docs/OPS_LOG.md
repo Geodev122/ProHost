@@ -259,3 +259,8 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   bridges; `assignInitialRole` also accepts 1 (build 22 is in review). Registration step 2 = "Use my current location" or
   country + area dropdowns (`Regions`, generated from country-region-data, MIT); step 3's SIM button only where Android's
   Phone Number Hint exists (iOS: keyboard AutoFill via the phone content type), with a message when no number is offered.
+- 23 Nov 2026: Android 1.0.51 (51) released to Play production, staged 20 % (release-bundle, notes en-GB); `docs/release/published.txt` → 1.0.51.
+- 23 Nov 2026: Maintenance `unlimitedprice` dry run (run 45162403689): pro-monthly1 USD 8.99 → 17.99, pro-yearly 79.99 → 159.99,
+  174 regions; offers free-4-months, prohost2026, launch-50-first-year are free/relative (follow the base price). Applied with code `apply`.
+- 23 Nov 2026: Maintenance `clearsaves` dry run (run 45162409505): 3 profiles with 3 old listing-level saves; applied with code `apply`
+  (saves are per room since 1.0.51).
