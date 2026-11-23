@@ -81,7 +81,7 @@ jobs:
         run: |
           for L in en ar; do
             OUT="$GITHUB_WORKSPACE/ios/store/screenshots-real/$L"
-            mkdir -p "$OUT"
+            rm -rf "$OUT"; mkdir -p "$OUT"
             TEST_RUNNER_SHOT_LANG="$L" TEST_RUNNER_SCREENSHOT_DIR="$OUT" \
             TEST_RUNNER_DEMO_EMAIL="$DEMO_EMAIL" TEST_RUNNER_DEMO_PASSWORD="$DEMO_PASSWORD" TEST_RUNNER_LISTING_ID="$LISTING_ID" \
             xcodebuild test-without-building -project ProHost.xcodeproj -scheme ProHost -destination "id=$SIM" \
