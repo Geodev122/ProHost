@@ -13013,6 +13013,23 @@
         }
       }
     },
+    "phone_hint_unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This phone has no number to share. Type your WhatsApp number instead."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يوجد رقم على هذا الهاتف لمشاركته. اكتب رقم واتساب يدويًا."
+          }
+        }
+      }
+    },
     "phone_number_label": {
       "extractionState": "manual",
       "localizations": {
@@ -14849,6 +14866,74 @@
         }
       }
     },
+    "reg_area": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Area"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المنطقة"
+          }
+        }
+      }
+    },
+    "reg_area_choose": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose your area"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختر منطقتك"
+          }
+        }
+      }
+    },
+    "reg_locating": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finding your location…"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ تحديد موقعك…"
+          }
+        }
+      }
+    },
+    "reg_location_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't detect your location. Choose your country and area below."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر تحديد موقعك. اختر بلدك ومنطقتك أدناه."
+          }
+        }
+      }
+    },
     "reg_place_subtitle": {
       "extractionState": "manual",
       "localizations": {
@@ -14930,6 +15015,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "أوافق على شروط الاستخدام وسياسة الخصوصية"
+          }
+        }
+      }
+    },
+    "reg_use_my_location": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use my current location"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استخدم موقعي الحالي"
           }
         }
       }
