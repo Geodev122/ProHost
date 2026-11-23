@@ -69,7 +69,7 @@ final class StoreScreenshotTests: XCTestCase {
         if let field = byId(app, "auth_password_input", timeout: 8) {
             field.tap(); sleep(1); app.typeText(password)
         } else { XCTFail("no password field"); dump(app, "fail_password") }
-        if let b = byId(app, "auth_signin_button", timeout: 3) { b.tap() } else { dump(app, "fail_signin_button") }
+        if let b = byId(app, "submit_email_button", timeout: 3) ?? byId(app, "auth_signin_button", timeout: 1) { b.tap() } else { dump(app, "fail_signin_button") }
         settle(app, 10)
     }
 
