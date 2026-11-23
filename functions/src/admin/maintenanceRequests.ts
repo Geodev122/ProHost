@@ -21,6 +21,7 @@ import "../lib/admin";
 import { lintOffers, readPlayCatalog } from "../billing/playCatalogLive";
 import { playOfferFix } from "../billing/playOfferFix";
 import { playSinglePlan } from "../billing/playSinglePlan";
+import { playUnlimitedPrice } from "../billing/playUnlimitedPrice";
 import { runAppleSync } from "../billing/appleServerApi";
 import { PACKAGE_NAME, getPlayPublisher } from "../billing/billingHelpers";
 import { classifyPlayError } from "../billing/playSubscription";
@@ -84,6 +85,7 @@ export const onMaintenanceRequest = onDocumentCreated(
           String(event.data?.get("arg") ?? "").startsWith("apply"),
           String(event.data?.get("arg") ?? "").split(":")[1] || undefined
         )
+        : task === "playUnlimitedPrice" ? await playUnlimitedPrice(event.data?.get("arg") === "apply")
         : task === "appleSync" ? await runAppleSync("maintenance_apple_sync")
         : { error: `unknown task ${String(task)}` };
       await ref.update({ status: "done", result: JSON.stringify(result), finishedAt: Date.now() });

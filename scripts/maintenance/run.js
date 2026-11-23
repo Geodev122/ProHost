@@ -1399,6 +1399,17 @@ async function singleplan(db, arg) {
   });
 }
 
+// Owner, 23 Nov 2026: Unlimited doubled ($17.99 / $159.99, absolute-price offers scaled). Dry run unless code "apply".
+async function unlimitedprice(db, arg) {
+  const apply = String(arg || "") === "apply";
+  await step("playUnlimitedPrice", async () => {
+    const res = await serverTask(db, "playUnlimitedPrice", apply ? "apply" : null);
+    if (!Array.isArray(res.steps)) throw new Error(`server answered: ${JSON.stringify(res).slice(0, 300)}`);
+    res.steps.forEach((s) => notice(`playUnlimitedPrice ${s.step}: ${s.action} → ${s.result}`));
+    return `${apply ? "applied" : "dry run (code: apply to change Play)"}: ${res.steps.length} step(s)`;
+  });
+}
+
 // Stores the App Store In-App Purchase key (GitHub secrets APPLE_IAP_KEY_ID / APPLE_IAP_KEY_P8 / ASC_ISSUER_ID) in the
 // server-only doc app_config/apple_iap, which appleSyncJob reads. Prints only the key id's last 4 characters. Then runs
 // one App Store re-sync through the server so the key is proven against Apple.
@@ -2148,6 +2159,7 @@ async function smsauth(db, arg) {
   else if (task === "apis") await apis(arg);
   else if (task === "playcatalog") await playcatalog(db);
   else if (task === "singleplan") await singleplan(db, arg);
+  else if (task === "unlimitedprice") await unlimitedprice(db, arg);
   else if (task === "smsauth") await smsauth(db, arg);
   else if (task === "playofferfix") await playofferfix(db, arg);
   else if (task === "applekey") await applekey(db);

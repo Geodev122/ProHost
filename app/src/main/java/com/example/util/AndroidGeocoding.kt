@@ -33,5 +33,6 @@ internal fun android.location.Address.toPlaceHit() = PlaceHit(
     subAdminArea = subAdminArea,
     locality = locality,
     countryCode = countryCode,
-    countryName = countryName
+    countryName = countryName,
+    adminArea = adminArea
 )

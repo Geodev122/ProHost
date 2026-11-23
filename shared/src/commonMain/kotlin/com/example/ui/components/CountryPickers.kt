@@ -2,6 +2,8 @@ package com.example.ui.components
 
 import com.example.ui.theme.Spacing
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentType
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -138,7 +140,8 @@ fun PhoneNumberField(
                 Text(appString(Res.string.change), style = MaterialTheme.typography.labelSmall)
             }
         },
-        modifier = modifier,
+        // Phone content type: Android autofill and iOS keyboard AutoFill offer the person's own number.
+        modifier = modifier.semantics { contentType = androidx.compose.ui.autofill.ContentType.PhoneNumber },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
         singleLine = true
     )

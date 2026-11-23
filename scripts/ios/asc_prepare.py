@@ -342,9 +342,19 @@ if want("subscriptions"):
             if not usd:
                 print(f'SKIP    {p["productId"]} price (needs SUBSCRIPTION_YEARLY_USD)')
                 continue
+            # A price that already exists is changed only when the USA price differs from metadata (owner's price change,
+            # e.g. Unlimited doubled on 23 Nov 2026): the new price is for new subscribers, current ones keep theirs.
+            preserve = False
             if get_all(f'/v1/subscriptions/{s["id"]}/prices?limit=5'):
-                same(f'{p["productId"]} prices')
-                continue
+                cur = get_all(f'/v1/subscriptions/{s["id"]}/prices?filter[territory]=USA&include=subscriptionPricePoint&limit=5')
+                status_, raw = api.request("GET", f'/v1/subscriptions/{s["id"]}/prices?filter[territory]=USA&include=subscriptionPricePoint&limit=5')
+                points_ = {x["id"]: x["attributes"].get("customerPrice") for x in (raw or {}).get("included", []) if x.get("type") == "subscriptionPricePoints"}
+                now_usd = next((points_.get(((c.get("relationships", {}).get("subscriptionPricePoint", {}).get("data")) or {}).get("id")) for c in cur), None)
+                if now_usd is not None and abs(float(now_usd) - float(usd)) < 0.001:
+                    same(f'{p["productId"]} prices (USA {now_usd})')
+                    continue
+                print(f'INFO    {p["productId"]}: USA price {now_usd} -> {usd} (existing subscribers keep their price)')
+                preserve = True
             points = get_all(f'/v1/subscriptions/{s["id"]}/pricePoints?filter[territory]=USA&limit=200')
             base = next((x for x in points if abs(float(x["attributes"].get("customerPrice") or 0) - float(usd)) < 0.001), None)
             if not base:
@@ -360,7 +370,7 @@ if want("subscriptions"):
                 continue
             ok = 0
             for terr, point in targets:
-                status, data = api.request("POST", "/v1/subscriptionPrices", {"data": {"type": "subscriptionPrices", "attributes": {"preserveCurrentPrice": False},
+                status, data = api.request("POST", "/v1/subscriptionPrices", {"data": {"type": "subscriptionPrices", "attributes": {"preserveCurrentPrice": preserve},
                     "relationships": {"subscription": rel("subscriptions", s["id"]), "subscriptionPricePoint": rel("subscriptionPricePoints", point), "territory": rel("territories", terr)}}})
                 ok += status in (200, 201)
                 if status not in (200, 201) and ok == 0:
@@ -423,9 +433,23 @@ if want("offers"):
         if not s:
             print(f"SKIP    {product} offer (subscription missing)")
             continue
-        if get_all(f'/v1/subscriptions/{s["id"]}/introductoryOffers?limit=5'):
-            same(f"{product} introductory offer")
-            continue
+        existing_offers = get_all(f'/v1/subscriptions/{s["id"]}/introductoryOffers?include=subscriptionPricePoint,territory&limit=200')
+        if existing_offers:
+            usa_price = None
+            if intro_usd:
+                _, raw = api.request("GET", f'/v1/subscriptions/{s["id"]}/introductoryOffers?filter[territory]=USA&include=subscriptionPricePoint&limit=5')
+                pts = {x["id"]: x["attributes"].get("customerPrice") for x in (raw or {}).get("included", []) if x.get("type") == "subscriptionPricePoints"}
+                usa = next(iter((raw or {}).get("data", [])), None)
+                usa_price = pts.get((((usa or {}).get("relationships", {}).get("subscriptionPricePoint", {}).get("data")) or {}).get("id"))
+            if not intro_usd or usa_price is None or abs(float(usa_price) - float(intro_usd)) < 0.001:
+                same(f"{product} introductory offer")
+                continue
+            if not args.apply:
+                print(f"PLAN    {product} introductory offer: USA {usa_price} -> {intro_usd} ({len(existing_offers)} countries replaced)")
+                continue
+            for o in existing_offers:
+                api.request("DELETE", f'/v1/subscriptionIntroductoryOffers/{o["id"]}')
+            print(f"DONE    {product} introductory offer: removed {len(existing_offers)} at {usa_price}, creating at {intro_usd}")
         targets = []
         if attrs["offerMode"] == "FREE_TRIAL":
             targets = [(t["id"], None) for t in get_all("/v1/territories?limit=200")]

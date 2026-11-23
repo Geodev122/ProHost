@@ -124,7 +124,7 @@ final class FirebaseFirestoreBridge: NSObject, FirestoreBridge {
         case let op as FieldOp.ArrayRemove: return FieldValue.arrayRemove(op.values.map { toFirestore($0) })
         case let a as [Any]: return a.map { toFirestore($0) }
         case let d as [String: Any]: return toFirestore(d)
-        default: return value
+        default: return KotlinWire.normalize(value)
         }
     }
 }

@@ -251,3 +251,11 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   (explore, listing, availability, premium, profile, welcome; empty Rentals/Saved left out) — run it for the next version (1.0.1).
 - Prodcheck after E4 batch 4 (run 45092680761): 93/93 functions active, no function errors in 6 h, RTDN self-test ok.
 - 23 Nov 2026: Rony Braidi accepted Apple's team invitation; added to the internal TestFlight group "Team" (ios-inspect run 45145851015, only=tester) — TestFlight e-mails him the install invitation (all builds, latest 22). Rewa still pending.
+- 23 Nov 2026 (owner): Unlimited doubled on both stores — $17.99 / month, $159.99 / year (yearly launch offer 50 % → $79.99).
+  Play: Maintenance `unlimitedprice` (`billing/playUnlimitedPrice.ts`, dry run · `apply`; Play keeps current subscribers on
+  their price cohort). Apple: `asc_prepare` subscriptions (new price with `preserveCurrentPrice`) + offers (`yearly_intro_usd` 79.99).
+- 23 Nov 2026: iOS registration failed for everyone ("You must accept the Terms…"): Kotlin/Native boxes Booleans as an
+  NSNumber with objCType "c", Firebase iOS sent `tosAccepted: 1`. Fix: `KotlinWire.normalize` in the callable and Firestore
+  bridges; `assignInitialRole` also accepts 1 (build 22 is in review). Registration step 2 = "Use my current location" or
+  country + area dropdowns (`Regions`, generated from country-region-data, MIT); step 3's SIM button only where Android's
+  Phone Number Hint exists (iOS: keyboard AutoFill via the phone content type), with a message when no number is offered.

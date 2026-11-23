@@ -98,7 +98,8 @@ async function validateRegistrationDraft(draft: RegistrationDraft, callerUid: st
   // purely cosmetic — nothing recorded whether it was ever actually checked, or
   // enforced that it was. Required now: a real explicit `true`, not merely
   // "not false" (a missing/undefined field must fail closed, not pass).
-  if (draft.tosAccepted !== true) {
+  // iOS build 22 sends Kotlin booleans as the number 1 (fixed in the iOS bridge); accept that exact form too.
+  if (draft.tosAccepted !== true && (draft.tosAccepted as unknown) !== 1) {
     throw new HttpsError("invalid-argument", "You must accept the Terms of Use and Privacy Policy to register.");
   }
 }

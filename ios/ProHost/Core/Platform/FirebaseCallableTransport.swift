@@ -10,7 +10,7 @@ final class FirebaseCallableTransport: NSObject, CallableTransport {
     func call(name: String, data: [String: Any]?, timeoutSeconds: Int32, completion: @escaping (CallableReply) -> Void) {
         let callable = functions.httpsCallable(name)
         if timeoutSeconds > 0 { callable.timeoutInterval = TimeInterval(timeoutSeconds) }
-        callable.call(data) { result, error in
+        callable.call(KotlinWire.normalize(data)) { result, error in
             if let error = error as NSError? {
                 completion(CallableReply(data: nil, errorCode: Self.codeName(error), errorMessage: error.localizedDescription))
             } else {

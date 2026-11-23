@@ -10,7 +10,9 @@ data class PlaceHit(
     val subAdminArea: String? = null,
     val locality: String? = null,
     val countryCode: String? = null,
-    val countryName: String? = null
+    val countryName: String? = null,
+    /** First-level area (state, governorate, province). */
+    val adminArea: String? = null
 )
 
 /**

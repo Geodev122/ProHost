@@ -37,7 +37,10 @@ fun UseDeviceNumberButton(
             val (country, local) = com.example.data.model.splitE164(e164, fallbackCountry)
             onPicked(country, local)
         },
-        onUnavailable = { com.example.analytics.AnalyticsTracker.phoneHint("unavailable", "whatsapp_step") }
+        onUnavailable = {
+            com.example.analytics.AnalyticsTracker.phoneHint("unavailable", "whatsapp_step")
+            com.example.ui.util.UiMessages.show(com.example.ui.util.sharedText("phone_hint_unavailable"))
+        }
     )
     androidx.compose.material3.TextButton(onClick = pick, modifier = modifier) {
         androidx.compose.material3.Icon(

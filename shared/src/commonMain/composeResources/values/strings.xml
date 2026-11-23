@@ -650,6 +650,12 @@
     <string name="use_facility_operating_hours_x_x">Use facility operating hours (%1$s–%2$s)</string>
     <string name="use_promo_code">Use promo code</string>
     <string name="use_templates">Use templates</string>
+    <string name="phone_hint_unavailable">This phone has no number to share. Type your WhatsApp number instead.</string>
+    <string name="reg_use_my_location">Use my current location</string>
+    <string name="reg_locating">Finding your location…</string>
+    <string name="reg_location_failed">Couldn't detect your location. Choose your country and area below.</string>
+    <string name="reg_area">Area</string>
+    <string name="reg_area_choose">Choose your area</string>
     <string name="use_this_phone_s_number">Use this phone's number</string>
     <string name="use_x">Use %1$s</string>
     <string name="used_only_to_centre_the_map_on_where_you_a">Used only to centre the map on where you are. ProHost never tracks your location.</string>

@@ -649,6 +649,12 @@
     <string name="use_facility_operating_hours_x_x">استخدم ساعات عمل المنشأة (%1$s–%2$s)</string>
     <string name="use_promo_code">استخدم رمزًا ترويجيًا</string>
     <string name="use_templates">استخدم القوالب</string>
+    <string name="phone_hint_unavailable">لا يوجد رقم على هذا الهاتف لمشاركته. اكتب رقم واتساب يدويًا.</string>
+    <string name="reg_use_my_location">استخدم موقعي الحالي</string>
+    <string name="reg_locating">جارٍ تحديد موقعك…</string>
+    <string name="reg_location_failed">تعذّر تحديد موقعك. اختر بلدك ومنطقتك أدناه.</string>
+    <string name="reg_area">المنطقة</string>
+    <string name="reg_area_choose">اختر منطقتك</string>
     <string name="use_this_phone_s_number">استخدم رقم هذا الهاتف</string>
     <string name="use_x">استخدم %1$s</string>
     <string name="used_only_to_centre_the_map_on_where_you_a">يُستخدم فقط لتوسيط الخريطة على موقعك. لا يتتبّع ProHost موقعك أبدًا.</string>

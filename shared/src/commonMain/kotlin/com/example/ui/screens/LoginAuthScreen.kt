@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.findCountryByName
 import com.example.ui.components.*
+import com.example.ui.components.OutlinedButton
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
@@ -246,8 +247,31 @@ fun LoginAuthScreen(
         regWhatsAppCountry = country
         regPhoneNumber = local
         localErrorMessage = null
+    }, onUnavailable = {
+        // No SIM number to offer (or Play services can't show the sheet): say so instead of doing nothing.
+        com.example.analytics.AnalyticsTracker.phoneHint("unavailable", "registration")
+        com.example.ui.util.UiMessages.show(sharedText("phone_hint_unavailable"))
     })
     var phoneHintOffered by rememberSaveable { mutableStateOf(false) }
+
+    // Registration step 2: "Use my current location" → platform location (permission through rememberLocationAccess) →
+    // English reverse geocode → country, area (matched to the dropdown's list when it can be) and city.
+    var locatingPlace by remember { mutableStateOf(false) }
+    val requestPlaceLocation = com.example.ui.components.rememberLocationAccess(onReady = {
+        coroutineScope.launch {
+            locatingPlace = true
+            val place = detectRegistrationPlace()
+            locatingPlace = false
+            if (place == null) {
+                com.example.ui.util.UiMessages.show(sharedText("reg_location_failed"))
+            } else {
+                place.country?.let { regCountry = it }
+                regGovernorateArea = place.area
+                regCity = place.city
+                localErrorMessage = null
+            }
+        }
+    })
 
     // Google pre-fills the first registration step; the SIM-number picker opens once on the WhatsApp step.
     LaunchedEffect(step) {
@@ -388,7 +412,7 @@ fun LoginAuthScreen(
                 specialty = regSpecialty.trim(),
                 country = regCountry.name,
                 governorate = regGovernorateArea.trim(),
-                city = regCity.trim(),
+                city = regCity.trim().ifBlank { regGovernorateArea.trim() },
                 profilePicture = regProfilePic,
                 tosAccepted = tosAccepted
             ),
@@ -511,29 +535,59 @@ fun LoginAuthScreen(
             isBusy = isAuthenticating,
             error = error,
             primaryText = appString(Res.string.next),
-            primaryEnabled = regGovernorateArea.isNotBlank() && regCity.isNotBlank(),
+            primaryEnabled = regGovernorateArea.isNotBlank() && !locatingPlace,
             onPrimary = { goTo(AuthStep.REG_WHATSAPP) },
             onBack = { goTo(AuthStep.REG_PROFILE) }
         ) {
-            CountryDropdownField(selectedCountry = regCountry, onCountrySelected = { regCountry = it }, modifier = Modifier.fillMaxWidth())
-            InputField(
-                value = regGovernorateArea,
-                onValueChange = { regGovernorateArea = it; localErrorMessage = null },
-                label = appString(Res.string.governorate_area),
-                placeholder = appString(Res.string.e_g_mount_lebanon),
-                leadingIcon = Icons.Default.LocationOn,
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+            // Two ways in: the device's position (country, area and city filled by the platform geocoder), or the country and
+            // area dropdowns. The city is never typed: it comes from the detected position, else the area stands for it.
+            OutlinedButton(
+                onClick = { if (!locatingPlace) requestPlaceLocation() },
+                enabled = !isAuthenticating && !locatingPlace,
+                modifier = Modifier.fillMaxWidth().testTag("registration_use_location")
+            ) {
+                if (locatingPlace) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                } else {
+                    Icon(Icons.Default.MyLocation, contentDescription = null, modifier = Modifier.size(18.dp))
+                }
+                Spacer(modifier = Modifier.width(Spacing.sm))
+                Text(appString(if (locatingPlace) Res.string.reg_locating else Res.string.reg_use_my_location))
+            }
+            CountryDropdownField(
+                selectedCountry = regCountry,
+                onCountrySelected = {
+                    if (it.isoCode != regCountry.isoCode) { regGovernorateArea = ""; regCity = "" }
+                    regCountry = it
+                    localErrorMessage = null
+                },
+                modifier = Modifier.fillMaxWidth()
             )
-            InputField(
-                value = regCity,
-                onValueChange = { regCity = it; localErrorMessage = null },
-                label = appString(Res.string.city),
-                placeholder = appString(Res.string.e_g_beirut),
-                leadingIcon = Icons.Default.LocationCity,
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+            val areas = remember(regCountry.isoCode) { com.example.data.model.Regions.of(regCountry.isoCode) }
+            if (areas.isNotEmpty()) {
+                com.example.ui.components.SelectField(
+                    label = appString(Res.string.reg_area),
+                    options = areas,
+                    selected = regGovernorateArea.takeIf { it in areas },
+                    optionLabel = { com.example.data.model.Regions.label(regCountry.isoCode, it, com.example.ui.util.AppLanguage.current()) },
+                    onSelect = { regGovernorateArea = it; regCity = ""; localErrorMessage = null },
+                    placeholder = appString(Res.string.reg_area_choose),
+                    modifier = Modifier.fillMaxWidth().testTag("registration_area")
+                )
+            } else {
+                InputField(
+                    value = regGovernorateArea,
+                    onValueChange = { regGovernorateArea = it; regCity = ""; localErrorMessage = null },
+                    label = appString(Res.string.reg_area),
+                    placeholder = appString(Res.string.reg_area_choose),
+                    leadingIcon = Icons.Default.LocationOn,
+                    modifier = Modifier.fillMaxWidth().testTag("registration_area"),
+                    singleLine = true
+                )
+            }
+            if (regCity.isNotBlank() && regCity != regGovernorateArea) {
+                AuthInfoLine(Icons.Default.LocationCity, regCity)
+            }
         }
 
         AuthStep.REG_WHATSAPP -> RegistrationStepScaffold(
@@ -556,7 +610,9 @@ fun LoginAuthScreen(
                 placeholder = "71 234 567",
                 modifier = Modifier.fillMaxWidth()
             )
-            TextButton(onClick = pickDeviceNumber) {
+            // iOS gives apps no access to the SIM number: there the keyboard's AutoFill offers the person's own number
+            // (PhoneNumberField's phone content type), so the button is shown only where the system picker exists.
+            if (com.example.ui.components.phoneNumberHintAvailable) TextButton(onClick = pickDeviceNumber) {
                 Icon(Icons.Default.SimCard, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(Spacing.sm))
                 Text(appString(Res.string.use_this_phone_s_number), style = MaterialTheme.typography.labelLarge)
@@ -584,4 +640,23 @@ fun LoginAuthScreen(
     showLegalDocument?.let { doc ->
         com.example.ui.components.LegalDocumentDialog(document = doc, onDismiss = { showLegalDocument = null })
     }
+}
+
+
+/** What "Use my current location" found on registration step 2. */
+private data class RegistrationPlace(val country: com.example.data.model.Country?, val area: String, val city: String)
+
+/** Device position → English address → country, area and city; null when there is no fix or no usable address. */
+private suspend fun detectRegistrationPlace(): RegistrationPlace? {
+    val provider = com.example.util.LocationProvider.current ?: return null
+    val geocoder = com.example.util.Geocoding.current ?: return null
+    val point = (com.example.util.locate(provider, fallbackToLast = true) as? com.example.util.LocateResult.Found)?.point ?: return null
+    val hit = geocoder.reverse(point.latitude, point.longitude, "en") ?: return null
+    val code = hit.countryCode?.uppercase().orEmpty()
+    val country = com.example.data.model.COUNTRIES.firstOrNull { it.isoCode.equals(code, ignoreCase = true) }
+    val rawArea = hit.adminArea ?: hit.subAdminArea
+    val area = com.example.data.model.Regions.match(code, rawArea) ?: rawArea.orEmpty()
+    val city = (hit.locality ?: hit.subAdminArea).orEmpty()
+    if (area.isBlank() && city.isBlank()) return null
+    return RegistrationPlace(country, area.ifBlank { city }, city)
 }

@@ -10,8 +10,8 @@ Name and subtitle (English, Arabic) · description, keywords, promotional text, 
 privacy policy URL · categories Business / Productivity · content-rights declaration · age-rating questionnaire + 18+ override · copyright
 "2026 Georges El Najjar" · free app price · available in all 175 countries and regions · capability Associated Domains (plus Sign in with
 Apple, Push, In-App Purchase, App Attest) · TestFlight test information and beta-review contact · App Review contact · subscription group
-"ProHost Premium": `prohost.premium.monthly` $8.99 and `prohost.premium.yearly` $79.99 with Apple's equivalent price in every country, names in
-both languages, launch offers for new subscribers (monthly: 1 month free; yearly: first year $39.99), as on Google Play.
+"ProHost Premium": `prohost.premium.monthly` $17.99 and `prohost.premium.yearly` $159.99 (doubled 23 Nov 2026; were $8.99 / $79.99) with Apple's equivalent price in every country, names in
+both languages, launch offers for new subscribers (monthly: 1 month free; yearly: first year $79.99, was $39.99), as on Google Play.
 
 ## Still open — Claude
 | Item | Needs |

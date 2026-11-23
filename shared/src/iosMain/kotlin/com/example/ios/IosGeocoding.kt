@@ -59,7 +59,8 @@ object IosGeocoding : Geocoding {
             subAdminArea = subAdministrativeArea,
             locality = locality,
             countryCode = ISOcountryCode,
-            countryName = country
+            countryName = country,
+            adminArea = administrativeArea
         )
     }
 }

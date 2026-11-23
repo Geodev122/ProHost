@@ -14,7 +14,8 @@
     "delete_account_",
     "renting_progress_",
     "renting_requests_",
-    "reject_request_"
+    "reject_request_",
+    "registration_"
   ],
   "files": [
     "listing_edit_small.png",

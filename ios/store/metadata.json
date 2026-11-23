@@ -43,7 +43,7 @@
     "referenceName": "ProHost Premium Monthly",
     "period": "ONE_MONTH",
     "groupLevel": 2,
-    "usd": "8.99",
+    "usd": "17.99",
     "name": {
      "en-US": "Premium Monthly",
      "ar-SA": "بريميوم شهري"
@@ -58,7 +58,7 @@
     "referenceName": "ProHost Premium Yearly",
     "period": "ONE_YEAR",
     "groupLevel": 1,
-    "usd": null,
+    "usd": "159.99",
     "name": {
      "en-US": "Premium Yearly",
      "ar-SA": "بريميوم سنوي"
