@@ -1,0 +1,40 @@
+Attributes: Application, 0x112c38a00, pid: 84890, label: 'ProHost'
+Element subtree:
+ →Application, 0x112c38a00, pid: 84890, label: 'ProHost'
+    Window (Main), 0x112c3a1c0, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x112c3be80, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x112c38c80, {{0.0, 0.0}, {440.0, 956.0}}
+          Other, 0x112c38f00, {{0.0, 0.0}, {440.0, 956.0}}
+            Other, 0x112c3abc0, {{0.0, 0.0}, {440.0, 956.0}}
+              Other, 0x112c39680, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x112c39540, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x112c3b5c0, {{0.0, 0.0}, {440.0, 956.0}}
+                ScrollView, 0x112c3bc00, {{0.0, 0.0}, {440.0, 956.0}}
+                  Other, 0x112c397c0, {{0.0, 0.0}, {440.0, 956.0}}
+                    Other, 0x112c3a6c0, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x112c39400, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x112c3b840, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x112c39180, {{16.0, 62.0}, {408.0, 860.0}}, identifier: 'login_auth_screen'
+                      Other, 0x112c3b980, {{16.0, 118.0}, {408.0, 601.0}}
+                        Image, 0x112c3a800, {{110.0, 150.0}, {220.0, 144.0}}, label: 'تسجيل الدخول إلى ProHost'
+                        Other, 0x1131dcf00, {{100.3, 322.0}, {323.7, 28.0}}, label: 'ابحث عن غرفة أو اعرض مساحتك بالساعة'
+                        StaticText, 0x1131dd040, {{105.0, 354.0}, {319.0, 17.7}}, label: 'عيادات ومكاتب واستوديوهات وقاعات اجتماعات، تُحجز خلال دقائق.'
+                      Button, 0x1131de6c0, {{16.0, 731.0}, {408.0, 48.0}}, identifier: 'auth_create_button', label: 'أنشئ حسابًا'
+                        StaticText, 0x1131dcb40, {{170.7, 746.3}, {72.7, 17.7}}, label: 'أنشئ حسابًا'
+                      Button, 0x1131df700, {{16.0, 787.0}, {408.0, 48.0}}, identifier: 'auth_signin_button', label: 'لديّ حساب بالفعل'
+                        StaticText, 0x1131dc8c0, {{169.7, 802.3}, {100.7, 17.7}}, label: 'لديّ حساب بالفعل'
+                      StaticText, 0x1131dc500, {{161.3, 843.0}, {117.3, 15.0}}, label: 'بالمتابعة فإنك توافق على'
+                      Button, 0x1131dd2c0, {{227.3, 858.0}, {103.7, 48.0}}, label: 'شروط الاستخدام'
+                        StaticText, 0x1131ddf40, {{239.3, 874.7}, {79.7, 15.0}}, label: 'شروط الاستخدام'
+                      Button, 0x1131dc640, {{109.3, 858.0}, {118.0, 48.0}}, label: 'سياسة الخصوصية'
+                        StaticText, 0x1131dcdc0, {{121.3, 874.7}, {94.0, 15.0}}, label: 'سياسة الخصوصية'
+    Window, 0x1131dcc80, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x1131de800, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x1131debc0, {{0.0, 0.0}, {440.0, 956.0}}
+Path to element:
+ →Application, 0x112c38a00, pid: 84890, label: 'ProHost'
+Query chain:
+ →Find: Target Application 'app.geonajjar.prohost'
+  Output: {
+    Application, 0x1131dc280, pid: 84890, label: 'ProHost'
+  }

@@ -1,0 +1,111 @@
+Attributes: Application, 0x117c58a00, pid: 56247, label: 'ProHost'
+Element subtree:
+ →Application, 0x117c58a00, pid: 56247, label: 'ProHost'
+    Window (Main), 0x117c5a940, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x117c5b5c0, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x117c59f40, {{0.0, 0.0}, {440.0, 956.0}}
+          Other, 0x117c5b840, {{0.0, 0.0}, {440.0, 956.0}}
+            Other, 0x117c592c0, {{0.0, 0.0}, {440.0, 956.0}}
+              Other, 0x117c58dc0, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x117c5bc00, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x10721f480, {{0.0, 0.0}, {440.0, 956.0}}
+                ScrollView, 0x10721ef80, {{0.0, 0.0}, {440.0, 956.0}}
+                  Other, 0x10721f200, {{0.0, 0.0}, {440.0, 956.0}}
+                    Other, 0x117d3d2c0, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x117d3de00, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x117d3d180, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x117d3e580, {{16.0, 62.0}, {408.0, 549.0}}, identifier: 'login_auth_screen'
+                      Button, 0x117d3df40, {{16.0, 66.0}, {48.0, 48.0}}, identifier: 'auth_back', label: 'Back'
+                        Image, 0x117d3d7c0, {{28.0, 78.0}, {24.0, 24.0}}, label: 'Back'
+                      Other, 0x117d3f340, {{16.0, 118.0}, {408.0, 417.0}}
+                        Image, 0x117d3c000, {{16.0, 118.0}, {119.0, 56.0}}, label: 'ProHost sign-in'
+                        Other, 0x117d3d540, {{16.0, 186.0}, {139.7, 27.3}}, label: 'Welcome back'
+                        Other, 0x117d3cc80, {{16.0, 225.3}, {408.0, 44.0}}
+                        StaticText, 0x117d3cb40, {{64.0, 239.7}, {183.7, 15.3}}, label: 'Sign-in failed. Please try again.'
+                        StaticText, 0x117d3f200, {{42.0, 297.3}, {226.0, 16.3}}, label: 'appreview.specialist@pro-host.tech'
+                        Button, 0x117d3fc00, {{268.0, 281.3}, {72.7, 48.0}}, label: 'Change'
+                          StaticText, 0x117d3ed00, {{280.0, 295.3}, {48.7, 20.0}}, label: 'Change'
+                        Other, 0x117d3fe80, {{16.0, 341.3}, {408.0, 64.0}}, identifier: 'auth_password_input'
+                        TextView, 0x117d3c3c0, {{16.0, 340.3}, {408.0, 65.0}}, label: 'Password', value: ••••••••••••••••••..., Keyboard Focused
+                          Other, 0x117d3c500, {{16.0, 349.3}, {408.0, 56.0}}
+                          StaticText, 0x117d3f480, {{32.0, 341.3}, {63.3, 16.3}}, label: 'Password'
+                          Other, 0x117d3db80, {{68.0, 368.0}, {304.0, 18.7}}
+                        Button, 0x117d3da40, {{376.0, 353.3}, {48.0, 48.0}}, label: 'Show password'
+                          Image, 0x117d3e080, {{388.0, 365.3}, {24.0, 24.0}}, label: 'Show password'
+                        Button, 0x117d3d040, {{286.0, 417.3}, {138.0, 48.0}}, identifier: 'forgot_password_button', label: 'Forgot password?'
+                          StaticText, 0x117d3d900, {{298.0, 431.3}, {114.0, 20.0}}, label: 'Forgot password?'
+                      Button, 0x117d3ebc0, {{16.0, 547.0}, {408.0, 48.0}}, identifier: 'submit_email_button', label: 'Sign in'
+                        StaticText, 0x117d3ee40, {{198.0, 563.0}, {44.0, 16.3}}, label: 'Sign in'
+    Window, 0x117d3c640, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x117d3e1c0, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x117d3c8c0, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x117d3ef80, {{0.0, 611.0}, {440.0, 345.0}}
+          Other, 0x117d3c780, {{0.0, 611.0}, {440.0, 345.0}}, identifier: 'inputView'
+    Window, 0x117d3ca00, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x117d3f980, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x117d3f840, {{0.0, 611.0}, {440.0, 345.0}}
+          Other, 0x117d3fd40, {{0.0, 611.0}, {440.0, 44.0}}, identifier: 'SystemInputAssistantView'
+            Other, 0x117d3ea80, {{0.0, 611.0}, {440.0, 44.0}}
+              Other, 0x117d3f0c0, {{0.0, 611.0}, {440.0, 44.0}}, identifier: 'CenterPageView'
+                Other, 0x117d3c140, {{0.0, 11.0}, {440.0, 1244.0}}
+                  ScrollView, 0x117d3e800, {{0.0, 611.0}, {440.0, 44.0}}
+                Other, 0x117d3e6c0, {{0.0, 611.0}, {440.0, 44.0}}
+                  Other, 0x117d3dcc0, {{0.0, 611.0}, {440.0, 44.0}}, label: 'Typing Predictions'
+                    Other, 0x117d3e300, {{0.0, 611.0}, {440.0, 44.0}}
+                      Other, 0x117d3c280, {{30.0, 611.0}, {380.0, 44.0}}
+                        Button, 0x117d3f700, {{30.0, 611.0}, {380.0, 44.0}}, label: 'Passwords'
+                          Image, 0x117d3fac0, {{169.5, 625.0}, {13.0, 23.0}}, identifier: 'kb-autofill-key'
+          Other, 0x117d3d680, {{0.0, 611.0}, {440.0, 345.0}}
+            Other, 0x117d3e940, {{0.0, 611.0}, {440.0, 345.0}}
+              Other, 0x117d3f5c0, {{0.0, 611.0}, {440.0, 345.0}}
+          Other, 0x117d3d400, {{0.0, 655.0}, {440.0, 243.0}}
+            Keyboard, 0x117d3e440, {{0.0, 655.0}, {440.0, 243.0}}
+              Other, 0x10aa5b5c0, {{0.0, 655.0}, {440.0, 243.0}}
+                Other, 0x10aa5b840, {{0.0, 655.0}, {440.0, 243.0}}, identifier: 'UIKeyboardLayoutStar Preview'
+                  Key, 0x10aa5b980, {{0.0, 655.0}, {0.0, 0.0}}, label: 'Padding-Left'
+                  Key, 0x10aa5bac0, {{0.0, 655.0}, {0.0, 0.0}}, label: 'Padding-Right'
+                  Key, 0x10aa5bc00, {{0.0, 655.0}, {0.0, 0.0}}, label: 'Padding-Left'
+                  Key, 0x10aa5bd40, {{0.0, 655.0}, {0.0, 0.0}}, label: 'Padding-Right'
+                  Key, 0x10aa5be80, {{0.0, 655.0}, {0.0, 0.0}}, label: 'Padding-Left'
+                  Key, 0x117ef0f00, {{0.0, 655.0}, {0.0, 0.0}}, label: 'Padding-Right'
+                  Key, 0x117ef0dc0, {{4.7, 662.0}, {43.0, 56.0}}, label: 'q'
+                  Key, 0x117ef0c80, {{47.7, 662.0}, {43.3, 56.0}}, label: 'w'
+                  Key, 0x117ef0b40, {{91.0, 662.0}, {43.3, 56.0}}, label: 'e'
+                  Key, 0x117ef0a00, {{134.3, 662.0}, {43.3, 56.0}}, label: 'r'
+                  Key, 0x117ef08c0, {{177.7, 662.0}, {43.3, 56.0}}, label: 't'
+                  Key, 0x117ef0500, {{221.0, 662.0}, {43.3, 56.0}}, label: 'y'
+                  Key, 0x117ef03c0, {{264.3, 662.0}, {43.3, 56.0}}, label: 'u'
+                  Key, 0x117ef0780, {{307.7, 662.0}, {43.3, 56.0}}, label: 'i'
+                  Key, 0x117ef0640, {{351.0, 662.0}, {43.3, 56.0}}, label: 'o'
+                  Key, 0x117ef1540, {{394.3, 662.0}, {43.3, 56.0}}, label: 'p'
+                  Key, 0x117ef1400, {{26.0, 718.0}, {43.3, 56.0}}, label: 'a'
+                  Key, 0x117ef1180, {{69.3, 718.0}, {43.3, 56.0}}, label: 's'
+                  Key, 0x117ef1040, {{112.7, 718.0}, {43.3, 56.0}}, label: 'd'
+                  Key, 0x117ef12c0, {{156.0, 718.0}, {43.3, 56.0}}, label: 'f'
+                  Key, 0x117ef3340, {{199.3, 718.0}, {43.3, 56.0}}, label: 'g'
+                  Key, 0x117ef3480, {{242.7, 718.0}, {43.3, 56.0}}, label: 'h'
+                  Key, 0x117ef0000, {{286.0, 718.0}, {43.3, 56.0}}, label: 'j'
+                  Key, 0x117ef17c0, {{329.3, 718.0}, {43.3, 56.0}}, label: 'k'
+                  Key, 0x117ef1680, {{372.7, 718.0}, {43.3, 56.0}}, label: 'l'
+                  Button, 0x117ef2d00, {{4.7, 774.0}, {56.0, 56.0}}, identifier: 'shift', label: 'shift'
+                  Key, 0x117ef1a40, {{69.3, 774.0}, {43.3, 56.0}}, label: 'z'
+                  Key, 0x117ef1900, {{112.7, 774.0}, {43.3, 56.0}}, label: 'x'
+                  Key, 0x117ef1cc0, {{156.0, 774.0}, {43.3, 56.0}}, label: 'c'
+                  Key, 0x117ef1b80, {{199.3, 774.0}, {43.3, 56.0}}, label: 'v'
+                  Key, 0x117ef21c0, {{242.7, 774.0}, {43.3, 56.0}}, label: 'b'
+                  Key, 0x117ef1e00, {{286.0, 774.0}, {43.3, 56.0}}, label: 'n'
+                  Key, 0x117ef1f40, {{329.3, 774.0}, {43.3, 56.0}}, label: 'm'
+                  Key, 0x117ef2080, {{381.3, 774.0}, {56.3, 56.0}}, identifier: 'delete', label: 'delete'
+                  Key, 0x117ef2300, {{4.7, 830.0}, {108.0, 56.0}}, identifier: 'more', label: 'numbers'
+                  Key, 0x117ef2580, {{112.7, 830.0}, {216.7, 56.0}}, identifier: 'space', label: ' '
+                  Button, 0x117ef2440, {{329.3, 830.0}, {108.3, 56.0}}, identifier: 'Done', label: 'done'
+          Other, 0x117ef26c0, {{0.0, 655.0}, {440.0, 301.0}}
+            Button, 0x117ef2800, {{357.4, 887.4}, {80.1, 68.7}}, identifier: 'dictation', label: 'Dictate', Disabled
+              StaticText, 0x117ef2940, {{357.4, 887.4}, {0.0, 0.0}}
+Path to element:
+ →Application, 0x117c58a00, pid: 56247, label: 'ProHost'
+Query chain:
+ →Find: Target Application 'app.geonajjar.prohost'
+  Output: {
+    Application, 0x117ef3c00, pid: 56247, label: 'ProHost'
+  }
