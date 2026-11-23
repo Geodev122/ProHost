@@ -266,3 +266,10 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   (saves are per room since 1.0.51).
 - 23 Nov 2026 11:17 UTC: `unlimitedprice apply` (run 45163840570): Play patched (regions version 2026/01), pro-monthly1 $17.99 and
   pro-yearly $159.99 for new subscribers in 174 regions; offers unchanged (relative). `clearsaves apply` (run 45163845586): 3 old saves cleared.
+- 23 Nov 2026 12:31-12:42 UTC, iOS resubmission (owner: "Replace build in review"): withdraw (ios-inspect run 45175084540) cancelled
+  the open submission → 1.0 DEVELOPER_REJECTED; TestFlight 23 (main 83e69d9, run 45162416590) VALID; `only=build 23` (run 45176100607)
+  attached it; `only=submit` (run 45176661576) created a new review submission with version 1.0 + build 23 → WAITING_FOR_REVIEW.
+  The four subscriptions could NOT be added through the API (HTTP 409 STATE_ERROR.INVALID_REQUEST_ENTITY_STATE_INVALID "This
+  subscription cannot be reviewed"): a first subscription must be ticked on the version page ("In-App Purchases and Subscriptions")
+  in App Store Connect, which the API cannot do. They stay READY_TO_SUBMIT. Lesson: for a version carrying first-time subscriptions,
+  the final Add for Review is the owner's click in the web UI; asc_prepare `submit` is only for versions without new subscriptions.
