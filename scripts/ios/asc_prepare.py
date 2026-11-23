@@ -660,4 +660,40 @@ if want("promoimages"):
         else:
             _upload("subscriptionImages", {"subscription": rel("subscriptions", s["id"])}, f, f"{product} promotional image")
 
+# ---- review submission (owner, 23 Nov 2026: replace the build in review). Section "withdraw" cancels the open review
+# submission (the version goes back to an editable state); section "submit" sends the editable version (with its build, which
+# section "build" attaches) and the ready subscriptions for review. Never part of a default run: only when named in --only.
+def _only(name):
+    return name in [x.strip() for x in (args.only or "").split(",") if x.strip()]
+
+
+if _only("withdraw"):
+    subs_ = get_all(f"/v1/reviewSubmissions?filter[app]={APP}&filter[platform]=IOS&limit=20")
+    open_ = [x for x in subs_ if x["attributes"].get("state") in ("WAITING_FOR_REVIEW", "READY_FOR_REVIEW", "IN_REVIEW", "UNRESOLVED_ISSUES")]
+    if not open_:
+        same("no open review submission")
+    for x in open_:
+        write("PATCH", f'/v1/reviewSubmissions/{x["id"]}', {"data": {"type": "reviewSubmissions", "id": x["id"], "attributes": {"canceled": True}}},
+              f'cancel review submission ({x["attributes"].get("state")})')
+
+if _only("submit"):
+    if not version:
+        print("FAILED  submit: no editable version (withdraw first, then wait until it is editable)"); failures.append("submit")
+    else:
+        sub_ = write("POST", "/v1/reviewSubmissions", {"data": {"type": "reviewSubmissions", "attributes": {"platform": "IOS"},
+                     "relationships": {"app": rel("apps", APP)}}}, "new review submission")
+        sid = ((sub_ or {}).get("data") or {}).get("id")
+        if sid:
+            write("POST", "/v1/reviewSubmissionItems", {"data": {"type": "reviewSubmissionItems",
+                  "relationships": {"reviewSubmission": rel("reviewSubmissions", sid), "appStoreVersion": rel("appStoreVersions", version["id"])}}},
+                  f"add version {version['attributes'].get('versionString')} to the submission")
+            group_ = next((g for g in get_all(f"/v1/apps/{APP}/subscriptionGroups?limit=20")
+                           if g["attributes"].get("referenceName") == META["subscriptions"]["groupReferenceName"]), None)
+            for s_ in (get_all(f'/v1/subscriptionGroups/{group_["id"]}/subscriptions?limit=50') if group_ else []):
+                if s_["attributes"].get("state") == "READY_TO_SUBMIT":
+                    write("POST", "/v1/subscriptionSubmissions", {"data": {"type": "subscriptionSubmissions",
+                          "relationships": {"subscription": rel("subscriptions", s_["id"])}}}, f'submit {s_["attributes"]["productId"]} with the version')
+            write("PATCH", f"/v1/reviewSubmissions/{sid}", {"data": {"type": "reviewSubmissions", "id": sid, "attributes": {"submitted": True}}},
+                  "submit for App Review")
+
 print("\nRESULT ", "plan only (nothing changed)" if not args.apply else ("applied with %d failure(s): %s" % (len(failures), ", ".join(failures)) if failures else "applied"))
