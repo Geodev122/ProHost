@@ -238,3 +238,5 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   New read-only audit `scripts/ios/asc_audit.py` (runs in every ios-inspect).
 - 23 Nov: callables now also log `app_check_verified` (lib/callable.ts); Maintenance `appcheck [days]` reports the verified share per
   function from both log lines (roadmap E2: enforce only at >= 99 %). Read it after a week of traffic on the new deploy.
+- 23 Nov: E4 batch 4 — six admin callables moved to `run-admin` (Firestore/Auth/Storage only; Play-bound functions stay on the default
+  account). Check after the main deploy with Maintenance `logerrors 6` (PERMISSION_DENIED would show there).

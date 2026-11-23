@@ -1,3 +1,4 @@
+import { runAs } from "../lib/runtimeIdentity";
 import { HttpsError } from "firebase-functions/v2/https";
 import { DocumentSnapshot, FieldPath, getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
@@ -29,7 +30,7 @@ async function demoDocs(collection: string): Promise<DocumentSnapshot[]> {
   return [...byId.values()];
 }
 
-export const purgeDemoContent = onCall({ timeoutSeconds: 300 }, async (request) => {
+export const purgeDemoContent = onCall({ ...runAs("admin"), timeoutSeconds: 300 }, async (request) => {
   const auth = request.auth;
   if (!auth) throw new HttpsError("unauthenticated", "Sign in required.");
   if (auth.token.role !== "ADMIN") throw new HttpsError("permission-denied", "Admins only.");

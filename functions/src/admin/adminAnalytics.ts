@@ -1,3 +1,4 @@
+import { runAs } from "../lib/runtimeIdentity";
 import { HttpsError } from "firebase-functions/v2/https";
 import { onCall } from "../lib/callable";
 import { getFirestore } from "firebase-admin/firestore";
@@ -89,7 +90,7 @@ interface AnalyticsRequest {
  * - listings: published (ACTIVE) listings created in range, broken down by country,
  *   city, space type, and division type within each space type.
  */
-export const getAdminAnalytics = onCall<AnalyticsRequest>(async (request) => {
+export const getAdminAnalytics = onCall<AnalyticsRequest>(runAs("admin"), async (request) => {
   requireAdmin(request.auth);
 
   const from = typeof request.data?.fromMillis === "number" ? request.data.fromMillis : null;
@@ -234,7 +235,7 @@ export const getAdminAnalytics = onCall<AnalyticsRequest>(async (request) => {
  * that field existed, from the earliest matching audit event (ROLE_PROMOTED_PRO_HOST
  * or PACKAGE_GRANTED). Idempotent; never overwrites an existing date.
  */
-export const backfillProHostUpgradeDates = onCall(async (request) => {
+export const backfillProHostUpgradeDates = onCall(runAs("admin"), async (request) => {
   requireAdmin(request.auth);
   const db = getFirestore();
 

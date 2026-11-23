@@ -1,3 +1,4 @@
+import { runAs } from "../lib/runtimeIdentity";
 import { HttpsError } from "firebase-functions/v2/https";
 import { onCall } from "../lib/callable";
 import { getFirestore } from "firebase-admin/firestore";
@@ -9,7 +10,7 @@ import "../lib/admin";
  * Admin Callable: configureGa4ApiSecret({ apiSecret, firebaseAppId, debug })
  * Writes or updates the server-only document `app_config/ga4` in Firestore via Admin SDK.
  */
-export const configureGa4ApiSecret = onCall(async (request) => {
+export const configureGa4ApiSecret = onCall(runAs("admin"), async (request) => {
   if (!request.auth?.uid) {
     throw new HttpsError("unauthenticated", "Admin authentication required.");
   }

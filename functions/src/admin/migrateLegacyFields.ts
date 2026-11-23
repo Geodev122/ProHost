@@ -1,3 +1,4 @@
+import { runAs } from "../lib/runtimeIdentity";
 import { HttpsError } from "firebase-functions/v2/https";
 import { FieldPath, FieldValue, getFirestore } from "firebase-admin/firestore";
 import { onCall } from "../lib/callable";
@@ -14,7 +15,7 @@ import "../lib/admin";
  *  - workspace_listings.ownerEmail (no longer written; listings are public, emails aren't) is deleted.
  * update() only, skipping deleted docs, so nothing is ever recreated.
  */
-export const migrateLegacyListingFields = onCall({ timeoutSeconds: 540 }, async (request) => {
+export const migrateLegacyListingFields = onCall({ ...runAs("admin"), timeoutSeconds: 540 }, async (request) => {
   const auth = request.auth;
   if (!auth) throw new HttpsError("unauthenticated", "Sign in required.");
   if (auth.token.role !== "ADMIN") throw new HttpsError("permission-denied", "Admins only.");

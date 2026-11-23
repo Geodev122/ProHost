@@ -55,6 +55,10 @@ Done by Claude with a temporary admin account (`claude-remediation`, to be delet
   Viewer** (for Maintenance `alerts`). Log-based alert policies also need **Logs Configuration Writer** (`logging.notificationRules.create`;
   granted by the owner the same day; `alerts apply` run 203 created the 3 policies).
 
+- **23 Nov 2026:** batch 4 → `run-admin`: `purgeDemoContent`, `backfillEmailVerified`, `configureGa4ApiSecret`, `getAdminAnalytics`,
+  `backfillProHostUpgradeDates`, `migrateLegacyListingFields` (Firestore + Auth + Storage only). Still on the default account on purpose:
+  `assignInitialRole` (Play Integrity decode needs Play Console access), `deleteOwnAccount`, `forceProHostUpgrade`, `revokeProHostRole` (Play).
+
 ## Project IAM (Include Google-provided role grants was off) — snapshot of 1 Nov, partly superseded above
 
 | Principal | Purpose | Roles |

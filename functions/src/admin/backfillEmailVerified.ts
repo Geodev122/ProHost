@@ -1,3 +1,4 @@
+import { runAs } from "../lib/runtimeIdentity";
 import { HttpsError } from "firebase-functions/v2/https";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
@@ -11,7 +12,7 @@ import "../lib/admin";
  * email or Google gets `emailVerified: true`. Uses update() and skips missing profiles, so it
  * never recreates a deleted account's document.
  */
-export const backfillEmailVerified = onCall({ timeoutSeconds: 540 }, async (request) => {
+export const backfillEmailVerified = onCall({ ...runAs("admin"), timeoutSeconds: 540 }, async (request) => {
   const auth = request.auth;
   if (!auth) throw new HttpsError("unauthenticated", "Sign in required.");
   if (auth.token.role !== "ADMIN") throw new HttpsError("permission-denied", "Admins only.");
