@@ -134,7 +134,7 @@ Last updated: 8 Nov 2026
 
 54. **DONE 21 Nov 2026 (owner saved new `NETLIFY_AUTH_TOKEN` + `NETLIFY_SITE_ID`; site deploy run 44888702006 green, `/console` live).** Netlify token for the website deploy (since 15 Nov 10:26 UTC): every "Site deploy" run on `main` stops at "Find or create the Netlify site", which means the GitHub secret `NETLIFY_AUTH_TOKEN` is missing or no longer valid. The live site keeps its last deploy, but new site changes (the admin console at `/console`, page edits) are not published. Netlify → User settings → Applications → Personal access tokens → New access token; then GitHub repo → Settings → Secrets and variables → Actions → `NETLIFY_AUTH_TOKEN` → Update (or New). Tell Claude, who re-runs the deploy.
 
-- (21 Nov) iPhone testers Rewa and Rony: each must accept Apple's e-mail "You have been invited to join a development team" (sent to rewarammal@gmail.com and ronybraidi@gmail.com; instructions e-mailed to both). Tell Claude when they reply "accepted"; Claude then adds them to TestFlight with the iOS Apple inspect workflow (`only=tester`).
+- (21 Nov) iPhone testers Rewa and Rony (23 Nov: Rony accepted and is in TestFlight; Rewa still to accept): each must accept Apple's e-mail "You have been invited to join a development team" (sent to rewarammal@gmail.com and ronybraidi@gmail.com; instructions e-mailed to both). Tell Claude when they reply "accepted"; Claude then adds them to TestFlight with the iOS Apple inspect workflow (`only=tester`).
 
 ## 22 Nov 2026
 - ✅ pro-host.tech verified in Search Console (owner). ✅ Auth Platform branding verified (owner, 22 Nov) — items 30/37 done.

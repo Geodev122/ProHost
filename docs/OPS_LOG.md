@@ -250,3 +250,4 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   Captured in ios/store/screenshots-real: en 8 screens, ar 6. `asc_prepare` section `screenshots` now prefers them
   (explore, listing, availability, premium, profile, welcome; empty Rentals/Saved left out) — run it for the next version (1.0.1).
 - Prodcheck after E4 batch 4 (run 45092680761): 93/93 functions active, no function errors in 6 h, RTDN self-test ok.
+- 23 Nov 2026: Rony Braidi accepted Apple's team invitation; added to the internal TestFlight group "Team" (ios-inspect run 45145851015, only=tester) — TestFlight e-mails him the install invitation (all builds, latest 22). Rewa still pending.
