@@ -27,8 +27,9 @@ import platform.UIKit.UIViewController
 /** The iOS app's Compose root, hosted by the Swift app (`ios/ProHost/App/RootView.swift`): the shared shell, as on Android. */
 fun MainViewController(): UIViewController {
     IosSeams.install()
-    // Edge swipe = back (screens, sheets and dialogs close with it, like Android's back gesture).
-    return ComposeUIViewController(configure = { enableBackGesture = true }) { ProHostIosApp() }
+    // Edge swipe = back: Compose Multiplatform 1.12 sends the iOS back gesture to BackHandler by default
+    // (PlatformBackHandler's iOS actual), so screens, sheets and dialogs close with it like Android's back gesture.
+    return ComposeUIViewController { ProHostIosApp() }
 }
 
 @Composable

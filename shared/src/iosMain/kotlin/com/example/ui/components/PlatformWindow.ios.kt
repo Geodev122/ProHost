@@ -3,8 +3,8 @@ package com.example.ui.components
 import androidx.compose.runtime.Composable
 
 /**
- * iOS back = the edge swipe from the left (right in Arabic), which Compose Multiplatform turns into a back event when the
- * view controller enables it (`enableBackGesture`, `MainViewController`). Same handler contract as Android's system back.
+ * iOS back = the edge swipe from the left (right in Arabic), which Compose Multiplatform 1.12 turns into a back event for
+ * BackHandler by default. Same handler contract as Android's system back.
  */
 @OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
