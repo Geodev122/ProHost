@@ -43,7 +43,21 @@ export function maskEmail(email: string | null | undefined): string {
  * Queues an email for the Trigger Email extension. Returns true once queued, false if
  * the queue write failed. Never throws.
  */
+/**
+ * Reserved, never-deliverable domains (RFC 2606/6761: example.com/.net/.org, *.test, *.invalid, *.localhost, *.example).
+ * The mail provider rejects them with 550 and the extension logs an ERROR (24 Nov 2026 alert); test accounts use them.
+ */
+export function isUndeliverableAddress(email: string | null | undefined): boolean {
+  const domain = String(email || "").trim().toLowerCase().split("@")[1] || "";
+  if (!domain) return true;
+  return /^example\.(com|net|org)$/.test(domain) || /(^|\.)(test|invalid|localhost|example)$/.test(domain);
+}
+
 export async function sendEmail(payload: EmailPayload): Promise<boolean> {
+  if (isUndeliverableAddress(payload.to)) {
+    logger.info("email_skipped_reserved_domain", { to: maskEmail(payload.to), subject: payload.subject });
+    return false;
+  }
   try {
     const ref = await getFirestore().collection(MAIL_COLLECTION).add({
       to: payload.to,

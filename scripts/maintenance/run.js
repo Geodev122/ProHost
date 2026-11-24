@@ -1726,7 +1726,9 @@ async function hostingcheck(arg) {
 // Error alerts by email (roadmap E3): log-match alert policies sent to the existing "ProHost owner email" channel, at most one
 // email per hour each. Dry run lists what exists; code "apply" creates the missing ones (by display name). Read-only otherwise.
 const ERROR_ALERTS = [
-  ["Function-errors", 'resource.type="cloud_run_revision" AND severity>=ERROR', "A Cloud Function logged an error. Logs Explorer: severity>=ERROR on cloud_run_revision (docs/LOG_QUERIES.md)."],
+  // Noise excluded (24 Nov 2026): plain GETs/probes against callables ("Invalid request, unable to process" — rejected
+  // before our code runs) and mail to reserved test domains, which the mail provider refuses with 550.
+  ["Function-errors", 'resource.type="cloud_run_revision" AND severity>=ERROR AND NOT "Invalid request, unable to process" AND NOT "Please use our testing email address"', "A Cloud Function logged an error. Logs Explorer: severity>=ERROR on cloud_run_revision (docs/LOG_QUERIES.md)."],
   ["AppStore-sync-failed", 'jsonPayload.message="appleSync: subscription failed" OR textPayload:"appleSync: subscription failed"', "The daily App Store re-sync could not refresh a subscription (401 = In-App Purchase key or issuer wrong; Maintenance applekey)."],
   ["Play-sync-failed", 'textPayload:"billingSync:" AND severity>=ERROR', "The daily Google Play sync failed for a subscription (config = Play Console access, transient = retried tomorrow)."],
 ];
@@ -1749,7 +1751,17 @@ async function alerts(db, arg) {
     const have = new Set(policies.map((p) => p.displayName));
     notice(`alert policies now: ${policies.map((p) => p.displayName).join(", ") || "none"}`);
     const missing = ERROR_ALERTS.filter(([name]) => !have.has(name));
-    if (arg !== "apply") return `dry run: ${missing.length} to create (${missing.map((m) => m[0]).join(", ") || "none"}); code apply creates them`;
+    // Existing policies whose filter differs from ERROR_ALERTS are updated in place (apply).
+    const stale = ERROR_ALERTS.map(([name, filter, doc]) => ({ name, filter, doc, pol: policies.find((p) => p.displayName === name) }))
+      .filter((x) => x.pol && (((x.pol.conditions || [])[0] || {}).conditionMatchedLog || {}).filter !== x.filter);
+    if (arg !== "apply") return `dry run: ${missing.length} to create (${missing.map((m) => m[0]).join(", ") || "none"}), ${stale.length} to update (${stale.map((x) => x.name).join(", ") || "none"}); code apply`;
+    for (const x of stale) {
+      await call("PATCH", `https://monitoring.googleapis.com/v3/${x.pol.name}?updateMask=conditions,documentation`, {
+        conditions: [{ displayName: x.name, conditionMatchedLog: { filter: x.filter } }],
+        documentation: { content: x.doc, mimeType: "text/markdown" },
+      });
+      notice(`updated alert ${x.name}`);
+    }
     for (const [name, filter, doc] of missing) {
       await call("POST", `https://monitoring.googleapis.com/v3/projects/${P}/alertPolicies`, {
         displayName: name, combiner: "OR", enabled: true, notificationChannels: [ch.name],

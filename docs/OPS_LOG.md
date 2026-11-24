@@ -295,3 +295,8 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   app.geonajjar.prohost), then a new TestFlight build. Maps SDK for iOS API is enabled.
 - ITMS-90725 on build 24 (built with iOS 26.5 SDK): warning only; from April 2027 uploads need Xcode 27. TestFlight picks the
   newest Xcode on the runner and now warns while it is below 27.
+- 24 Nov 2026: "Function-errors" alert (23 Nov) explained — Trigger Email extension `processqueue` logged 2 errors (23 Nov 11:55,
+  24 Nov 18:42): the mail provider refused messages to `@example.com` test addresses (550 "use our testing email address").
+  No real user mail was lost. Fix: `sendEmail` skips reserved, never-deliverable domains (`isUndeliverableAddress`, tested).
+  Also 374 errors/72 h were plain GET probes on callables ("Invalid request, unable to process", rejected before our code);
+  the Function-errors alert filter now excludes both noise patterns (Maintenance `alerts apply` updates existing policies).
