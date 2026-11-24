@@ -1,5 +1,6 @@
 package com.example.data.gateway
 
+import com.example.util.resumeOnce
 import com.example.data.auth.AccountSuspendedException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
@@ -26,7 +27,7 @@ class CallableFunctionsGateway(private val transport: CallableTransport) : Funct
 
     private suspend fun call(name: String, data: Map<String, Any?>?, timeoutSeconds: Int = 0): Map<String, Any?> =
         suspendCancellableCoroutine { cont ->
-            transport.call(name, data, timeoutSeconds) { reply -> cont.resume(reply) }
+            transport.call(name, data, timeoutSeconds) { reply -> cont.resumeOnce(reply) }
         }.let { reply ->
             if (reply.errorCode != null) throw CallableException(reply.errorCode, reply.errorMessage ?: "")
             reply.data ?: emptyMap()

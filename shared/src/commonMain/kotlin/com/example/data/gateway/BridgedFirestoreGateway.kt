@@ -1,5 +1,6 @@
 package com.example.data.gateway
 
+import com.example.util.resumeOnce
 import com.example.data.firestore.FirestoreSchema
 import com.example.data.model.AdminPricingState
 import com.example.data.model.AppUser
@@ -68,13 +69,13 @@ class BridgedFirestoreGateway(private val bridge: FirestoreBridge) : FirestoreGa
 
     // ---- suspend helpers over the callbacks ----
     private suspend fun write(op: ((String?) -> Unit) -> Unit) {
-        val error = suspendCancellableCoroutine<String?> { cont -> op { cont.resume(it) } }
+        val error = suspendCancellableCoroutine<String?> { cont -> op { cont.resumeOnce(it) } }
         if (error != null) throw FirestoreBridgeException(error)
     }
 
     private suspend fun get(path: String): DocSnapshot? {
         val (doc, error) = suspendCancellableCoroutine<Pair<DocSnapshot?, String?>> { cont ->
-            bridge.getDocument(path) { d, e -> cont.resume(d to e) }
+            bridge.getDocument(path) { d, e -> cont.resumeOnce(d to e) }
         }
         if (error != null) throw FirestoreBridgeException(error)
         return doc
@@ -82,7 +83,7 @@ class BridgedFirestoreGateway(private val bridge: FirestoreBridge) : FirestoreGa
 
     private suspend fun query(path: String, orderBy: String?, descending: Boolean, limit: Int): List<DocSnapshot> {
         val (docs, error) = suspendCancellableCoroutine<Pair<List<DocSnapshot>?, String?>> { cont ->
-            bridge.queryOnce(path, emptyList(), orderBy, descending, limit) { d, e -> cont.resume(d to e) }
+            bridge.queryOnce(path, emptyList(), orderBy, descending, limit) { d, e -> cont.resumeOnce(d to e) }
         }
         if (error != null) throw FirestoreBridgeException(error)
         return docs.orEmpty()

@@ -9,6 +9,8 @@ import UIKit
 final class AppleSignInBridgeImpl: NSObject, AppleSignInBridge, ASAuthorizationControllerDelegate,
     ASAuthorizationControllerPresentationContextProviding {
     private var completion: ((AppleSignInReply) -> Void)?
+    /// Kept until Apple answers: a released controller can drop its delegate callbacks mid-flow.
+    private var controller: ASAuthorizationController?
     /// Set while the sheet runs for token revocation before account deletion (not a sign-in).
     private var revokeDone: RevokeCallback?
     // RevokeCallback outcomes (Kotlin RevokeCallback.DONE / CANCELLED / FAILED).
@@ -18,6 +20,8 @@ final class AppleSignInBridgeImpl: NSObject, AppleSignInBridge, ASAuthorizationC
 
     func signInWithAppleSheet(rawNonce: String, completion: @escaping (AppleSignInReply) -> Void) {
         DispatchQueue.main.async {
+            // A second tap while the sheet runs: close the earlier request first, so every caller gets exactly one answer.
+            self.finish(AppleSignInReply(idToken: nil, givenName: nil, familyName: nil, cancelled: true, error: nil))
             self.completion = completion
             let request = ASAuthorizationAppleIDProvider().createRequest()
             request.requestedScopes = [.fullName, .email]
@@ -25,6 +29,7 @@ final class AppleSignInBridgeImpl: NSObject, AppleSignInBridge, ASAuthorizationC
             let controller = ASAuthorizationController(authorizationRequests: [request])
             controller.delegate = self
             controller.presentationContextProvider = self
+            self.controller = controller
             controller.performRequests()
         }
     }
@@ -86,6 +91,7 @@ final class AppleSignInBridgeImpl: NSObject, AppleSignInBridge, ASAuthorizationC
     private func finish(_ reply: AppleSignInReply) {
         let done = completion
         completion = nil
+        controller = nil
         done?(reply)
     }
 

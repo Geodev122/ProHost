@@ -1,5 +1,6 @@
 package com.example.ios
 
+import com.example.util.resumeOnce
 import com.example.data.auth.BoolCallback
 import com.example.util.GeoPoint
 import com.example.util.LocationProvider
@@ -28,7 +29,7 @@ class IosLocationProvider(private val bridge: LocationBridge) : LocationProvider
     override suspend fun lastLocation(): GeoPoint? = read { bridge.lastFix(it) }
 
     private suspend fun read(call: ((LocationReply) -> Unit) -> Unit): GeoPoint? {
-        val reply = suspendCancellableCoroutine<LocationReply> { cont -> call { cont.resume(it) } }
+        val reply = suspendCancellableCoroutine<LocationReply> { cont -> call { cont.resumeOnce(it) } }
         reply.error?.let { throw IllegalStateException(it) }
         return if (reply.found) GeoPoint(reply.latitude, reply.longitude) else null
     }

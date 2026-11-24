@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.util.resumeOnce
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import com.example.ios.AppleSignInBridge
@@ -21,7 +22,7 @@ private class IosAuthCredentials(
     private val apple: AppleSignInBridge?
 ) : AuthCredentials {
     override suspend fun requestGoogle(nonce: String): GoogleCredentialResult {
-        val reply = suspendCancellableCoroutine { cont -> google.signIn(nonce) { cont.resume(it) } }
+        val reply = suspendCancellableCoroutine { cont -> google.signIn(nonce) { cont.resumeOnce(it) } }
         val token = reply.idToken
         return when {
             token != null -> GoogleCredentialResult.Token(
@@ -40,7 +41,7 @@ private class IosAuthCredentials(
 
     override suspend fun requestApple(rawNonce: String): AppleCredentialResult {
         val bridge = apple ?: return AppleCredentialResult.Error
-        val reply = suspendCancellableCoroutine { cont -> bridge.signInWithAppleSheet(rawNonce) { cont.resume(it) } }
+        val reply = suspendCancellableCoroutine { cont -> bridge.signInWithAppleSheet(rawNonce) { cont.resumeOnce(it) } }
         val token = reply.idToken
         return when {
             token != null -> AppleCredentialResult.Token(token, reply.givenName, reply.familyName)

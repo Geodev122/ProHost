@@ -1,5 +1,6 @@
 package com.example.data.auth
 
+import com.example.util.resumeOnce
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
@@ -58,7 +59,7 @@ suspend fun refreshIdTokenOf(bridge: AuthBridge) {
 }
 
 private suspend fun awaitToken(call: ((TokenReply) -> Unit) -> Unit): String? {
-    val reply = suspendCancellableCoroutine<TokenReply> { cont -> call { cont.resume(it) } }
+    val reply = suspendCancellableCoroutine<TokenReply> { cont -> call { cont.resumeOnce(it) } }
     reply.error?.let { throw IllegalStateException(it) }
     return reply.value
 }
@@ -69,7 +70,7 @@ class BridgedAuthGateway(private val bridge: AuthBridge) : AuthGateway {
     override val usesPassword: Boolean get() = bridge.usesPassword()
 
     private suspend fun run(isNewUserOnSuccess: Boolean? = null, call: ((AuthReply) -> Unit) -> Unit): AuthOutcome {
-        val reply = suspendCancellableCoroutine { cont -> call { cont.resume(it) } }
+        val reply = suspendCancellableCoroutine { cont -> call { cont.resumeOnce(it) } }
         val code = reply.errorCode ?: return AuthOutcome.Success(isNewUser = isNewUserOnSuccess ?: reply.isNewUser)
         val error = AuthError.fromCode(code).let {
             // Newer SDKs put the server reason in the message ("PASSWORD_DOES_NOT_MEET_REQUIREMENTS: …"), as on Android.
@@ -94,7 +95,7 @@ class BridgedAuthGateway(private val bridge: AuthBridge) : AuthGateway {
 
     override suspend fun refreshEmailVerified(): Boolean {
         if (bridge.currentUid() == null) return false
-        return suspendCancellableCoroutine { cont -> bridge.reloadEmailVerified(BoolCallback { cont.resume(it) }) }
+        return suspendCancellableCoroutine { cont -> bridge.reloadEmailVerified(BoolCallback { cont.resumeOnce(it) }) }
     }
 
     override fun signOut() = bridge.signOut()

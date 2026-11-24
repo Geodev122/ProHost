@@ -1,5 +1,6 @@
 package com.example.data.gateway
 
+import com.example.util.resumeOnce
 import com.example.util.FileAccess
 import com.example.util.PickedFile
 import com.example.util.nowMillis
@@ -28,7 +29,7 @@ interface StorageBridge {
 class BridgedStorageGateway(private val bridge: StorageBridge, private val now: () -> Long = { nowMillis() }) : StorageGateway {
 
     private suspend fun upload(call: ((UploadResult) -> Unit) -> Unit): UploadResult? = try {
-        suspendCancellableCoroutine<UploadResult> { cont -> call { cont.resume(it) } }.takeIf { it.error == null }
+        suspendCancellableCoroutine<UploadResult> { cont -> call { cont.resumeOnce(it) } }.takeIf { it.error == null }
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
@@ -68,7 +69,7 @@ class BridgedStorageGateway(private val bridge: StorageBridge, private val now: 
     ): String? = compressed("listings/$spaceId/subdivisions/$subdivisionId/$imageId.$fileExtension", rawBytes, onProgress)
 
     override suspend fun purgeListingStorage(spaceId: String): Boolean =
-        suspendCancellableCoroutine { cont -> bridge.deletePrefix("listings/$spaceId") { cont.resume(it) } }
+        suspendCancellableCoroutine { cont -> bridge.deletePrefix("listings/$spaceId") { cont.resumeOnce(it) } }
 
     companion object {
         /** Android's compression rule (`FirebaseStorageService.uploadCompressedImageBytesAndGetUrl`). */

@@ -273,3 +273,16 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   subscription cannot be reviewed"): a first subscription must be ticked on the version page ("In-App Purchases and Subscriptions")
   in App Store Connect, which the API cannot do. They stay READY_TO_SUBMIT. Lesson: for a version carrying first-time subscriptions,
   the final Add for Review is the owner's click in the web UI; asc_prepare `submit` is only for versions without new subscriptions.
+- 24 Nov 2026 (owner: iOS map blank, Manage subscription opened a broken sandbox page, Rony's Apple sign-up crashed):
+  - Manage subscription / Orders now follow the store that bills the plan, per device (`StoreBrand.manageRoute`, shared,
+    unit-tested): iOS App Store plan → Apple's sheet (falls back to apps.apple.com/account/subscriptions), Google Play plan
+    → Play's web page; Android App Store plan → Apple's page. iOS texts naming Google Play read as the App Store (2.3.10).
+  - Rony: the only Sign in with Apple account (Hide My Email relay, profile never completed, created 23 Nov) deleted with
+    Maintenance `appleusers delete:<uid>` (run 45423828323) so he can sign up fresh. The sign-up form now says "Signed in
+    with Apple · email hidden" instead of showing the relay address.
+  - Crash hardening: every native callback resumes its coroutine at most once (`resumeOnce`: Apple/Google sign-in,
+    Firebase, Storage, location, push) — a second resume terminates a Kotlin/Native app; the Apple sheet controller is
+    retained and an overlapping request is closed first. Crashlytics' read API was enabled (Maintenance `crashes enable`),
+    but the CI account lacks the Crashlytics Viewer role, so stacks were not readable from CI.
+  - Maps: maps-ios-backend is ENABLED; key restrictions not readable by CI (apikeys.keys.list denied). TestFlight now
+    annotates whether GMSApiKey is in the IPA; ios-screenshots checks whether the map draws tiles.

@@ -1,5 +1,6 @@
 package com.example.ios
 
+import com.example.util.resumeOnce
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -34,7 +35,7 @@ object IosPush {
         private set
 
     fun install(bridge: PushTokenBridge) {
-        PushTokens.fetch = { suspendCancellableCoroutine { cont -> bridge.fcmToken { cont.resume(it) } } }
+        PushTokens.fetch = { suspendCancellableCoroutine { cont -> bridge.fcmToken { cont.resumeOnce(it) } } }
     }
 
     /** Messaging delegate: a new token. Saved on the signed-in profile (Android: `onNewToken`); later sign-ins save it anyway. */
