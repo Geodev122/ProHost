@@ -286,3 +286,6 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
     but the CI account lacks the Crashlytics Viewer role, so stacks were not readable from CI.
   - Maps: maps-ios-backend is ENABLED; key restrictions not readable by CI (apikeys.keys.list denied). TestFlight now
     annotates whether GMSApiKey is in the IPA; ios-screenshots checks whether the map draws tiles.
+- 24 Nov 2026 15:50 UTC: main e6727bd (Parity Gate, iOS CI, Admin Web green). Android 1.0.52 (52) released to Play production,
+  staged 20 % (release-bundle run 45430103617); published.txt → 1.0.52. TestFlight 24 from main (run 45430110313).
+  ios-screenshots map check failed to run (no Pillow on the macOS runner) — install line fixed.

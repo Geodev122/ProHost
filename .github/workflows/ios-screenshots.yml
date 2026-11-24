@@ -104,7 +104,7 @@ jobs:
 
       - name: Did the map draw tiles? (text verdict, no image review)
         run: |
-          python3 -m pip install --quiet pillow >/dev/null 2>&1 || true
+          python3 -m pip install --quiet --user --break-system-packages pillow >/dev/null 2>&1 || python3 -m pip install --quiet pillow >/dev/null 2>&1 || true
           python3 - <<'EOF'
           import glob
           from PIL import Image
