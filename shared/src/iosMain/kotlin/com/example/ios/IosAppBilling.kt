@@ -1,5 +1,8 @@
 package com.example.ios
 
+import com.example.data.billing.AppStoreKind
+import com.example.data.billing.ManageRoute
+import com.example.data.billing.StoreBrand
 import com.example.analytics.AnalyticsTracker
 import com.example.data.auth.SessionAuth
 import com.example.data.auth.toUserMessage
@@ -126,7 +129,16 @@ class IosAppBilling(
     /** No promo-code offers on iOS (Play config only); App Store offer codes go through [openRedeemPromoCode]. */
     override fun launchPromoCheckout(host: PurchaseHost, promo: PlayPromo.PromoOffer) {}
 
-    override fun openManageSubscriptions(host: PurchaseHost, productId: String?) = store.presentManageSubscriptions()
+    /** The store that bills the plan decides (24 Nov 2026): App Store plans open Apple's sheet, Google Play plans Play's web page. */
+    override fun openManageSubscriptions(host: PurchaseHost, productId: String?) {
+        AnalyticsTracker.manageSubscriptionOpen()
+        when (StoreBrand.manageRoute(currentUser.value?.entitlementSource, AppStoreKind.APP_STORE)) {
+            ManageRoute.STORE_SHEET -> store.presentManageSubscriptions()
+            ManageRoute.PLAY_WEB -> PlatformActions.current?.openUrl(StoreBrand.PLAY_SUBSCRIPTIONS_URL)
+            ManageRoute.APP_STORE_WEB -> PlatformActions.current?.openUrl(StoreBrand.APP_STORE_SUBSCRIPTIONS_URL)
+            ManageRoute.NONE -> Unit
+        }
+    }
 
     override fun openPlayOrderHistory(host: PurchaseHost) {
         PlatformActions.current?.openUrl(ORDER_HISTORY_URL)

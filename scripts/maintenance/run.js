@@ -649,6 +649,86 @@ async function authorphans(db, auth) {
   notice(`auditLog14d=${j(types)}`);
 }
 
+// Sign in with Apple accounts (24 Nov 2026: a tester's sign-up crashed and left an account with a private-relay address).
+// Lists them masked; code `delete:<uid>` deletes ONE Apple account whose profile was never completed (Auth user + the
+// incomplete profile doc), so the person can start again. Completed profiles are never deleted here.
+async function appleusers(db, auth, arg) {
+  const del = /^delete:(.+)$/.exec((arg || "").trim());
+  if (del) {
+    const uid = del[1].trim();
+    const u = await auth.getUser(uid);
+    if (!(u.providerData || []).some((p) => p.providerId === "apple.com")) throw new Error("not a Sign in with Apple account");
+    const ref = db.collection("user_profiles").doc(uid);
+    const snap = await ref.get();
+    const name = snap.exists ? String(snap.get("fullName") || "").trim() : "";
+    if (name) throw new Error("this account has a completed profile; not deleted (use the admin console)");
+    if (snap.exists) await ref.delete();
+    await auth.deleteUser(uid);
+    await db.collection("audit_security_logs").add({
+      actionType: "ADMIN_ACCOUNT_DELETED", targetUid: uid, reason: "incomplete Sign in with Apple sign-up (maintenance appleusers)",
+      timestamp: Date.now(), actor: "maintenance",
+    });
+    notice(`appleusers: deleted Auth user ${uid}${snap.exists ? " and its incomplete profile" : ""}`);
+    return;
+  }
+  let page; let n = 0;
+  do {
+    const r = await auth.listUsers(1000, page);
+    for (const u of r.users) {
+      const providers = (u.providerData || []).map((p) => p.providerId);
+      if (!providers.includes("apple.com")) continue;
+      n++;
+      const snap = await db.collection("user_profiles").doc(u.uid).get();
+      const name = snap.exists ? String(snap.get("fullName") || "").trim() : "";
+      const relay = /privaterelay\.appleid\.com$/i.test(u.email || "");
+      notice(`apple uid=${u.uid} email=${maskEmail(u.email)}${relay ? " (Hide My Email relay)" : ""} providers=${providers.join("+")} ` +
+        `created=${u.metadata.creationTime} lastSignIn=${u.metadata.lastSignInTime} profile=${snap.exists ? (name ? `complete (${name[0]}.)` : "INCOMPLETE") : "none"}`);
+    }
+    page = r.pageToken;
+  } while (page);
+  notice(`appleusers: ${n} Sign in with Apple account(s). Fresh start for an incomplete one: code delete:<uid>`);
+}
+
+// Crashlytics (no PII: issue titles, versions, top frames). code = days back (default 3), optional "android".
+async function crashes(arg) {
+  const parts = (arg || "").trim().split(/\s+/).filter(Boolean);
+  const days = Number(parts.find((p) => /^\d+$/.test(p)) || 3);
+  const appId = parts.includes("android") ? "1:646730915838:android:345a7e12d5994456c8eaaf" : "1:646730915838:ios:b816bc76af193424c8eaaf";
+  const base = `https://firebasecrashlytics.googleapis.com/v1alpha/projects/646730915838/apps/${appId}`;
+  const start = new Date(Date.now() - days * 86400000).toISOString();
+  const end = new Date().toISOString();
+  const q = `filter.interval.start_time=${encodeURIComponent(start)}&filter.interval.end_time=${encodeURIComponent(end)}`;
+  const get = async (url) => {
+    const r = await googleApi(url, { method: "GET" });
+    const t = await r.text();
+    if (!r.ok) throw new Error(`HTTP ${r.status} ${t.slice(0, 300)}`);
+    return JSON.parse(t || "{}");
+  };
+  try {
+    const rep = await get(`${base}/reports/topIssues?${q}&page_size=10`);
+    for (const g of rep.groups || []) {
+      const i = g.issue || {};
+      const m = (g.metrics || [])[0] || {};
+      notice(`issue ${i.id} ${i.errorType || ""} "${String(i.title || "").slice(0, 120)}" — ${String(i.subtitle || "").slice(0, 120)} events=${m.eventsCount || "?"} users=${m.impactedUsersCount || "?"}`);
+    }
+    if (!(rep.groups || []).length) notice(`crashes: no issues in the last ${days} day(s) (${appId.split(":")[2]})`);
+  } catch (e) { notice(`crashes: topIssues failed: ${e.message}`); }
+  try {
+    const ev = await get(`${base}/events?${q}&page_size=8`);
+    for (const e of ev.events || []) {
+      const frames = [];
+      for (const x of [...(e.exceptions || []), ...(e.errors || []), ...(e.threads || []).filter((t) => t.crashed || t.blamed)]) {
+        for (const f of (x.frames || []).slice(0, 14)) frames.push(`${f.library || ""}:${f.symbol || f.address || ""}`.slice(0, 110));
+        if (frames.length) break;
+      }
+      const head = (e.exceptions || [])[0] || (e.errors || [])[0] || {};
+      notice(`event ${e.eventTime} v${(e.version || {}).displayVersion || "?"}(${(e.version || {}).buildVersion || "?"}) ${(e.issue || {}).id || ""} ` +
+        `${head.type || head.exceptionType || ""} ${String(head.exceptionMessage || head.reason || "").slice(0, 160)} | ${frames.join(" < ")}`.slice(0, 1800));
+    }
+    if (!(ev.events || []).length) notice("crashes: no events returned");
+  } catch (e) { notice(`crashes: events failed: ${e.message}`); }
+}
+
 const maskEmail = (e) => { if (!e) return ""; const at = e.indexOf("@"); return at <= 0 ? "***" : `${e[0]}***${e.slice(at)}`; };
 const redact = (v) => String(v || "").replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, (m) => maskEmail(m)).replace(/\s+/g, " ");
 // Sign-in method from the Auth record: no provider = custom token = the email 6-digit code (verifyEmailOtp /
@@ -1985,6 +2065,30 @@ async function apis(arg) {
   };
   const apply = (arg || "").trim() === "apply";
   const enabled = ((await call("GET", `https://serviceusage.googleapis.com/v1/projects/${P}/services?filter=state:ENABLED&pageSize=200`)).services || []).map((x) => x.config.name);
+  // Maps (iOS map blank, 24 Nov 2026): the iOS SDK needs maps-ios-backend enabled and a key allowed for it + the bundle id.
+  for (const api of ["maps-ios-backend.googleapis.com", "maps-android-backend.googleapis.com"]) {
+    const on = enabled.includes(api);
+    notice(`maps: ${api} ${on ? "ENABLED" : "DISABLED"}`);
+    if (!on && api.startsWith("maps-ios") && (arg || "").trim() === "mapsios") {
+      try {
+        await call("POST", `https://serviceusage.googleapis.com/v1/projects/${P}/services/${api}:enable`, {});
+        notice(`maps: ${api} enable requested`);
+      } catch (e) { notice(`maps: ${api} NOT enabled: ${e.message}`); }
+    }
+  }
+  // API keys: names and restrictions only (the list never returns key strings).
+  try {
+    const keys = (await call("GET", `https://apikeys.googleapis.com/v2/projects/${P}/locations/global/keys?pageSize=50`)).keys || [];
+    for (const k of keys) {
+      const r = k.restrictions || {};
+      const app = r.iosKeyRestrictions ? `ios bundles=[${(r.iosKeyRestrictions.allowedBundleIds || []).join(",")}]`
+        : r.androidKeyRestrictions ? `android apps=${(r.androidKeyRestrictions.allowedApplications || []).map((a) => a.packageName).join(",")}`
+        : r.browserKeyRestrictions ? `browser referrers=${(r.browserKeyRestrictions.allowedReferrers || []).length}`
+        : "no app restriction";
+      const apisAllowed = (r.apiTargets || []).map((t) => t.service).join(",") || "all APIs";
+      notice(`apikey "${k.displayName || k.name.split("/").pop()}": ${app}; apis=${apisAllowed}`);
+    }
+  } catch (e) { notice(`apikeys: not readable (${e.message})`); }
   for (const api of UNUSED_APIS) {
     if (!enabled.includes(api)) { notice(`${api}: already disabled`); continue; }
     if (!apply) { notice(`${api}: ENABLED (code: apply to disable)`); continue; }
@@ -2189,5 +2293,7 @@ async function smsauth(db, arg) {
   else if (task === "applesync") await applesync(db);
   else if (task === "appcheck") await appcheck(arg);
   else if (task === "reviewaccounts") await reviewaccounts(db, auth, arg);
+  else if (task === "appleusers") await appleusers(db, auth, arg);
+  else if (task === "crashes") await crashes(arg);
   else throw new Error(`unknown task ${task}`);
 })().catch((e) => { fail(`${e && e.message}`); process.exit(1); });

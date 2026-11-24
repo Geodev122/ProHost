@@ -605,7 +605,7 @@ fun OwnerSubscriptionsScreen(
                     ).forEachIndexed { i, line ->
                         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             Text("${i + 1}.", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                            Text(line, style = MaterialTheme.typography.bodySmall)
+                            Text(com.example.data.billing.StoreBrand.text(line), style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
@@ -1063,7 +1063,7 @@ private fun ExplainerSteps(heading: String, steps: List<Triple<androidx.compose.
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         Text(title, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = scheme.onSurface)
-                        Text(body, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+                        Text(com.example.data.billing.StoreBrand.text(body), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
                     }
                 }
             }
@@ -1173,7 +1173,7 @@ private fun SubscriptionStatusBanner(
         "CANCELED" -> StatusCopy(
             com.example.ui.components.ProHostAlertSeverity.WARNING,
             sharedText("subscription_canceled"),
-            "It won't renew. You keep Pro Host access${expiryDate?.let { " until $it" } ?: " until the end of the paid period"}. Changed your mind? Resubscribe in Google Play.",
+            com.example.data.billing.StoreBrand.text("It won't renew. You keep Pro Host access${expiryDate?.let { " until $it" } ?: " until the end of the paid period"}. Changed your mind? Resubscribe in Google Play."),
             sharedText("resubscribe")
         )
         "PENDING" -> StatusCopy(

@@ -172,6 +172,9 @@ jobs:
           rm -rf build/ipa && mkdir -p build/ipa && unzip -q build/export-inspect/ProHost.ipa -d build/ipa
           echo "--- signed entitlements"
           codesign -d --entitlements - --xml build/ipa/Payload/ProHost.app 2>/dev/null | plutil -p - | head -30
+          # The Maps key must land in Info.plist (GMSApiKey); print only its length, never the value.
+          KEYLEN=$(/usr/libexec/PlistBuddy -c "Print :GMSApiKey" build/ipa/Payload/ProHost.app/Info.plist 2>/dev/null | tr -d '\n' | wc -c | tr -d ' ')
+          if [ "${KEYLEN:-0}" -lt 20 ]; then echo "::warning title=maps::GMSApiKey missing or empty in the IPA (MAPS_IOS_API_KEY secret) — the iOS map stays blank"; else echo "::notice title=maps::GMSApiKey present (${KEYLEN} chars)"; fi
           echo "--- build number in the IPA"
           /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" build/ipa/Payload/ProHost.app/Info.plist
           /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" build/ipa/Payload/ProHost.app/Info.plist

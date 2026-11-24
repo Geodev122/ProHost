@@ -7,8 +7,9 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-actual fun appString(resource: StringResource, vararg formatArgs: Any): String = stringResource(resource, *formatArgs)
+actual fun appString(resource: StringResource, vararg formatArgs: Any): String =
+    com.example.data.billing.StoreBrand.text(stringResource(resource, *formatArgs))
 
 @Composable
 actual fun appPlural(resource: PluralStringResource, quantity: Int, vararg formatArgs: Any): String =
-    pluralStringResource(resource, quantity, *formatArgs)
+    com.example.data.billing.StoreBrand.text(pluralStringResource(resource, quantity, *formatArgs))

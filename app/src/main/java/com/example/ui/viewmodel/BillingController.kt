@@ -344,6 +344,13 @@ class BillingController(
 
     fun openManageSubscriptions(activity: android.app.Activity, productId: String? = null) {
         com.example.analytics.AnalyticsTracker.manageSubscriptionOpen()
+        // An App Store plan seen on Android: Apple's subscriptions page, never Play's (24 Nov 2026).
+        if (com.example.data.billing.StoreBrand.manageRoute(currentUser.value?.entitlementSource, com.example.data.billing.AppStoreKind.GOOGLE_PLAY) ==
+            com.example.data.billing.ManageRoute.APP_STORE_WEB
+        ) {
+            openUriOrToast(activity, com.example.data.billing.StoreBrand.APP_STORE_SUBSCRIPTIONS_URL)
+            return
+        }
         playBillingManager?.openManageSubscriptions(activity, productId) ?: run {
             val uri = if (!productId.isNullOrBlank()) {
                 "https://play.google.com/store/account/subscriptions?sku=$productId&package=${activity.packageName}"

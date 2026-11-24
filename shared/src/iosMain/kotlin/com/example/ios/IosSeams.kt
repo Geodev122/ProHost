@@ -96,6 +96,8 @@ internal object IosSeams {
             com.example.legal.LegalPdfs.current = IosLegalPdfs
             com.example.util.KeyValueStores.open = { name -> IosKeyValueStore(name) }
             FileAccess.current = IosFileAccess
+            // App Review 2.3.10: shared texts that name Google Play read as the App Store on iPhone.
+            com.example.data.billing.StoreBrand.current = com.example.data.billing.AppStoreKind.APP_STORE
             AppLanguage.current = { language() }
             LocaleNames.country = { iso ->
                 NSLocale(localeIdentifier = language()).displayNameForKey(NSLocaleCountryCode, iso) ?: ""
@@ -104,11 +106,11 @@ internal object IosSeams {
             // bundled XML through a suspend API; the reads are local and cached, so they run synchronously here.
             SharedText.lookup = { name, args ->
                 val res = Res.allStringResources[name]
-                if (res == null) "" else runBlocking { if (args.isEmpty()) getString(res) else getString(res, *args.map { it ?: "" }.toTypedArray()) }
+                if (res == null) "" else com.example.data.billing.StoreBrand.text(runBlocking { if (args.isEmpty()) getString(res) else getString(res, *args.map { it ?: "" }.toTypedArray()) })
             }
             SharedText.plural = { name, count, args ->
                 val res = Res.allPluralStringResources[name]
-                if (res == null) "" else runBlocking { getPluralString(res, count, *args.map { it ?: "" }.toTypedArray()) }
+                if (res == null) "" else com.example.data.billing.StoreBrand.text(runBlocking { getPluralString(res, count, *args.map { it ?: "" }.toTypedArray()) })
             }
         }
     }

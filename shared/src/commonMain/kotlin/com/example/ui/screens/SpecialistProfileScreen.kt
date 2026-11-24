@@ -654,7 +654,12 @@ fun SpecialistProfileScreen(
                                 },
                                 enabled = settingsActivity != null
                             ) {
-                                Text(appString(Res.string.manage_subscription_in_google_play), style = MaterialTheme.typography.labelLarge)
+                                Text(
+                                    // Android keeps "…in Google Play"; on iPhone the store depends on the plan, so the plain label.
+                                    if (com.example.data.billing.StoreBrand.current == com.example.data.billing.AppStoreKind.GOOGLE_PLAY) appString(Res.string.manage_subscription_in_google_play)
+                                    else appString(Res.string.manage_subscription),
+                                    style = MaterialTheme.typography.labelLarge
+                                )
                             }
                         }
                     }

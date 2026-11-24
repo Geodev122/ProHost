@@ -87,7 +87,12 @@ final class StoreKitBridgeImpl: NSObject, StoreKitBridge {
     func presentManageSubscriptions() {
         Task { @MainActor in
             guard let scene = Self.activeScene() else { return }
-            try? await AppStore.showManageSubscriptions(in: scene)
+            do {
+                try await AppStore.showManageSubscriptions(in: scene)
+            } catch {
+                // Apple's sheet failed to load: fall back to the account page (Settings › Apple Account › Subscriptions on the web).
+                if let url = URL(string: "https://apps.apple.com/account/subscriptions") { await UIApplication.shared.open(url) }
+            }
         }
     }
 
