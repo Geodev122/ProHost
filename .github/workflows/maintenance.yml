@@ -10,7 +10,7 @@ on:
         required: true
         default: audit
         type: choice
-        options: [audit, prodcheck, hostingcheck, ipwhois, iamaudit, activityaudit, keysecurity, apis, playcatalog, playofferfix, singleplan, unlimitedprice, clearsaves, applekey, applesync, reviewaccounts, appleusers, crashes, appcheck, alerts, smsauth, authorphans, authuser, logerrors, authconfig, passwordinvites, integrity, mailingcode, mailingsmoke, officeleadsmoke, igsetup, igsmoke, igmedia, igpublish, igtest, aitest, j8, retiregrowth, occupancy, favrecount, ttl, lifecycle, emailauth, enableemaillink, mailtest, clearstalesecrets]
+        options: [audit, prodcheck, hostingcheck, ipwhois, iamaudit, activityaudit, keysecurity, apis, playcatalog, playofferfix, singleplan, unlimitedprice, clearsaves, applekey, applesync, reviewaccounts, appleusers, crashes, mapskey, appcheck, alerts, smsauth, authorphans, authuser, logerrors, authconfig, passwordinvites, integrity, mailingcode, mailingsmoke, officeleadsmoke, igsetup, igsmoke, igmedia, igpublish, igtest, aitest, j8, retiregrowth, occupancy, favrecount, ttl, lifecycle, emailauth, enableemaillink, mailtest, clearstalesecrets]
       code:
         description: "mailingcode / mailingsmoke: the pro-host.tech/admin code (digits); playofferfix: apply (else dry run); smsauth: allow:SY (or empty to only read); authuser: the Auth uid; logerrors: hours (default 48); authconfig: apply|retire; passwordinvites: send|resend; integrity: enable; appleusers: delete:<uid>; crashes: days [android]; apis: mapsios; other tasks ignore it"
         required: false
@@ -60,6 +60,7 @@ jobs:
           APPLE_IAP_KEY_ID: ${{ secrets.APPLE_IAP_KEY_ID }}
           APPLE_IAP_KEY_P8: ${{ secrets.APPLE_IAP_KEY_P8 }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          MAPS_IOS_API_KEY: ${{ secrets.MAPS_IOS_API_KEY }}
         run: node scripts/maintenance/run.js "$TASK" "$CODE"
 
       # reviewaccounts: the task put the Specialist login and the notes line (masked) into $GITHUB_ENV;

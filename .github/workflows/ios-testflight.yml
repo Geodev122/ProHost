@@ -56,9 +56,14 @@ jobs:
 
       - name: Select newest Xcode
         run: |
+          echo "Xcode versions on this runner:"; ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V
           latest=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
           sudo xcode-select -s "$latest/Contents/Developer"
           xcodebuild -version
+          # Apple (ITMS-90725): from April 2027 uploads must use the iOS 27 SDK (Xcode 27+). The newest Xcode is picked
+          # automatically; warn while the runner image does not have it yet.
+          major=$(xcodebuild -version | awk '/^Xcode/{split($2,v,"."); print v[1]}')
+          if [ "${major:-0}" -lt 27 ]; then echo "::warning title=xcode::Built with Xcode $major (iOS $major SDK); App Store uploads need Xcode 27+ from April 2027"; fi
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -153,6 +158,8 @@ jobs:
           MARKETING_VERSION_IN: ${{ github.event.inputs.marketing_version }}
           MAPS_IOS_API_KEY: ${{ secrets.MAPS_IOS_API_KEY }}
         run: |
+          # Maps key: say whether the secret reached this job (length only, never the value).
+          if [ -z "$MAPS_IOS_API_KEY" ]; then echo "::warning title=maps::MAPS_IOS_API_KEY secret is empty or not set for this repository; the iOS map will be blank"; else echo "::notice title=maps::MAPS_IOS_API_KEY secret present (${#MAPS_IOS_API_KEY} chars)"; fi
           xcodebuild archive \
             -project ProHost.xcodeproj -scheme ProHost -configuration Release \
             -destination "generic/platform=iOS" \

@@ -2301,5 +2301,10 @@ async function smsauth(db, arg) {
   else if (task === "reviewaccounts") await reviewaccounts(db, auth, arg);
   else if (task === "appleusers") await appleusers(db, auth, arg);
   else if (task === "crashes") await crashes(arg);
+  else if (task === "mapskey") {
+    // Only presence and shape of the GitHub secret the iOS build writes into Info.plist (never the value).
+    const k = process.env.MAPS_IOS_API_KEY || "";
+    notice(`mapskey: MAPS_IOS_API_KEY ${k ? `present, ${k.length} chars, ${/^AIza[0-9A-Za-z_-]{35}$/.test(k.trim()) ? "looks like a Google API key" : "does NOT look like a Google API key (AIza… 39 chars)"}${k !== k.trim() ? ", has surrounding spaces/newline" : ""}` : "EMPTY or not set"}`);
+  }
   else throw new Error(`unknown task ${task}`);
 })().catch((e) => { fail(`${e && e.message}`); process.exit(1); });
