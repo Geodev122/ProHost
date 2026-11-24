@@ -504,7 +504,12 @@ fun LoginAuthScreen(
                 }
             }
         ) {
-            if (firebaseEmail.isNotBlank()) AuthInfoLine(Icons.Default.VerifiedUser, sharedText("signed_in_as_x", firebaseEmail))
+            if (firebaseEmail.isNotBlank()) AuthInfoLine(
+                Icons.Default.VerifiedUser,
+                // Apple's Hide My Email relay address means nothing to the person: say it is hidden instead.
+                if (firebaseEmail.endsWith("@privaterelay.appleid.com", ignoreCase = true)) sharedText("signed_in_with_apple_hidden_email")
+                else sharedText("signed_in_as_x", firebaseEmail)
+            )
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 ProfilePicturePickerField(pictureFile = regProfilePic, onPictureSelected = { regProfilePic = it })
                 Column {

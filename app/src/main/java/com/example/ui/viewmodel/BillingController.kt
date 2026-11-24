@@ -462,6 +462,9 @@ class BillingController(
 
     fun openPlayOrderHistory(activity: android.app.Activity) {
         com.example.analytics.AnalyticsTracker.orderHistoryOpen()
+        if (com.example.data.billing.StoreBrand.manageRoute(currentUser.value?.entitlementSource, com.example.data.billing.AppStoreKind.GOOGLE_PLAY) ==
+            com.example.data.billing.ManageRoute.APP_STORE_WEB
+        ) return openUriOrToast(activity, com.example.data.billing.StoreBrand.APPLE_ORDER_HISTORY_URL)
         playBillingManager?.openOrderHistory(activity)
             ?: openUriOrToast(activity, com.example.data.billing.PlayBillingManager.ORDER_HISTORY_URL)
     }

@@ -102,6 +102,22 @@ jobs:
         run: |
           for f in ios/store/screenshots-real/*/*.png; do echo "$f $(sips -g pixelWidth -g pixelHeight "$f" | awk '/pixel/{printf "%s ", $2}')"; done
 
+      - name: Did the map draw tiles? (text verdict, no image review)
+        run: |
+          python3 -m pip install --quiet pillow >/dev/null 2>&1 || true
+          python3 - <<'EOF'
+          import glob
+          from PIL import Image
+          for f in sorted(glob.glob("ios/store/screenshots-real/*/02_explore_map.png")):
+              im = Image.open(f).convert("RGB")
+              w, h = im.size
+              # Middle band of the screen (below the header, above the nav pill): tiles give many colours, a blank map one or two.
+              crop = im.crop((0, int(h * 0.25), w, int(h * 0.70))).resize((200, 200))
+              colours = len(set(crop.getdata()))
+              verdict = "tiles drawn" if colours > 400 else "BLANK (no tiles: Maps key missing/refused, or the map view is hidden)"
+              print(f"::notice title=ios-map::{f}: {colours} distinct colours -> {verdict}")
+          EOF
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:

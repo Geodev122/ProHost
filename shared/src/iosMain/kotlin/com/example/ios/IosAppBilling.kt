@@ -141,7 +141,8 @@ class IosAppBilling(
     }
 
     override fun openPlayOrderHistory(host: PurchaseHost) {
-        PlatformActions.current?.openUrl(ORDER_HISTORY_URL)
+        val playPlan = StoreBrand.manageRoute(currentUser.value?.entitlementSource, AppStoreKind.APP_STORE) == ManageRoute.PLAY_WEB
+        PlatformActions.current?.openUrl(if (playPlan) StoreBrand.PLAY_ORDER_HISTORY_URL else ORDER_HISTORY_URL)
     }
 
     override fun openRedeemPromoCode(host: PurchaseHost, code: String?) = store.presentOfferCodeRedemption()

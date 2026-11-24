@@ -971,6 +971,7 @@
     <string name="sign_in">Sign in</string>
     <string name="sign_in_failed_please_try_again">Sign-in failed. Please try again.</string>
     <string name="signed_in_as_x">Signed in as: %1$s</string>
+    <string name="signed_in_with_apple_hidden_email">Signed in with Apple · your email is hidden by Apple and still reaches you</string>
     <string name="slots_of_this_booking">Slots of this booking</string>
     <string name="slots_this_week">slots this week</string>
     <string name="so_the_host_can_reach_you_about_your_booki">So the host can reach you about your booking.</string>

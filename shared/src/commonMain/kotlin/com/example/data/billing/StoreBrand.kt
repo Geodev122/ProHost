@@ -17,6 +17,8 @@ object StoreBrand {
 
     const val PLAY_SUBSCRIPTIONS_URL = "https://play.google.com/store/account/subscriptions"
     const val APP_STORE_SUBSCRIPTIONS_URL = "https://apps.apple.com/account/subscriptions"
+    const val PLAY_ORDER_HISTORY_URL = "https://play.google.com/store/account/orderhistory"
+    const val APPLE_ORDER_HISTORY_URL = "https://reportaproblem.apple.com"
 
     /** The store that bills [entitlementSource] (profile mirror), or null for grants and members without a store plan. */
     fun storeOf(entitlementSource: String?): AppStoreKind? = when (entitlementSource) {

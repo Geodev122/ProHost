@@ -18189,6 +18189,23 @@
         }
       }
     },
+    "signed_in_with_apple_hidden_email": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signed in with Apple · your email is hidden by Apple and still reaches you"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم تسجيل الدخول عبر Apple · بريدك مخفي من Apple ويصلك رغم ذلك"
+          }
+        }
+      }
+    },
     "signing_in": {
       "extractionState": "manual",
       "localizations": {

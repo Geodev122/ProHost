@@ -970,6 +970,7 @@
     <string name="sign_in">تسجيل الدخول</string>
     <string name="sign_in_failed_please_try_again">فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.</string>
     <string name="signed_in_as_x">مسجّل الدخول باسم: %1$s</string>
+    <string name="signed_in_with_apple_hidden_email">تم تسجيل الدخول عبر Apple · بريدك مخفي من Apple ويصلك رغم ذلك</string>
     <string name="slots_of_this_booking">فترات هذا الحجز</string>
     <string name="slots_this_week">فترات هذا الأسبوع</string>
     <string name="so_the_host_can_reach_you_about_your_booki">ليتمكّن المضيف من التواصل معك بشأن حجزك.</string>
