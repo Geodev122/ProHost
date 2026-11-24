@@ -698,6 +698,12 @@ async function crashes(arg) {
   const start = new Date(Date.now() - days * 86400000).toISOString();
   const end = new Date().toISOString();
   const q = `filter.interval.start_time=${encodeURIComponent(start)}&filter.interval.end_time=${encodeURIComponent(end)}`;
+  if (parts.includes("enable")) {
+    // The Crashlytics read API (firebasecrashlytics.googleapis.com) is off by default; it only reads crash reports.
+    const r = await googleApi("https://serviceusage.googleapis.com/v1/projects/prohost-f766f/services/firebasecrashlytics.googleapis.com:enable", { method: "POST", body: "{}" });
+    notice(`crashes: enable Crashlytics API -> HTTP ${r.status}`);
+    await new Promise((ok) => setTimeout(ok, 60000));
+  }
   const get = async (url) => {
     const r = await googleApi(url, { method: "GET" });
     const t = await r.text();
