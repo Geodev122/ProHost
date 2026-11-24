@@ -289,3 +289,9 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
 - 24 Nov 2026 15:50 UTC: main e6727bd (Parity Gate, iOS CI, Admin Web green). Android 1.0.52 (52) released to Play production,
   staged 20 % (release-bundle run 45430103617); published.txt → 1.0.52. TestFlight 24 from main (run 45430110313).
   ios-screenshots map check failed to run (no Pillow on the macOS runner) — install line fixed.
+- 24 Nov 2026 16:49 UTC: iOS map blank — root cause found: the GitHub repository secret `MAPS_IOS_API_KEY` is EMPTY / not set
+  (Maintenance `mapskey`, run 45441464601); TestFlight 24 confirmed `GMSApiKey` missing in the IPA, so the app never installs
+  the Maps factory. Owner action: add the repository secret (value = Maps SDK for iOS key restricted to bundle
+  app.geonajjar.prohost), then a new TestFlight build. Maps SDK for iOS API is enabled.
+- ITMS-90725 on build 24 (built with iOS 26.5 SDK): warning only; from April 2027 uploads need Xcode 27. TestFlight picks the
+  newest Xcode on the runner and now warns while it is below 27.
