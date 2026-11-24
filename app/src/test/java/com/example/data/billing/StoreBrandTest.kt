@@ -32,6 +32,7 @@ class StoreBrandTest {
         assertEquals("Cancel anytime in Settings › Apple Account › Subscriptions.", StoreBrand.text("Cancel anytime in Google Play › Payments & subscriptions.", ios))
         assertEquals("Renews automatically via the App Store", StoreBrand.text("Renews automatically via Google Play", ios))
         assertEquals("Manage subscription in the App Store", StoreBrand.text("Manage subscription in Google Play", ios))
+        assertEquals("To switch plans, open the App Store with the Apple Account", StoreBrand.text("To switch plans, open the Play Store with the Google account", ios))
         assertEquals("ألغِ اشتراكك في App Store أولًا", StoreBrand.text("ألغِ اشتراكك في Google Play أولًا", ios))
     }
 }

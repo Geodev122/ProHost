@@ -40,12 +40,13 @@ object StoreBrand {
 
     /** [text] with Google Play's name and places replaced by the App Store's when [store] is the App Store; unchanged otherwise. */
     fun text(text: String, store: AppStoreKind = current): String {
-        if (store != AppStoreKind.APP_STORE || !text.contains("Google")) return text
+        if (store != AppStoreKind.APP_STORE || !(text.contains("Google") || text.contains("Play Store"))) return text
         var s = text
             .replace("Google Play › Payments & subscriptions", "Settings › Apple Account › Subscriptions")
             .replace("Google Play account", "Apple Account")
             .replace("Google account", "Apple Account")
             .replace("Google Play Store", "App Store")
+            .replace("Play Store", "App Store")
         s = SENTENCE_POSSESSIVE.replace(s) { "${it.groupValues[1]}The App Store's" }
         s = SENTENCE_START.replace(s) { "${it.groupValues[1]}The App Store" }
         s = AFTER_PREPOSITION.replace(s) { "${it.groupValues[1]} the App Store" }

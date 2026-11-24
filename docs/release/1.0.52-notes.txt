@@ -1,0 +1,3 @@
+<en-US>
+"Manage subscription" now always opens the store your plan was bought in, and order history follows it too. Includes all of 1.0.51: rooms first on every listing, save the exact room, faster sign-up, the 1 listing plan and clearer dark mode.
+</en-US>
