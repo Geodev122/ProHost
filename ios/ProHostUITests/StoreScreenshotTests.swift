@@ -34,7 +34,7 @@ final class StoreScreenshotTests: XCTestCase {
         dump(app, "after_signin")
         shot(app, "01_explore")
         if tap(app, lang == "ar" ? ["قائمة", "List"] : ["List"]) { settle(app, 4); shot(app, "02_explore_list") }
-        if tap(app, lang == "ar" ? ["خريطة", "Map"] : ["Map"]) { settle(app, 8); shot(app, "02_explore_map") }
+        if tap(app, lang == "ar" ? ["خريطة مشاهدة", "خريطة", "Map view", "Map"] : ["Map view", "Map"]) { settle(app, 8); shot(app, "02_explore_map") }
 
         if tab(app, "pro_rentals") { shot(app, "06_rentals") }
         if tab(app, "pro_profile") { shot(app, "07_profile") }
