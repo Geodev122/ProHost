@@ -300,3 +300,20 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   No real user mail was lost. Fix: `sendEmail` skips reserved, never-deliverable domains (`isUndeliverableAddress`, tested).
   Also 374 errors/72 h were plain GET probes on callables ("Invalid request, unable to process", rejected before our code);
   the Function-errors alert filter now excludes both noise patterns (Maintenance `alerts apply` updates existing policies).
+- 28 Nov 2026 (owner: maps key added, Crashlytics Viewer granted, "debug billing on both platforms", "check the launch tracker"):
+  - Billing fix deployed (main b001355, build-and-deploy 399, e2e incl. a new plan-switch flow): during an Unlimited ↔ 1 listing
+    switch both store subscriptions are active; the entitlement now comes from the best active one (`billing/bestSubscription.ts`:
+    Unlimited over 1 listing, then later expiry) and `removeProHost` hands over to a still-active one. Before, whichever synced last
+    won (listing limit flipping on re-syncs, early demotion when the old plan ended). 302 functions tests green.
+  - Billing health + Maintenance `playcatalog` now read both Play products (`readSinglePlanCatalog`). Live: Unlimited pro-monthly1
+    $17.99 / pro-yearly $159.99 ACTIVE, offer lint clean; single-monthly / single-yearly ACTIVE, 174 regions (`singleplan` dry run).
+    App Store: 4 subscriptions READY_TO_SUBMIT ($4.49 / $44.99 / $17.99 / $159.99).
+  - App Store: version 1.0 is READY_FOR_SALE (live) but its subscriptions were not part of it, so Premium can't be bought on iPhone
+    yet; Apple reviews a first subscription group only with a new version. `asc_prepare` section `newversion` created 1.0.1
+    (What's New EN/AR from `metadata.json` nextVersion) and uploaded the real simulator screenshots (en 6, ar 4). TestFlight 1.0.1
+    (run 46114367089, Maps key + new markers) to be attached with section `build`; owner ticks the 4 subscriptions + Add for Review.
+  - Maps iOS: secret `MAPS_IOS_API_KEY` present (39 chars, Google key format); maps-ios-backend ENABLED.
+  - Map markers refined (owner request): same teardrop/bubble, white outline, soft sheen, two-tone centre, halo when selected,
+    cluster size by count; Android (`PlatformMap.android.kt`) and iOS (`GoogleMapViewBridge.swift`) identical.
+  - Crashlytics: owner granted Crashlytics Viewer to firebase-adminsdk-fbsvc (= the CI `FIREBASE_SERVICE_ACCOUNT`, now confirmed by
+    the task's "calling as" line). Maintenance `crashes` reads issues (events per issue): iOS, last 7 days: no issues.
