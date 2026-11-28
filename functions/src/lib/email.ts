@@ -55,7 +55,7 @@ export function isUndeliverableAddress(email: string | null | undefined): boolea
 
 export async function sendEmail(payload: EmailPayload): Promise<boolean> {
   // The emulator e2e suite signs up @example.com users and reads their queued mail: only production skips them.
-  if (process.env.FUNCTIONS_EMULATOR !== "true" && isUndeliverableAddress(payload.to)) {
+  if (process.env.FUNCTIONS_EMULATOR !== "true" && !process.env.FIRESTORE_EMULATOR_HOST && isUndeliverableAddress(payload.to)) {
     logger.info("email_skipped_reserved_domain", { to: maskEmail(payload.to), subject: payload.subject });
     return false;
   }
