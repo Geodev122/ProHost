@@ -1,0 +1,3 @@
+<en-US>
+Hosts can switch off free slots of a published listing; slots someone has booked or requested stay on. Ended bookings move to Past, notifications always open the right request, and new listings need a pinned location. Includes all of 1.0.52.
+</en-US>
