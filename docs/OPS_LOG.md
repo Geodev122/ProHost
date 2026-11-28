@@ -317,3 +317,6 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
     cluster size by count; Android (`PlatformMap.android.kt`) and iOS (`GoogleMapViewBridge.swift`) identical.
   - Crashlytics: owner granted Crashlytics Viewer to firebase-adminsdk-fbsvc (= the CI `FIREBASE_SERVICE_ACCOUNT`, now confirmed by
     the task's "calling as" line). Maintenance `crashes` reads issues (events per issue): iOS, last 7 days: no issues.
+  - Maps on iPhone verified: ios-screenshots run (test now taps "Map view") captured 02_explore_map in en + ar, map band
+    ≈6,300 distinct colours (tiles drawn; a blank map has 1-2). Build 25 (1.0.1, run 46114367089) attached to version 1.0.1
+    (ios-inspect `only=build build_number=25`). Left for the owner: tick the 4 subscriptions on the 1.0.1 page, Add for Review.
