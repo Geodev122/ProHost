@@ -691,6 +691,11 @@ async function appleusers(db, auth, arg) {
 
 // Crashlytics (no PII: issue titles, versions, top frames). code = days back (default 3), optional "android".
 async function crashes(arg) {
+  // Which account these calls run as (an account email, not key material), so a 403 names who lacks the role.
+  try {
+    const who = JSON.parse(require("fs").readFileSync(process.env.GOOGLE_APPLICATION_CREDENTIALS, "utf8")).client_email;
+    notice(`crashes: calling as ${who}`);
+  } catch { /* credentials file unreadable: the calls below still report their status */ }
   const parts = (arg || "").trim().split(/\s+/).filter(Boolean);
   const days = Number(parts.find((p) => /^\d+$/.test(p)) || 3);
   const appId = parts.includes("android") ? "1:646730915838:android:345a7e12d5994456c8eaaf" : "1:646730915838:ios:b816bc76af193424c8eaaf";
