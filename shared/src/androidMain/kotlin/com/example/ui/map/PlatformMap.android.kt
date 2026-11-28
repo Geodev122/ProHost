@@ -108,6 +108,8 @@ actual fun PlatformMap(
     }
 }
 
+// Marker look (owner, 28 Nov 2026: "more modern and dynamic", same pin and bubble). Mirrored point for point in
+// ios/ProHost/Core/Platform/GoogleMapViewBridge.swift (MarkerImages): keep both identical.
 private fun createCustomMarker(context: Context, topColor: Int, baseColor: Int, isSelected: Boolean): BitmapDescriptor {
     val scale = context.resources.displayMetrics.density
     val pinScale = if (isSelected) 1.25f else 1.0f
@@ -116,22 +118,27 @@ private fun createCustomMarker(context: Context, topColor: Int, baseColor: Int, 
     val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
 
-    // Scale canvas to match SVG 200x300 viewBox
+    // Same 200x300 viewBox as before: the tip stays at (100, 255), so the anchor is unchanged.
     canvas.scale(width / 200f, height / 300f)
 
-    // Ground shadow — drawn first so the pin renders on top
+    // Soft ground shadow under the tip
     val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        color = android.graphics.Color.argb(55, 0, 0, 0)
-        maskFilter = android.graphics.BlurMaskFilter(10f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+        color = android.graphics.Color.argb(70, 0, 0, 0)
+        maskFilter = android.graphics.BlurMaskFilter(12f, android.graphics.BlurMaskFilter.Blur.NORMAL)
     }
-    canvas.drawOval(android.graphics.RectF(65f, 248f, 135f, 265f), shadowPaint)
+    canvas.drawOval(android.graphics.RectF(62f, 246f, 138f, 266f), shadowPaint)
 
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
+    // Selected: a translucent halo around the head
+    if (isSelected) {
+        val halo = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = topColor
+            alpha = 70
+        }
+        canvas.drawCircle(100f, 95f, 96f, halo)
     }
 
-    // Teardrop path: M 30.72,135 A 80,80 0 1 1 169.28,135 L 100,255 Z
     val path = android.graphics.Path().apply {
         moveTo(30.72f, 135f)
         arcTo(android.graphics.RectF(20f, 15f, 180f, 175f), 180f, 180f, false)
@@ -139,65 +146,82 @@ private fun createCustomMarker(context: Context, topColor: Int, baseColor: Int, 
         close()
     }
 
-    // Top-to-bottom linear gradient
-    paint.shader = android.graphics.LinearGradient(
-        100f, 15f, 100f, 255f,
-        topColor, baseColor,
-        android.graphics.Shader.TileMode.CLAMP
-    )
+    // Body: top-to-bottom gradient
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        shader = android.graphics.LinearGradient(100f, 15f, 100f, 255f, topColor, baseColor, android.graphics.Shader.TileMode.CLAMP)
+    }
     canvas.drawPath(path, paint)
 
-    // Upper-left gloss highlight
-    val glossPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    // Soft top sheen (subtler than the old gloss spot)
+    val sheen = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        shader = android.graphics.RadialGradient(
-            76f, 70f, 45f,
-            android.graphics.Color.WHITE,
-            android.graphics.Color.TRANSPARENT,
+        shader = android.graphics.LinearGradient(
+            100f, 15f, 100f, 110f,
+            android.graphics.Color.argb(90, 255, 255, 255), android.graphics.Color.TRANSPARENT,
             android.graphics.Shader.TileMode.CLAMP
         )
-        alpha = 130
     }
-    canvas.drawPath(path, glossPaint)
+    canvas.drawPath(path, sheen)
 
-    // White center circle (hole-punch accent)
-    paint.shader = null
-    paint.color = android.graphics.Color.WHITE
-    canvas.drawCircle(100f, 95f, 30f, paint)
+    // Crisp white outline so pins read on any map colour
+    val outline = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        color = android.graphics.Color.WHITE
+        strokeWidth = 10f
+        strokeJoin = Paint.Join.ROUND
+    }
+    canvas.drawPath(path, outline)
+
+    // Two-tone centre: white disc with a dot in the pin colour
+    val dot = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL; color = android.graphics.Color.WHITE }
+    canvas.drawCircle(100f, 95f, 34f, dot)
+    dot.color = baseColor
+    canvas.drawCircle(100f, 95f, if (isSelected) 16f else 12f, dot)
 
     return BitmapDescriptorFactory.fromBitmap(bitmap)
 }
 
+/** Cluster bubble side in dp: grows with the number of listings it holds. */
+private fun clusterSideDp(count: Int): Int = when {
+    count < 10 -> 46
+    count < 50 -> 54
+    else -> 62
+}
+
 private fun createClusterMarker(context: Context, count: Int, hasSelected: Boolean): BitmapDescriptor {
     val scale = context.resources.displayMetrics.density
-    val size = (52 * scale).toInt()
+    val side = clusterSideDp(count)
+    val size = (side * scale).toInt()
     val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     val cx = size / 2f
     val cy = size / 2f
-    val radius = cx - (4 * scale)
+    val outer = cx - (1 * scale)
+    val radius = cx - (7 * scale)
 
-    val bgColor = if (hasSelected)
-        android.graphics.Color.parseColor("#FFB300")
-    else
-        android.graphics.Color.parseColor("#2B5A8C")
-    val borderColor = android.graphics.Color.WHITE
+    val bgColor = if (hasSelected) android.graphics.Color.parseColor("#FFB300") else android.graphics.Color.parseColor("#2B5A8C")
+    val lightColor = if (hasSelected) android.graphics.Color.parseColor("#FFCA4D") else android.graphics.Color.parseColor("#4A7DB3")
 
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
-        color = bgColor
-    }
+    // Translucent halo ring
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL; color = bgColor; alpha = 64 }
+    canvas.drawCircle(cx, cy, outer, paint)
+
+    // Bubble with a light-to-brand gradient
+    paint.alpha = 255
+    paint.shader = android.graphics.LinearGradient(cx, cy - radius, cx, cy + radius, lightColor, bgColor, android.graphics.Shader.TileMode.CLAMP)
     canvas.drawCircle(cx, cy, radius, paint)
+    paint.shader = null
 
     paint.style = Paint.Style.STROKE
-    paint.color = borderColor
-    paint.strokeWidth = 3 * scale
+    paint.color = android.graphics.Color.WHITE
+    paint.strokeWidth = 2.5f * scale
     canvas.drawCircle(cx, cy, radius, paint)
 
     val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = android.graphics.Color.WHITE
-        textSize = 15 * scale
-        typeface = android.graphics.Typeface.DEFAULT_BOLD
+        textSize = (if (side >= 62) 16 else if (side >= 54) 15 else 14) * scale
+        typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
         textAlign = Paint.Align.CENTER
     }
     val textY = cy - (textPaint.descent() + textPaint.ascent()) / 2

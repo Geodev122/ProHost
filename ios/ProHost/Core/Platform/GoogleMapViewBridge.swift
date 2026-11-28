@@ -108,8 +108,9 @@ final class GoogleMapViewBridge: NSObject, NativeMapView, GMSMapViewDelegate {
     }
 }
 
-/// The Android marker bitmaps (`PlatformMap.android.kt`) redrawn in points: same 200×300 teardrop geometry, gradient,
-/// gloss and centre dot; the 52 pt count bubble in Steel Blue (gold when it holds the selection).
+/// The Android marker bitmaps (`PlatformMap.android.kt`) redrawn in points: same 200×300 teardrop geometry (tip at
+/// (100, 255)), gradient body, soft sheen, white outline, two-tone centre and a halo when selected; the count bubble
+/// grows with its count (46 / 54 / 62 pt), Steel Blue (gold when it holds the selection). Keep both identical.
 enum MarkerImages {
     private static var cache: [String: UIImage] = [:]
 
@@ -121,13 +122,17 @@ enum MarkerImages {
         let image = UIGraphicsImageRenderer(size: size).image { ctx in
             let g = ctx.cgContext
             g.scaleBy(x: size.width / 200, y: size.height / 300)
-            // Ground shadow
+            // Soft ground shadow
             g.saveGState()
-            g.setShadow(offset: .zero, blur: 10, color: UIColor(white: 0, alpha: 55 / 255).cgColor)
-            g.setFillColor(UIColor(white: 0, alpha: 55 / 255).cgColor)
-            g.fillEllipse(in: CGRect(x: 65, y: 248, width: 70, height: 17))
+            g.setShadow(offset: .zero, blur: 12, color: UIColor(white: 0, alpha: 70 / 255).cgColor)
+            g.setFillColor(UIColor(white: 0, alpha: 70 / 255).cgColor)
+            g.fillEllipse(in: CGRect(x: 62, y: 246, width: 76, height: 20))
             g.restoreGState()
-            // Teardrop: arc over the top half of the 160×160 circle at (20, 15), then down to the tip
+            // Selected halo
+            if selected {
+                g.setFillColor(color(top).withAlphaComponent(70 / 255).cgColor)
+                g.fillEllipse(in: CGRect(x: 4, y: -1, width: 192, height: 192))
+            }
             let path = UIBezierPath()
             path.move(to: CGPoint(x: 30.72, y: 135))
             path.addArc(withCenter: CGPoint(x: 100, y: 95), radius: 80, startAngle: .pi, endAngle: 0, clockwise: true)
@@ -140,16 +145,24 @@ enum MarkerImages {
             if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0, 1]) {
                 g.drawLinearGradient(gradient, start: CGPoint(x: 100, y: 15), end: CGPoint(x: 100, y: 255), options: [])
             }
-            // Upper-left gloss (white → transparent, alpha 130/255)
-            let gloss = [UIColor(white: 1, alpha: 130 / 255).cgColor, UIColor(white: 1, alpha: 0).cgColor] as CFArray
-            if let radial = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: gloss, locations: [0, 1]) {
-                g.drawRadialGradient(radial, startCenter: CGPoint(x: 76, y: 70), startRadius: 0,
-                                     endCenter: CGPoint(x: 76, y: 70), endRadius: 45, options: [])
+            // Soft top sheen
+            let sheen = [UIColor(white: 1, alpha: 90 / 255).cgColor, UIColor(white: 1, alpha: 0).cgColor] as CFArray
+            if let linear = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: sheen, locations: [0, 1]) {
+                g.drawLinearGradient(linear, start: CGPoint(x: 100, y: 15), end: CGPoint(x: 100, y: 110), options: [])
             }
             g.restoreGState()
-            // White centre circle
+            // White outline
+            g.addPath(path.cgPath)
+            g.setStrokeColor(UIColor.white.cgColor)
+            g.setLineWidth(10)
+            g.setLineJoin(.round)
+            g.strokePath()
+            // Two-tone centre
             g.setFillColor(UIColor.white.cgColor)
-            g.fillEllipse(in: CGRect(x: 70, y: 65, width: 60, height: 60))
+            g.fillEllipse(in: CGRect(x: 66, y: 61, width: 68, height: 68))
+            let r: CGFloat = selected ? 16 : 12
+            g.setFillColor(color(base).cgColor)
+            g.fillEllipse(in: CGRect(x: 100 - r, y: 95 - r, width: r * 2, height: r * 2))
         }
         cache[key] = image
         return image
@@ -158,21 +171,33 @@ enum MarkerImages {
     static func cluster(count: Int, hasSelected: Bool) -> UIImage {
         let key = "c\(count)|\(hasSelected)"
         if let hit = cache[key] { return hit }
-        let side: CGFloat = 52
+        let side: CGFloat = count < 10 ? 46 : (count < 50 ? 54 : 62)
         let image = UIGraphicsImageRenderer(size: CGSize(width: side, height: side)).image { ctx in
             let g = ctx.cgContext
-            let radius = side / 2 - 4
-            let circle = CGRect(x: side / 2 - radius, y: side / 2 - radius, width: radius * 2, height: radius * 2)
             let fill = hasSelected ? UIColor(red: 1, green: 0xB3 / 255, blue: 0, alpha: 1)
                 : UIColor(red: 0x2B / 255, green: 0x5A / 255, blue: 0x8C / 255, alpha: 1)
-            g.setFillColor(fill.cgColor)
-            g.fillEllipse(in: circle)
+            let light = hasSelected ? UIColor(red: 1, green: 0xCA / 255, blue: 0x4D / 255, alpha: 1)
+                : UIColor(red: 0x4A / 255, green: 0x7D / 255, blue: 0xB3 / 255, alpha: 1)
+            let outer = side / 2 - 1
+            g.setFillColor(fill.withAlphaComponent(64 / 255).cgColor)
+            g.fillEllipse(in: CGRect(x: side / 2 - outer, y: side / 2 - outer, width: outer * 2, height: outer * 2))
+            let radius = side / 2 - 7
+            let circle = CGRect(x: side / 2 - radius, y: side / 2 - radius, width: radius * 2, height: radius * 2)
+            g.saveGState()
+            g.addEllipse(in: circle)
+            g.clip()
+            let colors = [light.cgColor, fill.cgColor] as CFArray
+            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0, 1]) {
+                g.drawLinearGradient(gradient, start: CGPoint(x: side / 2, y: circle.minY), end: CGPoint(x: side / 2, y: circle.maxY), options: [])
+            }
+            g.restoreGState()
             g.setStrokeColor(UIColor.white.cgColor)
-            g.setLineWidth(3)
+            g.setLineWidth(2.5)
             g.strokeEllipse(in: circle)
             let text = count > 99 ? "99+" : String(count)
+            let fontSize: CGFloat = side >= 62 ? 16 : (side >= 54 ? 15 : 14)
             let attributes: [NSAttributedString.Key: Any] = [
-                .font: UIFont.boldSystemFont(ofSize: 15), .foregroundColor: UIColor.white
+                .font: UIFont.boldSystemFont(ofSize: fontSize), .foregroundColor: UIColor.white
             ]
             let textSize = (text as NSString).size(withAttributes: attributes)
             (text as NSString).draw(
