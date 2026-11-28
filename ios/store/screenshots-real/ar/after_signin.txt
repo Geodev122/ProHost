@@ -1,97 +1,97 @@
-Attributes: Application, 0x10acccdc0, pid: 775, label: 'ProHost'
+Attributes: Application, 0x115118dc0, pid: 90281, label: 'ProHost'
 Element subtree:
- →Application, 0x10acccdc0, pid: 775, label: 'ProHost'
-    Window (Main), 0x10acccf00, {{0.0, 0.0}, {440.0, 956.0}}
-      Other, 0x10accd040, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x10accd180, {{0.0, 0.0}, {440.0, 956.0}}
-          Other, 0x10accd2c0, {{0.0, 0.0}, {440.0, 956.0}}
-            Other, 0x10accd400, {{0.0, 0.0}, {440.0, 956.0}}
-              Other, 0x10accd540, {{0.0, 0.0}, {440.0, 956.0}}
-                Other, 0x10accd680, {{0.0, 0.0}, {440.0, 956.0}}
-                Other, 0x10accd7c0, {{0.0, 0.0}, {440.0, 956.0}}
-                ScrollView, 0x10accd900, {{0.0, 0.0}, {440.0, 956.0}}
-                  Other, 0x10accda40, {{0.0, 0.0}, {440.0, 956.0}}
-                    Other, 0x10accdb80, {{0.0, 0.0}, {440.0, 956.0}}
-                      Other, 0x10accdcc0, {{0.0, 0.0}, {440.0, 956.0}}
-                      Other, 0x10accde00, {{0.0, 62.0}, {440.0, 860.0}}
-                      Other, 0x10accdf40, {{0.0, 62.0}, {440.0, 860.0}}
-                      Other, 0x10acce080, {{384.0, 70.0}, {44.0, 44.0}}
-                      Other, 0x10acce1c0, {{12.0, 70.0}, {416.0, 52.0}}
-                      Button, 0x10acce300, {{382.0, 68.0}, {48.0, 48.0}}, label: 'ابحث في المساحات'
-                        Image, 0x10acce440, {{394.0, 80.0}, {24.0, 24.0}}, label: 'ابحث في المساحات'
-                      Other, 0x10acce580, {{153.0, 70.0}, {134.0, 44.0}}
-                      Image, 0x10acce6c0, {{253.0, 79.0}, {26.0, 26.0}}, label: 'شعار ProHost'
-                      Button, 0x10acce800, {{201.0, 68.0}, {44.0, 48.0}}, label: 'خريطة مشاهدة'
-                        Image, 0x10acce940, {{211.0, 82.0}, {20.0, 20.0}}, label: 'خريطة مشاهدة'
-                      Button, 0x10accea80, {{153.0, 68.0}, {48.0, 48.0}}, label: 'قائمة مشاهدة', Selected
-                        Image, 0x10accebc0, {{167.0, 82.0}, {20.0, 20.0}}, label: 'قائمة مشاهدة'
-                      Other, 0x10acced00, {{12.0, 70.0}, {44.0, 44.0}}
-                      Button, 0x10accee40, {{10.0, 68.0}, {48.0, 48.0}}, label: 'الفلاتر'
-                        Image, 0x10accef80, {{22.0, 80.0}, {24.0, 24.0}}, label: 'الفلاتر'
-                      Other, 0x10accf0c0, {{0.0, 130.0}, {440.0, 792.0}}
-                        Button, 0x10accf200, {{224.0, 921.3}, {184.0, 0.7}}
-                        Button, 0x10accf340, {{32.0, 921.3}, {184.0, 0.7}}
-                        Button, 0x10accf480, {{16.0, 134.0}, {408.0, 417.7}}, label: 'Consultation Room · Life Clinic, مكتب, Consultation Room · Life Clinic, $40, /مناوبة'
-                          Other, 0x10accf5c0, {{32.0, 150.0}, {376.0, 211.7}}
-                            Image, 0x10accf700, {{32.0, 150.0}, {376.0, 211.7}}, label: 'Consultation Room · Life Clinic'
-                            Other, 0x10accf840, {{362.0, 334.7}, {38.0, 19.0}}
-                              StaticText, 0x10accf980, {{368.0, 336.7}, {26.0, 15.0}}, label: 'مكتب'
-                          StaticText, 0x10accfac0, {{104.3, 373.7}, {303.7, 18.7}}, label: 'Consultation Room · Life Clinic'
-                          StaticText, 0x10accfc00, {{68.3, 373.7}, {28.0, 18.7}}, label: '$40'
-                          StaticText, 0x10accfd40, {{32.0, 377.3}, {36.3, 15.0}}, label: '/مناوبة'
-                          StaticText, 0x10accfe80, {{257.7, 396.3}, {132.3, 16.3}}, label: 'Dekouaneh, Matn، لبنان'
-                          Other, 0x10ac3af80, {{303.3, 421.3}, {104.7, 18.0}}
-                            StaticText, 0x10ac38280, {{309.3, 423.3}, {78.7, 14.0}}, label: '⁦08:00 - 20:00⁩'
-                          Other, 0x10ac38500, {{204.7, 420.7}, {90.7, 19.0}}
-                            StaticText, 0x10ac38780, {{210.7, 422.7}, {64.7, 15.0}}, label: '6 أيام/أسبوع'
-                          Other, 0x10ac38000, {{358.3, 447.7}, {49.7, 19.0}}
-                            StaticText, 0x10ac38a00, {{363.3, 449.7}, {39.7, 15.0}}, label: 'بالمناوبة'
-                        Button, 0x10ac38140, {{32.0, 150.0}, {48.0, 48.0}}, label: 'حفظ المساحة'
-                          Image, 0x10ac38b40, {{47.0, 165.0}, {18.0, 18.0}}, label: 'حفظ المساحة'
-                        Button, 0x10ac383c0, {{224.0, 487.7}, {184.0, 48.0}}, label: 'التوفّر'
-                          StaticText, 0x10ac38c80, {{292.3, 504.3}, {29.3, 15.0}}, label: 'التوفّر'
-                        Button, 0x10ac38640, {{32.0, 487.7}, {184.0, 48.0}}, label: 'واتساب'
-                          StaticText, 0x10ac388c0, {{96.7, 504.3}, {37.0, 15.0}}, label: 'واتساب'
-                        Button, 0x10766fe80, {{16.0, 567.7}, {408.0, 354.3}}, label: 'Therapy Room · Life Clinic, غرفة, Therapy Room · Life Clinic, $15, /ساعة'
-                          Other, 0x10766fc00, {{32.0, 583.7}, {376.0, 211.7}}
-                            Image, 0x10766f5c0, {{32.0, 583.7}, {376.0, 211.7}}, label: 'Therapy Room · Life Clinic'
-                            Other, 0x10766f840, {{367.0, 768.3}, {33.0, 19.0}}
-                              StaticText, 0x10766f700, {{373.0, 770.3}, {21.0, 15.0}}, label: 'غرفة'
-                          StaticText, 0x10766f340, {{98.3, 807.3}, {309.7, 18.7}}, label: 'Therapy Room · Life Clinic'
-                          StaticText, 0x10766f200, {{62.3, 807.3}, {28.0, 18.7}}, label: '$15'
-                          StaticText, 0x10766f0c0, {{32.0, 811.0}, {30.3, 15.0}}, label: '/ساعة'
-                          StaticText, 0x10766f980, {{257.7, 830.0}, {132.3, 16.3}}, label: 'Dekouaneh, Matn، لبنان'
-                          Other, 0x10766f480, {{303.3, 855.0}, {104.7, 18.0}}
-                            StaticText, 0x10766fd40, {{309.3, 857.0}, {78.7, 14.0}}, label: '⁦08:00 - 20:00⁩'
-                          Other, 0x10766fac0, {{204.7, 854.3}, {90.7, 19.0}}
-                            StaticText, 0x10ac3d7c0, {{210.7, 856.3}, {64.7, 15.0}}, label: '6 أيام/أسبوع'
-                          Other, 0x10ac3d540, {{359.7, 881.3}, {48.3, 19.0}}
-                            StaticText, 0x10ac3d2c0, {{364.7, 883.3}, {38.3, 15.0}}, label: 'بالساعة'
-                        Button, 0x10ac3d040, {{32.0, 583.7}, {48.0, 48.0}}, label: 'حفظ المساحة'
-                          Image, 0x10ac3c000, {{47.0, 598.7}, {18.0, 18.0}}, label: 'حفظ المساحة'
-                        Button, 0x10ac3c640, {{36.0, 1021.3}, {40.0, 40.0}}
-                        Button, 0x10ac3c140, {{16.0, 1001.3}, {408.0, 417.7}}
-                        Button, 0x10ac3c280, {{224.0, 1359.0}, {184.0, 40.0}}
-                        Button, 0x10ac3c3c0, {{32.0, 1359.0}, {184.0, 40.0}}
-                      Other, 0x10ac3c780, {{16.0, 846.0}, {408.0, 64.0}}
-                      Other, 0x10ac3c8c0, {{16.0, 846.0}, {408.0, 64.0}}, identifier: 'bottom_navigation_bar'
-                      Button, 0x10ac3c500, {{284.7, 854.0}, {114.7, 48.0}}, identifier: 'nav_item_search_map', label: 'Explore', Selected
-                        StaticText, 0x10ac3ca00, {{300.7, 868.7}, {52.7, 19.0}}, label: 'Explore'
-                      Button, 0x10ac3da40, {{221.3, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_my_favorites', label: 'Saved'
-                        Image, 0x10ac3cdc0, {{234.3, 867.0}, {22.0, 22.0}}, label: 'Saved'
-                      Button, 0x10ac3de00, {{158.7, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_rentals', label: 'My Rentals'
-                        Image, 0x10ac3cb40, {{171.7, 867.0}, {22.0, 22.0}}, label: 'My Rentals'
-                      Button, 0x10ac3dcc0, {{96.0, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_profile', label: 'Profile'
-                        Image, 0x10ac3cc80, {{109.0, 867.0}, {22.0, 22.0}}, label: 'Profile'
-                      Button, 0x10ac3db80, {{36.7, 854.0}, {48.0, 48.0}}, label: 'إخفاء شريط التنقّل'
-                        Image, 0x10ac3cf00, {{48.7, 866.0}, {24.0, 24.0}}, label: 'إخفاء شريط التنقّل'
-    Window, 0x10ac3d900, {{0.0, 0.0}, {440.0, 956.0}}
-      Other, 0x10ac3d180, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x10ac3d400, {{0.0, 0.0}, {440.0, 956.0}}
+ →Application, 0x115118dc0, pid: 90281, label: 'ProHost'
+    Window (Main), 0x115118f00, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x115119040, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x115119180, {{0.0, 0.0}, {440.0, 956.0}}
+          Other, 0x1151192c0, {{0.0, 0.0}, {440.0, 956.0}}
+            Other, 0x115119400, {{0.0, 0.0}, {440.0, 956.0}}
+              Other, 0x115119540, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x115119680, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x1151197c0, {{0.0, 0.0}, {440.0, 956.0}}
+                ScrollView, 0x115119900, {{0.0, 0.0}, {440.0, 956.0}}
+                  Other, 0x115119a40, {{0.0, 0.0}, {440.0, 956.0}}
+                    Other, 0x115119b80, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x115119cc0, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x115119e00, {{0.0, 62.0}, {440.0, 860.0}}
+                      Other, 0x115119f40, {{0.0, 62.0}, {440.0, 860.0}}
+                      Other, 0x11511a080, {{384.0, 70.0}, {44.0, 44.0}}
+                      Other, 0x11511a1c0, {{12.0, 70.0}, {416.0, 52.0}}
+                      Button, 0x11511a300, {{382.0, 68.0}, {48.0, 48.0}}, label: 'ابحث في المساحات'
+                        Image, 0x11511a440, {{394.0, 80.0}, {24.0, 24.0}}, label: 'ابحث في المساحات'
+                      Other, 0x11511a580, {{153.0, 70.0}, {134.0, 44.0}}
+                      Image, 0x11511a6c0, {{253.0, 79.0}, {26.0, 26.0}}, label: 'شعار ProHost'
+                      Button, 0x11511a800, {{201.0, 68.0}, {44.0, 48.0}}, label: 'خريطة مشاهدة'
+                        Image, 0x11511a940, {{211.0, 82.0}, {20.0, 20.0}}, label: 'خريطة مشاهدة'
+                      Button, 0x11511aa80, {{153.0, 68.0}, {48.0, 48.0}}, label: 'قائمة مشاهدة', Selected
+                        Image, 0x11511abc0, {{167.0, 82.0}, {20.0, 20.0}}, label: 'قائمة مشاهدة'
+                      Other, 0x11511ad00, {{12.0, 70.0}, {44.0, 44.0}}
+                      Button, 0x11511ae40, {{10.0, 68.0}, {48.0, 48.0}}, label: 'الفلاتر'
+                        Image, 0x11511af80, {{22.0, 80.0}, {24.0, 24.0}}, label: 'الفلاتر'
+                      Other, 0x11511b0c0, {{0.0, 130.0}, {440.0, 792.0}}
+                        Button, 0x11511b200, {{224.0, 921.3}, {184.0, 0.7}}
+                        Button, 0x11511b340, {{32.0, 921.3}, {184.0, 0.7}}
+                        Button, 0x11511b480, {{16.0, 134.0}, {408.0, 417.7}}, label: 'Consultation Room · Life Clinic, مكتب, Consultation Room · Life Clinic, $40, /مناوبة'
+                          Other, 0x11511b5c0, {{32.0, 150.0}, {376.0, 211.7}}
+                            Image, 0x11511b700, {{32.0, 150.0}, {376.0, 211.7}}, label: 'Consultation Room · Life Clinic'
+                            Other, 0x11511b840, {{362.0, 334.7}, {38.0, 19.0}}
+                              StaticText, 0x11511b980, {{368.0, 336.7}, {26.0, 15.0}}, label: 'مكتب'
+                          StaticText, 0x11511bac0, {{104.3, 373.7}, {303.7, 18.7}}, label: 'Consultation Room · Life Clinic'
+                          StaticText, 0x11511bc00, {{68.3, 373.7}, {28.0, 18.7}}, label: '$40'
+                          StaticText, 0x11511bd40, {{32.0, 377.3}, {36.3, 15.0}}, label: '/مناوبة'
+                          StaticText, 0x11511be80, {{257.7, 396.3}, {132.3, 16.3}}, label: 'Dekouaneh, Matn، لبنان'
+                          Other, 0x11508af80, {{303.3, 421.3}, {104.7, 18.0}}
+                            StaticText, 0x115088280, {{309.3, 423.3}, {78.7, 14.0}}, label: '⁦08:00 - 20:00⁩'
+                          Other, 0x115088500, {{204.7, 420.7}, {90.7, 19.0}}
+                            StaticText, 0x115088780, {{210.7, 422.7}, {64.7, 15.0}}, label: '6 أيام/أسبوع'
+                          Other, 0x115088000, {{358.3, 447.7}, {49.7, 19.0}}
+                            StaticText, 0x115088a00, {{363.3, 449.7}, {39.7, 15.0}}, label: 'بالمناوبة'
+                        Button, 0x115088140, {{32.0, 150.0}, {48.0, 48.0}}, label: 'حفظ المساحة'
+                          Image, 0x115088b40, {{47.0, 165.0}, {18.0, 18.0}}, label: 'حفظ المساحة'
+                        Button, 0x1150883c0, {{224.0, 487.7}, {184.0, 48.0}}, label: 'التوفّر'
+                          StaticText, 0x115088c80, {{292.3, 504.3}, {29.3, 15.0}}, label: 'التوفّر'
+                        Button, 0x115088640, {{32.0, 487.7}, {184.0, 48.0}}, label: 'واتساب'
+                          StaticText, 0x1150888c0, {{96.7, 504.3}, {37.0, 15.0}}, label: 'واتساب'
+                        Button, 0x104e7be80, {{16.0, 567.7}, {408.0, 354.3}}, label: 'Therapy Room · Life Clinic, غرفة, Therapy Room · Life Clinic, $15, /ساعة'
+                          Other, 0x104e7bc00, {{32.0, 583.7}, {376.0, 211.7}}
+                            Image, 0x104e7b5c0, {{32.0, 583.7}, {376.0, 211.7}}, label: 'Therapy Room · Life Clinic'
+                            Other, 0x104e7b840, {{367.0, 768.3}, {33.0, 19.0}}
+                              StaticText, 0x104e7b700, {{373.0, 770.3}, {21.0, 15.0}}, label: 'غرفة'
+                          StaticText, 0x104e7b340, {{98.3, 807.3}, {309.7, 18.7}}, label: 'Therapy Room · Life Clinic'
+                          StaticText, 0x104e7b200, {{62.3, 807.3}, {28.0, 18.7}}, label: '$15'
+                          StaticText, 0x104e7b0c0, {{32.0, 811.0}, {30.3, 15.0}}, label: '/ساعة'
+                          StaticText, 0x104e7b980, {{257.7, 830.0}, {132.3, 16.3}}, label: 'Dekouaneh, Matn، لبنان'
+                          Other, 0x104e7b480, {{303.3, 855.0}, {104.7, 18.0}}
+                            StaticText, 0x104e7bd40, {{309.3, 857.0}, {78.7, 14.0}}, label: '⁦08:00 - 20:00⁩'
+                          Other, 0x104e7bac0, {{204.7, 854.3}, {90.7, 19.0}}
+                            StaticText, 0x1150917c0, {{210.7, 856.3}, {64.7, 15.0}}, label: '6 أيام/أسبوع'
+                          Other, 0x115091540, {{359.7, 881.3}, {48.3, 19.0}}
+                            StaticText, 0x1150912c0, {{364.7, 883.3}, {38.3, 15.0}}, label: 'بالساعة'
+                        Button, 0x115091040, {{32.0, 583.7}, {48.0, 48.0}}, label: 'حفظ المساحة'
+                          Image, 0x115090000, {{47.0, 598.7}, {18.0, 18.0}}, label: 'حفظ المساحة'
+                        Button, 0x115090640, {{36.0, 1021.3}, {40.0, 40.0}}
+                        Button, 0x115090140, {{16.0, 1001.3}, {408.0, 417.7}}
+                        Button, 0x115090280, {{224.0, 1359.0}, {184.0, 40.0}}
+                        Button, 0x1150903c0, {{32.0, 1359.0}, {184.0, 40.0}}
+                      Other, 0x115090780, {{16.0, 846.0}, {408.0, 64.0}}
+                      Other, 0x1150908c0, {{16.0, 846.0}, {408.0, 64.0}}, identifier: 'bottom_navigation_bar'
+                      Button, 0x115090500, {{284.7, 854.0}, {114.7, 48.0}}, identifier: 'nav_item_search_map', label: 'Explore', Selected
+                        StaticText, 0x115090a00, {{300.7, 868.7}, {52.7, 19.0}}, label: 'Explore'
+                      Button, 0x115091a40, {{221.3, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_my_favorites', label: 'Saved'
+                        Image, 0x115090dc0, {{234.3, 867.0}, {22.0, 22.0}}, label: 'Saved'
+                      Button, 0x115091e00, {{158.7, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_rentals', label: 'My Rentals'
+                        Image, 0x115090b40, {{171.7, 867.0}, {22.0, 22.0}}, label: 'My Rentals'
+                      Button, 0x115091cc0, {{96.0, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_profile', label: 'Profile'
+                        Image, 0x115090c80, {{109.0, 867.0}, {22.0, 22.0}}, label: 'Profile'
+                      Button, 0x115091b80, {{36.7, 854.0}, {48.0, 48.0}}, label: 'إخفاء شريط التنقّل'
+                        Image, 0x115090f00, {{48.7, 866.0}, {24.0, 24.0}}, label: 'إخفاء شريط التنقّل'
+    Window, 0x115091900, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x115091180, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x115091400, {{0.0, 0.0}, {440.0, 956.0}}
 Path to element:
- →Application, 0x10acccdc0, pid: 775, label: 'ProHost'
+ →Application, 0x115118dc0, pid: 90281, label: 'ProHost'
 Query chain:
  →Find: Target Application 'app.geonajjar.prohost'
   Output: {
-    Application, 0x10ac3e080, pid: 775, label: 'ProHost'
+    Application, 0x115092080, pid: 90281, label: 'ProHost'
   }

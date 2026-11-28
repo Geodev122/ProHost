@@ -1,97 +1,97 @@
-Attributes: Application, 0x10a3fd180, pid: 87791, label: 'ProHost'
+Attributes: Application, 0x109f21180, pid: 79843, label: 'ProHost'
 Element subtree:
- →Application, 0x10a3fd180, pid: 87791, label: 'ProHost'
-    Window (Main), 0x10a3fd2c0, {{0.0, 0.0}, {440.0, 956.0}}
-      Other, 0x10a3fd400, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x10a3fd540, {{0.0, 0.0}, {440.0, 956.0}}
-          Other, 0x10a3fd680, {{0.0, 0.0}, {440.0, 956.0}}
-            Other, 0x10a3fd7c0, {{0.0, 0.0}, {440.0, 956.0}}
-              Other, 0x10a3fd900, {{0.0, 0.0}, {440.0, 956.0}}
-                Other, 0x10a3fda40, {{0.0, 0.0}, {440.0, 956.0}}
-                Other, 0x10a3fdb80, {{0.0, 0.0}, {440.0, 956.0}}
-                ScrollView, 0x10a3fdcc0, {{0.0, 0.0}, {440.0, 956.0}}
-                  Other, 0x10a3fde00, {{0.0, 0.0}, {440.0, 956.0}}
-                    Other, 0x10a3fdf40, {{0.0, 0.0}, {440.0, 956.0}}
-                      Other, 0x10a3fe080, {{0.0, 0.0}, {440.0, 956.0}}
-                      Other, 0x10a3fe1c0, {{0.0, 62.0}, {440.0, 860.0}}
-                      Other, 0x10a3fe300, {{0.0, 62.0}, {440.0, 860.0}}
-                      Other, 0x10a3fe440, {{12.0, 70.0}, {44.0, 44.0}}
-                      Other, 0x10a3fe580, {{12.0, 70.0}, {416.0, 52.0}}
-                      Button, 0x10a3fe6c0, {{10.0, 68.0}, {48.0, 48.0}}, label: 'Search workspaces'
-                        Image, 0x10a3fe800, {{22.0, 80.0}, {24.0, 24.0}}, label: 'Search workspaces'
-                      Other, 0x10a3fe940, {{153.0, 70.0}, {134.0, 44.0}}
-                      Image, 0x10a3fea80, {{161.0, 79.0}, {26.0, 26.0}}, label: 'ProHost Logo'
-                      Button, 0x10a3febc0, {{195.0, 68.0}, {44.0, 48.0}}, label: 'Map view'
-                        Image, 0x10a3fed00, {{209.0, 82.0}, {20.0, 20.0}}, label: 'Map view'
-                      Button, 0x10a3fee40, {{239.0, 68.0}, {48.0, 48.0}}, label: 'List view', Selected
-                        Image, 0x10a3fef80, {{253.0, 82.0}, {20.0, 20.0}}, label: 'List view'
-                      Other, 0x10a3ff0c0, {{384.0, 70.0}, {44.0, 44.0}}
-                      Button, 0x10a3ff200, {{382.0, 68.0}, {48.0, 48.0}}, label: 'Filters'
-                        Image, 0x10a3ff340, {{394.0, 80.0}, {24.0, 24.0}}, label: 'Filters'
-                      Other, 0x10a3ff480, {{0.0, 130.0}, {440.0, 792.0}}
-                        Button, 0x10a3ff5c0, {{16.0, 134.0}, {408.0, 414.7}}, label: 'Consultation Room · Life Clinic, Office, Consultation Room · Life Clinic, $40, /shift'
-                          Other, 0x10a3ff700, {{32.0, 150.0}, {376.0, 211.7}}
-                            Image, 0x10a3ff840, {{32.0, 150.0}, {376.0, 211.7}}, label: 'Consultation Room · Life Clinic'
-                            Other, 0x10a3ff980, {{40.0, 335.7}, {48.0, 18.0}}
-                              StaticText, 0x10a3ffac0, {{46.0, 337.7}, {36.0, 14.0}}, label: 'Office'
-                          StaticText, 0x10a3ffc00, {{32.0, 373.7}, {308.0, 18.7}}, label: 'Consultation Room · Life Clinic'
-                          StaticText, 0x10a3ffd40, {{348.0, 373.7}, {28.0, 18.7}}, label: '$40'
-                          StaticText, 0x10a3ffe80, {{376.0, 378.3}, {32.0, 14.0}}, label: '/shift'
-                          StaticText, 0x1172ec000, {{50.0, 396.3}, {161.3, 15.3}}, label: 'Dekouaneh, Matn, Lebanon'
-                          Other, 0x1172ec140, {{32.0, 419.7}, {104.7, 18.0}}
-                            StaticText, 0x1172ec280, {{52.0, 421.7}, {78.7, 14.0}}, label: '⁦08:00 - 20:00⁩'
-                          Other, 0x1172ec3c0, {{144.7, 419.7}, {85.7, 18.0}}
-                            StaticText, 0x1172ec500, {{164.7, 421.7}, {59.7, 14.0}}, label: '6 days/wk'
-                          Other, 0x1172ec640, {{32.0, 445.7}, {78.3, 18.0}}
-                            StaticText, 0x1172ec780, {{37.0, 447.7}, {68.3, 14.0}}, label: 'Shift-Based'
-                        Button, 0x1172ec8c0, {{360.0, 150.0}, {48.0, 48.0}}, label: 'Save space'
-                          Image, 0x1172eca00, {{375.0, 165.0}, {18.0, 18.0}}, label: 'Save space'
-                        Button, 0x1172ecb40, {{32.0, 484.7}, {184.0, 48.0}}, label: 'Availability'
-                          StaticText, 0x1172ecc80, {{101.0, 501.7}, {64.3, 14.0}}, label: 'Availability'
-                        Button, 0x1172ecdc0, {{224.0, 484.7}, {184.0, 48.0}}, label: 'WhatsApp'
-                          StaticText, 0x1172ecf00, {{295.7, 501.7}, {58.7, 14.0}}, label: 'WhatsApp'
-                        Button, 0x1172ed040, {{16.0, 564.7}, {408.0, 357.3}}, label: 'Therapy Room · Life Clinic, Room, Therapy Room · Life Clinic, $15, /hr'
-                          Other, 0x1172ed180, {{32.0, 580.7}, {376.0, 211.7}}
-                            Image, 0x1172ed2c0, {{32.0, 580.7}, {376.0, 211.7}}, label: 'Therapy Room · Life Clinic'
-                            Other, 0x1172ed400, {{40.0, 766.3}, {45.7, 18.0}}
-                              StaticText, 0x1172ed540, {{46.0, 768.3}, {33.7, 14.0}}, label: 'Room'
-                          StaticText, 0x1172ed680, {{32.0, 804.3}, {322.7, 18.7}}, label: 'Therapy Room · Life Clinic'
-                          StaticText, 0x1172ed7c0, {{362.7, 804.3}, {28.0, 18.7}}, label: '$15'
-                          StaticText, 0x1172ed900, {{390.7, 809.0}, {17.3, 14.0}}, label: '/hr'
-                          StaticText, 0x1172eda40, {{50.0, 827.0}, {161.3, 15.3}}, label: 'Dekouaneh, Matn, Lebanon'
-                          Other, 0x1172edb80, {{32.0, 850.3}, {104.7, 18.0}}
-                            StaticText, 0x1172edcc0, {{52.0, 852.3}, {78.7, 14.0}}, label: '⁦08:00 - 20:00⁩'
-                          Other, 0x1172ede00, {{144.7, 850.3}, {85.7, 18.0}}
-                            StaticText, 0x1172edf40, {{164.7, 852.3}, {59.7, 14.0}}, label: '6 days/wk'
-                          Other, 0x1172ee080, {{32.0, 876.3}, {62.7, 18.0}}
-                            StaticText, 0x1172ee1c0, {{37.0, 878.3}, {52.7, 14.0}}, label: 'Per-Hour'
-                        Button, 0x1172ee300, {{360.0, 580.7}, {48.0, 48.0}}, label: 'Save space'
-                          Image, 0x1172ee440, {{375.0, 595.7}, {18.0, 18.0}}, label: 'Save space'
-                        Button, 0x1172ee580, {{32.0, 915.3}, {184.0, 6.7}}
-                        Button, 0x1172ee6c0, {{224.0, 915.3}, {184.0, 6.7}}
-                        Button, 0x1172ee800, {{364.0, 1015.3}, {40.0, 40.0}}
-                        Button, 0x1172ee940, {{16.0, 995.3}, {408.0, 414.7}}
-                        Button, 0x1172eea80, {{32.0, 1350.0}, {184.0, 40.0}}
-                        Button, 0x1172eebc0, {{224.0, 1350.0}, {184.0, 40.0}}
-                      Other, 0x1172eed00, {{16.0, 846.0}, {408.0, 64.0}}
-                      Other, 0x1172eee40, {{16.0, 846.0}, {408.0, 64.0}}, identifier: 'bottom_navigation_bar'
-                      Button, 0x1172eef80, {{40.7, 854.0}, {114.7, 48.0}}, identifier: 'nav_item_search_map', label: 'Explore', Selected
-                        StaticText, 0x1172ef0c0, {{86.7, 868.7}, {52.7, 19.0}}, label: 'Explore'
-                      Button, 0x1172ef200, {{170.7, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_my_favorites', label: 'Saved'
-                        Image, 0x1172ef340, {{183.7, 867.0}, {22.0, 22.0}}, label: 'Saved'
-                      Button, 0x1172ef480, {{233.3, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_rentals', label: 'My Rentals'
-                        Image, 0x1172ef5c0, {{246.3, 867.0}, {22.0, 22.0}}, label: 'My Rentals'
-                      Button, 0x1172ef700, {{296.0, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_profile', label: 'Profile'
-                        Image, 0x1172ef840, {{309.0, 867.0}, {22.0, 22.0}}, label: 'Profile'
-                      Button, 0x1172ef980, {{355.3, 854.0}, {48.0, 48.0}}, label: 'Hide navigation'
-                        Image, 0x1172efac0, {{367.3, 866.0}, {24.0, 24.0}}, label: 'Hide navigation'
-    Window, 0x1172efc00, {{0.0, 0.0}, {440.0, 956.0}}
-      Other, 0x1172efd40, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x1172efe80, {{0.0, 0.0}, {440.0, 956.0}}
+ →Application, 0x109f21180, pid: 79843, label: 'ProHost'
+    Window (Main), 0x109f212c0, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x109f21400, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x109f21540, {{0.0, 0.0}, {440.0, 956.0}}
+          Other, 0x109f21680, {{0.0, 0.0}, {440.0, 956.0}}
+            Other, 0x109f217c0, {{0.0, 0.0}, {440.0, 956.0}}
+              Other, 0x109f21900, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x109f21a40, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x109f21b80, {{0.0, 0.0}, {440.0, 956.0}}
+                ScrollView, 0x109f21cc0, {{0.0, 0.0}, {440.0, 956.0}}
+                  Other, 0x109f21e00, {{0.0, 0.0}, {440.0, 956.0}}
+                    Other, 0x109f21f40, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x109f22080, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x109f221c0, {{0.0, 62.0}, {440.0, 860.0}}
+                      Other, 0x109f22300, {{0.0, 62.0}, {440.0, 860.0}}
+                      Other, 0x109f22440, {{12.0, 70.0}, {44.0, 44.0}}
+                      Other, 0x109f22580, {{12.0, 70.0}, {416.0, 52.0}}
+                      Button, 0x109f226c0, {{10.0, 68.0}, {48.0, 48.0}}, label: 'Search workspaces'
+                        Image, 0x109f22800, {{22.0, 80.0}, {24.0, 24.0}}, label: 'Search workspaces'
+                      Other, 0x109f22940, {{153.0, 70.0}, {134.0, 44.0}}
+                      Image, 0x109f22a80, {{161.0, 79.0}, {26.0, 26.0}}, label: 'ProHost Logo'
+                      Button, 0x109f22bc0, {{195.0, 68.0}, {44.0, 48.0}}, label: 'Map view'
+                        Image, 0x109f22d00, {{209.0, 82.0}, {20.0, 20.0}}, label: 'Map view'
+                      Button, 0x109f22e40, {{239.0, 68.0}, {48.0, 48.0}}, label: 'List view', Selected
+                        Image, 0x109f22f80, {{253.0, 82.0}, {20.0, 20.0}}, label: 'List view'
+                      Other, 0x109f230c0, {{384.0, 70.0}, {44.0, 44.0}}
+                      Button, 0x109f23200, {{382.0, 68.0}, {48.0, 48.0}}, label: 'Filters'
+                        Image, 0x109f23340, {{394.0, 80.0}, {24.0, 24.0}}, label: 'Filters'
+                      Other, 0x109f23480, {{0.0, 130.0}, {440.0, 792.0}}
+                        Button, 0x109f235c0, {{16.0, 134.0}, {408.0, 414.7}}, label: 'Consultation Room · Life Clinic, Office, Consultation Room · Life Clinic, $40, /shift'
+                          Other, 0x109f23700, {{32.0, 150.0}, {376.0, 211.7}}
+                            Image, 0x109f23840, {{32.0, 150.0}, {376.0, 211.7}}, label: 'Consultation Room · Life Clinic'
+                            Other, 0x109f23980, {{40.0, 335.7}, {48.0, 18.0}}
+                              StaticText, 0x109f23ac0, {{46.0, 337.7}, {36.0, 14.0}}, label: 'Office'
+                          StaticText, 0x109f23c00, {{32.0, 373.7}, {308.0, 18.7}}, label: 'Consultation Room · Life Clinic'
+                          StaticText, 0x109f23d40, {{348.0, 373.7}, {28.0, 18.7}}, label: '$40'
+                          StaticText, 0x109f23e80, {{376.0, 378.3}, {32.0, 14.0}}, label: '/shift'
+                          StaticText, 0x116de4000, {{50.0, 396.3}, {161.3, 15.3}}, label: 'Dekouaneh, Matn, Lebanon'
+                          Other, 0x116de4140, {{32.0, 419.7}, {104.7, 18.0}}
+                            StaticText, 0x116de4280, {{52.0, 421.7}, {78.7, 14.0}}, label: '⁦08:00 - 20:00⁩'
+                          Other, 0x116de43c0, {{144.7, 419.7}, {85.7, 18.0}}
+                            StaticText, 0x116de4500, {{164.7, 421.7}, {59.7, 14.0}}, label: '6 days/wk'
+                          Other, 0x116de4640, {{32.0, 445.7}, {78.3, 18.0}}
+                            StaticText, 0x116de4780, {{37.0, 447.7}, {68.3, 14.0}}, label: 'Shift-Based'
+                        Button, 0x116de48c0, {{360.0, 150.0}, {48.0, 48.0}}, label: 'Save space'
+                          Image, 0x116de4a00, {{375.0, 165.0}, {18.0, 18.0}}, label: 'Save space'
+                        Button, 0x116de4b40, {{32.0, 484.7}, {184.0, 48.0}}, label: 'Availability'
+                          StaticText, 0x116de4c80, {{101.0, 501.7}, {64.3, 14.0}}, label: 'Availability'
+                        Button, 0x116de4dc0, {{224.0, 484.7}, {184.0, 48.0}}, label: 'WhatsApp'
+                          StaticText, 0x116de4f00, {{295.7, 501.7}, {58.7, 14.0}}, label: 'WhatsApp'
+                        Button, 0x116de5040, {{16.0, 564.7}, {408.0, 357.3}}, label: 'Therapy Room · Life Clinic, Room, Therapy Room · Life Clinic, $15, /hr'
+                          Other, 0x116de5180, {{32.0, 580.7}, {376.0, 211.7}}
+                            Image, 0x116de52c0, {{32.0, 580.7}, {376.0, 211.7}}, label: 'Therapy Room · Life Clinic'
+                            Other, 0x116de5400, {{40.0, 766.3}, {45.7, 18.0}}
+                              StaticText, 0x116de5540, {{46.0, 768.3}, {33.7, 14.0}}, label: 'Room'
+                          StaticText, 0x116de5680, {{32.0, 804.3}, {322.7, 18.7}}, label: 'Therapy Room · Life Clinic'
+                          StaticText, 0x116de57c0, {{362.7, 804.3}, {28.0, 18.7}}, label: '$15'
+                          StaticText, 0x116de5900, {{390.7, 809.0}, {17.3, 14.0}}, label: '/hr'
+                          StaticText, 0x116de5a40, {{50.0, 827.0}, {161.3, 15.3}}, label: 'Dekouaneh, Matn, Lebanon'
+                          Other, 0x116de5b80, {{32.0, 850.3}, {104.7, 18.0}}
+                            StaticText, 0x116de5cc0, {{52.0, 852.3}, {78.7, 14.0}}, label: '⁦08:00 - 20:00⁩'
+                          Other, 0x116de5e00, {{144.7, 850.3}, {85.7, 18.0}}
+                            StaticText, 0x116de5f40, {{164.7, 852.3}, {59.7, 14.0}}, label: '6 days/wk'
+                          Other, 0x116de6080, {{32.0, 876.3}, {62.7, 18.0}}
+                            StaticText, 0x116de61c0, {{37.0, 878.3}, {52.7, 14.0}}, label: 'Per-Hour'
+                        Button, 0x116de6300, {{360.0, 580.7}, {48.0, 48.0}}, label: 'Save space'
+                          Image, 0x116de6440, {{375.0, 595.7}, {18.0, 18.0}}, label: 'Save space'
+                        Button, 0x116de6580, {{32.0, 915.3}, {184.0, 6.7}}
+                        Button, 0x116de66c0, {{224.0, 915.3}, {184.0, 6.7}}
+                        Button, 0x116de6800, {{364.0, 1015.3}, {40.0, 40.0}}
+                        Button, 0x116de6940, {{16.0, 995.3}, {408.0, 414.7}}
+                        Button, 0x116de6a80, {{32.0, 1350.0}, {184.0, 40.0}}
+                        Button, 0x116de6bc0, {{224.0, 1350.0}, {184.0, 40.0}}
+                      Other, 0x116de6d00, {{16.0, 846.0}, {408.0, 64.0}}
+                      Other, 0x116de6e40, {{16.0, 846.0}, {408.0, 64.0}}, identifier: 'bottom_navigation_bar'
+                      Button, 0x116de6f80, {{40.7, 854.0}, {114.7, 48.0}}, identifier: 'nav_item_search_map', label: 'Explore', Selected
+                        StaticText, 0x116de70c0, {{86.7, 868.7}, {52.7, 19.0}}, label: 'Explore'
+                      Button, 0x116de7200, {{170.7, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_my_favorites', label: 'Saved'
+                        Image, 0x116de7340, {{183.7, 867.0}, {22.0, 22.0}}, label: 'Saved'
+                      Button, 0x116de7480, {{233.3, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_rentals', label: 'My Rentals'
+                        Image, 0x116de75c0, {{246.3, 867.0}, {22.0, 22.0}}, label: 'My Rentals'
+                      Button, 0x116de7700, {{296.0, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_profile', label: 'Profile'
+                        Image, 0x116de7840, {{309.0, 867.0}, {22.0, 22.0}}, label: 'Profile'
+                      Button, 0x116de7980, {{355.3, 854.0}, {48.0, 48.0}}, label: 'Hide navigation'
+                        Image, 0x116de7ac0, {{367.3, 866.0}, {24.0, 24.0}}, label: 'Hide navigation'
+    Window, 0x116de7c00, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x116de7d40, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x116de7e80, {{0.0, 0.0}, {440.0, 956.0}}
 Path to element:
- →Application, 0x10a3fd180, pid: 87791, label: 'ProHost'
+ →Application, 0x109f21180, pid: 79843, label: 'ProHost'
 Query chain:
  →Find: Target Application 'app.geonajjar.prohost'
   Output: {
-    Application, 0x10a3fcdc0, pid: 87791, label: 'ProHost'
+    Application, 0x109f20dc0, pid: 79843, label: 'ProHost'
   }
