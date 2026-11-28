@@ -1,95 +1,95 @@
-Attributes: Application, 0x109f21b80, pid: 79843, label: 'ProHost'
+Attributes: Application, 0x1131d9b80, pid: 81140, label: 'ProHost'
 Element subtree:
- →Application, 0x109f21b80, pid: 79843, label: 'ProHost'
-    Window (Main), 0x109f21cc0, {{0.0, 0.0}, {440.0, 956.0}}
-      Other, 0x109f21e00, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x109f21f40, {{0.0, 0.0}, {440.0, 956.0}}
-          Other, 0x109f22080, {{0.0, 0.0}, {440.0, 956.0}}
-            Other, 0x109f221c0, {{0.0, 0.0}, {440.0, 956.0}}
-              Other, 0x109f22300, {{0.0, 0.0}, {440.0, 956.0}}
-                Other, 0x109f22440, {{0.0, 0.0}, {440.0, 956.0}}
-                Other, 0x109f22580, {{0.0, 0.0}, {440.0, 956.0}}
-                ScrollView, 0x109f226c0, {{0.0, 0.0}, {440.0, 956.0}}
-                  Other, 0x109f22800, {{0.0, 0.0}, {440.0, 956.0}}
-                    Other, 0x109f22940, {{0.0, 0.0}, {440.0, 956.0}}
-                      Other, 0x109f22a80, {{0.0, 0.0}, {440.0, 126.0}}
-                      Image, 0x109f22bc0, {{20.0, 77.0}, {34.0, 34.0}}, label: 'ProHost Logo'
-                      StaticText, 0x109f22d00, {{62.0, 77.7}, {59.7, 18.7}}, label: 'ProHost'
-                      Button, 0x109f22e40, {{384.0, 70.0}, {48.0, 48.0}}, identifier: 'top_bar_notifications_button', label: 'Notifications'
-                        Image, 0x109f22f80, {{396.0, 82.0}, {24.0, 24.0}}, label: 'Notifications'
-                      Other, 0x109f230c0, {{0.0, 0.0}, {440.0, 956.0}}
-                      StaticText, 0x109f23200, {{62.0, 96.3}, {39.7, 14.0}}, label: 'Profile'
-                      Other, 0x109f23340, {{0.0, 126.0}, {440.0, 796.0}}
-                      Other, 0x109f23480, {{0.0, 126.0}, {440.0, 708.0}}, identifier: 'specialist_profile_screen'
-                      Other, 0x109f235c0, {{16.0, 142.0}, {408.0, 676.0}}
-                        StaticText, 0x109f23700, {{104.0, 154.0}, {190.7, 24.7}}, label: 'App Review Specialist'
-                        Other, 0x109f23840, {{16.0, 142.0}, {408.0, 226.0}}
-                        Other, 0x109f23980, {{32.0, 154.0}, {376.0, 202.0}}
-                        Image, 0x109f23ac0, {{302.7, 157.3}, {18.0, 18.0}}, label: 'Verified Member'
-                        Other, 0x109f23c00, {{32.0, 155.7}, {56.0, 56.0}}
-                        Other, 0x109f23d40, {{66.0, 189.7}, {22.0, 22.0}}
-                        Image, 0x109f23e80, {{70.7, 194.3}, {13.0, 13.0}}, label: 'Verified'
-                        StaticText, 0x109d55cc0, {{104.0, 178.7}, {62.3, 16.3}}, label: 'Specialist'
-                        StaticText, 0x109d54640, {{104.0, 199.0}, {208.7, 14.0}}, label: 'appreview.specialist@pro-host.tech'
-                        StaticText, 0x109d54140, {{50.0, 238.0}, {55.3, 14.0}}, label: 'New York'
-                        StaticText, 0x109d543c0, {{244.0, 238.0}, {79.7, 14.0}}, label: 'ID: U-248RQD'
-                        Other, 0x109d54780, {{32.0, 264.0}, {376.0, 32.0}}
-                        StaticText, 0x109d57840, {{68.0, 272.3}, {323.7, 15.3}}, label: 'No updates right now — explore available workspaces.'
-                        Button, 0x109d56800, {{32.0, 308.0}, {184.0, 48.0}}, label: 'Find Space'
-                          StaticText, 0x109d57980, {{104.3, 325.0}, {63.3, 14.0}}, label: 'Find Space'
-                        Button, 0x109d56440, {{224.0, 308.0}, {184.0, 48.0}}, label: 'View Rentals'
-                          StaticText, 0x109d54280, {{291.0, 325.0}, {74.3, 14.0}}, label: 'View Rentals'
-                        Button, 0x109d570c0, {{16.0, 410.0}, {408.0, 58.3}}, label: 'Become a Pro Host, List your space and receive booking requests'
-                          StaticText, 0x109d57480, {{68.0, 426.0}, {122.7, 16.3}}, label: 'Become a Pro Host'
-                          StaticText, 0x109d552c0, {{68.0, 442.3}, {264.0, 14.0}}, label: 'List your space and receive booking requests'
-                        Other, 0x109d54500, {{30.0, 400.0}, {158.3, 18.0}}
-                        StaticText, 0x109d55040, {{53.0, 402.0}, {127.3, 14.0}}, label: 'FOR SPACE OWNERS'
-                        Other, 0x109d575c0, {{16.0, 484.3}, {408.0, 91.0}}
-                        StaticText, 0x109d54000, {{58.0, 501.3}, {350.0, 16.3}}, label: 'Your requests'
-                        StaticText, 0x109d55a40, {{32.0, 526.3}, {376.0, 33.0}}, label: 'No pending or upcoming bookings. Requests you send appear here.'
-                        Other, 0x109d54a00, {{16.0, 591.3}, {408.0, 64.0}}
-                        StaticText, 0x109d57700, {{54.0, 616.3}, {140.0, 14.0}}, label: 'v • ProHost is up to date'
-                        Button, 0x109d57ac0, {{308.0, 599.3}, {104.0, 48.0}}, label: 'Check Update'
-                          StaticText, 0x109d55180, {{320.0, 616.3}, {80.0, 14.0}}, label: 'Check Update'
-                        Other, 0x109d557c0, {{16.0, 671.3}, {408.0, 124.0}}
-                        Other, 0x109d56bc0, {{32.0, 687.3}, {376.0, 40.0}}, label: 'ProHost Premium, Not subscribed'
-                          Other, 0x109d548c0, {{9.7, 683.3}, {48.0, 48.0}}
-                          Other, 0x109d55e00, {{43.0, 691.3}, {32.0, 32.0}}
-                          StaticText, 0x109d56f80, {{87.0, 687.3}, {152.7, 24.7}}, label: 'ProHost Premium'
-                          StaticText, 0x109d55b80, {{87.0, 712.0}, {91.0, 15.3}}, label: 'Not subscribed'
-                        Button, 0x109d56d00, {{32.0, 731.3}, {158.3, 48.0}}, label: 'Manage subscription'
-                          StaticText, 0x109d55900, {{44.0, 747.3}, {134.3, 16.3}}, label: 'Manage subscription'
-                        Other, 0x109d54c80, {{16.0, 811.3}, {408.0, 6.7}}
-                        Other, 0x109d56940, {{32.0, 827.3}, {376.0, 40.0}}
-                        Switch, 0x109d56a80, {{340.0, 891.3}, {52.0, 32.0}}
-                        Other, 0x109d55680, {{32.0, 871.3}, {376.0, 108.0}}
-                        Other, 0x109d56e40, {{32.0, 1027.3}, {376.0, 40.0}}
-                        Button, 0x116e1c000, {{32.0, 1071.3}, {376.0, 48.0}}
-                        Button, 0x116e1c280, {{32.0, 1123.3}, {376.0, 48.0}}
-                        Button, 0x116e1c140, {{32.0, 1175.3}, {376.0, 48.7}}
-                        Button, 0x116e1c3c0, {{32.0, 1228.0}, {376.0, 48.0}}
-                        Button, 0x116e1c500, {{32.0, 1280.0}, {376.0, 48.0}}
-                        Button, 0x116e1c640, {{32.0, 1332.0}, {376.0, 48.0}}
-                        Button, 0x116e1c780, {{32.0, 1384.0}, {376.0, 48.0}}
-                      Other, 0x116e1c8c0, {{16.0, 846.0}, {408.0, 64.0}}
-                      Other, 0x116e1ca00, {{16.0, 846.0}, {408.0, 64.0}}, identifier: 'bottom_navigation_bar'
-                      Button, 0x116e1cc80, {{40.7, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_search_map', label: 'Explore'
-                        Image, 0x116e1cdc0, {{53.7, 867.0}, {22.0, 22.0}}, label: 'Explore'
-                      Button, 0x116e1cb40, {{104.0, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_my_favorites', label: 'Saved'
-                        Image, 0x116e1cf00, {{117.0, 867.0}, {22.0, 22.0}}, label: 'Saved'
-                      Button, 0x116e1d040, {{167.7, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_rentals', label: 'My Rentals'
-                        Image, 0x116e1d180, {{180.7, 867.0}, {22.0, 22.0}}, label: 'My Rentals'
-                      Button, 0x116e1d2c0, {{232.3, 854.0}, {108.7, 48.0}}, identifier: 'nav_item_pro_profile', label: 'Profile', Selected
-                        StaticText, 0x116e1d400, {{278.3, 868.7}, {46.7, 19.0}}, label: 'Profile'
-                      Button, 0x116e1d680, {{354.3, 854.0}, {48.0, 48.0}}, label: 'Hide navigation'
-                        Image, 0x116e1d540, {{366.3, 866.0}, {24.0, 24.0}}, label: 'Hide navigation'
-    Window, 0x116e1da40, {{0.0, 0.0}, {440.0, 956.0}}
-      Other, 0x116e1d900, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x116e1d7c0, {{0.0, 0.0}, {440.0, 956.0}}
+ →Application, 0x1131d9b80, pid: 81140, label: 'ProHost'
+    Window (Main), 0x1131d9cc0, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x1131d9e00, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x1131d9f40, {{0.0, 0.0}, {440.0, 956.0}}
+          Other, 0x1131da080, {{0.0, 0.0}, {440.0, 956.0}}
+            Other, 0x1131da1c0, {{0.0, 0.0}, {440.0, 956.0}}
+              Other, 0x1131da300, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x1131da440, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x1131da580, {{0.0, 0.0}, {440.0, 956.0}}
+                ScrollView, 0x1131da6c0, {{0.0, 0.0}, {440.0, 956.0}}
+                  Other, 0x1131da800, {{0.0, 0.0}, {440.0, 956.0}}
+                    Other, 0x1131da940, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x1131daa80, {{0.0, 0.0}, {440.0, 126.0}}
+                      Image, 0x1131dabc0, {{20.0, 77.0}, {34.0, 34.0}}, label: 'ProHost Logo'
+                      StaticText, 0x1131dad00, {{62.0, 77.7}, {59.7, 18.7}}, label: 'ProHost'
+                      Button, 0x1131dae40, {{384.0, 70.0}, {48.0, 48.0}}, identifier: 'top_bar_notifications_button', label: 'Notifications'
+                        Image, 0x1131daf80, {{396.0, 82.0}, {24.0, 24.0}}, label: 'Notifications'
+                      Other, 0x1131db0c0, {{0.0, 0.0}, {440.0, 956.0}}
+                      StaticText, 0x1131db200, {{62.0, 96.3}, {39.7, 14.0}}, label: 'Profile'
+                      Other, 0x1131db340, {{0.0, 126.0}, {440.0, 796.0}}
+                      Other, 0x1131db480, {{0.0, 126.0}, {440.0, 708.0}}, identifier: 'specialist_profile_screen'
+                      Other, 0x1131db5c0, {{16.0, 142.0}, {408.0, 676.0}}
+                        StaticText, 0x1131db700, {{104.0, 154.0}, {190.7, 24.7}}, label: 'App Review Specialist'
+                        Other, 0x1131db840, {{16.0, 142.0}, {408.0, 226.0}}
+                        Other, 0x1131db980, {{32.0, 154.0}, {376.0, 202.0}}
+                        Image, 0x1131dbac0, {{302.7, 157.3}, {18.0, 18.0}}, label: 'Verified Member'
+                        Other, 0x1131dbc00, {{32.0, 155.7}, {56.0, 56.0}}
+                        Other, 0x1131dbd40, {{66.0, 189.7}, {22.0, 22.0}}
+                        Image, 0x1131dbe80, {{70.7, 194.3}, {13.0, 13.0}}, label: 'Verified'
+                        StaticText, 0x105ff6e40, {{104.0, 178.7}, {62.3, 16.3}}, label: 'Specialist'
+                        StaticText, 0x105ff6440, {{104.0, 199.0}, {208.7, 14.0}}, label: 'appreview.specialist@pro-host.tech'
+                        StaticText, 0x105ff6080, {{50.0, 238.0}, {55.3, 14.0}}, label: 'New York'
+                        StaticText, 0x105ff7e80, {{244.0, 238.0}, {79.7, 14.0}}, label: 'ID: U-248RQD'
+                        Other, 0x105ff7d40, {{32.0, 264.0}, {376.0, 32.0}}
+                        StaticText, 0x105ff5f40, {{68.0, 272.3}, {323.7, 15.3}}, label: 'No updates right now — explore available workspaces.'
+                        Button, 0x105ff4500, {{32.0, 308.0}, {184.0, 48.0}}, label: 'Find Space'
+                          StaticText, 0x105ff61c0, {{104.3, 325.0}, {63.3, 14.0}}, label: 'Find Space'
+                        Button, 0x105ff7480, {{224.0, 308.0}, {184.0, 48.0}}, label: 'View Rentals'
+                          StaticText, 0x105ff7340, {{291.0, 325.0}, {74.3, 14.0}}, label: 'View Rentals'
+                        Button, 0x105ff5e00, {{16.0, 410.0}, {408.0, 58.3}}, label: 'Become a Pro Host, List your space and receive booking requests'
+                          StaticText, 0x105ff5cc0, {{68.0, 426.0}, {122.7, 16.3}}, label: 'Become a Pro Host'
+                          StaticText, 0x105ff70c0, {{68.0, 442.3}, {264.0, 14.0}}, label: 'List your space and receive booking requests'
+                        Other, 0x105ff6bc0, {{30.0, 400.0}, {158.3, 18.0}}
+                        StaticText, 0x105ff4c80, {{53.0, 402.0}, {127.3, 14.0}}, label: 'FOR SPACE OWNERS'
+                        Other, 0x105ff5400, {{16.0, 484.3}, {408.0, 91.0}}
+                        StaticText, 0x105ff5b80, {{58.0, 501.3}, {350.0, 16.3}}, label: 'Your requests'
+                        StaticText, 0x105ff4f00, {{32.0, 526.3}, {376.0, 33.0}}, label: 'No pending or upcoming bookings. Requests you send appear here.'
+                        Other, 0x105ff6300, {{16.0, 591.3}, {408.0, 64.0}}
+                        StaticText, 0x105ff4000, {{54.0, 616.3}, {140.0, 14.0}}, label: 'v • ProHost is up to date'
+                        Button, 0x105ff5540, {{308.0, 599.3}, {104.0, 48.0}}, label: 'Check Update'
+                          StaticText, 0x105ff52c0, {{320.0, 616.3}, {80.0, 14.0}}, label: 'Check Update'
+                        Other, 0x105ff7700, {{16.0, 671.3}, {408.0, 124.0}}
+                        Other, 0x105ff6800, {{32.0, 687.3}, {376.0, 40.0}}, label: 'ProHost Premium, Not subscribed'
+                          Other, 0x105ff6940, {{9.7, 683.3}, {48.0, 48.0}}
+                          Other, 0x105ff7980, {{43.0, 691.3}, {32.0, 32.0}}
+                          StaticText, 0x105ff6a80, {{87.0, 687.3}, {152.7, 24.7}}, label: 'ProHost Premium'
+                          StaticText, 0x105ff5680, {{87.0, 712.0}, {91.0, 15.3}}, label: 'Not subscribed'
+                        Button, 0x105ff4dc0, {{32.0, 731.3}, {158.3, 48.0}}, label: 'Manage subscription'
+                          StaticText, 0x105ff7840, {{44.0, 747.3}, {134.3, 16.3}}, label: 'Manage subscription'
+                        Other, 0x105ff57c0, {{16.0, 811.3}, {408.0, 6.7}}
+                        Other, 0x105ff66c0, {{32.0, 827.3}, {376.0, 40.0}}
+                        Switch, 0x105ff48c0, {{340.0, 891.3}, {52.0, 32.0}}
+                        Other, 0x105ff7200, {{32.0, 871.3}, {376.0, 108.0}}
+                        Other, 0x105ff4280, {{32.0, 1027.3}, {376.0, 40.0}}
+                        Button, 0x1066b0000, {{32.0, 1071.3}, {376.0, 48.0}}
+                        Button, 0x1066b0280, {{32.0, 1123.3}, {376.0, 48.0}}
+                        Button, 0x1066b0140, {{32.0, 1175.3}, {376.0, 48.7}}
+                        Button, 0x1066b03c0, {{32.0, 1228.0}, {376.0, 48.0}}
+                        Button, 0x1066b0500, {{32.0, 1280.0}, {376.0, 48.0}}
+                        Button, 0x1066b0640, {{32.0, 1332.0}, {376.0, 48.0}}
+                        Button, 0x1066b0780, {{32.0, 1384.0}, {376.0, 48.0}}
+                      Other, 0x1066b08c0, {{16.0, 846.0}, {408.0, 64.0}}
+                      Other, 0x1066b0a00, {{16.0, 846.0}, {408.0, 64.0}}, identifier: 'bottom_navigation_bar'
+                      Button, 0x1066b0c80, {{40.7, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_search_map', label: 'Explore'
+                        Image, 0x1066b0dc0, {{53.7, 867.0}, {22.0, 22.0}}, label: 'Explore'
+                      Button, 0x1066b0b40, {{104.0, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_my_favorites', label: 'Saved'
+                        Image, 0x1066b0f00, {{117.0, 867.0}, {22.0, 22.0}}, label: 'Saved'
+                      Button, 0x1066b1040, {{167.7, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_rentals', label: 'My Rentals'
+                        Image, 0x1066b1180, {{180.7, 867.0}, {22.0, 22.0}}, label: 'My Rentals'
+                      Button, 0x1066b12c0, {{232.3, 854.0}, {108.7, 48.0}}, identifier: 'nav_item_pro_profile', label: 'Profile', Selected
+                        StaticText, 0x1066b1400, {{278.3, 868.7}, {46.7, 19.0}}, label: 'Profile'
+                      Button, 0x1066b1680, {{354.3, 854.0}, {48.0, 48.0}}, label: 'Hide navigation'
+                        Image, 0x1066b1540, {{366.3, 866.0}, {24.0, 24.0}}, label: 'Hide navigation'
+    Window, 0x1066b1a40, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x1066b1900, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x1066b17c0, {{0.0, 0.0}, {440.0, 956.0}}
 Path to element:
- →Application, 0x109f21b80, pid: 79843, label: 'ProHost'
+ →Application, 0x1131d9b80, pid: 81140, label: 'ProHost'
 Query chain:
  →Find: Target Application 'app.geonajjar.prohost'
   Output: {
-    Application, 0x116e1e6c0, pid: 79843, label: 'ProHost'
+    Application, 0x1066b26c0, pid: 81140, label: 'ProHost'
   }

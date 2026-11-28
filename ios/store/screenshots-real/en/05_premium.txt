@@ -1,97 +1,97 @@
-Attributes: Application, 0x109f25400, pid: 85927, label: 'ProHost'
+Attributes: Application, 0x1066b5400, pid: 85888, label: 'ProHost'
 Element subtree:
- →Application, 0x109f25400, pid: 85927, label: 'ProHost'
-    Window (Main), 0x109f25540, {{0.0, 0.0}, {440.0, 956.0}}
-      Other, 0x109f25680, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x109f257c0, {{0.0, 0.0}, {440.0, 956.0}}
-          Other, 0x109f25900, {{0.0, 0.0}, {440.0, 956.0}}
-            Other, 0x109f25a40, {{0.0, 0.0}, {440.0, 956.0}}
-              Other, 0x109f25b80, {{0.0, 0.0}, {440.0, 956.0}}
-                Other, 0x109f25cc0, {{0.0, 0.0}, {440.0, 956.0}}
-                Other, 0x109f25e00, {{0.0, 0.0}, {440.0, 956.0}}
-                ScrollView, 0x109f25f40, {{0.0, 0.0}, {440.0, 956.0}}
-                  Other, 0x109f26080, {{0.0, 0.0}, {440.0, 956.0}}
-                    Other, 0x109f261c0, {{0.0, 0.0}, {440.0, 956.0}}
-                      Other, 0x109f26300, {{0.0, 0.0}, {440.0, 126.0}}
-                      Button, 0x109f26440, {{8.0, 70.0}, {48.0, 48.0}}, identifier: 'top_bar_back_button', label: 'Back'
-                        Image, 0x109f26580, {{20.0, 82.0}, {24.0, 24.0}}, label: 'Back'
-                      Other, 0x109f266c0, {{0.0, 0.0}, {440.0, 956.0}}
-                      StaticText, 0x109f26800, {{64.0, 84.7}, {130.0, 18.7}}, label: 'ProHost Premium'
-                      Other, 0x109f26940, {{0.0, 126.0}, {440.0, 796.0}}
-                      Other, 0x109f26a80, {{16.0, 142.0}, {408.0, 764.0}}
-                        Other, 0x109f26bc0, {{16.0, 142.0}, {408.0, 72.0}}
-                        Other, 0x109f26d00, {{34.0, 154.0}, {372.0, 48.0}}
-                        Other, 0x109f26e40, {{34.0, 158.0}, {40.0, 40.0}}
-                        StaticText, 0x109f26f80, {{86.0, 161.0}, {130.0, 18.7}}, label: 'ProHost Premium'
-                        StaticText, 0x109f270c0, {{86.0, 179.7}, {190.3, 15.3}}, label: 'Publish and manage one listing.'
-                        Other, 0x109f27200, {{16.0, 230.0}, {408.0, 48.0}}
-                          Button, 0x109f27340, {{16.0, 230.0}, {94.0, 48.0}}, label: 'Manage'
-                            StaticText, 0x109f27480, {{48.0, 247.0}, {46.0, 14.0}}, label: 'Manage'
-                          Button, 0x109f275c0, {{118.0, 230.0}, {126.0, 48.0}}, label: 'Redeem code'
-                            StaticText, 0x109f27700, {{150.0, 247.0}, {78.0, 14.0}}, label: 'Redeem code'
-                          Button, 0x109f27840, {{252.0, 230.0}, {86.7, 48.0}}, label: 'Orders'
-                            StaticText, 0x109f27980, {{284.0, 247.0}, {38.7, 14.0}}, label: 'Orders'
-                          Button, 0x109f27ac0, {{346.7, 230.0}, {77.3, 48.0}}, label: 'Restore'
-                            StaticText, 0x109f27c00, {{378.7, 247.0}, {44.3, 14.0}}, label: 'Restore'
-                        StaticText, 0x109f27d40, {{20.0, 298.0}, {128.0, 14.0}}, label: 'CHOOSE YOUR PLAN'
-                        Other, 0x109f27e80, {{16.0, 328.0}, {408.0, 76.3}}
-                        Button, 0x116e1da40, {{20.0, 332.0}, {198.0, 68.3}}, label: 'RECOMMENDED, 1 listing, From $4.49 / month', Selected
-                          Other, 0x116e1ca00, {{65.7, 340.0}, {106.7, 18.0}}
-                            StaticText, 0x116e1cc80, {{71.7, 342.0}, {94.7, 14.0}}, label: 'RECOMMENDED'
-                          StaticText, 0x116e1cdc0, {{93.3, 360.0}, {51.3, 16.3}}, label: '1 listing'
-                          StaticText, 0x116e1c8c0, {{62.0, 378.3}, {114.3, 14.0}}, label: 'From $4.49 / month'
-                        Button, 0x116e1cb40, {{222.0, 332.0}, {198.0, 68.3}}, label: 'Unlimited listings, From $17.99 / month'
-                          StaticText, 0x116e1c640, {{265.0, 350.0}, {112.0, 16.3}}, label: 'Unlimited listings'
-                          StaticText, 0x116e1c500, {{260.3, 368.3}, {121.3, 14.0}}, label: 'From $17.99 / month'
-                        StaticText, 0x116e1c780, {{20.0, 408.3}, {404.0, 30.0}}, label: 'Publish one space at a time. Upgrade to Unlimited whenever you add more.'
-                        Button, 0x116e1c3c0, {{16.0, 454.3}, {198.0, 172.7}}, label: 'FLEXIBLE, Monthly, $4.49, per month, Billed monthly'
-                          Other, 0x116e1c000, {{16.0, 454.3}, {198.0, 172.7}}
-                            Other, 0x116e1c140, {{16.0, 444.3}, {198.0, 48.0}}
-                              StaticText, 0x116e1c280, {{95.3, 461.3}, {56.7, 14.0}}, label: 'FLEXIBLE'
-                            StaticText, 0x106663e80, {{30.0, 497.3}, {148.0, 16.3}}, label: 'Monthly'
-                            StaticText, 0x1066635c0, {{30.0, 520.3}, {66.3, 32.7}}, label: '$4.49'
-                            StaticText, 0x106663700, {{30.0, 557.0}, {58.7, 14.0}}, label: 'per month'
-                            StaticText, 0x106663340, {{30.0, 575.0}, {84.3, 14.0}}, label: 'Billed monthly'
-                            Other, 0x106663c00, {{30.0, 597.0}, {119.7, 18.0}}
-                              StaticText, 0x106663d40, {{36.0, 599.0}, {107.7, 14.0}}, label: 'CANCEL ANYTIME'
-                        Button, 0x1066630c0, {{226.0, 454.3}, {198.0, 172.7}}, label: 'BEST VALUE, Yearly, Selected, $44.99, per year', Selected
-                          Other, 0x106663980, {{226.0, 454.3}, {198.0, 172.7}}
-                            Other, 0x106662f80, {{226.0, 444.3}, {198.0, 48.0}}
-                              StaticText, 0x106663ac0, {{296.3, 461.3}, {74.3, 14.0}}, label: 'BEST VALUE'
-                            StaticText, 0x106663840, {{240.0, 497.3}, {148.0, 16.3}}, label: 'Yearly'
-                            Image, 0x106663480, {{388.0, 494.3}, {22.0, 22.0}}, label: 'Selected'
-                            StaticText, 0x106663200, {{240.0, 520.3}, {81.7, 32.7}}, label: '$44.99'
-                            StaticText, 0x109d55f40, {{240.0, 557.0}, {46.7, 14.0}}, label: 'per year'
-                            StaticText, 0x109d566c0, {{240.0, 575.0}, {114.3, 14.0}}, label: '≈ USD 3.75 / month'
-                            Other, 0x109d54c80, {{240.0, 597.0}, {162.7, 18.0}}
-                              StaticText, 0x109d57340, {{246.0, 599.0}, {150.7, 14.0}}, label: 'SAVE 16%% VS MONTHLY'
-                        Other, 0x109d56080, {{16.0, 639.0}, {408.0, 112.0}}
-                        StaticText, 0x109d57e80, {{54.0, 651.3}, {218.3, 15.3}}, label: 'Publish unlimited workspace listings'
-                        StaticText, 0x109d57d40, {{54.0, 675.3}, {230.0, 15.3}}, label: 'Receive and manage booking requests'
-                        StaticText, 0x109d56300, {{54.0, 699.3}, {248.7, 15.3}}, label: 'Host dashboard, occupancy and analytics'
-                        StaticText, 0x109d561c0, {{54.0, 723.3}, {192.3, 15.3}}, label: 'Shown on Explore's list and map'
-                        Button, 0x109d54140, {{16.0, 763.0}, {408.0, 52.0}}, label: 'Subscribe · Yearly'
-                          StaticText, 0x109d55cc0, {{175.3, 781.0}, {115.3, 16.3}}, label: 'Subscribe · Yearly'
-                        Other, 0x109d543c0, {{16.0, 827.0}, {408.0, 79.0}}
-                        StaticText, 0x109d55400, {{30.0, 841.0}, {95.0, 14.0}}, label: 'HOW IT WORKS'
-                        Other, 0x109d54780, {{30.0, 867.0}, {28.0, 28.0}}
-                        StaticText, 0x109d55540, {{70.0, 867.0}, {38.3, 16.3}}, label: 'Today'
-                        StaticText, 0x109d56580, {{70.0, 883.3}, {315.7, 15.3}}, label: '$44.99 for your first year, paid through the App Store.'
-                        StaticText, 0x109d57200, {{70.0, 910.7}, {121.0, 16.3}}, label: 'From Nov 28, 2027'
-                        StaticText, 0x109d57c00, {{70.0, 927.0}, {225.7, 15.3}}, label: '$44.99 / year, renewing automatically.'
-                        StaticText, 0x109d54b40, {{70.0, 954.3}, {98.7, 16.3}}, label: 'Cancel anytime'
-                        StaticText, 0x109d54640, {{70.0, 970.7}, {340.0, 33.0}}, label: 'Cancel in the App Store before Nov 28, 2027 to avoid the renewal; Premium stays until then.'
-                        StaticText, 0x109d57980, {{16.0, 1029.7}, {408.0, 30.0}}, label: '$44.99 / year · renews automatically until you cancel · via the App Store'
-                        StaticText, 0x109d57840, {{20.0, 1071.7}, {400.0, 30.0}}, label: 'Browsing and booking workspaces is free. ProHost Premium is needed only to publish listings.'
-                        StaticText, 0x109d54280, {{20.0, 1109.7}, {400.0, 62.0}}, label: 'Payment is charged to your Apple Account. Subscriptions renew automatically at the price and period shown until you cancel. Cancel anytime in Settings › Apple Account › Subscriptions; you keep access until the end of the paid period.'
-                        Button, 0x109d56440, {{20.0, 1183.7}, {109.3, 40.0}}
-    Window, 0x109d56800, {{0.0, 0.0}, {440.0, 956.0}}
-      Other, 0x109d54500, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x109d57480, {{0.0, 0.0}, {440.0, 956.0}}
+ →Application, 0x1066b5400, pid: 85888, label: 'ProHost'
+    Window (Main), 0x1066b5540, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x1066b5680, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x1066b57c0, {{0.0, 0.0}, {440.0, 956.0}}
+          Other, 0x1066b5900, {{0.0, 0.0}, {440.0, 956.0}}
+            Other, 0x1066b5a40, {{0.0, 0.0}, {440.0, 956.0}}
+              Other, 0x1066b5b80, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x1066b5cc0, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x1066b5e00, {{0.0, 0.0}, {440.0, 956.0}}
+                ScrollView, 0x1066b5f40, {{0.0, 0.0}, {440.0, 956.0}}
+                  Other, 0x1066b6080, {{0.0, 0.0}, {440.0, 956.0}}
+                    Other, 0x1066b61c0, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x1066b6300, {{0.0, 0.0}, {440.0, 126.0}}
+                      Button, 0x1066b6440, {{8.0, 70.0}, {48.0, 48.0}}, identifier: 'top_bar_back_button', label: 'Back'
+                        Image, 0x1066b6580, {{20.0, 82.0}, {24.0, 24.0}}, label: 'Back'
+                      Other, 0x1066b66c0, {{0.0, 0.0}, {440.0, 956.0}}
+                      StaticText, 0x1066b6800, {{64.0, 84.7}, {130.0, 18.7}}, label: 'ProHost Premium'
+                      Other, 0x1066b6940, {{0.0, 126.0}, {440.0, 796.0}}
+                      Other, 0x1066b6a80, {{16.0, 142.0}, {408.0, 764.0}}
+                        Other, 0x1066b6bc0, {{16.0, 142.0}, {408.0, 72.0}}
+                        Other, 0x1066b6d00, {{34.0, 154.0}, {372.0, 48.0}}
+                        Other, 0x1066b6e40, {{34.0, 158.0}, {40.0, 40.0}}
+                        StaticText, 0x1066b6f80, {{86.0, 161.0}, {130.0, 18.7}}, label: 'ProHost Premium'
+                        StaticText, 0x1066b70c0, {{86.0, 179.7}, {190.3, 15.3}}, label: 'Publish and manage one listing.'
+                        Other, 0x1066b7200, {{16.0, 230.0}, {408.0, 48.0}}
+                          Button, 0x1066b7340, {{16.0, 230.0}, {94.0, 48.0}}, label: 'Manage'
+                            StaticText, 0x1066b7480, {{48.0, 247.0}, {46.0, 14.0}}, label: 'Manage'
+                          Button, 0x1066b75c0, {{118.0, 230.0}, {126.0, 48.0}}, label: 'Redeem code'
+                            StaticText, 0x1066b7700, {{150.0, 247.0}, {78.0, 14.0}}, label: 'Redeem code'
+                          Button, 0x1066b7840, {{252.0, 230.0}, {86.7, 48.0}}, label: 'Orders'
+                            StaticText, 0x1066b7980, {{284.0, 247.0}, {38.7, 14.0}}, label: 'Orders'
+                          Button, 0x1066b7ac0, {{346.7, 230.0}, {77.3, 48.0}}, label: 'Restore'
+                            StaticText, 0x1066b7c00, {{378.7, 247.0}, {44.3, 14.0}}, label: 'Restore'
+                        StaticText, 0x1066b7d40, {{20.0, 298.0}, {128.0, 14.0}}, label: 'CHOOSE YOUR PLAN'
+                        Other, 0x1066b7e80, {{16.0, 328.0}, {408.0, 76.3}}
+                        Button, 0x1066b1a40, {{20.0, 332.0}, {198.0, 68.3}}, label: 'RECOMMENDED, 1 listing, From $4.49 / month', Selected
+                          Other, 0x1066b0a00, {{65.7, 340.0}, {106.7, 18.0}}
+                            StaticText, 0x1066b0c80, {{71.7, 342.0}, {94.7, 14.0}}, label: 'RECOMMENDED'
+                          StaticText, 0x1066b0dc0, {{93.3, 360.0}, {51.3, 16.3}}, label: '1 listing'
+                          StaticText, 0x1066b08c0, {{62.0, 378.3}, {114.3, 14.0}}, label: 'From $4.49 / month'
+                        Button, 0x1066b0b40, {{222.0, 332.0}, {198.0, 68.3}}, label: 'Unlimited listings, From $17.99 / month'
+                          StaticText, 0x1066b0640, {{265.0, 350.0}, {112.0, 16.3}}, label: 'Unlimited listings'
+                          StaticText, 0x1066b0500, {{260.3, 368.3}, {121.3, 14.0}}, label: 'From $17.99 / month'
+                        StaticText, 0x1066b0780, {{20.0, 408.3}, {404.0, 30.0}}, label: 'Publish one space at a time. Upgrade to Unlimited whenever you add more.'
+                        Button, 0x1066b03c0, {{16.0, 454.3}, {198.0, 172.7}}, label: 'FLEXIBLE, Monthly, $4.49, per month, Billed monthly'
+                          Other, 0x1066b0000, {{16.0, 454.3}, {198.0, 172.7}}
+                            Other, 0x1066b0140, {{16.0, 444.3}, {198.0, 48.0}}
+                              StaticText, 0x1066b0280, {{95.3, 461.3}, {56.7, 14.0}}, label: 'FLEXIBLE'
+                            StaticText, 0x102e4b480, {{30.0, 497.3}, {148.0, 16.3}}, label: 'Monthly'
+                            StaticText, 0x102e4bac0, {{30.0, 520.3}, {66.3, 32.7}}, label: '$4.49'
+                            StaticText, 0x102e4b700, {{30.0, 557.0}, {58.7, 14.0}}, label: 'per month'
+                            StaticText, 0x102e4bd40, {{30.0, 575.0}, {84.3, 14.0}}, label: 'Billed monthly'
+                            Other, 0x102e4af80, {{30.0, 597.0}, {119.7, 18.0}}
+                              StaticText, 0x102e4b200, {{36.0, 599.0}, {107.7, 14.0}}, label: 'CANCEL ANYTIME'
+                        Button, 0x102e4b5c0, {{226.0, 454.3}, {198.0, 172.7}}, label: 'BEST VALUE, Yearly, Selected, $44.99, per year', Selected
+                          Other, 0x102e4bc00, {{226.0, 454.3}, {198.0, 172.7}}
+                            Other, 0x102e4be80, {{226.0, 444.3}, {198.0, 48.0}}
+                              StaticText, 0x102e4b0c0, {{296.3, 461.3}, {74.3, 14.0}}, label: 'BEST VALUE'
+                            StaticText, 0x102e4b340, {{240.0, 497.3}, {148.0, 16.3}}, label: 'Yearly'
+                            Image, 0x102e4b840, {{388.0, 494.3}, {22.0, 22.0}}, label: 'Selected'
+                            StaticText, 0x102e4b980, {{240.0, 520.3}, {81.7, 32.7}}, label: '$44.99'
+                            StaticText, 0x105ff5a40, {{240.0, 557.0}, {46.7, 14.0}}, label: 'per year'
+                            StaticText, 0x105ff6d00, {{240.0, 575.0}, {114.3, 14.0}}, label: '≈ USD 3.75 / month'
+                            Other, 0x105ff57c0, {{240.0, 597.0}, {162.7, 18.0}}
+                              StaticText, 0x105ff4a00, {{246.0, 599.0}, {150.7, 14.0}}, label: 'SAVE 16%% VS MONTHLY'
+                        Other, 0x105ff43c0, {{16.0, 639.0}, {408.0, 112.0}}
+                        StaticText, 0x105ff6580, {{54.0, 651.3}, {218.3, 15.3}}, label: 'Publish unlimited workspace listings'
+                        StaticText, 0x105ff4140, {{54.0, 675.3}, {230.0, 15.3}}, label: 'Receive and manage booking requests'
+                        StaticText, 0x105ff5180, {{54.0, 699.3}, {248.7, 15.3}}, label: 'Host dashboard, occupancy and analytics'
+                        StaticText, 0x105ff75c0, {{54.0, 723.3}, {192.3, 15.3}}, label: 'Shown on Explore's list and map'
+                        Button, 0x105ff6080, {{16.0, 763.0}, {408.0, 52.0}}, label: 'Subscribe · Yearly'
+                          StaticText, 0x105ff6e40, {{175.3, 781.0}, {115.3, 16.3}}, label: 'Subscribe · Yearly'
+                        Other, 0x105ff7e80, {{16.0, 827.0}, {408.0, 79.0}}
+                        StaticText, 0x105ff4b40, {{30.0, 841.0}, {95.0, 14.0}}, label: 'HOW IT WORKS'
+                        Other, 0x105ff7d40, {{30.0, 867.0}, {28.0, 28.0}}
+                        StaticText, 0x105ff7ac0, {{70.0, 867.0}, {38.3, 16.3}}, label: 'Today'
+                        StaticText, 0x105ff7c00, {{70.0, 883.3}, {315.7, 15.3}}, label: '$44.99 for your first year, paid through the App Store.'
+                        StaticText, 0x105ff5900, {{70.0, 910.7}, {121.0, 16.3}}, label: 'From Nov 28, 2027'
+                        StaticText, 0x105ff6f80, {{70.0, 927.0}, {225.7, 15.3}}, label: '$44.99 / year, renewing automatically.'
+                        StaticText, 0x105ff5040, {{70.0, 954.3}, {98.7, 16.3}}, label: 'Cancel anytime'
+                        StaticText, 0x105ff6440, {{70.0, 970.7}, {340.0, 33.0}}, label: 'Cancel in the App Store before Nov 28, 2027 to avoid the renewal; Premium stays until then.'
+                        StaticText, 0x105ff61c0, {{16.0, 1029.7}, {408.0, 30.0}}, label: '$44.99 / year · renews automatically until you cancel · via the App Store'
+                        StaticText, 0x105ff5f40, {{20.0, 1071.7}, {400.0, 30.0}}, label: 'Browsing and booking workspaces is free. ProHost Premium is needed only to publish listings.'
+                        StaticText, 0x105ff7340, {{20.0, 1109.7}, {400.0, 62.0}}, label: 'Payment is charged to your Apple Account. Subscriptions renew automatically at the price and period shown until you cancel. Cancel anytime in Settings › Apple Account › Subscriptions; you keep access until the end of the paid period.'
+                        Button, 0x105ff7480, {{20.0, 1183.7}, {109.3, 40.0}}
+    Window, 0x105ff4500, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x105ff6bc0, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x105ff5cc0, {{0.0, 0.0}, {440.0, 956.0}}
 Path to element:
- →Application, 0x109f25400, pid: 85927, label: 'ProHost'
+ →Application, 0x1066b5400, pid: 85888, label: 'ProHost'
 Query chain:
  →Find: Target Application 'app.geonajjar.prohost'
   Output: {
-    Application, 0x109d55180, pid: 85927, label: 'ProHost'
+    Application, 0x105ff52c0, pid: 85888, label: 'ProHost'
   }

@@ -1,61 +1,61 @@
-Attributes: Application, 0x115090140, pid: 90281, label: 'ProHost'
+Attributes: Application, 0x116cf83c0, pid: 91869, label: 'ProHost'
 Element subtree:
- →Application, 0x115090140, pid: 90281, label: 'ProHost'
-    Window (Main), 0x115090280, {{0.0, 0.0}, {440.0, 956.0}}
-      Other, 0x1150903c0, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x115090000, {{0.0, 0.0}, {440.0, 956.0}}
-          Other, 0x115091cc0, {{0.0, 0.0}, {440.0, 956.0}}
-            Other, 0x115091b80, {{0.0, 0.0}, {440.0, 956.0}}
-              Other, 0x115091a40, {{0.0, 0.0}, {440.0, 956.0}}
-                Other, 0x1150917c0, {{0.0, 0.0}, {440.0, 956.0}}
-                Other, 0x115091900, {{0.0, 0.0}, {440.0, 956.0}}
-                ScrollView, 0x115091680, {{0.0, 0.0}, {440.0, 956.0}}
-                  Other, 0x115091540, {{0.0, 0.0}, {440.0, 956.0}}
-                    Other, 0x115091400, {{0.0, 0.0}, {440.0, 956.0}}
-                      Other, 0x115090f00, {{0.0, 0.0}, {440.0, 126.0}}
-                      Image, 0x115090dc0, {{386.0, 77.0}, {34.0, 34.0}}, label: 'شعار ProHost'
-                      StaticText, 0x104e7bac0, {{318.3, 77.7}, {59.7, 18.7}}, label: 'ProHost'
-                      Button, 0x104e7b480, {{8.0, 70.0}, {48.0, 48.0}}, identifier: 'top_bar_notifications_button', label: 'الإشعارات'
-                        Image, 0x104e7be80, {{20.0, 82.0}, {24.0, 24.0}}, label: 'الإشعارات'
-                      Other, 0x104e7bd40, {{0.0, 0.0}, {440.0, 956.0}}
-                      StaticText, 0x115088f00, {{312.7, 96.3}, {65.3, 14.0}}, label: 'My Rentals'
-                      Other, 0x115089f40, {{0.0, 126.0}, {440.0, 708.0}}, identifier: 'my_bookings_screen'
-                      Other, 0x11508a300, {{0.0, 126.0}, {440.0, 796.0}}
-                      Other, 0x11508a1c0, {{0.0, 126.0}, {440.0, 72.0}}
-                      Other, 0x11508a440, {{16.0, 138.0}, {408.0, 48.0}}
-                      Button, 0x11508a580, {{287.3, 138.0}, {136.7, 48.0}}, label: 'نشطة (0)', Selected
-                        StaticText, 0x11508a6c0, {{345.0, 154.7}, {47.3, 15.0}}, label: 'نشطة (0)'
-                        Other, 0x11508bc00, {{304.0, 138.3}, {48.0, 48.0}}
-                      Button, 0x11508b980, {{152.7, 138.0}, {134.7, 48.0}}, label: 'قيد الانتظار (0)'
-                        StaticText, 0x11508b840, {{182.7, 154.7}, {74.7, 15.0}}, label: 'قيد الانتظار (0)'
-                      Button, 0x11508bd40, {{16.0, 138.0}, {136.7, 48.0}}, label: 'السابقة (0)'
-                        StaticText, 0x1150883c0, {{56.7, 154.7}, {55.3, 15.0}}, label: 'السابقة (0)'
-                      Other, 0x115088000, {{0.0, 198.0}, {440.0, 636.0}}
-                      Other, 0x115088140, {{0.0, 390.0}, {440.0, 252.3}}, identifier: 'empty_state_browse_button'
-                      Other, 0x115088280, {{188.0, 422.0}, {64.0, 64.0}}
-                      StaticText, 0x115088640, {{165.0, 502.0}, {110.0, 20.0}}, label: 'لا حجوزات نشطة'
-                      StaticText, 0x1150888c0, {{109.0, 530.0}, {222.3, 16.3}}, label: 'ابحث عن مساحة وأرسل طلب حجز — سيظهر هنا.'
-                      Button, 0x115088500, {{150.0, 562.3}, {140.0, 48.0}}, label: 'استكشف المساحات'
-                        StaticText, 0x115088dc0, {{174.0, 579.0}, {92.0, 15.0}}, label: 'استكشف المساحات'
-                      Other, 0x115088b40, {{16.0, 846.0}, {408.0, 64.0}}
-                      Other, 0x115088780, {{16.0, 846.0}, {408.0, 64.0}}, identifier: 'bottom_navigation_bar'
-                      Button, 0x115088a00, {{352.7, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_search_map', label: 'Explore'
-                        Image, 0x115089180, {{365.7, 867.0}, {22.0, 22.0}}, label: 'Explore'
-                      Button, 0x115089400, {{290.3, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_my_favorites', label: 'Saved'
-                        Image, 0x115088c80, {{303.3, 867.0}, {22.0, 22.0}}, label: 'Saved'
-                      Button, 0x1150892c0, {{159.3, 854.0}, {115.7, 48.0}}, identifier: 'nav_item_pro_rentals', label: 'Rentals', Selected
-                        StaticText, 0x115089040, {{175.3, 868.7}, {53.7, 19.0}}, label: 'Rentals'
-                      Button, 0x115089540, {{95.7, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_profile', label: 'Profile'
-                        Image, 0x115089680, {{108.7, 867.0}, {22.0, 22.0}}, label: 'Profile'
-                      Button, 0x11508ad00, {{36.3, 854.0}, {48.0, 48.0}}, label: 'إخفاء شريط التنقّل'
-                        Image, 0x115089b80, {{48.3, 866.0}, {24.0, 24.0}}, label: 'إخفاء شريط التنقّل'
-    Window, 0x1150897c0, {{0.0, 0.0}, {440.0, 956.0}}
-      Other, 0x11508aa80, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x11508a800, {{0.0, 0.0}, {440.0, 956.0}}
+ →Application, 0x116cf83c0, pid: 91869, label: 'ProHost'
+    Window (Main), 0x116cf8500, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x116cf8640, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x116cf8780, {{0.0, 0.0}, {440.0, 956.0}}
+          Other, 0x116cf88c0, {{0.0, 0.0}, {440.0, 956.0}}
+            Other, 0x116cf8a00, {{0.0, 0.0}, {440.0, 956.0}}
+              Other, 0x116cf8b40, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x116cf8c80, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x116cf8dc0, {{0.0, 0.0}, {440.0, 956.0}}
+                ScrollView, 0x116cf8f00, {{0.0, 0.0}, {440.0, 956.0}}
+                  Other, 0x116cf9040, {{0.0, 0.0}, {440.0, 956.0}}
+                    Other, 0x116cf9180, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x116cf92c0, {{0.0, 0.0}, {440.0, 126.0}}
+                      Image, 0x116cf9400, {{386.0, 77.0}, {34.0, 34.0}}, label: 'شعار ProHost'
+                      StaticText, 0x116cf9540, {{318.3, 77.7}, {59.7, 18.7}}, label: 'ProHost'
+                      Button, 0x116cf9680, {{8.0, 70.0}, {48.0, 48.0}}, identifier: 'top_bar_notifications_button', label: 'الإشعارات'
+                        Image, 0x116cf97c0, {{20.0, 82.0}, {24.0, 24.0}}, label: 'الإشعارات'
+                      Other, 0x116cf9900, {{0.0, 0.0}, {440.0, 956.0}}
+                      StaticText, 0x116cf9a40, {{312.7, 96.3}, {65.3, 14.0}}, label: 'My Rentals'
+                      Other, 0x116cf9b80, {{0.0, 126.0}, {440.0, 708.0}}, identifier: 'my_bookings_screen'
+                      Other, 0x116cf9cc0, {{0.0, 126.0}, {440.0, 796.0}}
+                      Other, 0x116cf9e00, {{0.0, 126.0}, {440.0, 72.0}}
+                      Other, 0x116cf9f40, {{16.0, 138.0}, {408.0, 48.0}}
+                      Button, 0x116cfa080, {{287.3, 138.0}, {136.7, 48.0}}, label: 'نشطة (0)', Selected
+                        StaticText, 0x116cfa1c0, {{345.0, 154.7}, {47.3, 15.0}}, label: 'نشطة (0)'
+                        Other, 0x116cfa300, {{304.0, 138.3}, {48.0, 48.0}}
+                      Button, 0x116cfa440, {{152.7, 138.0}, {134.7, 48.0}}, label: 'قيد الانتظار (0)'
+                        StaticText, 0x116cfa580, {{182.7, 154.7}, {74.7, 15.0}}, label: 'قيد الانتظار (0)'
+                      Button, 0x116cfa6c0, {{16.0, 138.0}, {136.7, 48.0}}, label: 'السابقة (0)'
+                        StaticText, 0x116cfa800, {{56.7, 154.7}, {55.3, 15.0}}, label: 'السابقة (0)'
+                      Other, 0x116cfa940, {{0.0, 198.0}, {440.0, 636.0}}
+                      Other, 0x116cfaa80, {{0.0, 390.0}, {440.0, 252.3}}, identifier: 'empty_state_browse_button'
+                      Other, 0x116cfabc0, {{188.0, 422.0}, {64.0, 64.0}}
+                      StaticText, 0x116cfad00, {{165.0, 502.0}, {110.0, 20.0}}, label: 'لا حجوزات نشطة'
+                      StaticText, 0x116cfae40, {{109.0, 530.0}, {222.3, 16.3}}, label: 'ابحث عن مساحة وأرسل طلب حجز — سيظهر هنا.'
+                      Button, 0x116cfaf80, {{150.0, 562.3}, {140.0, 48.0}}, label: 'استكشف المساحات'
+                        StaticText, 0x116cfb0c0, {{174.0, 579.0}, {92.0, 15.0}}, label: 'استكشف المساحات'
+                      Other, 0x116cfb200, {{16.0, 846.0}, {408.0, 64.0}}
+                      Other, 0x116cfb340, {{16.0, 846.0}, {408.0, 64.0}}, identifier: 'bottom_navigation_bar'
+                      Button, 0x116cfb480, {{352.7, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_search_map', label: 'Explore'
+                        Image, 0x116cfb5c0, {{365.7, 867.0}, {22.0, 22.0}}, label: 'Explore'
+                      Button, 0x116cfb700, {{290.3, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_my_favorites', label: 'Saved'
+                        Image, 0x116cfb840, {{303.3, 867.0}, {22.0, 22.0}}, label: 'Saved'
+                      Button, 0x116cfb980, {{159.3, 854.0}, {115.7, 48.0}}, identifier: 'nav_item_pro_rentals', label: 'Rentals', Selected
+                        StaticText, 0x116cfbac0, {{175.3, 868.7}, {53.7, 19.0}}, label: 'Rentals'
+                      Button, 0x116cfbc00, {{95.7, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_profile', label: 'Profile'
+                        Image, 0x116cfbd40, {{108.7, 867.0}, {22.0, 22.0}}, label: 'Profile'
+                      Button, 0x116cfbe80, {{36.3, 854.0}, {48.0, 48.0}}, label: 'إخفاء شريط التنقّل'
+                        Image, 0x116c51f40, {{48.3, 866.0}, {24.0, 24.0}}, label: 'إخفاء شريط التنقّل'
+    Window, 0x116c52080, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x116c521c0, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x116c52300, {{0.0, 0.0}, {440.0, 956.0}}
 Path to element:
- →Application, 0x115090140, pid: 90281, label: 'ProHost'
+ →Application, 0x116cf83c0, pid: 91869, label: 'ProHost'
 Query chain:
  →Find: Target Application 'app.geonajjar.prohost'
   Output: {
-    Application, 0x115089cc0, pid: 90281, label: 'ProHost'
+    Application, 0x116c51540, pid: 91869, label: 'ProHost'
   }

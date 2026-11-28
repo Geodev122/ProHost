@@ -1,134 +1,134 @@
-Attributes: Application, 0x109f27c00, pid: 86645, label: 'ProHost'
+Attributes: Application, 0x1066b7c00, pid: 86498, label: 'ProHost'
 Element subtree:
- →Application, 0x109f27c00, pid: 86645, label: 'ProHost'
-    Window (Main), 0x109f27d40, {{0.0, 0.0}, {440.0, 956.0}}
-      Other, 0x109f27e80, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x109f27980, {{0.0, 0.0}, {440.0, 956.0}}
-          Other, 0x109f27ac0, {{0.0, 0.0}, {440.0, 956.0}}
-            Other, 0x109f275c0, {{0.0, 0.0}, {440.0, 956.0}}
-              Other, 0x109f27700, {{0.0, 0.0}, {440.0, 956.0}}
-                Other, 0x109f27840, {{0.0, 0.0}, {440.0, 956.0}}
-                Other, 0x109f27340, {{0.0, 0.0}, {440.0, 956.0}}
-                ScrollView, 0x109f27480, {{0.0, 0.0}, {440.0, 956.0}}
-                  Other, 0x109f26f80, {{0.0, 0.0}, {440.0, 956.0}}
-                    Other, 0x116de7200, {{0.0, 0.0}, {440.0, 956.0}}
-                      Other, 0x116de6e40, {{0.0, 0.0}, {440.0, 956.0}}
-                      Other, 0x116de6f80, {{0.0, 62.0}, {440.0, 860.0}}
-                      Other, 0x116de70c0, {{0.0, 62.0}, {440.0, 860.0}}
-                      Other, 0x116de6d00, {{0.0, 62.0}, {440.0, 726.7}}
-                        Button, 0x116de6a80, {{5.0, 63.0}, {48.0, 48.0}}, label: 'Back'
-                          Image, 0x116de6bc0, {{18.0, 76.0}, {22.0, 22.0}}, label: 'Back'
-                        Other, 0x116de6940, {{304.0, 66.0}, {128.0, 42.0}}
-                        Button, 0x116de6800, {{301.0, 63.0}, {43.0, 48.0}}, label: 'Save'
-                          Image, 0x116de6080, {{314.7, 76.7}, {21.0, 21.0}}, label: 'Save'
-                        Other, 0x116de66c0, {{322.7, 63.0}, {21.3, 48.0}}
-                        Button, 0x116de6580, {{344.0, 63.0}, {43.0, 48.0}}, label: 'Share'
-                          Image, 0x116de6440, {{358.0, 77.0}, {20.0, 20.0}}, label: 'Share'
-                        Other, 0x116de61c0, {{365.7, 63.0}, {21.3, 48.0}}
-                        Other, 0x116de6300, {{0.0, 62.0}, {440.0, 230.0}}
-                        Button, 0x116de5f40, {{387.0, 63.0}, {48.0, 48.0}}, label: 'More options'
-                          Image, 0x116de5e00, {{401.0, 77.0}, {20.0, 20.0}}, label: 'More options'
-                        Other, 0x116de5cc0, {{0.0, 62.0}, {440.0, 230.0}}
-                        Other, 0x116de5b80, {{0.0, 62.0}, {440.0, 230.0}}
-                        Other, 0x116de5a40, {{176.0, 133.0}, {88.0, 72.3}}
-                        StaticText, 0x116de5900, {{209.7, 160.7}, {20.7, 32.7}}, label: 'M'
-                        Other, 0x116de57c0, {{14.0, 205.3}, {257.3, 22.0}}
-                        StaticText, 0x116de5680, {{22.0, 209.3}, {241.3, 14.0}}, label: 'Private Office • Shared co-working space'
-                        StaticText, 0x116de5540, {{14.0, 235.3}, {97.3, 27.3}}, label: 'Life Clinic'
-                        StaticText, 0x116de5400, {{32.0, 262.7}, {214.3, 15.3}}, label: 'Dekouaneh, Matn, Lebanon • Floor 4'
-                        Other, 0x116de52c0, {{16.0, 308.0}, {408.0, 480.7}}
-                        Other, 0x116de5180, {{32.0, 324.0}, {376.0, 40.0}}, label: 'Spaces to rent (2), Tap a space to see its details and availability'
-                          Other, 0x116de5040, {{9.7, 320.0}, {48.0, 48.0}}
-                          Other, 0x116de4f00, {{43.0, 328.0}, {32.0, 32.0}}
-                          StaticText, 0x116de4dc0, {{87.0, 324.0}, {157.0, 24.7}}, label: 'Spaces to rent (2)'
-                          StaticText, 0x116de4c80, {{87.0, 348.7}, {265.7, 15.3}}, label: 'Tap a space to see its details and availability'
-                        Button, 0x116de4b40, {{32.0, 376.0}, {184.0, 154.7}}, identifier: 'room_tile_SUB-E1668F', label: 'Consultation Room, Open, Consultation Room, Office, from $40/shift'
-                          Other, 0x116de4a00, {{32.0, 376.0}, {184.0, 84.0}}
-                            Image, 0x116de48c0, {{32.0, 376.0}, {184.0, 84.0}}, label: 'Consultation Room'
-                            Other, 0x116de4780, {{163.7, 382.0}, {46.3, 18.0}}
-                              StaticText, 0x116de4640, {{171.7, 384.0}, {30.3, 14.0}}, label: 'Open'
-                          StaticText, 0x116de4500, {{42.0, 470.0}, {122.3, 16.3}}, label: 'Consultation Room'
-                          StaticText, 0x116de43c0, {{42.0, 488.3}, {35.0, 14.0}}, label: 'Office'
-                          StaticText, 0x116de4280, {{42.0, 504.3}, {92.7, 16.3}}, label: 'from $40/shift'
-                        Button, 0x116de4140, {{224.0, 376.0}, {184.0, 154.7}}, identifier: 'room_tile_SUB-4868A3', label: 'Therapy Room, Open, Therapy Room, Room, from $15/hr'
-                          Other, 0x116de4000, {{224.0, 376.0}, {184.0, 84.0}}
-                            Image, 0x109c761c0, {{224.0, 376.0}, {184.0, 84.0}}, label: 'Therapy Room'
-                            Other, 0x109c77200, {{355.7, 382.0}, {46.3, 18.0}}
-                              StaticText, 0x109c76080, {{363.7, 384.0}, {30.3, 14.0}}, label: 'Open'
-                          StaticText, 0x109c76a80, {{234.0, 470.0}, {93.0, 16.3}}, label: 'Therapy Room'
-                          StaticText, 0x109c775c0, {{234.0, 488.3}, {33.3, 14.0}}, label: 'Room'
-                          StaticText, 0x109c76800, {{234.0, 504.3}, {77.0, 16.3}}, label: 'from $15/hr'
-                        Button, 0x109c75540, {{32.0, 542.7}, {376.0, 246.0}}, label: 'Consultation Room, Consultation Room, Office, Shift-Based · from $40/shift, Standing Desk'
-                          Other, 0x109c74c80, {{32.0, 542.7}, {376.0, 130.0}}
-                            Other, 0x109c75cc0, {{32.0, 542.7}, {376.0, 130.0}}
-                              Image, 0x109c76940, {{32.0, 542.7}, {376.0, 130.0}}, label: 'Consultation Room'
-                            Other, 0x109c77480, {{192.0, 639.7}, {48.0, 42.0}}
-                            Other, 0x109c77980, {{201.0, 638.7}, {48.0, 43.0}}
-                          StaticText, 0x109c76300, {{44.0, 681.7}, {296.3, 16.3}}, label: 'Consultation Room'
-                          Other, 0x109c77840, {{348.3, 680.7}, {47.7, 18.0}}
-                            StaticText, 0x109c75040, {{354.3, 682.7}, {35.7, 14.0}}, label: 'Office'
-                          StaticText, 0x109c75b80, {{44.0, 706.7}, {163.0, 14.0}}, label: 'Shift-Based · from $40/shift'
-                          Other, 0x109c748c0, {{44.0, 728.7}, {352.0, 18.0}}
-                            Other, 0x109c74b40, {{44.0, 728.7}, {96.0, 18.0}}
-                              StaticText, 0x109c76bc0, {{50.0, 730.7}, {84.0, 14.0}}, label: 'Standing Desk'
-                            Other, 0x109c757c0, {{144.0, 728.7}, {98.0, 18.0}}
-                              StaticText, 0x109c75180, {{150.0, 730.7}, {86.0, 14.0}}, label: 'Soundproofing'
-                            Other, 0x109c77d40, {{246.0, 728.7}, {106.0, 18.0}}
-                              StaticText, 0x109c74a00, {{252.0, 730.7}, {94.0, 14.0}}, label: 'Natural Lighting'
-                            Other, 0x109c76d00, {{356.0, 728.7}, {40.0, 18.0}}
-                              StaticText, 0x109c752c0, {{362.0, 730.7}, {34.0, 14.0}}, label: '+2 more'
-                        Button, 0x109c766c0, {{360.0, 583.7}, {48.0, 48.0}}, label: 'Next photo'
-                          Other, 0x109c75900, {{360.0, 583.7}, {48.0, 48.0}}
-                            Image, 0x109c76e40, {{377.0, 600.7}, {14.0, 14.0}}, label: 'Next photo'
-                        Button, 0x109c76f80, {{44.0, 754.7}, {352.0, 34.0}}, label: 'Check Availability'
-                          StaticText, 0x109c77340, {{180.3, 771.7}, {103.3, 14.0}}, label: 'Check Availability'
-                        StaticText, 0x109c770c0, {{88.0, 871.7}, {60.7, 18.7}}, label: 'Member'
-                        StaticText, 0x109c76580, {{46.7, 876.7}, {15.0, 24.0}}, label: 'M'
-                        StaticText, 0x109c77e80, {{346.0, 881.7}, {54.0, 14.0}}, label: 'Available'
-                        StaticText, 0x109c743c0, {{88.0, 890.3}, {66.7, 15.3}}, label: 'Space host'
-                        Button, 0x109f20000, {{32.0, 922.7}, {376.0, 48.0}}
-                        Other, 0x109f20140, {{32.0, 1026.7}, {376.0, 40.0}}
-                        StaticText, 0x109f20280, {{60.0, 1080.7}, {177.3, 14.0}}, label: '24/7 Solar & Generator Backup'
-                        StaticText, 0x109f203c0, {{60.0, 1110.7}, {208.7, 14.0}}, label: 'High-Speed Fiber Wi-Fi (100+ Mbps)'
-                        StaticText, 0x109f20500, {{60.0, 1140.7}, {197.7, 14.0}}, label: 'Receptionist & Front Desk Support'
-                        Other, 0x109f20640, {{32.0, 1216.7}, {376.0, 32.0}}
-                        StaticText, 0x109f20780, {{32.0, 1256.7}, {166.0, 16.3}}, label: 'One place for holistic care'
-                        StaticText, 0x109f208c0, {{308.0, 1333.0}, {92.0, 14.0}}, label: '72 hrs/wk Open'
-                        StaticText, 0x109f20a00, {{60.0, 1332.0}, {113.0, 16.3}}, label: 'Smart Availability'
-                        StaticText, 0x109f20b40, {{48.0, 1367.0}, {139.3, 14.0}}, label: 'Operating: 08:00 - 20:00'
-                        StaticText, 0x109f20c80, {{249.3, 1367.0}, {158.7, 14.0}}, label: 'Mon, Tue, Wed, Thu, Fri, Sat'
-                        StaticText, 0x109f20dc0, {{32.0, 1397.0}, {114.3, 14.0}}, label: 'Capacity Allocation'
-                        StaticText, 0x109f20f00, {{337.0, 1397.0}, {71.0, 14.0}}, label: '0%% Rented'
-                        StaticText, 0x109f21040, {{44.0, 1429.0}, {70.7, 14.0}}, label: 'Rented (0 h)'
-                        StaticText, 0x109f21180, {{138.7, 1429.0}, {125.3, 14.0}}, label: 'Blackout/Closed (0 h)'
-                        StaticText, 0x109f212c0, {{288.0, 1429.0}, {90.0, 14.0}}, label: 'Available (72 h)'
-                        StaticText, 0x109f21400, {{44.0, 1469.0}, {12.3, 24.7}}, label: '0'
-                        StaticText, 0x109f21540, {{236.0, 1469.0}, {22.0, 24.7}}, label: '69'
-                        StaticText, 0x109f21680, {{44.0, 1493.7}, {72.3, 14.0}}, label: 'Rented slots'
-                        StaticText, 0x109f217c0, {{236.0, 1493.7}, {93.0, 14.0}}, label: 'Remaining slots'
-                        StaticText, 0x109f21900, {{32.0, 1533.7}, {220.7, 14.0}}, label: 'Slots over the next 7 days · 69 in total'
-                        Other, 0x109f21a40, {{32.0, 1603.7}, {376.0, 40.0}}
-                        StaticText, 0x109f21b80, {{32.0, 1651.7}, {211.7, 15.3}}, label: 'Target Complementary Disciplines:'
-                      Other, 0x109f21cc0, {{0.0, 788.7}, {440.0, 133.3}}
-                      Other, 0x109f21e00, {{196.0, 774.7}, {48.0, 28.3}}
-                      Button, 0x109f21f40, {{16.0, 803.0}, {408.0, 48.0}}, label: 'Consultation Room, 9 slots open, Open availability'
-                        Other, 0x109f22080, {{16.0, 812.7}, {166.3, 28.3}}
-                          StaticText, 0x109f221c0, {{50.0, 818.7}, {122.3, 16.3}}, label: 'Consultation Room'
-                        Other, 0x109f22300, {{259.7, 803.0}, {48.0, 48.0}}
-                        StaticText, 0x109f22440, {{293.7, 820.0}, {70.7, 14.0}}, label: '9 slots open'
-                        Image, 0x109f22580, {{370.3, 817.0}, {20.0, 20.0}}, label: 'Open availability'
-                      StaticText, 0x109f226c0, {{16.0, 866.0}, {35.0, 24.7}}, label: '$40'
-                      StaticText, 0x109f22800, {{51.0, 873.7}, {59.0, 14.0}}, label: ' USD/shift'
-                      Button, 0x109f22940, {{295.3, 862.0}, {128.7, 48.0}}, label: 'Availability'
-                        StaticText, 0x109f22a80, {{337.3, 878.0}, {70.7, 16.3}}, label: 'Availability'
-                      StaticText, 0x109f22bc0, {{16.0, 890.7}, {133.3, 15.3}}, label: 'Shift / Time-Slot Basis'
-    Window, 0x109f22d00, {{0.0, 0.0}, {440.0, 956.0}}
-      Other, 0x109f22e40, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x109f22f80, {{0.0, 0.0}, {440.0, 956.0}}
+ →Application, 0x1066b7c00, pid: 86498, label: 'ProHost'
+    Window (Main), 0x1066b7d40, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x1066b7e80, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x1066b7980, {{0.0, 0.0}, {440.0, 956.0}}
+          Other, 0x1066b7ac0, {{0.0, 0.0}, {440.0, 956.0}}
+            Other, 0x1066b75c0, {{0.0, 0.0}, {440.0, 956.0}}
+              Other, 0x1066b7700, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x1066b7840, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x1066b7340, {{0.0, 0.0}, {440.0, 956.0}}
+                ScrollView, 0x1066b7480, {{0.0, 0.0}, {440.0, 956.0}}
+                  Other, 0x1066b6f80, {{0.0, 0.0}, {440.0, 956.0}}
+                    Other, 0x11318b200, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x11318ae40, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x11318af80, {{0.0, 62.0}, {440.0, 860.0}}
+                      Other, 0x11318b0c0, {{0.0, 62.0}, {440.0, 860.0}}
+                      Other, 0x11318ad00, {{0.0, 62.0}, {440.0, 726.7}}
+                        Button, 0x11318aa80, {{5.0, 63.0}, {48.0, 48.0}}, label: 'Back'
+                          Image, 0x11318abc0, {{18.0, 76.0}, {22.0, 22.0}}, label: 'Back'
+                        Other, 0x11318a940, {{304.0, 66.0}, {128.0, 42.0}}
+                        Button, 0x11318a800, {{301.0, 63.0}, {43.0, 48.0}}, label: 'Save'
+                          Image, 0x11318a080, {{314.7, 76.7}, {21.0, 21.0}}, label: 'Save'
+                        Other, 0x11318a6c0, {{322.7, 63.0}, {21.3, 48.0}}
+                        Button, 0x11318a580, {{344.0, 63.0}, {43.0, 48.0}}, label: 'Share'
+                          Image, 0x11318a440, {{358.0, 77.0}, {20.0, 20.0}}, label: 'Share'
+                        Other, 0x11318a1c0, {{365.7, 63.0}, {21.3, 48.0}}
+                        Other, 0x11318a300, {{0.0, 62.0}, {440.0, 230.0}}
+                        Button, 0x113189f40, {{387.0, 63.0}, {48.0, 48.0}}, label: 'More options'
+                          Image, 0x113189e00, {{401.0, 77.0}, {20.0, 20.0}}, label: 'More options'
+                        Other, 0x113189cc0, {{0.0, 62.0}, {440.0, 230.0}}
+                        Other, 0x113189b80, {{0.0, 62.0}, {440.0, 230.0}}
+                        Other, 0x113189a40, {{176.0, 133.0}, {88.0, 72.3}}
+                        StaticText, 0x113189900, {{209.7, 160.7}, {20.7, 32.7}}, label: 'M'
+                        Other, 0x1131897c0, {{14.0, 205.3}, {257.3, 22.0}}
+                        StaticText, 0x113189680, {{22.0, 209.3}, {241.3, 14.0}}, label: 'Private Office • Shared co-working space'
+                        StaticText, 0x113189540, {{14.0, 235.3}, {97.3, 27.3}}, label: 'Life Clinic'
+                        StaticText, 0x113189400, {{32.0, 262.7}, {214.3, 15.3}}, label: 'Dekouaneh, Matn, Lebanon • Floor 4'
+                        Other, 0x1131892c0, {{16.0, 308.0}, {408.0, 480.7}}
+                        Other, 0x113189180, {{32.0, 324.0}, {376.0, 40.0}}, label: 'Spaces to rent (2), Tap a space to see its details and availability'
+                          Other, 0x113189040, {{9.7, 320.0}, {48.0, 48.0}}
+                          Other, 0x113188f00, {{43.0, 328.0}, {32.0, 32.0}}
+                          StaticText, 0x113188dc0, {{87.0, 324.0}, {157.0, 24.7}}, label: 'Spaces to rent (2)'
+                          StaticText, 0x113188c80, {{87.0, 348.7}, {265.7, 15.3}}, label: 'Tap a space to see its details and availability'
+                        Button, 0x113188b40, {{32.0, 376.0}, {184.0, 154.7}}, identifier: 'room_tile_SUB-E1668F', label: 'Consultation Room, Open, Consultation Room, Office, from $40/shift'
+                          Other, 0x113188a00, {{32.0, 376.0}, {184.0, 84.0}}
+                            Image, 0x1131888c0, {{32.0, 376.0}, {184.0, 84.0}}, label: 'Consultation Room'
+                            Other, 0x113188780, {{163.7, 382.0}, {46.3, 18.0}}
+                              StaticText, 0x113188640, {{171.7, 384.0}, {30.3, 14.0}}, label: 'Open'
+                          StaticText, 0x113188500, {{42.0, 470.0}, {122.3, 16.3}}, label: 'Consultation Room'
+                          StaticText, 0x1131883c0, {{42.0, 488.3}, {35.0, 14.0}}, label: 'Office'
+                          StaticText, 0x113188280, {{42.0, 504.3}, {92.7, 16.3}}, label: 'from $40/shift'
+                        Button, 0x113188140, {{224.0, 376.0}, {184.0, 154.7}}, identifier: 'room_tile_SUB-4868A3', label: 'Therapy Room, Open, Therapy Room, Room, from $15/hr'
+                          Other, 0x113188000, {{224.0, 376.0}, {184.0, 84.0}}
+                            Image, 0x10650b980, {{224.0, 376.0}, {184.0, 84.0}}, label: 'Therapy Room'
+                            Other, 0x106509040, {{355.7, 382.0}, {46.3, 18.0}}
+                              StaticText, 0x10650a1c0, {{363.7, 384.0}, {30.3, 14.0}}, label: 'Open'
+                          StaticText, 0x10650a6c0, {{234.0, 470.0}, {93.0, 16.3}}, label: 'Therapy Room'
+                          StaticText, 0x106509680, {{234.0, 488.3}, {33.3, 14.0}}, label: 'Room'
+                          StaticText, 0x10650a940, {{234.0, 504.3}, {77.0, 16.3}}, label: 'from $15/hr'
+                        Button, 0x10650b840, {{32.0, 542.7}, {376.0, 246.0}}, label: 'Consultation Room, Consultation Room, Office, Shift-Based · from $40/shift, Standing Desk'
+                          Other, 0x10650b5c0, {{32.0, 542.7}, {376.0, 130.0}}
+                            Other, 0x1065097c0, {{32.0, 542.7}, {376.0, 130.0}}
+                              Image, 0x10650bc00, {{32.0, 542.7}, {376.0, 130.0}}, label: 'Consultation Room'
+                            Other, 0x106509f40, {{192.0, 639.7}, {48.0, 42.0}}
+                            Other, 0x106509e00, {{201.0, 638.7}, {48.0, 43.0}}
+                          StaticText, 0x10650bd40, {{44.0, 681.7}, {296.3, 16.3}}, label: 'Consultation Room'
+                          Other, 0x1065083c0, {{348.3, 680.7}, {47.7, 18.0}}
+                            StaticText, 0x106509900, {{354.3, 682.7}, {35.7, 14.0}}, label: 'Office'
+                          StaticText, 0x106508500, {{44.0, 706.7}, {163.0, 14.0}}, label: 'Shift-Based · from $40/shift'
+                          Other, 0x10650bac0, {{44.0, 728.7}, {352.0, 18.0}}
+                            Other, 0x106509400, {{44.0, 728.7}, {96.0, 18.0}}
+                              StaticText, 0x106509180, {{50.0, 730.7}, {84.0, 14.0}}, label: 'Standing Desk'
+                            Other, 0x10650a580, {{144.0, 728.7}, {98.0, 18.0}}
+                              StaticText, 0x1065092c0, {{150.0, 730.7}, {86.0, 14.0}}, label: 'Soundproofing'
+                            Other, 0x1065088c0, {{246.0, 728.7}, {106.0, 18.0}}
+                              StaticText, 0x106509b80, {{252.0, 730.7}, {94.0, 14.0}}, label: 'Natural Lighting'
+                            Other, 0x106508c80, {{356.0, 728.7}, {40.0, 18.0}}
+                              StaticText, 0x10650a300, {{362.0, 730.7}, {34.0, 14.0}}, label: '+2 more'
+                        Button, 0x10650abc0, {{360.0, 583.7}, {48.0, 48.0}}, label: 'Next photo'
+                          Other, 0x10650ae40, {{360.0, 583.7}, {48.0, 48.0}}
+                            Image, 0x106509cc0, {{377.0, 600.7}, {14.0, 14.0}}, label: 'Next photo'
+                        Button, 0x10650a080, {{44.0, 754.7}, {352.0, 34.0}}, label: 'Check Availability'
+                          StaticText, 0x10650b0c0, {{180.3, 771.7}, {103.3, 14.0}}, label: 'Check Availability'
+                        StaticText, 0x10650aa80, {{88.0, 871.7}, {60.7, 18.7}}, label: 'Member'
+                        StaticText, 0x106508a00, {{46.7, 876.7}, {15.0, 24.0}}, label: 'M'
+                        StaticText, 0x106508640, {{346.0, 881.7}, {54.0, 14.0}}, label: 'Available'
+                        StaticText, 0x10650ad00, {{88.0, 890.3}, {66.7, 15.3}}, label: 'Space host'
+                        Button, 0x1131d8000, {{32.0, 922.7}, {376.0, 48.0}}
+                        Other, 0x1131d8140, {{32.0, 1026.7}, {376.0, 40.0}}
+                        StaticText, 0x1131d8280, {{60.0, 1080.7}, {177.3, 14.0}}, label: '24/7 Solar & Generator Backup'
+                        StaticText, 0x1131d83c0, {{60.0, 1110.7}, {208.7, 14.0}}, label: 'High-Speed Fiber Wi-Fi (100+ Mbps)'
+                        StaticText, 0x1131d8500, {{60.0, 1140.7}, {197.7, 14.0}}, label: 'Receptionist & Front Desk Support'
+                        Other, 0x1131d8640, {{32.0, 1216.7}, {376.0, 32.0}}
+                        StaticText, 0x1131d8780, {{32.0, 1256.7}, {166.0, 16.3}}, label: 'One place for holistic care'
+                        StaticText, 0x1131d88c0, {{308.0, 1333.0}, {92.0, 14.0}}, label: '72 hrs/wk Open'
+                        StaticText, 0x1131d8a00, {{60.0, 1332.0}, {113.0, 16.3}}, label: 'Smart Availability'
+                        StaticText, 0x1131d8b40, {{48.0, 1367.0}, {139.3, 14.0}}, label: 'Operating: 08:00 - 20:00'
+                        StaticText, 0x1131d8c80, {{249.3, 1367.0}, {158.7, 14.0}}, label: 'Mon, Tue, Wed, Thu, Fri, Sat'
+                        StaticText, 0x1131d8dc0, {{32.0, 1397.0}, {114.3, 14.0}}, label: 'Capacity Allocation'
+                        StaticText, 0x1131d8f00, {{337.0, 1397.0}, {71.0, 14.0}}, label: '0%% Rented'
+                        StaticText, 0x1131d9040, {{44.0, 1429.0}, {70.7, 14.0}}, label: 'Rented (0 h)'
+                        StaticText, 0x1131d9180, {{138.7, 1429.0}, {125.3, 14.0}}, label: 'Blackout/Closed (0 h)'
+                        StaticText, 0x1131d92c0, {{288.0, 1429.0}, {90.0, 14.0}}, label: 'Available (72 h)'
+                        StaticText, 0x1131d9400, {{44.0, 1469.0}, {12.3, 24.7}}, label: '0'
+                        StaticText, 0x1131d9540, {{236.0, 1469.0}, {22.0, 24.7}}, label: '69'
+                        StaticText, 0x1131d9680, {{44.0, 1493.7}, {72.3, 14.0}}, label: 'Rented slots'
+                        StaticText, 0x1131d97c0, {{236.0, 1493.7}, {93.0, 14.0}}, label: 'Remaining slots'
+                        StaticText, 0x1131d9900, {{32.0, 1533.7}, {220.7, 14.0}}, label: 'Slots over the next 7 days · 69 in total'
+                        Other, 0x1131d9a40, {{32.0, 1603.7}, {376.0, 40.0}}
+                        StaticText, 0x1131d9b80, {{32.0, 1651.7}, {211.7, 15.3}}, label: 'Target Complementary Disciplines:'
+                      Other, 0x1131d9cc0, {{0.0, 788.7}, {440.0, 133.3}}
+                      Other, 0x1131d9e00, {{196.0, 774.7}, {48.0, 28.3}}
+                      Button, 0x1131d9f40, {{16.0, 803.0}, {408.0, 48.0}}, label: 'Consultation Room, 9 slots open, Open availability'
+                        Other, 0x1131da080, {{16.0, 812.7}, {166.3, 28.3}}
+                          StaticText, 0x1131da1c0, {{50.0, 818.7}, {122.3, 16.3}}, label: 'Consultation Room'
+                        Other, 0x1131da300, {{259.7, 803.0}, {48.0, 48.0}}
+                        StaticText, 0x1131da440, {{293.7, 820.0}, {70.7, 14.0}}, label: '9 slots open'
+                        Image, 0x1131da580, {{370.3, 817.0}, {20.0, 20.0}}, label: 'Open availability'
+                      StaticText, 0x1131da6c0, {{16.0, 866.0}, {35.0, 24.7}}, label: '$40'
+                      StaticText, 0x1131da800, {{51.0, 873.7}, {59.0, 14.0}}, label: ' USD/shift'
+                      Button, 0x1131da940, {{295.3, 862.0}, {128.7, 48.0}}, label: 'Availability'
+                        StaticText, 0x1131daa80, {{337.3, 878.0}, {70.7, 16.3}}, label: 'Availability'
+                      StaticText, 0x1131dabc0, {{16.0, 890.7}, {133.3, 15.3}}, label: 'Shift / Time-Slot Basis'
+    Window, 0x1131dad00, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x1131dae40, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x1131daf80, {{0.0, 0.0}, {440.0, 956.0}}
 Path to element:
- →Application, 0x109f27c00, pid: 86645, label: 'ProHost'
+ →Application, 0x1066b7c00, pid: 86498, label: 'ProHost'
 Query chain:
  →Find: Target Application 'app.geonajjar.prohost'
   Output: {
-    Application, 0x109f230c0, pid: 86645, label: 'ProHost'
+    Application, 0x1131db0c0, pid: 86498, label: 'ProHost'
   }

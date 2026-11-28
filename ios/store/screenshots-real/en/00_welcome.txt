@@ -1,40 +1,40 @@
-Attributes: Application, 0x109d54000, pid: 79843, label: 'ProHost'
+Attributes: Application, 0x106508000, pid: 81140, label: 'ProHost'
 Element subtree:
- →Application, 0x109d54000, pid: 79843, label: 'ProHost'
-    Window (Main), 0x109d56940, {{0.0, 0.0}, {440.0, 956.0}}
-      Other, 0x109d56a80, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x109d56bc0, {{0.0, 0.0}, {440.0, 956.0}}
-          Other, 0x109d56d00, {{0.0, 0.0}, {440.0, 956.0}}
-            Other, 0x109d56e40, {{0.0, 0.0}, {440.0, 956.0}}
-              Other, 0x109d56f80, {{0.0, 0.0}, {440.0, 956.0}}
-                Other, 0x109d57340, {{0.0, 0.0}, {440.0, 956.0}}
-                Other, 0x109d57480, {{0.0, 0.0}, {440.0, 956.0}}
-                ScrollView, 0x109d575c0, {{0.0, 0.0}, {440.0, 956.0}}
-                  Other, 0x109d57ac0, {{0.0, 0.0}, {440.0, 956.0}}
-                    Other, 0x109d57e80, {{0.0, 0.0}, {440.0, 956.0}}
-                      Other, 0x109d57d40, {{0.0, 0.0}, {440.0, 956.0}}
-                      Other, 0x109d57c00, {{0.0, 0.0}, {440.0, 956.0}}
-                      Other, 0x109d57980, {{16.0, 62.0}, {408.0, 860.0}}, identifier: 'login_auth_screen'
-                      Other, 0x109d57840, {{16.0, 118.0}, {408.0, 602.0}}
-                        Image, 0x109d57700, {{110.0, 150.0}, {220.0, 144.0}}, label: 'ProHost sign-in'
-                        Other, 0x109d57200, {{16.0, 322.0}, {283.3, 27.3}}, label: 'Find or list a room by the hour'
-                        StaticText, 0x109d570c0, {{16.0, 353.3}, {401.7, 16.3}}, label: 'Clinics, offices, studios and meeting rooms, booked in minutes.'
-                      Button, 0x109d54b40, {{16.0, 732.0}, {408.0, 48.0}}, identifier: 'auth_create_button', label: 'Create an account'
-                        StaticText, 0x106663ac0, {{175.0, 748.0}, {116.0, 16.3}}, label: 'Create an account'
-                      Button, 0x106663d40, {{16.0, 788.0}, {408.0, 48.0}}, identifier: 'auth_signin_button', label: 'I already have an account'
-                        StaticText, 0x106663e80, {{139.0, 804.0}, {162.3, 16.3}}, label: 'I already have an account'
-                      StaticText, 0x106663c00, {{132.7, 844.0}, {175.0, 14.0}}, label: 'By continuing you agree to our'
-                      Button, 0x106662f80, {{117.7, 858.0}, {100.3, 48.0}}, label: 'Terms of Use'
-                        StaticText, 0x1066630c0, {{129.7, 875.0}, {76.3, 14.0}}, label: 'Terms of Use'
-                      Button, 0x106663480, {{218.0, 858.0}, {104.7, 48.0}}, label: 'Privacy Policy'
-                        StaticText, 0x106663200, {{230.0, 875.0}, {80.7, 14.0}}, label: 'Privacy Policy'
-    Window, 0x106663340, {{0.0, 0.0}, {440.0, 956.0}}
-      Other, 0x1066635c0, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x106663700, {{0.0, 0.0}, {440.0, 956.0}}
+ →Application, 0x106508000, pid: 81140, label: 'ProHost'
+    Window (Main), 0x10650a940, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x10650aa80, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x10650abc0, {{0.0, 0.0}, {440.0, 956.0}}
+          Other, 0x10650ad00, {{0.0, 0.0}, {440.0, 956.0}}
+            Other, 0x10650ae40, {{0.0, 0.0}, {440.0, 956.0}}
+              Other, 0x10650af80, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x10650b340, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x10650b480, {{0.0, 0.0}, {440.0, 956.0}}
+                ScrollView, 0x10650b5c0, {{0.0, 0.0}, {440.0, 956.0}}
+                  Other, 0x10650bac0, {{0.0, 0.0}, {440.0, 956.0}}
+                    Other, 0x10650be80, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x10650bd40, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x10650bc00, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x10650b980, {{16.0, 62.0}, {408.0, 860.0}}, identifier: 'login_auth_screen'
+                      Other, 0x10650b840, {{16.0, 118.0}, {408.0, 602.0}}
+                        Image, 0x10650b700, {{110.0, 150.0}, {220.0, 144.0}}, label: 'ProHost sign-in'
+                        Other, 0x10650b200, {{16.0, 322.0}, {283.3, 27.3}}, label: 'Find or list a room by the hour'
+                        StaticText, 0x10650b0c0, {{16.0, 353.3}, {401.7, 16.3}}, label: 'Clinics, offices, studios and meeting rooms, booked in minutes.'
+                      Button, 0x106508b40, {{16.0, 732.0}, {408.0, 48.0}}, identifier: 'auth_create_button', label: 'Create an account'
+                        StaticText, 0x102e4bac0, {{175.0, 748.0}, {116.0, 16.3}}, label: 'Create an account'
+                      Button, 0x102e4bd40, {{16.0, 788.0}, {408.0, 48.0}}, identifier: 'auth_signin_button', label: 'I already have an account'
+                        StaticText, 0x102e4be80, {{139.0, 804.0}, {162.3, 16.3}}, label: 'I already have an account'
+                      StaticText, 0x102e4bc00, {{132.7, 844.0}, {175.0, 14.0}}, label: 'By continuing you agree to our'
+                      Button, 0x102e4af80, {{117.7, 858.0}, {100.3, 48.0}}, label: 'Terms of Use'
+                        StaticText, 0x102e4b0c0, {{129.7, 875.0}, {76.3, 14.0}}, label: 'Terms of Use'
+                      Button, 0x102e4b480, {{218.0, 858.0}, {104.7, 48.0}}, label: 'Privacy Policy'
+                        StaticText, 0x102e4b200, {{230.0, 875.0}, {80.7, 14.0}}, label: 'Privacy Policy'
+    Window, 0x102e4b340, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x102e4b5c0, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x102e4b700, {{0.0, 0.0}, {440.0, 956.0}}
 Path to element:
- →Application, 0x109d54000, pid: 79843, label: 'ProHost'
+ →Application, 0x106508000, pid: 81140, label: 'ProHost'
 Query chain:
  →Find: Target Application 'app.geonajjar.prohost'
   Output: {
-    Application, 0x106663840, pid: 79843, label: 'ProHost'
+    Application, 0x102e4b840, pid: 81140, label: 'ProHost'
   }

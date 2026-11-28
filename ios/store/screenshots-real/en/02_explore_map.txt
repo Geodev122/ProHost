@@ -1,0 +1,68 @@
+Attributes: Application, 0x1131d8000, pid: 81140, label: 'ProHost'
+Element subtree:
+ →Application, 0x1131d8000, pid: 81140, label: 'ProHost'
+    Window (Main), 0x1131db5c0, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x1131db480, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x1131db200, {{0.0, 0.0}, {440.0, 956.0}}
+          Other, 0x1131db340, {{0.0, 0.0}, {440.0, 956.0}}
+            Other, 0x1131daf80, {{0.0, 0.0}, {440.0, 956.0}}
+              Other, 0x1131db0c0, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x1131daa80, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x1131da6c0, {{0.0, 0.0}, {440.0, 956.0}}
+                ScrollView, 0x1131da800, {{0.0, 0.0}, {440.0, 956.0}}
+                  Other, 0x1131d8c80, {{0.0, 0.0}, {440.0, 956.0}}
+                    Other, 0x1131d8b40, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x1131d9040, {{12.0, 70.0}, {44.0, 44.0}}
+                      Button, 0x1131d9180, {{10.0, 68.0}, {48.0, 48.0}}, label: 'Search workspaces'
+                        Image, 0x1131d92c0, {{22.0, 80.0}, {24.0, 24.0}}, label: 'Search workspaces'
+                      Other, 0x1131d9400, {{153.0, 70.0}, {134.0, 44.0}}
+                      Image, 0x1131d9540, {{161.0, 79.0}, {26.0, 26.0}}, label: 'ProHost Logo'
+                      Button, 0x1131d97c0, {{195.0, 68.0}, {44.0, 48.0}}, label: 'Map view', Selected
+                        Image, 0x1131d9680, {{209.0, 82.0}, {20.0, 20.0}}, label: 'Map view'
+                      Button, 0x1131d9a40, {{239.0, 68.0}, {48.0, 48.0}}, label: 'List view'
+                        Image, 0x1131d9cc0, {{253.0, 82.0}, {20.0, 20.0}}, label: 'List view'
+                      Other, 0x1131d9900, {{384.0, 70.0}, {44.0, 44.0}}
+                      Other, 0x1131d9f40, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x1131d9e00, {{0.0, 62.0}, {440.0, 860.0}}
+                      Other, 0x1131da080, {{0.0, 62.0}, {440.0, 860.0}}
+                      Other, 0x1131da1c0, {{0.0, 62.0}, {440.0, 860.0}}
+                      Button, 0x1131da300, {{382.0, 68.0}, {48.0, 48.0}}, label: 'Filters'
+                        Image, 0x1131da440, {{394.0, 80.0}, {24.0, 24.0}}, label: 'Filters'
+                      Other, 0x1131da580, {{0.0, 722.7}, {440.0, 147.3}}
+                      Button, 0x1131da940, {{145.7, 722.7}, {149.0, 48.0}}, label: 'Collapse Map List'
+                        StaticText, 0x1131dabc0, {{177.7, 739.7}, {105.0, 14.0}}, label: 'Collapse Map List'
+                      Button, 0x1131d8280, {{368.0, 687.0}, {56.0, 56.0}}, label: 'High-Accuracy GPS Locate'
+                        Image, 0x10650bd40, {{384.0, 703.0}, {24.0, 24.0}}, label: 'High-Accuracy GPS Locate'
+                      Other, 0x10650b840, {{0.0, 776.7}, {440.0, 93.3}}
+                      Other, 0x106508780, {{0.0, 776.7}, {440.0, 85.3}}
+                        Button, 0x106509f40, {{12.0, 776.7}, {260.0, 85.3}}, label: 'Consultation Room, Office, $40, /shift, Consultation Room'
+                          Other, 0x10650a800, {{22.0, 795.3}, {48.0, 48.0}}
+                            Image, 0x1065088c0, {{22.0, 795.3}, {48.0, 48.0}}, label: 'Consultation Room'
+                          Other, 0x10650a440, {{82.0, 786.7}, {44.0, 18.0}}
+                            StaticText, 0x10650b0c0, {{86.0, 788.7}, {36.0, 14.0}}, label: 'Office'
+                          StaticText, 0x1065092c0, {{205.3, 787.7}, {24.7, 16.3}}, label: '$40'
+                          StaticText, 0x105ff7980, {{230.0, 790.0}, {32.0, 14.0}}, label: '/shift'
+                          StaticText, 0x105ff7840, {{82.0, 808.7}, {115.3, 15.3}}, label: 'Consultation Room'
+                          StaticText, 0x105ff5680, {{82.0, 824.0}, {58.7, 14.0}}, label: 'Life Clinic'
+                          StaticText, 0x105ff4b40, {{96.0, 838.0}, {164.3, 14.0}}, label: 'Select choices, and Request'
+                        Button, 0x105ff7ac0, {{284.0, 776.7}, {156.0, 85.3}}, label: 'Therapy Room, Room, Therapy Room, Life Clinic, Select choices, and Request'
+                          Other, 0x105ff6f80, {{294.0, 795.3}, {48.0, 48.0}}
+                            Image, 0x105ff5a40, {{294.0, 795.3}, {48.0, 48.0}}, label: 'Therapy Room'
+                          Other, 0x105ff66c0, {{354.0, 786.7}, {41.7, 18.0}}
+                            StaticText, 0x105ff4dc0, {{358.0, 788.7}, {33.7, 14.0}}, label: 'Room'
+                          StaticText, 0x105ff4a00, {{354.0, 808.7}, {86.0, 15.3}}, label: 'Therapy Room'
+                          StaticText, 0x105ff57c0, {{354.0, 824.0}, {58.7, 14.0}}, label: 'Life Clinic'
+                          StaticText, 0x105ff5900, {{368.0, 838.0}, {72.0, 14.0}}, label: 'Select choices, and Request'
+                      Other, 0x105ff43c0, {{188.0, 870.0}, {64.0, 48.0}}
+                      Button, 0x105ff7c00, {{188.0, 870.0}, {64.0, 48.0}}, identifier: 'bottom_navigation_handle', label: 'Show navigation'
+                        Image, 0x105ff5040, {{208.0, 882.0}, {24.0, 24.0}}, label: 'Show navigation'
+    Window, 0x105ff7200, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x105ff48c0, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x105ff4280, {{0.0, 0.0}, {440.0, 956.0}}
+Path to element:
+ →Application, 0x1131d8000, pid: 81140, label: 'ProHost'
+Query chain:
+ →Find: Target Application 'app.geonajjar.prohost'
+  Output: {
+    Application, 0x105ff6d00, pid: 81140, label: 'ProHost'
+  }

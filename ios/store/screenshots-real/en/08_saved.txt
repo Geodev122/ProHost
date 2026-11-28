@@ -1,51 +1,51 @@
-Attributes: Application, 0x109f252c0, pid: 79843, label: 'ProHost'
+Attributes: Application, 0x1066b52c0, pid: 81140, label: 'ProHost'
 Element subtree:
- →Application, 0x109f252c0, pid: 79843, label: 'ProHost'
-    Window (Main), 0x109f24140, {{0.0, 0.0}, {440.0, 956.0}}
-      Other, 0x109f25400, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x109f25540, {{0.0, 0.0}, {440.0, 956.0}}
-          Other, 0x109f25680, {{0.0, 0.0}, {440.0, 956.0}}
-            Other, 0x109f257c0, {{0.0, 0.0}, {440.0, 956.0}}
-              Other, 0x109f25900, {{0.0, 0.0}, {440.0, 956.0}}
-                Other, 0x109f25cc0, {{0.0, 0.0}, {440.0, 956.0}}
-                Other, 0x109f27d40, {{0.0, 0.0}, {440.0, 956.0}}
-                ScrollView, 0x109f27e80, {{0.0, 0.0}, {440.0, 956.0}}
-                  Other, 0x109f27ac0, {{0.0, 0.0}, {440.0, 956.0}}
-                    Other, 0x109f243c0, {{0.0, 0.0}, {440.0, 956.0}}
-                      Other, 0x109f24000, {{0.0, 0.0}, {440.0, 126.0}}
-                      Image, 0x109f25a40, {{20.0, 77.0}, {34.0, 34.0}}, label: 'ProHost Logo'
-                      StaticText, 0x109f24280, {{62.0, 77.7}, {59.7, 18.7}}, label: 'ProHost'
-                      Button, 0x109f26080, {{384.0, 70.0}, {48.0, 48.0}}, identifier: 'top_bar_notifications_button', label: 'Notifications'
-                        Image, 0x109f25b80, {{396.0, 82.0}, {24.0, 24.0}}, label: 'Notifications'
-                      Other, 0x109f26300, {{0.0, 0.0}, {440.0, 956.0}}
-                      StaticText, 0x109f261c0, {{62.0, 96.3}, {35.7, 14.0}}, label: 'Saved'
-                      Other, 0x109f26440, {{0.0, 126.0}, {440.0, 708.0}}
-                      Other, 0x109f26580, {{0.0, 126.0}, {440.0, 796.0}}
-                      Other, 0x109f266c0, {{0.0, 126.0}, {440.0, 708.0}}
-                      Other, 0x109f26800, {{188.0, 158.0}, {64.0, 64.0}}
-                      StaticText, 0x109f26a80, {{154.3, 238.0}, {131.3, 18.7}}, label: 'Nothing saved yet'
-                      StaticText, 0x109f26940, {{69.0, 264.7}, {302.3, 15.3}}, label: 'Tap the heart on any space to keep it here for later.'
-                      Button, 0x109f26bc0, {{152.7, 296.0}, {135.0, 48.0}}, label: 'Explore spaces'
-                        StaticText, 0x109f26d00, {{176.7, 313.0}, {87.0, 14.0}}, label: 'Explore spaces'
-                      Other, 0x109f26e40, {{16.0, 846.0}, {408.0, 64.0}}
-                      Other, 0x109f26f80, {{16.0, 846.0}, {408.0, 64.0}}, identifier: 'bottom_navigation_bar'
-                      Button, 0x109f27200, {{41.3, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_search_map', label: 'Explore'
-                        Image, 0x109f270c0, {{54.3, 867.0}, {22.0, 22.0}}, label: 'Explore'
-                      Button, 0x109f27340, {{106.3, 854.0}, {105.0, 48.0}}, identifier: 'nav_item_my_favorites', label: 'Saved', Selected
-                        StaticText, 0x109f27480, {{152.3, 868.7}, {43.0, 19.0}}, label: 'Saved'
-                      Button, 0x109f275c0, {{228.7, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_rentals', label: 'My Rentals'
-                        Image, 0x109f27700, {{241.7, 867.0}, {22.0, 22.0}}, label: 'My Rentals'
-                      Button, 0x109f27980, {{292.7, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_profile', label: 'Profile'
-                        Image, 0x109f27840, {{305.7, 867.0}, {22.0, 22.0}}, label: 'Profile'
-                      Button, 0x109f27c00, {{354.0, 854.0}, {48.0, 48.0}}, label: 'Hide navigation'
-                        Image, 0x109f25f40, {{366.0, 866.0}, {24.0, 24.0}}, label: 'Hide navigation'
-    Window, 0x109f25e00, {{0.0, 0.0}, {440.0, 956.0}}
-      Other, 0x109f24a00, {{0.0, 0.0}, {440.0, 956.0}}
-        Other, 0x109f24c80, {{0.0, 0.0}, {440.0, 956.0}}
+ →Application, 0x1066b52c0, pid: 81140, label: 'ProHost'
+    Window (Main), 0x1066b4140, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x1066b5400, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x1066b5540, {{0.0, 0.0}, {440.0, 956.0}}
+          Other, 0x1066b5680, {{0.0, 0.0}, {440.0, 956.0}}
+            Other, 0x1066b57c0, {{0.0, 0.0}, {440.0, 956.0}}
+              Other, 0x1066b5900, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x1066b5cc0, {{0.0, 0.0}, {440.0, 956.0}}
+                Other, 0x1066b7d40, {{0.0, 0.0}, {440.0, 956.0}}
+                ScrollView, 0x1066b7e80, {{0.0, 0.0}, {440.0, 956.0}}
+                  Other, 0x1066b7ac0, {{0.0, 0.0}, {440.0, 956.0}}
+                    Other, 0x1066b43c0, {{0.0, 0.0}, {440.0, 956.0}}
+                      Other, 0x1066b4000, {{0.0, 0.0}, {440.0, 126.0}}
+                      Image, 0x1066b5a40, {{20.0, 77.0}, {34.0, 34.0}}, label: 'ProHost Logo'
+                      StaticText, 0x1066b4280, {{62.0, 77.7}, {59.7, 18.7}}, label: 'ProHost'
+                      Button, 0x1066b6080, {{384.0, 70.0}, {48.0, 48.0}}, identifier: 'top_bar_notifications_button', label: 'Notifications'
+                        Image, 0x1066b5b80, {{396.0, 82.0}, {24.0, 24.0}}, label: 'Notifications'
+                      Other, 0x1066b6300, {{0.0, 0.0}, {440.0, 956.0}}
+                      StaticText, 0x1066b61c0, {{62.0, 96.3}, {35.7, 14.0}}, label: 'Saved'
+                      Other, 0x1066b6440, {{0.0, 126.0}, {440.0, 708.0}}
+                      Other, 0x1066b6580, {{0.0, 126.0}, {440.0, 796.0}}
+                      Other, 0x1066b66c0, {{0.0, 126.0}, {440.0, 708.0}}
+                      Other, 0x1066b6800, {{188.0, 158.0}, {64.0, 64.0}}
+                      StaticText, 0x1066b6a80, {{154.3, 238.0}, {131.3, 18.7}}, label: 'Nothing saved yet'
+                      StaticText, 0x1066b6940, {{69.0, 264.7}, {302.3, 15.3}}, label: 'Tap the heart on any space to keep it here for later.'
+                      Button, 0x1066b6bc0, {{152.7, 296.0}, {135.0, 48.0}}, label: 'Explore spaces'
+                        StaticText, 0x1066b6d00, {{176.7, 313.0}, {87.0, 14.0}}, label: 'Explore spaces'
+                      Other, 0x1066b6e40, {{16.0, 846.0}, {408.0, 64.0}}
+                      Other, 0x1066b6f80, {{16.0, 846.0}, {408.0, 64.0}}, identifier: 'bottom_navigation_bar'
+                      Button, 0x1066b7200, {{41.3, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_search_map', label: 'Explore'
+                        Image, 0x1066b70c0, {{54.3, 867.0}, {22.0, 22.0}}, label: 'Explore'
+                      Button, 0x1066b7340, {{106.3, 854.0}, {105.0, 48.0}}, identifier: 'nav_item_my_favorites', label: 'Saved', Selected
+                        StaticText, 0x1066b7480, {{152.3, 868.7}, {43.0, 19.0}}, label: 'Saved'
+                      Button, 0x1066b75c0, {{228.7, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_rentals', label: 'My Rentals'
+                        Image, 0x1066b7700, {{241.7, 867.0}, {22.0, 22.0}}, label: 'My Rentals'
+                      Button, 0x1066b7980, {{292.7, 854.0}, {48.0, 48.0}}, identifier: 'nav_item_pro_profile', label: 'Profile'
+                        Image, 0x1066b7840, {{305.7, 867.0}, {22.0, 22.0}}, label: 'Profile'
+                      Button, 0x1066b7c00, {{354.0, 854.0}, {48.0, 48.0}}, label: 'Hide navigation'
+                        Image, 0x1066b5f40, {{366.0, 866.0}, {24.0, 24.0}}, label: 'Hide navigation'
+    Window, 0x1066b5e00, {{0.0, 0.0}, {440.0, 956.0}}
+      Other, 0x1066b4a00, {{0.0, 0.0}, {440.0, 956.0}}
+        Other, 0x1066b4c80, {{0.0, 0.0}, {440.0, 956.0}}
 Path to element:
- →Application, 0x109f252c0, pid: 79843, label: 'ProHost'
+ →Application, 0x1066b52c0, pid: 81140, label: 'ProHost'
 Query chain:
  →Find: Target Application 'app.geonajjar.prohost'
   Output: {
-    Application, 0x109f24b40, pid: 79843, label: 'ProHost'
+    Application, 0x1066b4b40, pid: 81140, label: 'ProHost'
   }
