@@ -198,8 +198,14 @@ jobs:
             --project prohost-f766f \
             --only functions,firestore,storage,hosting \
             --non-interactive --force 2>&1 | tee "$RUNNER_TEMP/deploy.log" || {
-            echo "::error title=firebase deploy failed::$(grep -v '^\s*$' "$RUNNER_TEMP/deploy.log" | tail -n 30 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')"
-            exit 1
+            # Quota failures only leave some functions on old code: the next step redeploys exactly those (and fails the
+            # job if any stay old). Any other failure stops here.
+            if grep -qiE 'quota exceeded|resource exhausted|429' "$RUNNER_TEMP/deploy.log"; then
+              echo "::warning title=firebase deploy hit the update quota::the next step redeploys the functions that did not update"
+            else
+              echo "::error title=firebase deploy failed::$(grep -v '^\s*$' "$RUNNER_TEMP/deploy.log" | tail -n 30 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')"
+              exit 1
+            fi
           }
 
       # Cloud Functions allows only so many updates per minute per region: with ~90 functions some updates fail with
@@ -209,8 +215,10 @@ jobs:
         run: |
           set -o pipefail
           sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/deploy.log" > "$RUNNER_TEMP/deploy.clean.log"
-          started=$(grep -oE '(updating|creating) Node\.js [0-9]+ \(2nd Gen\) function [A-Za-z0-9_]+\(' "$RUNNER_TEMP/deploy.clean.log" | sed -E 's/.* function ([A-Za-z0-9_]+)\(/\1/' | sort -u || true)
-          ok=$(grep -oE 'functions\[[A-Za-z0-9_]+\(' "$RUNNER_TEMP/deploy.clean.log" | sed -E 's/functions\[([A-Za-z0-9_]+)\(/\1/' | sort -u || true)
+          # 2nd Gen and the one 1st Gen function (onAuthUserDeleted); a function counts as updated only on a
+          # "Successful create/update operation" line (any other functions[...] line can be a failure).
+          started=$(grep -oE '(updating|creating) Node\.js [0-9]+ (\((1st|2nd) Gen\) )?function [A-Za-z0-9_]+\(' "$RUNNER_TEMP/deploy.clean.log" | sed -E 's/.* function ([A-Za-z0-9_]+)\(/\1/' | sort -u || true)
+          ok=$(grep -oE 'functions\[[A-Za-z0-9_]+\([^)]*\)\] Successful (create|update) operation' "$RUNNER_TEMP/deploy.clean.log" | sed -E 's/functions\[([A-Za-z0-9_]+)\(.*/\1/' | sort -u || true)
           missing=$(comm -23 <(echo "$started") <(echo "$ok") | grep -v '^$' || true)
           # No function changed (e.g. a docs or hosting-only push): grep finds nothing, which is fine.
           if [ -z "$missing" ]; then echo "every function updated"; exit 0; fi
@@ -225,7 +233,7 @@ jobs:
               sleep 30
             done
             sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/redeploy.log" > "$RUNNER_TEMP/redeploy.clean.log"
-            done_now=$(grep -oE 'functions\[[A-Za-z0-9_]+\(' "$RUNNER_TEMP/redeploy.clean.log" | sed -E 's/functions\[([A-Za-z0-9_]+)\(/\1/' | sort -u || true)
+            done_now=$(grep -oE 'functions\[[A-Za-z0-9_]+\([^)]*\)\] Successful (create|update) operation' "$RUNNER_TEMP/redeploy.clean.log" | sed -E 's/functions\[([A-Za-z0-9_]+)\(.*/\1/' | sort -u || true)
             missing=$(comm -23 <(echo "$missing" | tr ' ' '\n' | sort -u) <(echo "$done_now") | grep -v '^$' || true)
           done
           if [ -n "$missing" ]; then

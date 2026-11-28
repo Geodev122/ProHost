@@ -158,6 +158,7 @@ describe("user_profiles", () => {
     const db = env.authenticatedContext("newbie", { email: "n@x.com" }).firestore();
     await assertFails(setDoc(doc(db, "user_profiles", "newbie"), { role: "SPECIALIST", isVerified: false, emailVerified: true }));
     await assertFails(setDoc(doc(db, "user_profiles", "newbie"), { role: "SPECIALIST", isVerified: false, displayCode: "U-AAAAAA" }));
+    await assertFails(setDoc(doc(db, "user_profiles", "newbie"), { role: "SPECIALIST", isVerified: false, blockedUserIds: ["host1"] }));
     await assertSucceeds(setDoc(doc(db, "user_profiles", "newbie"), { role: "SPECIALIST", isVerified: false, fullName: "N" }));
   });
   test("the WhatsApp contact number stays editable", async () => {
@@ -202,6 +203,20 @@ describe("workspace_listings", () => {
     });
     const stale = env.authenticatedContext("host-revoked", { role: "PRO_HOST", email: "r@x.com" }).firestore();
     await assertFails(updateDoc(doc(stale, "workspace_listings", "L-REV"), { title: "Still mine?" }));
+  });
+  test("a listing ProHost hid stays hidden: the host can edit it but not publish it or clear the flag", async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore(), "workspace_listings", "L-HID"), { ownerId: HOST, status: "PAUSED", title: "Hidden", adminHidden: true, adminHiddenPrevStatus: "ACTIVE" });
+    });
+    await assertSucceeds(updateDoc(doc(hostCtx(), "workspace_listings", "L-HID"), { title: "Fixed" }));
+    await assertFails(updateDoc(doc(hostCtx(), "workspace_listings", "L-HID"), { status: "ACTIVE" }));
+    await assertFails(updateDoc(doc(hostCtx(), "workspace_listings", "L-HID"), { adminHidden: false }));
+  });
+  test("a new listing can't carry server fields", async () => {
+    await assertFails(setDoc(doc(hostCtx(), "workspace_listings", "L-NEW1"), { ownerId: HOST, status: "DRAFT", title: "X", searchName: "x" }));
+    await assertFails(setDoc(doc(hostCtx(), "workspace_listings", "L-NEW2"), { ownerId: HOST, status: "DRAFT", title: "X", isActiveSubscription: true }));
+    await assertFails(setDoc(doc(hostCtx(), "workspace_listings", "L-NEW3"), { ownerId: HOST, status: "DRAFT", title: "X", adminHidden: false }));
+    await assertSucceeds(setDoc(doc(hostCtx(), "workspace_listings", "L-NEW4"), { ownerId: HOST, status: "DRAFT", title: "X", isActiveSubscription: false }));
   });
   test("save counts and save history are server-only", async () => {
     await assertFails(updateDoc(doc(hostCtx(), "workspace_listings", "L1"), { favoriteCount: 99 }));

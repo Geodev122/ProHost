@@ -5,7 +5,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { DEFAULT_ROLE, isAppRole } from "../lib/roles";
 import { recordAuditLog } from "../lib/auditLog";
 import { enforcePlayIntegrity } from "../lib/playIntegrity";
-import { emailVerificationSecret, sendEmailVerificationInternal } from "../auth/emailVerification";
+import { sendEmailVerificationInternal } from "../auth/emailVerification";
 import * as logger from "firebase-functions/logger";
 import { emailVerifiedByToken } from "../auth/emailVerifiedRule";
 import "../lib/admin";
@@ -104,8 +104,10 @@ async function validateRegistrationDraft(draft: RegistrationDraft, callerUid: st
   }
 }
 
+// No secret binding: sign-in must never depend on EMAIL_VERIFICATION_SECRET (only the legacy verifyEmailLink reads it);
+// a disabled or rotated secret used to stop this function from starting, i.e. nobody could sign in.
 export const assignInitialRole = onCall(
-  { secrets: [emailVerificationSecret] },
+  {},
   async (request) => {
     const auth = request.auth;
   if (!auth) {

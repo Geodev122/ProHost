@@ -132,6 +132,11 @@ service cloud.firestore {
         (isAdmin() || request.resource.data.get('favoriteCount', 0) == 0) &&
         // Save history (favoritesSync.ts) is server-only from the first write.
         !request.resource.data.keys().hasAny(["favoritesByMonth", "unsavesByMonth", "lastFavoriteEvents"]) &&
+        // Server fields the update rule already denies: never chosen by the creator either (the app sends none of them,
+        // and isActiveSubscription only as false).
+        (isAdmin() || (
+          !request.resource.data.keys().hasAny(["subscriptionExpiryMillis", "createdAtMillis", "searchName", "adminHidden", "adminHiddenPrevStatus"]) &&
+          request.resource.data.get('isActiveSubscription', false) == false)) &&
         // displayCode is minted server-side only when absent; a client-chosen one
         // could impersonate another listing's public code.
         !('displayCode' in request.resource.data) &&
@@ -168,8 +173,12 @@ service cloud.firestore {
              // admin review-queue stamp, set only by requestListingVerification. (Counters,
              // publishBlockedReasons and isDemo are still echoed by released app versions on
              // every save, so they stay owner-writable; strangers may only +1 a counter.)
-             "verificationRequestedAt"]
+             "verificationRequestedAt",
+             // set only by setListingSubscriptionActive (admin Hide listing)
+             "adminHidden", "adminHiddenPrevStatus"]
           ) &&
+          // A listing ProHost hid after a report stays off the public feed until an admin restores it.
+          (isAdmin() || resource.data.get('adminHidden', false) != true || request.resource.data.get('status', 'ACTIVE') != 'ACTIVE') &&
           // Publishing a Draft or resuming a Paused listing (status -> ACTIVE)
           // requires an active package, same as a straight-to-ACTIVE create.
           (isAdmin() ||
@@ -222,6 +231,8 @@ service cloud.firestore {
         // rather than changing any real behavior.
         request.resource.data.get('role', null) == 'SPECIALIST' &&
         request.resource.data.get('ownerPackageId', null) == null &&
+        // The block list is kept by blockUser / unblockUser only (update denies it too); a new profile starts empty.
+        request.resource.data.get('blockedUserIds', []).size() == 0 &&
         request.resource.data.get('activeListingCount', 0) == 0 &&
         // isVerified must match reality — the ID token's own phone_number claim
         // (the same source of truth assignInitialRole.ts already uses

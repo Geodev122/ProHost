@@ -1,6 +1,6 @@
 import { HttpsError } from "firebase-functions/v2/https";
 import { onCall } from "../lib/callable";
-import { getFirestore } from "firebase-admin/firestore";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { recordAuditLog } from "../lib/auditLog";
 import { sendPushToUser, sendPushToAdmins } from "../lib/push";
 import "../lib/admin";
@@ -97,7 +97,22 @@ export const setListingSubscriptionActive = onCall<SetListingSubscriptionActiveD
     throw new HttpsError("not-found", "Workspace listing not found.");
   }
 
-  await ref.set({ isActiveSubscription: active, updatedAt: Date.now() }, { merge: true });
+  // Hiding (Reports › Hide listing, Listings › Deactivate) takes the listing out of every public surface the same way a
+  // host's pause does — status PAUSED, which all app versions, the rules and the sitemap already exclude — and the
+  // server-only adminHidden flag stops the host from simply un-pausing it (firestore.rules). Re-activating restores
+  // the status it had. (isActiveSubscription alone was read by nothing, so "hidden" listings stayed public.)
+  const current = snap.data() ?? {};
+  const update: Record<string, unknown> = { isActiveSubscription: active, updatedAt: Date.now() };
+  if (!active && current.adminHidden !== true) {
+    update.adminHidden = true;
+    update.adminHiddenPrevStatus = typeof current.status === "string" ? current.status : "ACTIVE";
+    update.status = "PAUSED";
+  } else if (active && current.adminHidden === true) {
+    update.adminHidden = FieldValue.delete();
+    update.adminHiddenPrevStatus = FieldValue.delete();
+    update.status = typeof current.adminHiddenPrevStatus === "string" ? current.adminHiddenPrevStatus : "ACTIVE";
+  }
+  await ref.set(update, { merge: true });
   await recordAuditLog({
     actionType: "SUBSCRIPTION_STATUS_TOGGLE",
     details: `Admin ${auth.token.email ?? auth.uid} set listing #${spaceId} subscription active status to ${active}`,
