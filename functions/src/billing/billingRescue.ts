@@ -12,7 +12,7 @@ import { notifyAdminsOfSubscriptionChange } from "./adminBillingAlerts";
 import { healthFromProbe, hoursUntilRefund, rescueHint } from "./billingRescueLogic";
 import "../lib/admin";
 import { isSupportedProduct, planInterval } from "./playCatalog";
-import { readPlayCatalog } from "./playCatalogLive";
+import { readPlayCatalog, readSinglePlanCatalog } from "./playCatalogLive";
 import { runAs } from "../lib/runtimeIdentity";
 
 /**
@@ -72,7 +72,8 @@ export const billingHealthCheck = onCall(runAs("billing"), async (request) => {
   let catalogError: string | null = null;
   try {
     const live = await readPlayCatalog();
-    catalog = live.basePlans.map((bp) => ({
+    const single = await readSinglePlanCatalog();
+    catalog = [...live.basePlans, ...(single?.basePlans ?? [])].map((bp) => ({
       basePlanId: bp.basePlanId,
       state: bp.state,
       period: bp.period,

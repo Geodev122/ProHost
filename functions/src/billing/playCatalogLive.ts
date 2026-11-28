@@ -10,7 +10,7 @@
  */
 import type { androidpublisher_v3 } from "googleapis";
 import { PACKAGE_NAME, getPlayPublisher } from "./billingHelpers";
-import { PLAY_PRODUCT_ID } from "./playCatalog";
+import { PLAY_PRODUCT_ID, PLAY_SINGLE_PRODUCT_ID } from "./playCatalog";
 import { WEBSITE_OFFER_CLAIMS } from "./offerClaims";
 
 type Money = androidpublisher_v3.Schema$Money;
@@ -121,21 +121,21 @@ export function summarizeBasePlan(bp: androidpublisher_v3.Schema$BasePlan, offer
   };
 }
 
-/** Reads package_pro_mrr and all its offers (any base plan) from the Play Developer API. */
-export async function readPlayCatalog(): Promise<{ productId: string; basePlans: LiveBasePlan[]; listingTitle: string | null }> {
+/** Reads one subscription product (default package_pro_mrr, Unlimited) and all its offers from the Play Developer API. */
+export async function readPlayCatalog(productId: string = PLAY_PRODUCT_ID): Promise<{ productId: string; basePlans: LiveBasePlan[]; listingTitle: string | null }> {
   const publisher = await getPlayPublisher();
-  const sub = (await publisher.monetization.subscriptions.get({ packageName: PACKAGE_NAME, productId: PLAY_PRODUCT_ID })).data;
+  const sub = (await publisher.monetization.subscriptions.get({ packageName: PACKAGE_NAME, productId })).data;
   const offers: androidpublisher_v3.Schema$SubscriptionOffer[] = [];
   let pageToken: string | undefined;
   do {
     const res = await publisher.monetization.subscriptions.basePlans.offers.list({
-      packageName: PACKAGE_NAME, productId: PLAY_PRODUCT_ID, basePlanId: "-", pageSize: 100, pageToken,
+      packageName: PACKAGE_NAME, productId, basePlanId: "-", pageSize: 100, pageToken,
     });
     offers.push(...(res.data.subscriptionOffers ?? []));
     pageToken = res.data.nextPageToken ?? undefined;
   } while (pageToken);
   return {
-    productId: PLAY_PRODUCT_ID,
+    productId,
     listingTitle: sub.listings?.[0]?.title ?? null,
     basePlans: (sub.basePlans ?? []).map((bp) =>
       summarizeBasePlan(bp, offers.filter((o) => o.basePlanId === bp.basePlanId).map(summarizeOffer))),
@@ -244,4 +244,13 @@ export function lintOffers(basePlans: LiveBasePlan[], nowMillis: number): string
     }
   }
   return out;
+}
+
+/** The single-listing product (package_single_mrr), read the same way; null when Play doesn't have it. */
+export async function readSinglePlanCatalog(): Promise<{ productId: string; basePlans: LiveBasePlan[]; listingTitle: string | null } | null> {
+  try {
+    return await readPlayCatalog(PLAY_SINGLE_PRODUCT_ID);
+  } catch {
+    return null;
+  }
 }

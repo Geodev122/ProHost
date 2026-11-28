@@ -2135,6 +2135,15 @@ async function playcatalog(db) {
     notice(`playCatalogDetail: ${lines.map((l) => l.trim()).join(" ; ")}`);
     return `${cat.basePlans.length} base plans, ${cat.basePlans.reduce((n, b) => n + b.offers.length, 0)} offers (details in the log)`;
   });
+  // The second tier, "ProHost Premium · 1 listing" (package_single_mrr), read the same way.
+  await step("playSinglePlanLive", async () => {
+    const single = cat?.single;
+    if (!single) return "package_single_mrr NOT readable on Play (missing product, or an older server build)";
+    const lines = single.basePlans.map((bp) =>
+      `BASE ${bp.basePlanId} ${bp.state} ${bp.period} LB=${bp.prices.LB} US=${bp.prices.US} regions=${bp.regionCount} offers=${bp.offers.length}`);
+    notice(`playSinglePlanDetail: ${lines.join(" ; ") || "no base plans"}`);
+    return `${single.basePlans.length} base plans (${single.basePlans.filter((b) => b.state === "ACTIVE").length} active)`;
+  });
   // Strict Play: Play Console is the only billing config, so its mistakes are flagged here (lintOffers).
   await step("playOfferLint", async () => {
     if (!cat) throw new Error("catalog not read (see playCatalogLive)");

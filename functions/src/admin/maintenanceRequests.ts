@@ -18,7 +18,7 @@ import * as logger from "firebase-functions/logger";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { getFirestore } from "firebase-admin/firestore";
 import "../lib/admin";
-import { lintOffers, readPlayCatalog } from "../billing/playCatalogLive";
+import { lintOffers, readPlayCatalog, readSinglePlanCatalog } from "../billing/playCatalogLive";
 import { playOfferFix } from "../billing/playOfferFix";
 import { playSinglePlan } from "../billing/playSinglePlan";
 import { playUnlimitedPrice } from "../billing/playUnlimitedPrice";
@@ -77,7 +77,7 @@ export const onMaintenanceRequest = onDocumentCreated(
     const task = event.data?.get("task");
     if (!ref) return;
     try {
-      const result = task === "playCatalog" ? await readPlayCatalog().then((c) => ({ ...c, lint: lintOffers(c.basePlans, Date.now()) }))
+      const result = task === "playCatalog" ? await readPlayCatalog().then(async (c) => ({ ...c, lint: lintOffers(c.basePlans, Date.now()), single: await readSinglePlanCatalog() }))
         : task === "playSubscriptions" ? await playSubscriptions()
         : task === "integrityProbe" ? await callDecodeIntegrityToken("maintenance-probe-not-a-real-token").then((r) => ({ status: r.status, body: r.body }))
         : task === "playOfferFix" ? await playOfferFix(event.data?.get("arg") === "apply")
