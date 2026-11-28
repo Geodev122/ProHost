@@ -325,3 +325,19 @@ test("plan switch Unlimited → 1 listing: the paid Unlimited period is kept, th
   assert.equal(p.ownerPackageId ?? null, null);
   assert.notEqual(await role(), "PRO_HOST");
 });
+
+test("blocking someone closes the pair's pending requests (neutral reason)", async () => {
+  const SPEC3 = "e2e-spec3";
+  await db.collection("user_profiles").doc(SPEC3).set({ role: "SPECIALIST", fullName: "spec3", email: "spec3@e2e.test", phone: "" });
+  await db.collection("booking_requests").doc("BLK1").set(booking("BLK1", SPEC3));
+  // Let onBookingRequestCreated finish with it first (it stays PENDING).
+  await new Promise((r) => setTimeout(r, 3000));
+  assert.equal((await get("BLK1")).status, "PENDING");
+  const hostToken = await idTokenFor(HOST, "PRO_HOST");
+  const res = await callable("blockUser", hostToken, { targetUid: SPEC3 });
+  assert.equal(res.result?.ok, true, JSON.stringify(res));
+  const b = await waitFor("pending request closed by the block", async () => { const x = await get("BLK1"); return x.status === "REJECTED" && x; });
+  assert.equal(b.rejectedBySystem, true);
+  assert.ok(!/block/i.test(b.rejectionReason ?? ""), "the reason never names a block");
+  await callable("unblockUser", hostToken, { targetUid: SPEC3 });
+});

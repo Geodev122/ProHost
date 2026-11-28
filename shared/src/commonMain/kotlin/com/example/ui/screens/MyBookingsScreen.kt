@@ -133,10 +133,15 @@ fun MyBookingsScreen(
         }
     }
 
-    val activeBookings = remember(userBookings) { userBookings.filter { it.status == BookingRequestStatus.ACCEPTED } }
-    val pendingBookings = remember(userBookings) { userBookings.filter { it.status == BookingRequestStatus.PENDING } }
-    val pastBookings = remember(userBookings) {
-        userBookings.filter { it.status == BookingRequestStatus.REJECTED || it.status == BookingRequestStatus.CANCELLED }
+    // A booking whose term has ended is history (Past): no Edit or Cancel on something that already happened.
+    val ended = remember(userBookings) { userBookings.filter { com.example.ui.util.BookingTerms.hasEnded(it) }.map { it.id }.toSet() }
+    val activeBookings = remember(userBookings, ended) { userBookings.filter { it.status == BookingRequestStatus.ACCEPTED && it.id !in ended } }
+    val pendingBookings = remember(userBookings, ended) { userBookings.filter { it.status == BookingRequestStatus.PENDING && it.id !in ended } }
+    val pastBookings = remember(userBookings, ended) {
+        userBookings.filter {
+            it.status == BookingRequestStatus.REJECTED || it.status == BookingRequestStatus.CANCELLED ||
+                ((it.status == BookingRequestStatus.ACCEPTED || it.status == BookingRequestStatus.PENDING) && it.id in ended)
+        }
     }
 
     // SO2: Play branded notification sound when booking transitions to ACCEPTED or REJECTED.
@@ -798,7 +803,8 @@ fun BookingReservationCard(
                             )
                         }
                         DropdownMenu(expanded = showMoreMenu, onDismissRequest = { showMoreMenu = false }) {
-                            if (booking.status == BookingRequestStatus.ACCEPTED) {
+                            // An ended booking can't be edited, cancelled or reminded about any more.
+                            if (booking.status == BookingRequestStatus.ACCEPTED && !com.example.ui.util.BookingTerms.hasEnded(booking)) {
                                 // Due dates go to the user's own calendar app, which
                                 // gives local reminders for each payment.
                                 DropdownMenuItem(

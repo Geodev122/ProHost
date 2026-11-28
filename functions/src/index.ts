@@ -48,6 +48,7 @@ export { changeSlotPrice } from "./listings/changeSlotPrice";
 export { legalDocumentPage } from "./legal/legalDocumentPage";
 export { onBookingAcceptConflictGuard } from "./bookings/bookingConflictGuard";
 export { onBookingOccupancySync } from "./bookings/occupancyProjection";
+export { expireStaleBookingRequests } from "./bookings/expireStaleRequests";
 export { onUserFavoritesChanged } from "./users/favoritesSync";
 
 export { expirePackages } from "./packages/expirePackages";

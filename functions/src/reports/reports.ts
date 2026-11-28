@@ -51,6 +51,28 @@ async function addBlock(uid: string, targetUid: string): Promise<void> {
     blockedAtMillis: Date.now(),
   });
   await batch.commit();
+  await closePendingBetween(uid, targetUid);
+}
+
+/**
+ * A block also closes the pair's open requests (either side as specialist or host): the host never has to answer a
+ * request from someone blocked, and nobody is told a block happened (neutral reason, like any system decline).
+ */
+async function closePendingBetween(a: string, b: string): Promise<void> {
+  const db = getFirestore();
+  const queries = [[a, b], [b, a]].map(([practitionerId, ownerId]) =>
+    db.collection("booking_requests").where("practitionerId", "==", practitionerId)
+      .where("ownerId", "==", ownerId).where("status", "==", "PENDING").get());
+  const snaps = await Promise.all(queries);
+  const docs = snaps.flatMap((s) => s.docs);
+  if (!docs.length) return;
+  const batch = db.batch();
+  const now = Date.now();
+  for (const d of docs) {
+    batch.update(d.ref, { status: "REJECTED", rejectedBySystem: true, rejectionReason: "This space is no longer available.", reviewedAt: now });
+  }
+  await batch.commit();
+  logger.info("block_closed_pending", { count: docs.length });
 }
 
 /** The uid a block request is about: given directly, or the owner of a listing. */
@@ -189,9 +211,12 @@ export async function blockedBookingProblem(booking: Record<string, unknown>): P
   if (typeof specialist !== "string" || typeof host !== "string" || !specialist || !host) return null;
   try {
     const [s, h] = await Promise.all([profile(specialist).get(), profile(host).get()]);
-    return isBlockedPair(specialist, s.data()?.blockedUserIds, host, h.data()?.blockedUserIds)
-      ? "This host isn't accepting requests from you."
-      : null;
+    if (!isBlockedPair(specialist, s.data()?.blockedUserIds, host, h.data()?.blockedUserIds)) return null;
+    // Said from the sender's side: their own block is theirs to undo; the host's block is never named.
+    const ownList = s.data()?.blockedUserIds;
+    return Array.isArray(ownList) && ownList.includes(host)
+      ? "You blocked this host. Unblock them in Profile › More › Blocked people to send a request."
+      : "This space isn't available to you.";
   } catch (e) {
     logger.error("blockedBookingProblem: couldn't read the block lists", e);
     return null;

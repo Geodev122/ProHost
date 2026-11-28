@@ -205,7 +205,11 @@ class BookingsRepository(private val repo: ProHostRepository) {
             if (findAcceptConflict(requestId) != null) return false
             val now = com.example.util.nowMillis()
 
-            val extraFields = if (agreementUrl != null) mapOf("agreementUrl" to agreementUrl) else emptyMap()
+            val extraFields = buildMap<String, Any?> {
+                if (agreementUrl != null) put("agreementUrl", agreementUrl)
+                // A reason left by an earlier accept that the conflict guard reverted no longer applies.
+                if (request.rejectionReason != null) put("rejectionReason", null)
+            }
             val success = firestoreService.updateBookingStatus(
                 requestId,
                 BookingRequestStatus.ACCEPTED,

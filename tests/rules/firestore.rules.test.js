@@ -119,6 +119,14 @@ describe("booking transitions", () => {
     await assertSucceeds(updateDoc(doc(hostCtx(), "booking_requests", "B_PENDING"),
       { status: "ACCEPTED", reviewedAt: 2, agreementUrl: "https://lease" }));
   });
+  test("accepting may clear a stale reason, never set one", async () => {
+    await assertSucceeds(updateDoc(doc(hostCtx(), "booking_requests", "B_PENDING"),
+      { status: "ACCEPTED", reviewedAt: 2, rejectionReason: null }));
+  });
+  test("accepting can't write a new reason", async () => {
+    await assertFails(updateDoc(doc(hostCtx(), "booking_requests", "B_PENDING"),
+      { status: "ACCEPTED", reviewedAt: 2, rejectionReason: "sneaky" }));
+  });
   test("host rejects a pending request", async () => {
     await assertSucceeds(updateDoc(doc(hostCtx(), "booking_requests", "B_PENDING"),
       { status: "REJECTED", reviewedAt: 2, rejectionReason: "busy" }));

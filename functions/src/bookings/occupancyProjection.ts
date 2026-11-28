@@ -38,8 +38,12 @@ export function occupancyFields(d: FirebaseFirestore.DocumentData): Record<strin
 }
 
 export const onBookingOccupancySync = onDocumentWritten({ document: "booking_requests/{bookingId}", ...runAs("triggers") }, async (event) => {
-  const after = event.data?.after?.data();
-  const ref = getFirestore().collection(OCCUPANCY_COLLECTION).doc(event.params.bookingId);
+  // Project the booking as it is NOW, not as this event saw it: writes close together (an accept reverted by the conflict
+  // guard: ACCEPTED then PENDING) can be delivered out of order, and a late "ACCEPTED" event would leave the slot taken.
+  const db = getFirestore();
+  const current = await db.collection("booking_requests").doc(event.params.bookingId).get();
+  const after = current.exists ? current.data() : undefined;
+  const ref = db.collection(OCCUPANCY_COLLECTION).doc(event.params.bookingId);
   if (after && after.status === "ACCEPTED" && typeof after.spaceId === "string") {
     await ref.set(occupancyFields(after));
   } else {

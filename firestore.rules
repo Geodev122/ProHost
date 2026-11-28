@@ -463,8 +463,10 @@ service cloud.firestore {
         isAdmin() ||
         (request.auth.uid == resource.data.ownerId && !isSuspended() && (
           (request.resource.data.diff(resource.data).affectedKeys().hasOnly(["paymentAcknowledgedByHost"])) ||
+          // Accepting may also clear a reason the conflict guard left from a reverted earlier accept.
           (resource.data.status == 'PENDING' && request.resource.data.status == 'ACCEPTED' &&
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "reviewedAt", "agreementUrl"])) ||
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "reviewedAt", "agreementUrl", "rejectionReason"]) &&
+            request.resource.data.get('rejectionReason', null) == null) ||
           (resource.data.status == 'PENDING' && request.resource.data.status == 'REJECTED' &&
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "reviewedAt", "rejectionReason"])) ||
           (resource.data.status == 'ACCEPTED' && request.resource.data.status == 'CANCELLED' &&
