@@ -288,3 +288,40 @@ test("1-listing plan: a second publish is moved back to Draft with the plan reas
   assert.ok((second.publishBlockedReasons || []).some((r) => /1 listing/.test(r)), `reasons: ${JSON.stringify(second.publishBlockedReasons)}`);
   assert.equal((await db.collection("workspace_listings").doc("E2E-SINGLE-1").get()).data().status, "ACTIVE", "the first stays live");
 });
+
+test("plan switch Unlimited → 1 listing: the paid Unlimited period is kept, then the 1 listing plan takes over, then access ends", async () => {
+  const { grantProHost, removeProHost } = require("./lib/billing/entitlementManager");
+  const UID = "e2e-switch-host";
+  const DAY = 86_400_000;
+  await auth.createUser({ uid: UID, email: "switch@e2e.test" }).catch(() => {});
+  await db.collection("user_profiles").doc(UID).set({ role: "SPECIALIST", fullName: "switch", email: "switch@e2e.test", phone: "" });
+  const subs = db.collection("subscriptions");
+  const unl = { userId: UID, platform: "android", productId: "package_pro_mrr", basePlanId: "pro-monthly1", status: "CANCELED", expiryDate: Date.now() + 5 * DAY, purchaseToken: "tok-unl", orderId: "GPA.unl" };
+  const single = { userId: UID, platform: "android", productId: "package_single_mrr", basePlanId: "single-monthly", status: "ACTIVE", expiryDate: Date.now() + 40 * DAY, purchaseToken: "tok-single", orderId: "GPA.single" };
+  await subs.doc("e2e-unl").set(unl);
+  await subs.doc("e2e-single").set(single);
+  const profile = async () => (await db.collection("user_profiles").doc(UID).get()).data();
+  const role = async () => (await auth.getUser(UID)).customClaims?.role;
+
+  // The new 1 listing purchase syncs while Unlimited still runs: Unlimited stays in force.
+  await grantProHost(UID, { source: "google_play", planId: "single-monthly", expiryMillis: single.expiryDate, orderId: "GPA.single", status: "ACTIVE", subscriptionId: "e2e-single", purchaseToken: "tok-single" });
+  let p = await profile();
+  assert.equal(p.ownerPackageId, "pro-monthly1");
+  assert.equal(p.ownerListingLimit, undefined, "no listing limit while Unlimited is paid");
+  assert.equal(await role(), "PRO_HOST");
+
+  // Unlimited ends: the account moves to the 1 listing plan instead of losing access.
+  await subs.doc("e2e-unl").update({ status: "EXPIRED", expiryDate: Date.now() - 1000 });
+  await removeProHost(UID, { status: "EXPIRED", reason: "e2e", pushMessage: "e2e", subscriptionId: "e2e-unl" });
+  p = await profile();
+  assert.equal(p.ownerPackageId, "single-monthly");
+  assert.equal(p.ownerListingLimit, 1);
+  assert.equal(await role(), "PRO_HOST");
+
+  // The 1 listing plan ends too: back to specialist.
+  await subs.doc("e2e-single").update({ status: "EXPIRED", expiryDate: Date.now() - 1000 });
+  await removeProHost(UID, { status: "EXPIRED", reason: "e2e", pushMessage: "e2e", subscriptionId: "e2e-single" });
+  p = await profile();
+  assert.equal(p.ownerPackageId ?? null, null);
+  assert.notEqual(await role(), "PRO_HOST");
+});

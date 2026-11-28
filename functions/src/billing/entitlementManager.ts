@@ -20,6 +20,7 @@ import { recordAuditLog } from "../lib/auditLog";
 import { setClaimsThenFirestore } from "../lib/roles";
 import { PLAN_LIMIT_REASON, validateListingForPublish, WorkspaceListingDoc } from "../listings/publishValidation";
 import { listingLimitFor, listingsOverLimit } from "./playCatalog";
+import { bestActiveSubscription, planIdOf, StoredSubscription } from "./bestSubscription";
 import {
   ADMIN_FORCED_PLAN_ID,
   BillingStatus,
@@ -57,6 +58,25 @@ function isForced(data: FirebaseFirestore.DocumentData | undefined): boolean {
     data?.ownerPackageId === LEGACY_UNLIMITED_GRANT_PLAN_ID;
 }
 
+/** The account's store subscriptions as recorded by the syncs (`subscriptions/{id}`, server-only). */
+async function storedSubscriptions(uid: string): Promise<StoredSubscription[]> {
+  const snap = await getFirestore().collection("subscriptions").where("userId", "==", uid).get();
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<StoredSubscription, "id">) }));
+}
+
+function grantFrom(s: StoredSubscription): GrantParams {
+  const apple = s.platform === "ios";
+  return {
+    source: apple ? "app_store" : "google_play",
+    planId: planIdOf(s),
+    expiryMillis: Number(s.expiryDate ?? 0),
+    orderId: String((apple ? s.latestTransactionId || s.originalTransactionId : s.orderId) || planIdOf(s)),
+    status: (s.status ?? "ACTIVE") as BillingStatus,
+    subscriptionId: s.id,
+    purchaseToken: apple ? null : s.purchaseToken ?? null,
+  };
+}
+
 /**
  * Grants (or extends) Pro Host for [uid]: entitlement fields, PRO_HOST claim + role,
  * listings restored from a lapse, and the draft parked before checkout auto-published.
@@ -74,6 +94,16 @@ export async function grantProHost(uid: string, p: GrantParams): Promise<void> {
     return;
   }
   const userData = userSnap.data();
+
+  // Two store subscriptions can be active at once while a plan switch completes: the best one sets the entitlement
+  // (Unlimited over 1 listing, then the later expiry), so re-syncs never flip the listing limit (bestSubscription.ts).
+  if (p.source !== "admin_forced") {
+    const best = bestActiveSubscription(await storedSubscriptions(uid), now);
+    if (best && best.id !== p.subscriptionId) {
+      logger.info(`grantProHost uid=${uid}: ${p.subscriptionId} synced, ${best.id} is the better active plan — applying it`);
+      p = grantFrom(best);
+    }
+  }
 
   // Listings the plan may publish at once: 1 for the single-listing tier, unlimited (field removed) otherwise.
   const listingLimit = p.source === "admin_forced" ? null : listingLimitFor(p.planId);
@@ -228,6 +258,13 @@ export async function removeProHost(uid: string, p: RemoveParams): Promise<boole
   const current = userData?.subscriptionId as string | null | undefined;
   if (p.subscriptionId && current && current !== p.subscriptionId) {
     logger.info(`removeProHost uid=${uid}: ${p.status} is for a replaced subscription, skipping`);
+    return false;
+  }
+  // Another subscription still paid for (the plan the account is switching to, or from): hand over to it.
+  const other = bestActiveSubscription((await storedSubscriptions(uid)).filter((s) => s.id !== p.subscriptionId), now);
+  if (other) {
+    logger.info(`removeProHost uid=${uid}: ${p.subscriptionId} ended (${p.status}); ${other.id} is still active — applying it`);
+    await grantProHost(uid, grantFrom(other));
     return false;
   }
   if (!userData?.ownerPackageId) {
