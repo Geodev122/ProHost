@@ -1,6 +1,6 @@
 """Fill App Store Connect for ProHost from ios/store/metadata.json. Idempotent; prints a plan and changes nothing unless --apply.
 
-    python3 scripts/ios/asc_prepare.py [--apply] [--only app,categories,info,version,capability,price,availability,nochina,build,age,testflight,subscriptions,review,betareview,tester,offers,screenshots,subreview]
+    python3 scripts/ios/asc_prepare.py [--apply] [--only app,categories,info,version,capability,price,availability,nochina,build,age,testflight,subscriptions,review,betareview,tester,offers,screenshots,subreview,newversion]
 
 Environment (optional, never printed): ASC_COPYRIGHT ("2026 Legal Name"), REVIEW_FIRST_NAME, REVIEW_LAST_NAME, REVIEW_PHONE, REVIEW_EMAIL,
 REVIEW_DEMO_USER, REVIEW_DEMO_PASSWORD, REVIEW_NOTES, SUBSCRIPTION_YEARLY_USD. Sections whose inputs are missing are skipped with a note.
@@ -154,6 +154,31 @@ if info and want("age"):
 # ---- version: copyright + description, keywords, URLs, promotional text per language
 versions = (get(f"/v1/apps/{APP}/appStoreVersions?limit=5&include=appStoreVersionLocalizations,appStoreReviewDetail") or {})
 version = next((v for v in versions.get("data", []) if (v["attributes"].get("appStoreState") or v["attributes"].get("appVersionState")) in ("PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED", "REJECTED", "METADATA_REJECTED")), None)
+
+# ---- newversion (only when named): the next App Store version after a live one (1.0 is READY_FOR_SALE, so its first
+# subscriptions can only be reviewed with a new version). Apple copies the previous version's text and screenshots;
+# this adds the release's "What's New" (metadata.json nextVersion). Later sections in the same run (build, screenshots)
+# then work on the new version.
+if "newversion" in ONLY:
+    nv = META.get("nextVersion") or {}
+    vs = nv.get("versionString")
+    if version:
+        same(f"editable version {version['attributes'].get('versionString')} already exists")
+    elif not vs:
+        print("FAILED  newversion: metadata.json has no nextVersion.versionString"); failures.append("newversion")
+    else:
+        created = write("POST", "/v1/appStoreVersions", {"data": {"type": "appStoreVersions",
+                        "attributes": {"platform": "IOS", "versionString": vs, "releaseType": "AFTER_APPROVAL"},
+                        "relationships": {"app": rel("apps", APP)}}}, f"create App Store version {vs}")
+        if created and created.get("data"):
+            vid = created["data"]["id"]
+            versions = (get(f"/v1/apps/{APP}/appStoreVersions?limit=5&include=appStoreVersionLocalizations,appStoreReviewDetail") or {})
+            version = next((v for v in versions.get("data", []) if v["id"] == vid), created["data"])
+            for loc in (get(f"/v1/appStoreVersions/{vid}/appStoreVersionLocalizations?limit=50") or {}).get("data", []):
+                text = (nv.get("whatsNew") or {}).get(loc["attributes"].get("locale"))
+                if text:
+                    write("PATCH", f'/v1/appStoreVersionLocalizations/{loc["id"]}', {"data": {"type": "appStoreVersionLocalizations",
+                          "id": loc["id"], "attributes": {"whatsNew": text}}}, f'[{loc["attributes"].get("locale")}] What\'s New')
 if version and want("version"):
     copyright_text = os.environ.get("ASC_COPYRIGHT", "").strip()
     if not copyright_text:
