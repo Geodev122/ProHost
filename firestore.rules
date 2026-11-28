@@ -159,7 +159,8 @@ service cloud.firestore {
       // it; a host could otherwise just un-hide their own lapsed listings.
       allow update: if isSignedIn() && (
         (
-          (isAdmin() || (role() == "PRO_HOST" && resource.data.ownerId == request.auth.uid && !isSuspended())) &&
+          // Live profile role like create (a revoked host's stale token must not keep editing).
+          (isAdmin() || (liveRole(request.auth.uid) == "PRO_HOST" && resource.data.ownerId == request.auth.uid && !isSuspended())) &&
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(
             ["isVerified", "isActiveSubscription", "subscriptionExpiryMillis", "ownerId", "isOwnerSuspended", "isOwnerPackageLapsed", "favoriteCount", "displayCode", "createdAtMillis", "searchName",
              // save history kept by favoritesSync.ts (Owner Analytics "+N this month")

@@ -278,6 +278,13 @@ fun OwnerHubScreen(
                                 sharedText("couldn_t_save_this_as_a_draft_check_your_c")
                             )
                         }
+                        is ListingCreateResult.PlanLimitReached -> {
+                            redirectBlockedListingToPayment(
+                                newListing,
+                                sharedText("saved_as_draft_plan_publishes_one_listing"),
+                                sharedText("couldn_t_save_this_as_a_draft_check_your_c")
+                            )
+                        }
                         is ListingCreateResult.Failed -> {
                             UiMessages.show(sharedText("couldn_t_publish_this_listing_check_your_c"),
                                 long = true)

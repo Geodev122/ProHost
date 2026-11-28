@@ -21,6 +21,8 @@ sealed class ListingCreateResult {
     object Success : ListingCreateResult()
     // Publishing needs an active (non-expired) subscription; there is no listing limit.
     object NoActivePackage : ListingCreateResult()
+    // The 1 listing plan already has a published listing (ownerListingLimit on the profile, set by the server).
+    object PlanLimitReached : ListingCreateResult()
     object Failed : ListingCreateResult()
 }
 
@@ -392,6 +394,15 @@ class ProHostViewModel(
             )
             com.example.analytics.AnalyticsTracker.listingPublishBlocked("no_active_package")
             return ListingCreateResult.NoActivePackage
+        }
+
+        // The 1 listing plan: checked before publishing (the server would move a second one back to Draft anyway).
+        val limit = user?.ownerListingLimit
+        if (!isAdmin && listing.status == ListingStatus.ACTIVE && limit != null &&
+            ownerSpaces.value.count { it.id != listing.id && it.status == ListingStatus.ACTIVE } >= limit
+        ) {
+            com.example.analytics.AnalyticsTracker.listingPublishBlocked("plan_limit")
+            return ListingCreateResult.PlanLimitReached
         }
 
         // Reports the real Firestore result now — this used to return an

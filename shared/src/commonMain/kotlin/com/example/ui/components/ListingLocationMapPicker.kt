@@ -44,6 +44,9 @@ fun ListingLocationMapPicker(
 ) {
     val coroutineScope = rememberCoroutineScope()
     var isLocating by remember { mutableStateOf(false) }
+    // The pin can be confirmed only once the map has drawn: before that its centre is the start-up camera
+    // (world centre, or a draft's guess), which is not a place the host chose.
+    var mapLoaded by remember { mutableStateOf(false) }
 
     val defaultCenter = if (initialLat != null && initialLng != null) {
         GeoPoint(initialLat, initialLng)
@@ -84,7 +87,7 @@ fun ListingLocationMapPicker(
             markers = emptyList(),
             contentPadding = PaddingValues(),
             myLocationEnabled = hasLocationPermission,
-            onMapLoaded = {},
+            onMapLoaded = { mapLoaded = true },
             onMapClick = {},
             modifier = Modifier.fillMaxSize(),
             mapToolbarEnabled = true // the picker kept Maps' default here
@@ -110,6 +113,7 @@ fun ListingLocationMapPicker(
             contentAlignment = Alignment.Center
         ) {
             Surface(
+                enabled = mapLoaded,
                 onClick = {
                     val currentCenter = mapState.camera.target
                     coroutineScope.launch {

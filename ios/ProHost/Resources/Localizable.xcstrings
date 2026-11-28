@@ -17155,6 +17155,23 @@
         }
       }
     },
+    "saved_as_draft_plan_publishes_one_listing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved as a draft. Your plan publishes 1 listing: switch to Unlimited to publish more."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم الحفظ كمسودة. خطتك تنشر إعلاناً واحداً: انتقل إلى الخطة غير المحدودة لنشر المزيد."
+          }
+        }
+      }
+    },
     "saved_update_failed": {
       "extractionState": "manual",
       "localizations": {

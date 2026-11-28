@@ -145,7 +145,8 @@ export const PLAN_LIMIT_REASON = "Your plan publishes 1 listing. Upgrade to ProH
 export function validateListingForPublish(listing: WorkspaceListingDoc): string[] {
   const problems: string[] = [];
 
-  if (!listing.lat || !listing.lng) {
+  // locationPinned === false: the draft was autosaved before the host dropped the pin, so lat/lng are only a guess.
+  if (!listing.lat || !listing.lng || (listing as { locationPinned?: boolean }).locationPinned === false) {
     problems.push("Missing pinned map location.");
   }
 
@@ -211,7 +212,17 @@ export const onWorkspaceListingPublishValidation = onDocumentWritten(
         return;
       }
     }
-    if (data.status !== undefined && data.status !== "ACTIVE") return;
+    // Drafts / paused listings: keep the shown reasons current (clients may not write them), so a fixed draft
+    // stops showing old ones.
+    if (data.status !== undefined && data.status !== "ACTIVE") {
+      const stored = (data as { publishBlockedReasons?: string[] }).publishBlockedReasons ?? [];
+      if (stored.length) {
+        const now = validateListingForPublish(data);
+        const kept = stored.filter((r) => r === PLAN_LIMIT_REASON || now.includes(r));
+        if (kept.length !== stored.length) await after.ref.update({ publishBlockedReasons: kept });
+      }
+      return;
+    }
 
     const problems = validateListingForPublish(data);
     // The single-listing plan (ownerListingLimit on the owner's profile) publishes one listing at a time.
@@ -223,11 +234,23 @@ export const onWorkspaceListingPublishValidation = onDocumentWritten(
       const limit = owner.data()?.ownerListingLimit;
       if (typeof limit === "number") {
         const live = await db.collection("workspace_listings").where("ownerId", "==", data.ownerId).where("status", "==", "ACTIVE").get();
-        const others = live.docs.filter((d) => d.id !== event.params.spaceId).length;
+        // Two listings published at the same moment see each other: only the later one (updatedAt, then id) goes back
+        // to Draft, so the host keeps one live instead of none.
+        const mine = Number((data as { updatedAt?: number }).updatedAt ?? 0);
+        const others = live.docs.filter((d) => {
+          if (d.id === event.params.spaceId) return false;
+          const theirs = Number(d.data()?.updatedAt ?? 0);
+          return theirs < mine || (theirs === mine && d.id < event.params.spaceId) || !mine;
+        }).length;
         if (exceedsListingLimit(limit, others)) problems.push(PLAN_LIMIT_REASON);
       }
     }
-    if (problems.length === 0) return;
+    if (problems.length === 0) {
+      if (((data as { publishBlockedReasons?: string[] }).publishBlockedReasons ?? []).length) {
+        await after.ref.update({ publishBlockedReasons: [] });
+      }
+      return;
+    }
 
     await after.ref.set(
       { status: "DRAFT", publishBlockedReasons: problems, updatedAt: Date.now() },

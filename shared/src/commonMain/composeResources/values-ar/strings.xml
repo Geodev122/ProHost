@@ -302,6 +302,7 @@
     <string name="listing_removed">تم حذف الإعلان</string>
     <string name="listing_updated_successfully">تم تحديث الإعلان بنجاح!</string>
     <string name="listing_saved_booked_slots_kept">تم الحفظ. هذه الأوقات محجوزة، لذلك تبقى متاحة: %1$s</string>
+    <string name="saved_as_draft_plan_publishes_one_listing">تم الحفظ كمسودة. خطتك تنشر إعلاناً واحداً: انتقل إلى الخطة غير المحدودة لنشر المزيد.</string>
     <string name="listings">الإعلانات</string>
     <string name="listings_yield">عائد الإعلانات</string>
     <string name="live_listings">إعلانات منشورة</string>

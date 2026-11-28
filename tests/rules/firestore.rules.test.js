@@ -187,6 +187,14 @@ describe("workspace_listings", () => {
     await assertFails(updateDoc(doc(hostCtx(), "workspace_listings", "L1"), { isVerified: true }));
     await assertFails(updateDoc(doc(specCtx(), "workspace_listings", "L1"), { title: "Hijacked" }));
   });
+  test("a revoked host's stale PRO_HOST token can't edit listings (live profile role)", async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore(), "user_profiles", "host-revoked"), { role: "SPECIALIST", email: "r@x.com", phone: "" });
+      await setDoc(doc(c.firestore(), "workspace_listings", "L-REV"), { ownerId: "host-revoked", status: "ACTIVE", title: "Old" });
+    });
+    const stale = env.authenticatedContext("host-revoked", { role: "PRO_HOST", email: "r@x.com" }).firestore();
+    await assertFails(updateDoc(doc(stale, "workspace_listings", "L-REV"), { title: "Still mine?" }));
+  });
   test("save counts and save history are server-only", async () => {
     await assertFails(updateDoc(doc(hostCtx(), "workspace_listings", "L1"), { favoriteCount: 99 }));
     await assertFails(updateDoc(doc(hostCtx(), "workspace_listings", "L1"), { favoritesByMonth: { "202610": 99 } }));

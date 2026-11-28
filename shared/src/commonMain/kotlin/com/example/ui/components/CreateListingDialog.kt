@@ -399,7 +399,7 @@ fun CreateListingDialog(
     // host still explicitly confirms/moves it before Publish unlocks (see the Step 1
     // gate below).
     // GeoPoint is a plain data class, so it is saved through GeoPointSaver (latitude, longitude).
-    var pickedLatLng by rememberSaveable(stateSaver = GeoPointSaver) { mutableStateOf(existingDraft?.let { GeoPoint(it.lat, it.lng) }) }
+    var pickedLatLng by rememberSaveable(stateSaver = GeoPointSaver) { mutableStateOf(existingDraft?.takeIf { it.locationPinned }?.let { GeoPoint(it.lat, it.lng) }) }
     // Numeric floor, range -5..30 per spec (basement levels down to a high-rise's
     // upper floors). Was a free-text "Floor & Accessibility" string; accessibility
     // notes belong in the description/rules now, not smuggled into a number field.
@@ -1057,6 +1057,7 @@ fun CreateListingDialog(
                           floorInfo = if (floorNumber == 0) sharedText("ground_floor") else sharedText("floor_x", floorNumber),
                           lat = geocodedLat,
                           lng = geocodedLng,
+                          locationPinned = pickedLatLng != null,
                           isShared = isShared,
                           complementarySpecialties = shape.hashtags,
                           // Never overwrite this with just whoever is currently editing —
