@@ -39,25 +39,28 @@ Splash "no loading state"). Admin console: 70 parity items, code exists for 8-36
   dated booking request · push arrives and opens the right screen · links from pro-host.tech open the app · Arabic + dark mode ·
   Premium plan switch · delete account (Apple account shows Apple's sheet). Report anything that differs from Android.
 - ☐ **B5** Fixes from B4, each in a new TestFlight build.
-- ☐ **B6** Real iPhone screenshots (6.9", EN + AR): a CI job runs the app in the simulator with demo data, captures the same 8 screens
+- ◐ **B6** (28 Nov: uploaded to version 1.0.1) Real iPhone screenshots (6.9", EN + AR): a CI job runs the app in the simulator with demo data, captures the same 8 screens
   as the mock-ups and uploads them with `asc_prepare` section `screenshots` (replaces the mock-ups, which Apple does not accept for review).
 - ✅ **B7** App Review package: Maintenance `reviewaccounts` (22 Nov) creates the Specialist (no plan: Premium bought in the sandbox) and the
   Pro Host (permanent grant) password accounts, keeps the passwords only in server-only `app_config/app_review`, and fills App Store Connect's
   sign-in fields + notes (second login appended). Done 22 Nov (run 201): readiness report OK for contact, demo account, notes;
   left for B8: attach the build.
 - ✅ **B8** (22 Nov: build 22 attached, Free price, China mainland removed, phased release on, promo images, PROHOST2026 offer; custom code after approval) ~~ Attach the final build to version 1.0 and the two subscriptions; readiness report shows every line OK.
-- ☐ 👤 **B9** Approve the screenshots; press **Add for Review**. Claude answers any App Review message the same day.
+- ✅ **B9** (1.0 approved, READY_FOR_SALE; its subscriptions were not in it) Approve the screenshots; press **Add for Review**. Claude answers any App Review message the same day.
+- ☐ 👤 **B11** Version 1.0.1 (28 Nov): the 4 subscriptions (1 listing + Unlimited, monthly + yearly) can only be reviewed with a new
+  version, so 1.0.1 was created (What's New EN/AR, real screenshots) and build 25 (Maps key, new markers) is attached when processed.
+  Owner: on the 1.0.1 page tick the 4 subscriptions under "In-App Purchases and Subscriptions", then **Add for Review**.
 - ☐ **B10** After approval: phased release (7 days), Crashlytics and the App Store daily check watched for a week.
 
 ### C. Android to production
-- ☐ 👤 **C1** Test 1.0.50 (internal track): Premium plan switch (1 listing first), Profile (live requests, profile details page),
+- ✅ **C1** (superseded: 1.0.51 and 1.0.52 shipped to production) Test 1.0.50 (internal track): Premium plan switch (1 listing first), Profile (live requests, profile details page),
   My Rentals time bullets, a notification on two devices, a dated booking, report/block.
-- ☐ **C2** Fixes from C1 → 1.0.51 on internal (if needed).
+- ✅ **C2** Fixes from C1 → 1.0.51 on internal (if needed).
 - ✅ **C3** Integration audit (22 Nov, `docs/migration/audits/C3-2026-11-22.md`; new e2e flow for the 1-listing limit): every callable the apps and console call ↔ functions exports; every Firestore/Storage path ↔ rules ↔
   rules tests; `docs/DATA_MODEL.md` (new fields: `ownerListingLimit`, `fcmTokens`, `app_config/apple_iap`); Kotlin ↔ TypeScript
   vectors; e2e flows (incl. a 1-listing publish refusal). Findings fixed before C5.
 - ✅ **C4** NIGHTHAWK clean (A1) + Maintenance `prodcheck` clean (22 Nov run 200: 94/94 functions, indexes READY, no errors 6 h, pages/SEO OK, RTDN self-test OK).
-- ☐ 👤 **C5** Approve production: staged rollout 20 % → watch Crashlytics/Play vitals 48 h → 100 %; then bump `docs/release/published.txt`
+- ◐ **C5** (1.0.52 on production at 20 % since 24 Nov; owner decides the step to 100 %) Approve production: staged rollout 20 % → watch Crashlytics/Play vitals 48 h → 100 %; then bump `docs/release/published.txt`
   (feeds the Instagram agent's release knowledge).
 
 ### D. Admin console on the web (then out of the Android app)
