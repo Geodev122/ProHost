@@ -192,7 +192,9 @@ fun SubdivisionForm(
                 closingHour = subOverrideClosingHour,
                 operatingDays = subOverrideDays.toList(),
                 isSundayOperating = subOverrideSundayOperating,
-                blackoutSlots = subOverrideBlackouts
+                blackoutSlots = subOverrideBlackouts,
+                // The room's closed dates are edited elsewhere: keep them (a sheet save used to wipe them).
+                closedDates = initialOverride?.closedDates ?: emptyList()
             )
         } else null
     )
@@ -350,7 +352,8 @@ fun SubdivisionForm(
                             ),
                             selected = subPricingMode,
                             onSelect = { mode ->
-                                if (mode != subPricingMode) {
+                                // Booked rooms keep their pricing mode: switching it would re-shape the room under live bookings.
+                                if (mode != subPricingMode && !hasBookings) {
                                     subPricingMode = mode
                                     subPricing = if (mode == SubdivisionPricingMode.PER_ATTENDEE) {
                                         com.example.ui.util.AttendeePricing.toAvailabilityMarkers(subPricing)

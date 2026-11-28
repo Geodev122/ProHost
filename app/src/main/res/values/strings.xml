@@ -301,6 +301,7 @@
     <string name="listing_paused">Listing paused</string>
     <string name="listing_removed">Listing removed</string>
     <string name="listing_updated_successfully">Listing updated successfully!</string>
+    <string name="listing_saved_booked_slots_kept">Saved. These slots are still booked, so they stay available: %1$s</string>
     <string name="listings">Listings</string>
     <string name="listings_yield">Listings Yield</string>
     <string name="live_listings">Live listings</string>

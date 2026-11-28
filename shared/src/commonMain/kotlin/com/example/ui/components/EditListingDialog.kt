@@ -9,6 +9,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import com.example.data.model.BookingRequestStatus
 import com.example.data.model.FacilityCatalog
 import com.example.data.model.SpaceListing
+import com.example.ui.util.SlotUsage
 import com.example.ui.util.SpaceCalculationUtils
 import com.example.ui.util.UiMessages
 import com.example.ui.viewmodel.ProHostViewModel
@@ -45,9 +46,16 @@ fun EditListingDialog(space: SpaceListing, viewModel: ProHostViewModel, onDone: 
         onListingCreated = {},
         onListingUpdated = { updated ->
             coroutineScope.launch {
-                val success = viewModel.updateOwnerListing(updated)
+                // A slot a pending or accepted booking still uses can't be switched off: put such slots back before saving.
+                val checked = SlotUsage.keepUsedSlots(space, updated, allBookings)
+                val success = viewModel.updateOwnerListing(checked.listing)
                 onDone()
-                UiMessages.show(if (success) sharedText("listing_updated_successfully") else sharedText("failed_to_update_listing_please_try_again")
+                UiMessages.show(
+                    when {
+                        !success -> sharedText("failed_to_update_listing_please_try_again")
+                        checked.kept.isNotEmpty() -> sharedText("listing_saved_booked_slots_kept", checked.kept.joinToString(", "))
+                        else -> sharedText("listing_updated_successfully")
+                    }
                 )
             }
         }

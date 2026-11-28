@@ -1,0 +1,1112 @@
+{
+ "description": "Slots of a published listing that a pending or accepted booking still uses are kept on when the host switches them off. Generated from functions/src/listings/slotUsage.ts (UPDATE_VECTORS=1 npm test); the Kotlin rule com.example.ui.util.SlotUsage must produce the same.",
+ "today": "2026-12-01",
+ "spaceId": "S1",
+ "cases": [
+  {
+   "name": "free hour switched off stays off",
+   "before": {
+    "pricing": {
+     "strategyType": "HOURLY",
+     "hourly": {
+      "cellPrices": {
+       "Tue|9": 12,
+       "Tue|10": 12,
+       "Wed|9": 15
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "after": {
+    "pricing": {
+     "strategyType": "HOURLY",
+     "hourly": {
+      "cellPrices": {
+       "Tue|9": 12,
+       "Tue|10": 12
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "bookings": [
+    {
+     "id": "b0",
+     "spaceId": "S1",
+     "status": "PENDING",
+     "dateModel": 2,
+     "startDate": "2026-12-08",
+     "bookedSlots": [
+      {
+       "date": "2026-12-08",
+       "key": "9",
+       "startHour": 9,
+       "endHour": 10,
+       "priceUsd": 12
+      }
+     ],
+     "selectedCalendarDates": [
+      "2026-12-08"
+     ],
+     "formula": {
+      "type": "HOURLY",
+      "startHour": "9:00",
+      "endHour": "10:00",
+      "daysOfWeek": []
+     }
+    }
+   ],
+   "expected": {
+    "offered": [
+     "HOURLY:Tue|10",
+     "HOURLY:Tue|9"
+    ],
+    "closedDates": [],
+    "monthlyIndefinite": null,
+    "kept": 0
+   }
+  },
+  {
+   "name": "booked hour (pending, dated) is put back",
+   "before": {
+    "pricing": {
+     "strategyType": "HOURLY",
+     "hourly": {
+      "cellPrices": {
+       "Tue|9": 12,
+       "Tue|10": 12,
+       "Wed|9": 15
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "after": {
+    "pricing": {
+     "strategyType": "HOURLY",
+     "hourly": {
+      "cellPrices": {
+       "Tue|10": 12,
+       "Wed|9": 15
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "bookings": [
+    {
+     "id": "b0",
+     "spaceId": "S1",
+     "status": "PENDING",
+     "dateModel": 2,
+     "startDate": "2026-12-08",
+     "bookedSlots": [
+      {
+       "date": "2026-12-08",
+       "key": "9",
+       "startHour": 9,
+       "endHour": 10,
+       "priceUsd": 12
+      }
+     ],
+     "selectedCalendarDates": [
+      "2026-12-08"
+     ],
+     "formula": {
+      "type": "HOURLY",
+      "startHour": "9:00",
+      "endHour": "10:00",
+      "daysOfWeek": []
+     }
+    }
+   ],
+   "expected": {
+    "offered": [
+     "HOURLY:Tue|10",
+     "HOURLY:Tue|9",
+     "HOURLY:Wed|9"
+    ],
+    "closedDates": [],
+    "monthlyIndefinite": null,
+    "kept": 1
+   }
+  },
+  {
+   "name": "ended booking does not hold the hour",
+   "before": {
+    "pricing": {
+     "strategyType": "HOURLY",
+     "hourly": {
+      "cellPrices": {
+       "Tue|9": 12,
+       "Tue|10": 12,
+       "Wed|9": 15
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "after": {
+    "pricing": {
+     "strategyType": "HOURLY",
+     "hourly": {
+      "cellPrices": {
+       "Tue|10": 12,
+       "Wed|9": 15
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "bookings": [
+    {
+     "id": "b0",
+     "spaceId": "S1",
+     "status": "PENDING",
+     "dateModel": 2,
+     "startDate": "2026-11-24",
+     "bookedSlots": [
+      {
+       "date": "2026-11-24",
+       "key": "9",
+       "startHour": 9,
+       "endHour": 10,
+       "priceUsd": 12
+      }
+     ],
+     "selectedCalendarDates": [
+      "2026-11-24"
+     ],
+     "formula": {
+      "type": "HOURLY",
+      "startHour": "9:00",
+      "endHour": "10:00",
+      "daysOfWeek": []
+     }
+    }
+   ],
+   "expected": {
+    "offered": [
+     "HOURLY:Tue|10",
+     "HOURLY:Wed|9"
+    ],
+    "closedDates": [],
+    "monthlyIndefinite": null,
+    "kept": 0
+   }
+  },
+  {
+   "name": "rejected request does not hold the hour",
+   "before": {
+    "pricing": {
+     "strategyType": "HOURLY",
+     "hourly": {
+      "cellPrices": {
+       "Tue|9": 12,
+       "Tue|10": 12,
+       "Wed|9": 15
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "after": {
+    "pricing": {
+     "strategyType": "HOURLY",
+     "hourly": {
+      "cellPrices": {
+       "Tue|10": 12,
+       "Wed|9": 15
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "bookings": [
+    {
+     "id": "b0",
+     "spaceId": "S1",
+     "status": "REJECTED",
+     "dateModel": 2,
+     "startDate": "2026-12-08",
+     "bookedSlots": [
+      {
+       "date": "2026-12-08",
+       "key": "9",
+       "startHour": 9,
+       "endHour": 10,
+       "priceUsd": 12
+      }
+     ],
+     "selectedCalendarDates": [
+      "2026-12-08"
+     ],
+     "formula": {
+      "type": "HOURLY",
+      "startHour": "9:00",
+      "endHour": "10:00",
+      "daysOfWeek": []
+     }
+    }
+   ],
+   "expected": {
+    "offered": [
+     "HOURLY:Tue|10",
+     "HOURLY:Wed|9"
+    ],
+    "closedDates": [],
+    "monthlyIndefinite": null,
+    "kept": 0
+   }
+  },
+  {
+   "name": "price set to 0 on a booked hour is put back",
+   "before": {
+    "pricing": {
+     "strategyType": "HOURLY",
+     "hourly": {
+      "cellPrices": {
+       "Tue|9": 12,
+       "Tue|10": 12,
+       "Wed|9": 15
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "after": {
+    "pricing": {
+     "strategyType": "HOURLY",
+     "hourly": {
+      "cellPrices": {
+       "Tue|9": 0,
+       "Tue|10": 12,
+       "Wed|9": 15
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "bookings": [
+    {
+     "id": "b0",
+     "spaceId": "S1",
+     "status": "PENDING",
+     "dateModel": 2,
+     "startDate": "2026-12-08",
+     "bookedSlots": [
+      {
+       "date": "2026-12-08",
+       "key": "9",
+       "startHour": 9,
+       "endHour": 10,
+       "priceUsd": 12
+      }
+     ],
+     "selectedCalendarDates": [
+      "2026-12-08"
+     ],
+     "formula": {
+      "type": "HOURLY",
+      "startHour": "9:00",
+      "endHour": "10:00",
+      "daysOfWeek": []
+     }
+    }
+   ],
+   "expected": {
+    "offered": [
+     "HOURLY:Tue|10",
+     "HOURLY:Tue|9",
+     "HOURLY:Wed|9"
+    ],
+    "closedDates": [],
+    "monthlyIndefinite": null,
+    "kept": 1
+   }
+  },
+  {
+   "name": "booked shift marked unavailable is put back",
+   "before": {
+    "pricing": {
+     "strategyType": "SHIFT_BASED",
+     "shiftBased": {
+      "shifts": [
+       {
+        "name": "MORNING",
+        "startHour": 8,
+        "endHour": 12,
+        "isUnavailable": false,
+        "price": 40
+       },
+       {
+        "name": "EVENING",
+        "startHour": 16,
+        "endHour": 20,
+        "isUnavailable": false,
+        "price": 45
+       }
+      ],
+      "distribution": {
+       "Wed": [
+        "MORNING",
+        "EVENING"
+       ],
+       "Thu": [
+        "MORNING"
+       ]
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "after": {
+    "pricing": {
+     "strategyType": "SHIFT_BASED",
+     "shiftBased": {
+      "shifts": [
+       {
+        "name": "MORNING",
+        "startHour": 8,
+        "endHour": 12,
+        "isUnavailable": true,
+        "price": 40
+       },
+       {
+        "name": "EVENING",
+        "startHour": 16,
+        "endHour": 20,
+        "isUnavailable": false,
+        "price": 45
+       }
+      ],
+      "distribution": {
+       "Wed": [
+        "MORNING",
+        "EVENING"
+       ],
+       "Thu": [
+        "MORNING"
+       ]
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "bookings": [
+    {
+     "id": "b0",
+     "spaceId": "S1",
+     "status": "ACCEPTED",
+     "dateModel": 2,
+     "startDate": "2026-12-02",
+     "bookedSlots": [
+      {
+       "date": "2026-12-02",
+       "key": "MORNING",
+       "startHour": 8,
+       "endHour": 12,
+       "shiftName": "MORNING",
+       "priceUsd": 40
+      }
+     ],
+     "selectedCalendarDates": [
+      "2026-12-02"
+     ],
+     "formula": {
+      "type": "SHIFT",
+      "startHour": "08:00",
+      "endHour": "12:00",
+      "daysOfWeek": []
+     }
+    }
+   ],
+   "expected": {
+    "offered": [
+     "SHIFT:EVENING",
+     "SHIFT:MORNING"
+    ],
+    "closedDates": [],
+    "monthlyIndefinite": null,
+    "kept": 1
+   }
+  },
+  {
+   "name": "free shift marked unavailable stays off",
+   "before": {
+    "pricing": {
+     "strategyType": "SHIFT_BASED",
+     "shiftBased": {
+      "shifts": [
+       {
+        "name": "MORNING",
+        "startHour": 8,
+        "endHour": 12,
+        "isUnavailable": false,
+        "price": 40
+       },
+       {
+        "name": "EVENING",
+        "startHour": 16,
+        "endHour": 20,
+        "isUnavailable": false,
+        "price": 45
+       }
+      ],
+      "distribution": {
+       "Wed": [
+        "MORNING",
+        "EVENING"
+       ],
+       "Thu": [
+        "MORNING"
+       ]
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "after": {
+    "pricing": {
+     "strategyType": "SHIFT_BASED",
+     "shiftBased": {
+      "shifts": [
+       {
+        "name": "MORNING",
+        "startHour": 8,
+        "endHour": 12,
+        "isUnavailable": false,
+        "price": 40
+       },
+       {
+        "name": "EVENING",
+        "startHour": 16,
+        "endHour": 20,
+        "isUnavailable": true,
+        "price": 45
+       }
+      ],
+      "distribution": {
+       "Wed": [
+        "MORNING",
+        "EVENING"
+       ],
+       "Thu": [
+        "MORNING"
+       ]
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "bookings": [
+    {
+     "id": "b0",
+     "spaceId": "S1",
+     "status": "ACCEPTED",
+     "dateModel": 2,
+     "startDate": "2026-12-02",
+     "bookedSlots": [
+      {
+       "date": "2026-12-02",
+       "key": "MORNING",
+       "startHour": 8,
+       "endHour": 12,
+       "shiftName": "MORNING",
+       "priceUsd": 40
+      }
+     ],
+     "selectedCalendarDates": [
+      "2026-12-02"
+     ],
+     "formula": {
+      "type": "SHIFT",
+      "startHour": "08:00",
+      "endHour": "12:00",
+      "daysOfWeek": []
+     }
+    }
+   ],
+   "expected": {
+    "offered": [
+     "SHIFT:MORNING"
+    ],
+    "closedDates": [],
+    "monthlyIndefinite": null,
+    "kept": 0
+   }
+  },
+  {
+   "name": "booked day removed is put back",
+   "before": {
+    "pricing": {
+     "strategyType": "DAY_BASED",
+     "dayBased": {
+      "useFacilityHours": true,
+      "distribution": {
+       "Tue": {
+        "price": 75
+       },
+       "Fri": {
+        "price": 60
+       }
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "after": {
+    "pricing": {
+     "strategyType": "DAY_BASED",
+     "dayBased": {
+      "useFacilityHours": true,
+      "distribution": {
+       "Fri": {
+        "price": 60
+       }
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "bookings": [
+    {
+     "id": "b0",
+     "spaceId": "S1",
+     "status": "ACCEPTED",
+     "dateModel": 2,
+     "startDate": "2026-12-08",
+     "bookedSlots": [
+      {
+       "date": "2026-12-08",
+       "key": "DAY",
+       "startHour": 9,
+       "endHour": 18,
+       "priceUsd": 75
+      }
+     ],
+     "selectedCalendarDates": [
+      "2026-12-08"
+     ],
+     "formula": {
+      "type": "DAY_PER_WEEK",
+      "startHour": "09:00",
+      "endHour": "18:00",
+      "daysOfWeek": []
+     }
+    }
+   ],
+   "expected": {
+    "offered": [
+     "DAY:Fri",
+     "DAY:Tue"
+    ],
+    "closedDates": [],
+    "monthlyIndefinite": null,
+    "kept": 1
+   }
+  },
+  {
+   "name": "free day removed stays off",
+   "before": {
+    "pricing": {
+     "strategyType": "DAY_BASED",
+     "dayBased": {
+      "useFacilityHours": true,
+      "distribution": {
+       "Tue": {
+        "price": 75
+       },
+       "Fri": {
+        "price": 60
+       }
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "after": {
+    "pricing": {
+     "strategyType": "DAY_BASED",
+     "dayBased": {
+      "useFacilityHours": true,
+      "distribution": {
+       "Tue": {
+        "price": 75
+       }
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "bookings": [
+    {
+     "id": "b0",
+     "spaceId": "S1",
+     "status": "ACCEPTED",
+     "dateModel": 2,
+     "startDate": "2026-12-08",
+     "bookedSlots": [
+      {
+       "date": "2026-12-08",
+       "key": "DAY",
+       "startHour": 9,
+       "endHour": 18,
+       "priceUsd": 75
+      }
+     ],
+     "selectedCalendarDates": [
+      "2026-12-08"
+     ],
+     "formula": {
+      "type": "DAY_PER_WEEK",
+      "startHour": "09:00",
+      "endHour": "18:00",
+      "daysOfWeek": []
+     }
+    }
+   ],
+   "expected": {
+    "offered": [
+     "DAY:Tue"
+    ],
+    "closedDates": [],
+    "monthlyIndefinite": null,
+    "kept": 0
+   }
+  },
+  {
+   "name": "monthly window cut under an accepted term is put back",
+   "before": {
+    "pricing": {
+     "strategyType": "MONTHLY",
+     "monthly": {
+      "rateUsd": 900,
+      "fromMonth": 1,
+      "fromYear": 2026,
+      "isIndefinite": true,
+      "excludedRanges": []
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "after": {
+    "pricing": {
+     "strategyType": "MONTHLY",
+     "monthly": {
+      "rateUsd": 900,
+      "fromMonth": 1,
+      "fromYear": 2026,
+      "isIndefinite": false,
+      "excludedRanges": [],
+      "toMonth": 12,
+      "toYear": 2026
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "bookings": [
+    {
+     "id": "b0",
+     "spaceId": "S1",
+     "status": "ACCEPTED",
+     "startDate": "2026-12-01",
+     "durationMonths": 3,
+     "formula": {
+      "type": "FULL_MONTH",
+      "startHour": "08:00",
+      "endHour": "18:00",
+      "daysOfWeek": []
+     }
+    }
+   ],
+   "expected": {
+    "offered": [
+     "MONTHLY:"
+    ],
+    "closedDates": [],
+    "monthlyIndefinite": true,
+    "kept": 1
+   }
+  },
+  {
+   "name": "monthly window cut after every term stays",
+   "before": {
+    "pricing": {
+     "strategyType": "MONTHLY",
+     "monthly": {
+      "rateUsd": 900,
+      "fromMonth": 1,
+      "fromYear": 2026,
+      "isIndefinite": true,
+      "excludedRanges": []
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "after": {
+    "pricing": {
+     "strategyType": "MONTHLY",
+     "monthly": {
+      "rateUsd": 900,
+      "fromMonth": 1,
+      "fromYear": 2026,
+      "isIndefinite": false,
+      "excludedRanges": [],
+      "toMonth": 6,
+      "toYear": 2027
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "bookings": [
+    {
+     "id": "b0",
+     "spaceId": "S1",
+     "status": "ACCEPTED",
+     "startDate": "2026-12-01",
+     "durationMonths": 3,
+     "formula": {
+      "type": "FULL_MONTH",
+      "startHour": "08:00",
+      "endHour": "18:00",
+      "daysOfWeek": []
+     }
+    }
+   ],
+   "expected": {
+    "offered": [
+     "MONTHLY:"
+    ],
+    "closedDates": [],
+    "monthlyIndefinite": false,
+    "kept": 0
+   }
+  },
+  {
+   "name": "closed date on a booked day reopens",
+   "before": {
+    "pricing": {
+     "strategyType": "HOURLY",
+     "hourly": {
+      "cellPrices": {
+       "Tue|9": 12,
+       "Tue|10": 12,
+       "Wed|9": 15
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "after": {
+    "pricing": {
+     "strategyType": "HOURLY",
+     "hourly": {
+      "cellPrices": {
+       "Tue|9": 12,
+       "Tue|10": 12,
+       "Wed|9": 15
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": [
+      "2026-12-08"
+     ]
+    }
+   },
+   "bookings": [
+    {
+     "id": "b0",
+     "spaceId": "S1",
+     "status": "PENDING",
+     "dateModel": 2,
+     "startDate": "2026-12-08",
+     "bookedSlots": [
+      {
+       "date": "2026-12-08",
+       "key": "9",
+       "startHour": 9,
+       "endHour": 10,
+       "priceUsd": 12
+      }
+     ],
+     "selectedCalendarDates": [
+      "2026-12-08"
+     ],
+     "formula": {
+      "type": "HOURLY",
+      "startHour": "9:00",
+      "endHour": "10:00",
+      "daysOfWeek": []
+     }
+    }
+   ],
+   "expected": {
+    "offered": [
+     "HOURLY:Tue|10",
+     "HOURLY:Tue|9",
+     "HOURLY:Wed|9"
+    ],
+    "closedDates": [],
+    "monthlyIndefinite": null,
+    "kept": 1
+   }
+  },
+  {
+   "name": "closed date on a free day stays closed",
+   "before": {
+    "pricing": {
+     "strategyType": "HOURLY",
+     "hourly": {
+      "cellPrices": {
+       "Tue|9": 12,
+       "Tue|10": 12,
+       "Wed|9": 15
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "after": {
+    "pricing": {
+     "strategyType": "HOURLY",
+     "hourly": {
+      "cellPrices": {
+       "Tue|9": 12,
+       "Tue|10": 12,
+       "Wed|9": 15
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": [
+      "2026-12-09"
+     ]
+    }
+   },
+   "bookings": [
+    {
+     "id": "b0",
+     "spaceId": "S1",
+     "status": "PENDING",
+     "dateModel": 2,
+     "startDate": "2026-12-08",
+     "bookedSlots": [
+      {
+       "date": "2026-12-08",
+       "key": "9",
+       "startHour": 9,
+       "endHour": 10,
+       "priceUsd": 12
+      }
+     ],
+     "selectedCalendarDates": [
+      "2026-12-08"
+     ],
+     "formula": {
+      "type": "HOURLY",
+      "startHour": "9:00",
+      "endHour": "10:00",
+      "daysOfWeek": []
+     }
+    }
+   ],
+   "expected": {
+    "offered": [
+     "HOURLY:Tue|10",
+     "HOURLY:Tue|9",
+     "HOURLY:Wed|9"
+    ],
+    "closedDates": [
+     "2026-12-09"
+    ],
+    "monthlyIndefinite": null,
+    "kept": 0
+   }
+  },
+  {
+   "name": "closed date inside a monthly term reopens",
+   "before": {
+    "pricing": {
+     "strategyType": "MONTHLY",
+     "monthly": {
+      "rateUsd": 900,
+      "fromMonth": 1,
+      "fromYear": 2026,
+      "isIndefinite": true,
+      "excludedRanges": []
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "after": {
+    "pricing": {
+     "strategyType": "MONTHLY",
+     "monthly": {
+      "rateUsd": 900,
+      "fromMonth": 1,
+      "fromYear": 2026,
+      "isIndefinite": true,
+      "excludedRanges": []
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": [
+      "2026-12-15"
+     ]
+    }
+   },
+   "bookings": [
+    {
+     "id": "b0",
+     "spaceId": "S1",
+     "status": "ACCEPTED",
+     "startDate": "2026-12-01",
+     "durationMonths": 1,
+     "formula": {
+      "type": "FULL_MONTH",
+      "startHour": "08:00",
+      "endHour": "18:00",
+      "daysOfWeek": []
+     }
+    }
+   ],
+   "expected": {
+    "offered": [
+     "MONTHLY:"
+    ],
+    "closedDates": [],
+    "monthlyIndefinite": true,
+    "kept": 1
+   }
+  },
+  {
+   "name": "no bookings: everything the host did stays",
+   "before": {
+    "pricing": {
+     "strategyType": "HOURLY",
+     "hourly": {
+      "cellPrices": {
+       "Tue|9": 12,
+       "Tue|10": 12,
+       "Wed|9": 15
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": []
+    }
+   },
+   "after": {
+    "pricing": {
+     "strategyType": "HOURLY",
+     "hourly": {
+      "cellPrices": {
+       "Tue|10": 12,
+       "Wed|9": 15
+      }
+     }
+    },
+    "subdivisions": [],
+    "schedule": {
+     "closedDates": [
+      "2026-12-08"
+     ]
+    }
+   },
+   "bookings": [],
+   "expected": {
+    "offered": [
+     "HOURLY:Tue|10",
+     "HOURLY:Wed|9"
+    ],
+    "closedDates": [
+     "2026-12-08"
+    ],
+    "monthlyIndefinite": null,
+    "kept": 0
+   }
+  }
+ ]
+}

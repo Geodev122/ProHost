@@ -1,10 +1,13 @@
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
+import { logger } from "firebase-functions/v2";
 import { getFirestore } from "firebase-admin/firestore";
 import { recordAuditLog } from "../lib/auditLog";
 import { isPerAttendee, tiersFor, AttendeeTierDoc } from "../lib/attendeePricing";
 import { pricingFromLegacyFormula } from "./legacyPricing";
 import { runAs } from "../lib/runtimeIdentity";
 import { exceedsListingLimit } from "../billing/playCatalog";
+import { keepUsedSlots, SlotBookingDoc, SlotListingDoc } from "./slotUsage";
+import { todayIso } from "../bookings/bookingTerms";
 
 /** Minimal shape of the parts of a workspace_listings document this validates —
  * mirrors SpaceListing.toFirestoreMap()'s key names (DataModels.kt), not the
@@ -190,6 +193,24 @@ export const onWorkspaceListingPublishValidation = onDocumentWritten(
     const after = event.data?.after;
     if (!after?.exists) return;
     const data = after.data() as WorkspaceListingDoc;
+
+    // Owner rule (28 Nov 2026): a slot a pending or accepted booking still uses can't be switched off. The app keeps such
+    // slots on before saving (SlotUsage.kt); this puts them back for any other writer. The write retriggers this function,
+    // which then finds nothing left to restore.
+    const prior = event.data?.before?.exists ? (event.data.before.data() as SlotListingDoc) : null;
+    const slotsTouched = (d: SlotListingDoc | WorkspaceListingDoc) =>
+      JSON.stringify([(d as SlotListingDoc).pricing ?? null, (d as SlotListingDoc).subdivisions ?? null, (d as SlotListingDoc).schedule?.closedDates ?? null]);
+    if (prior && slotsTouched(prior) !== slotsTouched(data)) {
+      const snap = await getFirestore().collection("booking_requests")
+        .where("spaceId", "==", event.params.spaceId).where("status", "in", ["PENDING", "ACCEPTED"]).get();
+      const bookings = snap.docs.map((d) => ({ id: d.id, ...(d.data() as SlotBookingDoc) }));
+      const { patch, kept } = keepUsedSlots(event.params.spaceId, prior, data as SlotListingDoc, bookings, todayIso());
+      if (kept.length) {
+        await after.ref.update({ ...patch, updatedAt: Date.now() });
+        logger.info("listing_slots_kept", { spaceId: event.params.spaceId, kept });
+        return;
+      }
+    }
     if (data.status !== undefined && data.status !== "ACTIVE") return;
 
     const problems = validateListingForPublish(data);
