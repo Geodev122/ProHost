@@ -9359,6 +9359,23 @@
         }
       }
     },
+    "listing_saved_booked_slots_kept": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved. These slots are still booked, so they stay available: %1$@"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم الحفظ. هذه الأوقات محجوزة، لذلك تبقى متاحة: %1$@"
+          }
+        }
+      }
+    },
     "listing_updated_successfully": {
       "extractionState": "manual",
       "localizations": {
