@@ -78,6 +78,20 @@ export function deviceTokens(profile: { fcmToken?: unknown; fcmTokens?: unknown 
 
 const STALE_TOKEN_CODES = new Set(["messaging/registration-token-not-registered", "messaging/invalid-registration-token"]);
 
+/** A send error that means the token itself is dead. invalid-argument counts only when it names the token (it can also
+ * mean a bad payload, which must never wipe a member's devices). */
+export function isDeadTokenError(err: { code?: unknown; message?: unknown } | undefined): boolean {
+  const code = String(err?.code ?? "");
+  if (STALE_TOKEN_CODES.has(code)) return true;
+  return code === "messaging/invalid-argument" && /registration token/i.test(String(err?.message ?? ""));
+}
+
+/** The stored token list after a send: dead tokens dropped, de-duplicated, only the newest 10 kept. */
+export function prunedTokenList(stored: unknown, dead: string[]): string[] {
+  const list = Array.isArray(stored) ? stored.filter((t): t is string => typeof t === "string" && t.length > 0) : [];
+  return [...new Set(list.filter((t) => !dead.includes(t)))].slice(-10);
+}
+
 export async function sendPushToUser(
   uid: string,
   title: string,
@@ -111,13 +125,15 @@ export async function sendPushToUser(
     const results = await Promise.allSettled(tokens.map((t) => getMessaging().send(fcmMessage(t, title, body, data, notificationId))));
     const stale = tokens.filter((_, i) => {
       const r = results[i];
-      return r.status === "rejected" && STALE_TOKEN_CODES.has(String((r.reason as { code?: string })?.code));
+      return r.status === "rejected" && isDeadTokenError(r.reason as { code?: string; message?: string });
     });
-    if (stale.length > 0) {
-      // An uninstalled app or a rotated token: forget it so future pushes don't keep failing.
+    const storedCount = Array.isArray(profileSnap.data()?.fcmTokens) ? (profileSnap.data()!.fcmTokens as unknown[]).length : 0;
+    if (stale.length > 0 || storedCount > 10) {
+      // An uninstalled app or a rotated token: forget it so future pushes don't keep failing; also keep the stored list to
+      // the newest 10 (older ones were never sent to, so they could never be found dead and cleaned).
       await db.runTransaction(async (tx) => {
         const current = (await tx.get(profileRef)).data();
-        const update: Record<string, unknown> = { fcmTokens: FieldValue.arrayRemove(...stale) };
+        const update: Record<string, unknown> = { fcmTokens: prunedTokenList(current?.fcmTokens, stale) };
         if (typeof current?.fcmToken === "string" && stale.includes(current.fcmToken)) update.fcmToken = FieldValue.delete();
         tx.update(profileRef, update);
       });

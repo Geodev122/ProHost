@@ -1,5 +1,6 @@
 import FirebaseAppCheck
 import FirebaseCore
+import FirebaseCrashlytics
 import FirebaseMessaging
 import GoogleMaps
 import GoogleSignIn
@@ -54,6 +55,12 @@ final class ProHostAppDelegate: NSObject, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         Messaging.messaging().apnsToken = deviceToken
+    }
+
+    /// APNs refused to register this device (no network, a provisioning / entitlement problem): pushes can't arrive, so it
+    /// is recorded in Crashlytics instead of failing silently. The app keeps working; the in-app notification centre still fills.
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        Crashlytics.crashlytics().log("push_register_failed: \(error.localizedDescription)")
     }
 }
 

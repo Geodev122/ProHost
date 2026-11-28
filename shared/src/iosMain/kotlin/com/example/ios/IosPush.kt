@@ -23,7 +23,9 @@ data class PushTarget(
     val bookingId: String?,
     val spaceId: String?,
     val roomId: String? = null,
-    val emailVerified: Boolean = false
+    val emailVerified: Boolean = false,
+    /** Grows on every tap / link so the shell routes a second tap to the same screen too. */
+    val nonce: Long = 0L
 )
 
 /** Push on iOS: the token hook for the shared session code, token refreshes, and notification taps. */
@@ -70,7 +72,8 @@ object IosPush {
             bookingId = previous?.bookingId,
             spaceId = route.listing?.spaceId ?: previous?.spaceId,
             roomId = route.listing?.roomId ?: previous?.roomId,
-            emailVerified = route.emailVerified || previous?.emailVerified == true
+            emailVerified = route.emailVerified || previous?.emailVerified == true,
+            nonce = (previous?.nonce ?: 0L) + 1
         )
     }
 
@@ -83,7 +86,8 @@ object IosPush {
         pendingTarget = PushTarget(
             tab = targetTab?.takeIf { it.isNotBlank() },
             bookingId = bookingId?.takeIf { it.isNotBlank() },
-            spaceId = spaceId?.takeIf { it.isNotBlank() }
+            spaceId = spaceId?.takeIf { it.isNotBlank() },
+            nonce = (pendingTarget?.nonce ?: 0L) + 1
         )
     }
 }

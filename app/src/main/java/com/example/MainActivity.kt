@@ -24,6 +24,8 @@ class MainActivity : ComponentActivity() {
     private var targetBookingId by mutableStateOf<String?>(null)
     private var targetSpaceId by mutableStateOf<String?>(null)
     private var targetRoomId by mutableStateOf<String?>(null)
+    // One more on every tap / link: the shell routes each tap once, even to the same screen twice.
+    private var targetNonce by mutableStateOf(0L)
     private var emailVerifiedDeepLink by mutableStateOf(false)
     private var inAppUpdateManager: InAppUpdateManager? = null
 
@@ -76,6 +78,7 @@ class MainActivity : ComponentActivity() {
                     deepLinkBookingId = targetBookingId,
                     deepLinkSpaceId = targetSpaceId,
                     deepLinkRoomId = targetRoomId,
+                    deepLinkNonce = targetNonce,
                     emailVerifiedDeepLink = emailVerifiedDeepLink,
                     inAppUpdateManager = inAppUpdateManager,
                     slots = com.example.ui.navigation.AndroidAppRootSlots
@@ -130,6 +133,7 @@ class MainActivity : ComponentActivity() {
     private fun handleIncomingIntent(intent: Intent?) {
         if (intent == null) return
         logIncomingIntent(intent)
+        targetNonce += 1
         val tab = intent.getStringExtra("target_tab")
         val bookingId = intent.getStringExtra("booking_id")
         if (!tab.isNullOrBlank()) {

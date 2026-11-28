@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NOTIFICATION_TTL_MS, deviceTokens, fcmMessage, notificationDoc } from "./push";
+import { NOTIFICATION_TTL_MS, deviceTokens, fcmMessage, isDeadTokenError, notificationDoc, prunedTokenList } from "./push";
 
 test("in-app notifications keep the push routing and expire after 48 h", () => {
   const doc = notificationDoc("Booking accepted", "See you there", { category: "BOOKING_UPDATE", targetTab: "pro_rentals", bookingId: "b1" }, 1000);
@@ -41,4 +41,19 @@ test("deviceTokens merges the device list with the legacy field, without duplica
 
 test("a categorised push is threaded by its category on iOS", () => {
   assert.equal(fcmMessage("t", "a", "b", { category: "BOOKING_UPDATE" }).apns.payload.aps["thread-id"], "BOOKING_UPDATE");
+});
+
+test("dead token errors: unregistered / invalid tokens, and invalid-argument only when it names the token", () => {
+  assert.equal(isDeadTokenError({ code: "messaging/registration-token-not-registered" }), true);
+  assert.equal(isDeadTokenError({ code: "messaging/invalid-registration-token" }), true);
+  assert.equal(isDeadTokenError({ code: "messaging/invalid-argument", message: "The registration token is not a valid FCM registration token" }), true);
+  assert.equal(isDeadTokenError({ code: "messaging/invalid-argument", message: "Invalid JSON payload received." }), false);
+  assert.equal(isDeadTokenError({ code: "messaging/internal-error" }), false);
+});
+
+test("the stored token list drops dead tokens and keeps the newest 10", () => {
+  const twelve = Array.from({ length: 12 }, (_, i) => `t${i}`);
+  assert.deepEqual(prunedTokenList(twelve, ["t11"]), ["t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9", "t10"]);
+  assert.deepEqual(prunedTokenList(["a", "a", "b"], []), ["a", "b"]);
+  assert.deepEqual(prunedTokenList(undefined, []), []);
 });

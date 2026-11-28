@@ -138,6 +138,8 @@ fun ProHostAppRoot(
     deepLinkBookingId: String? = null,
     deepLinkSpaceId: String? = null,
     deepLinkRoomId: String? = null,
+    /** Grows by one on every notification tap / link, so a second tap to the same screen routes again. */
+    deepLinkNonce: Long = 0L,
     emailVerifiedDeepLink: Boolean = false,
     inAppUpdateManager: com.example.util.AppUpdater? = null,
     slots: AppRootSlots,
@@ -256,11 +258,17 @@ fun ProHostAppRoot(
     // Saved (as the enum name) so recreation — theme/locale change, process death — keeps the
     // restored tab instead of routing back to the role's home screen.
     var lastRoutedRole by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
-    LaunchedEffect(currentUser?.role, deepLinkTab) {
+    // A tap is routed once: a later role change (a plan activating) must not jump back to an old push's screen.
+    var routedNonce by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(-1L) }
+    LaunchedEffect(currentUser?.role, deepLinkTab, deepLinkNonce) {
         val role = currentUser?.role
         val previousRole = lastRoutedRole
         lastRoutedRole = role?.name
-        if (!deepLinkTab.isNullOrBlank() && role != null && deepLinkTab in allowedTabIdsForRole(role)) {
+        val freshTap = deepLinkNonce != routedNonce
+        if (freshTap && !deepLinkTab.isNullOrBlank() && role != null && deepLinkTab in allowedTabIdsForRole(role)) {
+            routedNonce = deepLinkNonce
+            // The booking a push is about is highlighted where it opens, as from the in-app notification centre.
+            if (!deepLinkBookingId.isNullOrBlank() && deepLinkTab == "pro_rentals") rentalsHighlightBookingId = deepLinkBookingId
             // MainActivity is an exported activity (required for the launcher intent
             // and App Links) and reads "target_tab" straight from an
             // Intent extra for FCM-notification-tap deep links. Without this check,
@@ -337,10 +345,12 @@ fun ProHostAppRoot(
     // the existing search/filter fields on those screens rather than a separate detail
     // modal, since there is no standalone booking-detail route yet. (H4)
     var consumedDeepLinkBookingId by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(deepLinkBookingId, currentUser?.id) {
+    var consumedBookingNonce by remember { mutableStateOf(-1L) }
+    LaunchedEffect(deepLinkBookingId, currentUser?.id, deepLinkNonce) {
         if (deepLinkBookingId.isNullOrBlank() || currentUser == null) return@LaunchedEffect
-        if (consumedDeepLinkBookingId == deepLinkBookingId) return@LaunchedEffect
+        if (consumedDeepLinkBookingId == deepLinkBookingId && consumedBookingNonce == deepLinkNonce) return@LaunchedEffect
         consumedDeepLinkBookingId = deepLinkBookingId
+        consumedBookingNonce = deepLinkNonce
         val role = currentUser?.role
         // A notification that names its own target tab (handled by the role-validated
         // deep-link effect above) wins; this is only the fallback for a bare booking id.
