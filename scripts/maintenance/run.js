@@ -710,17 +710,20 @@ async function crashes(arg) {
     if (!r.ok) throw new Error(`HTTP ${r.status} ${t.slice(0, 300)}`);
     return JSON.parse(t || "{}");
   };
+  const issueIds = [];
   try {
     const rep = await get(`${base}/reports/topIssues?${q}&page_size=10`);
     for (const g of rep.groups || []) {
       const i = g.issue || {};
       const m = (g.metrics || [])[0] || {};
+      if (i.id) issueIds.push(i.id);
       notice(`issue ${i.id} ${i.errorType || ""} "${String(i.title || "").slice(0, 120)}" — ${String(i.subtitle || "").slice(0, 120)} events=${m.eventsCount || "?"} users=${m.impactedUsersCount || "?"}`);
     }
     if (!(rep.groups || []).length) notice(`crashes: no issues in the last ${days} day(s) (${appId.split(":")[2]})`);
   } catch (e) { notice(`crashes: topIssues failed: ${e.message}`); }
-  try {
-    const ev = await get(`${base}/events?${q}&page_size=8`);
+  // The events list needs an issue: read the latest 2 events of each of the top 4 issues.
+  for (const issueId of issueIds.slice(0, 4)) try {
+    const ev = await get(`${base}/events?${q}&filter.issue.id=${encodeURIComponent(issueId)}&page_size=2`);
     for (const e of ev.events || []) {
       const frames = [];
       for (const x of [...(e.exceptions || []), ...(e.errors || []), ...(e.threads || []).filter((t) => t.crashed || t.blamed)]) {
@@ -731,8 +734,8 @@ async function crashes(arg) {
       notice(`event ${e.eventTime} v${(e.version || {}).displayVersion || "?"}(${(e.version || {}).buildVersion || "?"}) ${(e.issue || {}).id || ""} ` +
         `${head.type || head.exceptionType || ""} ${String(head.exceptionMessage || head.reason || "").slice(0, 160)} | ${frames.join(" < ")}`.slice(0, 1800));
     }
-    if (!(ev.events || []).length) notice("crashes: no events returned");
-  } catch (e) { notice(`crashes: events failed: ${e.message}`); }
+    if (!(ev.events || []).length) notice(`crashes: no events returned for ${issueId}`);
+  } catch (e) { notice(`crashes: events for ${issueId} failed: ${e.message}`); }
 }
 
 const maskEmail = (e) => { if (!e) return ""; const at = e.indexOf("@"); return at <= 0 ? "***" : `${e[0]}***${e.slice(at)}`; };
