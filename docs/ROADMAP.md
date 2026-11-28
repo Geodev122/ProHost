@@ -92,6 +92,14 @@ Splash "no loading state"). Admin console: 70 parity items, code exists for 8-36
 ### G. AI agent (independent)
 - ☐ 👤 **G1** Decide D8 (new Google project + a quiet window for the Meta webhook switch); then Claude moves it (steps 3-6 of P9).
 
+### I. Debug round 28 Nov (owner)
+- ☐ 👤 **I1** 1.0.1: tick the 4 subscriptions on the version page, then Add for Review (the API can't add first subscriptions).
+- ✅ **I2** Slots on published listings: free slots switch off, used ones stay (app + server, shared vectors).
+- ✅ **I3** Listing creation fixes (real pin, 1-listing pre-check, publish reasons, live role, iPhone pin picker).
+- ✅ **I4** Booking life cycle fixes (Past, occupancy, blocks, stale requests, e2e).
+- ✅ **I5** Push cycle fixes (tap routing, token pruning, iOS registration log).
+- ◐ **I6** Schema/security/deploy: admin Hide fixed, create rules, sign-in secret, deploy pipeline; deferred items in OPS_LOG 28 Nov.
+
 ### H. Hand-over hygiene (Claude, alongside)
 - ☐ **H1** CLAUDE.md slimmed to rules + pointers (topic files under `docs/`), no rule lost.
 - ✅ **H2** (22 Nov) `docs/migration/HANDOVER.md` refreshed with this plan's state.

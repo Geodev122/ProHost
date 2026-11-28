@@ -320,3 +320,21 @@ First deploy since 2b1d587 (runs 336-338 were blocked by a missing PARITY.md row
   - Maps on iPhone verified: ios-screenshots run (test now taps "Map view") captured 02_explore_map in en + ar, map band
     ≈6,300 distinct colours (tiles drawn; a blank map has 1-2). Build 25 (1.0.1, run 46114367089) attached to version 1.0.1
     (ios-inspect `only=build build_number=25`). Left for the owner: tick the 4 subscriptions on the 1.0.1 page, Add for Review.
+- 28 Nov 2026 debug round (owner: 1.0.1 subscriptions warning, listing creation, booking life cycle, slots on published
+  listings, push cycle, schema/architecture, deploy all functions). Branch commits 42ee8bb → c05d1a3:
+  - App Store: 1.0.1 was never submitted (PREPARE_FOR_SUBMISSION, build 25, 4 subscriptions READY_TO_SUBMIT); Apple's API
+    can't add first subscriptions, so the owner ticks them on the 1.0.1 page and presses Add for Review.
+  - Slots: SlotUsage.kt / slotUsage.ts (vectors tests/vectors/slot-usage.json) keep any slot a pending/accepted booking
+    uses; the listing trigger enforces it server-side. Room closed dates survive sheet saves; booked rooms keep their
+    pricing mode.
+  - Listing creation: `locationPinned`, 1-listing pre-check, publish reasons refreshed by the server, live role on
+    listing update, pin picker waits for the map.
+  - Bookings: ended → Past, occupancy re-reads the booking, block closes pending requests, accept clears stale reasons,
+    new scheduled function `expireStaleBookingRequests` (6 h), dead code removed.
+  - Push: tap nonce (repeat taps route, booking highlighted), token pruning, dead-token detection, iOS registration
+    failures logged.
+  - Security/deploy: admin Hide = PAUSED + server-only adminHidden (was a no-op); create rules close server fields;
+    assignInitialRole without the email secret; build-and-deploy redeploys quota failures and the 1st Gen function.
+  - Deferred (tracker I6 notes): suggestSchemaItem callable for host amenity suggestions, displayCodes correction,
+    vectors for attendeePricing/savedKeys/isPublicListing, strict prodcheck (SHA/runtime), room blackouts in DateSlots,
+    view-model→repository refactor, DATA_MODEL.md refresh, `extensions` declared in firebase.json.
